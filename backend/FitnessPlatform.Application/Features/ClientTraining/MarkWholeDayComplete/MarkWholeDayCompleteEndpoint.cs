@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -75,12 +76,16 @@ public class MarkWholeDayCompleteEndpoint(
         var targetDateOnly = req.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var targetDate = targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-        // Find the active training plan
+        // Find the Active training plan whose date window contains the target date — a client
+        // may hold several sequential, non-overlapping Active plans (#780).
         var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
                          & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
 
         using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var plan = await planCursor.FirstOrDefaultAsync(ct);
+        var activePlans = await planCursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(
+            activePlans, p => p.StartDate, p => p.Weeks.Count,
+            targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
 
         if (plan is null)
         {

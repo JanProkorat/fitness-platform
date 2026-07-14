@@ -125,6 +125,13 @@ public static class ErrorCodes
     /// <summary>The target week's start Monday is in the past.</summary>
     public const string WeekStartInPast = "WEEK_START_IN_PAST";
 
+    /// <summary>
+    /// The new plan's date window ([StartDate, StartDate + WeekCount * 7)) overlaps an existing
+    /// Draft or Active same-type plan for the client (#780 — multiple sequential plans per client
+    /// are allowed, but their windows may not overlap).
+    /// </summary>
+    public const string PlanOverlap = "PLAN_OVERLAP";
+
     // ── Client Requests ───────────────────────────────────────────────
     /// <summary>Professional profile not found.</summary>
     public const string ProfessionalNotFound = "PROFESSIONAL_NOT_FOUND";

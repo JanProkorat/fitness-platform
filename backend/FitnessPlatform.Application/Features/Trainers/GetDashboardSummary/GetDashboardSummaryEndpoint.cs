@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -170,21 +171,23 @@ public class GetDashboardSummaryEndpoint(
         var workoutsCompleted = todayCompliance.TrainingsCompleted;
         var workoutsPlanned = todayCompliance.TrainingsPlanned;
 
-        // Active training plan — still needed for HasActiveTrainingPlan flag.
-        var activePlan = await mongo.TrainingPlans
+        // Active training plan — still needed for HasActiveTrainingPlan flag. A client may hold
+        // several sequential, non-overlapping Active plans (#780); pick the one whose date
+        // window contains today rather than the most recently published one.
+        var activeTrainingPlans = await mongo.TrainingPlans
             .Find(Builders<TrainingPlan>.Filter.And(
                 Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
                 Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
-            .SortByDescending(p => p.DatePublished)
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
+        var activePlan = PlanWindowResolver.ResolveCurrentPlan(activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, now);
 
-        // Active nutrition plan — NutritionPlan.ClientId = PublicId
-        var activeNutritionPlan = await mongo.NutritionPlans
+        // Active nutrition plan — NutritionPlan.ClientId = PublicId. Same date-window selection.
+        var activeNutritionPlans = await mongo.NutritionPlans
             .Find(Builders<NutritionPlan>.Filter.And(
                 Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
                 Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)))
-            .SortByDescending(p => p.DatePublished)
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
+        var activeNutritionPlan = PlanWindowResolver.ResolveCurrentPlan(activeNutritionPlans, p => p.StartDate, p => p.Weeks.Count, now);
 
         // Resolve today's plan day (same week/day cycling as GetTodayPlan)
         PlanDay? todayPlanDay = null;

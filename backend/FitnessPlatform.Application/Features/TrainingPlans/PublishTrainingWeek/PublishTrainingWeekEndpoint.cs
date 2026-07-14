@@ -17,7 +17,9 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek
 
 /// <summary>
 /// Publishes a single week of a training plan, making it visible to the client.
-/// Archives other active training plans for the same client when the first week is published.
+/// When the first week is published, supersedes (archives) other Active training plans for the
+/// same client ONLY if their date window overlaps this plan's window — non-overlapping Active
+/// plans (e.g. a past or future plan) are left untouched (#780).
 /// Defensively clears any stale Editing lock docs for the week's sessions on publish.
 /// </summary>
 public class PublishTrainingWeekEndpoint(
@@ -36,7 +38,7 @@ public class PublishTrainingWeekEndpoint(
         Summary(s =>
         {
             s.Summary = "Publish a week of a training plan";
-            s.Description = "Sets the week's status to Published. Archives other active training plans for the same client. " +
+            s.Description = "Sets the week's status to Published. Archives other Active training plans for the same client whose date window overlaps this plan's. " +
                             "Clears any stale Editing lock docs for the week's sessions.";
         });
     }
@@ -134,19 +136,41 @@ public class PublishTrainingWeekEndpoint(
 
         var plan = guardResult.Document!;
 
-        // Now that the publish itself is confirmed, archive other active plans if this was
-        // the first published week.
+        // Now that the publish itself is confirmed, supersede other Active training plans of the
+        // same client — but ONLY those whose date window overlaps this plan's window. A client
+        // may legitimately hold several sequential, non-overlapping Active plans at once (#780);
+        // publishing a March plan must not archive a still-relevant January plan. Plans without a
+        // StartDate are unranged and are neither archived nor allowed to block — this plan itself
+        // already required a StartDate to publish (see StartDateRequired above), so only the
+        // OTHER side of the comparison needs the null-guard.
         if (!hadPublishedWeeks)
         {
-            var archiveFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+            var siblingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
                                 & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
-            var archiveUpdate = Builders<TrainingPlan>.Update
-                .Set(p => p.Status, TrainingPlanStatus.Archived)
-                .Set(p => p.DateUpdated, DateTime.UtcNow);
+            using var siblingCursor = await mongo.TrainingPlans.FindAsync(siblingFilter, cancellationToken: ct);
+            var siblings = await siblingCursor.ToListAsync(ct);
 
-            await mongo.TrainingPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
+            var overlappingIds = siblings
+                .Where(s => s.ExternalId != plan.ExternalId) // defensive — the sibling filter already excludes self
+                .Where(s => s.StartDate.HasValue
+                            && PlanWindowResolver.WindowsOverlap(
+                                plan.StartDate!.Value, plan.Weeks.Count,
+                                s.StartDate.Value, s.Weeks.Count))
+                .Select(s => s.ExternalId)
+                .ToList();
+
+            if (overlappingIds.Count > 0)
+            {
+                var archiveFilter = Builders<TrainingPlan>.Filter.In(p => p.ExternalId, overlappingIds);
+
+                var archiveUpdate = Builders<TrainingPlan>.Update
+                    .Set(p => p.Status, TrainingPlanStatus.Archived)
+                    .Set(p => p.DateUpdated, DateTime.UtcNow);
+
+                await mongo.TrainingPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
+            }
         }
 
         // Defensive cleanup: clear any stale Editing lock docs for the week's sessions.

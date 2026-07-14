@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -52,12 +53,15 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var clientId = clientProfile.PublicId;
 
+        // Find the Active plan whose date window contains today — a client may hold several
+        // sequential, non-overlapping Active plans (#780).
         var filter = Builders<Domain.Documents.NutritionPlan>.Filter.And(
             Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
             Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var activePlans = await cursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
         if (plan is null)
         {

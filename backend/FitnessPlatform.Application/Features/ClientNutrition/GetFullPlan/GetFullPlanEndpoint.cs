@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -54,13 +55,15 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var clientId = clientProfile.PublicId;
 
-        // Find the active nutrition plan for this client
+        // Find the Active plan whose date window contains today — a client may hold several
+        // sequential, non-overlapping Active plans (#780).
         var filter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
             Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var activePlans = await cursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
         if (plan is null)
         {

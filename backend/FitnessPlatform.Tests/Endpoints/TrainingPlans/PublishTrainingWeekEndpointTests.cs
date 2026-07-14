@@ -105,6 +105,64 @@ public class PublishTrainingWeekEndpointTests
             .Should().Be(ErrorCodes.PlanVersionConflict);
     }
 
+    /// <summary>
+    /// Regression guard for #780: publishing plan B's first week must NOT archive a
+    /// non-overlapping Active plan A of the same client — e.g. a January plan stays Active
+    /// when a March plan is published. Only overlapping/same-window Active plans may be
+    /// superseded.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FirstPublish_NonOverlappingActivePlan_DoesNotArchiveIt()
+    {
+        var clientId = Guid.NewGuid();
+        var planBId = Guid.NewGuid();
+
+        // Plan A: Active, already published, window fully in the past (started 60 days ago,
+        // 2-week duration — long elapsed by the time Plan B's window begins).
+        var planA = TrainingPlanTestHelpers.CreatePlan(
+            clientId: clientId, trainerId: _trainerId,
+            status: TrainingPlanStatus.Active, weekCount: 2, version: 1);
+        planA.StartDate = DateTime.UtcNow.Date.AddDays(-60);
+        planA.Weeks[0].Status = WeekStatus.Published;
+        planA.Weeks[0].DatePublished = planA.StartDate;
+
+        // Plan B: Draft, about to publish its first week, window starts today —
+        // does not overlap Plan A's window at all.
+        var planB = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planBId, clientId: clientId, trainerId: _trainerId,
+            status: TrainingPlanStatus.Draft, weekCount: 2, version: 1);
+        planB.StartDate = DateTime.UtcNow.Date;
+
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(planB, planA);
+
+        var ep = Factory.Create<PublishTrainingWeekEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService(),
+            new PlanConcurrencyGuard());
+
+        await ep.HandleAsync(new PublishTrainingWeekRequest
+        {
+            PlanId = planBId,
+            WeekNumber = 1,
+            Version = 1
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Plan A's window does not overlap Plan B's — it must NOT be archived.
+        await mongo.TrainingPlans.DidNotReceive().UpdateManyAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_ReplaceLosesRace_Returns409AndDoesNotArchiveSiblings()
     {

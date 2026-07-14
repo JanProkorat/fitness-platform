@@ -3,11 +3,14 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 
@@ -72,6 +75,34 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             if (!responseExists)
             {
                 ThrowError("QuestionnaireResponseId", "Questionnaire response not found or not submitted.");
+                return;
+            }
+        }
+
+        // Overlap check: a client may hold several sequential, non-overlapping plans of the
+        // same type (#780), but their date windows [StartDate, StartDate + WeekCount * 7) must
+        // not overlap. Only applies when a StartDate is supplied — Draft plans left unscheduled
+        // are unranged and cannot overlap anything. Archived/Completed plans are excluded: they
+        // are no longer "in force" and a new plan may legitimately reuse their old window.
+        if (req.StartDate.HasValue)
+        {
+            var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
+
+            var existingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+                                & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Archived)
+                                & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Completed)
+                                & Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null);
+
+            using var existingCursor = await mongo.NutritionPlans.FindAsync(existingFilter, cancellationToken: ct);
+            var existingPlans = await existingCursor.ToListAsync(ct);
+
+            var overlaps = existingPlans.Any(p =>
+                PlanWindowResolver.WindowsOverlap(candidateStart, req.WeekCount, p.StartDate!.Value, p.Weeks.Count));
+
+            if (overlaps)
+            {
+                await this.SendProblemAsync(409, ErrorCodes.PlanOverlap,
+                    "The selected date range overlaps an existing plan for this client.", ct);
                 return;
             }
         }

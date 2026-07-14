@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -157,9 +158,11 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             questionnaireResponsePublicId = qResponse.PublicId;
         }
 
-        // Query the active NutritionPlan to source goal + targetWeightKg plan-first.
-        // Fallback to OnboardingData only when the plan value is null.
-        // Key: plan.ClientId == clientProfile.PublicId (the ClientProfile.PublicId Guid, NOT UserId).
+        // Query the Active NutritionPlan whose date window contains today to source
+        // goal + targetWeightKg plan-first. Fallback to OnboardingData only when the plan
+        // value is null. Key: plan.ClientId == clientProfile.PublicId (the ClientProfile.PublicId
+        // Guid, NOT UserId). A client may hold several sequential, non-overlapping Active plans
+        // (#780), so pick the one whose window contains today rather than the most recent.
         NutritionPlan? activePlan = null;
         try
         {
@@ -167,11 +170,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
                 Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.PublicId),
                 Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
-            using var planCursor = await mongo.NutritionPlans.FindAsync(
-                planFilter,
-                new FindOptions<NutritionPlan> { Sort = Builders<NutritionPlan>.Sort.Descending(p => p.DateCreated), Limit = 1 },
-                ct);
-            activePlan = await planCursor.FirstOrDefaultAsync(ct);
+            using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
+            var activePlans = await planCursor.ToListAsync(ct);
+            activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
         }
         catch (MongoDB.Driver.MongoException ex)
         {

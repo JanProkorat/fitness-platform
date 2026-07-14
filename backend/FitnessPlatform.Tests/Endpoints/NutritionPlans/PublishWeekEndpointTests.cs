@@ -44,16 +44,29 @@ public class PublishWeekEndpointTests
     public async Task HandleAsync_DraftWeek_PublishesSuccessfully()
     {
         var planId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(
             externalId: planId,
+            clientId: clientId,
             nutritionistId: _nutritionistId,
             status: NutritionPlanStatus.Draft,
             weekCount: 2,
             version: 1);
         plan.StartDate = DateTime.UtcNow.Date;
 
+        // Sibling Active plan for the SAME client whose window overlaps the plan being
+        // published (same StartDate) — must be superseded (#780: only overlapping siblings
+        // are archived, see the dedicated non-overlap regression test below).
+        var overlappingSibling = PlanTestHelpers.CreatePlan(
+            clientId: clientId,
+            nutritionistId: _nutritionistId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 2,
+            version: 1);
+        overlappingSibling.StartDate = plan.StartDate;
+
         // Both weeks are Draft (default from CreatePlan)
-        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan, overlappingSibling]);
         var ep = CreateEndpoint(mongo);
 
         var req = new PublishWeekRequest
@@ -65,7 +78,7 @@ public class PublishWeekEndpointTests
 
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        // Should archive other active plans for the same client
+        // Should archive the overlapping sibling Active plan for the same client
         await mongo.NutritionPlans.Received().UpdateManyAsync(
             Arg.Any<FilterDefinition<NutritionPlan>>(),
             Arg.Any<UpdateDefinition<NutritionPlan>>(),
@@ -79,6 +92,63 @@ public class PublishWeekEndpointTests
                 p.Status == NutritionPlanStatus.Active &&
                 p.Weeks.First(w => w.WeekNumber == 1).Status == WeekStatus.Published),
             Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Regression guard for #780: publishing plan B's first week must NOT archive a
+    /// non-overlapping Active plan A of the same client — e.g. a January plan stays Active
+    /// when a March plan is published. Only overlapping/same-window Active plans may be
+    /// superseded.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FirstPublish_NonOverlappingActivePlan_DoesNotArchiveIt()
+    {
+        var clientId = Guid.NewGuid();
+        var planBId = Guid.NewGuid();
+
+        // Plan A: Active, already published, window fully in the past (started 60 days ago,
+        // 2-week duration — long elapsed by the time Plan B's window begins).
+        var planA = PlanTestHelpers.CreatePlan(
+            clientId: clientId,
+            nutritionistId: _nutritionistId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 2,
+            version: 1);
+        planA.StartDate = DateTime.UtcNow.Date.AddDays(-60);
+        planA.Weeks[0].Status = WeekStatus.Published;
+        planA.Weeks[0].DatePublished = planA.StartDate;
+
+        // Plan B: Draft, about to publish its first week, window starts today —
+        // does not overlap Plan A's window at all.
+        var planB = PlanTestHelpers.CreatePlan(
+            externalId: planBId,
+            clientId: clientId,
+            nutritionistId: _nutritionistId,
+            status: NutritionPlanStatus.Draft,
+            weekCount: 2,
+            version: 1);
+        planB.StartDate = DateTime.UtcNow.Date;
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [planB, planA]);
+        var ep = CreateEndpoint(mongo);
+
+        var req = new PublishWeekRequest
+        {
+            PlanId = planBId,
+            WeekNumber = 1,
+            Version = 1
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Plan A's window does not overlap Plan B's — it must NOT be archived.
+        await mongo.NutritionPlans.DidNotReceive().UpdateManyAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
 
