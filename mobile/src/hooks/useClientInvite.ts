@@ -25,6 +25,11 @@ async function declineInvite(id: string): Promise<void> {
   await api.post(`/client/invites/${id}/decline`)
 }
 
+interface InviteMutationCallbacks {
+  onSuccess?: () => void
+  onError?: (error: unknown) => void
+}
+
 export function useClientInvite(enabled: boolean) {
   const queryClient = useQueryClient()
 
@@ -63,10 +68,19 @@ export function useClientInvite(enabled: boolean) {
   return {
     invite: query.data ?? null,
     isLoading: query.isLoading,
-    accept: (id: string) =>
+    isError: query.isError,
+    // `callbacks` lets call sites (Today banner, invite detail screen) layer
+    // their own navigation/toast on top without stomping the shared
+    // invalidation set owned by useAcceptInvite / this hook's onSuccess.
+    accept: (id: string, callbacks?: InviteMutationCallbacks) =>
       acceptMutation.mutate(id, {
-        onSuccess: () => queryClient.setQueryData(['client-invite'], null),
+        onSuccess: () => {
+          queryClient.setQueryData(['client-invite'], null)
+          callbacks?.onSuccess?.()
+        },
+        onError: callbacks?.onError,
       }),
-    decline: declineMutation.mutate,
+    decline: (id: string, callbacks?: InviteMutationCallbacks) =>
+      declineMutation.mutate(id, callbacks),
   }
 }

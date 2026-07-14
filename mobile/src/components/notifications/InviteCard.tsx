@@ -13,9 +13,10 @@ interface InviteCardProps {
   invite: TrainerInvite
   onAccept: () => void
   onDecline: () => void
+  onViewInvite: () => void
 }
 
-export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
+export function InviteCard({ invite, onAccept, onDecline, onViewInvite }: InviteCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
   const opacity = useRef(new Animated.Value(0)).current
@@ -79,6 +80,15 @@ export function InviteCard({ invite, onAccept, onDecline }: InviteCardProps) {
               {invite.trainerRole}{invite.trainerCity ? ` \u00b7 ${invite.trainerCity}` : ''}
             </Text>
           </View>
+          <Pressable
+            style={[styles.viewInviteBtn, { backgroundColor: colors.gold }]}
+            onPress={onViewInvite}
+            hitSlop={4}
+          >
+            <Text style={[styles.viewInviteText, { color: colors.onAccent }]}>
+              {t('collab.viewInvite')}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Invite text — personal message now lives in the chat */}
@@ -127,6 +137,16 @@ const styles = StyleSheet.create({
   trainerInfo: {
     marginLeft: 12,
     flex: 1,
+  },
+  viewInviteBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.full,
+    marginLeft: 8,
+  },
+  viewInviteText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   actions: {
     flexDirection: 'row',

@@ -13,13 +13,12 @@ import { BlurView } from 'expo-blur'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/hooks/useTheme'
-import { Colors, Static, goldAlpha } from '@/constants/colors'
+import { Static, goldAlpha } from '@/constants/colors'
 import { href } from '@/lib/navigation'
 import { Type } from '@/constants/typography'
-import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
-import { useAuthStore } from '@/stores/auth'
-import { useCollaboration } from '@/hooks/useCollaboration'
+import { useClientInvite } from '@/hooks/useClientInvite'
+import { Toast } from '@/lib/toast'
 
 const INCLUDES = [
   { emoji: '🏋️', i18nKey: 'collab.includeTraining', bg: 'rgba(11,110,153,0.1)' },
@@ -33,10 +32,26 @@ export default function InviteDetailScreen() {
   const colors = useTheme()
   const insets = useSafeAreaInsets()
   const { t } = useTranslation()
-  const invite = useAuthStore((s) => s.pendingInvite)
-  const { acceptInvite, declineInvite } = useCollaboration()
+  const { invite, isLoading, accept, decline } = useClientInvite(true)
 
-  if (!invite) {
+  const handleAccept = () => {
+    if (!invite) return
+    accept(invite.id, {
+      onSuccess: () => router.replace('/(client)'),
+      onError: () => Toast.show(t('collab.actionFailed')),
+    })
+  }
+
+  const handleDecline = () => {
+    if (!invite) return
+    decline(invite.id, {
+      onSuccess: () => router.back(),
+      onError: () => Toast.show(t('collab.actionFailed')),
+    })
+  }
+
+  // Loading — first fetch of GET /client/invites/pending in flight.
+  if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={colors.gold} style={{ marginTop: 100 }} />
@@ -44,18 +59,37 @@ export default function InviteDetailScreen() {
     )
   }
 
-  const handleAccept = () => {
-    acceptInvite(invite.id)
-    router.replace('/(client)')
+  // Empty state — 204/no-pending-invite (already resolved elsewhere, or a
+  // stale nav into this screen). Never spin forever; give the user a way out.
+  if (!invite) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top }]}>
+        <View style={styles.emptyState}>
+          <Ionicons name="mail-open-outline" size={40} color={colors.label3} />
+          <Text style={[Type.headline, { color: colors.label, marginTop: 12, textAlign: 'center' }]}>
+            {t('collab.noInviteTitle')}
+          </Text>
+          <Text
+            style={[
+              Type.subheadline,
+              { color: colors.label3, marginTop: 4, textAlign: 'center' },
+            ]}
+          >
+            {t('collab.noInviteHint')}
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            style={({ pressed }) => [
+              styles.emptyBackBtn,
+              { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.emptyBackText, { color: colors.label }]}>{t('common.back')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    )
   }
-
-  const handleDecline = () => {
-    declineInvite(invite.id)
-    router.back()
-  }
-
-  const sentDate = new Date(invite.sentAt)
-  const sentLabel = `${sentDate.getHours()}:${sentDate.getMinutes().toString().padStart(2, '0')}`
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -98,7 +132,8 @@ export default function InviteDetailScreen() {
           </Pressable>
         </View>
 
-        {/* Trainer message */}
+        {/* Trainer message — live TrainerInvite has no sentAt, so the bubble
+            renders without a timestamp instead of parsing an undefined date. */}
         {invite.message && (
           <View style={[styles.section, { borderBottomColor: colors.sep2 }]}>
             <Text style={[styles.sectionLabel, { color: colors.label3 }]}>
@@ -109,9 +144,6 @@ export default function InviteDetailScreen() {
               <View style={[styles.bubble, { backgroundColor: colors.bg2 }]}>
                 <Text style={[styles.bubbleText, { color: colors.label }]}>
                   {invite.message}
-                </Text>
-                <Text style={[styles.bubbleTime, { color: colors.label3 }]}>
-                  {sentLabel}
                 </Text>
               </View>
             </View>
@@ -132,23 +164,6 @@ export default function InviteDetailScreen() {
             </View>
           ))}
         </View>
-
-        {/* Price */}
-        {invite.price > 0 && (
-          <View style={[styles.priceRow, { borderBottomColor: colors.sep2 }]}>
-            <Text style={[styles.priceLabel, { color: colors.label2 }]}>
-              {t('collab.monthlySubscription')}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-              <Text style={[styles.priceValue, { color: colors.label }]}>
-                {invite.price.toLocaleString('cs-CZ')} Kč{' '}
-              </Text>
-              <Text style={[styles.priceUnit, { color: colors.label3 }]}>
-                / {invite.pricePeriod || 'měsíc'}
-              </Text>
-            </View>
-          </View>
-        )}
 
         {/* CTAs */}
         <View style={styles.ctas}>
@@ -233,14 +248,13 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     padding: 14,
     maxWidth: 280,
-    shadowColor: Colors.dark.shadow,
+    shadowColor: Static.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2,
   },
   bubbleText: { fontSize: 15, lineHeight: 22 },
-  bubbleTime: { fontSize: 11, marginTop: 6 },
   // Includes
   includeRow: {
     flexDirection: 'row',
@@ -256,22 +270,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   includeText: { fontSize: 14 },
-  // Price
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  priceLabel: { fontSize: 14 },
-  priceValue: { fontSize: 18, fontWeight: '700' },
-  priceUnit: { fontSize: 13 },
   // CTAs
   ctas: { padding: 20, gap: 10 },
   acceptBtn: { paddingVertical: 15, borderRadius: 14, alignItems: 'center' },
   acceptText: { fontSize: 17, fontWeight: '600', color: Static.alwaysWhite },
   declineBtn: { paddingVertical: 13, borderRadius: 14, alignItems: 'center' },
   declineText: { fontSize: 15, fontWeight: '500' },
+  // Empty state
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyBackBtn: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  emptyBackText: { fontSize: 15, fontWeight: '600' },
 })
