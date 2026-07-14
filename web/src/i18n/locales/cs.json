@@ -194,6 +194,7 @@
     "databaseSection": "DATABÁZE",
     "trainingPlan": "Tréninkový plán",
     "mealPlan": "Jídelníček",
+    "questionnaires": "Dotazníky",
     "goalsAndMacros": "Cíle a makra",
     "addClient": "Přidat klienta",
     "pendingInvites": "ČEKAJÍCÍ POZVÁNKY",
@@ -749,6 +750,7 @@
     "noSubmittedResponses": "Žádné vyplněné dotazníky pro tohoto klienta",
     "questionnaireLinked": "Dotazník propojen s plánem",
     "questionnaireUnlinked": "Dotazník odpojen od plánu",
+    "linkError": "Nepodařilo se propojit dotazník",
     "viewAnswers": "Zobrazit odpovědi",
     "weeks": "Týdny",
     "created": "Vytvořeno",
@@ -965,7 +967,9 @@
     "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
     "session_locked": "Trénink je aktuálně uzamčen — uložení selhalo.",
     "social_email_conflict": "Tento e-mail je registrován s heslem. Přihlaste se emailem a heslem.",
-    "APPLE_NO_EMAIL_NO_LINK": "Přihlášení přes Apple selhalo: e-mail nebyl poskytnut. Otevřete Nastavení > Apple ID a povolte sdílení e-mailu s touto aplikací."
+    "APPLE_NO_EMAIL_NO_LINK": "Přihlášení přes Apple selhalo: e-mail nebyl poskytnut. Otevřete Nastavení > Apple ID a povolte sdílení e-mailu s touto aplikací.",
+    "PLAN_VERSION_CONFLICT": "Plán byl mezitím upraven jiným požadavkem. Načítám aktuální verzi.",
+    "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1110,6 +1114,7 @@
     "noSubmittedResponses": "Žádné vyplněné dotazníky pro tohoto klienta",
     "questionnaireLinked": "Dotazník propojen s plánem",
     "questionnaireUnlinked": "Dotazník odpojen od plánu",
+    "linkError": "Nepodařilo se propojit dotazník",
     "viewAnswers": "Zobrazit odpovědi",
     "weeks": "Týdny",
     "created": "Vytvořeno",
@@ -2094,7 +2099,8 @@
       "statusPending": "Čeká",
       "viewAnswers": "Zobrazit odpovědi",
       "submittedOn": "Odesláno {{date}}",
-      "pendingSubtitle": "Odesláno {{date}} · Čeká na vyplnění"
+      "pendingSubtitle": "Odesláno {{date}} · Čeká na vyplnění",
+      "linkedPlanCta": "Zobrazit propojený plán: {{name}}"
     },
     "poznamky": {
       "title": "Poznámky trenéra",

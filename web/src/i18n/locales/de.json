@@ -194,6 +194,7 @@
     "databaseSection": "DATENBANK",
     "trainingPlan": "Trainingsplan",
     "mealPlan": "Ernährungsplan",
+    "questionnaires": "Fragebögen",
     "goalsAndMacros": "Ziele & Makros",
     "addClient": "Klient hinzufügen",
     "pendingInvites": "AUSSTEHENDE EINLADUNGEN",
@@ -735,6 +736,7 @@
     "noSubmittedResponses": "Keine ausgefüllten Fragebögen für diesen Kunden",
     "questionnaireLinked": "Fragebogen mit Plan verknüpft",
     "questionnaireUnlinked": "Fragebogen vom Plan getrennt",
+    "linkError": "Fragebogen konnte nicht verknüpft werden",
     "viewAnswers": "Antworten anzeigen",
     "weeks": "Wochen",
     "created": "Erstellt",
@@ -951,7 +953,9 @@
     "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
     "session_locked": "Einheit ist derzeit gesperrt — Speichern fehlgeschlagen.",
     "social_email_conflict": "Diese E-Mail ist mit einem Passwort registriert. Bitte melden Sie sich mit E-Mail und Passwort an.",
-    "APPLE_NO_EMAIL_NO_LINK": "Apple-Anmeldung fehlgeschlagen: Es wurde keine E-Mail angegeben. Öffnen Sie Einstellungen > Apple-ID und erlauben Sie das Teilen der E-Mail mit dieser App."
+    "APPLE_NO_EMAIL_NO_LINK": "Apple-Anmeldung fehlgeschlagen: Es wurde keine E-Mail angegeben. Öffnen Sie Einstellungen > Apple-ID und erlauben Sie das Teilen der E-Mail mit dieser App.",
+    "PLAN_VERSION_CONFLICT": "Der Plan wurde inzwischen von einer anderen Anfrage geändert. Aktuelle Version wird geladen.",
+    "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1096,6 +1100,7 @@
     "noSubmittedResponses": "Keine ausgefüllten Fragebögen für diesen Kunden",
     "questionnaireLinked": "Fragebogen mit Plan verknüpft",
     "questionnaireUnlinked": "Fragebogen vom Plan getrennt",
+    "linkError": "Fragebogen konnte nicht verknüpft werden",
     "viewAnswers": "Antworten anzeigen",
     "weeks": "Wochen",
     "created": "Erstellt",
@@ -2060,7 +2065,8 @@
       "statusPending": "Ausstehend",
       "viewAnswers": "Antworten anzeigen",
       "submittedOn": "Eingereicht am {{date}}",
-      "pendingSubtitle": "Gesendet am {{date}} · Wartet auf Antwort"
+      "pendingSubtitle": "Gesendet am {{date}} · Wartet auf Antwort",
+      "linkedPlanCta": "Verknüpften Plan anzeigen: {{name}}"
     },
     "poznamky": {
       "title": "Trainer-Notizen",

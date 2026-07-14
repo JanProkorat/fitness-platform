@@ -10,6 +10,7 @@ import {
 } from '@/api/questionnaires';
 import { QuestionnaireSelectDialog } from './QuestionnaireSelectDialog';
 import { RevokeConfirmDialog } from './RevokeConfirmDialog';
+import { LinkExistingResponseDialog } from './LinkExistingResponseDialog';
 import { showApiError } from '@/lib/api-errors';
 
 interface Props {
@@ -18,6 +19,16 @@ interface Props {
   planStatus: string;
   /** i18n namespace prefix — 'nutrition' or 'training' */
   ns: 'nutrition' | 'training';
+  /**
+   * Retroactively links an already-submitted questionnaire response to the
+   * current plan (#777 AC5). Owned by the parent page since it holds the
+   * plan's `version` and the Zustand store's `setPlan` — this component
+   * only triggers the request and surfaces the pending/error state.
+   * Rejects on failure so the dialog stays open for retry; the parent is
+   * responsible for showing the error toast.
+   */
+  onLinkExisting: (responseId: string) => Promise<void>;
+  linkPending: boolean;
 }
 
 /**
@@ -32,6 +43,8 @@ export function PlanQuestionnairePanel({
   questionnaireResponseId,
   planStatus,
   ns,
+  onLinkExisting,
+  linkPending,
 }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -39,6 +52,7 @@ export function PlanQuestionnairePanel({
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [revokeOpen, setRevokeOpen] = useState(false);
+  const [linkExistingOpen, setLinkExistingOpen] = useState(false);
 
   const canEdit = planStatus !== 'Completed' && planStatus !== 'Archived';
 
@@ -114,6 +128,19 @@ export function PlanQuestionnairePanel({
               )}
             </div>
           </div>
+          {/* Retroactive linking (#777 AC5) — lets the trainer explicitly
+              (re)associate a different already-submitted response, e.g. when
+              a client re-took the intake questionnaire and the newest one
+              isn't the one that belongs to this historical plan. */}
+          {canEdit && submitted.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setLinkExistingOpen(true)}
+              className="text-[11px] font-medium text-accent bg-transparent border-none cursor-pointer p-0 hover:underline"
+            >
+              🔗 {t(`${ns}.linkQuestionnaire`)}
+            </button>
+          )}
         </div>
       ) : hasPending ? (
         /* ── Pending state: waiting indicator + replace/revoke buttons ── */
@@ -252,6 +279,23 @@ export function PlanQuestionnairePanel({
           —
         </div>
       )}
+
+      <LinkExistingResponseDialog
+        open={linkExistingOpen}
+        onClose={() => setLinkExistingOpen(false)}
+        responses={submitted}
+        isPending={linkPending}
+        ns={ns}
+        onConfirm={(responseId) => {
+          onLinkExisting(responseId)
+            .then(() => setLinkExistingOpen(false))
+            .catch(() => {
+              // Keep the dialog open for retry — the parent already
+              // surfaced the error toast (409 conflict / 400 not-submitted
+              // / 404 not-owned).
+            });
+        }}
+      />
     </div>
   );
 }

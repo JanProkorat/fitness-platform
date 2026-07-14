@@ -194,6 +194,7 @@
     "databaseSection": "DATABASE",
     "trainingPlan": "Training plan",
     "mealPlan": "Meal plan",
+    "questionnaires": "Questionnaires",
     "goalsAndMacros": "Goals & macros",
     "addClient": "Add client",
     "pendingInvites": "PENDING INVITES",
@@ -736,6 +737,7 @@
     "noSubmittedResponses": "No submitted questionnaire responses for this client",
     "questionnaireLinked": "Questionnaire linked to plan",
     "questionnaireUnlinked": "Questionnaire unlinked from plan",
+    "linkError": "Failed to link questionnaire",
     "viewAnswers": "View answers",
     "weeks": "Weeks",
     "created": "Created",
@@ -952,7 +954,9 @@
     "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
     "session_locked": "Session is currently locked — save failed.",
     "social_email_conflict": "This email is registered with a password. Please sign in with your email and password.",
-    "APPLE_NO_EMAIL_NO_LINK": "Apple sign-in failed: no email was provided. Open Settings > Apple ID and allow email sharing with this app."
+    "APPLE_NO_EMAIL_NO_LINK": "Apple sign-in failed: no email was provided. Open Settings > Apple ID and allow email sharing with this app.",
+    "PLAN_VERSION_CONFLICT": "The plan was modified by another request in the meantime. Loading the current version.",
+    "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1097,6 +1101,7 @@
     "noSubmittedResponses": "No submitted questionnaire responses for this client",
     "questionnaireLinked": "Questionnaire linked to plan",
     "questionnaireUnlinked": "Questionnaire unlinked from plan",
+    "linkError": "Failed to link questionnaire",
     "viewAnswers": "View answers",
     "weeks": "Weeks",
     "created": "Created",
@@ -2061,7 +2066,8 @@
       "statusPending": "Pending",
       "viewAnswers": "View answers",
       "submittedOn": "Submitted {{date}}",
-      "pendingSubtitle": "Sent {{date}} · Waiting for response"
+      "pendingSubtitle": "Sent {{date}} · Waiting for response",
+      "linkedPlanCta": "View linked plan: {{name}}"
     },
     "poznamky": {
       "title": "Trainer notes",

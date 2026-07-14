@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession } from '@/api/training-plans';
+import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession, linkTrainingQuestionnaire } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
 import type { SectionTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
@@ -15,7 +15,7 @@ import type { MuscleGroup } from '@/api/exercise-types';
 import { apiClient } from '@/api/client';
 import { useTrainingPlanStore } from '@/stores/trainingPlan';
 import { PageHeader } from '@/components/layout';
-import { showApiError, showSuccess, showError } from '@/lib/api-errors';
+import { showApiError, showSuccess, showError, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { Button, Dialog } from '@/components/ui';
 import { MondayDatePicker } from '@/components/ui/MondayDatePicker';
 import { WeekDayTabs } from '@/components/common/WeekDayTabs';
@@ -109,6 +109,7 @@ export default function TrainingPlanPage() {
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isLinkingQuestionnaire, setIsLinkingQuestionnaire] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   // State for the retroactive "mark session finished" confirmation dialog.
@@ -392,6 +393,33 @@ export default function TrainingPlanPage() {
       showApiError(err, 'common.error');
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  // Retroactive questionnaire linking (#777 AC5). Rethrows on failure so
+  // PlanQuestionnairePanel's dialog stays open for retry — this handler
+  // already surfaces the error toast.
+  const handleLinkExistingQuestionnaire = async (responseId: string) => {
+    if (!plan || !planId) return;
+    setIsLinkingQuestionnaire(true);
+    try {
+      const updated = await linkTrainingQuestionnaire(planId, responseId, plan.version);
+      setPlan(updated);
+      showSuccess(t('training.questionnaireLinked'));
+    } catch (err) {
+      if (getRfc7807ErrorCode(err) === 'PLAN_VERSION_CONFLICT') {
+        // Refresh the plan so its version is current before the trainer retries.
+        try {
+          const fresh = await getTrainingPlan(planId);
+          setPlan(fresh);
+        } catch {
+          // Non-fatal — the error toast below already surfaces the conflict.
+        }
+      }
+      showApiError(err, 'training.linkError');
+      throw err;
+    } finally {
+      setIsLinkingQuestionnaire(false);
     }
   };
 
@@ -1656,6 +1684,8 @@ export default function TrainingPlanPage() {
             questionnaireResponseId={plan.questionnaireResponseId}
             planStatus={plan.status}
             ns="training"
+            onLinkExisting={handleLinkExistingQuestionnaire}
+            linkPending={isLinkingQuestionnaire}
           />
         </div>
       </div>
