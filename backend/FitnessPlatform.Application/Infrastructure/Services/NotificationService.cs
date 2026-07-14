@@ -16,7 +16,7 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class NotificationService(IApplicationDbContext db, IPushNotificationService push) : INotificationService
 {
     /// <inheritdoc />
-    public async Task CreateAsync(
+    public async Task<Notification> CreateAsync(
         Guid recipientUserId,
         NotificationType type,
         IReadOnlyDictionary<string, string>? parameters = null,
@@ -47,5 +47,7 @@ public class NotificationService(IApplicationDbContext db, IPushNotificationServ
         // title/body as the in-app notification — the OS push banner renders before the
         // app opens, so it must already be in the recipient's language at send time.
         await push.SendAsync(recipientUserId, title, body, new { type = type.ToString() }, ct);
+
+        return notification;
     }
 }

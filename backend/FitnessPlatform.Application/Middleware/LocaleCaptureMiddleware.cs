@@ -21,7 +21,8 @@ namespace FitnessPlatform.Application.Middleware;
 /// <c>Language</c>, keeping the common case (unchanged locale) to a single read.
 /// </summary>
 /// <param name="next">The next middleware in the pipeline.</param>
-public class LocaleCaptureMiddleware(RequestDelegate next)
+/// <param name="logger">Logger for the best-effort locale-capture block.</param>
+public class LocaleCaptureMiddleware(RequestDelegate next, ILogger<LocaleCaptureMiddleware> logger)
 {
     private static readonly HashSet<string> SupportedLanguages = ["cs", "en", "de"];
 
@@ -40,19 +41,31 @@ public class LocaleCaptureMiddleware(RequestDelegate next)
             var userIdClaim = context.User.FindFirstValue(AppClaims.UserId);
             if (userIdClaim is not null && Guid.TryParse(userIdClaim, out var userId))
             {
-                var currentLanguage = await db.Users
-                    .AsNoTracking()
-                    .Where(u => u.Id == userId)
-                    .Select(u => u.Language)
-                    .FirstOrDefaultAsync(context.RequestAborted);
-
-                if (currentLanguage != language)
+                // Best-effort only — a transient DB failure (deadlock/timeout/connection
+                // blip) capturing this nice-to-have locale must never fault a request
+                // that would otherwise have succeeded (pass-1 review finding, #788).
+                try
                 {
-                    await db.Users
+                    var currentLanguage = await db.Users
+                        .AsNoTracking()
                         .Where(u => u.Id == userId)
-                        .ExecuteUpdateAsync(
-                            s => s.SetProperty(u => u.Language, language),
-                            context.RequestAborted);
+                        .Select(u => u.Language)
+                        .FirstOrDefaultAsync(context.RequestAborted);
+
+                    if (currentLanguage != language)
+                    {
+                        await db.Users
+                            .Where(u => u.Id == userId)
+                            .ExecuteUpdateAsync(
+                                s => s.SetProperty(u => u.Language, language),
+                                context.RequestAborted);
+                    }
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogWarning(ex,
+                        "LocaleCaptureMiddleware: failed to capture/update locale for user {UserId}; " +
+                        "continuing the request unaffected.", userId);
                 }
             }
         }

@@ -204,6 +204,17 @@ public static class NotificationTemplates
     };
 
     /// <summary>
+    /// Safe last-resort pair returned when a (type, variant) combination is missing from
+    /// BOTH the requested language and the English fallback table — a coding bug (a new
+    /// call site added a variant without a matching template entry), not a runtime
+    /// condition callers can prevent. Degrades to a generic string instead of throwing
+    /// <see cref="KeyNotFoundException"/> / 500ing the caller (pass-1 review finding,
+    /// #788 — with more call sites now resolving through here, a missing key must not
+    /// take down the request/tick that triggered it).
+    /// </summary>
+    private static readonly Template SafeDefault = new("Notification", "You have a new notification.");
+
+    /// <summary>
     /// Resolves the localized title/body for a notification, interpolating
     /// <paramref name="parameters"/> values into <c>{key}</c> placeholders.
     /// </summary>
@@ -226,9 +237,14 @@ public static class NotificationTemplates
         var normalizedLanguage = Normalize(language);
         var key = Key(type, variant);
 
-        var template = Templates[normalizedLanguage].TryGetValue(key, out var found)
-            ? found
-            : Templates[FallbackLanguage][key]; // defensive — every language table is fully populated above
+        if (!Templates.TryGetValue(normalizedLanguage, out var languageTemplates))
+            languageTemplates = Templates[FallbackLanguage];
+
+        if (!languageTemplates.TryGetValue(key, out var template)
+            && !Templates[FallbackLanguage].TryGetValue(key, out template))
+        {
+            template = SafeDefault;
+        }
 
         return (Interpolate(template.Title, parameters), Interpolate(template.Body, parameters));
     }

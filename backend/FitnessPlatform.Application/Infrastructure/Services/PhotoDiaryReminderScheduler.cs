@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -186,7 +185,6 @@ public class PhotoDiaryReminderScheduler(
         if (candidates.Count == 0) return;
 
         var notifier = services.GetRequiredService<IRealtimeNotifier>();
-        var push = services.GetRequiredService<IPushNotificationService>();
 
         foreach (var request in candidates)
         {
@@ -294,55 +292,37 @@ public class PhotoDiaryReminderScheduler(
                 continue;
             }
 
-            // ── Persist in-app notification ───────────────────────────────────
-            var title = "Don't forget your diary photo";
-            var body  = $"Today is day {dayIndex} of {request.DurationDays}. " +
-                        "Take a photo of what you eat — your nutritionist will see it live.";
+            // ── Create in-app + push notification (best-effort), localized to the
+            // client's stored Language (#788 — no HTTP request here, so CreateAsync's
+            // recipient-language lookup via the persisted ApplicationUser.Language
+            // column is the mechanism that makes this possible). Resolved from the
+            // SAME candidateScope as candidateDb so NotificationService shares the
+            // already-open DbContext/change tracker.
+            var notifications = candidateScope.ServiceProvider.GetRequiredService<INotificationService>();
 
-            var notificationData = JsonSerializer.Serialize(new
-            {
-                requestId = request.Id,
-                dayIndex
-            });
-
-            var notification = new Notification
-            {
-                RecipientUserId = clientUserId,
-                Type = NotificationType.PhotoDiaryReminder,
-                Title = title,
-                Body = body,
-                Data = notificationData
-            };
-
-            // ── Persist in-app notification (best-effort) ────────────────────
+            Notification notification;
             try
             {
-                candidateDb.Notifications.Add(notification);
-                await candidateDb.SaveChangesAsync(ct);
+                notification = await notifications.CreateAsync(
+                    clientUserId,
+                    NotificationType.PhotoDiaryReminder,
+                    new Dictionary<string, string>
+                    {
+                        ["dayIndex"] = dayIndex.ToString(),
+                        ["durationDays"] = request.DurationDays.ToString(),
+                        ["requestId"] = request.Id.ToString(),
+                    },
+                    ct: ct);
             }
             catch (Exception ex)
             {
+                // Covers both the DB persist and the recipient-language lookup —
+                // push failures never throw here (ExpoPushNotificationService
+                // self-swallows its own errors internally).
                 logger.LogWarning(ex,
-                    "PhotoDiaryReminderScheduler: failed to persist notification for client {ClientUserId} " +
+                    "PhotoDiaryReminderScheduler: failed to create notification for client {ClientUserId} " +
                     "on request {RequestId}.", clientUserId, request.Id);
                 continue;
-            }
-
-            // ── Push notification (best-effort) ───────────────────────────────
-            try
-            {
-                await push.SendAsync(
-                    clientUserId,
-                    title,
-                    body,
-                    new { type = "PhotoDiaryReminder", requestId = request.Id, dayIndex },
-                    ct);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex,
-                    "PhotoDiaryReminderScheduler: failed to send push to client {ClientUserId} " +
-                    "for request {RequestId}.", clientUserId, request.Id);
             }
 
             // ── SignalR broadcast (best-effort) ───────────────────────────────
@@ -355,7 +335,7 @@ public class PhotoDiaryReminderScheduler(
                     {
                         id = notification.Id,
                         type = NotificationType.PhotoDiaryReminder.ToString(),
-                        data = notificationData
+                        data = notification.Data
                     },
                     ct);
             }

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
@@ -28,7 +29,12 @@ public interface INotificationService
     /// Null for types with a single wording.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
-    Task CreateAsync(
+    /// <returns>
+    /// The persisted <see cref="Notification"/> entity — callers that need to broadcast
+    /// its id (e.g. schedulers emitting a SignalR "newnotification" event) can read it
+    /// off the return value instead of re-querying.
+    /// </returns>
+    Task<Notification> CreateAsync(
         Guid recipientUserId,
         NotificationType type,
         IReadOnlyDictionary<string, string>? parameters = null,
