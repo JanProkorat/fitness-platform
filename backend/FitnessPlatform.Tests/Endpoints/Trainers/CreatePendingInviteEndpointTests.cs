@@ -104,7 +104,8 @@ public class CreatePendingInviteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         await conversationSeedService.Received(1).GetOrSeedConversationAsync(
             trainerProfile.UserId, existingUser.Id, trainerProfile.UserId,
-            Arg.Any<string>(), "Looking forward to coaching you!", Arg.Any<CancellationToken>());
+            Arg.Any<string>(), "Looking forward to coaching you!",
+            seedIntoExisting: true, Arg.Any<CancellationToken>());
     }
 
     [Fact]

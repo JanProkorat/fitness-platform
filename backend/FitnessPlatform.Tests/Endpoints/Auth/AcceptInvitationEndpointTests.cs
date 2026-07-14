@@ -148,7 +148,8 @@ public class AcceptInvitationEndpointTests
         ep.ValidationFailed.Should().BeFalse();
         pendingInvite.IsAccepted.Should().BeTrue();
         await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
-            _trainerId, _userId, _trainerId, Arg.Any<string>(), pendingInvite.Message, Arg.Any<CancellationToken>());
+            _trainerId, _userId, _trainerId, Arg.Any<string>(), pendingInvite.Message,
+            seedIntoExisting: false, Arg.Any<CancellationToken>());
     }
 
     [Fact]

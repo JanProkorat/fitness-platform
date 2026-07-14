@@ -170,7 +170,7 @@ public class AcceptInvitationEndpoint(
 
             await conversationSeedService.GetOrSeedConversationAsync(
                 invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
-                professionalName, pendingInvite.Message, ct);
+                professionalName, pendingInvite.Message, seedIntoExisting: false, ct: ct);
         }
 
         // Audit: new data sharing relationship established

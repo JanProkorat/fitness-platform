@@ -115,7 +115,8 @@ public class CreatePendingInviteEndpoint(
             var professionalUserId = professionalProfile.UserId;
 
             await conversationSeedService.GetOrSeedConversationAsync(
-                professionalUserId, existingUser.Id, professionalUserId, trainerName, req.Message, ct);
+                professionalUserId, existingUser.Id, professionalUserId, trainerName, req.Message,
+                seedIntoExisting: true, ct: ct);
 
             var notifBody = $"{trainerName} invited you to join as their client.";
 

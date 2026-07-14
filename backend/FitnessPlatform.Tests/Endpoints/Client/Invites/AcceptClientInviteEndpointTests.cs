@@ -149,6 +149,7 @@ public class AcceptClientInviteEndpointTests
             professionalProfile.UserId,
             Arg.Any<string>(),
             invite.Message,
+            seedIntoExisting: false,
             Arg.Any<CancellationToken>());
     }
 
@@ -183,7 +184,7 @@ public class AcceptClientInviteEndpointTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, TestContext.Current.CancellationToken);
+            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
     }
 
     [Fact]

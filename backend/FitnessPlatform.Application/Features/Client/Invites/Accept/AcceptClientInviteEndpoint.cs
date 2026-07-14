@@ -155,7 +155,7 @@ public class AcceptClientInviteEndpoint(
 
             await conversationSeedService.GetOrSeedConversationAsync(
                 invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
-                professionalName, invite.Message, ct);
+                professionalName, invite.Message, seedIntoExisting: false, ct: ct);
         }
 
         // Notify the professional that their invite was accepted
