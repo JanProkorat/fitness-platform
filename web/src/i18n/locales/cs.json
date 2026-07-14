@@ -1957,11 +1957,33 @@
     "mereni": {
       "title": "Tělesná měření",
       "addMeasurement": "Přidat měření",
-      "addMeasurementPlaceholder": "Přidat měření (funkce připravena v klientské aplikaci)",
       "addFirstMeasurement": "Přidat první měření",
       "emptyTitle": "Žádná měření",
-      "emptyDescription": "Klient zatím nezaznamenal žádná tělesná měření. Měření lze přidávat z mobilní aplikace.",
+      "emptyDescription": "Klient zatím nemá zaznamenaná žádná tělesná měření.",
       "errorLoading": "Měření se nepodařilo načíst.",
+      "dialog": {
+        "title": "Přidat měření",
+        "date": "Datum měření",
+        "weight": "Váha (kg)",
+        "bodyFat": "Tělesný tuk (%)",
+        "chest": "Hrudník (cm)",
+        "waist": "Pas (cm)",
+        "hips": "Boky (cm)",
+        "biceps": "Biceps (cm)",
+        "thighs": "Stehna (cm)",
+        "notes": "Poznámka",
+        "notesPlaceholder": "Volitelná poznámka k měření…",
+        "saved": "Měření bylo uloženo.",
+        "saveError": "Měření se nepodařilo uložit.",
+        "validation": {
+          "dateRequired": "Datum je povinné.",
+          "dateNotFuture": "Datum nesmí být v budoucnosti.",
+          "mustBeNumber": "Zadejte číslo.",
+          "mustBePositive": "Hodnota musí být kladné číslo.",
+          "notesTooLong": "Poznámka může mít nejvýše 500 znaků.",
+          "atLeastOneValue": "Vyplňte alespoň jednu naměřenou hodnotu."
+        }
+      },
       "chartLabel": "Vývoj váhy · posledních 8 týdnů",
       "tiles": {
         "currentWeight": "Aktuální váha",

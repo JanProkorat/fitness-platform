@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { useToastStore } from '@/stores/toast';
 import { getClientMeasurements } from '@/api/measurements';
 import type { MeasurementDto } from '@/api/generated';
 import { formatClientDate } from '@/lib/date-format';
 import { EmptyState } from '@/components/clients/EmptyState';
+import { AddMeasurementDialog } from '@/components/clients/tabs/AddMeasurementDialog';
 
 interface MereniTabProps {
   clientId: string;
@@ -105,7 +105,7 @@ function buildWeightBars(sorted: MeasurementDto[]): WeightBar[] {
 
 export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
   const { t, i18n } = useTranslation();
-  const addToast = useToastStore((s) => s.addToast);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const { data, isError, isPending } = useQuery({
     queryKey: ['client-measurements', clientId],
@@ -238,9 +238,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
         <button
           type="button"
           className="text-[13px] font-medium text-text2 border border-border rounded-[var(--radius-sm)] px-3 py-1.5 hover:bg-bg-hover transition-colors"
-          onClick={() =>
-            addToast(t('clientDetail.mereni.addMeasurementPlaceholder'), 'success')
-          }
+          onClick={() => setIsAddDialogOpen(true)}
         >
           + {t('clientDetail.mereni.addMeasurement')}
         </button>
@@ -270,9 +268,7 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
             <button
               type="button"
               className="mt-1 text-[13px] font-semibold text-accent hover:underline bg-transparent border-none cursor-pointer"
-              onClick={() =>
-                addToast(t('clientDetail.mereni.addMeasurementPlaceholder'), 'success')
-              }
+              onClick={() => setIsAddDialogOpen(true)}
             >
               + {t('clientDetail.mereni.addFirstMeasurement')}
             </button>
@@ -404,6 +400,13 @@ export function MereniTab({ clientId, targetWeightKg }: MereniTabProps) {
             </table>
           </div>
         </>
+      )}
+
+      {isAddDialogOpen && (
+        <AddMeasurementDialog
+          clientId={clientId}
+          onClose={() => setIsAddDialogOpen(false)}
+        />
       )}
     </div>
   );

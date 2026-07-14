@@ -1924,11 +1924,33 @@
     "mereni": {
       "title": "Body measurements",
       "addMeasurement": "Add measurement",
-      "addMeasurementPlaceholder": "Add measurement (available in the client app)",
       "addFirstMeasurement": "Add first measurement",
       "emptyTitle": "No measurements",
-      "emptyDescription": "The client hasn't recorded any body measurements yet. Measurements can be added from the mobile app.",
+      "emptyDescription": "This client doesn't have any recorded body measurements yet.",
       "errorLoading": "Could not load measurements.",
+      "dialog": {
+        "title": "Add measurement",
+        "date": "Measurement date",
+        "weight": "Weight (kg)",
+        "bodyFat": "Body fat (%)",
+        "chest": "Chest (cm)",
+        "waist": "Waist (cm)",
+        "hips": "Hips (cm)",
+        "biceps": "Biceps (cm)",
+        "thighs": "Thighs (cm)",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional note about this measurement…",
+        "saved": "Measurement saved.",
+        "saveError": "Could not save the measurement.",
+        "validation": {
+          "dateRequired": "Date is required.",
+          "dateNotFuture": "Date cannot be in the future.",
+          "mustBeNumber": "Enter a number.",
+          "mustBePositive": "Value must be a positive number.",
+          "notesTooLong": "Notes can be at most 500 characters.",
+          "atLeastOneValue": "Enter at least one measurement value."
+        }
+      },
       "chartLabel": "Weight trend · last 8 weeks",
       "tiles": {
         "currentWeight": "Current weight",

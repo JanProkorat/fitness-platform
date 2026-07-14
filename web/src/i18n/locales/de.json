@@ -1923,11 +1923,33 @@
     "mereni": {
       "title": "Körpermessungen",
       "addMeasurement": "Messung hinzufügen",
-      "addMeasurementPlaceholder": "Messung hinzufügen (in der Client-App verfügbar)",
       "addFirstMeasurement": "Erste Messung hinzufügen",
       "emptyTitle": "Keine Messungen",
-      "emptyDescription": "Der Klient hat noch keine Körpermessungen aufgezeichnet. Messungen können über die mobile App hinzugefügt werden.",
+      "emptyDescription": "Für diesen Klienten sind noch keine Körpermessungen erfasst.",
       "errorLoading": "Messungen konnten nicht geladen werden.",
+      "dialog": {
+        "title": "Messung hinzufügen",
+        "date": "Messdatum",
+        "weight": "Gewicht (kg)",
+        "bodyFat": "Körperfett (%)",
+        "chest": "Brust (cm)",
+        "waist": "Taille (cm)",
+        "hips": "Hüfte (cm)",
+        "biceps": "Bizeps (cm)",
+        "thighs": "Oberschenkel (cm)",
+        "notes": "Notiz",
+        "notesPlaceholder": "Optionale Notiz zu dieser Messung…",
+        "saved": "Messung gespeichert.",
+        "saveError": "Messung konnte nicht gespeichert werden.",
+        "validation": {
+          "dateRequired": "Datum ist erforderlich.",
+          "dateNotFuture": "Das Datum darf nicht in der Zukunft liegen.",
+          "mustBeNumber": "Bitte eine Zahl eingeben.",
+          "mustBePositive": "Der Wert muss eine positive Zahl sein.",
+          "notesTooLong": "Die Notiz darf höchstens 500 Zeichen haben.",
+          "atLeastOneValue": "Geben Sie mindestens einen Messwert ein."
+        }
+      },
       "chartLabel": "Gewichtsverlauf · letzte 8 Wochen",
       "tiles": {
         "currentWeight": "Aktuelles Gewicht",
