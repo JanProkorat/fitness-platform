@@ -17,7 +17,14 @@ namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager.</param>
 /// <param name="audit">Audit logging service.</param>
-public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuditService audit)
+/// <param name="notificationService">Creates the in-app notification for the professional (#770).</param>
+/// <param name="notifier">Broadcasts the "inviteaccepted" SignalR event to the professional (#770).</param>
+public class AcceptInvitationEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IAuditService audit,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier)
     : Endpoint<AcceptInvitationRequest, AcceptInvitationResponse>
 {
     /// <inheritdoc />
@@ -89,15 +96,18 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
 
         if (!existingLink)
         {
-            // Determine the professional's role from their Identity roles
+            // Determine the professional's role from their Identity roles. Grant view
+            // access per role actually held (independent booleans), not a single
+            // tie-broken role — a professional can hold BOTH Trainer and Nutritionist
+            // roles simultaneously and must keep access to both plan types (#776).
             var professionalUser = await userManager.FindByIdAsync(invitation.ProfessionalProfile.UserId.ToString());
             var professionalRoles = professionalUser is not null
                 ? await userManager.GetRolesAsync(professionalUser)
                 : [];
 
-            var professionalRole = professionalRoles.Contains(AppRoles.Nutritionist)
-                ? UserRole.Nutritionist
-                : UserRole.Trainer;
+            var professionalIsTrainer = professionalRoles.Contains(AppRoles.Trainer);
+            var professionalIsNutritionist = professionalRoles.Contains(AppRoles.Nutritionist);
+            var professionalRole = professionalIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
             // Find matching pending invite to get questionnaire assignment
             var pendingInvite = await db.PendingInvites
@@ -111,6 +121,8 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
                 ProfessionalProfileId = invitation.ProfessionalProfileId,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
+                CanViewNutritionPlans = professionalIsNutritionist,
+                CanViewTrainingPlans = professionalIsTrainer,
                 QuestionnaireId = pendingInvite?.QuestionnaireId
             };
 
@@ -143,6 +155,28 @@ public class AcceptInvitationEndpoint(IApplicationDbContext db, UserManager<Appl
             invitation.ProfessionalProfile.PublicId,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct: ct);
+
+        // Notify the professional that their (token-based) invitation was accepted (#770).
+        // This flow previously created the ClientProfessionalLink with no notification or
+        // SignalR emit at all, so the professional's notification bell and web client-list
+        // never learned about the new link until an unrelated action refreshed the page.
+        // Mirrors the pattern used by AcceptClientInviteEndpoint for the in-app invite flow.
+        var clientName = currentUser is not null
+            ? $"{currentUser.FirstName} {currentUser.LastName}"
+            : "A client";
+
+        await notificationService.CreateAsync(
+            invitation.ProfessionalProfile.UserId,
+            NotificationType.ClientRequestAccepted,
+            "Invitation accepted",
+            $"{clientName} accepted your invitation.",
+            ct: ct);
+
+        await notifier.NotifyAsync(
+            invitation.ProfessionalProfile.UserId,
+            "inviteaccepted",
+            new { clientName },
+            ct);
 
         await Send.OkAsync(new AcceptInvitationResponse
         {

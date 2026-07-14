@@ -86,9 +86,14 @@ public class AcceptClientInviteEndpoint(
             var profRoles = professionalUser is not null
                 ? await userManager.GetRolesAsync(professionalUser)
                 : [];
-            var profRole = profRoles.Contains(AppRoles.Nutritionist)
-                ? UserRole.Nutritionist
-                : UserRole.Trainer;
+
+            // Grant view access per role actually held — independent booleans, not a
+            // single tie-broken role, so a professional holding BOTH Trainer and
+            // Nutritionist roles gets both flags (#776). Previously neither flag was
+            // set here at all, defaulting both to false regardless of role.
+            var profIsTrainer = profRoles.Contains(AppRoles.Trainer);
+            var profIsNutritionist = profRoles.Contains(AppRoles.Nutritionist);
+            var profRole = profIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
             newLink = new ClientProfessionalLink
             {
@@ -96,6 +101,8 @@ public class AcceptClientInviteEndpoint(
                 ProfessionalProfileId = invite.ProfessionalProfileId,
                 ProfessionalRole = profRole,
                 IsActive = true,
+                CanViewNutritionPlans = profIsNutritionist,
+                CanViewTrainingPlans = profIsTrainer,
                 QuestionnaireId = invite.QuestionnaireId
             };
             db.ClientProfessionalLinks.Add(newLink);

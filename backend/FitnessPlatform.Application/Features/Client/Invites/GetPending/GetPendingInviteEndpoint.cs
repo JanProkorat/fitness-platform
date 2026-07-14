@@ -59,8 +59,15 @@ public class GetPendingInviteEndpoint(
         var prof = invite.ProfessionalProfile;
         var profUser = prof.User;
 
+        // Show ALL roles the inviting professional holds, not a single tie-broken
+        // one (#771) — a professional can be both Trainer and Nutritionist. DTO
+        // shape stays a single string (no client-side change needed); multiple
+        // roles are joined for display.
         var profRoles = await userManager.GetRolesAsync(profUser);
-        var role = profRoles.Contains(AppRoles.Nutritionist) ? "Nutritionist" : "Trainer";
+        var roleLabels = new List<string>();
+        if (profRoles.Contains(AppRoles.Trainer)) roleLabels.Add("Trainer");
+        if (profRoles.Contains(AppRoles.Nutritionist)) roleLabels.Add("Nutritionist");
+        var role = roleLabels.Count > 0 ? string.Join(" & ", roleLabels) : "Trainer";
 
         await Send.OkAsync(new PendingInviteResponse
         {

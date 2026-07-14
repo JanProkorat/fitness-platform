@@ -142,6 +142,10 @@ export function AppShell() {
       queryClient.invalidateQueries({ queryKey: ['pending-invites'] });
       queryClient.invalidateQueries({ queryKey: ['sidebar-clients'] });
       queryClient.invalidateQueries({ queryKey: ['web-notifications'] });
+      // Dashboard client-list table (DashboardPage.tsx) is backed by this key —
+      // without it the newly-accepted client is missing from the table until
+      // the next manual reload / 60s staleTime expiry (#770).
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
     inviteDeclined: (payload: unknown) => {
       const data = payload as { clientName?: string } | undefined;

@@ -102,11 +102,14 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             return;
         }
 
-        // Determine the collaborator's role
+        // Determine the collaborator's role — grant view access per role actually
+        // held (independent booleans), not a single tie-broken role, so a
+        // collaborator holding BOTH Trainer and Nutritionist roles gets both
+        // flags (#776). Previously neither CanView* flag was set here at all.
         var collaboratorRoles = await userManager.GetRolesAsync(collaboratorProfile.User);
-        var collaboratorRole = collaboratorRoles.Contains(AppRoles.Nutritionist)
-            ? UserRole.Nutritionist
-            : UserRole.Trainer;
+        var collaboratorIsTrainer = collaboratorRoles.Contains(AppRoles.Trainer);
+        var collaboratorIsNutritionist = collaboratorRoles.Contains(AppRoles.Nutritionist);
+        var collaboratorRole = collaboratorIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
         // Create the new ClientProfessionalLink
         var link = new ClientProfessionalLink
@@ -114,7 +117,9 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = collaboratorProfile.Id,
             ProfessionalRole = collaboratorRole,
-            IsActive = true
+            IsActive = true,
+            CanViewNutritionPlans = collaboratorIsNutritionist,
+            CanViewTrainingPlans = collaboratorIsTrainer
         };
 
         db.ClientProfessionalLinks.Add(link);
