@@ -237,6 +237,9 @@ public static class ErrorCodes
     /// <summary>The referenced plan does not belong to the client associated with this link/invite.</summary>
     public const string PhotoDiaryRequestPlanNotOwned = "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED";
 
+    /// <summary>The caller is not the owning professional for this photo diary request (role-gate rejection).</summary>
+    public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
+
     // ── Section Templates ────────────────────────────────────────────
     /// <summary>Section template not found.</summary>
     public const string SectionTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
