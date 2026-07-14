@@ -195,6 +195,7 @@
     "trainingPlan": "Trainingsplan",
     "mealPlan": "Ernährungsplan",
     "questionnaires": "Fragebögen",
+    "photos": "Fotos",
     "goalsAndMacros": "Ziele & Makros",
     "addClient": "Klient hinzufügen",
     "pendingInvites": "AUSSTEHENDE EINLADUNGEN",
@@ -955,7 +956,10 @@
     "social_email_conflict": "Diese E-Mail ist mit einem Passwort registriert. Bitte melden Sie sich mit E-Mail und Passwort an.",
     "APPLE_NO_EMAIL_NO_LINK": "Apple-Anmeldung fehlgeschlagen: Es wurde keine E-Mail angegeben. Öffnen Sie Einstellungen > Apple-ID und erlauben Sie das Teilen der E-Mail mit dieser App.",
     "PLAN_VERSION_CONFLICT": "Der Plan wurde inzwischen von einer anderen Anfrage geändert. Aktuelle Version wird geladen.",
-    "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt."
+    "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
+    "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
+    "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -1848,6 +1852,13 @@
       "inviteCheckboxHint": "Nach der Annahme wird der Klient aufgefordert, Fotos seiner Mahlzeiten zu teilen.",
       "inviteCheckboxWarning": "Die Fototagebuch-Anfrage wird nach erfolgreicher Erstellung der Einladung gesendet.",
       "inviteDiaryFailed": "Einladung gesendet, aber Fototagebuch-Anfrage fehlgeschlagen. Sie können sie später über das Klientendetail senden."
+    },
+    "link": {
+      "title": "Foto-Tagebuch mit einem Plan verknüpfen",
+      "description": "Wählen Sie den Plan, mit dem dieses Foto-Tagebuch verknüpft werden soll.",
+      "noPlans": "Dieser Klient hat noch keine Pläne",
+      "confirm": "Verknüpfen",
+      "linking": "Verknüpfung läuft..."
     }
   },
   "clientDetail": {
@@ -2039,7 +2050,13 @@
       "errorLoading": "Fotos konnten nicht geladen werden",
       "photoAlt": "Kundenfoto",
       "overflowLabel": "alle anzeigen",
-      "overflowAriaLabel": "{{count}} weitere Fotos anzeigen"
+      "overflowAriaLabel": "{{count}} weitere Fotos anzeigen",
+      "linkedPlanCta": "Verknüpften Plan anzeigen: {{name}}",
+      "diariesTitle": "Foto-Tagebücher",
+      "linkToPlan": "Mit Plan verknüpfen",
+      "noPlansAvailable": "Dieser Klient hat noch keine Pläne",
+      "linkSuccess": "Foto-Tagebuch wurde mit dem Plan verknüpft",
+      "linkError": "Foto-Tagebuch konnte nicht mit dem Plan verknüpft werden"
     },
     "checkiny": {
       "title": "Wöchentliche Check-ins",

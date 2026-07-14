@@ -1,0 +1,325 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using FluentAssertions;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FitnessPlatform.Tests.Endpoints.PhotoDiaryRequests;
+
+/// <summary>
+/// Integration tests for POST /trainer/photo-diary-requests/{RequestId}/link — retroactively
+/// linking an existing photo diary request to a nutrition or training plan (#778 AC5).
+/// </summary>
+[Collection(TestCollection.Name)]
+public class LinkPlanEndpointTests(FitnessApiFactory factory)
+{
+    private static string UniqueEmail(string tag = "trainer") =>
+        $"{Guid.NewGuid():N}@{tag}-link-plan.com";
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    // ── Setup helpers ──────────────────────────────────────────────────────────
+
+    private async Task<(HttpClient Http, Guid UserId)> SetupProfessionalAsync(string role = "Nutritionist")
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail(role.ToLower());
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Prof", "Test", role);
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        return (http, user.Id);
+    }
+
+    private async Task<(HttpClient Http, Guid UserId)> SetupClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client");
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Client", "Test", "Client");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        return (http, user.Id);
+    }
+
+    private async Task<(long LinkId, Guid ClientPublicId)> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var profProfile = await db.ProfessionalProfiles
+            .FirstAsync(p => p.UserId == professionalUserId, TestContext.Current.CancellationToken);
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(p => p.UserId == clientUserId, TestContext.Current.CancellationToken);
+
+        var link = new ClientProfessionalLink
+        {
+            ClientProfileId = clientProfile.Id,
+            ProfessionalProfileId = profProfile.Id,
+            ProfessionalRole = UserRole.Nutritionist,
+            IsActive = true,
+            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = false,
+            PublicId = Guid.NewGuid(),
+            DateCreated = DateTime.UtcNow,
+        };
+        db.ClientProfessionalLinks.Add(link);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return (link.Id, clientProfile.PublicId);
+    }
+
+    private async Task<Guid> InsertDiaryRequestAsync(Guid profUserId, long linkId, PhotoDiaryStatus status = PhotoDiaryStatus.Pending)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var request = new Application.Domain.Entities.PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profUserId,
+            LinkId = linkId,
+            DurationDays = 7,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        db.PhotoDiaryRequests.Add(request);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return request.Id;
+    }
+
+    private async Task<Guid> InsertNutritionPlanAsync(Guid clientPublicId, Guid professionalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planId = Guid.NewGuid();
+        await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            NutritionistId = professionalId,
+            Status = NutritionPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        return planId;
+    }
+
+    private async Task<Guid> InsertTrainingPlanAsync(Guid clientPublicId, Guid professionalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planId = Guid.NewGuid();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientPublicId,
+            TrainerId = professionalId,
+            Status = TrainingPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        return planId;
+    }
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Link_Unauthenticated_Returns401()
+    {
+        var http = factory.CreateClient();
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{Guid.NewGuid()}/link",
+            new { PlanId = Guid.NewGuid() },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Link_ClientRole_Returns403()
+    {
+        var (http, _) = await SetupClientAsync();
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{Guid.NewGuid()}/link",
+            new { PlanId = Guid.NewGuid() },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── Validation ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Link_PlanIdMissing_Returns400()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = Guid.Empty },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ── 404 — diary request not found ──────────────────────────────────────────
+
+    [Fact]
+    public async Task Link_DiaryRequestNotFound_Returns404()
+    {
+        var (http, _) = await SetupProfessionalAsync();
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{Guid.NewGuid()}/link",
+            new { PlanId = Guid.NewGuid() },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── 403 — diary request owned by a different professional ─────────────────
+
+    [Fact]
+    public async Task Link_DiaryRequestOwnedByAnotherProfessional_Returns403()
+    {
+        var (http, _) = await SetupProfessionalAsync();
+        var (_, otherProfId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, otherProfId);
+        var requestId = await InsertDiaryRequestAsync(otherProfId, linkId);
+        var planId = await InsertNutritionPlanAsync(clientPublicId, otherProfId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── 404 — target plan not found / not owned by the diary's client ─────────
+
+    [Fact]
+    public async Task Link_PlanDoesNotExist_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = Guid.NewGuid() },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Link_PlanBelongsToAnotherClient_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+
+        // Plan belongs to a completely different client
+        var (_, otherClientId) = await SetupClientAsync();
+        var (_, otherClientPublicId) = await InsertLinkAsync(otherClientId, profId);
+        var planId = await InsertNutritionPlanAsync(otherClientPublicId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── Happy path — nutrition plan ────────────────────────────────────────────
+
+    [Fact]
+    public async Task Link_WithValidNutritionPlan_Returns200_AndPersists()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+        var planId = await InsertNutritionPlanAsync(clientPublicId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<LinkResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
+        body.Id.Should().Be(requestId);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.PhotoDiaryRequests
+            .FirstOrDefaultAsync(r => r.Id == requestId, TestContext.Current.CancellationToken);
+        persisted.Should().NotBeNull();
+        persisted!.PlanId.Should().Be(planId);
+    }
+
+    // ── Happy path — training plan ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task Link_WithValidTrainingPlan_Returns200_AndPersists()
+    {
+        var (http, profId) = await SetupProfessionalAsync("Trainer");
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+        var planId = await InsertTrainingPlanAsync(clientPublicId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<LinkResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
+    }
+
+    // ── Response shape helper ──────────────────────────────────────────────────
+
+    private record LinkResponseBody(
+        Guid Id,
+        Guid ProfessionalId,
+        long? LinkId,
+        long? PendingInviteId,
+        Guid? PlanId,
+        int DurationDays,
+        PhotoDiaryStatus Status,
+        DateTimeOffset CreatedAt,
+        DateTimeOffset UpdatedAt);
+}
