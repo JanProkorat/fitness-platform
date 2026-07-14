@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -6,11 +7,21 @@ import {
   assignQuestionnaire,
   type ClientResponseItem,
 } from '@/api/questionnaires';
+import { getPlans } from '@/api/plans';
+import { getTrainingPlans } from '@/api/training-plans';
 import { QuestionnaireSelectDialog } from '@/components/questionnaire/QuestionnaireSelectDialog';
 import { formatAnswerValue } from '@/components/questionnaire/questionnaire-helpers';
 import { useToastStore } from '@/stores/toast';
+import { useAuthStore } from '@/stores/auth';
 import { formatClientDate } from '@/lib/date-format';
 import { EmptyState } from '@/components/clients/EmptyState';
+
+/** A plan (nutrition or training) linked to a questionnaire response. */
+interface LinkedPlanRef {
+  kind: 'nutrition' | 'training';
+  planId: string;
+  planName: string;
+}
 
 interface DotaznikyTabProps {
   /** Client's public ID — used as the clientId param for questionnaire endpoints. */
@@ -82,8 +93,10 @@ function ExpandableAnswers({ item, language }: ExpandedAnswersProps) {
 export function DotaznikyTab({ clientId }: DotaznikyTabProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
+  const user = useAuthStore((s) => s.user);
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
@@ -93,6 +106,39 @@ export function DotaznikyTab({ clientId }: DotaznikyTabProps) {
     enabled: Boolean(clientId),
     retry: false,
   });
+
+  // Plan lists to resolve a submitted response's click-through target (#777
+  // AC3) — only fetched for roles that can see that plan type, since both
+  // list endpoints are role-gated on the backend (403 otherwise). Query keys
+  // match SidebarPlanSubmenu's so the two share cache when both are mounted.
+  const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r)) ?? false;
+  const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r)) ?? false;
+
+  const nutritionPlansQuery = useQuery({
+    queryKey: ['plans', { clientId, all: true }],
+    queryFn: () => getPlans({ clientId, pageSize: 100 }),
+    enabled: Boolean(clientId) && isNutritionist,
+  });
+  const trainingPlansQuery = useQuery({
+    queryKey: ['training-plans', { clientId, all: true }],
+    queryFn: () => getTrainingPlans({ clientId, pageSize: 100 }),
+    enabled: Boolean(clientId) && isTrainer,
+  });
+
+  const linkedPlanByResponseId = useMemo(() => {
+    const map = new Map<string, LinkedPlanRef>();
+    for (const p of nutritionPlansQuery.data?.plans ?? []) {
+      if (p.questionnaireResponseId) {
+        map.set(p.questionnaireResponseId, { kind: 'nutrition', planId: p.planId, planName: p.name });
+      }
+    }
+    for (const p of trainingPlansQuery.data?.plans ?? []) {
+      if (p.questionnaireResponseId) {
+        map.set(p.questionnaireResponseId, { kind: 'training', planId: p.planId, planName: p.name });
+      }
+    }
+    return map;
+  }, [nutritionPlansQuery.data, trainingPlansQuery.data]);
 
   const assignMutation = useMutation({
     mutationFn: (qId: string) => assignQuestionnaire(clientId, qId),
@@ -184,6 +230,7 @@ export function DotaznikyTab({ clientId }: DotaznikyTabProps) {
         <div className="flex flex-col gap-3">
           {sorted.map((item) => {
             const isSubmitted = item.status === 'Submitted';
+            const linkedPlan = linkedPlanByResponseId.get(item.responsePublicId);
 
             if (isSubmitted) {
               // Completed row — solid border
@@ -210,6 +257,21 @@ export function DotaznikyTab({ clientId }: DotaznikyTabProps) {
                       {t('clientDetail.dotazniky.statusCompleted')}
                     </span>
                   </div>
+                  {linkedPlan && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          linkedPlan.kind === 'nutrition'
+                            ? `/clients/${clientId}/plans/${linkedPlan.planId}`
+                            : `/clients/${clientId}/training-plans/${linkedPlan.planId}`,
+                        )
+                      }
+                      className="mt-2 flex items-center gap-1 text-[11px] font-medium text-accent bg-transparent border-none cursor-pointer p-0 hover:underline"
+                    >
+                      🔗 {t('clientDetail.dotazniky.linkedPlanCta', { name: linkedPlan.planName })}
+                    </button>
+                  )}
                   <ExpandableAnswers item={item} language={lang} />
                 </div>
               );

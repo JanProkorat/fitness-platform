@@ -208,6 +208,13 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
+  // The "Dotazníky" sidebar row navigates into the client-wide questionnaire
+  // list tab (DotaznikyTab), which lives at `/clients/:id` behind a `?tab=`
+  // query param rather than its own route — so activeness needs the query
+  // param, not just the pathname (#777).
+  const isDotaznikyActive = (cId: string) =>
+    activeClientId === cId && new URLSearchParams(location.search).get('tab') === 'dotazniky';
+
   return (
     <aside
       ref={asideRef}
@@ -467,6 +474,18 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                         )}
                       </div>
                     )}
+                    {/* Dotazníky — navigates into the client-wide questionnaire
+                        list tab; no submenu, since it always shows the same
+                        list rather than a per-plan-type set (#777). */}
+                    <NavLink
+                      to={`/clients/${cId}?tab=dotazniky`}
+                      className={cn('sb-item', isDotaznikyActive(cId) && 'active')}
+                      style={{ paddingLeft: 28 }}
+                      onClick={onClose}
+                    >
+                      <span className="sbi-icon">📝</span>
+                      <span className="sbi-lbl">{t('sidebar.questionnaires')}</span>
+                    </NavLink>
                     <NavLink
                       to={`/clients/${cId}/nutrition-goals`}
                       className={cn('sb-item', isActive(`/clients/${cId}/nutrition-goals`) && 'active')}

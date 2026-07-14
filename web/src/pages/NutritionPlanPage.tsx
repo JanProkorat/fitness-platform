@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNutritionPlanStore } from '@/stores/nutritionPlan';
-import { getPlan, completePlan } from '@/api/plans';
+import { getPlan, completePlan, linkQuestionnaire } from '@/api/plans';
 import { computeNutritionPlanLocks } from '@/lib/nutrition-plan-locks';
 import { deriveDayCompletionState, deriveMealCompletionState } from '@/lib/completionState';
 import { CompletionBadge } from '@/components/common/CompletionBadge';
@@ -24,7 +24,7 @@ import { ShoppingListDrawer } from '@/components/nutrition/ShoppingListDrawer';
 import { PublishWeekDialog, CompletePlanDialog, AddMealDialog } from '@/components/nutrition/PlanDialogs';
 import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
 import { listDiaryRequests } from '@/api/diary-requests';
-import { showSuccess, showApiError } from '@/lib/api-errors';
+import { showSuccess, showApiError, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { cn } from '@/lib/cn';
 import { type MealKind } from '@/components/nutrition/meal-kind';
 import { DayNoteInput } from '@/components/common/DayNoteInput';
@@ -102,6 +102,7 @@ export default function NutritionPlanPage() {
   );
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isLinkingQuestionnaire, setIsLinkingQuestionnaire] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
   // ── Load plan ──
@@ -286,6 +287,33 @@ export default function NutritionPlanPage() {
       showApiError(err, 'common.error');
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  // Retroactive questionnaire linking (#777 AC5). Rethrows on failure so
+  // PlanQuestionnairePanel's dialog stays open for retry — this handler
+  // already surfaces the error toast.
+  const handleLinkExistingQuestionnaire = async (responseId: string) => {
+    if (!plan || !planId) return;
+    setIsLinkingQuestionnaire(true);
+    try {
+      const updated = await linkQuestionnaire(planId, responseId, plan.version);
+      setPlan(updated);
+      showSuccess(t('nutrition.questionnaireLinked'));
+    } catch (err) {
+      if (getRfc7807ErrorCode(err) === 'PLAN_VERSION_CONFLICT') {
+        // Refresh the plan so its version is current before the trainer retries.
+        try {
+          const fresh = await getPlan(planId);
+          setPlan(fresh);
+        } catch {
+          // Non-fatal — the error toast below already surfaces the conflict.
+        }
+      }
+      showApiError(err, 'nutrition.linkError');
+      throw err;
+    } finally {
+      setIsLinkingQuestionnaire(false);
     }
   };
 
@@ -916,6 +944,8 @@ export default function NutritionPlanPage() {
             questionnaireResponseId={plan.questionnaireResponseId}
             planStatus={plan.status}
             ns="nutrition"
+            onLinkExisting={handleLinkExistingQuestionnaire}
+            linkPending={isLinkingQuestionnaire}
           />
         </div>
       </div>
