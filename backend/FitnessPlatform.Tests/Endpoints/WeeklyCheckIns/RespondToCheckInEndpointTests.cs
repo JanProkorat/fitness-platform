@@ -218,6 +218,74 @@ public class RespondToCheckInEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    // ── Notification localization (#788) ─────────────────────────────────────
+
+    /// <summary>
+    /// The professional's stored <see cref="ApplicationUser.Language"/> localizes the
+    /// "client responded" notification — this endpoint has no Accept-Language of its
+    /// own to go on (the request is made by the CLIENT, not the professional), so it
+    /// must read the professional's persisted Language column directly.
+    /// </summary>
+    [Fact]
+    public async Task Respond_ProfessionalLanguageCs_PersistsCzechNotification()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientUserId, trainerId);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var trainer = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+                .FirstAsync(db.Users, u => u.Id == trainerId, TestContext.Current.CancellationToken);
+            trainer.Language = "cs";
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/weekly-check-ins/{checkInId}/respond",
+            new { flags = Array.Empty<string>() },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var notification = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(verifyDb.Notifications,
+                n => n.RecipientUserId == trainerId && n.Type == NotificationType.WeeklyCheckInResponded,
+                TestContext.Current.CancellationToken);
+
+        notification.Title.Should().Be("Klient odpověděl na check-in");
+        notification.Body.Should().Be("Klient odpověděl na týdenní připomenutí check-inu.");
+    }
+
+    /// <summary>
+    /// No stored Language on the professional (null) falls back to English, per #788.
+    /// </summary>
+    [Fact]
+    public async Task Respond_ProfessionalLanguageNull_FallsBackToEnglishNotification()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerUserIdAsync();
+        var checkInId = await InsertCheckInAsync(clientUserId, trainerId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/weekly-check-ins/{checkInId}/respond",
+            new { flags = Array.Empty<string>() },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var notification = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .FirstAsync(verifyDb.Notifications,
+                n => n.RecipientUserId == trainerId && n.Type == NotificationType.WeeklyCheckInResponded,
+                TestContext.Current.CancellationToken);
+
+        notification.Title.Should().Be("Client responded to check-in");
+        notification.Body.Should().Be("A client has responded to their weekly check-in reminder.");
+    }
+
     // ── SignalR broadcast ─────────────────────────────────────────────────────
 
     [Fact]

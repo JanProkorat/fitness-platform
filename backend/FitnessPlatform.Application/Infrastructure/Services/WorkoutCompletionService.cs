@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
@@ -85,15 +84,17 @@ public class WorkoutCompletionService(
             if (plan is not null)
             {
                 var prSummary = string.Join(", ", prDescriptions.Take(3));
-                var data = JsonSerializer.Serialize(new { workoutLogId = log.ExternalId, clientId = log.ClientId });
 
                 await notifications.CreateAsync(
                     plan.TrainerId,
                     NotificationType.PersonalRecord,
-                    "New Personal Record!",
-                    prSummary,
-                    data,
-                    ct);
+                    new Dictionary<string, string>
+                    {
+                        ["summary"] = prSummary,
+                        ["workoutLogId"] = log.ExternalId.ToString(),
+                        ["clientId"] = log.ClientId.ToString(),
+                    },
+                    ct: ct);
             }
         }
 

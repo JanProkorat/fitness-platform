@@ -70,8 +70,7 @@ public class EndCollaborationEndpoint(
         await notificationService.CreateAsync(
             link.ProfessionalProfile.UserId,
             NotificationType.General,
-            "Collaboration ended",
-            $"{clientName} ended the collaboration with you.",
+            new Dictionary<string, string> { ["clientName"] = clientName },
             ct: ct);
 
         await notifier.NotifyAsync(link.ProfessionalProfile.UserId, "collaborationended", new

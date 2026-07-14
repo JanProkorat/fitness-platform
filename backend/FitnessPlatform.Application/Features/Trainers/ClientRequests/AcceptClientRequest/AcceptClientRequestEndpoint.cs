@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -163,8 +164,7 @@ public class AcceptClientRequestEndpoint(
         await notificationService.CreateAsync(
             clientRequest.ClientProfile.UserId,
             NotificationType.InvitationAccepted,
-            "Invitation accepted",
-            $"{profName} accepted your invitation.",
+            new Dictionary<string, string> { ["profName"] = profName },
             ct: ct);
 
         await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientrequestaccepted", new
@@ -211,8 +211,12 @@ public class AcceptClientRequestEndpoint(
             await notificationService.CreateAsync(
                 other.ProfessionalProfile.UserId,
                 NotificationType.InvitationCancelled,
-                "Invitation cancelled",
-                $"{clientName} accepted another {roleString.ToLowerInvariant()}, so your invitation was cancelled.",
+                new Dictionary<string, string>
+                {
+                    ["clientName"] = clientName,
+                    ["role"] = roleString.ToLowerInvariant(),
+                },
+                variant: NotificationTemplates.InvitationCancelledAutoBySibling,
                 ct: ct);
         }
 
@@ -222,8 +226,7 @@ public class AcceptClientRequestEndpoint(
             await notificationService.CreateAsync(
                 clientRequest.ClientProfile.UserId,
                 NotificationType.QuestionnaireAssigned,
-                "Questionnaire assigned",
-                $"You have been assigned a questionnaire: {questionnaire.Title}",
+                new Dictionary<string, string> { ["questionnaireTitle"] = questionnaire.Title },
                 ct: ct);
 
             await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "questionnaireassigned", new

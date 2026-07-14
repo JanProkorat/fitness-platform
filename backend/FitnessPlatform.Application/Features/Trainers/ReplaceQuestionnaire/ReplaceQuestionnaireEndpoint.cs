@@ -125,8 +125,7 @@ public class ReplaceQuestionnaireEndpoint(
         await notificationService.CreateAsync(
             clientProfile.UserId,
             NotificationType.QuestionnaireAssigned,
-            "Questionnaire assigned",
-            $"You have been assigned a new questionnaire: {questionnaire.Title}",
+            new Dictionary<string, string> { ["questionnaireTitle"] = questionnaire.Title },
             ct: ct);
 
         await notifier.NotifyAsync(clientProfile.UserId, "questionnaireassigned", new

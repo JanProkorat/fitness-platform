@@ -335,6 +335,56 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
         notification.Should().NotBeNull("the scheduler must create a WeeklyCheckInRequested notification");
     }
 
+    /// <summary>
+    /// The scheduler has no HTTP request / Accept-Language to go on — it must localize
+    /// using the client's persisted <see cref="ApplicationUser.Language"/> column
+    /// (#788). Proves the scheduler now routes through
+    /// <see cref="INotificationService.CreateAsync"/> instead of constructing the
+    /// Notification entity directly with hardcoded English text.
+    /// </summary>
+    [Fact]
+    public async Task Tick_ClientLanguageCs_CreatesLocalizedNotification()
+    {
+        var (trainerUserId, clientUserId) = await SetupTrainerAndClientWithSettingAsync(
+            DayOfWeek.Wednesday,
+            TimeSpan.FromHours(9),
+            "UTC");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var setupDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientUser = await setupDb.Users.FirstAsync(
+                u => u.Id == clientUserId, TestContext.Current.CancellationToken);
+            clientUser.Language = "cs";
+            await setupDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var utcNow = DateTime.UtcNow;
+        var daysToLastWed = ((int)utcNow.DayOfWeek - (int)DayOfWeek.Wednesday + 7) % 7;
+        var lastWed = utcNow.Date.AddDays(-daysToLastWed).AddHours(9);
+        if (lastWed >= utcNow) lastWed = lastWed.AddDays(-7);
+
+        var scheduler = factory.Services.GetRequiredService<WeeklyCheckInScheduler>();
+
+        scheduler.OverrideNow = lastWed.AddMinutes(-30);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        scheduler.OverrideNow = lastWed.AddMinutes(5);
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        using var db = factory.Services.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var notification = await db.Notifications
+            .Where(n =>
+                n.RecipientUserId == clientUserId &&
+                n.Type == NotificationType.WeeklyCheckInRequested)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+
+        notification.Should().NotBeNull();
+        notification!.Title.Should().Be("Plánování dalšího týdne");
+        notification.Body.Should().Contain("plánuje další týden");
+    }
+
     [Fact]
     public async Task Tick_BroadcastsViaSignalR()
     {

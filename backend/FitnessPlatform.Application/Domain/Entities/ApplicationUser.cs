@@ -85,6 +85,16 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? AvatarBlobUrl { get; set; }
 
     /// <summary>
+    /// The user's UI locale ("cs", "en", or "de"), captured opportunistically from the
+    /// <c>Accept-Language</c> header on authenticated requests (see
+    /// <see cref="Middleware.LocaleCaptureMiddleware"/>). Null until the user's first
+    /// authenticated request after this column was introduced; callers that need to
+    /// localize content for this user should fall back to "en" when null (#788).
+    /// </summary>
+    [MaxLength(2)]
+    public string? Language { get; set; }
+
+    /// <summary>
     /// Collection of refresh tokens issued to this user.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];

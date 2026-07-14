@@ -184,6 +184,51 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
         signalRCalls.Should().HaveCount(1, "scheduler must broadcast exactly one newnotification to the client");
     }
 
+    /// <summary>
+    /// The scheduler has no HTTP request / Accept-Language to go on — it must localize
+    /// using the client's persisted <see cref="ApplicationUser.Language"/> column
+    /// (#788). Proves the scheduler now routes through
+    /// <see cref="INotificationService.CreateAsync"/> instead of constructing the
+    /// Notification entity directly with hardcoded English text.
+    /// </summary>
+    [Fact]
+    public async Task Tick_ClientLanguageDe_CreatesLocalizedNotification()
+    {
+        var utcNow = DateTime.UtcNow;
+        var virtualDate = utcNow.Date;
+        var beforeNoonPrague = virtualDate.AddHours(9);   // 09:00 UTC
+        var afterNoonPrague  = virtualDate.AddHours(10).AddMinutes(30); // 10:30 UTC
+
+        var (_, clientUserId, requestId, _) = await SetupWorkflowRequestAsync(
+            acceptedAt: new DateTimeOffset(utcNow.AddDays(-1)),
+            clientTimeZone: "Europe/Prague");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var setupDb = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientUser = await setupDb.Users.FirstAsync(
+                u => u.Id == clientUserId, TestContext.Current.CancellationToken);
+            clientUser.Language = "de";
+            await setupDb.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var scheduler = factory.Services.GetRequiredService<PhotoDiaryReminderScheduler>();
+        scheduler.ResetCursor();
+        scheduler.SetLastTickAt(beforeNoonPrague);
+        scheduler.OverrideNow = afterNoonPrague;
+        await scheduler.TickAsync(scheduler.OverrideNow.Value, TestContext.Current.CancellationToken);
+
+        using var db = factory.Services.CreateScope().ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var notification = await db.Notifications
+            .Where(n => n.RecipientUserId == clientUserId && n.Type == NotificationType.PhotoDiaryReminder)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+
+        notification.Should().NotBeNull();
+        notification!.Title.Should().Be("Vergessen Sie Ihr Tagebuchfoto nicht");
+        notification.Body.Should().Contain("Ernährungsberater");
+    }
+
     [Fact]
     public async Task Tick_PhotoAlreadyUploadedToday_DoesNotFire()
     {
@@ -543,7 +588,10 @@ public class PhotoDiaryReminderSchedulerTests(FitnessApiFactory factory)
             .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         notification.Should().NotBeNull("notification must be created");
-        notification!.Data.Should().Contain("\"dayIndex\":3",
+        // #788: Data is now the JSON-serialized Dictionary<string,string> params passed to
+        // INotificationService.CreateAsync, so dayIndex is a quoted string, not a bare
+        // number, unlike the pre-#788 anonymous-object payload.
+        notification!.Data.Should().Contain("\"dayIndex\":\"3\"",
             "day index must be 3 when AcceptedAt was 2 local days ago");
     }
 

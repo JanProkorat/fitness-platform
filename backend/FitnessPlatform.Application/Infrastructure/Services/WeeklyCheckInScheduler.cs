@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -239,7 +238,6 @@ public class WeeklyCheckInScheduler(
             o => (o.ProfessionalUserId, o.ClientUserId, o.Profession));
 
         var notifier = services.GetRequiredService<IRealtimeNotifier>();
-        var push = services.GetRequiredService<IPushNotificationService>();
 
         foreach (var setting in settings)
         {
@@ -359,54 +357,40 @@ public class WeeklyCheckInScheduler(
                     continue;
                 }
 
-                // Create in-app notification for the client.
+                // Create in-app + push notification for the client, localized to the
+                // client's stored Language (#788 — schedulers have no HTTP request /
+                // Accept-Language, so CreateAsync's recipient-language lookup via the
+                // persisted ApplicationUser.Language column is exactly the mechanism
+                // this needs). Resolved from the SAME candidateScope as candidateDb so
+                // NotificationService shares the already-open DbContext/change tracker.
                 var professionalName =
                     $"{setting.User.FirstName} {setting.User.LastName}".Trim();
 
-                var notificationData = JsonSerializer.Serialize(new
-                {
-                    weeklyCheckInId = checkIn.Id,
-                    profession = setting.Profession.ToString(),
-                    professionalName
-                });
+                var notifications = candidateScope.ServiceProvider.GetRequiredService<INotificationService>();
 
-                var notification = new Notification
-                {
-                    RecipientUserId = clientUserId,
-                    Type = NotificationType.WeeklyCheckInRequested,
-                    Title = "Planning next week",
-                    Body = $"{professionalName} is planning next week. Let them know if anything special is coming up.",
-                    Data = notificationData
-                };
-
-                // ── Persist in-app notification (best-effort) ────────────────
+                Notification notification;
                 try
                 {
-                    candidateDb.Notifications.Add(notification);
-                    await candidateDb.SaveChangesAsync(ct);
+                    notification = await notifications.CreateAsync(
+                        clientUserId,
+                        NotificationType.WeeklyCheckInRequested,
+                        new Dictionary<string, string>
+                        {
+                            ["professionalName"] = professionalName,
+                            ["weeklyCheckInId"] = checkIn.Id.ToString(),
+                            ["profession"] = setting.Profession.ToString(),
+                        },
+                        ct: ct);
                 }
                 catch (Exception ex)
                 {
+                    // Covers both the DB persist and the recipient-language lookup —
+                    // push failures never throw here (ExpoPushNotificationService
+                    // self-swallows its own errors internally).
                     logger.LogWarning(ex,
-                        "WeeklyCheckInScheduler: failed to persist notification for client {ClientUserId}.",
+                        "WeeklyCheckInScheduler: failed to create notification for client {ClientUserId}.",
                         clientUserId);
                     continue;
-                }
-
-                // Send push notification.
-                try
-                {
-                    await push.SendAsync(
-                        clientUserId,
-                        "Planning next week",
-                        $"{professionalName} is planning next week. Let them know if anything special is coming up.",
-                        new { type = "WeeklyCheckInRequested", weeklyCheckInId = checkIn.Id },
-                        ct);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex,
-                        "WeeklyCheckInScheduler: failed to send push to client {ClientUserId}.", clientUserId);
                 }
 
                 // Broadcast via SignalR to the client's connection group.
@@ -419,7 +403,7 @@ public class WeeklyCheckInScheduler(
                         {
                             id = notification.Id,
                             type = NotificationType.WeeklyCheckInRequested.ToString(),
-                            data = notificationData
+                            data = notification.Data
                         },
                         ct);
                 }

@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.WeeklyCheckIns.RespondToCheckIn;
@@ -82,20 +83,40 @@ public class RespondToCheckInEndpoint(
         checkIn.Status = WeeklyCheckInStatus.Responded;
         checkIn.DateModified = now;
 
-        // Create in-app notification for the professional (no push — in-app only).
-        var notificationData = JsonSerializer.Serialize(new
+        // Create in-app notification for the professional (no push — in-app only,
+        // by design — see the comment on the original notification block this
+        // replaces). This endpoint can't route through INotificationService.CreateAsync
+        // without ALSO sending a push (CreateAsync always pushes), so it stays on the
+        // NotificationTemplates.Resolve fallback path instead (#788): load the
+        // recipient's persisted Language directly (no Accept-Language available for
+        // "the professional" from the client's own request) and resolve localized
+        // title/body with it, falling back to "en" when unset.
+        var notificationParams = new Dictionary<string, string>
         {
-            weeklyCheckInId = checkIn.Id,
-            profession = checkIn.Profession.ToString(),
-            clientUserId
-        });
+            ["weeklyCheckInId"] = checkIn.Id.ToString(),
+            ["profession"] = checkIn.Profession.ToString(),
+            ["clientUserId"] = clientUserId.ToString(),
+        };
+
+        var professionalLanguage = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == checkIn.ProfessionalUserId)
+            .Select(u => u.Language)
+            .FirstOrDefaultAsync(ct);
+
+        var (title, body) = NotificationTemplates.Resolve(
+            NotificationType.WeeklyCheckInResponded,
+            professionalLanguage,
+            notificationParams);
+
+        var notificationData = JsonSerializer.Serialize(notificationParams);
 
         var notification = new Notification
         {
             RecipientUserId = checkIn.ProfessionalUserId,
             Type = NotificationType.WeeklyCheckInResponded,
-            Title = "Client responded to check-in",
-            Body = "A client has responded to their weekly check-in reminder.",
+            Title = title,
+            Body = body,
             Data = notificationData
         };
 

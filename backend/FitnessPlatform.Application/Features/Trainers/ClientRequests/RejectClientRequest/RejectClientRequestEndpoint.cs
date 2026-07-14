@@ -89,8 +89,7 @@ public class RejectClientRequestEndpoint(
         await notificationService.CreateAsync(
             clientRequest.ClientProfile.UserId,
             NotificationType.InvitationDeclined,
-            "Invitation declined",
-            $"{profName} declined your invitation.",
+            new Dictionary<string, string> { ["profName"] = profName },
             ct: ct);
 
         await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "clientrequestrejected", new

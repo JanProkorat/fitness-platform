@@ -118,15 +118,15 @@ public class CreatePendingInviteEndpoint(
                 professionalUserId, existingUser.Id, professionalUserId, trainerName, req.Message,
                 seedIntoExisting: true, ct: ct);
 
-            var notifBody = $"{trainerName} invited you to join as their client.";
-
             await notificationService.CreateAsync(
                 existingUser.Id,
                 NotificationType.InvitationReceived,
-                "New invitation",
-                notifBody,
-                System.Text.Json.JsonSerializer.Serialize(new { inviteId = pendingInvite.PublicId }),
-                ct);
+                new Dictionary<string, string>
+                {
+                    ["trainerName"] = trainerName,
+                    ["inviteId"] = pendingInvite.PublicId.ToString(),
+                },
+                ct: ct);
 
             var senderRole = User.IsInRole(AppRoles.Nutritionist) ? "Nutritionist" : "Trainer";
 

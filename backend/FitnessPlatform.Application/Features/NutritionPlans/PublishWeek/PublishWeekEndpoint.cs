@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -155,8 +156,8 @@ public class PublishWeekEndpoint(
             await notificationService.CreateAsync(
                 clientProfile.UserId,
                 NotificationType.PlanPublished,
-                "Nutrition plan updated",
-                $"Week {req.WeekNumber} of your nutrition plan has been published.",
+                new Dictionary<string, string> { ["weekNumber"] = req.WeekNumber.ToString() },
+                variant: NotificationTemplates.PlanPublishedNutritionPublished,
                 ct: ct);
 
             await notifier.NotifyAsync(clientProfile.UserId, "nutritionplanpublished", new
