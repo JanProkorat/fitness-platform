@@ -197,9 +197,9 @@ export function AppShell() {
     },
     newMessage: (payload: unknown) => {
       const data = payload as { conversationId?: string; senderName?: string } | undefined;
-      if (data?.senderName) {
-        addToast(t('notifications.newMessage', { name: data.senderName }), 'success');
-      }
+      // No toast here by design (#781) — the sidebar unread badge is the
+      // persistent, hard-to-miss signal for new messages. A transient toast
+      // was too easy to dismiss/miss compared to a standing badge.
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       if (data?.conversationId) {
         queryClient.invalidateQueries({ queryKey: ['messages', data.conversationId] });

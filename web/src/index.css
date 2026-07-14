@@ -475,10 +475,13 @@
 
 .sb-item .sbi-badge {
   font-size: 11px;
-  color: var(--text3);
-  background: var(--bg3);
+  font-weight: 700;
+  color: #fff;
+  background: var(--red);
   border-radius: 10px;
   padding: 0 6px;
+  min-width: 16px;
+  text-align: center;
   flex-shrink: 0;
 }
 
