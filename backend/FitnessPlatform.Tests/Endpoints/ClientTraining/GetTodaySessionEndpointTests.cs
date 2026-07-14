@@ -51,8 +51,21 @@ public class GetTodaySessionEndpointTests
         List<TrainingCompletion>? completions = null,
         List<WorkoutLog>? workoutLogs = null)
     {
-        var mongo = Substitute.For<IMongoContext>();
         var plans = plan is not null ? new List<TrainingPlan> { plan } : new List<TrainingPlan>();
+        return CreateMongoWithPlans(plans, exercises, completions, workoutLogs);
+    }
+
+    /// <summary>
+    /// Same as <see cref="CreateMongoWithPlan"/> but seeds multiple plans for the client —
+    /// used to test the date-window-aware resolver (#780) with >1 Active plan.
+    /// </summary>
+    private IMongoContext CreateMongoWithPlans(
+        List<TrainingPlan> plans,
+        List<Exercise>? exercises = null,
+        List<TrainingCompletion>? completions = null,
+        List<WorkoutLog>? workoutLogs = null)
+    {
+        var mongo = Substitute.For<IMongoContext>();
 
         var planCollection = Substitute.For<IMongoCollection<TrainingPlan>>();
         planCollection.FindAsync(
@@ -213,6 +226,118 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, CreateStubLockService());
+
+    // -------------------------------------------------------------------------
+    // #780 — date-window-aware plan resolution (multiple Active plans per client)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Builds a minimal Active plan with a single session scheduled for today, anchored to
+    /// the given week-1 start date.
+    /// </summary>
+    private TrainingPlan BuildActivePlan(DateTime startDate, int weekCount, string name, out Guid sessionId)
+    {
+        var todayDow = TodayDow();
+        sessionId = Guid.NewGuid();
+        var capturedSessionId = sessionId; // 'out' params can't be captured in a lambda
+
+        return new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = name,
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks = Enumerable.Range(1, weekCount).Select(w => new TrainingWeek
+            {
+                WeekNumber = w,
+                Status = WeekStatus.Published,
+                DatePublished = startDate,
+                Sessions = w == 1
+                    ?
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = capturedSessionId,
+                            DayOfWeek = todayDow,
+                            Name = name + " Session",
+                            Order = 1,
+                            Sections = []
+                        }
+                    ]
+                    : []
+            }).ToList(),
+            Version = 1,
+            DateCreated = startDate
+        };
+    }
+
+    /// <summary>
+    /// Regression guard for #780: with two non-overlapping Active plans (one whose window
+    /// already ended, one whose window contains today), the endpoint must resolve the
+    /// in-window plan deterministically — regardless of which order Mongo returns the
+    /// documents in (an arbitrary FirstOrDefault would be order-dependent and wrong once
+    /// more than one Active plan exists for the client).
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HandleAsync_TwoNonOverlappingActivePlans_ReturnsInWindowPlanRegardlessOfMongoOrder(
+        bool reversedOrder)
+    {
+        var todayStart = StartOfCurrentWeek();
+
+        // Past plan: fully elapsed window, ended well before today.
+        var pastPlan = BuildActivePlan(todayStart.AddDays(-60), weekCount: 2, name: "Past Plan", out _);
+        // Current plan: window contains today (started this week).
+        var currentPlan = BuildActivePlan(todayStart, weekCount: 2, name: "Current Plan", out var currentSessionId);
+
+        var plans = reversedOrder
+            ? new List<TrainingPlan> { currentPlan, pastPlan }
+            : new List<TrainingPlan> { pastPlan, currentPlan };
+
+        var mongo = CreateMongoWithPlans(plans);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.PlanId.Should().Be(currentPlan.ExternalId,
+            "the resolver must pick the plan whose window contains today, not an arbitrary one");
+        ep.Response.HasSession.Should().BeTrue();
+#pragma warning disable CS0618
+        ep.Response.Session!.SessionId.Should().Be(currentSessionId);
+#pragma warning restore CS0618
+    }
+
+    /// <summary>
+    /// Regression guard for #780: when a client's only Active plans are entirely in the
+    /// past or entirely in the future (no plan's window contains today), the endpoint must
+    /// surface the existing "no plan for today" state (HasSession=false, PlanId=null) —
+    /// NOT fall back to an arbitrary Active plan.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NoActivePlanWindowContainsToday_ReturnsNoPlanState()
+    {
+        var todayStart = StartOfCurrentWeek();
+
+        // Both plans' windows are fully in the past or fully in the future — neither
+        // contains today.
+        var pastPlan = BuildActivePlan(todayStart.AddDays(-60), weekCount: 2, name: "Past Plan", out _);
+        var futurePlan = BuildActivePlan(todayStart.AddDays(60), weekCount: 2, name: "Future Plan", out _);
+
+        var mongo = CreateMongoWithPlans([pastPlan, futurePlan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.HasSession.Should().BeFalse();
+        ep.Response.PlanId.Should().BeNull("no Active plan's window contains today — must not fall back to an arbitrary plan");
+    }
 
     // -------------------------------------------------------------------------
     // Multi-session tests

@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -80,13 +81,15 @@ public class SaveMealPhotosEndpoint(
 
         var clientId = clientProfile.PublicId;
 
-        // Resolve the client's active nutrition plan
+        // Resolve the client's Active nutrition plan whose date window contains today — a client
+        // may hold several sequential, non-overlapping Active plans (#780).
         var planFilter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
             Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
-        var plan = await planCursor.FirstOrDefaultAsync(ct);
+        var activePlans = await planCursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
         if (plan is null)
         {

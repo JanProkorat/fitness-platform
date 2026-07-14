@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -62,12 +63,14 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         // collections can be queried with the correct identifier.
         var userIdGuid = Guid.Parse(userId);
 
-        // Find the active training plan for this client
+        // Find the Active training plan whose date window contains today — a client may hold
+        // several sequential, non-overlapping Active plans (#780).
         var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
 
         using var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var activePlans = await cursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
         if (plan is null)
         {

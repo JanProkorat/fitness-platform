@@ -201,7 +201,16 @@
     "closeMenu": "Menü schließen",
     "collapseClient": "{{name}} einklappen",
     "expandClient": "{{name}} ausklappen",
-    "goToClient": "Zu {{name}} wechseln"
+    "goToClient": "Zu {{name}} wechseln",
+    "expandTrainingPlans": "Trainingspläne ausklappen",
+    "collapseTrainingPlans": "Trainingspläne einklappen",
+    "expandMealPlans": "Ernährungspläne ausklappen",
+    "collapseMealPlans": "Ernährungspläne einklappen",
+    "newTrainingPlanAriaLabel": "Neuer Trainingsplan",
+    "newMealPlanAriaLabel": "Neuer Ernährungsplan",
+    "planSubmenu": {
+      "empty": "Noch keine Pläne"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -920,6 +929,7 @@
     "START_DATE_LOCKED": "Das Startdatum kann nicht mehr geändert werden, nachdem es erreicht wurde.",
     "START_DATE_REQUIRED": "Legen Sie ein Startdatum fest, bevor Sie eine Woche veröffentlichen.",
     "WEEK_START_IN_PAST": "Das Startdatum dieser Woche liegt in der Vergangenheit und kann nicht veröffentlicht werden.",
+    "PLAN_OVERLAP": "Der gewählte Zeitraum überschneidet sich mit einem bestehenden Plan dieses Klienten.",
     "INVALID_VERIFICATION_TOKEN": "Ungültiger oder abgelaufener Bestätigungslink.",
     "VERIFICATION_TOKEN_EXPIRED": "Der Bestätigungslink ist abgelaufen. Bitte fordern Sie einen neuen an.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Zu viele Bestätigungs-E-Mails gesendet. Bitte versuchen Sie es später erneut.",
@@ -2098,7 +2108,19 @@
     "loadError": "Fehler beim Laden des Ernährungsplans.",
     "createError": "Plan konnte nicht erstellt werden.",
     "back": "← Zurück",
-    "defaultPlanName": "Ernährungsplan"
+    "defaultPlanName": "Ernährungsplan",
+    "list": {
+      "title": "Ernährungspläne des Klienten",
+      "newPlan": "Neuer Ernährungsplan",
+      "emptyTitle": "Noch kein Ernährungsplan",
+      "emptyDescription": "Erstellen Sie den ersten über die Schaltfläche oben."
+    },
+    "createDialog": {
+      "title": "Neuer Ernährungsplan",
+      "nameLabel": "Planname",
+      "startDateLabel": "Startdatum",
+      "weekCountLabel": "Anzahl der Wochen"
+    }
   },
   "clientTraining": {
     "loading": "Trainingsplan wird geladen…",
@@ -2107,6 +2129,28 @@
     "back": "← Zurück",
     "defaultPlanName": "Trainingsplan",
     "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten.",
-    "accessDenied": "Sie sind nicht berechtigt, die Trainingspläne dieses Klienten anzusehen."
+    "accessDenied": "Sie sind nicht berechtigt, die Trainingspläne dieses Klienten anzusehen.",
+    "list": {
+      "title": "Trainingspläne des Klienten",
+      "newPlan": "Neuer Trainingsplan",
+      "emptyTitle": "Noch kein Trainingsplan",
+      "emptyDescription": "Erstellen Sie den ersten über die Schaltfläche oben."
+    },
+    "createDialog": {
+      "title": "Neuer Trainingsplan",
+      "nameLabel": "Planname",
+      "startDateLabel": "Startdatum",
+      "weekCountLabel": "Anzahl der Wochen"
+    }
+  },
+  "planCreateDialog": {
+    "nameRequired": "Geben Sie einen Plannamen ein.",
+    "nameTooLong": "Der Name darf höchstens 200 Zeichen lang sein.",
+    "startDateRequired": "Geben Sie ein Startdatum ein.",
+    "startDateNotMonday": "Das Startdatum muss ein Montag sein.",
+    "startDateInPast": "Das Startdatum darf nicht in der Vergangenheit liegen.",
+    "mondayHint": "Pläne können nur montags beginnen.",
+    "weekCountRequired": "Geben Sie eine Anzahl von Wochen ein.",
+    "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
   }
 }

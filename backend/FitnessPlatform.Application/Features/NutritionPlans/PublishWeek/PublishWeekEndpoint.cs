@@ -17,7 +17,9 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
 
 /// <summary>
 /// Publishes a single week of a nutrition plan, making it visible to the client.
-/// Archives other active plans for the same client when the first week is published.
+/// When the first week is published, supersedes (archives) other Active plans for the same
+/// client ONLY if their date window overlaps this plan's window — non-overlapping Active plans
+/// (e.g. a past or future plan) are left untouched (#780).
 /// </summary>
 public class PublishWeekEndpoint(
     IMongoContext mongo,
@@ -34,7 +36,7 @@ public class PublishWeekEndpoint(
         Summary(s =>
         {
             s.Summary = "Publish a week of a nutrition plan";
-            s.Description = "Sets the week's status to Published. Archives other active plans for the same client.";
+            s.Description = "Sets the week's status to Published. Archives other Active plans for the same client whose date window overlaps this plan's.";
         });
     }
 
@@ -131,19 +133,41 @@ public class PublishWeekEndpoint(
 
         var plan = guardResult.Document!;
 
-        // Now that the publish itself is confirmed, archive other active plans if this was
-        // the first published week.
+        // Now that the publish itself is confirmed, supersede other Active plans of the same
+        // type for this client — but ONLY those whose date window overlaps this plan's window.
+        // A client may legitimately hold several sequential, non-overlapping Active plans at
+        // once (#780); publishing a March plan must not archive a still-relevant January plan.
+        // Plans without a StartDate are unranged and are neither archived nor allowed to block —
+        // in practice this plan already required a StartDate to publish (see StartDateRequired
+        // above), so only the OTHER side of the comparison needs the null-guard.
         if (!hadPublishedWeeks)
         {
-            var archiveFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+            var siblingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
                                 & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
-            var archiveUpdate = Builders<NutritionPlan>.Update
-                .Set(p => p.Status, NutritionPlanStatus.Archived)
-                .Set(p => p.DateUpdated, DateTime.UtcNow);
+            using var siblingCursor = await mongo.NutritionPlans.FindAsync(siblingFilter, cancellationToken: ct);
+            var siblings = await siblingCursor.ToListAsync(ct);
 
-            await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
+            var overlappingIds = siblings
+                .Where(s => s.ExternalId != plan.ExternalId) // defensive — the sibling filter already excludes self
+                .Where(s => s.StartDate.HasValue
+                            && PlanWindowResolver.WindowsOverlap(
+                                plan.StartDate!.Value, plan.Weeks.Count,
+                                s.StartDate.Value, s.Weeks.Count))
+                .Select(s => s.ExternalId)
+                .ToList();
+
+            if (overlappingIds.Count > 0)
+            {
+                var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds);
+
+                var archiveUpdate = Builders<NutritionPlan>.Update
+                    .Set(p => p.Status, NutritionPlanStatus.Archived)
+                    .Set(p => p.DateUpdated, DateTime.UtcNow);
+
+                await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
+            }
         }
 
         // Notify the client about the published week

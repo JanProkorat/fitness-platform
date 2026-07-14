@@ -14,6 +14,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { NewClientDialog } from '@/components/NewClientDialog';
 import { ClientRequestDialog, PendingInviteDialog } from '@/components/layout/SidebarDialogs';
+import { PlanCreateDialog, type PlanCreateType } from '@/components/clients/PlanCreateDialog';
+import { SidebarPlanSubmenu } from '@/components/clients/SidebarPlanSubmenu';
 import { useToastStore } from '@/stores/toast';
 import { ImageLightbox } from '@/components/ui';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -154,6 +156,18 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   // State
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+  // Which client's plan-type submenu (Jidelnicek / Treninkovy plan) is
+  // expanded — independent of `expandedClientId` since a client's whole
+  // section and a specific plan-type submenu inside it collapse separately
+  // (#780 AC4).
+  const [expandedPlanSection, setExpandedPlanSection] = useState<{
+    clientId: string;
+    type: PlanCreateType;
+  } | null>(null);
+  const [createPlanDialog, setCreatePlanDialog] = useState<{
+    clientId: string;
+    type: PlanCreateType;
+  } | null>(null);
   const [trackedActiveClientId, setTrackedActiveClientId] = useState<string | null>(null);
   const [selectedInvite, setSelectedInvite] = useState<PendingInviteDto | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<IncomingRequest | null>(null);
@@ -181,6 +195,15 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const toggleClient = (id: string) => {
     setExpandedClientId(prev => prev === id ? null : id);
   };
+
+  const togglePlanSection = (cId: string, type: PlanCreateType) => {
+    setExpandedPlanSection((prev) =>
+      prev && prev.clientId === cId && prev.type === type ? null : { clientId: cId, type },
+    );
+  };
+
+  const isPlanSectionExpanded = (cId: string, type: PlanCreateType) =>
+    expandedPlanSection?.clientId === cId && expandedPlanSection.type === type;
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -319,26 +342,130 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                 {isExpanded && (
                   <div>
                     {isTrainer && (
-                      <NavLink
-                        to={`/clients/${cId}/training`}
-                        className={cn('sb-item', (isActive(`/clients/${cId}/training`) || isActive(`/clients/${cId}/training-plans`)) && 'active')}
-                        style={{ paddingLeft: 28 }}
-                        onClick={onClose}
-                      >
-                        <span className="sbi-icon">🏋️</span>
-                        <span className="sbi-lbl">{t('sidebar.trainingPlan')}</span>
-                      </NavLink>
+                      <div>
+                        <div
+                          className={cn(
+                            'sb-item',
+                            (isActive(`/clients/${cId}/training`) || isActive(`/clients/${cId}/training-plans`)) && 'active',
+                          )}
+                          style={{ paddingLeft: 12 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); togglePlanSection(cId, 'training'); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                              fontSize: 9, color: 'var(--text3)', width: 14, display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                              transition: 'transform 0.15s',
+                              transform: isPlanSectionExpanded(cId, 'training') ? 'rotate(90deg)' : 'rotate(0deg)',
+                            }}
+                            aria-label={
+                              isPlanSectionExpanded(cId, 'training')
+                                ? t('sidebar.collapseTrainingPlans')
+                                : t('sidebar.expandTrainingPlans')
+                            }
+                          >
+                            ▶
+                          </button>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="sbi-lbl"
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                            onClick={() => { navigate(`/clients/${cId}/training`); onClose?.(); }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                navigate(`/clients/${cId}/training`);
+                                onClose?.();
+                              }
+                            }}
+                          >
+                            <span className="sbi-icon">🏋️</span>
+                            {t('sidebar.trainingPlan')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setCreatePlanDialog({ clientId: cId, type: 'training' }); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              fontSize: 13, color: 'var(--text3)', width: 18, height: 18, display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 'var(--radius-sm)',
+                            }}
+                            aria-label={t('sidebar.newTrainingPlanAriaLabel')}
+                            title={t('sidebar.newTrainingPlanAriaLabel')}
+                          >
+                            +
+                          </button>
+                        </div>
+                        {isPlanSectionExpanded(cId, 'training') && (
+                          <SidebarPlanSubmenu clientId={cId} planType="training" onNavigate={onClose} />
+                        )}
+                      </div>
                     )}
                     {isNutritionist && (
-                      <NavLink
-                        to={`/clients/${cId}/nutrition`}
-                        className={cn('sb-item', (isActive(`/clients/${cId}/nutrition`) || isActive(`/clients/${cId}/plans`)) && 'active')}
-                        style={{ paddingLeft: 28 }}
-                        onClick={onClose}
-                      >
-                        <span className="sbi-icon">🥗</span>
-                        <span className="sbi-lbl">{t('sidebar.mealPlan')}</span>
-                      </NavLink>
+                      <div>
+                        <div
+                          className={cn(
+                            'sb-item',
+                            (isActive(`/clients/${cId}/nutrition`) || isActive(`/clients/${cId}/plans`)) && 'active',
+                          )}
+                          style={{ paddingLeft: 12 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); togglePlanSection(cId, 'nutrition'); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                              fontSize: 9, color: 'var(--text3)', width: 14, display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                              transition: 'transform 0.15s',
+                              transform: isPlanSectionExpanded(cId, 'nutrition') ? 'rotate(90deg)' : 'rotate(0deg)',
+                            }}
+                            aria-label={
+                              isPlanSectionExpanded(cId, 'nutrition')
+                                ? t('sidebar.collapseMealPlans')
+                                : t('sidebar.expandMealPlans')
+                            }
+                          >
+                            ▶
+                          </button>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            className="sbi-lbl"
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                            onClick={() => { navigate(`/clients/${cId}/nutrition`); onClose?.(); }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                navigate(`/clients/${cId}/nutrition`);
+                                onClose?.();
+                              }
+                            }}
+                          >
+                            <span className="sbi-icon">🥗</span>
+                            {t('sidebar.mealPlan')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setCreatePlanDialog({ clientId: cId, type: 'nutrition' }); }}
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              fontSize: 13, color: 'var(--text3)', width: 18, height: 18, display: 'flex',
+                              alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 'var(--radius-sm)',
+                            }}
+                            aria-label={t('sidebar.newMealPlanAriaLabel')}
+                            title={t('sidebar.newMealPlanAriaLabel')}
+                          >
+                            +
+                          </button>
+                        </div>
+                        {isPlanSectionExpanded(cId, 'nutrition') && (
+                          <SidebarPlanSubmenu clientId={cId} planType="nutrition" onNavigate={onClose} />
+                        )}
+                      </div>
                     )}
                     <NavLink
                       to={`/clients/${cId}/nutrition-goals`}
@@ -564,6 +691,26 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
 
       {/* New client dialog */}
       <NewClientDialog open={newClientOpen} onClose={() => setNewClientOpen(false)} />
+
+      {/* Create-plan dialog — opened via the "+" button next to Jidelnicek /
+          Treninkovy plan in the client tree (#780 AC2). */}
+      <PlanCreateDialog
+        open={!!createPlanDialog}
+        onClose={() => setCreatePlanDialog(null)}
+        clientId={createPlanDialog?.clientId ?? ''}
+        planType={createPlanDialog?.type ?? 'nutrition'}
+        onCreated={(planId) => {
+          const dialogState = createPlanDialog;
+          setCreatePlanDialog(null);
+          onClose?.();
+          if (!dialogState) return;
+          navigate(
+            dialogState.type === 'nutrition'
+              ? `/clients/${dialogState.clientId}/plans/${planId}`
+              : `/clients/${dialogState.clientId}/training-plans/${planId}`,
+          );
+        }}
+      />
 
       {/* Client request detail dialog */}
       <ClientRequestDialog

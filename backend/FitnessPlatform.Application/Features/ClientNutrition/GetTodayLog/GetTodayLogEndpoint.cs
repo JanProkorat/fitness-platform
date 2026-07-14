@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -75,13 +76,15 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var logs = await logCursor.ToListAsync(ct);
 
-        // Fetch active plan for meal names and global settings
+        // Fetch the Active plan whose date window contains today for meal names and global
+        // settings — a client may hold several sequential, non-overlapping Active plans (#780).
         var planFilter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId),
             Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
-        var plan = await planCursor.FirstOrDefaultAsync(ct);
+        var activePlans = await planCursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
         // Resolve today's plan day so we can use pre-computed MealTotals
         // (which include both foods AND recipes, matching the mobile optimistic

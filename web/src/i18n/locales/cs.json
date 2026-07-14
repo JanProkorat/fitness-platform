@@ -201,7 +201,16 @@
     "closeMenu": "Zavřít menu",
     "collapseClient": "Sbalit {{name}}",
     "expandClient": "Rozbalit {{name}}",
-    "goToClient": "Přejít na {{name}}"
+    "goToClient": "Přejít na {{name}}",
+    "expandTrainingPlans": "Rozbalit tréninkové plány",
+    "collapseTrainingPlans": "Sbalit tréninkové plány",
+    "expandMealPlans": "Rozbalit jídelníčky",
+    "collapseMealPlans": "Sbalit jídelníčky",
+    "newTrainingPlanAriaLabel": "Nový tréninkový plán",
+    "newMealPlanAriaLabel": "Nový jídelníček",
+    "planSubmenu": {
+      "empty": "Zatím žádné plány"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -934,6 +943,7 @@
     "START_DATE_LOCKED": "Datum zahájení nelze změnit poté, co nastalo.",
     "START_DATE_REQUIRED": "Před publikováním týdne nastavte datum zahájení.",
     "WEEK_START_IN_PAST": "Datum zahájení tohoto týdne je v minulosti a nelze jej publikovat.",
+    "PLAN_OVERLAP": "Zvolené období se překrývá s existujícím plánem tohoto klienta.",
     "INVALID_VERIFICATION_TOKEN": "Neplatný nebo vypršelý ověřovací odkaz.",
     "VERIFICATION_TOKEN_EXPIRED": "Ověřovací odkaz vypršel. Vyžádejte si nový.",
     "VERIFICATION_RESEND_LIMIT_REACHED": "Příliš mnoho odeslaných ověřovacích e-mailů. Zkuste to později.",
@@ -2132,7 +2142,19 @@
     "loadError": "Chyba při načítání jídelníčku.",
     "createError": "Nepodařilo se vytvořit plán.",
     "back": "← Zpět",
-    "defaultPlanName": "Jídelníček"
+    "defaultPlanName": "Jídelníček",
+    "list": {
+      "title": "Jídelníčky klienta",
+      "newPlan": "Nový jídelníček",
+      "emptyTitle": "Zatím žádný jídelníček",
+      "emptyDescription": "Vytvořte prvního klientovi pomocí tlačítka výše."
+    },
+    "createDialog": {
+      "title": "Nový jídelníček",
+      "nameLabel": "Název jídelníčku",
+      "startDateLabel": "Datum zahájení",
+      "weekCountLabel": "Počet týdnů"
+    }
   },
   "clientTraining": {
     "loading": "Načítání tréninkového plánu…",
@@ -2141,6 +2163,28 @@
     "back": "← Zpět",
     "defaultPlanName": "Tréninkový plán",
     "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup.",
-    "accessDenied": "Nemáte oprávnění zobrazit tréninkové plány tohoto klienta."
+    "accessDenied": "Nemáte oprávnění zobrazit tréninkové plány tohoto klienta.",
+    "list": {
+      "title": "Tréninkové plány klienta",
+      "newPlan": "Nový tréninkový plán",
+      "emptyTitle": "Zatím žádný tréninkový plán",
+      "emptyDescription": "Vytvořte první klientovi pomocí tlačítka výše."
+    },
+    "createDialog": {
+      "title": "Nový tréninkový plán",
+      "nameLabel": "Název plánu",
+      "startDateLabel": "Datum zahájení",
+      "weekCountLabel": "Počet týdnů"
+    }
+  },
+  "planCreateDialog": {
+    "nameRequired": "Zadejte název plánu.",
+    "nameTooLong": "Název může mít nejvýše 200 znaků.",
+    "startDateRequired": "Zadejte datum zahájení.",
+    "startDateNotMonday": "Datum zahájení musí být pondělí.",
+    "startDateInPast": "Datum zahájení nemůže být v minulosti.",
+    "mondayHint": "Plány mohou začínat pouze v pondělí.",
+    "weekCountRequired": "Zadejte počet týdnů.",
+    "weekCountRange": "Počet týdnů musí být 1 až 52."
   }
 }
