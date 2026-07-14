@@ -1,8 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from '@/api/notifications';
+import { useNavigate } from 'react-router-dom';
+import { getNotifications, markNotificationRead, markAllNotificationsRead, type NotificationDto } from '@/api/notifications';
 import { useApiMutation } from '@/hooks/useApiMutation';
+
+// NotificationType.WeeklyCheckInResponded serializes to this lowercase form —
+// see GetNotificationsEndpoint.cs (`n.Type.ToString().ToLowerInvariant()`).
+const WEEKLY_CHECK_IN_RESPONDED_TYPE = 'weeklycheckinresponded';
+
+interface WeeklyCheckInRespondedPayload {
+  clientPublicId?: string;
+}
+
+// n.Data (a JSON string of Dictionary<string, string>) is surfaced on the wire
+// as NotificationDto.actionPayload — see RespondToCheckInEndpoint.cs and
+// GetNotificationsEndpoint.cs's `ActionPayload = n.Data` mapping.
+function getClientPublicId(notification: NotificationDto): string | null {
+  if (notification.type !== WEEKLY_CHECK_IN_RESPONDED_TYPE) return null;
+  if (!notification.actionPayload) return null;
+
+  try {
+    const parsed = JSON.parse(notification.actionPayload) as WeeklyCheckInRespondedPayload;
+    return typeof parsed.clientPublicId === 'string' && parsed.clientPublicId.length > 0
+      ? parsed.clientPublicId
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 function timeAgo(isoDate: string, t: (key: string) => string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
@@ -17,6 +43,7 @@ function timeAgo(isoDate: string, t: (key: string) => string): string {
 
 export function NotificationBell() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +121,12 @@ export function NotificationBell() {
                   className={`notif-popover-item ${!n.read ? 'unread' : ''}`}
                   onClick={() => {
                     if (!n.read) markReadMutation.mutate(n.id);
+
+                    const clientPublicId = getClientPublicId(n);
+                    if (clientPublicId) {
+                      setOpen(false);
+                      navigate(`/clients/${clientPublicId}?tab=checkiny`);
+                    }
                   }}
                 >
                   <div className="notif-popover-item-dot-wrap">

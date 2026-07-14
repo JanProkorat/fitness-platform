@@ -91,11 +91,22 @@ public class RespondToCheckInEndpoint(
         // recipient's persisted Language directly (no Accept-Language available for
         // "the professional" from the client's own request) and resolve localized
         // title/body with it, falling back to "en" when unset.
+        // Null-safe correlated subquery: FirstOrDefault() on a Guid sequence yields
+        // Guid.Empty if the client has no ClientProfile row, rather than throwing —
+        // mirrors the pattern in GetTrainerCheckInsEndpoint. PublicId is the id every
+        // client-detail link in the web portal uses (e.g. /clients/{clientPublicId}).
+        var clientPublicId = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.UserId == clientUserId)
+            .Select(cp => cp.PublicId)
+            .FirstOrDefaultAsync(ct);
+
         var notificationParams = new Dictionary<string, string>
         {
             ["weeklyCheckInId"] = checkIn.Id.ToString(),
             ["profession"] = checkIn.Profession.ToString(),
             ["clientUserId"] = clientUserId.ToString(),
+            ["clientPublicId"] = clientPublicId.ToString(),
         };
 
         var professionalLanguage = await db.Users
