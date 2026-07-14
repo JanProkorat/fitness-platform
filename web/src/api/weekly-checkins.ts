@@ -225,6 +225,12 @@ export type CheckInFlag =
 export interface TrainerCheckInDto {
   id: string; // Guid
   clientUserId: string; // Guid
+  /**
+   * Client's ClientProfile.PublicId — the id every client-detail link in
+   * the app uses (e.g. /clients/{clientPublicId}). Added in #753 so the
+   * dashboard card CTA can navigate without 404ing on the user id.
+   */
+  clientPublicId: string; // Guid
   clientName: string;
   /** "Training" | "Nutrition" */
   profession: Profession;

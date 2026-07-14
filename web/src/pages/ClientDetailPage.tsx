@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
@@ -33,11 +33,32 @@ import { PoznamkyTab } from '@/components/clients/tabs/PoznamkyTab';
 import type { PlanSummary } from '@/api/plan-types';
 import type { TrainingPlanSummary } from '@/api/training-plan-types';
 
+/**
+ * Mirrors the ClientTabId union in ClientTabBar.tsx. Kept as a local
+ * runtime list (rather than importing a value from that file) since
+ * ClientTabBar only exports the type, not a value array.
+ */
+const VALID_TAB_IDS: readonly ClientTabId[] = [
+  'prehled',
+  'mereni',
+  'fotky',
+  'aktivita',
+  'plany',
+  'checkiny',
+  'dotazniky',
+  'poznamky',
+];
+
+function isValidTabId(value: string | null): value is ClientTabId {
+  return value !== null && (VALID_TAB_IDS as readonly string[]).includes(value);
+}
+
 export default function ClientDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   // Only heightCm/weightKg are persistable via updateClientData (PUT
@@ -45,7 +66,13 @@ export default function ClientDetailPage() {
   // with no trainer-facing write endpoint, so they render read-only below.
   const [editHeightCm, setEditHeightCm] = useState('');
   const [editWeightKg, setEditWeightKg] = useState('');
-  const [activeTab, setActiveTab] = useState<ClientTabId>('prehled');
+  // Optional ?tab= query param (e.g. from the dashboard WeeklyCheckInCard
+  // CTA) lands the trainer directly on that tab; falls back to 'prehled'
+  // when absent or invalid (#753).
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<ClientTabId>(
+    isValidTabId(tabParam) ? tabParam : 'prehled',
+  );
 
   // ── Server state ─────────────────────────────────────────────────────────────
 

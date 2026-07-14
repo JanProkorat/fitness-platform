@@ -1758,8 +1758,10 @@
     "today": {
       "cardTitle": "Týdenní check-iny · tento týden",
       "noResponseCount_one": "{{count}} klient ještě neodpověděl",
+      "noResponseCount_few": "{{count}} klienti ještě neodpověděli",
+      "noResponseCount_many": "{{count}} klientů ještě neodpovědělo",
       "noResponseCount_other": "{{count}} klientů ještě neodpovědělo",
-      "openPlan": "Otevřít plán",
+      "openCheckIn": "Otevřít check-in",
       "noRespondedYet": "Žádné odpovědi za tento týden",
       "expiredDueAt": "Lhůta: {{date}}"
     },
