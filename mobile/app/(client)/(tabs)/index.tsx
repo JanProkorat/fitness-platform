@@ -237,10 +237,17 @@ export default function TodayScreen() {
           <InviteCard
             invite={invite}
             onAccept={() => {
-              accept(invite.id)
-              Toast.show(t('today.inviteAccepted'))
+              accept(invite.id, {
+                onSuccess: () => Toast.show(t('today.inviteAccepted')),
+                onError: () => Toast.show(t('collab.actionFailed')),
+              })
             }}
-            onDecline={() => decline(invite.id)}
+            onDecline={() =>
+              decline(invite.id, {
+                onError: () => Toast.show(t('collab.actionFailed')),
+              })
+            }
+            onViewInvite={() => router.push(href('/(client)/discover/invite'))}
           />
         )}
 

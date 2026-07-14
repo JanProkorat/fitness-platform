@@ -908,7 +908,11 @@
     "activeSince": "Active · since {{date}}",
     "profileLoadError": "Failed to load profile.",
     "retry": "Try again",
-    "startConversationError": "Couldn't open the conversation. Please try again."
+    "startConversationError": "Couldn't open the conversation. Please try again.",
+    "viewInvite": "View invite",
+    "noInviteTitle": "Invite no longer available",
+    "noInviteHint": "This invite has already been handled or withdrawn.",
+    "actionFailed": "Couldn't complete the action. Please try again."
   },
   "foodDetail": {
     "nutritionValues": "Nutrition Values",

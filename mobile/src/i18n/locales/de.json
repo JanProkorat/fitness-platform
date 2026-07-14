@@ -665,7 +665,11 @@
     "activeSince": "Aktiv · seit {{date}}",
     "profileLoadError": "Profil konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
-    "startConversationError": "Konversation konnte nicht geöffnet werden. Bitte versuche es erneut."
+    "startConversationError": "Konversation konnte nicht geöffnet werden. Bitte versuche es erneut.",
+    "viewInvite": "Einladung ansehen",
+    "noInviteTitle": "Einladung nicht mehr verfügbar",
+    "noInviteHint": "Diese Einladung wurde bereits bearbeitet oder zurückgezogen.",
+    "actionFailed": "Aktion konnte nicht abgeschlossen werden. Bitte versuche es erneut."
   },
   "foodDetail": {
     "nutritionValues": "Nährwerte",

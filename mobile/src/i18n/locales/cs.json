@@ -675,7 +675,11 @@
     "activeSince": "Aktivní · od {{date}}",
     "profileLoadError": "Profil se nepodařilo načíst.",
     "retry": "Zkusit znovu",
-    "startConversationError": "Konverzaci se nepodařilo otevřít. Zkuste to znovu."
+    "startConversationError": "Konverzaci se nepodařilo otevřít. Zkuste to znovu.",
+    "viewInvite": "Zobrazit pozvánku",
+    "noInviteTitle": "Pozvánka již není k dispozici",
+    "noInviteHint": "Tato pozvánka byla mezitím vyřízena nebo zrušena.",
+    "actionFailed": "Akci se nepodařilo dokončit. Zkuste to prosím znovu."
   },
   "weeklyCheckIn": {
     "title": "Týdenní check-iny",

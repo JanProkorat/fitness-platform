@@ -8,7 +8,7 @@ import { withAlpha } from '@/constants/semanticColors'
 import { Radius } from '@/constants/radius'
 import { Avatar } from '@/components/ui/Avatar'
 
-export type RequestStatus = 'none' | 'pending' | 'active'
+export type RequestStatus = 'none' | 'pending' | 'active' | 'invited'
 
 const ROLE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
   'Osobní trenér': { bg: withAlpha(Static.blue, 0.10), text: Static.blue },
@@ -65,6 +65,8 @@ interface TrainerCardProps {
   onProfilePress: () => void
   onContactPress: () => void
   onRevokePress?: () => void
+  /** Required when `requestStatus === 'invited'` — opens the invite detail screen. */
+  onViewInvitePress?: () => void
 }
 
 export function TrainerCard({
@@ -73,6 +75,7 @@ export function TrainerCard({
   onProfilePress,
   onContactPress,
   onRevokePress,
+  onViewInvitePress,
 }: TrainerCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
@@ -160,6 +163,19 @@ export function TrainerCard({
             >
               <Text style={[styles.actionText, { color: colors.onAccent }]}>
                 {contactLabel}
+              </Text>
+            </Pressable>
+          )}
+          {requestStatus === 'invited' && (
+            <Pressable
+              onPress={onViewInvitePress}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              <Text style={[styles.actionText, { color: colors.onAccent }]}>
+                {t('collab.viewInvite')}
               </Text>
             </Pressable>
           )}

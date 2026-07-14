@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { useCollaboration } from '@/hooks/useCollaboration'
+import { useClientInvite } from '@/hooks/useClientInvite'
 import { useTrainers } from '@/hooks/useTrainers'
 import { DiscoverySearchBar } from '@/components/trainers/DiscoverySearchBar'
 import { DiscoveryFilters } from '@/components/trainers/DiscoveryFilters'
@@ -89,6 +90,10 @@ function SearchTab() {
   const [inviteTarget, setInviteTarget] = useState<InviteTarget | null>(null)
   const pendingRequests = useAuthStore((s) => s.pendingRequests)
   const { sendRequest, cancelRequest, isSendingRequest } = useCollaboration()
+  // Pending invite FROM a professional — surfaced first in this list with a
+  // "Zobrazit pozvánku" CTA instead of "Oslovit" (#772).
+  const { invite } = useClientInvite(true)
+  const invitedTrainerId = invite?.trainerId ?? null
 
   const trainersQuery = useTrainers({ search, role: roleFilter, goal: '' })
 
@@ -101,11 +106,14 @@ function SearchTab() {
     const cards = items.map(toTrainerCardData)
     const pIds = new Set(pendingRequests.map((r) => r.trainerId))
     return cards.sort((a, b) => {
+      const aInvited = a.id === invitedTrainerId ? 0 : 1
+      const bInvited = b.id === invitedTrainerId ? 0 : 1
+      if (aInvited !== bInvited) return aInvited - bInvited
       const aP = pIds.has(a.id) ? 0 : 1
       const bP = pIds.has(b.id) ? 0 : 1
       return aP - bP
     })
-  }, [items, pendingRequests])
+  }, [items, pendingRequests, invitedTrainerId])
 
   const pendingIds = useMemo(
     () => new Set(pendingRequests.map((r) => r.trainerId)),
@@ -122,15 +130,18 @@ function SearchTab() {
 
   const renderItem = useCallback(({ item }: { item: TrainerCardData }) => {
     const isPending = pendingIds.has(item.id)
+    const isInvited = item.id === invitedTrainerId
+    const requestStatus = isInvited ? 'invited' : isPending ? 'pending' : 'none'
 
     return (
       <TrainerCard
         trainer={item}
-        requestStatus={isPending ? 'pending' : 'none'}
+        requestStatus={requestStatus}
         onProfilePress={() => router.push(href(`/(client)/discover/${item.id}`))}
         onContactPress={() => {
           if (!isPending) setInviteTarget({ id: item.id, name: item.name, role: item.role, city: item.city })
         }}
+        onViewInvitePress={() => router.push(href('/(client)/discover/invite'))}
         onRevokePress={() => {
           Alert.alert(
             t('collab.revokeTitle'),
@@ -146,7 +157,7 @@ function SearchTab() {
         }}
       />
     )
-  }, [pendingIds, router, t, pendingRequests, cancelRequest])
+  }, [pendingIds, invitedTrainerId, router, t, pendingRequests, cancelRequest])
 
   const handleSend = (trainerId: string, message?: string) => {
     sendRequest(trainerId, message)
