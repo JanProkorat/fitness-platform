@@ -447,6 +447,9 @@ if (!app.Environment.IsDevelopment())
 app.UseCors(AppPolicies.AllowWebApp);
 app.UseAuthentication();
 app.UseAuthorization();
+// Captures Accept-Language into ApplicationUser.Language for authenticated callers
+// (#788) — must run after UseAuthorization so context.User is populated.
+app.UseMiddleware<LocaleCaptureMiddleware>();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.UseRateLimiter();
 // NOTE: ResetTestStateEndpoint is always registered in the route table.

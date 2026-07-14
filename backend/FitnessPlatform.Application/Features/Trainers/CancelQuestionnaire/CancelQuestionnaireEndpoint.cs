@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.CancelQuestionnaire;
@@ -94,8 +95,8 @@ public class CancelQuestionnaireEndpoint(
         await notificationService.CreateAsync(
             clientProfile.UserId,
             NotificationType.QuestionnaireAssigned,
-            "Questionnaire revoked",
-            $"{profName} has revoked your questionnaire.",
+            new Dictionary<string, string> { ["profName"] = profName },
+            variant: NotificationTemplates.QuestionnaireAssignedRevoked,
             ct: ct);
 
         await notifier.NotifyAsync(clientProfile.UserId, "questionnairecancelled", new

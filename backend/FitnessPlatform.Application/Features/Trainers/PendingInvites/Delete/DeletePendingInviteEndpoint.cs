@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Delete;
@@ -91,8 +92,8 @@ public class DeletePendingInviteEndpoint(
             await notificationService.CreateAsync(
                 invitedUser.Id,
                 NotificationType.InvitationCancelled,
-                "Invitation cancelled",
-                $"{trainerName} has cancelled their invitation.",
+                new Dictionary<string, string> { ["trainerName"] = trainerName },
+                variant: NotificationTemplates.InvitationCancelledByProfessional,
                 ct: ct);
 
             await notifier.NotifyAsync(invitedUser.Id, "invitationcancelled", new

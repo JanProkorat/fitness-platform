@@ -31,8 +31,7 @@ public class ProfileMapperService(IApplicationDbContext db, INotificationService
         await notifications.CreateAsync(
             response.ProfessionalId,
             NotificationType.QuestionnaireSubmitted,
-            "Dotazník vyplněn",
-            $"{clientName} vyplnil(a) vstupní dotazník.",
+            new Dictionary<string, string> { ["clientName"] = clientName },
             ct: ct);
 
         await notifier.NotifyAsync(response.ProfessionalId, "questionnairesubmitted", new

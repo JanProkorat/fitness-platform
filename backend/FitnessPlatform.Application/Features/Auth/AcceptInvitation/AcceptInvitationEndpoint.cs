@@ -194,8 +194,7 @@ public class AcceptInvitationEndpoint(
         await notificationService.CreateAsync(
             invitation.ProfessionalProfile.UserId,
             NotificationType.ClientRequestAccepted,
-            "Invitation accepted",
-            $"{clientName} accepted your invitation.",
+            new Dictionary<string, string> { ["clientName"] = clientName },
             ct: ct);
 
         await notifier.NotifyAsync(

@@ -57,7 +57,8 @@ public class AcceptInvitationEndpointTests
         // #770 — the professional must be notified promptly, not left to discover the
         // new client link only via a periodic poll or unrelated page reload.
         await _notificationService.Received(1).CreateAsync(
-            _trainerId, NotificationType.ClientRequestAccepted, Arg.Any<string>(), Arg.Any<string>(),
+            _trainerId, NotificationType.ClientRequestAccepted,
+            Arg.Any<IReadOnlyDictionary<string, string>>(),
             ct: TestContext.Current.CancellationToken);
         await _notifier.Received(1).NotifyAsync(
             _trainerId, "inviteaccepted", Arg.Any<object>(), Arg.Any<CancellationToken>());

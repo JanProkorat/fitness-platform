@@ -117,8 +117,7 @@ public class SendClientRequestEndpoint(
         await notificationService.CreateAsync(
             professionalProfile.UserId,
             NotificationType.ClientRequestReceived,
-            "New client request",
-            $"{clientName} wants to work with you",
+            new Dictionary<string, string> { ["clientName"] = clientName },
             ct: ct);
 
         await notifier.NotifyAsync(professionalProfile.UserId, "clientrequestreceived", new

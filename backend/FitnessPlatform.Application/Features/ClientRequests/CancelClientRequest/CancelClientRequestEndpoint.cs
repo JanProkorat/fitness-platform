@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.ClientRequests.CancelClientRequest;
@@ -87,8 +88,8 @@ public class CancelClientRequestEndpoint(IApplicationDbContext db, IRealtimeNoti
         await notificationService.CreateAsync(
             profProfile.UserId,
             NotificationType.InvitationCancelled,
-            "Invitation revoked",
-            $"{clientName} revoked their invitation.",
+            new Dictionary<string, string> { ["clientName"] = clientName },
+            variant: NotificationTemplates.InvitationCancelledRevokedByClient,
             ct: ct);
 
         await notifier.NotifyAsync(profProfile.UserId, "clientrequestcancelled", new

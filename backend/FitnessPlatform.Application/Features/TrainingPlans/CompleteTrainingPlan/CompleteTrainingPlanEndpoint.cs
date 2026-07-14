@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -110,8 +111,8 @@ public class CompleteTrainingPlanEndpoint(
             await notificationService.CreateAsync(
                 clientProfile.UserId,
                 NotificationType.PlanPublished,
-                "Training plan completed",
-                $"Your training plan \"{plan.Name}\" has been marked as completed.",
+                new Dictionary<string, string> { ["planName"] = plan.Name },
+                variant: NotificationTemplates.PlanPublishedTrainingCompleted,
                 ct: ct);
 
             await notifier.NotifyAsync(clientProfile.UserId, "trainingplancompleted", new
