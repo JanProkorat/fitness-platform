@@ -195,6 +195,7 @@
     "trainingPlan": "Tréninkový plán",
     "mealPlan": "Jídelníček",
     "questionnaires": "Dotazníky",
+    "photos": "Fotky",
     "goalsAndMacros": "Cíle a makra",
     "addClient": "Přidat klienta",
     "pendingInvites": "ČEKAJÍCÍ POZVÁNKY",
@@ -969,7 +970,10 @@
     "social_email_conflict": "Tento e-mail je registrován s heslem. Přihlaste se emailem a heslem.",
     "APPLE_NO_EMAIL_NO_LINK": "Přihlášení přes Apple selhalo: e-mail nebyl poskytnut. Otevřete Nastavení > Apple ID a povolte sdílení e-mailu s touto aplikací.",
     "PLAN_VERSION_CONFLICT": "Plán byl mezitím upraven jiným požadavkem. Načítám aktuální verzi.",
-    "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná."
+    "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná.",
+    "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-deník nebyl nalezen.",
+    "PHOTO_DIARY_REQUEST_FORBIDDEN": "Tento foto-deník vám nepatří.",
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -1874,6 +1878,13 @@
       "inviteCheckboxHint": "Po akceptaci bude klient vyzván k nasdílení fotografií jídel.",
       "inviteCheckboxWarning": "Žádost o foto-deník bude odeslána po úspěšném vytvoření pozvánky.",
       "inviteDiaryFailed": "Pozvánka odeslána, ale žádost o foto-deník se nepodařila. Můžete ji odeslat později z detailu klienta."
+    },
+    "link": {
+      "title": "Propojit foto-deník s plánem",
+      "description": "Vyberte plán, ke kterému chcete tento foto-deník přiřadit.",
+      "noPlans": "Klient zatím nemá žádný plán",
+      "confirm": "Propojit",
+      "linking": "Propojování..."
     }
   },
   "clientDetail": {
@@ -2073,7 +2084,13 @@
       "errorLoading": "Fotky se nepodařilo načíst",
       "photoAlt": "Fotka klienta",
       "overflowLabel": "zobrazit vše",
-      "overflowAriaLabel": "Zobrazit dalších {{count}} fotek"
+      "overflowAriaLabel": "Zobrazit dalších {{count}} fotek",
+      "linkedPlanCta": "Zobrazit propojený plán: {{name}}",
+      "diariesTitle": "Foto-deníky",
+      "linkToPlan": "Propojit s plánem",
+      "noPlansAvailable": "Klient zatím nemá žádný plán",
+      "linkSuccess": "Foto-deník byl propojen s plánem",
+      "linkError": "Nepodařilo se propojit foto-deník s plánem"
     },
     "checkiny": {
       "title": "Týdenní check-iny",

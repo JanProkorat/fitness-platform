@@ -195,6 +195,7 @@
     "trainingPlan": "Training plan",
     "mealPlan": "Meal plan",
     "questionnaires": "Questionnaires",
+    "photos": "Photos",
     "goalsAndMacros": "Goals & macros",
     "addClient": "Add client",
     "pendingInvites": "PENDING INVITES",
@@ -956,7 +957,10 @@
     "social_email_conflict": "This email is registered with a password. Please sign in with your email and password.",
     "APPLE_NO_EMAIL_NO_LINK": "Apple sign-in failed: no email was provided. Open Settings > Apple ID and allow email sharing with this app.",
     "PLAN_VERSION_CONFLICT": "The plan was modified by another request in the meantime. Loading the current version.",
-    "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet."
+    "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet.",
+    "PHOTO_DIARY_REQUEST_NOT_FOUND": "Photo diary not found.",
+    "PHOTO_DIARY_REQUEST_FORBIDDEN": "This photo diary does not belong to you.",
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -1849,6 +1853,13 @@
       "inviteCheckboxHint": "After the client accepts, they will be prompted to share food photos.",
       "inviteCheckboxWarning": "Diary request will be sent after the invite is successfully created.",
       "inviteDiaryFailed": "Invite sent, but diary request failed. You can send it later from the client detail."
+    },
+    "link": {
+      "title": "Link photo diary to a plan",
+      "description": "Choose the plan this photo diary should be attached to.",
+      "noPlans": "This client has no plans yet",
+      "confirm": "Link",
+      "linking": "Linking..."
     }
   },
   "clientDetail": {
@@ -2040,7 +2051,13 @@
       "errorLoading": "Failed to load photos",
       "photoAlt": "Client photo",
       "overflowLabel": "view all",
-      "overflowAriaLabel": "View {{count}} more photos"
+      "overflowAriaLabel": "View {{count}} more photos",
+      "linkedPlanCta": "View linked plan: {{name}}",
+      "diariesTitle": "Photo diaries",
+      "linkToPlan": "Link to plan",
+      "noPlansAvailable": "This client has no plans yet",
+      "linkSuccess": "Photo diary linked to the plan",
+      "linkError": "Failed to link the photo diary to the plan"
     },
     "checkiny": {
       "title": "Weekly check-ins",

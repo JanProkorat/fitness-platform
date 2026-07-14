@@ -215,6 +215,11 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
   const isDotaznikyActive = (cId: string) =>
     activeClientId === cId && new URLSearchParams(location.search).get('tab') === 'dotazniky';
 
+  // The "Fotky" sidebar row navigates into the client-wide photo-diary tab
+  // (FotkyTab), same query-param scheme as Dotazníky above (#778 AC2).
+  const isFotkyActive = (cId: string) =>
+    activeClientId === cId && new URLSearchParams(location.search).get('tab') === 'fotky';
+
   return (
     <aside
       ref={asideRef}
@@ -485,6 +490,17 @@ export function Sidebar({ onToggleDark, isOpen = false, onClose }: SidebarProps)
                     >
                       <span className="sbi-icon">📝</span>
                       <span className="sbi-lbl">{t('sidebar.questionnaires')}</span>
+                    </NavLink>
+                    {/* Fotky — navigates into the client-wide photo diary
+                        list tab; no submenu, mirrors Dotazníky above (#778). */}
+                    <NavLink
+                      to={`/clients/${cId}?tab=fotky`}
+                      className={cn('sb-item', isFotkyActive(cId) && 'active')}
+                      style={{ paddingLeft: 28 }}
+                      onClick={onClose}
+                    >
+                      <span className="sbi-icon">📷</span>
+                      <span className="sbi-lbl">{t('sidebar.photos')}</span>
                     </NavLink>
                     <NavLink
                       to={`/clients/${cId}/nutrition-goals`}

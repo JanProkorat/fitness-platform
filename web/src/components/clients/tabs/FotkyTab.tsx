@@ -16,18 +16,28 @@
 
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { apiClient } from '@/api/client';
-import { PlanPhotoCategory } from '@/api/generated';
+import { PlanPhotoCategory, PlanPhotoType } from '@/api/generated';
 import type { PlanPhotoResponse2 } from '@/api/client-photos';
-import { listDiaryRequests } from '@/api/diary-requests';
+import {
+  listDiaryRequests,
+  linkPhotoDiaryToPlan,
+  type PhotoDiaryRequestSummary,
+} from '@/api/diary-requests';
 import { RequestDiaryDialog } from '@/components/diary/RequestDiaryDialog';
+import { DiaryRequestStatusChip } from '@/components/diary/DiaryRequestStatusChip';
+import { LinkDiaryToPlanDialog, type DiaryPlanOption } from '@/components/diary/LinkDiaryToPlanDialog';
+import { getPlans } from '@/api/plans';
+import { getTrainingPlans } from '@/api/training-plans';
 import type { PlanSummary } from '@/api/plan-types';
 import type { TrainingPlanSummary } from '@/api/training-plan-types';
 import { formatClientDate } from '@/lib/date-format';
 import { EmptyState } from '@/components/clients/EmptyState';
+import { useAuthStore } from '@/stores/auth';
+import { showApiError, showSuccess } from '@/lib/api-errors';
 
 // How many thumbnails to show before the overflow tile.
 const MAX_VISIBLE = 8;
@@ -86,9 +96,13 @@ export function FotkyTab({
 }: FotkyTabProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   const [activeFilter, setActiveFilter] = useState<PhotoFilter>('all');
   const [diaryDialogOpen, setDiaryDialogOpen] = useState(false);
+  // Diary request currently targeted by the "link to plan" dialog (#778 AC5).
+  const [linkDialogRequest, setLinkDialogRequest] = useState<PhotoDiaryRequestSummary | null>(null);
 
   // ── Photo query (flat, most recent 50) ──────────────────────────────────────
   // We call the underlying apiClient directly with groupByMonth=false so we get
@@ -139,6 +153,104 @@ export function FotkyTab({
   );
 
   const hasActiveDiary = hasInFlightDiary;
+
+  // Sort diary requests newest-first, matching DiaryViewerPanel's convention
+  // (#778 AC4 — already satisfied server-side; kept consistent here too).
+  const sortedDiaryRequests = useMemo(
+    () => [...diaryRequests].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')),
+    [diaryRequests],
+  );
+
+  // ── All client plans (not just active) — resolves click-through targets ─────
+  // Mirrors DotaznikyTab's linkedPlanByResponseId pattern (#777): fetch the
+  // client's full nutrition + training plan lists (role-gated, since both
+  // list endpoints 403 for the wrong role) so a photo/diary linked to a
+  // historical (non-active) plan still resolves a name + click-through
+  // target, not just the currently active plan (#778 AC3/AC5).
+  const isNutritionist = user?.roles.some((r) => ['Nutritionist', 'Admin'].includes(r)) ?? false;
+  const isTrainer = user?.roles.some((r) => ['Trainer', 'Admin'].includes(r)) ?? false;
+
+  const nutritionPlansQuery = useQuery({
+    queryKey: ['plans', { clientId, all: true }],
+    queryFn: () => getPlans({ clientId, pageSize: 100 }),
+    enabled: Boolean(clientId) && isNutritionist,
+  });
+  const trainingPlansQuery = useQuery({
+    queryKey: ['training-plans', { clientId, all: true }],
+    queryFn: () => getTrainingPlans({ clientId, pageSize: 100 }),
+    enabled: Boolean(clientId) && isTrainer,
+  });
+
+  const allPlanOptions: DiaryPlanOption[] = useMemo(() => {
+    const opts: DiaryPlanOption[] = [];
+    for (const p of nutritionPlansQuery.data?.plans ?? []) {
+      opts.push({ planId: p.planId, name: p.name, kind: 'nutrition' });
+    }
+    for (const p of trainingPlansQuery.data?.plans ?? []) {
+      opts.push({ planId: p.planId, name: p.name, kind: 'training' });
+    }
+    return opts;
+  }, [nutritionPlansQuery.data, trainingPlansQuery.data]);
+
+  const planById = useMemo(() => {
+    const map = new Map<string, DiaryPlanOption>();
+    for (const opt of allPlanOptions) map.set(opt.planId, opt);
+    return map;
+  }, [allPlanOptions]);
+
+  // diaryRequestId -> planId, used to resolve a photo's linked plan when the
+  // photo itself has no planId/planType set — e.g. photos uploaded before
+  // the diary was retroactively linked (#778 AC5) still show a click-through
+  // once the diary gains a plan, since PlanPhoto rows aren't backfilled.
+  const diaryPlanIdByRequestId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of diaryRequests) {
+      if (r.id && r.planId) map.set(r.id, r.planId);
+    }
+    return map;
+  }, [diaryRequests]);
+
+  function resolvePhotoLinkedPlan(photo: PlanPhotoResponse2): DiaryPlanOption | undefined {
+    if (photo.planId) {
+      const direct = planById.get(photo.planId);
+      if (direct) return direct;
+      // Fall back to the photo's own planType if the plan isn't in our
+      // (role-gated) list — still enough to build a navigable link.
+      if (photo.planType) {
+        return {
+          planId: photo.planId,
+          name: '',
+          kind: photo.planType === PlanPhotoType.Training ? 'training' : 'nutrition',
+        };
+      }
+    }
+    const viaDiaryPlanId = photo.diaryRequestId ? diaryPlanIdByRequestId.get(photo.diaryRequestId) : undefined;
+    return viaDiaryPlanId ? planById.get(viaDiaryPlanId) : undefined;
+  }
+
+  function navigateToPlan(plan: DiaryPlanOption) {
+    navigate(
+      plan.kind === 'nutrition'
+        ? `/clients/${clientId}/plans/${plan.planId}`
+        : `/clients/${clientId}/training-plans/${plan.planId}`,
+    );
+  }
+
+  // ── Retroactive diary→plan linking (#778 AC5) ────────────────────────────────
+  const linkMutation = useMutation({
+    mutationFn: ({ requestId, planId }: { requestId: string; planId: string }) =>
+      linkPhotoDiaryToPlan(requestId, planId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['diary-requests', clientId] });
+      setLinkDialogRequest(null);
+      showSuccess('clientDetail.fotky.linkSuccess');
+    },
+    onError: (err) => {
+      // Keep the dialog open on failure so the trainer can retry (404 diary
+      // not found / plan not owned, 403 forbidden, 400 validation).
+      showApiError(err, 'clientDetail.fotky.linkError');
+    },
+  });
 
   // ── Plan chips — derived from active plan summaries ──────────────────────────
   // Photos carry a planId (Mongo external id) that we match against active plan
@@ -419,6 +531,7 @@ export function FotkyTab({
                 const dateIso = photo.takenAt ?? photo.uploadedAt;
                 const emoji = photo.category ? CATEGORY_EMOJI[photo.category] : '📷';
                 const catLbl = categoryLabel(photo.category);
+                const linkedPlan = resolvePhotoLinkedPlan(photo);
                 return (
                   <div
                     key={photo.id ?? idx}
@@ -440,6 +553,18 @@ export function FotkyTab({
                         <div className="absolute inset-0 flex items-center justify-center text-[32px] opacity-50">
                           {emoji}
                         </div>
+                      )}
+                      {/* Click-through to the photo's linked plan (#778 AC3) */}
+                      {linkedPlan && (
+                        <button
+                          type="button"
+                          onClick={() => navigateToPlan(linkedPlan)}
+                          className="absolute bottom-1 right-1 inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] bg-bg/90 border border-border hover:bg-accent hover:text-bg transition-colors"
+                          title={t('clientDetail.fotky.linkedPlanCta', { name: linkedPlan.name || t(linkedPlan.kind === 'nutrition' ? 'sidebar.mealPlan' : 'sidebar.trainingPlan') })}
+                          aria-label={t('clientDetail.fotky.linkedPlanCta', { name: linkedPlan.name || t(linkedPlan.kind === 'nutrition' ? 'sidebar.mealPlan' : 'sidebar.trainingPlan') })}
+                        >
+                          🔗
+                        </button>
                       )}
                     </div>
                     {/* Date + type caption */}
@@ -476,6 +601,55 @@ export function FotkyTab({
               )}
             </div>
           )}
+
+          {/* Foto-deníky — client-wide diary request list (#778 AC5). Each
+              row shows status + either the linked plan CTA (click-through,
+              AC3) or a "link to plan" affordance for diaries that don't
+              have one yet. */}
+          {sortedDiaryRequests.length > 0 && (
+            <div className="mt-5">
+              <div className="text-[13px] font-semibold text-text mb-2">
+                {t('clientDetail.fotky.diariesTitle')}
+              </div>
+              <div className="flex flex-col gap-2">
+                {sortedDiaryRequests.map((request) => {
+                  const linkedPlan = request.planId ? planById.get(request.planId) : undefined;
+                  return (
+                    <div
+                      key={request.id}
+                      className="flex items-center justify-between gap-3 border border-border rounded-[var(--radius-md)] px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <DiaryRequestStatusChip request={request} />
+                        <span className="text-[11px] text-text3 tabular-nums truncate">
+                          {formatDate(request.createdAt)}
+                        </span>
+                      </div>
+                      {linkedPlan ? (
+                        <button
+                          type="button"
+                          onClick={() => navigateToPlan(linkedPlan)}
+                          className="text-[11px] font-medium text-accent bg-transparent border-none cursor-pointer p-0 hover:underline shrink-0"
+                        >
+                          🔗 {t('clientDetail.fotky.linkedPlanCta', { name: linkedPlan.name })}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setLinkDialogRequest(request)}
+                          disabled={allPlanOptions.length === 0}
+                          className="text-[11px] font-medium text-text2 border border-border rounded-[var(--radius-sm)] px-2 py-1 hover:bg-bg-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                          title={allPlanOptions.length === 0 ? t('clientDetail.fotky.noPlansAvailable') : undefined}
+                        >
+                          🔗 {t('clientDetail.fotky.linkToPlan')}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -486,6 +660,19 @@ export function FotkyTab({
         linkId={linkId}
         clientName={clientName}
         clientInitials={clientInitials}
+      />
+
+      {/* Retroactive diary→plan link dialog (#778 AC5) */}
+      <LinkDiaryToPlanDialog
+        open={!!linkDialogRequest}
+        onClose={() => setLinkDialogRequest(null)}
+        plans={allPlanOptions}
+        isPending={linkMutation.isPending}
+        onConfirm={(planId) => {
+          if (linkDialogRequest?.id) {
+            linkMutation.mutate({ requestId: linkDialogRequest.id, planId });
+          }
+        }}
       />
     </div>
   );
