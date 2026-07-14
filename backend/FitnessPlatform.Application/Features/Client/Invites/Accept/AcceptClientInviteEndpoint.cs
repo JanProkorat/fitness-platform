@@ -18,7 +18,8 @@ public class AcceptClientInviteEndpoint(
     UserManager<ApplicationUser> userManager,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    IAuditService audit)
+    IAuditService audit,
+    IConversationSeedService conversationSeedService)
     : Endpoint<AcceptClientInviteRequest>
 {
     public override void Configure()
@@ -78,10 +79,11 @@ public class AcceptClientInviteEndpoint(
                            && l.ProfessionalProfileId == invite.ProfessionalProfileId, ct);
 
         ClientProfessionalLink? newLink = null;
+        ApplicationUser? professionalUser = null;
 
         if (!existingLink)
         {
-            var professionalUser = await userManager.FindByIdAsync(
+            professionalUser = await userManager.FindByIdAsync(
                 invite.ProfessionalProfile.UserId.ToString());
             var profRoles = professionalUser is not null
                 ? await userManager.GetRolesAsync(professionalUser)
@@ -137,6 +139,23 @@ public class AcceptClientInviteEndpoint(
             };
             db.QuestionnaireResponses.Add(questionnaireResponse);
             await db.SaveChangesAsync(ct);
+        }
+
+        // If the invite carried a personal message, surface it as the first message
+        // in the client-professional conversation so it shows up on the client's
+        // Messages screen (#768). Gated on newLink (a brand-new link) so re-processing
+        // an already-accepted invite — which 404s above via the !pi.IsAccepted filter —
+        // can never reach here twice, and gated on non-empty text so we don't create an
+        // empty conversation shell for invites that had no message.
+        if (newLink is not null && !string.IsNullOrWhiteSpace(invite.Message))
+        {
+            var professionalName = professionalUser is not null
+                ? $"{professionalUser.FirstName} {professionalUser.LastName}"
+                : "Professional";
+
+            await conversationSeedService.GetOrSeedConversationAsync(
+                invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
+                professionalName, invite.Message, seedIntoExisting: false, ct: ct);
         }
 
         // Notify the professional that their invite was accepted

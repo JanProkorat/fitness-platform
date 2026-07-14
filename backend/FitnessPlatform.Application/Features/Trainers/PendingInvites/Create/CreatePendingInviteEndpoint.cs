@@ -20,6 +20,7 @@ public class CreatePendingInviteEndpoint(
     IEmailService emailService,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <inheritdoc />
@@ -107,61 +108,15 @@ public class CreatePendingInviteEndpoint(
 
         if (existingUser is not null)
         {
-            // Find or create a conversation between the professional and the existing user
+            // Find or create a conversation between the professional and the existing
+            // user, and — if a message was provided — seed it as the conversation's
+            // first message (shared with the accept-time seeding in
+            // AcceptClientInviteEndpoint / AcceptInvitationEndpoint, #768).
             var professionalUserId = professionalProfile.UserId;
 
-            var conversation = await db.Conversations
-                .FirstOrDefaultAsync(c =>
-                    c.ProfessionalUserId == professionalUserId &&
-                    c.ClientUserId == existingUser.Id, ct);
-
-            if (conversation is null)
-            {
-                conversation = new Conversation
-                {
-                    ProfessionalUserId = professionalUserId,
-                    ClientUserId = existingUser.Id,
-                };
-                db.Conversations.Add(conversation);
-            }
-
-            // If a message was provided, create a chat message in the conversation
-            if (!string.IsNullOrWhiteSpace(req.Message))
-            {
-                var chatMessage = new ChatMessage
-                {
-                    Conversation = conversation,
-                    SenderUserId = professionalUserId,
-                    Text = req.Message.Trim(),
-                    IsRead = false,
-                };
-
-                db.ChatMessages.Add(chatMessage);
-
-                // Update conversation preview fields
-                conversation.LastMessageText = chatMessage.Text.Length > 300
-                    ? chatMessage.Text[..300]
-                    : chatMessage.Text;
-                conversation.LastMessageAt = DateTime.UtcNow;
-                conversation.LastMessageSenderId = professionalUserId;
-
-                await db.SaveChangesAsync(ct);
-
-                // Send newMessage SignalR event to the client
-                await notifier.NotifyAsync(existingUser.Id, "newmessage", new
-                {
-                    conversationId = conversation.PublicId,
-                    messageId = chatMessage.PublicId,
-                    senderId = professionalUserId,
-                    senderName = trainerName,
-                    text = chatMessage.Text,
-                    timestamp = chatMessage.DateCreated,
-                }, ct);
-            }
-            else if (conversation.Id == 0)
-            {
-                await db.SaveChangesAsync(ct);
-            }
+            await conversationSeedService.GetOrSeedConversationAsync(
+                professionalUserId, existingUser.Id, professionalUserId, trainerName, req.Message,
+                seedIntoExisting: true, ct: ct);
 
             var notifBody = $"{trainerName} invited you to join as their client.";
 

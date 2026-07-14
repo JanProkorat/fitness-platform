@@ -21,6 +21,7 @@ public class AcceptClientInviteEndpointTests
     private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
+    private readonly IConversationSeedService _conversationSeedService = Substitute.For<IConversationSeedService>();
     private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
 
     private static ApplicationUser CreateUser(Guid id, string email) => new()
@@ -38,7 +39,7 @@ public class AcceptClientInviteEndpointTests
         Factory.Create<AcceptClientInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(callerId, AppRoles.Client))),
-            db, _userManager, _notificationService, _notifier, _audit);
+            db, _userManager, _notificationService, _notifier, _audit, _conversationSeedService);
 
     [Fact]
     public async Task Accept_ByRecipient_Returns204_AndMarksAccepted()
@@ -109,6 +110,81 @@ public class AcceptClientInviteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
         invite.IsAccepted.Should().BeFalse();
         await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task Accept_WithInviteMessage_SeedsConversationMessage()
+    {
+        // Arrange — invite carries a personal message from the professional (#768).
+        var clientId = Guid.NewGuid();
+        var inviteId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client@example.com");
+        var professionalProfile = new ProfessionalProfile { Id = 1, PublicId = Guid.NewGuid(), UserId = Guid.NewGuid() };
+        var invite = new PendingInvite
+        {
+            PublicId = inviteId,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Email = "client@example.com",
+            Message = "Welcome aboard, looking forward to working with you!",
+            IsAccepted = false
+        };
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(professionalProfile)
+            .With(invite)
+            .Build();
+
+        var ep = CreateEndpoint(clientId, db);
+
+        // Act
+        await ep.HandleAsync(new AcceptClientInviteRequest { Id = inviteId }, TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
+            professionalProfile.UserId,
+            clientId,
+            professionalProfile.UserId,
+            Arg.Any<string>(),
+            invite.Message,
+            seedIntoExisting: false,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Accept_WithoutInviteMessage_DoesNotSeedConversation()
+    {
+        // Arrange — invite has no message; must not create an empty conversation shell.
+        var clientId = Guid.NewGuid();
+        var inviteId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client@example.com");
+        var professionalProfile = new ProfessionalProfile { Id = 1, PublicId = Guid.NewGuid(), UserId = Guid.NewGuid() };
+        var invite = new PendingInvite
+        {
+            PublicId = inviteId,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Email = "client@example.com",
+            IsAccepted = false
+        };
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(professionalProfile)
+            .With(invite)
+            .Build();
+
+        var ep = CreateEndpoint(clientId, db);
+
+        // Act
+        await ep.HandleAsync(new AcceptClientInviteRequest { Id = inviteId }, TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
+            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
     }
 
     [Fact]
