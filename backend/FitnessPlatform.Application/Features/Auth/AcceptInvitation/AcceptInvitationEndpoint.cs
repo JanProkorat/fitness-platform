@@ -19,12 +19,17 @@ namespace FitnessPlatform.Application.Features.Auth.AcceptInvitation;
 /// <param name="audit">Audit logging service.</param>
 /// <param name="notificationService">Creates the in-app notification for the professional (#770).</param>
 /// <param name="notifier">Broadcasts the "inviteaccepted" SignalR event to the professional (#770).</param>
+/// <param name="conversationSeedService">
+/// Seeds the invite's personal message as the conversation's first message so it
+/// surfaces on the client's Messages screen (#768).
+/// </param>
 public class AcceptInvitationEndpoint(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     IAuditService audit,
     INotificationService notificationService,
-    IRealtimeNotifier notifier)
+    IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService)
     : Endpoint<AcceptInvitationRequest, AcceptInvitationResponse>
 {
     /// <inheritdoc />
@@ -94,13 +99,16 @@ public class AcceptInvitationEndpoint(
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
                            && l.ProfessionalProfileId == invitation.ProfessionalProfileId, ct);
 
+        PendingInvite? pendingInvite = null;
+        ApplicationUser? professionalUser = null;
+
         if (!existingLink)
         {
             // Determine the professional's role from their Identity roles. Grant view
             // access per role actually held (independent booleans), not a single
             // tie-broken role — a professional can hold BOTH Trainer and Nutritionist
             // roles simultaneously and must keep access to both plan types (#776).
-            var professionalUser = await userManager.FindByIdAsync(invitation.ProfessionalProfile.UserId.ToString());
+            professionalUser = await userManager.FindByIdAsync(invitation.ProfessionalProfile.UserId.ToString());
             var professionalRoles = professionalUser is not null
                 ? await userManager.GetRolesAsync(professionalUser)
                 : [];
@@ -110,7 +118,7 @@ public class AcceptInvitationEndpoint(
             var professionalRole = professionalIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
             // Find matching pending invite to get questionnaire assignment
-            var pendingInvite = await db.PendingInvites
+            pendingInvite = await db.PendingInvites
                 .FirstOrDefaultAsync(pi => pi.ProfessionalProfileId == invitation.ProfessionalProfileId
                     && pi.Email == invitation.Email
                     && !pi.IsAccepted, ct);
@@ -146,6 +154,24 @@ public class AcceptInvitationEndpoint(
         }
 
         await db.SaveChangesAsync(ct);
+
+        // If the invite carried a personal message, surface it as the first message
+        // in the client-professional conversation so it shows up on the client's
+        // Messages screen (#768). Gated on pendingInvite (only set inside the
+        // !existingLink branch, i.e. a brand-new link) so a replayed/expired token
+        // — which already throws above — can never reach here twice, and gated on
+        // non-empty text so we don't create an empty conversation shell for invites
+        // that had no message.
+        if (pendingInvite is not null && !string.IsNullOrWhiteSpace(pendingInvite.Message))
+        {
+            var professionalName = professionalUser is not null
+                ? $"{professionalUser.FirstName} {professionalUser.LastName}"
+                : "Professional";
+
+            await conversationSeedService.GetOrSeedConversationAsync(
+                invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
+                professionalName, pendingInvite.Message, ct);
+        }
 
         // Audit: new data sharing relationship established
         await audit.LogAsync(

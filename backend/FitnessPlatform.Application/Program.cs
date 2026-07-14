@@ -224,6 +224,11 @@ else
 // Realtime notifications (SignalR)
 builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 
+// Get-or-create conversation + seed-first-message (invite messages, accept-time
+// statements) — shared by CreatePendingInviteEndpoint, AcceptClientInviteEndpoint,
+// and AcceptInvitationEndpoint (#768).
+builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
+
 // Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInScheduler>());

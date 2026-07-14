@@ -29,6 +29,8 @@ public class MockDbBuilder
     private readonly List<PhotoDiaryRequest> _photoDiaryRequests = [];
     private readonly List<UserExternalLogin> _userExternalLogins = [];
     private readonly List<SocialLoginNonce> _socialLoginNonces = [];
+    private readonly List<Conversation> _conversations = [];
+    private readonly List<ChatMessage> _chatMessages = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -116,6 +118,16 @@ public class MockDbBuilder
     public MockDbBuilder With(SocialLoginNonce nonce) { _socialLoginNonces.Add(nonce); return this; }
 
     /// <summary>
+    /// Adds a <see cref="Conversation"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(Conversation conversation) { _conversations.Add(conversation); return this; }
+
+    /// <summary>
+    /// Adds a <see cref="ChatMessage"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(ChatMessage message) { _chatMessages.Add(message); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -141,6 +153,8 @@ public class MockDbBuilder
         var photoDiaryRequestsSet = _photoDiaryRequests.BuildMockDbSet();
         var userExternalLoginsSet = _userExternalLogins.BuildMockDbSet();
         var socialLoginNoncesSet = _socialLoginNonces.BuildMockDbSet();
+        var conversationsSet = _conversations.BuildMockDbSet();
+        var chatMessagesSet = _chatMessages.BuildMockDbSet();
 
         var db = Substitute.For<IApplicationDbContext>();
 
@@ -163,6 +177,8 @@ public class MockDbBuilder
         db.PhotoDiaryRequests.Returns(photoDiaryRequestsSet);
         db.UserExternalLogins.Returns(userExternalLoginsSet);
         db.SocialLoginNonces.Returns(socialLoginNoncesSet);
+        db.Conversations.Returns(conversationsSet);
+        db.ChatMessages.Returns(chatMessagesSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 

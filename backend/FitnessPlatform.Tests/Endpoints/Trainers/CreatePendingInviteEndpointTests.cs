@@ -34,13 +34,14 @@ public class CreatePendingInviteEndpointTests
         var emailService = Substitute.For<IEmailService>();
         var notificationService = Substitute.For<INotificationService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
         var ep = Factory.Create<CreatePendingInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, emailService, notificationService, notifier, logger);
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
@@ -59,6 +60,53 @@ public class CreatePendingInviteEndpointTests
         ep.Response.Email.Should().Be("jane@test.com");
     }
 
+    /// <summary>
+    /// Regression test for #768 — when the invited email already belongs to a
+    /// registered user, the invite's message must be seeded as the conversation's
+    /// first message immediately (via the shared <see cref="IConversationSeedService"/>),
+    /// not silently dropped.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExistingUserWithMessage_SeedsConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
+            .WithFirstName("Jane").WithLastName("Doe").Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(existingUser)
+            .Build();
+
+        var emailService = Substitute.For<IEmailService>();
+        var notificationService = Substitute.For<INotificationService>();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
+        var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
+
+        var ep = Factory.Create<CreatePendingInviteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.Received(1).GetOrSeedConversationAsync(
+            trainerProfile.UserId, existingUser.Id, trainerProfile.UserId,
+            Arg.Any<string>(), "Looking forward to coaching you!", Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_NoProfessionalProfile_ThrowsError()
     {
@@ -66,13 +114,14 @@ public class CreatePendingInviteEndpointTests
         var emailService = Substitute.For<IEmailService>();
         var notificationService = Substitute.For<INotificationService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
         var ep = Factory.Create<CreatePendingInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, emailService, notificationService, notifier, logger);
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
 
         var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
