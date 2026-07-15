@@ -75,4 +75,9 @@ public static class MongoCollections
     /// Collection name is snake_case per issue #492 specification.
     /// </summary>
     public const string TrainerNotes = "trainer_notes";
+
+    /// <summary>
+    /// Reusable workout templates collection.
+    /// </summary>
+    public const string WorkoutTemplates = "workoutTemplates";
 }

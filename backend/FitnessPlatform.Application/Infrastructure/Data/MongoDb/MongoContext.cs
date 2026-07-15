@@ -29,6 +29,7 @@ public class MongoContext : IMongoContext
         SessionLocks = database.GetCollection<SessionLock>(MongoCollections.SessionLocks);
         SessionLogs = database.GetCollection<SessionLog>(MongoCollections.SessionLogs);
         TrainerNotes = database.GetCollection<TrainerNote>(MongoCollections.TrainerNotes);
+        WorkoutTemplates = database.GetCollection<WorkoutTemplate>(MongoCollections.WorkoutTemplates);
     }
 
     /// <inheritdoc />
@@ -72,4 +73,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<TrainerNote> TrainerNotes { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
 }

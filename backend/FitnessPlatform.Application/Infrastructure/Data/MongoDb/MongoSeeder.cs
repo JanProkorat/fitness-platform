@@ -1,16 +1,21 @@
-using FitnessPlatform.Application.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using FitnessPlatform.Application.Domain.Documents;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Seeds the MongoDB database with initial data if collections are empty.
+/// Seeds the public catalog (foods, recipes, exercises, workout templates) into MongoDB.
+/// Per-document insert-if-missing — safe to re-run against a partially or fully seeded DB;
+/// never gates on a whole-collection count (that would skip all new seed data once any document
+/// exists). Order matters: foods → recipes (need food lookup) → exercises → workout templates
+/// (need exercise lookup). Postgres (roles + system admin user) is seeded separately, always
+/// before this, by <see cref="ApplicationDbContextSeed.SeedAsync"/>.
 /// </summary>
 public static class MongoSeeder
 {
     /// <summary>
-    /// Seeds foods, recipes, and exercises into MongoDB if their collections are empty.
+    /// Seeds foods, recipes, exercises, and workout templates into MongoDB.
     /// </summary>
     /// <param name="serviceProvider">The application service provider.</param>
     public static async Task SeedAsync(IServiceProvider serviceProvider)
@@ -19,73 +24,72 @@ public static class MongoSeeder
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<MongoContext>>();
 
-        // Seed foods
-        var existingFoodCount = await mongo.Foods.CountDocumentsAsync(FilterDefinition<Domain.Documents.Food>.Empty);
-        if (existingFoodCount > 0)
+        await SeedCollectionAsync(
+            mongo.Foods, FoodSeedData.GetFoods(),
+            f => f.ExternalId, f => f.Name, logger, "foods");
+
+        await SeedCollectionAsync(
+            mongo.Recipes, RecipeSeedData.GetRecipes(),
+            r => r.ExternalId, r => r.Name, logger, "recipes");
+
+        await SeedCollectionAsync(
+            mongo.Exercises, ExerciseSeedData.GetExercises(),
+            e => e.ExternalId, e => e.Name, logger, "exercises");
+
+        await SeedCollectionAsync(
+            mongo.WorkoutTemplates, WorkoutTemplateSeedData.GetWorkoutTemplates(),
+            t => t.ExternalId, t => t.Name, logger, "workout templates");
+    }
+
+    /// <summary>
+    /// Inserts every candidate document whose <c>ExternalId</c> AND normalized <c>Name</c> are
+    /// both absent from the collection. The name check protects legacy dev DBs whose existing
+    /// seed docs carry random (pre-deterministic-GUID) ExternalIds from getting duplicated.
+    /// </summary>
+    private static async Task SeedCollectionAsync<TDocument>(
+        IMongoCollection<TDocument> collection,
+        List<TDocument> candidates,
+        Expression<Func<TDocument, Guid>> externalIdSelector,
+        Expression<Func<TDocument, string>> nameSelector,
+        ILogger logger,
+        string collectionLabel)
+    {
+        if (candidates.Count == 0)
         {
-            logger.LogInformation("MongoDB foods collection already has {Count} documents, skipping seed", existingFoodCount);
-        }
-        else
-        {
-            var foods = FoodSeedData.GetFoods();
-            await mongo.Foods.InsertManyAsync(foods);
-            logger.LogInformation("Seeded {Count} foods into MongoDB", foods.Count);
-        }
-
-        // Seed recipes (after foods so we can resolve references)
-        var existingRecipeCount = await mongo.Recipes.CountDocumentsAsync(FilterDefinition<Domain.Documents.Recipe>.Empty);
-        if (existingRecipeCount > 0)
-        {
-            logger.LogInformation("MongoDB recipes collection already has {Count} documents, skipping seed", existingRecipeCount);
-        }
-        else
-        {
-            var allFoods = await mongo.Foods.Find(FilterDefinition<Domain.Documents.Food>.Empty).ToListAsync();
-            var foodLookup = new Dictionary<string, Domain.Documents.Food>(StringComparer.OrdinalIgnoreCase);
-            foreach (var food in allFoods)
-            {
-                if (food.LocalizedNames?.Cs is not null)
-                    foodLookup.TryAdd(food.LocalizedNames.Cs, food);
-            }
-
-            var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Domain.Entities.ApplicationUser>>();
-            var nutritionists = await userManager.GetUsersInRoleAsync("Nutritionist");
-
-            if (nutritionists.Count == 0)
-            {
-                logger.LogWarning("No nutritionists found — skipping recipe seed");
-            }
-            else
-            {
-                var entries = RecipeSeedData.GetRecipes();
-                var allRecipes = new List<Domain.Documents.Recipe>();
-
-                foreach (var nutritionist in nutritionists)
-                {
-                    var recipes = RecipeSeedData.BuildRecipes(entries, foodLookup, nutritionist.Id);
-                    allRecipes.AddRange(recipes);
-                }
-
-                if (allRecipes.Count > 0)
-                {
-                    await mongo.Recipes.InsertManyAsync(allRecipes);
-                    logger.LogInformation("Seeded {Count} recipes for {Users} nutritionists into MongoDB",
-                        allRecipes.Count, nutritionists.Count);
-                }
-            }
+            return;
         }
 
-        // Seed exercises
-        var existingExerciseCount = await mongo.Exercises.CountDocumentsAsync(FilterDefinition<Domain.Documents.Exercise>.Empty);
-        if (existingExerciseCount > 0)
+        var compiledExternalIdSelector = externalIdSelector.Compile();
+        var compiledNameSelector = nameSelector.Compile();
+
+        var existingExternalIds = await collection
+            .Find(FilterDefinition<TDocument>.Empty)
+            .Project(externalIdSelector)
+            .ToListAsync();
+        var existingExternalIdSet = new HashSet<Guid>(existingExternalIds);
+
+        var existingNames = await collection
+            .Find(FilterDefinition<TDocument>.Empty)
+            .Project(nameSelector)
+            .ToListAsync();
+        var existingNameSet = new HashSet<string>(existingNames, StringComparer.OrdinalIgnoreCase);
+
+        var toInsert = candidates
+            .Where(c => !existingExternalIdSet.Contains(compiledExternalIdSelector(c))
+                        && !existingNameSet.Contains(compiledNameSelector(c)))
+            .ToList();
+
+        if (toInsert.Count == 0)
         {
-            logger.LogInformation("MongoDB exercises collection already has {Count} documents, skipping seed", existingExerciseCount);
+            logger.LogInformation(
+                "MongoDB {Collection}: nothing new to seed ({ExistingCount} already present)",
+                collectionLabel, existingExternalIdSet.Count);
+            return;
         }
-        else
-        {
-            var exercises = ExerciseSeedData.GetExercises();
-            await mongo.Exercises.InsertManyAsync(exercises);
-            logger.LogInformation("Seeded {Count} exercises into MongoDB", exercises.Count);
-        }
+
+        await collection.InsertManyAsync(toInsert);
+        logger.LogInformation(
+            "Seeded {InsertedCount} new {Collection} into MongoDB ({SkippedCount} already present)",
+            toInsert.Count, collectionLabel, candidates.Count - toInsert.Count);
     }
 }
