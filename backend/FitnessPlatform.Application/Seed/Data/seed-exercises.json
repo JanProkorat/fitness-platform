@@ -1,0 +1,1981 @@
+[
+  {
+    "slug": "barbell-bench-press",
+    "nameEn": "Barbell Bench Press",
+    "nameCs": "Bench press s velkou činkou",
+    "nameDe": "Bankdrücken mit Langhantel",
+    "description": "The classic horizontal barbell press for building chest size and pressing strength.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps",
+      "Shoulders"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep shoulder blades retracted and feet flat on the floor."
+  },
+  {
+    "slug": "incline-barbell-bench-press",
+    "nameEn": "Incline Barbell Bench Press",
+    "nameCs": "Bench press na šikmé lavici",
+    "nameDe": "Schrägbankdrücken mit Langhantel",
+    "description": "A barbell press on an inclined bench that shifts emphasis to the upper chest and front delts.",
+    "muscleGroups": [
+      "Chest",
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Set the bench to 30–45°. Lower the bar to the upper chest and keep wrists stacked over elbows."
+  },
+  {
+    "slug": "dumbbell-bench-press",
+    "nameEn": "Dumbbell Bench Press",
+    "nameCs": "Bench press s jednoručkami",
+    "nameDe": "Bankdrücken mit Kurzhanteln",
+    "description": "A dumbbell variation of the bench press allowing a longer range of motion and independent arm work.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps",
+      "Shoulders"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Lower the dumbbells with control until you feel a chest stretch, then press up and slightly inward."
+  },
+  {
+    "slug": "incline-dumbbell-bench-press",
+    "nameEn": "Incline Dumbbell Bench Press",
+    "nameCs": "Bench press s jednoručkami na šikmé lavici",
+    "nameDe": "Schrägbankdrücken mit Kurzhanteln",
+    "description": "An incline dumbbell press targeting the upper chest with a natural pressing arc.",
+    "muscleGroups": [
+      "Chest",
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep elbows at roughly 45° from the torso and avoid clanging the dumbbells at the top."
+  },
+  {
+    "slug": "dumbbell-flyes",
+    "nameEn": "Dumbbell Flyes",
+    "nameCs": "Rozpažky s jednoručkami",
+    "nameDe": "Fliegende mit Kurzhanteln",
+    "description": "An isolation movement that stretches and contracts the pecs through a wide arc.",
+    "muscleGroups": [
+      "Chest",
+      "Shoulders"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Maintain a slight bend in the elbows throughout the movement."
+  },
+  {
+    "slug": "cable-crossover",
+    "nameEn": "Cable Crossover",
+    "nameCs": "Křížení kladek",
+    "nameDe": "Kabelzug-Crossover",
+    "description": "A cable isolation exercise that keeps constant tension on the chest through the full range.",
+    "muscleGroups": [
+      "Chest",
+      "Shoulders"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Step forward into a staggered stance and bring the handles together with a slight forward lean."
+  },
+  {
+    "slug": "push-up",
+    "nameEn": "Push-Up",
+    "nameCs": "Klik",
+    "nameDe": "Liegestütz",
+    "description": "The fundamental bodyweight pressing exercise for chest, triceps, and core.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps",
+      "Shoulders"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep your body in a straight line from head to heels."
+  },
+  {
+    "slug": "chest-dip",
+    "nameEn": "Chest Dip",
+    "nameCs": "Dip na hrudník",
+    "nameDe": "Brust-Dip",
+    "description": "A bodyweight dip performed with a forward torso lean to load the lower chest.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps",
+      "Shoulders"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Lean forward to emphasize chest activation."
+  },
+  {
+    "slug": "machine-chest-press",
+    "nameEn": "Machine Chest Press",
+    "nameCs": "Tlaky na stroji",
+    "nameDe": "Brustpresse am Gerät",
+    "description": "A guided pressing machine that lets beginners train the chest safely without a spotter.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Adjust the seat so handles align with mid-chest. Press without locking the elbows hard."
+  },
+  {
+    "slug": "pec-deck-machine",
+    "nameEn": "Pec Deck Machine",
+    "nameCs": "Pec deck stroj",
+    "nameDe": "Butterfly-Maschine",
+    "description": "A machine fly isolating the pecs with a fixed, supported movement path.",
+    "muscleGroups": [
+      "Chest"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep a slight elbow bend and squeeze the pads together without shrugging the shoulders."
+  },
+  {
+    "slug": "pull-up",
+    "nameEn": "Pull-Up",
+    "nameCs": "Shyb",
+    "nameDe": "Klimmzug",
+    "description": "The benchmark vertical pull — lifting your bodyweight from a dead hang to chin over the bar.",
+    "muscleGroups": [
+      "Back",
+      "Biceps",
+      "Forearms"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Full range of motion — dead hang to chin over bar."
+  },
+  {
+    "slug": "lat-pulldown",
+    "nameEn": "Lat Pulldown",
+    "nameCs": "Stahování kladky",
+    "nameDe": "Latzug",
+    "description": "A cable machine pulldown that builds the lats and scales easily for any strength level.",
+    "muscleGroups": [
+      "Back",
+      "Biceps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Pull the bar to the upper chest while keeping the torso mostly upright — avoid swinging."
+  },
+  {
+    "slug": "barbell-bent-over-row",
+    "nameEn": "Barbell Bent-Over Row",
+    "nameCs": "Předklon s velkou činkou",
+    "nameDe": "Vorgebeugtes Rudern mit Langhantel",
+    "description": "A hip-hinged barbell row for building a thick, strong upper and mid back.",
+    "muscleGroups": [
+      "Back",
+      "Biceps",
+      "LowerBack"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep a neutral spine and pull the bar to your lower chest."
+  },
+  {
+    "slug": "dumbbell-single-arm-row",
+    "nameEn": "Dumbbell Single-Arm Row",
+    "nameCs": "Jednoruční přítahy",
+    "nameDe": "Einarmiges Rudern mit Kurzhantel",
+    "description": "A supported one-arm dumbbell row that trains each side of the back independently.",
+    "muscleGroups": [
+      "Back",
+      "Biceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Support yourself on a bench, keep the back flat, and row the dumbbell toward the hip."
+  },
+  {
+    "slug": "seated-cable-row",
+    "nameEn": "Seated Cable Row",
+    "nameCs": "Přítahy na kladce vsedě",
+    "nameDe": "Kabelrudern im Sitzen",
+    "description": "A seated horizontal cable pull for mid-back thickness with constant cable tension.",
+    "muscleGroups": [
+      "Back",
+      "Biceps",
+      "Traps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Sit tall, pull the handle to the stomach, and squeeze the shoulder blades together."
+  },
+  {
+    "slug": "conventional-deadlift",
+    "nameEn": "Conventional Deadlift",
+    "nameCs": "Klasický mrtvý tah",
+    "nameDe": "Konventionelles Kreuzheben",
+    "description": "The heaviest full-posterior-chain lift — pulling a loaded barbell from the floor to lockout.",
+    "muscleGroups": [
+      "Back",
+      "Hamstrings",
+      "Glutes",
+      "LowerBack"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Maintain a neutral spine. Drive through your heels."
+  },
+  {
+    "slug": "sumo-deadlift",
+    "nameEn": "Sumo Deadlift",
+    "nameCs": "Sumo mrtvý tah",
+    "nameDe": "Sumo-Kreuzheben",
+    "description": "A wide-stance deadlift variation that keeps the torso more upright and loads the hips and quads.",
+    "muscleGroups": [
+      "Back",
+      "Glutes",
+      "Quadriceps",
+      "Hamstrings"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Take a wide stance with toes out, keep the chest up, and push the knees out over the toes."
+  },
+  {
+    "slug": "t-bar-row",
+    "nameEn": "T-Bar Row",
+    "nameCs": "T-bar přítahy",
+    "nameDe": "T-Bar Rudern",
+    "description": "A landmine-style row allowing heavy loading with a stable, semi-supported torso angle.",
+    "muscleGroups": [
+      "Back",
+      "Biceps",
+      "Traps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Hinge to about 45°, keep the core braced, and drive the elbows back past the ribs."
+  },
+  {
+    "slug": "overhead-press",
+    "nameEn": "Overhead Press",
+    "nameCs": "Tlak nad hlavu",
+    "nameDe": "Schulterdrücken",
+    "description": "The standing barbell press — the primary strength builder for the shoulders and triceps.",
+    "muscleGroups": [
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Brace your core and avoid excessive back arching."
+  },
+  {
+    "slug": "dumbbell-shoulder-press",
+    "nameEn": "Dumbbell Shoulder Press",
+    "nameCs": "Tlak s jednoručkami nad hlavu",
+    "nameDe": "Schulterdrücken mit Kurzhanteln",
+    "description": "An overhead dumbbell press that trains each shoulder independently through a natural arc.",
+    "muscleGroups": [
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Press the dumbbells up and slightly together without flaring the ribs."
+  },
+  {
+    "slug": "lateral-raise",
+    "nameEn": "Lateral Raise",
+    "nameCs": "Upažování s jednoručkami",
+    "nameDe": "Seitheben",
+    "description": "The go-to isolation movement for wider shoulders, raising light dumbbells out to the sides.",
+    "muscleGroups": [
+      "Shoulders"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Slight bend in elbows, raise to shoulder height."
+  },
+  {
+    "slug": "front-raise",
+    "nameEn": "Front Raise",
+    "nameCs": "Předpažování s jednoručkami",
+    "nameDe": "Frontheben",
+    "description": "A dumbbell raise to the front that isolates the anterior deltoid.",
+    "muscleGroups": [
+      "Shoulders"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Raise to eye level with straight-ish arms and lower under control — no swinging."
+  },
+  {
+    "slug": "face-pull",
+    "nameEn": "Face Pull",
+    "nameCs": "Face pull na kladce",
+    "nameDe": "Face Pull am Kabelzug",
+    "description": "A high cable pull toward the face that strengthens the rear delts and improves shoulder health.",
+    "muscleGroups": [
+      "Shoulders",
+      "Traps",
+      "Back"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Pull the rope to your forehead with external rotation at the end."
+  },
+  {
+    "slug": "arnold-press",
+    "nameEn": "Arnold Press",
+    "nameCs": "Arnoldovy tlaky",
+    "nameDe": "Arnold-Press",
+    "description": "A rotating dumbbell press that works the deltoids through a longer range than a strict press.",
+    "muscleGroups": [
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Start palms facing you, rotate outward as you press, and reverse on the way down."
+  },
+  {
+    "slug": "reverse-pec-deck",
+    "nameEn": "Reverse Pec Deck",
+    "nameCs": "Zpětný pec deck",
+    "nameDe": "Reverse Butterfly",
+    "description": "A machine fly performed facing the pad to isolate the rear delts and upper back.",
+    "muscleGroups": [
+      "Shoulders",
+      "Back"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Lead with the elbows and stop when the arms are in line with the shoulders."
+  },
+  {
+    "slug": "barbell-upright-row",
+    "nameEn": "Barbell Upright Row",
+    "nameCs": "Vzpřímené přítahy s činkou",
+    "nameDe": "Aufrechtes Rudern mit Langhantel",
+    "description": "A vertical barbell pull along the body that hits the side delts and traps.",
+    "muscleGroups": [
+      "Shoulders",
+      "Traps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Use a shoulder-width grip and pull no higher than chest level to spare the shoulders."
+  },
+  {
+    "slug": "barbell-curl",
+    "nameEn": "Barbell Curl",
+    "nameCs": "Bicepsový zdvih s velkou činkou",
+    "nameDe": "Langhantel-Curl",
+    "description": "The classic straight-bar curl for overall biceps mass.",
+    "muscleGroups": [
+      "Biceps",
+      "Forearms"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep the elbows pinned at your sides and curl without swinging the torso."
+  },
+  {
+    "slug": "dumbbell-curl",
+    "nameEn": "Dumbbell Curl",
+    "nameCs": "Bicepsový zdvih s jednoručkami",
+    "nameDe": "Kurzhantel-Curl",
+    "description": "An alternating or simultaneous dumbbell curl with full supination for the biceps.",
+    "muscleGroups": [
+      "Biceps",
+      "Forearms"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Rotate the palm up as you curl and lower slowly through the full range."
+  },
+  {
+    "slug": "hammer-curl",
+    "nameEn": "Hammer Curl",
+    "nameCs": "Kladivový zdvih",
+    "nameDe": "Hammer-Curl",
+    "description": "A neutral-grip curl that targets the brachialis and forearms along with the biceps.",
+    "muscleGroups": [
+      "Biceps",
+      "Forearms"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep palms facing each other throughout the movement."
+  },
+  {
+    "slug": "incline-dumbbell-curl",
+    "nameEn": "Incline Dumbbell Curl",
+    "nameCs": "Bicepsový zdvih na šikmé lavici",
+    "nameDe": "Schrägbank-Curl",
+    "description": "A curl performed lying back on an incline bench, stretching the long head of the biceps.",
+    "muscleGroups": [
+      "Biceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Let the arms hang straight down and keep the elbows behind the torso as you curl."
+  },
+  {
+    "slug": "cable-curl",
+    "nameEn": "Cable Curl",
+    "nameCs": "Bicepsový zdvih na kladce",
+    "nameDe": "Kabelzug-Curl",
+    "description": "A biceps curl on the low cable pulley with smooth, constant tension.",
+    "muscleGroups": [
+      "Biceps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stand a step back from the pulley and keep the upper arms still throughout."
+  },
+  {
+    "slug": "concentration-curl",
+    "nameEn": "Concentration Curl",
+    "nameCs": "Koncentrační zdvih",
+    "nameDe": "Konzentrations-Curl",
+    "description": "A seated single-arm curl braced against the thigh for a strict biceps peak contraction.",
+    "muscleGroups": [
+      "Biceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Brace the elbow on the inner thigh and squeeze hard at the top of each rep."
+  },
+  {
+    "slug": "tricep-pushdown",
+    "nameEn": "Tricep Pushdown",
+    "nameCs": "Tricepsové stahování na kladce",
+    "nameDe": "Trizeps-Drücken am Kabelzug",
+    "description": "The staple cable exercise for the triceps, pressing a bar or rope down to lockout.",
+    "muscleGroups": [
+      "Triceps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Pin the elbows to your sides and extend fully without leaning over the cable."
+  },
+  {
+    "slug": "overhead-tricep-extension",
+    "nameEn": "Overhead Tricep Extension",
+    "nameCs": "Tricepsové extenze nad hlavou",
+    "nameDe": "Trizeps-Überkopfstrecken",
+    "description": "A dumbbell extension from behind the head that stretches the long head of the triceps.",
+    "muscleGroups": [
+      "Triceps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep the elbows close to the head and lower the weight behind you under control."
+  },
+  {
+    "slug": "skull-crusher",
+    "nameEn": "Skull Crusher",
+    "nameCs": "Francouzský tlak vleže",
+    "nameDe": "Stirndrücken",
+    "description": "A lying barbell extension lowering the bar toward the forehead to isolate the triceps.",
+    "muscleGroups": [
+      "Triceps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Lower the bar to your forehead with controlled movement."
+  },
+  {
+    "slug": "close-grip-bench-press",
+    "nameEn": "Close-Grip Bench Press",
+    "nameCs": "Bench press úzkým úchopem",
+    "nameDe": "Enges Bankdrücken",
+    "description": "A narrow-grip bench press that shifts the load onto the triceps while still training the chest.",
+    "muscleGroups": [
+      "Triceps",
+      "Chest"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Grip just inside shoulder width and keep the elbows tucked as you press."
+  },
+  {
+    "slug": "tricep-dip",
+    "nameEn": "Tricep Dip",
+    "nameCs": "Tricepsový dip",
+    "nameDe": "Trizeps-Dip",
+    "description": "An upright bodyweight dip that loads the triceps through a deep pressing range.",
+    "muscleGroups": [
+      "Triceps",
+      "Chest",
+      "Shoulders"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep your torso upright to target triceps."
+  },
+  {
+    "slug": "diamond-push-up",
+    "nameEn": "Diamond Push-Up",
+    "nameCs": "Diamantový klik",
+    "nameDe": "Diamant-Liegestütz",
+    "description": "A close-hand push-up variation that shifts the emphasis onto the triceps.",
+    "muscleGroups": [
+      "Triceps",
+      "Chest"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Form a diamond with thumbs and index fingers under the chest and keep the elbows tucked."
+  },
+  {
+    "slug": "barbell-back-squat",
+    "nameEn": "Barbell Back Squat",
+    "nameCs": "Dřep s velkou činkou",
+    "nameDe": "Kniebeuge mit Langhantel",
+    "description": "The king of lower-body lifts — a loaded squat building the quads, glutes, and trunk.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep knees tracking over toes and maintain a neutral spine."
+  },
+  {
+    "slug": "front-squat",
+    "nameEn": "Front Squat",
+    "nameCs": "Přední dřep",
+    "nameDe": "Frontbeugen",
+    "description": "A squat with the bar racked on the front delts, demanding an upright torso and strong core.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Abs"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Keep elbows high to prevent the bar from rolling forward."
+  },
+  {
+    "slug": "leg-press",
+    "nameEn": "Leg Press",
+    "nameCs": "Leg press",
+    "nameDe": "Beinpresse",
+    "description": "A machine press that lets you load the legs heavily with the back fully supported.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Lower until the knees reach about 90° and never let the lower back peel off the pad."
+  },
+  {
+    "slug": "walking-lunge",
+    "nameEn": "Walking Lunge",
+    "nameCs": "Výpady s chůzí",
+    "nameDe": "Ausfallschritte im Gehen",
+    "description": "Alternating forward lunges that build single-leg strength, balance, and glute drive.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Step long enough that the front shin stays vertical, and drive up through the front heel."
+  },
+  {
+    "slug": "bulgarian-split-squat",
+    "nameEn": "Bulgarian Split Squat",
+    "nameCs": "Bulharský dřep",
+    "nameDe": "Bulgarische Kniebeuge",
+    "description": "A rear-foot-elevated split squat that hammers each leg individually.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Elevate the rear foot on a bench and descend straight down, keeping the front knee stable."
+  },
+  {
+    "slug": "leg-extension",
+    "nameEn": "Leg Extension",
+    "nameCs": "Extenze nohou",
+    "nameDe": "Beinstrecker",
+    "description": "A machine isolation exercise for the quadriceps.",
+    "muscleGroups": [
+      "Quadriceps"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Extend to a full squeeze at the top and lower with control — don't let the stack slam."
+  },
+  {
+    "slug": "leg-curl",
+    "nameEn": "Leg Curl",
+    "nameCs": "Zakopávání",
+    "nameDe": "Beincurl",
+    "description": "A machine isolation exercise flexing the knee against resistance to train the hamstrings.",
+    "muscleGroups": [
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Curl the pad toward the glutes without lifting the hips off the bench."
+  },
+  {
+    "slug": "standing-calf-raise",
+    "nameEn": "Standing Calf Raise",
+    "nameCs": "Výpony ve stoje",
+    "nameDe": "Wadenheben im Stehen",
+    "description": "A standing machine raise for the gastrocnemius through a full stretch and contraction.",
+    "muscleGroups": [
+      "Calves"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Pause at the bottom stretch and rise all the way onto the balls of the feet."
+  },
+  {
+    "slug": "barbell-hip-thrust",
+    "nameEn": "Barbell Hip Thrust",
+    "nameCs": "Hip thrust s činkou",
+    "nameDe": "Hip Thrust mit Langhantel",
+    "description": "A barbell-loaded hip extension off a bench — the most direct heavy glute builder.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Drive through your heels and squeeze glutes at the top."
+  },
+  {
+    "slug": "romanian-deadlift",
+    "nameEn": "Romanian Deadlift",
+    "nameCs": "Rumunský mrtvý tah",
+    "nameDe": "Rumänisches Kreuzheben",
+    "description": "A stiff-legged barbell hinge that loads the hamstrings and glutes through a deep stretch.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Glutes",
+      "LowerBack"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Maintain a slight knee bend and hinge at the hips."
+  },
+  {
+    "slug": "glute-bridge",
+    "nameEn": "Glute Bridge",
+    "nameCs": "Gluteový most",
+    "nameDe": "Gesäßbrücke",
+    "description": "A floor-based hip extension that teaches glute activation with just bodyweight.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Push through the heels, lift the hips to a straight line, and squeeze at the top."
+  },
+  {
+    "slug": "cable-pull-through",
+    "nameEn": "Cable Pull-Through",
+    "nameCs": "Přítah mezi nohama na kladce",
+    "nameDe": "Kabelzug Pull-Through",
+    "description": "A cable hip hinge pulling the rope between the legs — great for grooving the hinge pattern.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Face away from the pulley, hinge back with soft knees, and snap the hips forward."
+  },
+  {
+    "slug": "kettlebell-swing",
+    "nameEn": "Kettlebell Swing",
+    "nameCs": "Švih s kettlebellem",
+    "nameDe": "Kettlebell-Swing",
+    "description": "An explosive kettlebell hinge swinging the bell to chest height — power and conditioning in one.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings",
+      "LowerBack"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Power comes from the hip hinge, not the arms."
+  },
+  {
+    "slug": "good-morning",
+    "nameEn": "Good Morning",
+    "nameCs": "Good morning",
+    "nameDe": "Good Morning",
+    "description": "A barbell hinge with the bar on the back that strengthens the hamstrings and spinal erectors.",
+    "muscleGroups": [
+      "Hamstrings",
+      "LowerBack",
+      "Glutes"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep the back flat and hinge only as far as your hamstrings allow — start light."
+  },
+  {
+    "slug": "plank",
+    "nameEn": "Plank",
+    "nameCs": "Prkno",
+    "nameDe": "Unterarmstütz",
+    "description": "The fundamental isometric core hold on the forearms.",
+    "muscleGroups": [
+      "Abs",
+      "Obliques"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep your body in a straight line. Do not let hips sag."
+  },
+  {
+    "slug": "crunch",
+    "nameEn": "Crunch",
+    "nameCs": "Zkracovačky",
+    "nameDe": "Crunch",
+    "description": "A short-range spinal flexion exercise isolating the abdominals.",
+    "muscleGroups": [
+      "Abs"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Curl the ribs toward the pelvis and keep the lower back on the floor."
+  },
+  {
+    "slug": "hanging-leg-raise",
+    "nameEn": "Hanging Leg Raise",
+    "nameCs": "Zvedání nohou ve visu",
+    "nameDe": "Beinheben im Hang",
+    "description": "A hanging core exercise raising the legs toward the bar — demanding and highly effective.",
+    "muscleGroups": [
+      "Abs",
+      "Obliques"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Avoid swinging — use controlled movement."
+  },
+  {
+    "slug": "russian-twist",
+    "nameEn": "Russian Twist",
+    "nameCs": "Ruský twist",
+    "nameDe": "Russischer Twist",
+    "description": "A seated rotational exercise for the obliques, twisting side to side with feet elevated.",
+    "muscleGroups": [
+      "Obliques",
+      "Abs"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Lean back to about 45°, rotate from the trunk, and keep the chest tall."
+  },
+  {
+    "slug": "ab-wheel-rollout",
+    "nameEn": "Ab Wheel Rollout",
+    "nameCs": "Kolečko na břicho",
+    "nameDe": "Ab-Roller",
+    "description": "A rollout with the ab wheel that trains the core to resist extension through a long lever.",
+    "muscleGroups": [
+      "Abs",
+      "Obliques",
+      "Shoulders"
+    ],
+    "equipment": "None",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Roll out only as far as you can without the hips sagging, then pull back with the abs."
+  },
+  {
+    "slug": "cable-woodchop",
+    "nameEn": "Cable Woodchop",
+    "nameCs": "Dřevorubec na kladce",
+    "nameDe": "Kabelzug-Holzhacken",
+    "description": "A diagonal cable rotation from high to low that builds rotational core strength.",
+    "muscleGroups": [
+      "Obliques",
+      "Abs"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Rotate through the trunk and hips with straight-ish arms — don't just pull with the shoulders."
+  },
+  {
+    "slug": "treadmill-running",
+    "nameEn": "Treadmill Running",
+    "nameCs": "Běh na páse",
+    "nameDe": "Laufband-Laufen",
+    "description": "Steady-state or interval running on the treadmill for aerobic conditioning.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Hamstrings",
+      "Calves"
+    ],
+    "equipment": "Machine",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Run tall with a slight forward lean and land under your hips, not out in front."
+  },
+  {
+    "slug": "outdoor-running",
+    "nameEn": "Outdoor Running",
+    "nameCs": "Běh venku",
+    "nameDe": "Laufen im Freien",
+    "description": "Running outdoors — the simplest way to build an aerobic base.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Hamstrings",
+      "Calves"
+    ],
+    "equipment": "None",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Build volume gradually and keep most runs at a conversational pace."
+  },
+  {
+    "slug": "stationary-cycling",
+    "nameEn": "Stationary Cycling",
+    "nameCs": "Jízda na stacionárním kole",
+    "nameDe": "Radfahren am Ergometer",
+    "description": "Low-impact cardio on the exercise bike, ideal for warm-ups or long aerobic work.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Hamstrings",
+      "Calves"
+    ],
+    "equipment": "Machine",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Set saddle height so the knee keeps a slight bend at the bottom of the pedal stroke."
+  },
+  {
+    "slug": "rowing-machine",
+    "nameEn": "Rowing Machine",
+    "nameCs": "Veslařský trenažér",
+    "nameDe": "Rudergerät",
+    "description": "Full-body cardio on the rower combining leg drive, hip swing, and arm pull.",
+    "muscleGroups": [
+      "Back",
+      "Quadriceps",
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Drive with legs first, then lean back, then pull arms."
+  },
+  {
+    "slug": "jump-rope",
+    "nameEn": "Jump Rope",
+    "nameCs": "Švihadlo",
+    "nameDe": "Seilspringen",
+    "description": "Rope skipping for footwork, coordination, and quick-hit conditioning.",
+    "muscleGroups": [
+      "Calves",
+      "Quadriceps"
+    ],
+    "equipment": "None",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Jump just high enough to clear the rope and spin it from the wrists, not the arms."
+  },
+  {
+    "slug": "burpee",
+    "nameEn": "Burpee",
+    "nameCs": "Burpee",
+    "nameDe": "Burpee",
+    "description": "The full-body conditioning staple — squat, kick back, push-up, and jump in one rep.",
+    "muscleGroups": [
+      "FullBody"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Cardio",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Move fluidly through the sequence and fully extend the hips on the jump."
+  },
+  {
+    "slug": "mountain-climber",
+    "nameEn": "Mountain Climber",
+    "nameCs": "Horolezec",
+    "nameDe": "Bergsteiger",
+    "description": "A plank-position running motion driving the knees to the chest for core-heavy conditioning.",
+    "muscleGroups": [
+      "Abs",
+      "Quadriceps",
+      "Shoulders"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep the hips low and level while the knees drive alternately toward the chest."
+  },
+  {
+    "slug": "battle-ropes",
+    "nameEn": "Battle Ropes",
+    "nameCs": "Battle ropes",
+    "nameDe": "Battle Ropes",
+    "description": "Alternating or double-arm rope waves for upper-body power endurance.",
+    "muscleGroups": [
+      "Shoulders",
+      "Abs",
+      "Back"
+    ],
+    "equipment": "None",
+    "category": "Cardio",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Sit into a quarter squat, brace the core, and drive waves from the shoulders."
+  },
+  {
+    "slug": "hip-flexor-stretch",
+    "nameEn": "Hip Flexor Stretch",
+    "nameCs": "Protažení flexorů kyčle",
+    "nameDe": "Hüftbeuger-Dehnung",
+    "description": "A half-kneeling stretch that opens the hip flexors after long sitting or heavy leg work.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Tuck the pelvis and squeeze the rear glute before shifting forward — don't arch the lower back."
+  },
+  {
+    "slug": "shoulder-dislocates",
+    "nameEn": "Shoulder Dislocates",
+    "nameCs": "Protažení ramen s tyčí",
+    "nameDe": "Schulterdislokation",
+    "description": "A shoulder mobility drill passing a stick overhead from front to back in a wide grip.",
+    "muscleGroups": [
+      "Shoulders"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Use a wide grip and perform the movement slowly."
+  },
+  {
+    "slug": "foam-rolling-back",
+    "nameEn": "Foam Rolling — Back",
+    "nameCs": "Válcování zad na pěnovém válci",
+    "nameDe": "Faszienrolle — Rücken",
+    "description": "Self-myofascial release for the mid and upper back using a foam roller.",
+    "muscleGroups": [
+      "Back",
+      "LowerBack"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Roll slowly from mid to upper back, pausing on tender spots — avoid rolling the lower back hard."
+  },
+  {
+    "slug": "cat-cow-stretch",
+    "nameEn": "Cat-Cow Stretch",
+    "nameCs": "Kočka-kráva",
+    "nameDe": "Katze-Kuh-Übung",
+    "description": "A gentle spinal mobility flow alternating between flexion and extension on all fours.",
+    "muscleGroups": [
+      "LowerBack",
+      "Abs"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Move segment by segment with the breath — exhale into the cat, inhale into the cow."
+  },
+  {
+    "slug": "pigeon-stretch",
+    "nameEn": "Pigeon Stretch",
+    "nameCs": "Holubí pozice",
+    "nameDe": "Taubenstellung",
+    "description": "A deep hip-opening stretch for the glutes and external rotators.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Square the hips to the floor and fold forward only as far as comfortable."
+  },
+  {
+    "slug": "thoracic-spine-rotation",
+    "nameEn": "Thoracic Spine Rotation",
+    "nameCs": "Rotace hrudní páteře",
+    "nameDe": "Brustwirbelsäulen-Rotation",
+    "description": "A quadruped rotation drill restoring rotation in the upper back.",
+    "muscleGroups": [
+      "Back",
+      "Obliques"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Place a hand behind the head and rotate the elbow toward the ceiling, following with the eyes."
+  },
+  {
+    "slug": "jumping-jacks",
+    "nameEn": "Jumping Jacks",
+    "nameCs": "Jumping jacks",
+    "nameDe": "Hampelmann",
+    "description": "A classic full-body warm-up jump raising the heart rate and mobilizing the shoulders and hips.",
+    "muscleGroups": [
+      "FullBody"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Land softly on the balls of the feet and keep a steady rhythm."
+  },
+  {
+    "slug": "arm-circles",
+    "nameEn": "Arm Circles",
+    "nameCs": "Kroužení pažemi",
+    "nameDe": "Armkreisen",
+    "description": "Controlled forward and backward arm circles to warm up the shoulder joints.",
+    "muscleGroups": [
+      "Shoulders"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Start with small circles and gradually increase the diameter in both directions."
+  },
+  {
+    "slug": "high-knees",
+    "nameEn": "High Knees",
+    "nameCs": "Vysoká kolena",
+    "nameDe": "Kniehebelauf",
+    "description": "Running in place driving the knees to hip height — a quick pulse-raiser.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Abs"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stay tall, drive the knees up fast, and pump the arms in rhythm."
+  },
+  {
+    "slug": "leg-swings",
+    "nameEn": "Leg Swings",
+    "nameCs": "Kmitání nohou",
+    "nameDe": "Beinschwingen",
+    "description": "Dynamic front-to-back and side-to-side leg swings to prep the hips for training.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hold onto support, keep the torso tall, and let the leg swing loose through a growing range."
+  },
+  {
+    "slug": "power-clean",
+    "nameEn": "Power Clean",
+    "nameCs": "Silový přemístění",
+    "nameDe": "Umsetzen",
+    "description": "An explosive barbell pull from the floor caught on the shoulders in a quarter squat.",
+    "muscleGroups": [
+      "FullBody",
+      "Glutes",
+      "Traps"
+    ],
+    "equipment": "Barbell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Explosive triple extension of ankles, knees, and hips."
+  },
+  {
+    "slug": "barbell-snatch",
+    "nameEn": "Barbell Snatch",
+    "nameCs": "Trh s velkou činkou",
+    "nameDe": "Reißen",
+    "description": "The Olympic snatch — moving the bar from floor to overhead in one explosive movement.",
+    "muscleGroups": [
+      "FullBody",
+      "Shoulders",
+      "Glutes"
+    ],
+    "equipment": "Barbell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Requires excellent shoulder mobility. Start with an empty barbell."
+  },
+  {
+    "slug": "turkish-get-up",
+    "nameEn": "Turkish Get-Up",
+    "nameCs": "Turecké vstávání",
+    "nameDe": "Turkish Get-Up",
+    "description": "A slow, multi-step rise from lying to standing while holding a kettlebell overhead.",
+    "muscleGroups": [
+      "FullBody",
+      "Shoulders",
+      "Abs"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Keep eyes on the kettlebell throughout the movement."
+  },
+  {
+    "slug": "muscle-up",
+    "nameEn": "Muscle-Up",
+    "nameCs": "Muscle-up",
+    "nameDe": "Muscle-Up",
+    "description": "A pull-up that transitions over the bar into a dip — the gymnastic strength benchmark.",
+    "muscleGroups": [
+      "Back",
+      "Chest",
+      "Triceps"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Requires strong pull-ups and dips. Use a kipping motion to learn."
+  },
+  {
+    "slug": "barbell-wrist-curl",
+    "nameEn": "Barbell Wrist Curl",
+    "nameCs": "Zápěstní zdvih s velkou činkou",
+    "nameDe": "Handgelenkcurl mit Langhantel",
+    "description": "A seated barbell curl of the wrists that isolates the forearm flexors.",
+    "muscleGroups": [
+      "Forearms"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Rest the forearms on the thighs, palms up, and curl the wrists through a full range."
+  },
+  {
+    "slug": "reverse-barbell-curl",
+    "nameEn": "Reverse Barbell Curl",
+    "nameCs": "Obrácený bicepsový zdvih",
+    "nameDe": "Reverse Curl mit Langhantel",
+    "description": "An overhand-grip barbell curl emphasizing the forearm extensors and brachioradialis.",
+    "muscleGroups": [
+      "Forearms",
+      "Biceps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Use a pronated grip, keep the wrists straight, and curl without swinging."
+  },
+  {
+    "slug": "farmers-carry",
+    "nameEn": "Farmer's Carry",
+    "nameCs": "Farmářská chůze",
+    "nameDe": "Farmers Walk",
+    "description": "Walking with heavy kettlebells at your sides — grip, traps, and core in one drill.",
+    "muscleGroups": [
+      "Forearms",
+      "Traps",
+      "Abs"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stand tall, brace the core, and take short, controlled steps without leaning."
+  },
+  {
+    "slug": "dead-hang",
+    "nameEn": "Dead Hang",
+    "nameCs": "Vis na hrazdě",
+    "nameDe": "Passives Hängen",
+    "description": "A passive hang from the pull-up bar building grip endurance and decompressing the shoulders.",
+    "muscleGroups": [
+      "Forearms",
+      "Back",
+      "Shoulders"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Grip the bar shoulder-width, relax into the hang, and breathe — build time gradually."
+  },
+  {
+    "slug": "nordic-hamstring-curl",
+    "nameEn": "Nordic Hamstring Curl",
+    "nameCs": "Nordický zákop",
+    "nameDe": "Nordic Hamstring Curl",
+    "description": "A brutal eccentric knee flexion with anchored ankles, lowering the body forward under control.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Glutes"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Anchor the ankles, keep the hips extended, and lower as slowly as possible — push back up if needed."
+  },
+  {
+    "slug": "dumbbell-romanian-deadlift",
+    "nameEn": "Dumbbell Romanian Deadlift",
+    "nameCs": "Rumunský mrtvý tah s jednoručkami",
+    "nameDe": "Rumänisches Kreuzheben mit Kurzhanteln",
+    "description": "A dumbbell hip hinge stretching the hamstrings — beginner-friendly and knee-light.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Glutes",
+      "LowerBack"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Slide the dumbbells down the thighs with a flat back until you feel the hamstring stretch."
+  },
+  {
+    "slug": "seated-calf-raise",
+    "nameEn": "Seated Calf Raise",
+    "nameCs": "Výpony vsedě",
+    "nameDe": "Wadenheben im Sitzen",
+    "description": "A seated machine raise that targets the soleus with the knees bent.",
+    "muscleGroups": [
+      "Calves"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Use a full range with a pause at the bottom stretch; keep reps slow and controlled."
+  },
+  {
+    "slug": "single-leg-calf-raise",
+    "nameEn": "Single-Leg Calf Raise",
+    "nameCs": "Výpony na jedné noze",
+    "nameDe": "Einbeiniges Wadenheben",
+    "description": "A unilateral bodyweight calf raise off a step for strength and ankle stability.",
+    "muscleGroups": [
+      "Calves"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stand on the ball of one foot on a step, lower to a deep stretch, and rise to full height."
+  },
+  {
+    "slug": "dumbbell-calf-raise",
+    "nameEn": "Dumbbell Calf Raise",
+    "nameCs": "Výpony s jednoručkami",
+    "nameDe": "Wadenheben mit Kurzhanteln",
+    "description": "A standing calf raise loaded with dumbbells held at the sides.",
+    "muscleGroups": [
+      "Calves"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Rise onto the balls of the feet, pause at the top, and lower slowly."
+  },
+  {
+    "slug": "side-plank",
+    "nameEn": "Side Plank",
+    "nameCs": "Boční prkno",
+    "nameDe": "Seitstütz",
+    "description": "An isometric side hold on one forearm building lateral core strength.",
+    "muscleGroups": [
+      "Obliques",
+      "Abs"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stack the feet, lift the hips to a straight line, and don't let them drop."
+  },
+  {
+    "slug": "dumbbell-side-bend",
+    "nameEn": "Dumbbell Side Bend",
+    "nameCs": "Úklony s jednoručkou",
+    "nameDe": "Seitbeugen mit Kurzhantel",
+    "description": "A standing lateral flexion with a single dumbbell isolating the obliques.",
+    "muscleGroups": [
+      "Obliques"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hold one dumbbell, bend strictly sideways, and pull back up with the opposite obliques."
+  },
+  {
+    "slug": "back-extension",
+    "nameEn": "Back Extension",
+    "nameCs": "Hyperextenze",
+    "nameDe": "Rückenstrecken",
+    "description": "Trunk extensions on the hyperextension bench for the erectors, glutes, and hamstrings.",
+    "muscleGroups": [
+      "LowerBack",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hinge over the pad, rise until the body forms a straight line, and avoid overextending."
+  },
+  {
+    "slug": "superman",
+    "nameEn": "Superman",
+    "nameCs": "Superman",
+    "nameDe": "Superman",
+    "description": "A floor hold lifting arms and legs off the ground to strengthen the posterior chain.",
+    "muscleGroups": [
+      "LowerBack",
+      "Glutes"
+    ],
+    "equipment": "None",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Lift arms and legs a few centimeters, hold briefly, and keep the neck neutral."
+  },
+  {
+    "slug": "bird-dog",
+    "nameEn": "Bird Dog",
+    "nameCs": "Ptačí pes",
+    "nameDe": "Bird Dog",
+    "description": "A quadruped drill extending the opposite arm and leg to build core stability.",
+    "muscleGroups": [
+      "LowerBack",
+      "Abs",
+      "Glutes"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Extend the opposite arm and leg without letting the hips or lower back rotate."
+  },
+  {
+    "slug": "barbell-shrug",
+    "nameEn": "Barbell Shrug",
+    "nameCs": "Krčení ramen s velkou činkou",
+    "nameDe": "Schulterheben mit Langhantel",
+    "description": "A heavy barbell shrug isolating the upper trapezius.",
+    "muscleGroups": [
+      "Traps"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Shrug straight up toward the ears, pause, and lower slowly — no rolling."
+  },
+  {
+    "slug": "dumbbell-shrug",
+    "nameEn": "Dumbbell Shrug",
+    "nameCs": "Krčení ramen s jednoručkami",
+    "nameDe": "Schulterheben mit Kurzhanteln",
+    "description": "A dumbbell shrug with a neutral grip and a longer range than the barbell version.",
+    "muscleGroups": [
+      "Traps"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Let the dumbbells hang at the sides, shrug high, and control the descent."
+  },
+  {
+    "slug": "kettlebell-high-pull",
+    "nameEn": "Kettlebell High Pull",
+    "nameCs": "Vysoký přítah s kettlebellem",
+    "nameDe": "Kettlebell High Pull",
+    "description": "An explosive kettlebell pull from the swing to chest height, driving the elbow high and outside.",
+    "muscleGroups": [
+      "Traps",
+      "Shoulders",
+      "Glutes"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Snap the hips like a swing, then pull the elbow high and outside — the bell stays close."
+  },
+  {
+    "slug": "barbell-thruster",
+    "nameEn": "Barbell Thruster",
+    "nameCs": "Thruster s velkou činkou",
+    "nameDe": "Thruster mit Langhantel",
+    "description": "A front squat flowing directly into an overhead press — a full-body power and conditioning lift.",
+    "muscleGroups": [
+      "FullBody",
+      "Quadriceps",
+      "Shoulders"
+    ],
+    "equipment": "Barbell",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Ride the squat's momentum straight into the press; keep the bar close to the face on the way up."
+  },
+  {
+    "slug": "dumbbell-thruster",
+    "nameEn": "Dumbbell Thruster",
+    "nameCs": "Thruster s jednoručkami",
+    "nameDe": "Thruster mit Kurzhanteln",
+    "description": "The dumbbell version of the thruster — squat to overhead press in one fluid motion.",
+    "muscleGroups": [
+      "FullBody",
+      "Quadriceps",
+      "Shoulders"
+    ],
+    "equipment": "Dumbbells",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Hold the dumbbells at the shoulders, squat deep, and drive them overhead as you stand."
+  },
+  {
+    "slug": "kettlebell-clean-and-press",
+    "nameEn": "Kettlebell Clean and Press",
+    "nameCs": "Přemístění a tlak s kettlebellem",
+    "nameDe": "Kettlebell Clean and Press",
+    "description": "A single-kettlebell clean to the rack followed by a strict or push press overhead.",
+    "muscleGroups": [
+      "FullBody",
+      "Shoulders",
+      "Glutes"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep the bell close on the clean so it rolls gently onto the forearm, then press with a braced core."
+  },
+  {
+    "slug": "trx-row",
+    "nameEn": "TRX Row",
+    "nameCs": "Přítahy na TRX",
+    "nameDe": "TRX-Rudern",
+    "description": "A suspension row at an adjustable body angle — scalable horizontal pulling for any level.",
+    "muscleGroups": [
+      "Back",
+      "Biceps"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep the body rigid like a plank and pull the chest to the handles; walk the feet back to progress."
+  },
+  {
+    "slug": "trx-chest-press",
+    "nameEn": "TRX Chest Press",
+    "nameCs": "Tlaky na TRX",
+    "nameDe": "TRX-Brustdrücken",
+    "description": "A suspended push-up with the hands in straps, adding an instability challenge to the press.",
+    "muscleGroups": [
+      "Chest",
+      "Triceps",
+      "Shoulders"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Lean into the straps, keep the core braced, and press back to the start without shrugging."
+  },
+  {
+    "slug": "trx-squat",
+    "nameEn": "TRX Squat",
+    "nameCs": "Dřep s TRX",
+    "nameDe": "TRX-Kniebeuge",
+    "description": "A strap-assisted squat that lets beginners groove a deep, upright squat pattern safely.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hold the handles lightly for balance, sit deep between the heels, and drive up through the whole foot."
+  },
+  {
+    "slug": "trx-hamstring-curl",
+    "nameEn": "TRX Hamstring Curl",
+    "nameCs": "Zakopávání na TRX",
+    "nameDe": "TRX-Beincurl",
+    "description": "A supine leg curl with heels in the straps, combining hip extension and knee flexion.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Glutes",
+      "Abs"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Bridge the hips up first, then curl the heels toward the glutes without dropping the hips."
+  },
+  {
+    "slug": "trx-pike",
+    "nameEn": "TRX Pike",
+    "nameCs": "Pike na TRX",
+    "nameDe": "TRX-Pike",
+    "description": "A suspended pike from a plank position, driving the hips to the ceiling with feet in the straps.",
+    "muscleGroups": [
+      "Abs",
+      "Shoulders"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "From a strong plank, pike the hips up over the shoulders with straight legs, then return with control."
+  },
+  {
+    "slug": "trx-y-raise",
+    "nameEn": "TRX Y-Raise",
+    "nameCs": "Y-rozpažení na TRX",
+    "nameDe": "TRX-Y-Heben",
+    "description": "A suspension raise into a Y overhead position for the lower traps and rear delts.",
+    "muscleGroups": [
+      "Shoulders",
+      "Back",
+      "Traps"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep the arms straight, raise them into a Y as the body comes upright, and avoid shrugging."
+  },
+  {
+    "slug": "trx-biceps-curl",
+    "nameEn": "TRX Biceps Curl",
+    "nameCs": "Bicepsový zdvih na TRX",
+    "nameDe": "TRX-Bizepscurl",
+    "description": "A bodyweight biceps curl leaning back in the straps and curling to the forehead.",
+    "muscleGroups": [
+      "Biceps"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Fix the upper arms in space and curl the hands to the temples; step back to make it harder."
+  },
+  {
+    "slug": "trx-triceps-extension",
+    "nameEn": "TRX Triceps Extension",
+    "nameCs": "Tricepsová extenze na TRX",
+    "nameDe": "TRX-Trizepsstrecken",
+    "description": "A forward-leaning suspended extension, lowering the forehead between the hands and pressing away.",
+    "muscleGroups": [
+      "Triceps"
+    ],
+    "equipment": "TRX",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Keep the elbows pointing forward and the body straight; only the forearms move."
+  },
+  {
+    "slug": "goblet-squat",
+    "nameEn": "Goblet Squat",
+    "nameCs": "Goblet dřep",
+    "nameDe": "Goblet Squat",
+    "description": "A squat holding a kettlebell at the chest — the best way to learn a deep, upright squat.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Abs"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hug the bell to the chest, sit between the heels, and keep the elbows inside the knees at depth."
+  },
+  {
+    "slug": "kettlebell-row",
+    "nameEn": "Kettlebell Row",
+    "nameCs": "Přítahy s kettlebellem",
+    "nameDe": "Kettlebell-Rudern",
+    "description": "A single-arm hinge row with a kettlebell, pulling the bell to the hip.",
+    "muscleGroups": [
+      "Back",
+      "Biceps"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hinge with a flat back, row the bell toward the hip, and keep the shoulders square."
+  },
+  {
+    "slug": "kettlebell-deadlift",
+    "nameEn": "Kettlebell Deadlift",
+    "nameCs": "Mrtvý tah s kettlebellem",
+    "nameDe": "Kettlebell-Kreuzheben",
+    "description": "A hip hinge lifting a kettlebell from the floor — the safest introduction to deadlifting.",
+    "muscleGroups": [
+      "Glutes",
+      "Hamstrings",
+      "LowerBack"
+    ],
+    "equipment": "Kettlebell",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Set the bell between the feet, push the hips back, grip, and stand tall by driving the hips forward."
+  },
+  {
+    "slug": "pike-push-up",
+    "nameEn": "Pike Push-Up",
+    "nameCs": "Pike klik",
+    "nameDe": "Pike-Liegestütz",
+    "description": "A push-up in a pike position that shifts the load onto the shoulders — a handstand push-up precursor.",
+    "muscleGroups": [
+      "Shoulders",
+      "Triceps"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Walk the feet in, keep the hips high, and lower the crown of the head toward the floor between the hands."
+  },
+  {
+    "slug": "pistol-squat",
+    "nameEn": "Pistol Squat",
+    "nameCs": "Pistolový dřep",
+    "nameDe": "Pistol Squat",
+    "description": "A full single-leg squat with the free leg extended forward — elite leg strength and mobility.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Counterbalance with the arms forward, descend slowly, and keep the heel down; hold support to scale."
+  },
+  {
+    "slug": "chin-up",
+    "nameEn": "Chin-Up",
+    "nameCs": "Shyb podhmatem",
+    "nameDe": "Klimmzug im Untergriff",
+    "description": "A supinated-grip pull-up that shifts more load onto the biceps.",
+    "muscleGroups": [
+      "Biceps",
+      "Back",
+      "Forearms"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Grip palms toward you at shoulder width and pull the chin over the bar from a full hang."
+  },
+  {
+    "slug": "dead-bug",
+    "nameEn": "Dead Bug",
+    "nameCs": "Mrtvý brouk",
+    "nameDe": "Dead Bug",
+    "description": "A supine core drill lowering the opposite arm and leg while the lower back stays glued down.",
+    "muscleGroups": [
+      "Abs"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Press the lower back into the floor and move the limbs slowly — exhale as you extend."
+  },
+  {
+    "slug": "bodyweight-squat",
+    "nameEn": "Bodyweight Squat",
+    "nameCs": "Dřep bez zátěže",
+    "nameDe": "Kniebeuge ohne Gewicht",
+    "description": "The unloaded air squat — the foundational lower-body movement pattern.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Strength",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Feet shoulder-width, sit the hips back and down below parallel, and keep the chest up."
+  },
+  {
+    "slug": "box-jump",
+    "nameEn": "Box Jump",
+    "nameCs": "Výskok na bednu",
+    "nameDe": "Box Jump",
+    "description": "An explosive two-footed jump onto a box, building lower-body power and conditioning.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Calves"
+    ],
+    "equipment": "None",
+    "category": "Cardio",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Land softly on the whole foot in a quarter squat, stand tall on top, and step down between reps."
+  },
+  {
+    "slug": "air-bike",
+    "nameEn": "Air Bike",
+    "nameCs": "Air bike",
+    "nameDe": "Air Bike",
+    "description": "All-out or interval work on the fan bike, driving with both arms and legs.",
+    "muscleGroups": [
+      "FullBody"
+    ],
+    "equipment": "Machine",
+    "category": "Cardio",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Push and pull the handles in sync with the pedal stroke and pace intervals honestly."
+  },
+  {
+    "slug": "elliptical-trainer",
+    "nameEn": "Elliptical Trainer",
+    "nameCs": "Eliptický trenažér",
+    "nameDe": "Crosstrainer",
+    "description": "Low-impact full-stride cardio on the elliptical, gentle on the knees and hips.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "equipment": "Machine",
+    "category": "Cardio",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stand tall, push through the whole foot, and use the handles actively for a full-body effect."
+  },
+  {
+    "slug": "worlds-greatest-stretch",
+    "nameEn": "World's Greatest Stretch",
+    "nameCs": "Nejlepší protažení na světě",
+    "nameDe": "World's Greatest Stretch",
+    "description": "A flowing lunge-and-rotate sequence that opens the hips, hamstrings, and thoracic spine at once.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Glutes",
+      "Back"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Step into a deep lunge, drop the elbow toward the instep, then rotate and reach to the ceiling."
+  },
+  {
+    "slug": "couch-stretch",
+    "nameEn": "Couch Stretch",
+    "nameCs": "Protažení kvadricepsu u zdi",
+    "nameDe": "Couch Stretch",
+    "description": "An intense quad and hip-flexor stretch with the rear foot elevated against a wall or bench.",
+    "muscleGroups": [
+      "Quadriceps",
+      "Glutes"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Squeeze the rear glute and keep the ribs down — ease in gradually, this one is strong."
+  },
+  {
+    "slug": "90-90-hip-stretch",
+    "nameEn": "90/90 Hip Stretch",
+    "nameCs": "Protažení kyčlí 90/90",
+    "nameDe": "90/90-Hüftdehnung",
+    "description": "A seated position with both knees at 90° working internal and external hip rotation.",
+    "muscleGroups": [
+      "Glutes",
+      "Quadriceps"
+    ],
+    "equipment": "None",
+    "category": "Mobility",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Sit tall over the front hip, hinge over the front shin, then switch sides without using the hands."
+  },
+  {
+    "slug": "inchworm",
+    "nameEn": "Inchworm",
+    "nameCs": "Housenka",
+    "nameDe": "Inchworm",
+    "description": "A walkout from standing to plank and back, warming up the hamstrings, shoulders, and core.",
+    "muscleGroups": [
+      "FullBody",
+      "Hamstrings",
+      "Abs"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hinge down, walk the hands out to a plank, optionally add a push-up, and walk back with straight legs."
+  },
+  {
+    "slug": "butt-kicks",
+    "nameEn": "Butt Kicks",
+    "nameCs": "Zakopávání v běhu",
+    "nameDe": "Anfersen",
+    "description": "Running in place kicking the heels to the glutes to warm up the knees and hamstrings.",
+    "muscleGroups": [
+      "Hamstrings",
+      "Quadriceps"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Stay tall and quick — the heels flick up to the glutes with a fast, light rhythm."
+  },
+  {
+    "slug": "hip-circles",
+    "nameEn": "Hip Circles",
+    "nameCs": "Kroužení boky",
+    "nameDe": "Hüftkreisen",
+    "description": "Standing hip rotations loosening the hip joints and lower back before training.",
+    "muscleGroups": [
+      "Glutes"
+    ],
+    "equipment": "None",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Hands on hips, draw big slow circles in both directions with a soft knee bend."
+  },
+  {
+    "slug": "bear-crawl",
+    "nameEn": "Bear Crawl",
+    "nameCs": "Medvědí chůze",
+    "nameDe": "Bärengang",
+    "description": "Crawling on hands and feet with knees hovering — shoulders, core, and coordination in one drill.",
+    "muscleGroups": [
+      "FullBody",
+      "Shoulders",
+      "Abs"
+    ],
+    "equipment": "Bodyweight",
+    "category": "Warmup",
+    "difficulty": "Beginner",
+    "techniqueNotes": "Keep the knees an inch off the floor and the hips level; move opposite hand and foot together."
+  },
+  {
+    "slug": "overhead-squat",
+    "nameEn": "Overhead Squat",
+    "nameCs": "Dřep s činkou nad hlavou",
+    "nameDe": "Überkopfkniebeuge",
+    "description": "A full squat with the barbell locked out overhead — the ultimate test of mobility and stability.",
+    "muscleGroups": [
+      "FullBody",
+      "Quadriceps",
+      "Shoulders"
+    ],
+    "equipment": "Barbell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Take a wide snatch grip, press up actively into the bar, and keep it over the mid-foot throughout."
+  },
+  {
+    "slug": "push-jerk",
+    "nameEn": "Push Jerk",
+    "nameCs": "Výraz nad hlavu",
+    "nameDe": "Push Jerk",
+    "description": "An explosive dip-drive press that re-bends the knees to receive the bar overhead.",
+    "muscleGroups": [
+      "Shoulders",
+      "Triceps",
+      "Quadriceps"
+    ],
+    "equipment": "Barbell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Dip straight down, drive the bar off the shoulders, and punch under into a quarter squat."
+  },
+  {
+    "slug": "clean-and-jerk",
+    "nameEn": "Clean and Jerk",
+    "nameCs": "Nadhoz",
+    "nameDe": "Stoßen",
+    "description": "The Olympic clean and jerk — floor to shoulders, then shoulders to overhead.",
+    "muscleGroups": [
+      "FullBody",
+      "Glutes",
+      "Shoulders"
+    ],
+    "equipment": "Barbell",
+    "category": "Technique",
+    "difficulty": "Advanced",
+    "techniqueNotes": "Treat it as two lifts: stand fully out of the clean and reset your breath before the jerk."
+  },
+  {
+    "slug": "double-under",
+    "nameEn": "Double Under",
+    "nameCs": "Dvojšvihy",
+    "nameDe": "Doppeldurchschläge",
+    "description": "A jump-rope skill passing the rope twice under one jump — a conditioning and timing benchmark.",
+    "muscleGroups": [
+      "Calves",
+      "Quadriceps"
+    ],
+    "equipment": "None",
+    "category": "Technique",
+    "difficulty": "Intermediate",
+    "techniqueNotes": "Jump slightly higher than singles and spin faster from the wrists — keep the elbows in."
+  }
+]
