@@ -41,7 +41,7 @@ export function IdentityStrip({
   const height = client.heightCm;
 
   return (
-    <div className="flex items-center gap-3.5 px-20 py-5 pb-3.5 max-w-[1200px]">
+    <div className="flex items-center gap-3.5 px-20 py-5 pb-3.5">
       {/* Avatar */}
       <div className="flex-shrink-0">
         <div
