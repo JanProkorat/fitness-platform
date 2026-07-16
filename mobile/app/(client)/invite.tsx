@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   ActivityIndicator,
+  LayoutChangeEvent,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
@@ -39,6 +40,14 @@ function getIncludes(colors: ColorScheme) {
 // #815 — the `origin` param (set by each push site) drives the back-button
 // label: 'collab' -> tabs.collab ("Spolupráce"), anything else -> tabs.today
 // ("Dnes"), matching wherever the user actually came from.
+//
+// #828 — Accept/Decline are rendered here, as a fixed bar OUTSIDE
+// <ProProfileView>, not via its `footer` prop. ProProfileView fetches the
+// trainer's public profile itself and early-returns a spinner/retry view
+// before rendering footer/children while that fetch is pending or fails —
+// routing the invite decision through `footer` made it unreachable exactly
+// when the profile fetch was slow or broken. The decision must never depend
+// on that fetch, so it lives at this screen's level instead.
 export default function InviteDetailScreen() {
   const router = useRouter()
   const colors = useTheme()
@@ -48,6 +57,13 @@ export default function InviteDetailScreen() {
   const { invite, isLoading, accept, decline } = useClientInvite(true)
 
   const backLabel = origin === 'collab' ? t('tabs.collab') : t('tabs.today')
+
+  // Measured height of the fixed Accept/Decline bar below, fed back into
+  // ProProfileView so its scrollable content isn't clipped underneath it.
+  const [ctaBarHeight, setCtaBarHeight] = useState(0)
+  const handleCtaBarLayout = (event: LayoutChangeEvent) => {
+    setCtaBarHeight(event.nativeEvent.layout.height)
+  }
 
   const handleAccept = () => {
     if (!invite) return
@@ -131,33 +147,8 @@ export default function InviteDetailScreen() {
       <View style={[styles.body, { paddingTop: insets.top + 52 }]}>
         <ProProfileView
           professionalPublicId={invite.trainerId}
-          displayName={invite.trainerName}
-          activeSince=""
-          onMessagePress={() => {}}
-          onEndCollabPress={() => {}}
           showActionBar={false}
-          footer={
-            <View style={styles.ctas}>
-              <Pressable
-                onPress={handleAccept}
-                style={({ pressed }) => [
-                  styles.acceptBtn,
-                  { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Text style={styles.acceptText}>{t('collab.acceptInvitation')}</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleDecline}
-                style={({ pressed }) => [
-                  styles.declineBtn,
-                  { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Text style={[styles.declineText, { color: colors.label2 }]}>{t('collab.decline')}</Text>
-              </Pressable>
-            </View>
-          }
+          contentInsetBottom={ctaBarHeight}
         >
           {/* Trainer message — live TrainerInvite has no sentAt, so the
               bubble renders without a timestamp instead of parsing an
@@ -193,6 +184,36 @@ export default function InviteDetailScreen() {
             ))}
           </View>
         </ProProfileView>
+      </View>
+
+      {/* Accept/Decline — always rendered whenever `invite` is present,
+          regardless of ProProfileView's internal profile-fetch state
+          (loading, error, or success). See the #828 comment above. */}
+      <View
+        onLayout={handleCtaBarLayout}
+        style={[
+          styles.ctas,
+          { backgroundColor: colors.bg, borderTopColor: colors.sep2, paddingBottom: insets.bottom || 20 },
+        ]}
+      >
+        <Pressable
+          onPress={handleAccept}
+          style={({ pressed }) => [
+            styles.acceptBtn,
+            { backgroundColor: colors.gold, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Text style={styles.acceptText}>{t('collab.acceptInvitation')}</Text>
+        </Pressable>
+        <Pressable
+          onPress={handleDecline}
+          style={({ pressed }) => [
+            styles.declineBtn,
+            { backgroundColor: colors.fill, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Text style={[styles.declineText, { color: colors.label2 }]}>{t('collab.decline')}</Text>
+        </Pressable>
       </View>
     </View>
   )
@@ -262,8 +283,18 @@ const makeStyles = (colors: ColorScheme) =>
     },
     includeEmoji: { fontSize: 15 },
     includeText: { fontSize: 14 },
-    // CTAs (rendered as ProProfileView footer)
-    ctas: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20, gap: 10 },
+    // CTAs — fixed bottom bar, sibling to ProProfileView (not its footer;
+    // see #828 comment above the component).
+    ctas: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      gap: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
     acceptBtn: { paddingVertical: 15, borderRadius: Radius.lg, alignItems: 'center' },
     acceptText: { fontSize: 17, fontWeight: '600', color: Static.alwaysWhite },
     declineBtn: { paddingVertical: 13, borderRadius: Radius.lg, alignItems: 'center' },
