@@ -4,6 +4,7 @@ using FastEndpoints.Security;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -26,7 +27,10 @@ public class AppleSocialLoginEndpoint(
     IAppleTokenVerifier appleVerifier,
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
-    IConfiguration config) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
+    IConfiguration config,
+    // Seeds a professional-client conversation against any message-bearing PendingInvite
+    // already addressed to a newly-provisioned account's email (#803/#817).
+    IPendingInviteConversationSeeder inviteConversationSeeder) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
 {
     private const string AppleProvider = "apple";
 
@@ -207,6 +211,11 @@ public class AppleSocialLoginEndpoint(
 
             await db.SaveChangesAsync(ct);
             user = newUser;
+
+            // New account (always Client role for social login) — if it matches an
+            // existing message-bearing PendingInvite, seed the professional-client
+            // conversation now instead of waiting for the client to accept (#803/#817).
+            await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
         }
 
         // 3. Check if the account is active.

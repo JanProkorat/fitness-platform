@@ -17,7 +17,18 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="audit">Audit logging service.</param>
 /// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 /// <param name="logger">Logger for non-fatal send failures.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailVerificationTokenService tokenService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
+/// <param name="inviteConversationSeeder">
+/// Seeds a professional-client conversation against any message-bearing PendingInvite
+/// already addressed to this email, so the coach's opening message is visible on
+/// Messages before the client accepts (#803/#817).
+/// </param>
+public class RegisterEndpoint(
+    UserManager<ApplicationUser> userManager,
+    IApplicationDbContext dbContext,
+    IAuditService audit,
+    IEmailVerificationTokenService tokenService,
+    ILogger<RegisterEndpoint> logger,
+    IPendingInviteConversationSeeder inviteConversationSeeder) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -82,6 +93,15 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
         // Persist the user + role profiles before issuing the verification token so the
         // account exists even if the token issuance/send step below fails.
         await dbContext.SaveChangesAsync(ct);
+
+        // If this new account has the Client role and matches an existing message-bearing
+        // PendingInvite, seed the professional-client conversation now — instead of waiting
+        // for the client to accept the invite (#803/#817). PendingInvite always represents an
+        // invitation of a client, so this is a no-op (and skipped) for coach-only signups.
+        if (isClient)
+        {
+            await inviteConversationSeeder.SeedForNewUserAsync(user, ct);
+        }
 
         // Issue + send the verification email via the shared token service (#679) —
         // non-fatal: if the send fails the user is already created and can re-trigger
