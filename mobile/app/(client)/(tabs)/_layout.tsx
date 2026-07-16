@@ -11,6 +11,7 @@ import { href } from '@/lib/navigation';
 import { useTheme } from '@/hooks/useTheme';
 import { Type } from '@/constants/typography';
 import { useAuthStore } from '@/stores/auth';
+import { tabSlideInterpolator, tabSlideTransitionSpec } from '@/lib/tabTransition';
 import { connect, disconnect, onEvent } from '@/api/signalr';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useMessagesStore } from '@/stores/messagesStore';
@@ -391,10 +392,16 @@ export default function ClientTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        // #784 — smooth cross-fade between tabs instead of an instant cut.
-        // 'fade' | 'shift' | 'none' are the only supported presets on
-        // @react-navigation/bottom-tabs v7 (no custom durations/colors).
-        animation: 'fade',
+        // #811 — direction-aware slide between tabs, replacing the #784
+        // cross-fade. The bottom-tabs `animation` prop only supports
+        // 'none' | 'fade' | 'shift' presets, none of which produce a full
+        // slide, so we supply a custom sceneStyleInterpolator +
+        // transitionSpec instead (see src/lib/tabTransition.ts for the
+        // direction/state-retention reasoning). Do NOT set `animation` here
+        // — react-navigation only consults the preset lookup when
+        // transitionSpec/sceneStyleInterpolator are left undefined.
+        sceneStyleInterpolator: tabSlideInterpolator,
+        transitionSpec: tabSlideTransitionSpec,
         tabBarStyle: hideTabBar
           ? { display: 'none' }
           : {
