@@ -1,0 +1,4030 @@
+[
+ {
+  "slug": "chicken-breast-raw",
+  "nameEn": "Chicken Breast (raw)",
+  "nameCs": "Kuřecí prsa (syrová)",
+  "nameDe": "Hähnchenbrust (roh)",
+  "category": "Meat",
+  "kcal": 120,
+  "protein": 22.5,
+  "carbs": 0,
+  "fat": 2.6,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 breast (~175g)",
+    "grams": 175
+   }
+  ]
+ },
+ {
+  "slug": "chicken-thigh-raw",
+  "nameEn": "Chicken Thigh (raw)",
+  "nameCs": "Kuřecí stehno (syrové)",
+  "nameDe": "Hähnchenschenkel (roh)",
+  "category": "Meat",
+  "kcal": 177,
+  "protein": 17.3,
+  "carbs": 0,
+  "fat": 11.5,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 thigh (~115g)",
+    "grams": 115
+   }
+  ]
+ },
+ {
+  "slug": "turkey-breast-raw",
+  "nameEn": "Turkey Breast (raw)",
+  "nameCs": "Krůtí prsa (syrová)",
+  "nameDe": "Putenbrust (roh)",
+  "category": "Meat",
+  "kcal": 104,
+  "protein": 23.7,
+  "carbs": 0,
+  "fat": 0.7,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 portion (150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "beef-sirloin-raw",
+  "nameEn": "Beef Sirloin (raw)",
+  "nameCs": "Hovězí svíčková (syrová)",
+  "nameDe": "Rinderfilet (roh)",
+  "category": "Meat",
+  "kcal": 143,
+  "protein": 21.3,
+  "carbs": 0,
+  "fat": 6.3,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 steak (~200g)",
+    "grams": 200
+   }
+  ]
+ },
+ {
+  "slug": "pork-loin-raw",
+  "nameEn": "Pork Loin (raw)",
+  "nameCs": "Vepřová panenka (syrová)",
+  "nameDe": "Schweinelende (roh)",
+  "category": "Meat",
+  "kcal": 143,
+  "protein": 21.1,
+  "carbs": 0,
+  "fat": 6.1,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 chop (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "salmon-fillet-raw",
+  "nameEn": "Salmon Fillet (raw)",
+  "nameCs": "Losos filet (syrový)",
+  "nameDe": "Lachsfilet (roh)",
+  "category": "FishAndSeafood",
+  "kcal": 208,
+  "protein": 20.4,
+  "carbs": 0,
+  "fat": 13.4,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 3.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 fillet (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "tuna-canned-drained",
+  "nameEn": "Tuna (canned, drained)",
+  "nameCs": "Tuňák (konzervovaný, sceděný)",
+  "nameDe": "Thunfisch (Dose, abgetropft)",
+  "category": "FishAndSeafood",
+  "kcal": 116,
+  "protein": 25.5,
+  "carbs": 0,
+  "fat": 0.8,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 can (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "cod-fillet-raw",
+  "nameEn": "Cod Fillet (raw)",
+  "nameCs": "Treska filet (syrová)",
+  "nameDe": "Kabeljaufilet (roh)",
+  "category": "FishAndSeafood",
+  "kcal": 82,
+  "protein": 17.8,
+  "carbs": 0,
+  "fat": 0.7,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 fillet (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "shrimp-raw",
+  "nameEn": "Shrimp (raw)",
+  "nameCs": "Krevety (syrové)",
+  "nameDe": "Garnelen (roh)",
+  "category": "FishAndSeafood",
+  "kcal": 85,
+  "protein": 20.1,
+  "carbs": 0.2,
+  "fat": 0.5,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "10 medium (~60g)",
+    "grams": 60
+   }
+  ]
+ },
+ {
+  "slug": "whole-egg",
+  "nameEn": "Whole Egg",
+  "nameCs": "Celé vejce",
+  "nameDe": "Ganzes Ei",
+  "category": "Dairy",
+  "kcal": 143,
+  "protein": 12.6,
+  "carbs": 0.7,
+  "fat": 9.9,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "eggs"
+  ],
+  "servings": [
+   {
+    "label": "1 large (~60g)",
+    "grams": 60
+   }
+  ]
+ },
+ {
+  "slug": "egg-white",
+  "nameEn": "Egg White",
+  "nameCs": "Vaječný bílek",
+  "nameDe": "Eiweiß",
+  "category": "Dairy",
+  "kcal": 52,
+  "protein": 10.9,
+  "carbs": 0.7,
+  "fat": 0.2,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "eggs"
+  ],
+  "servings": [
+   {
+    "label": "1 white (~33g)",
+    "grams": 33
+   }
+  ]
+ },
+ {
+  "slug": "greek-yogurt-0-fat",
+  "nameEn": "Greek Yogurt (0% fat)",
+  "nameCs": "Řecký jogurt (0% tuku)",
+  "nameDe": "Griechischer Joghurt (0% Fett)",
+  "category": "Dairy",
+  "kcal": 59,
+  "protein": 10.2,
+  "carbs": 3.6,
+  "fat": 0.4,
+  "fiber": null,
+  "sugar": 3.2,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~170g)",
+    "grams": 170
+   }
+  ]
+ },
+ {
+  "slug": "greek-yogurt-full-fat",
+  "nameEn": "Greek Yogurt (full fat)",
+  "nameCs": "Řecký jogurt (plnotučný)",
+  "nameDe": "Griechischer Joghurt (vollfett)",
+  "category": "Dairy",
+  "kcal": 97,
+  "protein": 9.0,
+  "carbs": 3.6,
+  "fat": 5.0,
+  "fiber": null,
+  "sugar": 3.2,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~170g)",
+    "grams": 170
+   }
+  ]
+ },
+ {
+  "slug": "cottage-cheese-low-fat",
+  "nameEn": "Cottage Cheese (low fat)",
+  "nameCs": "Cottage sýr (nízkotučný)",
+  "nameDe": "Hüttenkäse (fettarm)",
+  "category": "Dairy",
+  "kcal": 72,
+  "protein": 12.4,
+  "carbs": 2.7,
+  "fat": 1.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~226g)",
+    "grams": 226
+   }
+  ]
+ },
+ {
+  "slug": "mozzarella",
+  "nameEn": "Mozzarella",
+  "nameCs": "Mozzarella",
+  "nameDe": "Mozzarella",
+  "category": "Dairy",
+  "kcal": 280,
+  "protein": 27.5,
+  "carbs": 3.1,
+  "fat": 17.1,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 ball (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "cheddar-cheese",
+  "nameEn": "Cheddar Cheese",
+  "nameCs": "Čedar",
+  "nameDe": "Cheddar-Käse",
+  "category": "Dairy",
+  "kcal": 403,
+  "protein": 24.9,
+  "carbs": 1.3,
+  "fat": 33.1,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "whole-milk-3-5",
+  "nameEn": "Whole Milk (3.5%)",
+  "nameCs": "Plnotučné mléko (3,5%)",
+  "nameDe": "Vollmilch (3,5%)",
+  "category": "Dairy",
+  "kcal": 64,
+  "protein": 3.3,
+  "carbs": 4.8,
+  "fat": 3.5,
+  "fiber": null,
+  "sugar": 4.8,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 glass (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "whey-protein-powder",
+  "nameEn": "Whey Protein Powder",
+  "nameCs": "Syrovátkový protein",
+  "nameDe": "Whey-Proteinpulver",
+  "category": "Supplements",
+  "kcal": 380,
+  "protein": 80.0,
+  "carbs": 6.0,
+  "fat": 4.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 scoop (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "white-rice-dry",
+  "nameEn": "White Rice (dry)",
+  "nameCs": "Bílá rýže (suchá)",
+  "nameDe": "Weißer Reis (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 360,
+  "protein": 6.6,
+  "carbs": 79.3,
+  "fat": 0.6,
+  "fiber": 1.3,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup dry (~185g)",
+    "grams": 185
+   }
+  ]
+ },
+ {
+  "slug": "brown-rice-dry",
+  "nameEn": "Brown Rice (dry)",
+  "nameCs": "Hnědá rýže (suchá)",
+  "nameDe": "Brauner Reis (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 362,
+  "protein": 7.5,
+  "carbs": 76.2,
+  "fat": 2.7,
+  "fiber": 3.4,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup dry (~185g)",
+    "grams": 185
+   }
+  ]
+ },
+ {
+  "slug": "oats-rolled-dry",
+  "nameEn": "Oats (rolled, dry)",
+  "nameCs": "Ovesné vločky (suché)",
+  "nameDe": "Haferflocken (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 379,
+  "protein": 13.2,
+  "carbs": 67.7,
+  "fat": 6.5,
+  "fiber": 10.1,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~80g)",
+    "grams": 80
+   }
+  ]
+ },
+ {
+  "slug": "whole-wheat-bread",
+  "nameEn": "Whole Wheat Bread",
+  "nameCs": "Celozrnný chléb",
+  "nameDe": "Vollkornbrot",
+  "category": "GrainsAndCereals",
+  "kcal": 252,
+  "protein": 12.4,
+  "carbs": 43.1,
+  "fat": 3.5,
+  "fiber": 6.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "white-pasta-dry",
+  "nameEn": "White Pasta (dry)",
+  "nameCs": "Bílé těstoviny (suché)",
+  "nameDe": "Weiße Nudeln (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 357,
+  "protein": 12.5,
+  "carbs": 72.2,
+  "fat": 1.5,
+  "fiber": 2.5,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 portion (~80g)",
+    "grams": 80
+   }
+  ]
+ },
+ {
+  "slug": "potato",
+  "nameEn": "Potato",
+  "nameCs": "Brambora",
+  "nameDe": "Kartoffel",
+  "category": "Vegetables",
+  "kcal": 77,
+  "protein": 2.0,
+  "carbs": 17.5,
+  "fat": 0.1,
+  "fiber": 2.2,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "sweet-potato",
+  "nameEn": "Sweet Potato",
+  "nameCs": "Batát",
+  "nameDe": "Süßkartoffel",
+  "category": "Vegetables",
+  "kcal": 86,
+  "protein": 1.6,
+  "carbs": 20.1,
+  "fat": 0.1,
+  "fiber": 3.0,
+  "sugar": 4.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~130g)",
+    "grams": 130
+   }
+  ]
+ },
+ {
+  "slug": "quinoa-dry",
+  "nameEn": "Quinoa (dry)",
+  "nameCs": "Quinoa (suchá)",
+  "nameDe": "Quinoa (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 368,
+  "protein": 14.1,
+  "carbs": 64.2,
+  "fat": 6.1,
+  "fiber": 7.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup dry (~170g)",
+    "grams": 170
+   }
+  ]
+ },
+ {
+  "slug": "couscous-dry",
+  "nameEn": "Couscous (dry)",
+  "nameCs": "Kuskus (suchý)",
+  "nameDe": "Couscous (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 376,
+  "protein": 12.8,
+  "carbs": 77.4,
+  "fat": 0.6,
+  "fiber": 5.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 cup dry (~175g)",
+    "grams": 175
+   }
+  ]
+ },
+ {
+  "slug": "banana",
+  "nameEn": "Banana",
+  "nameCs": "Banán",
+  "nameDe": "Banane",
+  "category": "Fruit",
+  "kcal": 89,
+  "protein": 1.1,
+  "carbs": 22.8,
+  "fat": 0.3,
+  "fiber": 2.6,
+  "sugar": 12.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~120g)",
+    "grams": 120
+   }
+  ]
+ },
+ {
+  "slug": "apple",
+  "nameEn": "Apple",
+  "nameCs": "Jablko",
+  "nameDe": "Apfel",
+  "category": "Fruit",
+  "kcal": 52,
+  "protein": 0.3,
+  "carbs": 13.8,
+  "fat": 0.2,
+  "fiber": 2.4,
+  "sugar": 10.4,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~180g)",
+    "grams": 180
+   }
+  ]
+ },
+ {
+  "slug": "blueberries",
+  "nameEn": "Blueberries",
+  "nameCs": "Borůvky",
+  "nameDe": "Heidelbeeren",
+  "category": "Fruit",
+  "kcal": 57,
+  "protein": 0.7,
+  "carbs": 14.5,
+  "fat": 0.3,
+  "fiber": 2.4,
+  "sugar": 10.0,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "strawberries",
+  "nameEn": "Strawberries",
+  "nameCs": "Jahody",
+  "nameDe": "Erdbeeren",
+  "category": "Fruit",
+  "kcal": 32,
+  "protein": 0.7,
+  "carbs": 7.7,
+  "fat": 0.3,
+  "fiber": 2.0,
+  "sugar": 4.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~152g)",
+    "grams": 152
+   }
+  ]
+ },
+ {
+  "slug": "orange",
+  "nameEn": "Orange",
+  "nameCs": "Pomeranč",
+  "nameDe": "Orange",
+  "category": "Fruit",
+  "kcal": 47,
+  "protein": 0.9,
+  "carbs": 11.8,
+  "fat": 0.1,
+  "fiber": 2.4,
+  "sugar": 9.4,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~130g)",
+    "grams": 130
+   }
+  ]
+ },
+ {
+  "slug": "avocado",
+  "nameEn": "Avocado",
+  "nameCs": "Avokádo",
+  "nameDe": "Avocado",
+  "category": "Fruit",
+  "kcal": 160,
+  "protein": 2.0,
+  "carbs": 8.5,
+  "fat": 14.7,
+  "fiber": 6.7,
+  "sugar": null,
+  "saturatedFat": 2.1,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 half (~68g)",
+    "grams": 68
+   }
+  ]
+ },
+ {
+  "slug": "broccoli",
+  "nameEn": "Broccoli",
+  "nameCs": "Brokolice",
+  "nameDe": "Brokkoli",
+  "category": "Vegetables",
+  "kcal": 34,
+  "protein": 2.8,
+  "carbs": 6.6,
+  "fat": 0.4,
+  "fiber": 2.6,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup chopped (~91g)",
+    "grams": 91
+   }
+  ]
+ },
+ {
+  "slug": "spinach-raw",
+  "nameEn": "Spinach (raw)",
+  "nameCs": "Špenát (syrový)",
+  "nameDe": "Spinat (roh)",
+  "category": "Vegetables",
+  "kcal": 23,
+  "protein": 2.9,
+  "carbs": 3.6,
+  "fat": 0.4,
+  "fiber": 2.2,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "tomato",
+  "nameEn": "Tomato",
+  "nameCs": "Rajče",
+  "nameDe": "Tomate",
+  "category": "Vegetables",
+  "kcal": 18,
+  "protein": 0.9,
+  "carbs": 3.9,
+  "fat": 0.2,
+  "fiber": 1.2,
+  "sugar": 2.6,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~123g)",
+    "grams": 123
+   }
+  ]
+ },
+ {
+  "slug": "cucumber",
+  "nameEn": "Cucumber",
+  "nameCs": "Okurka",
+  "nameDe": "Gurke",
+  "category": "Vegetables",
+  "kcal": 15,
+  "protein": 0.7,
+  "carbs": 3.6,
+  "fat": 0.1,
+  "fiber": 0.5,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~300g)",
+    "grams": 300
+   }
+  ]
+ },
+ {
+  "slug": "carrot",
+  "nameEn": "Carrot",
+  "nameCs": "Mrkev",
+  "nameDe": "Karotte",
+  "category": "Vegetables",
+  "kcal": 41,
+  "protein": 0.9,
+  "carbs": 9.6,
+  "fat": 0.2,
+  "fiber": 2.8,
+  "sugar": 4.7,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~61g)",
+    "grams": 61
+   }
+  ]
+ },
+ {
+  "slug": "bell-pepper-red",
+  "nameEn": "Bell Pepper (red)",
+  "nameCs": "Paprika (červená)",
+  "nameDe": "Paprika (rot)",
+  "category": "Vegetables",
+  "kcal": 31,
+  "protein": 1.0,
+  "carbs": 6.0,
+  "fat": 0.3,
+  "fiber": 2.1,
+  "sugar": 4.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 medium (~120g)",
+    "grams": 120
+   }
+  ]
+ },
+ {
+  "slug": "chickpeas-cooked",
+  "nameEn": "Chickpeas (cooked)",
+  "nameCs": "Cizrna (vařená)",
+  "nameDe": "Kichererbsen (gekocht)",
+  "category": "Legumes",
+  "kcal": 164,
+  "protein": 8.9,
+  "carbs": 27.4,
+  "fat": 2.6,
+  "fiber": 7.6,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~164g)",
+    "grams": 164
+   }
+  ]
+ },
+ {
+  "slug": "lentils-cooked",
+  "nameEn": "Lentils (cooked)",
+  "nameCs": "Čočka (vařená)",
+  "nameDe": "Linsen (gekocht)",
+  "category": "Legumes",
+  "kcal": 116,
+  "protein": 9.0,
+  "carbs": 20.1,
+  "fat": 0.4,
+  "fiber": 7.9,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~198g)",
+    "grams": 198
+   }
+  ]
+ },
+ {
+  "slug": "almonds",
+  "nameEn": "Almonds",
+  "nameCs": "Mandle",
+  "nameDe": "Mandeln",
+  "category": "NutsAndSeeds",
+  "kcal": 579,
+  "protein": 21.2,
+  "carbs": 21.7,
+  "fat": 49.9,
+  "fiber": 12.2,
+  "sugar": null,
+  "saturatedFat": 3.7,
+  "allergens": [
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 handful (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "peanut-butter",
+  "nameEn": "Peanut Butter",
+  "nameCs": "Arašídové máslo",
+  "nameDe": "Erdnussbutter",
+  "category": "NutsAndSeeds",
+  "kcal": 588,
+  "protein": 25.1,
+  "carbs": 20.0,
+  "fat": 50.4,
+  "fiber": 6.0,
+  "sugar": null,
+  "saturatedFat": 10.3,
+  "allergens": [
+   "peanuts"
+  ],
+  "servings": [
+   {
+    "label": "1 tbsp (~16g)",
+    "grams": 16
+   }
+  ]
+ },
+ {
+  "slug": "walnuts",
+  "nameEn": "Walnuts",
+  "nameCs": "Vlašské ořechy",
+  "nameDe": "Walnüsse",
+  "category": "NutsAndSeeds",
+  "kcal": 654,
+  "protein": 15.2,
+  "carbs": 13.7,
+  "fat": 65.2,
+  "fiber": 6.7,
+  "sugar": null,
+  "saturatedFat": 6.1,
+  "allergens": [
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 handful (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "olive-oil",
+  "nameEn": "Olive Oil",
+  "nameCs": "Olivový olej",
+  "nameDe": "Olivenöl",
+  "category": "OilsAndFats",
+  "kcal": 884,
+  "protein": 0,
+  "carbs": 0,
+  "fat": 100.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": 13.8,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~14g)",
+    "grams": 14
+   }
+  ]
+ },
+ {
+  "slug": "butter",
+  "nameEn": "Butter",
+  "nameCs": "Máslo",
+  "nameDe": "Butter",
+  "category": "OilsAndFats",
+  "kcal": 717,
+  "protein": 0.9,
+  "carbs": 0.1,
+  "fat": 81.1,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": 51.4,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 tbsp (~14g)",
+    "grams": 14
+   }
+  ]
+ },
+ {
+  "slug": "coconut-oil",
+  "nameEn": "Coconut Oil",
+  "nameCs": "Kokosový olej",
+  "nameDe": "Kokosöl",
+  "category": "OilsAndFats",
+  "kcal": 862,
+  "protein": 0,
+  "carbs": 0,
+  "fat": 100.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": 82.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~14g)",
+    "grams": 14
+   }
+  ]
+ },
+ {
+  "slug": "honey",
+  "nameEn": "Honey",
+  "nameCs": "Med",
+  "nameDe": "Honig",
+  "category": "SweetsAndSnacks",
+  "kcal": 304,
+  "protein": 0.3,
+  "carbs": 82.4,
+  "fat": 0,
+  "fiber": null,
+  "sugar": 82.1,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~21g)",
+    "grams": 21
+   }
+  ]
+ },
+ {
+  "slug": "dark-chocolate-70",
+  "nameEn": "Dark Chocolate (70%)",
+  "nameCs": "Hořká čokoláda (70%)",
+  "nameDe": "Zartbitterschokolade (70%)",
+  "category": "SweetsAndSnacks",
+  "kcal": 598,
+  "protein": 7.8,
+  "carbs": 45.9,
+  "fat": 42.6,
+  "fiber": 10.9,
+  "sugar": 24.0,
+  "saturatedFat": 24.5,
+  "allergens": [
+   "milk",
+   "soy"
+  ],
+  "servings": [
+   {
+    "label": "1 square (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "white-rice-cooked",
+  "nameEn": "White Rice (cooked)",
+  "nameCs": "Bílá rýže (vařená)",
+  "nameDe": "Weißer Reis (gekocht)",
+  "category": "GrainsAndCereals",
+  "kcal": 130,
+  "protein": 2.7,
+  "carbs": 28.2,
+  "fat": 0.3,
+  "fiber": 0.4,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~158g)",
+    "grams": 158
+   }
+  ]
+ },
+ {
+  "slug": "plain-yogurt",
+  "nameEn": "Plain Yogurt",
+  "nameCs": "Bílý jogurt",
+  "nameDe": "Naturjoghurt",
+  "category": "Dairy",
+  "kcal": 61,
+  "protein": 3.5,
+  "carbs": 4.7,
+  "fat": 3.3,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "cottage-cheese",
+  "nameEn": "Cottage Cheese",
+  "nameCs": "Cottage",
+  "nameDe": "Hüttenkäse",
+  "category": "Dairy",
+  "kcal": 98,
+  "protein": 11.1,
+  "carbs": 3.4,
+  "fat": 4.3,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 tub (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "croissant",
+  "nameEn": "Croissant",
+  "nameCs": "Croissant",
+  "nameDe": "Croissant",
+  "category": "GrainsAndCereals",
+  "kcal": 406,
+  "protein": 8.2,
+  "carbs": 45.8,
+  "fat": 21.0,
+  "fiber": 1.8,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten",
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 piece (~60g)",
+    "grams": 60
+   }
+  ]
+ },
+ {
+  "slug": "edam-cheese-30",
+  "nameEn": "Edam Cheese (30%)",
+  "nameCs": "Eidam 30%",
+  "nameDe": "Edamer (30%)",
+  "category": "Dairy",
+  "kcal": 340,
+  "protein": 26.0,
+  "carbs": 0.5,
+  "fat": 26.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "espresso",
+  "nameEn": "Espresso",
+  "nameCs": "Espresso",
+  "nameDe": "Espresso",
+  "category": "Other",
+  "kcal": 2,
+  "protein": 0.1,
+  "carbs": 0,
+  "fat": 0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 shot (~30ml)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "granola",
+  "nameEn": "Granola",
+  "nameCs": "Granola",
+  "nameDe": "Granola",
+  "category": "GrainsAndCereals",
+  "kcal": 471,
+  "protein": 10.0,
+  "carbs": 64.0,
+  "fat": 20.0,
+  "fiber": 4.5,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1/2 cup (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "chia-jam",
+  "nameEn": "Chia Jam",
+  "nameCs": "Chia marmeláda",
+  "nameDe": "Chia-Marmelade",
+  "category": "SweetsAndSnacks",
+  "kcal": 130,
+  "protein": 1.5,
+  "carbs": 28.0,
+  "fat": 1.5,
+  "fiber": 3.5,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "chia-seeds",
+  "nameEn": "Chia Seeds",
+  "nameCs": "Chia semínka",
+  "nameDe": "Chia-Samen",
+  "category": "NutsAndSeeds",
+  "kcal": 486,
+  "protein": 16.5,
+  "carbs": 42.1,
+  "fat": 30.7,
+  "fiber": 34.4,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "cocoa-powder",
+  "nameEn": "Cocoa Powder",
+  "nameCs": "Kakao",
+  "nameDe": "Kakaopulver",
+  "category": "Other",
+  "kcal": 228,
+  "protein": 19.6,
+  "carbs": 57.9,
+  "fat": 13.7,
+  "fiber": 33.2,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~5g)",
+    "grams": 5
+   }
+  ]
+ },
+ {
+  "slug": "kefir",
+  "nameEn": "Kefir",
+  "nameCs": "Kefír",
+  "nameDe": "Kefir",
+  "category": "Dairy",
+  "kcal": 63,
+  "protein": 3.4,
+  "carbs": 4.5,
+  "fat": 3.5,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "kefir-milk",
+  "nameEn": "Kefir Milk",
+  "nameCs": "Kefírové mléko",
+  "nameDe": "Kefirmilch",
+  "category": "Dairy",
+  "kcal": 52,
+  "protein": 3.0,
+  "carbs": 4.2,
+  "fat": 1.8,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "baking-powder",
+  "nameEn": "Baking Powder",
+  "nameCs": "Kypřící prášek",
+  "nameDe": "Backpulver",
+  "category": "Other",
+  "kcal": 53,
+  "protein": 0,
+  "carbs": 27.7,
+  "fat": 0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tsp (~5g)",
+    "grams": 5
+   }
+  ]
+ },
+ {
+  "slug": "lucina-cream-cheese",
+  "nameEn": "Lučina Cream Cheese",
+  "nameCs": "Lučina",
+  "nameDe": "Lučina Frischkäse",
+  "category": "Dairy",
+  "kcal": 175,
+  "protein": 7.0,
+  "carbs": 3.5,
+  "fat": 15.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 tbsp (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "whole-milk",
+  "nameEn": "Whole Milk",
+  "nameCs": "Mléko",
+  "nameDe": "Vollmilch",
+  "category": "Dairy",
+  "kcal": 61,
+  "protein": 3.2,
+  "carbs": 4.7,
+  "fat": 3.3,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 glass (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "frozen-berries",
+  "nameEn": "Frozen Berries",
+  "nameCs": "Mražené ovoce",
+  "nameDe": "Tiefkühl-Obst",
+  "category": "Fruit",
+  "kcal": 50,
+  "protein": 0.7,
+  "carbs": 12.0,
+  "fat": 0.2,
+  "fiber": 2.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "mixed-nuts",
+  "nameEn": "Mixed Nuts",
+  "nameCs": "Ořechy",
+  "nameDe": "Nussmischung",
+  "category": "NutsAndSeeds",
+  "kcal": 654,
+  "protein": 15.2,
+  "carbs": 14.0,
+  "fat": 65.2,
+  "fiber": 6.7,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 handful (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "fresh-fruit",
+  "nameEn": "Fresh Fruit",
+  "nameCs": "Ovoce",
+  "nameDe": "Frisches Obst",
+  "category": "Fruit",
+  "kcal": 57,
+  "protein": 0.7,
+  "carbs": 14.0,
+  "fat": 0.2,
+  "fiber": 2.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 portion (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "sponge-biscuits",
+  "nameEn": "Sponge Biscuits",
+  "nameCs": "Piškoty",
+  "nameDe": "Löffelbiskuits",
+  "category": "SweetsAndSnacks",
+  "kcal": 385,
+  "protein": 7.0,
+  "carbs": 77.0,
+  "fat": 5.0,
+  "fiber": 1.0,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten",
+   "eggs"
+  ],
+  "servings": [
+   {
+    "label": "5 pieces (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "lambs-lettuce",
+  "nameEn": "Lamb's Lettuce",
+  "nameCs": "Polníčkový salát",
+  "nameDe": "Feldsalat",
+  "category": "Vegetables",
+  "kcal": 21,
+  "protein": 2.0,
+  "carbs": 3.6,
+  "fat": 0.4,
+  "fiber": 1.6,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "pudding-powder",
+  "nameEn": "Pudding Powder",
+  "nameCs": "Pudinkový prášek",
+  "nameDe": "Puddingpulver",
+  "category": "Other",
+  "kcal": 349,
+  "protein": 0.4,
+  "carbs": 87.5,
+  "fat": 0.2,
+  "fiber": 0.3,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 packet (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "rapeseed-oil",
+  "nameEn": "Rapeseed Oil",
+  "nameCs": "Řepkový olej",
+  "nameDe": "Rapsöl",
+  "category": "OilsAndFats",
+  "kcal": 884,
+  "protein": 0,
+  "carbs": 0,
+  "fat": 100.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~14g)",
+    "grams": 14
+   }
+  ]
+ },
+ {
+  "slug": "sesame-seeds",
+  "nameEn": "Sesame Seeds",
+  "nameCs": "Sezamová semínka",
+  "nameDe": "Sesamkörner",
+  "category": "NutsAndSeeds",
+  "kcal": 573,
+  "protein": 17.7,
+  "carbs": 23.4,
+  "fat": 49.7,
+  "fiber": 11.8,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~9g)",
+    "grams": 9
+   }
+  ]
+ },
+ {
+  "slug": "cinnamon",
+  "nameEn": "Cinnamon",
+  "nameCs": "Skořice",
+  "nameDe": "Zimt",
+  "category": "Other",
+  "kcal": 247,
+  "protein": 4.0,
+  "carbs": 80.6,
+  "fat": 1.2,
+  "fiber": 53.1,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tsp (~3g)",
+    "grams": 3
+   }
+  ]
+ },
+ {
+  "slug": "sweetener",
+  "nameEn": "Sweetener",
+  "nameCs": "Sladidlo",
+  "nameDe": "Süßstoff",
+  "category": "SweetsAndSnacks",
+  "kcal": 20,
+  "protein": 0,
+  "carbs": 5.0,
+  "fat": 0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tsp (~4g)",
+    "grams": 4
+   }
+  ]
+ },
+ {
+  "slug": "desiccated-coconut",
+  "nameEn": "Desiccated Coconut",
+  "nameCs": "Strouhaný kokos",
+  "nameDe": "Kokosraspeln",
+  "category": "NutsAndSeeds",
+  "kcal": 660,
+  "protein": 6.9,
+  "carbs": 24.1,
+  "fat": 64.5,
+  "fiber": 16.3,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 tbsp (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "dried-fruit",
+  "nameEn": "Dried Fruit",
+  "nameCs": "Sušené ovoce",
+  "nameDe": "Trockenobst",
+  "category": "Fruit",
+  "kcal": 282,
+  "protein": 2.7,
+  "carbs": 74.6,
+  "fat": 0.4,
+  "fiber": 3.7,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 handful (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "spelt-flour",
+  "nameEn": "Spelt Flour",
+  "nameCs": "Špaldová mouka",
+  "nameDe": "Dinkelmehl",
+  "category": "GrainsAndCereals",
+  "kcal": 338,
+  "protein": 14.6,
+  "carbs": 70.2,
+  "fat": 2.4,
+  "fiber": 7.8,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 cup (~120g)",
+    "grams": 120
+   }
+  ]
+ },
+ {
+  "slug": "ham",
+  "nameEn": "Ham",
+  "nameCs": "Šunka",
+  "nameDe": "Schinken",
+  "category": "Meat",
+  "kcal": 145,
+  "protein": 20.9,
+  "carbs": 1.5,
+  "fat": 6.5,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "2 slices (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "toast-bread",
+  "nameEn": "Toast Bread",
+  "nameCs": "Toustový chléb",
+  "nameDe": "Toastbrot",
+  "category": "GrainsAndCereals",
+  "kcal": 265,
+  "protein": 9.0,
+  "carbs": 49.0,
+  "fat": 3.3,
+  "fiber": 2.4,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~25g)",
+    "grams": 25
+   }
+  ]
+ },
+ {
+  "slug": "quark-low-fat",
+  "nameEn": "Quark (low fat)",
+  "nameCs": "Tvaroh (nízkotučný)",
+  "nameDe": "Quark (mager)",
+  "category": "Dairy",
+  "kcal": 105,
+  "protein": 12.4,
+  "carbs": 3.6,
+  "fat": 5.0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 tub (~250g)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "mixed-vegetables",
+  "nameEn": "Mixed Vegetables",
+  "nameCs": "Zelenina",
+  "nameDe": "Gemüse",
+  "category": "Vegetables",
+  "kcal": 35,
+  "protein": 2.5,
+  "carbs": 7.0,
+  "fat": 0.3,
+  "fiber": 2.8,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 cup (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "rye-sourdough-bread",
+  "nameEn": "Rye Sourdough Bread",
+  "nameCs": "Žitné kváskové pečivo",
+  "nameDe": "Roggen-Sauerteigbrot",
+  "category": "GrainsAndCereals",
+  "kcal": 210,
+  "protein": 7.0,
+  "carbs": 42.0,
+  "fat": 1.5,
+  "fiber": 5.8,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~50g)",
+    "grams": 50
+   }
+  ]
+ },
+ {
+  "slug": "rye-bread",
+  "nameEn": "Rye Bread",
+  "nameCs": "Žitný chléb",
+  "nameDe": "Roggenbrot",
+  "category": "GrainsAndCereals",
+  "kcal": 259,
+  "protein": 8.5,
+  "carbs": 48.3,
+  "fat": 3.3,
+  "fiber": 5.1,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 slice (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "water",
+  "nameEn": "Water",
+  "nameCs": "Voda",
+  "nameDe": "Wasser",
+  "category": "Other",
+  "kcal": 0,
+  "protein": 0,
+  "carbs": 0,
+  "fat": 0,
+  "fiber": null,
+  "sugar": null,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 glass (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "onion",
+  "nameEn": "Onion",
+  "nameCs": "Cibule",
+  "nameDe": "Zwiebel",
+  "category": "Vegetables",
+  "kcal": 40,
+  "protein": 1.1,
+  "carbs": 9.3,
+  "fat": 0.1,
+  "fiber": 1.7,
+  "sugar": 4.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~110g)",
+    "grams": 110
+   }
+  ]
+ },
+ {
+  "slug": "red-onion",
+  "nameEn": "Red Onion",
+  "nameCs": "Červená cibule",
+  "nameDe": "Rote Zwiebel",
+  "category": "Vegetables",
+  "kcal": 40,
+  "protein": 1.1,
+  "carbs": 9.3,
+  "fat": 0.1,
+  "fiber": 1.7,
+  "sugar": 4.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~100g)",
+    "grams": 100
+   }
+  ]
+ },
+ {
+  "slug": "garlic",
+  "nameEn": "Garlic",
+  "nameCs": "Česnek",
+  "nameDe": "Knoblauch",
+  "category": "Vegetables",
+  "kcal": 149,
+  "protein": 6.4,
+  "carbs": 33.1,
+  "fat": 0.5,
+  "fiber": 2.1,
+  "sugar": 1.0,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 stroužek (~5g)",
+    "grams": 5
+   }
+  ]
+ },
+ {
+  "slug": "spring-onion",
+  "nameEn": "Spring Onion",
+  "nameCs": "Jarní cibulka",
+  "nameDe": "Frühlingszwiebel",
+  "category": "Vegetables",
+  "kcal": 32,
+  "protein": 1.8,
+  "carbs": 7.3,
+  "fat": 0.2,
+  "fiber": 2.6,
+  "sugar": 2.3,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "shallot",
+  "nameEn": "Shallot",
+  "nameCs": "Šalotka",
+  "nameDe": "Schalotte",
+  "category": "Vegetables",
+  "kcal": 72,
+  "protein": 2.5,
+  "carbs": 16.8,
+  "fat": 0.1,
+  "fiber": 3.2,
+  "sugar": 7.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "zucchini",
+  "nameEn": "Zucchini",
+  "nameCs": "Cuketa",
+  "nameDe": "Zucchini",
+  "category": "Vegetables",
+  "kcal": 17,
+  "protein": 1.2,
+  "carbs": 3.1,
+  "fat": 0.3,
+  "fiber": 1.0,
+  "sugar": 2.5,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~300g)",
+    "grams": 300
+   }
+  ]
+ },
+ {
+  "slug": "cauliflower",
+  "nameEn": "Cauliflower",
+  "nameCs": "Květák",
+  "nameDe": "Blumenkohl",
+  "category": "Vegetables",
+  "kcal": 25,
+  "protein": 1.9,
+  "carbs": 5.0,
+  "fat": 0.3,
+  "fiber": 2.0,
+  "sugar": 1.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~600g)",
+    "grams": 600
+   }
+  ]
+ },
+ {
+  "slug": "radishes",
+  "nameEn": "Radishes",
+  "nameCs": "Ředkvičky",
+  "nameDe": "Radieschen",
+  "category": "Vegetables",
+  "kcal": 16,
+  "protein": 0.7,
+  "carbs": 3.4,
+  "fat": 0.1,
+  "fiber": 1.6,
+  "sugar": 1.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 svazek (~120g)",
+    "grams": 120
+   }
+  ]
+ },
+ {
+  "slug": "arugula",
+  "nameEn": "Arugula",
+  "nameCs": "Rukola",
+  "nameDe": "Rucola",
+  "category": "Vegetables",
+  "kcal": 25,
+  "protein": 2.6,
+  "carbs": 3.7,
+  "fat": 0.7,
+  "fiber": 1.6,
+  "sugar": 2.1,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "romaine-lettuce",
+  "nameEn": "Romaine Lettuce",
+  "nameCs": "Římský salát",
+  "nameDe": "Römersalat",
+  "category": "Vegetables",
+  "kcal": 17,
+  "protein": 1.2,
+  "carbs": 3.3,
+  "fat": 0.3,
+  "fiber": 2.1,
+  "sugar": 1.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~300g)",
+    "grams": 300
+   }
+  ]
+ },
+ {
+  "slug": "red-cabbage",
+  "nameEn": "Red Cabbage",
+  "nameCs": "Červené zelí",
+  "nameDe": "Rotkohl",
+  "category": "Vegetables",
+  "kcal": 31,
+  "protein": 1.4,
+  "carbs": 7.4,
+  "fat": 0.2,
+  "fiber": 2.1,
+  "sugar": 3.8,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hlávka (~1000g)",
+    "grams": 1000
+   }
+  ]
+ },
+ {
+  "slug": "white-cabbage",
+  "nameEn": "White Cabbage",
+  "nameCs": "Bílé zelí",
+  "nameDe": "Weißkohl",
+  "category": "Vegetables",
+  "kcal": 25,
+  "protein": 1.3,
+  "carbs": 5.8,
+  "fat": 0.1,
+  "fiber": 2.5,
+  "sugar": 3.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hlávka (~1000g)",
+    "grams": 1000
+   }
+  ]
+ },
+ {
+  "slug": "beetroot-cooked",
+  "nameEn": "Beetroot (cooked)",
+  "nameCs": "Červená řepa (vařená)",
+  "nameDe": "Rote Bete (gekocht)",
+  "category": "Vegetables",
+  "kcal": 44,
+  "protein": 1.7,
+  "carbs": 10.0,
+  "fat": 0.2,
+  "fiber": 2.0,
+  "sugar": 7.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~80g)",
+    "grams": 80
+   }
+  ]
+ },
+ {
+  "slug": "green-peas-frozen",
+  "nameEn": "Green Peas (frozen)",
+  "nameCs": "Hrášek (mražený)",
+  "nameDe": "Erbsen (tiefgekühlt)",
+  "category": "Vegetables",
+  "kcal": 77,
+  "protein": 5.2,
+  "carbs": 13.6,
+  "fat": 0.4,
+  "fiber": 5.0,
+  "sugar": 5.0,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "green-beans",
+  "nameEn": "Green Beans",
+  "nameCs": "Zelené fazolky",
+  "nameDe": "Grüne Bohnen",
+  "category": "Vegetables",
+  "kcal": 31,
+  "protein": 1.8,
+  "carbs": 7.0,
+  "fat": 0.2,
+  "fiber": 2.7,
+  "sugar": 3.3,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "sweet-corn-canned",
+  "nameEn": "Sweet Corn (canned, drained)",
+  "nameCs": "Kukuřice (konzervovaná)",
+  "nameDe": "Zuckermais (Dose)",
+  "category": "Vegetables",
+  "kcal": 81,
+  "protein": 2.9,
+  "carbs": 14.3,
+  "fat": 1.2,
+  "fiber": 2.0,
+  "sugar": 4.5,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka (~165g)",
+    "grams": 165
+   }
+  ]
+ },
+ {
+  "slug": "pickled-cucumbers",
+  "nameEn": "Pickled Cucumbers",
+  "nameCs": "Kyselé okurky",
+  "nameDe": "Gewürzgurken",
+  "category": "Vegetables",
+  "kcal": 25,
+  "protein": 0.7,
+  "carbs": 4.8,
+  "fat": 0.2,
+  "fiber": 1.0,
+  "sugar": 3.0,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "sun-dried-tomatoes",
+  "nameEn": "Sun-Dried Tomatoes (in oil)",
+  "nameCs": "Sušená rajčata (v oleji)",
+  "nameDe": "Getrocknete Tomaten (in Öl)",
+  "category": "Vegetables",
+  "kcal": 213,
+  "protein": 5.1,
+  "carbs": 23.3,
+  "fat": 14.1,
+  "fiber": 5.8,
+  "sugar": null,
+  "saturatedFat": 1.9,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "canned-tomatoes",
+  "nameEn": "Canned Chopped Tomatoes",
+  "nameCs": "Krájená rajčata (plechovka)",
+  "nameDe": "Gehackte Tomaten (Dose)",
+  "category": "Vegetables",
+  "kcal": 24,
+  "protein": 1.2,
+  "carbs": 4.0,
+  "fat": 0.3,
+  "fiber": 1.0,
+  "sugar": 3.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka (~400g)",
+    "grams": 400
+   }
+  ]
+ },
+ {
+  "slug": "tomato-passata",
+  "nameEn": "Tomato Passata",
+  "nameCs": "Rajčatová passata",
+  "nameDe": "Passierte Tomaten",
+  "category": "Vegetables",
+  "kcal": 35,
+  "protein": 1.4,
+  "carbs": 6.9,
+  "fat": 0.2,
+  "fiber": 1.4,
+  "sugar": 4.5,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 láhev (~500g)",
+    "grams": 500
+   }
+  ]
+ },
+ {
+  "slug": "tomato-paste",
+  "nameEn": "Tomato Paste",
+  "nameCs": "Rajčatový protlak",
+  "nameDe": "Tomatenmark",
+  "category": "Vegetables",
+  "kcal": 82,
+  "protein": 4.3,
+  "carbs": 12.9,
+  "fat": 0.5,
+  "fiber": 4.1,
+  "sugar": 12.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~16g)",
+    "grams": 16
+   }
+  ]
+ },
+ {
+  "slug": "root-vegetables",
+  "nameEn": "Root Vegetable Mix",
+  "nameCs": "Kořenová zelenina",
+  "nameDe": "Wurzelgemüse",
+  "category": "Vegetables",
+  "kcal": 40,
+  "protein": 1.2,
+  "carbs": 8.8,
+  "fat": 0.3,
+  "fiber": 2.9,
+  "sugar": 4.5,
+  "saturatedFat": null,
+  "allergens": [
+   "celery"
+  ],
+  "servings": [
+   {
+    "label": "1 ks (~80g)",
+    "grams": 80
+   }
+  ]
+ },
+ {
+  "slug": "ginger-fresh",
+  "nameEn": "Fresh Ginger",
+  "nameCs": "Zázvor (čerstvý)",
+  "nameDe": "Ingwer (frisch)",
+  "category": "Vegetables",
+  "kcal": 80,
+  "protein": 1.8,
+  "carbs": 17.8,
+  "fat": 0.8,
+  "fiber": 2.0,
+  "sugar": 1.7,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 kousek (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "olives",
+  "nameEn": "Olives",
+  "nameCs": "Olivy",
+  "nameDe": "Oliven",
+  "category": "Vegetables",
+  "kcal": 145,
+  "protein": 1.0,
+  "carbs": 3.8,
+  "fat": 15.3,
+  "fiber": 3.3,
+  "sugar": null,
+  "saturatedFat": 2.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "lime",
+  "nameEn": "Lime",
+  "nameCs": "Limetka",
+  "nameDe": "Limette",
+  "category": "Fruit",
+  "kcal": 30,
+  "protein": 0.7,
+  "carbs": 10.5,
+  "fat": 0.2,
+  "fiber": 2.8,
+  "sugar": 1.7,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~67g)",
+    "grams": 67
+   }
+  ]
+ },
+ {
+  "slug": "mango",
+  "nameEn": "Mango",
+  "nameCs": "Mango",
+  "nameDe": "Mango",
+  "category": "Fruit",
+  "kcal": 60,
+  "protein": 0.8,
+  "carbs": 15.0,
+  "fat": 0.4,
+  "fiber": 1.6,
+  "sugar": 13.7,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~300g)",
+    "grams": 300
+   }
+  ]
+ },
+ {
+  "slug": "raisins",
+  "nameEn": "Raisins",
+  "nameCs": "Rozinky",
+  "nameDe": "Rosinen",
+  "category": "Fruit",
+  "kcal": 299,
+  "protein": 3.1,
+  "carbs": 79.2,
+  "fat": 0.5,
+  "fiber": 3.7,
+  "sugar": 59.2,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 hrst (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "plums",
+  "nameEn": "Plums",
+  "nameCs": "Švestky",
+  "nameDe": "Pflaumen",
+  "category": "Fruit",
+  "kcal": 46,
+  "protein": 0.7,
+  "carbs": 11.4,
+  "fat": 0.3,
+  "fiber": 1.4,
+  "sugar": 9.9,
+  "saturatedFat": null,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~60g)",
+    "grams": 60
+   }
+  ]
+ },
+ {
+  "slug": "ground-beef-lean",
+  "nameEn": "Ground Beef (10% fat, raw)",
+  "nameCs": "Hovězí mleté maso (10% tuku)",
+  "nameDe": "Rinderhackfleisch (10% Fett)",
+  "category": "Meat",
+  "kcal": 176,
+  "protein": 20.0,
+  "carbs": 0,
+  "fat": 10.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 4.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "ground-turkey",
+  "nameEn": "Ground Turkey (raw)",
+  "nameCs": "Krůtí mleté maso (syrové)",
+  "nameDe": "Putenhackfleisch (roh)",
+  "category": "Meat",
+  "kcal": 148,
+  "protein": 19.7,
+  "carbs": 0,
+  "fat": 7.7,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 2.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "ground-chicken",
+  "nameEn": "Ground Chicken (raw)",
+  "nameCs": "Kuřecí mleté maso (syrové)",
+  "nameDe": "Hähnchenhackfleisch (roh)",
+  "category": "Meat",
+  "kcal": 143,
+  "protein": 17.4,
+  "carbs": 0,
+  "fat": 8.1,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 2.3,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "pork-neck",
+  "nameEn": "Pork Neck (boneless, raw)",
+  "nameCs": "Vepřová krkovice bez kosti (syrová)",
+  "nameDe": "Schweinenacken (ohne Knochen, roh)",
+  "category": "Meat",
+  "kcal": 232,
+  "protein": 16.8,
+  "carbs": 0,
+  "fat": 18.3,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 6.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "pork-chop-raw",
+  "nameEn": "Pork Chop (boneless, raw)",
+  "nameCs": "Vepřová kotleta bez kosti (syrová)",
+  "nameDe": "Schweinekotelett (ohne Knochen, roh)",
+  "category": "Meat",
+  "kcal": 174,
+  "protein": 21.0,
+  "carbs": 0,
+  "fat": 10.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 3.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 ks (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "prosciutto",
+  "nameEn": "Prosciutto",
+  "nameCs": "Prosciutto",
+  "nameDe": "Prosciutto",
+  "category": "Meat",
+  "kcal": 250,
+  "protein": 25.5,
+  "carbs": 0.3,
+  "fat": 16.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 5.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plátek (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "pulled-chicken-cooked",
+  "nameEn": "Pulled Chicken (cooked)",
+  "nameCs": "Trhané kuřecí maso",
+  "nameDe": "Pulled Chicken (gegart)",
+  "category": "Meat",
+  "kcal": 151,
+  "protein": 25.3,
+  "carbs": 0.5,
+  "fat": 5.2,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 1.4,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 balení (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "pulled-pork-cooked",
+  "nameEn": "Pulled Pork (cooked)",
+  "nameCs": "Trhané vepřové maso",
+  "nameDe": "Pulled Pork (gegart)",
+  "category": "Meat",
+  "kcal": 210,
+  "protein": 26.0,
+  "carbs": 0.5,
+  "fat": 11.5,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 4.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "smoked-salmon",
+  "nameEn": "Smoked Salmon",
+  "nameCs": "Uzený losos",
+  "nameDe": "Räucherlachs",
+  "category": "FishAndSeafood",
+  "kcal": 117,
+  "protein": 18.3,
+  "carbs": 0,
+  "fat": 4.3,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 0.9,
+  "allergens": [
+   "fish"
+  ],
+  "servings": [
+   {
+    "label": "1 plátek (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "sardines-canned",
+  "nameEn": "Sardines (canned, in own juice)",
+  "nameCs": "Sardinky ve vlastní šťávě",
+  "nameDe": "Sardinen (im eigenen Saft)",
+  "category": "FishAndSeafood",
+  "kcal": 168,
+  "protein": 22.0,
+  "carbs": 0,
+  "fat": 8.9,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 2.4,
+  "allergens": [
+   "fish"
+  ],
+  "servings": [
+   {
+    "label": "1 plechovka (~90g)",
+    "grams": 90
+   }
+  ]
+ },
+ {
+  "slug": "smoked-mackerel",
+  "nameEn": "Smoked Mackerel",
+  "nameCs": "Uzená makrela",
+  "nameDe": "Räuchermakrele",
+  "category": "FishAndSeafood",
+  "kcal": 305,
+  "protein": 18.5,
+  "carbs": 0,
+  "fat": 25.9,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 5.4,
+  "allergens": [
+   "fish"
+  ],
+  "servings": [
+   {
+    "label": "1 ks (~200g)",
+    "grams": 200
+   }
+  ]
+ },
+ {
+  "slug": "tuna-steak-raw",
+  "nameEn": "Tuna Steak (raw)",
+  "nameCs": "Tuňák (syrový)",
+  "nameDe": "Thunfischsteak (roh)",
+  "category": "FishAndSeafood",
+  "kcal": 108,
+  "protein": 23.3,
+  "carbs": 0,
+  "fat": 1.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 0.3,
+  "allergens": [
+   "fish"
+  ],
+  "servings": [
+   {
+    "label": "1 steak (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "quark-skimmed",
+  "nameEn": "Quark (skimmed)",
+  "nameCs": "Tvaroh odtučněný",
+  "nameDe": "Magerquark",
+  "category": "Dairy",
+  "kcal": 69,
+  "protein": 12.0,
+  "carbs": 4.0,
+  "fat": 0.5,
+  "fiber": 0,
+  "sugar": 4.0,
+  "saturatedFat": 0.3,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 vanička (~250g)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "balkan-cheese",
+  "nameEn": "Balkan Cheese",
+  "nameCs": "Balkánský sýr",
+  "nameDe": "Balkankäse",
+  "category": "Dairy",
+  "kcal": 250,
+  "protein": 13.5,
+  "carbs": 1.5,
+  "fat": 21.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 14.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 porce (~100g)",
+    "grams": 100
+   }
+  ]
+ },
+ {
+  "slug": "goat-cheese",
+  "nameEn": "Goat Cheese (soft)",
+  "nameCs": "Kozí sýr",
+  "nameDe": "Ziegenkäse",
+  "category": "Dairy",
+  "kcal": 264,
+  "protein": 18.5,
+  "carbs": 2.5,
+  "fat": 21.1,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 14.6,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 porce (~50g)",
+    "grams": 50
+   }
+  ]
+ },
+ {
+  "slug": "halloumi",
+  "nameEn": "Halloumi",
+  "nameCs": "Halloumi",
+  "nameDe": "Halloumi",
+  "category": "Dairy",
+  "kcal": 321,
+  "protein": 22.0,
+  "carbs": 2.2,
+  "fat": 25.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 16.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 plátek (~25g)",
+    "grams": 25
+   }
+  ]
+ },
+ {
+  "slug": "parmesan",
+  "nameEn": "Parmesan",
+  "nameCs": "Parmazán",
+  "nameDe": "Parmesan",
+  "category": "Dairy",
+  "kcal": 392,
+  "protein": 35.8,
+  "carbs": 3.2,
+  "fat": 25.8,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 16.4,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce strouhaného (~5g)",
+    "grams": 5
+   }
+  ]
+ },
+ {
+  "slug": "mozzarella-light",
+  "nameEn": "Mozzarella Light",
+  "nameCs": "Mozzarella light",
+  "nameDe": "Mozzarella light",
+  "category": "Dairy",
+  "kcal": 163,
+  "protein": 19.5,
+  "carbs": 3.0,
+  "fat": 8.5,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 5.5,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 ks (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "ricotta",
+  "nameEn": "Ricotta",
+  "nameCs": "Ricotta",
+  "nameDe": "Ricotta",
+  "category": "Dairy",
+  "kcal": 174,
+  "protein": 11.3,
+  "carbs": 3.0,
+  "fat": 13.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 8.3,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 porce (~60g)",
+    "grams": 60
+   }
+  ]
+ },
+ {
+  "slug": "bryndza",
+  "nameEn": "Bryndza",
+  "nameCs": "Bryndza",
+  "nameDe": "Brimsen",
+  "category": "Dairy",
+  "kcal": 262,
+  "protein": 16.5,
+  "carbs": 3.0,
+  "fat": 21.0,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 14.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 porce (~50g)",
+    "grams": 50
+   }
+  ]
+ },
+ {
+  "slug": "olomoucke-tvaruzky",
+  "nameEn": "Olomouc Cheese (Tvarůžky)",
+  "nameCs": "Olomoucké tvarůžky",
+  "nameDe": "Olmützer Quargel",
+  "category": "Dairy",
+  "kcal": 128,
+  "protein": 29.5,
+  "carbs": 0.6,
+  "fat": 0.7,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 0.4,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 balení (~125g)",
+    "grams": 125
+   }
+  ]
+ },
+ {
+  "slug": "sour-cream",
+  "nameEn": "Sour Cream (12-15%)",
+  "nameCs": "Zakysaná smetana",
+  "nameDe": "Sauerrahm",
+  "category": "Dairy",
+  "kcal": 145,
+  "protein": 2.8,
+  "carbs": 4.0,
+  "fat": 13.0,
+  "fiber": 0,
+  "sugar": 3.5,
+  "saturatedFat": 8.5,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "cooking-cream-12",
+  "nameEn": "Cooking Cream (12%)",
+  "nameCs": "Smetana na vaření (12%)",
+  "nameDe": "Kochsahne (12%)",
+  "category": "Dairy",
+  "kcal": 132,
+  "protein": 2.8,
+  "carbs": 4.2,
+  "fat": 12.0,
+  "fiber": 0,
+  "sugar": 3.5,
+  "saturatedFat": 8.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "100 ml",
+    "grams": 100
+   }
+  ]
+ },
+ {
+  "slug": "semi-skimmed-milk",
+  "nameEn": "Semi-Skimmed Milk (1.5%)",
+  "nameCs": "Polotučné mléko",
+  "nameDe": "Fettarme Milch (1,5%)",
+  "category": "Dairy",
+  "kcal": 47,
+  "protein": 3.4,
+  "carbs": 4.8,
+  "fat": 1.5,
+  "fiber": 0,
+  "sugar": 4.8,
+  "saturatedFat": 1.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 sklenice (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "buttermilk",
+  "nameEn": "Buttermilk",
+  "nameCs": "Podmáslí",
+  "nameDe": "Buttermilch",
+  "category": "Dairy",
+  "kcal": 40,
+  "protein": 3.3,
+  "carbs": 4.8,
+  "fat": 0.9,
+  "fiber": 0,
+  "sugar": 4.8,
+  "saturatedFat": 0.6,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 sklenice (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "cream-cheese",
+  "nameEn": "Cream Cheese (full fat)",
+  "nameCs": "Smetanový čerstvý sýr",
+  "nameDe": "Frischkäse (Doppelrahm)",
+  "category": "Dairy",
+  "kcal": 342,
+  "protein": 5.9,
+  "carbs": 4.1,
+  "fat": 34.2,
+  "fiber": 0,
+  "sugar": 3.2,
+  "saturatedFat": 19.0,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "lucina-linie-light",
+  "nameEn": "Lučina Linie (light)",
+  "nameCs": "Lučina Linie",
+  "nameDe": "Lučina Linie (leicht)",
+  "category": "Dairy",
+  "kcal": 132,
+  "protein": 8.0,
+  "carbs": 4.0,
+  "fat": 9.5,
+  "fiber": 0,
+  "sugar": 3.5,
+  "saturatedFat": 6.5,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "skyr",
+  "nameEn": "Skyr",
+  "nameCs": "Skyr",
+  "nameDe": "Skyr",
+  "category": "Dairy",
+  "kcal": 63,
+  "protein": 11.0,
+  "carbs": 4.0,
+  "fat": 0.2,
+  "fiber": 0,
+  "sugar": 4.0,
+  "saturatedFat": 0.1,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 kelímek (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "greek-yogurt-2-fat",
+  "nameEn": "Greek Yogurt (2% fat)",
+  "nameCs": "Řecký jogurt (2% tuku)",
+  "nameDe": "Griechischer Joghurt (2% Fett)",
+  "category": "Dairy",
+  "kcal": 73,
+  "protein": 9.9,
+  "carbs": 3.9,
+  "fat": 2.0,
+  "fiber": 0,
+  "sugar": 3.6,
+  "saturatedFat": 1.3,
+  "allergens": [
+   "milk"
+  ],
+  "servings": [
+   {
+    "label": "1 kelímek (~150g)",
+    "grams": 150
+   }
+  ]
+ },
+ {
+  "slug": "tofu",
+  "nameEn": "Tofu (firm)",
+  "nameCs": "Tofu",
+  "nameDe": "Tofu",
+  "category": "Legumes",
+  "kcal": 125,
+  "protein": 13.5,
+  "carbs": 1.5,
+  "fat": 7.5,
+  "fiber": 1.0,
+  "sugar": null,
+  "saturatedFat": 1.1,
+  "allergens": [
+   "soy"
+  ],
+  "servings": [
+   {
+    "label": "1 balení (~180g)",
+    "grams": 180
+   }
+  ]
+ },
+ {
+  "slug": "tofu-marinated",
+  "nameEn": "Marinated Tofu",
+  "nameCs": "Marinované tofu",
+  "nameDe": "Marinierter Tofu",
+  "category": "Legumes",
+  "kcal": 158,
+  "protein": 15.0,
+  "carbs": 4.0,
+  "fat": 9.0,
+  "fiber": 1.0,
+  "sugar": 2.0,
+  "saturatedFat": 1.3,
+  "allergens": [
+   "soy"
+  ],
+  "servings": [
+   {
+    "label": "1 balení (~180g)",
+    "grams": 180
+   }
+  ]
+ },
+ {
+  "slug": "tempeh",
+  "nameEn": "Tempeh",
+  "nameCs": "Tempeh",
+  "nameDe": "Tempeh",
+  "category": "Legumes",
+  "kcal": 192,
+  "protein": 20.3,
+  "carbs": 7.6,
+  "fat": 10.8,
+  "fiber": 4.8,
+  "sugar": null,
+  "saturatedFat": 2.2,
+  "allergens": [
+   "soy"
+  ],
+  "servings": [
+   {
+    "label": "1 balení (~190g)",
+    "grams": 190
+   }
+  ]
+ },
+ {
+  "slug": "edamame",
+  "nameEn": "Edamame",
+  "nameCs": "Edamame fazolky",
+  "nameDe": "Edamame",
+  "category": "Legumes",
+  "kcal": 121,
+  "protein": 11.9,
+  "carbs": 8.9,
+  "fat": 5.2,
+  "fiber": 5.2,
+  "sugar": 2.2,
+  "saturatedFat": 0.6,
+  "allergens": [
+   "soy"
+  ],
+  "servings": [
+   {
+    "label": "1 hrst (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "red-lentils-dry",
+  "nameEn": "Red Lentils (dry)",
+  "nameCs": "Červená čočka (suchá)",
+  "nameDe": "Rote Linsen (trocken)",
+  "category": "Legumes",
+  "kcal": 358,
+  "protein": 24.0,
+  "carbs": 63.1,
+  "fat": 2.2,
+  "fiber": 10.8,
+  "sugar": null,
+  "saturatedFat": 0.4,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce suchá (~70g)",
+    "grams": 70
+   }
+  ]
+ },
+ {
+  "slug": "lentils-dry",
+  "nameEn": "Lentils (dry)",
+  "nameCs": "Čočka (suchá)",
+  "nameDe": "Linsen (trocken)",
+  "category": "Legumes",
+  "kcal": 352,
+  "protein": 24.6,
+  "carbs": 63.4,
+  "fat": 1.1,
+  "fiber": 10.7,
+  "sugar": null,
+  "saturatedFat": 0.2,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce suchá (~70g)",
+    "grams": 70
+   }
+  ]
+ },
+ {
+  "slug": "red-kidney-beans-canned",
+  "nameEn": "Red Kidney Beans (canned, drained)",
+  "nameCs": "Červené fazole (konzerva)",
+  "nameDe": "Kidneybohnen (Dose)",
+  "category": "Legumes",
+  "kcal": 110,
+  "protein": 7.5,
+  "carbs": 15.0,
+  "fat": 0.5,
+  "fiber": 6.5,
+  "sugar": 1.0,
+  "saturatedFat": 0.1,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka sceděná (~240g)",
+    "grams": 240
+   }
+  ]
+ },
+ {
+  "slug": "chickpeas-canned",
+  "nameEn": "Chickpeas (canned, drained)",
+  "nameCs": "Cizrna (konzerva)",
+  "nameDe": "Kichererbsen (Dose)",
+  "category": "Legumes",
+  "kcal": 139,
+  "protein": 7.0,
+  "carbs": 16.9,
+  "fat": 2.6,
+  "fiber": 6.2,
+  "sugar": 0.5,
+  "saturatedFat": 0.3,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka sceděná (~240g)",
+    "grams": 240
+   }
+  ]
+ },
+ {
+  "slug": "tortilla",
+  "nameEn": "Wheat Tortilla",
+  "nameCs": "Tortilla",
+  "nameDe": "Weizentortilla",
+  "category": "GrainsAndCereals",
+  "kcal": 306,
+  "protein": 8.2,
+  "carbs": 49.5,
+  "fat": 7.7,
+  "fiber": 3.0,
+  "sugar": 3.0,
+  "saturatedFat": 3.0,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 ks (~62g)",
+    "grams": 62
+   }
+  ]
+ },
+ {
+  "slug": "gnocchi",
+  "nameEn": "Potato Gnocchi",
+  "nameCs": "Gnocchi",
+  "nameDe": "Gnocchi",
+  "category": "GrainsAndCereals",
+  "kcal": 156,
+  "protein": 4.0,
+  "carbs": 32.0,
+  "fat": 0.6,
+  "fiber": 1.8,
+  "sugar": 0.5,
+  "saturatedFat": 0.1,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 balení (~500g)",
+    "grams": 500
+   }
+  ]
+ },
+ {
+  "slug": "bulgur-dry",
+  "nameEn": "Bulgur (dry)",
+  "nameCs": "Bulgur (suchý)",
+  "nameDe": "Bulgur (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 342,
+  "protein": 12.3,
+  "carbs": 75.9,
+  "fat": 1.3,
+  "fiber": 12.5,
+  "sugar": null,
+  "saturatedFat": 0.2,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 porce suchá (~70g)",
+    "grams": 70
+   }
+  ]
+ },
+ {
+  "slug": "buckwheat-dry",
+  "nameEn": "Buckwheat (dry)",
+  "nameCs": "Pohanka (suchá)",
+  "nameDe": "Buchweizen (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 343,
+  "protein": 13.3,
+  "carbs": 71.5,
+  "fat": 3.4,
+  "fiber": 10.0,
+  "sugar": null,
+  "saturatedFat": 0.7,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce suchá (~70g)",
+    "grams": 70
+   }
+  ]
+ },
+ {
+  "slug": "black-rice-dry",
+  "nameEn": "Black Rice (dry)",
+  "nameCs": "Černá rýže (suchá)",
+  "nameDe": "Schwarzer Reis (trocken)",
+  "category": "GrainsAndCereals",
+  "kcal": 356,
+  "protein": 8.9,
+  "carbs": 76.0,
+  "fat": 2.4,
+  "fiber": 4.9,
+  "sugar": null,
+  "saturatedFat": 0.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce suchá (~75g)",
+    "grams": 75
+   }
+  ]
+ },
+ {
+  "slug": "rye-flakes",
+  "nameEn": "Rye Flakes",
+  "nameCs": "Žitné vločky",
+  "nameDe": "Roggenflocken",
+  "category": "GrainsAndCereals",
+  "kcal": 349,
+  "protein": 9.5,
+  "carbs": 70.0,
+  "fat": 2.0,
+  "fiber": 13.0,
+  "sugar": 1.0,
+  "saturatedFat": 0.3,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 porce (~40g)",
+    "grams": 40
+   }
+  ]
+ },
+ {
+  "slug": "cornflakes",
+  "nameEn": "Cornflakes",
+  "nameCs": "Kukuřičné lupínky",
+  "nameDe": "Cornflakes",
+  "category": "GrainsAndCereals",
+  "kcal": 378,
+  "protein": 7.0,
+  "carbs": 84.0,
+  "fat": 0.9,
+  "fiber": 3.0,
+  "sugar": 8.0,
+  "saturatedFat": 0.2,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 porce (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "breadcrumbs",
+  "nameEn": "Breadcrumbs",
+  "nameCs": "Strouhanka",
+  "nameDe": "Semmelbrösel",
+  "category": "GrainsAndCereals",
+  "kcal": 395,
+  "protein": 13.4,
+  "carbs": 72.0,
+  "fat": 5.3,
+  "fiber": 4.5,
+  "sugar": 6.0,
+  "saturatedFat": 1.2,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~8g)",
+    "grams": 8
+   }
+  ]
+ },
+ {
+  "slug": "wheat-flour-plain",
+  "nameEn": "Wheat Flour (plain)",
+  "nameCs": "Hladká mouka",
+  "nameDe": "Weizenmehl (glatt)",
+  "category": "GrainsAndCereals",
+  "kcal": 364,
+  "protein": 10.3,
+  "carbs": 76.3,
+  "fat": 1.0,
+  "fiber": 2.7,
+  "sugar": 0.3,
+  "saturatedFat": 0.2,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "whole-wheat-flour",
+  "nameEn": "Whole Wheat Flour",
+  "nameCs": "Celozrnná mouka",
+  "nameDe": "Vollkornmehl",
+  "category": "GrainsAndCereals",
+  "kcal": 340,
+  "protein": 13.2,
+  "carbs": 72.0,
+  "fat": 2.5,
+  "fiber": 10.7,
+  "sugar": 0.4,
+  "saturatedFat": 0.4,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "potato-starch",
+  "nameEn": "Potato Starch (Solamyl)",
+  "nameCs": "Bramborový škrob (Solamyl)",
+  "nameDe": "Kartoffelstärke",
+  "category": "GrainsAndCereals",
+  "kcal": 350,
+  "protein": 0.6,
+  "carbs": 83.0,
+  "fat": 0.1,
+  "fiber": 0.6,
+  "sugar": null,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "pumpkin-seeds",
+  "nameEn": "Pumpkin Seeds",
+  "nameCs": "Dýňová semínka",
+  "nameDe": "Kürbiskerne",
+  "category": "NutsAndSeeds",
+  "kcal": 559,
+  "protein": 30.2,
+  "carbs": 10.7,
+  "fat": 49.1,
+  "fiber": 6.0,
+  "sugar": 1.4,
+  "saturatedFat": 8.7,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "sunflower-seeds",
+  "nameEn": "Sunflower Seeds",
+  "nameCs": "Slunečnicová semínka",
+  "nameDe": "Sonnenblumenkerne",
+  "category": "NutsAndSeeds",
+  "kcal": 584,
+  "protein": 20.8,
+  "carbs": 20.0,
+  "fat": 51.5,
+  "fiber": 8.6,
+  "sugar": 2.6,
+  "saturatedFat": 4.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "poppy-seeds",
+  "nameEn": "Poppy Seeds",
+  "nameCs": "Mák",
+  "nameDe": "Mohn",
+  "category": "NutsAndSeeds",
+  "kcal": 525,
+  "protein": 18.0,
+  "carbs": 28.1,
+  "fat": 41.6,
+  "fiber": 19.5,
+  "sugar": 3.0,
+  "saturatedFat": 4.5,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~10g)",
+    "grams": 10
+   }
+  ]
+ },
+ {
+  "slug": "hazelnuts",
+  "nameEn": "Hazelnuts",
+  "nameCs": "Lískové ořechy",
+  "nameDe": "Haselnüsse",
+  "category": "NutsAndSeeds",
+  "kcal": 628,
+  "protein": 15.0,
+  "carbs": 16.7,
+  "fat": 60.8,
+  "fiber": 9.7,
+  "sugar": 4.3,
+  "saturatedFat": 4.5,
+  "allergens": [
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 hrst (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "pistachios",
+  "nameEn": "Pistachios",
+  "nameCs": "Pistácie",
+  "nameDe": "Pistazien",
+  "category": "NutsAndSeeds",
+  "kcal": 562,
+  "protein": 20.2,
+  "carbs": 27.2,
+  "fat": 45.3,
+  "fiber": 10.6,
+  "sugar": 7.7,
+  "saturatedFat": 5.9,
+  "allergens": [
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 hrst (~28g)",
+    "grams": 28
+   }
+  ]
+ },
+ {
+  "slug": "peanuts",
+  "nameEn": "Peanuts",
+  "nameCs": "Arašídy",
+  "nameDe": "Erdnüsse",
+  "category": "NutsAndSeeds",
+  "kcal": 567,
+  "protein": 25.8,
+  "carbs": 16.1,
+  "fat": 49.2,
+  "fiber": 8.5,
+  "sugar": 4.7,
+  "saturatedFat": 6.3,
+  "allergens": [
+   "peanuts"
+  ],
+  "servings": [
+   {
+    "label": "1 hrst (~30g)",
+    "grams": 30
+   }
+  ]
+ },
+ {
+  "slug": "mayonnaise",
+  "nameEn": "Mayonnaise",
+  "nameCs": "Majonéza",
+  "nameDe": "Mayonnaise",
+  "category": "OilsAndFats",
+  "kcal": 680,
+  "protein": 1.1,
+  "carbs": 2.6,
+  "fat": 73.9,
+  "fiber": 0,
+  "sugar": 1.5,
+  "saturatedFat": 5.8,
+  "allergens": [
+   "eggs",
+   "mustard"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "coconut-milk",
+  "nameEn": "Coconut Milk (canned)",
+  "nameCs": "Kokosové mléko",
+  "nameDe": "Kokosmilch (Dose)",
+  "category": "Other",
+  "kcal": 185,
+  "protein": 1.8,
+  "carbs": 2.7,
+  "fat": 19.0,
+  "fiber": 0.5,
+  "sugar": 2.0,
+  "saturatedFat": 16.9,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka (~400ml)",
+    "grams": 400
+   }
+  ]
+ },
+ {
+  "slug": "coconut-milk-light",
+  "nameEn": "Coconut Milk Light (canned)",
+  "nameCs": "Kokosové mléko light",
+  "nameDe": "Kokosmilch light (Dose)",
+  "category": "Other",
+  "kcal": 68,
+  "protein": 0.7,
+  "carbs": 1.8,
+  "fat": 6.5,
+  "fiber": 0.2,
+  "sugar": 1.0,
+  "saturatedFat": 5.8,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 plechovka (~400ml)",
+    "grams": 400
+   }
+  ]
+ },
+ {
+  "slug": "mustard",
+  "nameEn": "Mustard",
+  "nameCs": "Hořčice",
+  "nameDe": "Senf",
+  "category": "Other",
+  "kcal": 66,
+  "protein": 4.4,
+  "carbs": 5.8,
+  "fat": 3.7,
+  "fiber": 3.3,
+  "sugar": 2.9,
+  "saturatedFat": 0.2,
+  "allergens": [
+   "mustard"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "ketchup",
+  "nameEn": "Ketchup",
+  "nameCs": "Kečup",
+  "nameDe": "Ketchup",
+  "category": "Other",
+  "kcal": 101,
+  "protein": 1.2,
+  "carbs": 23.5,
+  "fat": 0.2,
+  "fiber": 0.3,
+  "sugar": 21.0,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~17g)",
+    "grams": 17
+   }
+  ]
+ },
+ {
+  "slug": "soy-sauce",
+  "nameEn": "Soy Sauce",
+  "nameCs": "Sojová omáčka",
+  "nameDe": "Sojasauce",
+  "category": "Other",
+  "kcal": 53,
+  "protein": 8.1,
+  "carbs": 4.9,
+  "fat": 0.6,
+  "fiber": 0.8,
+  "sugar": 0.4,
+  "saturatedFat": 0.1,
+  "allergens": [
+   "soy",
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~16g)",
+    "grams": 16
+   }
+  ]
+ },
+ {
+  "slug": "poke-sauce",
+  "nameEn": "Poke Sauce",
+  "nameCs": "Poke omáčka",
+  "nameDe": "Poke-Sauce",
+  "category": "Other",
+  "kcal": 120,
+  "protein": 5.5,
+  "carbs": 20.0,
+  "fat": 1.5,
+  "fiber": 0.3,
+  "sugar": 15.0,
+  "saturatedFat": 0.2,
+  "allergens": [
+   "soy",
+   "gluten",
+   "sesame"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~16g)",
+    "grams": 16
+   }
+  ]
+ },
+ {
+  "slug": "sriracha",
+  "nameEn": "Sriracha",
+  "nameCs": "Sriracha",
+  "nameDe": "Sriracha",
+  "category": "Other",
+  "kcal": 93,
+  "protein": 1.9,
+  "carbs": 19.2,
+  "fat": 0.9,
+  "fiber": 2.2,
+  "sugar": 15.1,
+  "saturatedFat": 0.1,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~17g)",
+    "grams": 17
+   }
+  ]
+ },
+ {
+  "slug": "pesto-basil",
+  "nameEn": "Basil Pesto",
+  "nameCs": "Bazalkové pesto",
+  "nameDe": "Basilikumpesto",
+  "category": "Other",
+  "kcal": 450,
+  "protein": 4.8,
+  "carbs": 6.5,
+  "fat": 45.0,
+  "fiber": 1.5,
+  "sugar": 2.0,
+  "saturatedFat": 7.0,
+  "allergens": [
+   "milk",
+   "tree nuts"
+  ],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "curry-paste",
+  "nameEn": "Thai Curry Paste",
+  "nameCs": "Kari pasta",
+  "nameDe": "Currypaste",
+  "category": "Other",
+  "kcal": 122,
+  "protein": 2.5,
+  "carbs": 13.0,
+  "fat": 7.0,
+  "fiber": 3.0,
+  "sugar": 6.0,
+  "saturatedFat": 1.0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "balsamic-vinegar",
+  "nameEn": "Balsamic Vinegar",
+  "nameCs": "Balsamikový ocet",
+  "nameDe": "Balsamico-Essig",
+  "category": "Other",
+  "kcal": 88,
+  "protein": 0.5,
+  "carbs": 17.0,
+  "fat": 0,
+  "fiber": 0,
+  "sugar": 15.0,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~16g)",
+    "grams": 16
+   }
+  ]
+ },
+ {
+  "slug": "balsamic-glaze",
+  "nameEn": "Balsamic Glaze",
+  "nameCs": "Krémové balsamico",
+  "nameDe": "Balsamico-Creme",
+  "category": "Other",
+  "kcal": 165,
+  "protein": 0.5,
+  "carbs": 37.0,
+  "fat": 0.2,
+  "fiber": 0,
+  "sugar": 33.0,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "broth",
+  "nameEn": "Broth (chicken/vegetable)",
+  "nameCs": "Vývar",
+  "nameDe": "Brühe",
+  "category": "Other",
+  "kcal": 5,
+  "protein": 0.3,
+  "carbs": 0.5,
+  "fat": 0.1,
+  "fiber": 0,
+  "sugar": null,
+  "saturatedFat": 0,
+  "allergens": [
+   "celery"
+  ],
+  "servings": [
+   {
+    "label": "1 hrnek (~250ml)",
+    "grams": 250
+   }
+  ]
+ },
+ {
+  "slug": "bolognese-sauce-jarred",
+  "nameEn": "Bolognese Sauce (jarred)",
+  "nameCs": "Boloňská omáčka (hotová)",
+  "nameDe": "Bolognese-Sauce (Glas)",
+  "category": "Other",
+  "kcal": 85,
+  "protein": 3.5,
+  "carbs": 8.5,
+  "fat": 4.0,
+  "fiber": 1.5,
+  "sugar": 5.0,
+  "saturatedFat": 1.3,
+  "allergens": [
+   "celery"
+  ],
+  "servings": [
+   {
+    "label": "1 sklenice (~400g)",
+    "grams": 400
+   }
+  ]
+ },
+ {
+  "slug": "sugar",
+  "nameEn": "Sugar",
+  "nameCs": "Cukr",
+  "nameDe": "Zucker",
+  "category": "SweetsAndSnacks",
+  "kcal": 400,
+  "protein": 0,
+  "carbs": 100.0,
+  "fat": 0,
+  "fiber": 0,
+  "sugar": 100.0,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~12g)",
+    "grams": 12
+   }
+  ]
+ },
+ {
+  "slug": "maple-syrup",
+  "nameEn": "Maple Syrup",
+  "nameCs": "Javorový sirup",
+  "nameDe": "Ahornsirup",
+  "category": "SweetsAndSnacks",
+  "kcal": 260,
+  "protein": 0,
+  "carbs": 67.0,
+  "fat": 0.1,
+  "fiber": 0,
+  "sugar": 60.4,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~20g)",
+    "grams": 20
+   }
+  ]
+ },
+ {
+  "slug": "chicory-syrup",
+  "nameEn": "Chicory Syrup",
+  "nameCs": "Čekankový sirup",
+  "nameDe": "Zichoriensirup",
+  "category": "SweetsAndSnacks",
+  "kcal": 160,
+  "protein": 0,
+  "carbs": 70.0,
+  "fat": 0,
+  "fiber": 65.0,
+  "sugar": 5.0,
+  "saturatedFat": 0,
+  "allergens": [],
+  "servings": [
+   {
+    "label": "1 lžíce (~15g)",
+    "grams": 15
+   }
+  ]
+ },
+ {
+  "slug": "biscuits-no-sugar",
+  "nameEn": "Sugar-Free Biscuits",
+  "nameCs": "Sušenky bez cukru",
+  "nameDe": "Zuckerfreie Kekse",
+  "category": "SweetsAndSnacks",
+  "kcal": 445,
+  "protein": 7.5,
+  "carbs": 64.0,
+  "fat": 17.0,
+  "fiber": 4.0,
+  "sugar": 6.0,
+  "saturatedFat": 7.5,
+  "allergens": [
+   "gluten"
+  ],
+  "servings": [
+   {
+    "label": "1 ks (~8g)",
+    "grams": 8
+   }
+  ]
+ }
+]

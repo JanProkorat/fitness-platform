@@ -81,4 +81,9 @@ public interface IMongoContext
     /// Never exposed to client-authenticated callers.
     /// </summary>
     IMongoCollection<TrainerNote> TrainerNotes { get; }
+
+    /// <summary>
+    /// Reusable workout templates collection.
+    /// </summary>
+    IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
 }

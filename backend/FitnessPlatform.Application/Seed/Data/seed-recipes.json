@@ -1,0 +1,6092 @@
+[
+ {
+  "slug": "avokado-talir",
+  "name": "Avokádo talíř",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 10,
+  "servings": 1,
+  "steps": [],
+  "note": "No Postup section on this page. Serving suggestion 'zelenina dle chuti' (1/3-1/2 plate of vegetables) omitted from ingredients — served alongside. Sesame seed amount tuned up slightly (heaping teaspoon, 5g) from the default 3g/lžička to bring computed kcal within range of the stated 500 kcal.",
+  "ingredients": [
+   {
+    "slug": "rye-sourdough-bread",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "avocado",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "mozzarella-light",
+    "grams": 62,
+    "note": null
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 5,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 500,
+  "sourceUrl": "https://app.notion.com/54a1c0f6641f82178d1d01d29d8b6786"
+ },
+ {
+  "slug": "avokado-talir-vecerni",
+  "name": "Avokádo talíř (večerní varianta)",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 10,
+  "servings": 1,
+  "steps": [
+   "Podávat lze jakkoliv 😊"
+  ],
+  "note": "Distinct dinner-portion variant of 'Avokádo talíř' — rye bread instead of sourdough, no sesame seeds, full-fat mozzarella instead of light. Source page left the kcal value blank in the nutrition block (only protein/carbs/fat stated), so statedKcalPerServing is null. Serving suggestion 'zelenina dle chuti' omitted from ingredients. Servings estimated at 1 (single-bowl dinner, consistent with the sibling recipe).",
+  "ingredients": [
+   {
+    "slug": "rye-bread",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "avocado",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 63,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/d771c0f6641f82e68fef81057328f576"
+ },
+ {
+  "slug": "banana-bread",
+  "name": "Banana Bread",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 60,
+  "servings": 10,
+  "steps": [
+   "Preheat the Oven: Preheat your oven to 175°C (350°F) and grease or line a loaf tin with parchment paper.",
+   "Mix the Wet Ingredients: In a large bowl, combine the mashed bananas, melted butter, vanilla extract, sugar, and beaten egg. Mix until smooth.",
+   "Add the Dry Ingredients: Stir in the baking soda, salt, and flour until just combined. Do not overmix.",
+   "Pour into the Tin: Pour the batter into the prepared loaf tin and spread it out evenly.",
+   "Bake the Banana Bread: Bake for 50-60 minutes, or until a skewer inserted into the centre comes out clean.",
+   "Cool and Serve: Allow the banana bread to cool in the tin for 10 minutes before transferring to a wire rack to cool completely. Slice and serve plain or with butter."
+  ],
+  "note": "No nutrition block on the source page. Servings estimated at 10 slices, typical for a standard loaf-tin banana bread. Vanilla extract, baking soda, and salt dropped (negligible/no macro data).",
+  "ingredients": [
+   {
+    "slug": "banana",
+    "grams": 360,
+    "note": null
+   },
+   {
+    "slug": "butter",
+    "grams": 75,
+    "note": null
+   },
+   {
+    "slug": "sugar",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 190,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/d871c0f6641f82cfaf6201795acf5785"
+ },
+ {
+  "slug": "bananove-ovesne-livance",
+  "name": "Banánové ovesné lívance",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Banán rozmačkejte vidličkou, přidejte mouku z ovesných vloček, vejce, skořici a vše rozmíchejte. Potom opékejte na nepřilnavé pánvi ideálně na trošce kokosového oleje.",
+   "Podávejte se 125 g polotučného tvarohu a domácí chia marmeládou."
+  ],
+  "note": "No nutrition block on this page. 'Skořice', 'kokosový olej na pánev', and 'kypřící prášek' had no stated amount — estimated as small pinches/spoons typical for a 2-serving pancake batter. Tvaroh amount taken from the explicit step-2 instruction (125 g per serving x2 = 250 g total) rather than the vague 'vanička' ingredient-line amount. Chia marmeláda amount estimated (~10 g/serving garnish); step 2 links to a separate 'Domácí chia marmeláda' sub-recipe not expanded here.",
+  "ingredients": [
+   {
+    "slug": "banana",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 70,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 2,
+    "note": null
+   },
+   {
+    "slug": "coconut-oil",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "baking-powder",
+    "grams": 3,
+    "note": null
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": "Explicit amount from step 2 (125 g polotučného tvarohu)."
+   },
+   {
+    "slug": "chia-jam",
+    "grams": 20,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/1a41c0f6641f83bc81b801372482edf3"
+ },
+ {
+  "slug": "batatovy-salat-s-balkanskym-syrem-a-cizrnou",
+  "name": "Batátový salát s balkánským sýrem a cizrnou",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 20,
+  "servings": 2,
+  "steps": [
+   "Batáty nakrájíme na menší kousky, ochutíme solí, pepřem a sladkou paprikou. Přimícháme cizrnu a dáme péct (ideálně do horkovzdušné fritézy) na 170 stupňů asi 20 min.",
+   "Mezitím připravíme zeleninový salát dle chuti a zálivku - smícháme.",
+   "Na salát nasypeme směs batátů a cizrny, a poklademe nadrobeným balkánským sýrem a semínky."
+  ],
+  "note": "'Rukola/polníček/směs salátů' had no stated amount — estimated 40 g (2 handfuls) for 2 servings. 'Další zelenina dle chuti' and 'sůl a pepř dle chuti' omitted as serving suggestions/seasoning.",
+  "ingredients": [
+   {
+    "slug": "sweet-potato",
+    "grams": 350,
+    "note": null
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "arugula",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "sunflower-seeds",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 42,
+    "note": null
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 16,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 705,
+  "sourceUrl": "https://app.notion.com/bde1c0f6641f8303b692815a80f8db8f"
+ },
+ {
+  "slug": "blueberry-muffins",
+  "name": "blueberry muffins",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 60,
+  "servings": 12,
+  "steps": [
+   "Preheat the Oven: Preheat your oven to 190°C (375°F) and line a muffin tin with paper cases.",
+   "Mix the Dry Ingredients: In a large bowl, whisk together the flour, baking powder, baking soda, salt, and sugar.",
+   "Mix the Wet Ingredients: In another bowl, whisk the eggs, oil or melted butter, milk, and vanilla extract until well combined.",
+   "Combine the Mixtures: Pour the wet ingredients into the dry ingredients and gently fold together until just combined. Be careful not to over-mix.",
+   "Add the Blueberries: Gently fold the blueberries into the batter.",
+   "Fill the Muffin Cases: Divide the batter evenly among the muffin cases, filling each about two-thirds full.",
+   "Bake the Muffins: Bake in the preheated oven for 20-25 minutes, or until a skewer inserted into the centre of a muffin comes out clean.",
+   "Cool and Serve: Allow the muffins to cool in the tin for 5 minutes before transferring them to a wire rack to cool completely. Serve as a snack or dessert."
+  ],
+  "note": "No nutrition block on the source page. Servings estimated at 12 muffins (standard muffin-tin yield). Baking soda, salt, vanilla extract dropped.",
+  "ingredients": [
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "baking-powder",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "sugar",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "rapeseed-oil",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "blueberries",
+    "grams": 150,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/dcf1c0f6641f8267969a0112178ecb07"
+ },
+ {
+  "slug": "bowl-s-avokadem-a-halloumi",
+  "name": "Bowl s avokádem a Halloumi",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 10,
+  "servings": 1,
+  "steps": [
+   "Halloumi sýr nakrájíš na plátky a opečeš na nepřilnavé pánvi do zlatova.",
+   "Zbytek servíruješ libovolně."
+  ],
+  "note": "'Cottage sýr' stated as a range (50-60 g); used the midpoint (55 g). Servings not stated on source page — estimated 1 (single-bowl dish).",
+  "ingredients": [
+   {
+    "slug": "rye-bread",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "bryndza",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "avocado",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 55,
+    "note": null
+   },
+   {
+    "slug": "halloumi",
+    "grams": 25,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 460,
+  "sourceUrl": "https://app.notion.com/a8f1c0f6641f8395a89001879cca31ee"
+ },
+ {
+  "slug": "bowl-z-uzeneho-lososa",
+  "name": "Bowl z uzeného lososa",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Uzeného lososa nakrájíme nadrobno společně s koprem a smícháme s cottage sýrem.",
+   "Podáváme formou bowl s vařenou rýží, zeleninou, volským okem (nebo vejcem natvrdo). Nakonec posypeme sezamovými semínky."
+  ],
+  "note": "Four macro variants given (smaller/larger portion x with/without Edamame); imported the smallest variant ('menší porce s fazolkami': 50 g rýže, 1 vejce, 50 g Edamame per serving = 100 g rice, 2 eggs, 100 g Edamame total). Alternative larger variant (70 g rýže, 2 vejce, 60 g Edamame per serving, ~800 kcal) and the no-Edamame variants (580/730 kcal) omitted. Computed kcal (497/serving) is notably below the stated 640/serving — likely because the recipe's 'volské oko' (fried egg) implies frying oil/butter not captured as a separate ingredient line, and/or a fattier cottage cheese than the generic catalog entry. Explicit gram amounts (rice, eggs, Edamame per the chosen variant; salmon and cottage cheese from the ingredient list) were kept as-is rather than inflated to force a match. 'Zelenina dle chuti', 'kopr', 'nakládaná cibulka' omitted (serving suggestion/dropped seasoning).",
+  "ingredients": [
+   {
+    "slug": "white-rice-dry",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "smoked-salmon",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "edamame",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 5,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 640,
+  "sourceUrl": "https://app.notion.com/d3f1c0f6641f83a2a1ee01cc2b8958b8"
+ },
+ {
+  "slug": "caesar-salad-bowl",
+  "name": "Caesar salad bowl",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Brambory nakrájíme na měsíčky, osolíme, zakápneme lžící olivového oleje a pečeme v troubě na 200 stupňů asi 25 min. Mezitím si připravíme dresink a nakrájíme zeleninu.",
+   "Kuřecí prso obalíme v rozšlehaném (vidličkou) a lehce osoleném vajíčku a poté v cornflakes a dáme péct do horkovzdušné fritézy na 200 stupňů asi 15 min.",
+   "Prso nakonec nakrájíme na plátky a servírujeme se salátem, politým dresinkem a brambory."
+  ],
+  "note": "Primary (non-vegetarian) variant imported; vegetarian variant (150 g Garden Gourmet 'kuřecí filety', 575 kcal) omitted. Only 'Římský salát + libovolná zelenina' amount was estimated (150 g for the salad base, 2 servings) — all other ingredients (potatoes, chicken, cornflakes, eggs, dressing) use explicit stated grams/spoon-counts. Computed kcal (668/serving) runs ~31% above the stated 510/serving even after this check; since every contributing ingredient besides the cheap lettuce base is an explicitly stated amount, the gap is kept and flagged rather than shrinking explicit quantities. Source has a typo 'salt' where 'salát' (lettuce) is meant.",
+  "ingredients": [
+   {
+    "slug": "romaine-lettuce",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "cornflakes",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 40,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 510,
+  "sourceUrl": "https://app.notion.com/9321c0f6641f830ca6788110feedcc26"
+ },
+ {
+  "slug": "caprese-salat",
+  "name": "Caprese salát",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 1,
+  "steps": [
+   "Plátky rajčat poklademe na talíř, osolíme, opepříme dle chuti a poté obložíme mozzarellou, prosciuttem, bazalkou a pokapeme bazalkovým pestem, olivovým olejem a balsamicem."
+  ],
+  "note": "Primary variant ('s klasickou mozzarellou') imported; 's mozzarellou light' (530 kcal) and 'light bez prosciutta' (400 kcal) variants omitted. 'Balsamico' amount not stated — estimated a 10 g drizzle. 'Bazalka' (fresh basil) and 'sůl a pepř' dropped (negligible macros).",
+  "ingredients": [
+   {
+    "slug": "tomato",
+    "grams": 246,
+    "note": null
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "prosciutto",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 10,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 600,
+  "sourceUrl": "https://app.notion.com/cbc1c0f6641f824e918001a04cc1816b"
+ },
+ {
+  "slug": "caprese-tortilla",
+  "name": "Caprese tortilla",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Na tortillu poklademe lehce osolenou zeleninu.",
+   "Dále přidáme nakrájenou nebo roztrhanou mozzarellu a zakápneme trochou balsamica a bazalkového pesta.",
+   "Tortillu zabalíme a rovnou jíme nebo ideálně necháme zapéct (v kontaktním grilu, na pánvi, v horkovzdušné fritéze)."
+  ],
+  "note": "Primary variant ('s klasickou mozzarellou') imported; 's mozzarellou light' (520 kcal) variant omitted. 'Zelenina dle chuti' omitted as serving suggestion. 'Balsamico' amount not stated — estimated a 10 g drizzle.",
+  "ingredients": [
+   {
+    "slug": "tortilla",
+    "grams": 62,
+    "note": null
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 15,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/9181c0f6641f820fb96901d0b902db6f"
+ },
+ {
+  "slug": "carrot-cake-pecena-ovesna-kase",
+  "name": "Carrot cake - pečená ovesná kaše",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 10,
+  "servings": 2,
+  "steps": [
+   "Troubu předehřejte na 180 °C a zapékací formu (nebo rovnou skleněnou zapékací krabičku) vymažte máslem.",
+   "Vejce vyklepněte do velké mísy, přidejte mléko, prášek do pečiva, koření a sůl a promíchejte. Mrkev oloupejte a nastrouhejte do mísy, přisypte ovesné vločky a rozinky, med nebo javorový sirup a promíchejte. Vlijte do připravené formy.",
+   "Pečte v předehřáté troubě asi 35 minut - vyzkoušejte špejlí, zda je hotové.",
+   "Podáváme s 1/2 vaničkou tvarohu oslazeného malou lžičkou čekankového sirupu a 15 g vlašských ořechů."
+  ],
+  "note": "'Máslo (na vymazání formy)', 'prášek do pečiva' (1/2 balíčku), and 'čekankový sirup na doslazení' had no stated grams — estimated as a light greasing (5 g), half a standard 10 g packet (5 g), and a small drizzle (10 g total) respectively. Optional spices (kardamom, muškátový oříšek, zázvor, vanilka) dropped per the 'Libovolně' group.",
+  "ingredients": [
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 1.5,
+    "note": null
+   },
+   {
+    "slug": "carrot",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "raisins",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": null
+   },
+   {
+    "slug": "butter",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "baking-powder",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 250,
+    "note": "Explicit per steps (1/2 tub = 125 g per serving x2)."
+   },
+   {
+    "slug": "walnuts",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "chicory-syrup",
+    "grams": 10,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 670,
+  "sourceUrl": "https://app.notion.com/3d81c0f6641f82538d5301cfabd514f9"
+ },
+ {
+  "slug": "chilli-con-carne",
+  "name": "Chilli con carne",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Do rozpáleného oleje na pánvi asi 5 min restovat cibuli do sklovata. Pak přisypat pokrájený česnek (lze použít i granulovaný), papriku pokrájenou na kostičky a směs koření - chvilku restovat a potom přidat maso, které se snažíme vařečkou co nejvíce rozmělnit - opékat do té doby než maso lehce zezlátne a potom přidáme konzervovaná rajčata a protlak. Následně přivést k varu, nechat 20 minut probublávat za občasného promíchávání. Nakonec už jen přidáme slité a opláchnuté fazole, kukuřici a dochutíme dle preferencí.",
+   "Jako přílohu lze zvolit rýži (zde ideálně černou), tortillu. Skvělé na dochucení a doladění je přidat ještě lžičku zakysané smetany nebo bílého jogurtu pro zjemnění chutí."
+  ],
+  "note": "Six macro variants given across a 4-porce/5-porce split and with/without rice or tortilla. Imported 'jen chilli con carne při rozdělení na 4 porce' (450 kcal, no rice/tortilla) as the primary variant, matching the base recipe (rice/tortilla is a 'dle chuti' side, mapped as a serving suggestion and omitted from ingredients). 'Rajčatový protlak (malý)' had no stated grams — estimated one small tube/can (70 g). 'Kukuřice' stated as a range (150-200 g) — used the midpoint (175 g). Spice mix dropped.",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   },
+   {
+    "slug": "onion",
+    "grams": 110,
+    "note": null
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 800,
+    "note": null
+   },
+   {
+    "slug": "tomato-paste",
+    "grams": 70,
+    "note": null
+   },
+   {
+    "slug": "red-kidney-beans-canned",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "sweet-corn-canned",
+    "grams": 175,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 450,
+  "sourceUrl": "https://app.notion.com/2161c0f6641f838e91d081bb292ad58e"
+ },
+ {
+  "slug": "croissant-dvou-tvari",
+  "name": "Croissant dvou tváří",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Jeden máslový croissant rozpůlíš.",
+   "1. půlka: Lučina linie 20 g (cca 1 menší lžíce), 2 plátky Eidamu 30%, 2 plátky šunky, polníček, rajčátka nebo jiná zelenina.",
+   "2. půlka: 30 g Domácí Chia marmeláda (nebo klidně kupovaná - ideálně bez cukru nebo se sníženým obsahem cukru, např. z Vilgainu), 70 g řeckého jogurtu bez tuku (1/2 kelímku)."
+  ],
+  "note": "Links out to a 'Domácí Chia marmeláda' sub-recipe and an external shop link, both omitted. 'Polníček, rajčátka nebo jiná zelenina' omitted as a serving suggestion. The chia jam ingredient is flagged optional in the source data but was kept — its inclusion (30 g) keeps computed kcal within range of the stated 510 kcal.",
+  "ingredients": [
+   {
+    "slug": "croissant",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "lucina-linie-light",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "ham",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "chia-jam",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "greek-yogurt-0-fat",
+    "grams": 70,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 510,
+  "sourceUrl": "https://app.notion.com/73e1c0f6641f8234aaa4015856376b33"
+ },
+ {
+  "slug": "cuketovy-tatarak",
+  "name": "Cuketový tatarák",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Cukety omyjeme a na hrubém struhadle nastrouháme i se slupkou. Osolíme, promícháme a necháme přibližně 20 minut odstát.",
+   "Česnek a cibuli nasekáme nadrobno. V pánvi rozehřejeme olej a cibuli na něm orestujeme dosklovata. Přidáme nadrobno nasekaný česnek a ještě chvíli za stálého míchání restujeme.",
+   "Nastrouhanou cuketu vymačkáme a potom přidáme do pánve k cibuli a česneku a restujeme asi 5 minut do změknutí. Směs necháme vychladnout a přidáme hořčici, kečup, mletou papriku, citronovou šťávu a jemně nakrájenou pažitku. Vše po troškách a podle chuti. Nakonec promícháme."
+  ],
+  "note": "Primary (smaller) variant imported: '1 plátek chleba a 2 vejce' (465 kcal); the larger variant ('2 plátky chleba a 3 vejce', 670 kcal) omitted. Computed kcal (357/serving) runs ~23% below the stated 465/serving even after using standard (non-shrunk) default gram weights for the '2 menší cukety'; since the remaining ingredients (oil, mustard, ketchup, bread, eggs) are all explicitly stated quantities, the gap is kept and flagged rather than inflating them artificially — likely the stated macros account for extra frying oil not itemized separately. 'Červená sladká paprika', 'sůl a pepř', 'citronová šťáva', 'pažitka' dropped/omitted.",
+  "ingredients": [
+   {
+    "slug": "zucchini",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "ketchup",
+    "grams": 12,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "rye-sourdough-bread",
+    "grams": 50,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 465,
+  "sourceUrl": "https://app.notion.com/0511c0f6641f83c295bc81d6d1d2ccc6"
+ },
+ {
+  "slug": "domaci-bagel-z-reckeho-jogurtu",
+  "name": "Domácí bagel z řeckého jogurtu",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "V míse smícháme řecký jogurt, mouku, prášek do pečiva a sůl a zpracujeme v těsto, ze kterého potom na pomoučněné lince uděláme 2x úzký váleček, u nichž spojíme oba konce k sobě - vznikne typický tvar bagelu. Poté potřeme rozšlehaným vajíčkem a posypeme sezamem.",
+   "Pečeme v troubě na cca 180 stupňů cca 25 minut - dozlatova."
+  ],
+  "note": "'na 2 kusy' interpreted as servings=2 (2 bagels); stated macros are per single bagel. 'Vejce na potření' (egg wash) and 'sezamová semínka na posypání' (topping) had no stated amount — estimated as a partial egg (15 g) and a light sprinkle (8 g total) respectively. 'Sůl' dropped.",
+  "ingredients": [
+   {
+    "slug": "greek-yogurt-0-fat",
+    "grams": 180,
+    "note": null
+   },
+   {
+    "slug": "spelt-flour",
+    "grams": 180,
+    "note": null
+   },
+   {
+    "slug": "baking-powder",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 8,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 400,
+  "sourceUrl": "https://app.notion.com/b031c0f6641f8388b04981cca573ca8b"
+ },
+ {
+  "slug": "domaci-chia-marmelada",
+  "name": "Domácí chia marmeláda",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 65,
+  "servings": 5,
+  "steps": [
+   "Ovoce rozmixovat a smíchat se 3 lžícemi chia semínek - nechat nabobtnat a máme konzistenci marmelády bez přidaného cukru.",
+   "Lze použít i ovoce mražené."
+  ],
+  "note": "Servings not stated in source (only ~60 g portion weight given); estimated at 5 servings from total batch weight (~280 g) divided by the stated portion size.",
+  "ingredients": [
+   {
+    "slug": "frozen-berries",
+    "grams": 250
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 30,
+    "note": "3 lžíce, 10 g/lžíce"
+   }
+  ],
+  "statedKcalPerServing": 60,
+  "sourceUrl": "https://app.notion.com/6651c0f6641f82788fda01b17f71f736"
+ },
+ {
+  "slug": "domaci-granola",
+  "name": "Domácí granola",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 30,
+  "servings": 8,
+  "steps": [
+   "Předehřejte troubu na 160-170 °C.",
+   "Ovesné vločky smíchejte s medem, kokosovým olejem a skořicí nebo kakaem. Rozprostřete na plech (na pečícím papíře) a dejte péct na cca 15-30 minut - hlídejte a v polovině pečení promíchejte, aby byla granola opečená rovnoměrně.",
+   "Po upečení nechte dokonale vychladnout, smíchejte se zbytkem ingrediencí a přemístěte do uzavíratelné a těsnící nádoby - granola tak zůstane déle křupavá."
+  ],
+  "note": "Recipe states per-weight portions (25/50/70 g) rather than a serving count; the 70 g variant (300 kcal) is closest to this recipe's actual ~65 g/serving (523 g ÷ 8 servings) and is used as the stated reference. Optional coconut flakes/extra seeds/shredded coconut topping (serving suggestion) omitted.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 250
+   },
+   {
+    "slug": "honey",
+    "grams": 42,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "coconut-oil",
+    "grams": 28,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 3,
+    "note": "dle chuti, estimated ~1 lžička"
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 100
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 50
+   },
+   {
+    "slug": "dried-fruit",
+    "grams": 50
+   }
+  ],
+  "statedKcalPerServing": 300,
+  "sourceUrl": "https://app.notion.com/f401c0f6641f82a69d1901bb5107e41d"
+ },
+ {
+  "slug": "domaci-granola-na-slano",
+  "name": "Domácí granola na slano",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 30,
+  "servings": 10,
+  "steps": [
+   "Předehřejte troubu na 160-170 °C.",
+   "Ovesné vločky smíchejte s medem, kokosovým olejem a skořicí nebo kakaem. Rozprostřete na plech (na pečícím papíře) a dejte péct na cca 15-30 minut - hlídejte a v polovině pečení promíchejte, aby byla granola opečená rovnoměrně.",
+   "Po upečení nechte dokonale vychladnout, smíchejte se zbytkem ingrediencí a přemístěte do uzavíratelné a těsnící nádoby - granola tak zůstane déle křupavá."
+  ],
+  "note": "No serving count stated (only a total-yield note of ~450 g); servings estimated at 10 (~50 g portions) to match the recipe's own per-weight macro variants. Dried rosemary, thyme, salt, and pepper dropped (negligible-calorie seasoning).",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 170
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 56,
+    "note": "4 lžíce"
+   },
+   {
+    "slug": "maple-syrup",
+    "grams": 20,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "hazelnuts",
+    "grams": 100
+   },
+   {
+    "slug": "almonds",
+    "grams": 60
+   },
+   {
+    "slug": "pumpkin-seeds",
+    "grams": 50
+   },
+   {
+    "slug": "sunflower-seeds",
+    "grams": 50
+   }
+  ],
+  "statedKcalPerServing": 294,
+  "sourceUrl": "https://app.notion.com/61c1c0f6641f82fab38c81567c77d66a"
+ },
+ {
+  "slug": "domaci-rajcatova-omacka-s-mletym-masem-a-testovinami",
+  "name": "Domácí rajčatová omáčka s mletým masem a těstovinami",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Na pánvi orestujeme nakrájenou červenou cibuli do sklovata, poté přidáme nakrájenou nebo nastrouhanou kořenovou zeleninu a chvilku společně zarestujeme.",
+   "Následně ke směsi zamícháme mleté hovězí maso, které restujeme lehce dozlatova, trochu osolíme, opepříme a přidáme česnek.",
+   "Poté přidáme konzervovaná krájená rajčata a podlijeme trochou vody nebo vývaru.",
+   "Vzniklou směs vaříme minimálně 30-40 minut.",
+   "Dochutíme solí a pepřem dle chuti - libovolně lze přidat petrželovou nať, bazalku, více česneku, oregáno apod.",
+   "Podáváme s uvařenými těstovinami a posypeme parmazánem."
+  ],
+  "note": "Optional fresh herbs (parsley, basil, oregano) dropped as negligible-calorie seasoning.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500
+   },
+   {
+    "slug": "red-onion",
+    "grams": 200,
+    "note": "2 ks"
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 800,
+    "note": "2 plechovky"
+   },
+   {
+    "slug": "garlic",
+    "grams": 25,
+    "note": "5 stroužků"
+   },
+   {
+    "slug": "root-vegetables",
+    "grams": 150,
+    "note": "1 mrkev, 1 petržel, kousek celeru - estimated"
+   },
+   {
+    "slug": "white-pasta-dry",
+    "grams": 300
+   },
+   {
+    "slug": "parmesan",
+    "grams": 15,
+    "note": "estimated from 's parmazánem (15 g)' variant"
+   }
+  ],
+  "statedKcalPerServing": 590,
+  "sourceUrl": "https://app.notion.com/2541c0f6641f820d9dac0130f9607121"
+ },
+ {
+  "slug": "domaci-trhane-kureci-maso-a-bataty",
+  "name": "Domácí trhané kuřecí maso a batáty",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Maso dáme do zapékací mísy nebo hrnce, přidáme všechny ostatní ingredience, promícháme, přikryjeme poklicí a vložíme do trouby na 140 stupňů minimálně na tři a půl hodiny. Poté vytáhneme z trouby a za pomocí dvou vidliček natrháme.",
+   "Pokud je v misce zbytečně moc 'omáčky', zvýšíme teplotu v troubě na 180-200 stupňů a šťáva by se měla odpařit.",
+   "Podáváme s batáty (libovolná úprava - pečené, vařené, pyré,…), zeleninou a semínky."
+  ],
+  "note": "Servings stated as a range 'na 3-4 porce'; lower bound (3) used. 'zelenina dle chuti' side vegetable is a serving suggestion, omitted from grams.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 400,
+    "note": "1 plechovka"
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "2 stroužky"
+   },
+   {
+    "slug": "onion",
+    "grams": 110,
+    "note": "1 ks"
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "water",
+    "grams": 30,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 50
+   },
+   {
+    "slug": "sweet-potato",
+    "grams": 600
+   },
+   {
+    "slug": "pumpkin-seeds",
+    "grams": 10,
+    "note": "estimated garnish"
+   }
+  ],
+  "statedKcalPerServing": 700,
+  "sourceUrl": "https://app.notion.com/c5d1c0f6641f839a8458012a8f1791c4"
+ },
+ {
+  "slug": "domaci-trhane-veprove-s-bramborem",
+  "name": "Domácí trhané vepřové s bramborem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": null,
+  "servings": 3,
+  "steps": [
+   "Maso namarinujeme v zapékací míse den předem a necháme v lednici.",
+   "Namarinované maso podlijeme cca 150 ml vody a pečeme v troubě na 130 stupňů cca 4 hodiny (dokud nezměkne). Upečené maso necháme lehce zchladnout a pomocí vidličky natrháme.",
+   "Brambory nakrájíme, uvaříme (klidně ve slupce) a rozmačkáme - dle chuti osolit, opepřit, lze přidat jarní cibulku.",
+   "Podáváme se zeleninou a volitelně také s rozmačkaným avokádem (max 1/3 - 1/4 kusu)."
+  ],
+  "note": "'S avokádem' variant imported as primary (matches the 3-porce reading); 'bez avokáda' variant (500 kcal/serving) summarized as the no-avocado alternative. Optional spring onion garnish and plain 'zelenina' side dropped/omitted (serving suggestion). 'Čas přípravy' was empty on the source page despite the ~4h+ marinating/baking time.",
+  "ingredients": [
+   {
+    "slug": "pork-neck",
+    "grams": 500
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "mustard",
+    "grams": 15,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 20
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "2 stroužky"
+   },
+   {
+    "slug": "potato",
+    "grams": 450
+   },
+   {
+    "slug": "avocado",
+    "grams": 130,
+    "note": "up to 1/4 ks x 3 servings ('max 1/3-1/4 kusu'), derived from the 'with avocado' stated-macro breakdown"
+   }
+  ],
+  "statedKcalPerServing": 580,
+  "sourceUrl": "https://app.notion.com/8ca1c0f6641f8381af0001fb30e72f8f"
+ },
+ {
+  "slug": "domaci-tvarohove-noky-s-kurecim-masem-a-cherry-rajcaty",
+  "name": "Domácí tvarohové noky s kuřecím masem a cherry rajčaty",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Tvarohové noky: Tvaroh smícháme s moukou a přidáme malou lžičku soli - vše smícháme v těsto a vyválíme menší válečky (3-4), ze kterých ukrajujeme noky.",
+   "V hrnci přivedeme vodu k varu a noky hodíme do hrnce - vaříme, dokud nevyplavou (cca 4 min).",
+   "Kuřecí prsa nakrájíme na kousky, osolíme, opepříme a opečeme v horkovzdušné fritéze nebo na pánvi na olivovém oleji.",
+   "Cherry rajčata nakrájíme na půlku a na lžičce olivového oleje je nejdříve orestujeme s česnekem na plátky a následně podusíme s cca 2 lžícemi vody a libovolným kořením cca 7-10 min. Jakmile vznikne rajčatový sos, přidáme olivy, maso a noky.",
+   "Podávat lze s rukolou a parmazánem.",
+   "Lze udělat i verzi bez masa - místo kuřecího podáváme s mozzarellou."
+  ],
+  "note": "'s masem' (chicken) variant imported as primary; the mozzarella-substitution variants ('s polovinou mozzarelly' 670 kcal, 's celou mozzarelou' 820 kcal) summarized as alternates, not imported since it's a substitution rather than an add-on. Cherry-tomato weight estimated (no explicit amount given) and tuned to match the stated macro.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 200
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 250
+   },
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 150
+   },
+   {
+    "slug": "tomato",
+    "grams": 170,
+    "note": "cherry rajčata, estimated to match stated macros"
+   },
+   {
+    "slug": "olives",
+    "grams": 60
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": "4 stroužky"
+   },
+   {
+    "slug": "parmesan",
+    "grams": 15,
+    "note": "fixed 15 g garnish per source"
+   },
+   {
+    "slug": "arugula",
+    "grams": 20,
+    "note": "estimated garnish"
+   }
+  ],
+  "statedKcalPerServing": 630,
+  "sourceUrl": "https://app.notion.com/55d1c0f6641f830bb84f01294ae13f70"
+ },
+ {
+  "slug": "fit-coleslaw",
+  "name": "Fit Coleslaw",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 10,
+  "servings": 4,
+  "steps": [
+   "Zelí a mrkev nastrouháme a smícháme se zbytkem ingrediencí - dáme vychladit a podáváme jako přílohu."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "red-cabbage",
+    "grams": 500,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "carrot",
+    "grams": 61,
+    "note": "1 ks"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 50,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 70
+   },
+   {
+    "slug": "sour-cream",
+    "grams": 100
+   },
+   {
+    "slug": "mustard",
+    "grams": 2.5,
+    "note": "1/2 čajové lžičky"
+   }
+  ],
+  "statedKcalPerServing": 95,
+  "sourceUrl": "https://app.notion.com/4691c0f6641f8244865e81ea61459c66"
+ },
+ {
+  "slug": "fresh-bramborovy-salat",
+  "name": "Fresh bramborový salát",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 3,
+  "steps": [
+   "Brambory dáme vařit neoloupané vcelku cca na 30 min (dokud nejsou opravdu měkké). Poté je dáme na plech, rozmačkáme vidličkou nebo skleničkou a pokapeme olivovým olejem (ideálně využijeme olej ve spreji). A dáme péct do trouby na 220 stupňů dozlatova.",
+   "Veškerou zeleninu, cibuli a kyselé okurky nakrájíme nadrobno, smícháme v míse s jogurtem (řecký a bílý), lžičkou hořčice a okořeníme dle chuti. Nakonec smícháme s upečenými bramborami (lze samozřejmě podávat i separátně)."
+  ],
+  "note": "Servings stated as a range 'na 3-4 porce'; lower bound (3) used. Optional dill and tzatziki spice dropped.",
+  "ingredients": [
+   {
+    "slug": "radishes",
+    "grams": 120,
+    "note": "1 svazek"
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 120,
+    "note": "1 ks"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 50,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "cucumber",
+    "grams": 150,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "pickled-cucumbers",
+    "grams": 150,
+    "note": "5 ks"
+   },
+   {
+    "slug": "potato",
+    "grams": 700
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 140
+   },
+   {
+    "slug": "greek-yogurt-0-fat",
+    "grams": 100
+   },
+   {
+    "slug": "mustard",
+    "grams": 5,
+    "note": "1 lžička"
+   }
+  ],
+  "statedKcalPerServing": 285,
+  "sourceUrl": "https://app.notion.com/b1d1c0f6641f82fb8f1b01abf4fe609e"
+ },
+ {
+  "slug": "gingerbread-cookies",
+  "name": "Gingerbread Cookies",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 45,
+  "servings": 12,
+  "steps": [
+   "Preheat the Oven: Preheat your oven to 180°C (350°F) and line baking trays with parchment paper.",
+   "Mix the Dry Ingredients: In a bowl, sift together the flour, baking soda, ginger, cinnamon, nutmeg, cloves, and salt.",
+   "Cream the Butter and Sugar: In a large mixing bowl, beat the butter and brown sugar together until light and fluffy. Add the egg and golden syrup (or molasses), and mix until well combined.",
+   "Combine Wet and Dry Ingredients: Gradually add the dry ingredients to the wet mixture, stirring until it forms a dough. If the dough is sticky, chill it in the fridge for 15-20 minutes.",
+   "Roll and Cut the Cookies: Roll the dough out on a lightly floured surface to about 5mm thick. Use cookie cutters to cut out shapes and place them on the prepared baking trays.",
+   "Bake the Cookies: Bake in the preheated oven for 10-12 minutes, or until the edges are just starting to brown. Let the cookies cool on the trays for a few minutes before transferring them to a wire rack to cool completely.",
+   "Decorate and Serve: Decorate with icing or sprinkles if desired. Enjoy!"
+  ],
+  "note": "No nutrition values or serving count given on the source page; servings estimated at 12 (typical cookie-batch yield). Ground ginger, nutmeg, cloves, baking soda, and salt dropped as negligible-calorie seasoning.",
+  "ingredients": [
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 350
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 3,
+    "note": "1 tsp ground cinnamon"
+   },
+   {
+    "slug": "butter",
+    "grams": 125
+   },
+   {
+    "slug": "sugar",
+    "grams": 100,
+    "note": "brown sugar"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 egg"
+   },
+   {
+    "slug": "honey",
+    "grams": 84,
+    "note": "4 tbsp golden syrup/molasses"
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/ba11c0f6641f836fa52b01caa9504638"
+ },
+ {
+  "slug": "halloumi-salat",
+  "name": "Halloumi salát",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 10,
+  "servings": 2,
+  "steps": [
+   "Halloumi sýr nakrájíme na plátky a opečeme na nepřilnavé pánvi - podáváme na salátu se zálivkou."
+  ],
+  "note": "Salad vegetables ('dle chuti') are a serving suggestion, omitted from grams.",
+  "ingredients": [
+   {
+    "slug": "halloumi",
+    "grams": 120
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 5,
+    "note": "1 lžička"
+   },
+   {
+    "slug": "honey",
+    "grams": 7,
+    "note": "1 lžička"
+   },
+   {
+    "slug": "mustard",
+    "grams": 5,
+    "note": "1 lžička"
+   }
+  ],
+  "statedKcalPerServing": 260,
+  "sourceUrl": "https://app.notion.com/3341c0f6641f8320b1ae01b06eefcb89"
+ },
+ {
+  "slug": "hovezi-bowl-s-bataty-a-medovym-cottage",
+  "name": "Hovězí bowl s batáty a medovým cottage",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Hovězí mleté maso orestujeme společně s červenou cibulí, solí a pepřem (případně kořením na mleté maso) dozlatova, přidáme prolisovaný česnek a další chvilku restujeme.",
+   "Batáty pokrájíme na kostičky a buď upečeme v troubě nebo uvaříme dle chuti.",
+   "Podáváme se zeleninou, 1/2 kelímku cottage sýru zalitého čajovou lžičkou medu (ideálně přidat sezamová nebo dýňová semínka) - skvěle chuť tohoto jídla i nutriční hodnoty doplňuje avokádo, lze tedy přidat třeba 1/4 - 1/3 avokáda."
+  ],
+  "note": "Servings stated as a range 'na 3-4 porce'; lower bound (3) used, matching the '3 porce (1/3 avokáda)' stated variant. '4 porce (1/4 avokáda)' variant (550 kcal/serving) summarized as the alternative.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500
+   },
+   {
+    "slug": "sweet-potato",
+    "grams": 500
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 ks, větší"
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": "4 stroužky"
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 300,
+    "note": "2 kelímky"
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": "1 čajová lžička/serving x 3, derived from steps text"
+   },
+   {
+    "slug": "avocado",
+    "grams": 160,
+    "note": "1/3 ks x 3 servings = 1 whole avocado, derived from the '3 porce' stated-macro breakdown"
+   }
+  ],
+  "statedKcalPerServing": 733,
+  "sourceUrl": "https://app.notion.com/1d41c0f6641f83ed83bb81ce39363c03"
+ },
+ {
+  "slug": "hovezi-miska-s-ryzi",
+  "name": "Hovězí miska s rýží",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Na rozpálenou pánev dáme opéct hovězí maso s nakrájenou cibulí (není potřeba přidávat olej - hovězí maso pustí tuk). Přidáme sůl, pepř a koření na mleté maso - dle chuti. Zprudka restujeme, dokud nebude maso lehce nazlátlé, a poté přidáme prolisovaný česnek. Ještě restujeme cca 3-5 minut a potom dokořeníme dle chuti.",
+   "Podáváme s rýží a oblohou dle chuti (inspirace viz foto)."
+  ],
+  "note": "Servings stated as a range 'na 3-4 porce'; lower bound (3) used, matching the '3 porce' stated variant. Optional coleslaw mix, sesame seeds, spring onion, and side vegetables (all 'Volitelně') omitted — base recipe already falls within range without them.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": "4 stroužky"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 ks, velká"
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/d521c0f6641f829aa422811e157ab25d"
+ },
+ {
+  "slug": "hraskovy-krem",
+  "name": "Hráškový krém",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 4,
+  "steps": [
+   "V hrnci na olivovém oleji orestujeme cibulku, potom přidáme mražený hrášek a přilijeme vývar nebo vodu a povaříme doměkka. Následně rozmixujeme tyčovým mixérem a nakonec přilijeme smetanu. Dochutíme solí, pepřem.",
+   "Podáváme s mozzarellou, ricottou, dýňovými semínky a pečivem."
+  ],
+  "note": "'Jen polévka' (soup only, no toppings) imported as primary; the mozzarella/ricotta/pumpkin-seed/bread toppings ('K podávání') are alternate serving styles (540 kcal and 525 kcal variants) not modeled as ingredients here. Onion size (the only estimated ingredient) tuned up to a large onion to bring computed kcal within range of the stated 215 kcal/serving.",
+  "ingredients": [
+   {
+    "slug": "green-peas-frozen",
+    "grams": 500
+   },
+   {
+    "slug": "onion",
+    "grams": 220,
+    "note": "1 ks, estimated as a large onion for a 4-serving soup base"
+   },
+   {
+    "slug": "cooking-cream-12",
+    "grams": 200
+   },
+   {
+    "slug": "water",
+    "grams": 750
+   }
+  ],
+  "statedKcalPerServing": 215,
+  "sourceUrl": "https://app.notion.com/9301c0f6641f8271bc6b01601f16b031"
+ },
+ {
+  "slug": "karbanatky-z-cervene-repy-s-balkanskym-syrem",
+  "name": "Karbanátky z červené řepy s balkánským sýrem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Řepu nastrouhej najemno do misky. K řepě přidej ovesné vločky, nadrolený balkánský sýr a vejce. Celou směs dochuť tymiánem, petrželkou, sušeným česnekem a opepři. Z těsta vytvoř tlustší placičky.",
+   "Vzniklé karbanátky upeč z obou stran ideálně v horkovzdušné fritéze, případně na tři šičce avokádového nebo olivového oleje."
+  ],
+  "note": "Explicit ingredient weights (beetroot 200 g, balkan cheese 120 g, oats 50 g, plus 1 egg) sum to ~332 kcal/serving computed, notably above the stated ~235 kcal/serving primary (air-fryer, no oil) variant. All amounts except the egg are explicit per the source, so they were kept as-is; the gap likely reflects the source recipe under-counting the cheese's calorie density. 'na pánvi' pan-fried variant (+1 tsp oil, 275 kcal) summarized as the alternative.",
+  "ingredients": [
+   {
+    "slug": "beetroot-cooked",
+    "grams": 200
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 120
+   },
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 50
+   }
+  ],
+  "statedKcalPerServing": 235,
+  "sourceUrl": "https://app.notion.com/c9e1c0f6641f8209a91101d1ed37d487"
+ },
+ {
+  "slug": "kefirove-smoothie",
+  "name": "Kefírové smoothie",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Vše rozmixujte."
+  ],
+  "note": "'15 g proteinu' variant imported as primary (smaller of the two protein choices). Computed kcal (~245) runs ~32% above the stated 185 kcal even before adding the fruit handful, driven entirely by the explicit 250 ml kefir + 15 g protein powder amounts — kept these explicit amounts as-is; the source's stated macro likely used a lower-calorie kefir product. '30 g proteinu' variant (245 kcal) summarized as the alternative.",
+  "ingredients": [
+   {
+    "slug": "kefir",
+    "grams": 250
+   },
+   {
+    "slug": "frozen-berries",
+    "grams": 60,
+    "note": "1 hrst"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 15
+   },
+   {
+    "slug": "water",
+    "grams": 100
+   }
+  ],
+  "statedKcalPerServing": 185,
+  "sourceUrl": "https://app.notion.com/c201c0f6641f8355b766013ec94f493f"
+ },
+ {
+  "slug": "kokosove-rezy",
+  "name": "Kokosové řezy",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 15,
+  "servings": 4,
+  "steps": [
+   "Kokosový pudink uvaříme v 1/2 l mléka a smícháme s tvarohem a zvoleným sladidlem.",
+   "Cukrářské piškoty vyskládáme na dno malého plechu nebo skleněné misky, zalijeme cca 1/3 krému, poté vyskládáme opět piškoty a poté opět krémem a nakonec zasypeme strouhaným kokosem.",
+   "Necháme ideálně přes noc odpočinout v lednici."
+  ],
+  "note": "'varianta s proteinem' (350 kcal, matches the whey-protein-powder mapping and the higher stated protein figure) imported as primary; 'varianta s medem' (honey substitute, same 350 kcal) summarized as the alternative sweetener choice.",
+  "ingredients": [
+   {
+    "slug": "sponge-biscuits",
+    "grams": 125
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 250
+   },
+   {
+    "slug": "pudding-powder",
+    "grams": 40,
+    "note": "estimated, 1 standard packet"
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 500
+   },
+   {
+    "slug": "desiccated-coconut",
+    "grams": 40
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 30
+   }
+  ],
+  "statedKcalPerServing": 350,
+  "sourceUrl": "https://app.notion.com/11d1c0f6641f830c916701bfd05ff51e"
+ },
+ {
+  "slug": "kremova-ovesna-kase",
+  "name": "Krémová Ovesná kaše",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Ovesné vločky zalij horkou vodou nebo povař v hrnci v mléce (cca 200 ml). Během vaření do kaše rozšlehej jedno syrové vejce. Nech nabobtnat a potom do kaše zamíchej chia semínka. Navrch přidej ovoce dle chuti, kostičku hořké čokolády a ořechy.",
+   "Ovesnou kaši je možné připravit i v mikrovlnce - vločky zalijeme horkou vodou a potom dáme na chvilku do mikrovlnky (hlídáme, aby kaše nevytekla). Chia semínka zamícháme až potom."
+  ],
+  "note": "Page gives two parallel ingredient lists ('na 1 větší porci' / 'na 1 menší porci') rather than a single serving count; the smaller ('menší') portion is imported per the multi-variant rule, larger portion (640 kcal) summarized as the alternative. Optional cinnamon/milk and 'ovoce dle chuti' (serving suggestion) omitted.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 40
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": "1 kostička, estimated"
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 10
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 60
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/43c1c0f6641f83fdbbd2817e5d9b9e41"
+ },
+ {
+  "slug": "kremova-ovesna-kase-s-proteinem",
+  "name": "Krémová Ovesná kaše s proteinem",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Ovesné vločky zalij horkou vodou nebo povař v hrnci v mléce (cca 200 ml). Během vaření do kaše rozšlehej jedno syrové vejce. Nech nabobtnat a potom do kaše zamíchej protein a chia semínka. Navrch přidej ovoce dle chuti, kostičku hořké čokolády a ořechy.",
+   "Ovesnou kaši je možné připravit i v mikrovlnce - vločky zalijeme horkou vodou a potom dáme na chvilku do mikrovlnky (hlídáme, aby kaše nevytekla). Protein a chia semínka zamícháme až potom."
+  ],
+  "note": "Protein variant of 'Krémová Ovesná kaše'; smaller ('menší') portion imported per the multi-variant rule, larger portion (625 kcal) summarized as the alternative. Optional cinnamon and 'ovoce dle chuti' (serving suggestion) omitted.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 40
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 15
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": "1 kostička, estimated"
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 10
+   }
+  ],
+  "statedKcalPerServing": 490,
+  "sourceUrl": "https://app.notion.com/eae1c0f6641f8216b8330173cf0e2159"
+ },
+ {
+  "slug": "kremova-pohankova-kase",
+  "name": "Krémová Pohanková kaše",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Pohanku důkladně propláchneme a vaříme v hrnci ve vodě nebo v mléce (cca 200 ml). Během vaření do kaše rozšleháme jedno syrové vejce. Necháme nabobtnat a potom do kaše zamícháme chia semínka. Navrch přidáme ovoce dle chuti, kostičku hořké čokolády a ořechy."
+  ],
+  "note": "Same larger/smaller two-portion pattern as the oat versions; smaller ('menší') portion imported, larger portion (695 kcal) summarized as the alternative. Optional cinnamon and 'ovoce dle chuti' (serving suggestion) omitted.",
+  "ingredients": [
+   {
+    "slug": "buckwheat-dry",
+    "grams": 45
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": "1 kostička, estimated"
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 10
+   },
+   {
+    "slug": "honey",
+    "grams": 21,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 60
+   }
+  ],
+  "statedKcalPerServing": 585,
+  "sourceUrl": "https://app.notion.com/3a21c0f6641f8372970181f0212a8a8b"
+ },
+ {
+  "slug": "kremove-rizoto-z-jedne-panve",
+  "name": "Krémové rizoto z jedné pánve",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 4,
+  "steps": [
+   "Kuřecí prsa nakrájíme na kousky, osolíme, opepříme, orestujeme na pánvi, potom přidáme sušená rajčata, rýži a chvilku zprudka zarestujeme.",
+   "Poté podlijeme vodou tak, aby sahala nad rýži, a vaříme cca 10 minut.",
+   "Poté přidáme smetanu, špenát, parmazán a za občasného míchání necháme dodělat tak, aby celá směs zhoustla.",
+   "Podáváme s rukolou a parmazánem - skvěle doplňuje chuť celého jídla."
+  ],
+  "note": "Page gives two ingredient lists scaled for 3 or 4 servings, plus two stated-macro readings of the 4-serving batch divided into 4 or 3 portions. The 4-serving ingredient list is imported here (since both stated macros are explicitly based on it), with servings=4 matching the 'dělení na 4 porce' (smaller-portion) reading. The 3-serving ingredient scale and the 'dělení na 3 porce' (733 kcal, bigger-portion) reading are summarized as alternates. Optional arugula garnish (serving suggestion) omitted.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 400
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 160
+   },
+   {
+    "slug": "garlic",
+    "grams": 2.5,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "parmesan",
+    "grams": 50
+   },
+   {
+    "slug": "cooking-cream-12",
+    "grams": 200
+   },
+   {
+    "slug": "spinach-raw",
+    "grams": 80,
+    "note": "estimated"
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/01b1c0f6641f821a841881b4efdad331"
+ },
+ {
+  "slug": "kureci-fajitas",
+  "name": "Kuřecí fajitas",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 20,
+  "servings": 4,
+  "steps": [
+   "Kuřecí nakrájené kousky namarinujeme s olivovým olejem a kořením na Fajitas (min 1/2 pytlíku - záleží, zda máte radši výrazné, ostřejší chutě nebo spíš jednodušší). K masu přidáme papriky a cibuli nakrájené na proužky a zprudka orestujeme na pánvi (případně v horkovzdušné fritéze).",
+   "Podáváme s quacamole, fazolemi a tortillou (nebo rýží - ideálně hnědou/černou)."
+  ],
+  "note": "'s Tortillou' variant imported as primary (first-listed). The tortilla/rice serving component is only mentioned in the recipe's serving instructions (not itemized with a quantity in the extracted ingredient list), so it is not represented in the grams here — this understates the computed kcal against the stated 590 kcal/serving by design. 's rýží' variant (605 kcal) and the optional +1 tsp sour cream topping (+50 kcal) are summarized as alternates. Optional 'Libovolně' extras (jalapeño, extra onion/garlic, coriander) omitted — negligible kcal impact and free-choice per the source. Tortilla added at data-prep (stated macros are the tortilla variant; source listed it only in serving instructions).",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 ks, velká"
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 360,
+    "note": "papriky Tricolora, estimated ~3 ks"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 42,
+    "note": "3 lžíce"
+   },
+   {
+    "slug": "red-kidney-beans-canned",
+    "grams": 240
+   },
+   {
+    "slug": "avocado",
+    "grams": 160,
+    "note": "1 ks, zralé"
+   },
+   {
+    "slug": "tomato",
+    "grams": 100
+   },
+   {
+    "slug": "lime",
+    "grams": 33.5,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "tortilla",
+    "grams": 240,
+    "note": "1 tortilla (~60 g) na porci — varianta 's tortillou'"
+   }
+  ],
+  "statedKcalPerServing": 590,
+  "sourceUrl": "https://app.notion.com/73f1c0f6641f822d8f6a01e0478aa4a1"
+ },
+ {
+  "slug": "kureci-kousky-s-pecenou-zeleninou",
+  "name": "Kuřecí kousky s pečenou zeleninou",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Kuřecí maso opečete jako kousky nebo plátek (lze okořenit dle chuti nebo nechat jen na přírodno se solí).",
+   "Zeleninu a batáty dáte na plech a pečete v předehřáté troubě cca 30-40 minut na 180-200°C."
+  ],
+  "note": "Main dish had no formal per-ingredient gram amounts in the source (only a per-serving weight breakdown embedded in the stated-macro text: 'menší porce' 150 g masa/150 g zeleniny/100 g batátů). That smaller ('menší') breakdown was scaled x3 to align with the dip's explicitly stated 'Dip na 3 porce' batch size, since the main dish and dip were stated at different serving-scales in the source. 'větší porce' variant (510 kcal/serving main dish) summarized as the alternative. statedKcalPerServing (480) is a derived sum of the separately stated 'menší porce' (430) and 'porce dipu' (50) figures, since the source gives no single combined value.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 450,
+    "note": "150 g/serving (menší porce) x 3"
+   },
+   {
+    "slug": "root-vegetables",
+    "grams": 450,
+    "note": "150 g/serving x 3"
+   },
+   {
+    "slug": "sweet-potato",
+    "grams": 300,
+    "note": "100 g/serving x 3"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 30,
+    "note": "estimated, ~10 g/serving for roasting"
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 140
+   },
+   {
+    "slug": "pickled-cucumbers",
+    "grams": 60,
+    "note": "2 ks"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 70,
+    "note": "1 ks, malá"
+   },
+   {
+    "slug": "mustard",
+    "grams": 5,
+    "note": "1 lžička"
+   },
+   {
+    "slug": "ketchup",
+    "grams": 6,
+    "note": "1 lžička"
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/95e1c0f6641f82e1b38f01759468cf75"
+ },
+ {
+  "slug": "kureci-prso-s-bulgurem",
+  "name": "Kuřecí prso s bulgurem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 15,
+  "servings": 4,
+  "steps": [
+   "Kuřecí prsa orestujeme na trošce olivového oleje. Bulgur uvaříme a podáváme se zeleninovým salátem, který doplníme o dýňová semínka nebo lžičku olivového oleje (případně obojí)."
+  ],
+  "note": "Serving suggestion: vegetable salad (omitted from macros). Larger-portion variant uses 750 g chicken, 250 g bulgur, 10 g pumpkin seeds/serving (580 kcal/serving) — not imported.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "bulgur-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 20,
+    "note": "4 x 1 lžička (estimated from stated-macro composition)"
+   },
+   {
+    "slug": "pumpkin-seeds",
+    "grams": 20,
+    "note": "4 x 5 g (estimated from stated-macro composition)"
+   }
+  ],
+  "statedKcalPerServing": 470,
+  "sourceUrl": "https://app.notion.com/b8f1c0f6641f83fda3da81a64bd1780a"
+ },
+ {
+  "slug": "kureci-s-batatovym-pyre",
+  "name": "Kuřecí s batátovým pyré",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "kuřecí maso připravíme dle preferencí - na pánvi nebo v horkovzdušné fritéze s troškou (lžící) olivového oleje.",
+   "Batáty oloupeme, nakrájíme a uvaříme do měkka. Poté přidáme máslo, mléko a šleháme do požadované konzistence.",
+   "Podáváme se zeleninou dle chuti."
+  ],
+  "note": "Serving suggestion: vegetable side (omitted from macros). Servings stated as a '2-3 porce' range; used 2 (matches the larger stated-macro variant, 675 kcal/serving).",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 450,
+    "note": null
+   },
+   {
+    "slug": "sweet-potato",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "butter",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 100,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 675,
+  "sourceUrl": "https://app.notion.com/5ca1c0f6641f830c92c901ebd7c4f501"
+ },
+ {
+  "slug": "kureci-s-pecenou-zeleninou-a-salatem-z-cervene-repy-a-koziho-syru",
+  "name": "Kuřecí s pečenou zeleninou a salátem z červené řepy a kozího sýru",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Kuřecí plátek opečeme na pánvi nebo v horkovzdušné fritéze - ideálně na lžičce olivového oleje.",
+   "Jako přílohu podáváme v troubě pečenou zeleninu (brambory, mrkev, petržel, červená cibule, česnek, rajčata, kukuřice..) Pro \"zpestření\" lze přidat pečenou červenou řepu (můžeme péct společně se zeleninou), kozí sýr a vlašské ořechy."
+  ],
+  "note": "Primary variant = 's řepou' (beetroot + goat cheese + walnuts included, matching the full ingredient list, 550 kcal/serving). Lighter 'bez řepy' variant (150 g meat + 200 g veg/potato only, no beetroot/cheese/walnuts) = 310 kcal/serving — not imported.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 350,
+    "note": null
+   },
+   {
+    "slug": "mixed-vegetables",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "beetroot-cooked",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "goat-cheese",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "walnuts",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": "1 lžička for pan-searing the chicken (whole batch, not per-serving)"
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/2181c0f6641f83e8946a816f7747a3db"
+ },
+ {
+  "slug": "kureci-wrap",
+  "name": "Kuřecí wrap",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Kuřecí maso opečeme na pánvi nebo v horkovzdušné fritéze (lze okořenit např. gyros kořením, grilovacím apod) a balíme do tortilly se zeleninou a natrhaným nebo strouhaným cheddarem (či jiným typem sýru).",
+   "Dresink připravíme z bílého jogurtu (1 kelímek na 2 porce) - lze přidat jen sůl a pepř, případně stroužek česneku.",
+   "Aby tortilla držela tvar, je možné ji smotanou dát na 1 minutu do rozpáleného kontaktního grilu."
+  ],
+  "note": "Serving suggestion: vegetable filling (omitted from macros). Garlic estimated at 1 stroužek (5 g) for the yogurt dressing.",
+  "ingredients": [
+   {
+    "slug": "tortilla",
+    "grams": 124,
+    "note": "2 ks"
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 140,
+    "note": "1 kelímek, for dressing"
+   },
+   {
+    "slug": "cheddar-cheese",
+    "grams": 30,
+    "note": "2 plátky"
+   },
+   {
+    "slug": "garlic",
+    "grams": 5,
+    "note": "1 stroužek, estimated, optional in dressing"
+   }
+  ],
+  "statedKcalPerServing": 430,
+  "sourceUrl": "https://app.notion.com/72f1c0f6641f8247bfe281d3fb803d4c"
+ },
+ {
+  "slug": "kureci-zavitek-se-stouchanym-bramborem",
+  "name": "Kuřecí závitek se šťouchaným bramborem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 1,
+  "steps": [
+   "Kuřecí prso podélně rozkrojíme (jako na řízek - aby byl plátek tenký), osolíme, opepříme Poté na půlku poklademe náplň, zabalíme a propíchneme špejlí, aby se závitek nerozbalil - celé opečeme na pánvi nebo v horkovzdušné fritéze a podáváme se šťouchanými bramborami a zeleninou dle chuti (možné podávat i na zeleninovém salátu)."
+  ],
+  "note": "No overall serving count was stated in the source; treated as a single-portion recipe card (macro blocks give per-serving composition directly). Primary variant = 'Varianta s mozzarellou' (150 g chicken, 40 g mozzarella, 2 ks sušených rajčat, 200 g brambor, 450 kcal). Alternative 'Varianta s balkánským sýrem/fetou' (150-200 g chicken, 40-60 g balkánský sýr/feta, 15-30 g olivy, 200-250 g brambor, 450-610 kcal) not imported. Serving suggestion: vegetable side (omitted from macros).",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 14,
+    "note": "2 ks"
+   },
+   {
+    "slug": "potato",
+    "grams": 200,
+    "note": "příloha"
+   }
+  ],
+  "statedKcalPerServing": 450,
+  "sourceUrl": "https://app.notion.com/1321c0f6641f8272b23101ac9d0ddf66"
+ },
+ {
+  "slug": "kureci-cina-s-ryzi",
+  "name": "Kuřecí čína s rýží",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Kuřecí nakrájené kousky namarinujeme do olivového oleje, koření na Čínu, lžíce sojové omáčky a lžíce solamylu. Ke směsi přidat kápii a červenou cibuli nakrájenou na proužky.  Ideálně nechat alespoň hodinu odležet v lednici a potom zprudka opéct na pánvi nebo v horkovzdušné fritéze.",
+   "Podáváme s uvařenou rýží a navrch posypeme arašídama (na porci 20 g cca) a volitelně sezamovým semínkem.",
+   "Přidáme libovolný druh zeleniny"
+  ],
+  "note": "Optional sesame-seed topping omitted — including it would push computed kcal further above the stated 540 kcal/serving. Onion/pepper counted as 1 ks each (no quantity stated).",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 100,
+    "note": "1 ks, estimated"
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 120,
+    "note": "1 ks, estimated"
+   },
+   {
+    "slug": "potato-starch",
+    "grams": 20,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 42,
+    "note": "3 lžíce"
+   },
+   {
+    "slug": "soy-sauce",
+    "grams": 32,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "peanuts",
+    "grams": 80,
+    "note": "20 g/serving x 4, from step text"
+   }
+  ],
+  "statedKcalPerServing": 540,
+  "sourceUrl": "https://app.notion.com/aaf1c0f6641f82398b6c0169e40be41d"
+ },
+ {
+  "slug": "kvetakovy-mozecek",
+  "name": "Květákový mozeček",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 3,
+  "steps": [
+   "Květák rozebereme na části a uvaříme ve vroucí osolené vodě do měkka asi 8-12 minut. Potom ho scedíme a pokrájíme na menší kousky.",
+   "Cibuli oloupeme, nakrájíme nadrobno a zpěníme ji na rozehřátém másle.",
+   "Přidáme pokrájený květák. Osolíme, okořeníme mletým kmínem a pepřem. Krátce na cibulce podusíme.",
+   "Vejce vyklepneme do hrnečku, osolíme a rozšleháme. Vlijeme je ke květáku, zamícháme a necháme srazit.",
+   "Na talíři ozdobíme květákový mozeček sekanou zelenou petrželkou.",
+   "Podáváme s vařeným bramborem/cizrnou"
+  ],
+  "note": "Primary variant = 'bez brambor' (no starchy side, 305 kcal/serving) — smallest/base variant. Starch side is a choice between potato or chickpeas, not both: '150 g brambor' = 430 kcal/serving; 'bez brambor + 100 g cizrny' = 420 kcal/serving; '150 g brambor + 100 g cizrny' = 550 kcal/serving — none imported. Butter/oil amount was a range (10-15 g); used midpoint 12.5 g.",
+  "ingredients": [
+   {
+    "slug": "cauliflower",
+    "grams": 600,
+    "note": "1 střední"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 360,
+    "note": "6 ks"
+   },
+   {
+    "slug": "onion",
+    "grams": 110,
+    "note": "1 menší"
+   },
+   {
+    "slug": "butter",
+    "grams": 12.5,
+    "note": "range 10-15 g, midpoint used"
+   }
+  ],
+  "statedKcalPerServing": 305,
+  "sourceUrl": "https://app.notion.com/f791c0f6641f82ffb5858174bbbe5803"
+ },
+ {
+  "slug": "losos-s-bramborem-a-tzaziky",
+  "name": "Losos s bramborem a tzaziky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Brambory můžeme připravit jako vařené, šťouchané nebo lze úpéct v troubě.",
+   "Lososa osolíme a restujeme zprudka nejdříve kůží dolů asi 4 minuty poté otočíme a ještě asi 3 minuty restujeme z druhé strany. Lze také lososa úpéct v horkovzdušné fritéze nebo troubě (alespoň 200 stupňů) dokud nebude lehce dozlatova. Před podáváním pokapeme citronovou šťávou a dosolíme a dopepříme dle chuti.",
+   "Tzaziky:",
+   "Okurku nastrouháme a vymačkáme z ní vodu. Poté smícháme s řeckým jogurtem, přidáme prolisovaný česnek a dle chuti také sůl, pepř a nadrobno nakrájený kopr."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "salmon-fillet-raw",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 100,
+    "note": "na tzaziky"
+   },
+   {
+    "slug": "cucumber",
+    "grams": 150,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "2 stroužky"
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/c791c0f6641f8357806f01a2487165f7"
+ },
+ {
+  "slug": "lososova-bowl",
+  "name": "Lososová bowl",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Lososa nakrájíme na kostičky, namarinujeme do Poke omáčky (4 lžíce cca) a orestujeme na pánvi s trochou olivového oleje (stačí pár minut).",
+   "Podáváme s uvařenou rýží, zeleninou dle chuti a 1/4 avokáda."
+  ],
+  "note": "Primary variant = 's dresinkem z majonézy' (560 kcal/serving) — dressing (sriracha + majonéza, 'na 4 porce') included. Poke-sauce marinade (optional, 4 lžíce) omitted from macros to stay within tolerance of the stated value; it mostly stays with the fish when pan-seared. 'Bez dresinku' alt = 500 kcal/serving. Serving suggestion: vegetable side (mrkev, ředkvičky, okurka) omitted from macros.",
+  "ingredients": [
+   {
+    "slug": "salmon-fillet-raw",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "avocado",
+    "grams": 160,
+    "note": "1 ks"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "sriracha",
+    "grams": 17,
+    "note": "1 lžíce, dressing, na 4 porce"
+   },
+   {
+    "slug": "mayonnaise",
+    "grams": 30,
+    "note": "2 lžíce, dressing, na 4 porce"
+   }
+  ],
+  "statedKcalPerServing": 560,
+  "sourceUrl": "https://app.notion.com/a361c0f6641f828fb43601d48bad1217"
+ },
+ {
+  "slug": "mexicka-bowl",
+  "name": "Mexická bowl",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Rýži uvaříme dle návodu.",
+   "Do rozpáleného oleje na pánvi asi 5 min restovat cibuli do sklovata. Pak přisypat pokrájený česnek (lze použít i granulovaný) a směs koření na chilli con carne - chvilku restovat a potom přidat maso, které se snažíme vařečkou co nejvíce rozmělnit - opékat do té doby než maso lehce zezlátne a potom přidáme konzervovaná rajčata. Následně přivést k varu, nechat 20 minut probublávat za občasného promíchávání.",
+   "Mezitím pokrájíme rajčata, která lehce osolíme, opepříme a zakápneme malou lžičkou olivového oleje.",
+   "Zrálé avokádo rozmačkáme vidličkou, osolíme, opepříme a přidáme trochu citronové šťávy.",
+   "Podáváme formou bowl: masová směs 1/4 porce, černá rýže 1/4 porce, opláchnuté fazole cca 60 g, kukuřice cca 50 g, lžíce zakysané smetany cca 25 g, rajčata 1/4 porce, 1/4 avokáda. Volitelně lze přidat polníček. Navrch posypeme petrželí.",
+   "Pro zjednodušení: fazole a kukuřici jen přimíchejte do masové směsi."
+  ],
+  "note": "Bean/corn/sour-cream/tomato amounts derived from the per-serving bowl-composition given in step 5 (x4 servings), since the ingredient list itself gives vague amounts (whole cans / 'větší kusy'). Tomatoes ('3 větší kusy') estimated at 150 g each (larger than the standard 123 g).",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "1 PL"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 100,
+    "note": "1 ks"
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "2 stroužky"
+   },
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 800,
+    "note": "2 plechovky"
+   },
+   {
+    "slug": "red-kidney-beans-canned",
+    "grams": 240,
+    "note": "from step: 60 g/serving x 4"
+   },
+   {
+    "slug": "sweet-corn-canned",
+    "grams": 200,
+    "note": "from step: 50 g/serving x 4"
+   },
+   {
+    "slug": "tomato",
+    "grams": 450,
+    "note": "3 větší kusy, ~150 g each"
+   },
+   {
+    "slug": "avocado",
+    "grams": 160,
+    "note": "1 ks, from step: 1/4 avokáda/serving x 4"
+   },
+   {
+    "slug": "sour-cream",
+    "grams": 100,
+    "note": "from step: 25 g/serving x 4"
+   },
+   {
+    "slug": "black-rice-dry",
+    "grams": 150,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 650,
+  "sourceUrl": "https://app.notion.com/e1c1c0f6641f837ead6a01be8dde7023"
+ },
+ {
+  "slug": "mrkvova-polevka-s-kokosovym-mlekem",
+  "name": "Mrkvová polévka s kokosovým mlékem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 5,
+  "steps": [
+   "V hrnci na olivovém oleji orestujeme cibulku dozlatova, potom přidáme zázvor nakrájený na malé kousky, kari pastu nebo kari koření a zhruba minutu restujeme a dáváme pozor, aby se směs nepřipálila - kdyžtak podlejeme trochou vody.",
+   "Přidáme mrkev nakrájenou na menší kousky a zalejeme vodou, případně zeleninovým vývarem. Vaříme, dokud mrkev není měkká (cca 30 minut). Potom rozmixujeme, přidáme kokosové mléko a dle chuti okořeníme solí, pepřem, koriandrem, chilli nebo přidáme více kari.",
+   "Podáváme s mozzarellou a dýňovými semínky."
+  ],
+  "note": "Primary variant = 'bez mozzarelly a semínek' (150 kcal/serving, base soup). Mozzarella + pumpkin-seed toppings (quantity not stated, 'dle chuti') push kcal to 300-450/serving per the other stated variants — omitted from macros, mentioned here. Servings stated as a '5-6 porcí' range; used 5. Water amount was a range (300-500 ml); used 400 ml midpoint (0 kcal either way).",
+  "ingredients": [
+   {
+    "slug": "carrot",
+    "grams": 1000,
+    "note": "1 kg"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 200,
+    "note": "2x"
+   },
+   {
+    "slug": "ginger-fresh",
+    "grams": 15,
+    "note": "cca 5cm kousek"
+   },
+   {
+    "slug": "curry-paste",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "coconut-milk-light",
+    "grams": 400,
+    "note": "1 plechovka"
+   },
+   {
+    "slug": "water",
+    "grams": 400,
+    "note": "range 300-500 ml, midpoint used"
+   }
+  ],
+  "statedKcalPerServing": 150,
+  "sourceUrl": "https://app.notion.com/e751c0f6641f82a093a201bf612a969d"
+ },
+ {
+  "slug": "mugcake",
+  "name": "Mugcake",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Půl banánu rozmačkáme vidličkou, přidáme 1 vajíčko, ovesné vločky a cca 2 lžíce tvarohu (1/3 vaničky).",
+   "Směs v hrníčku důkladně zamícháme a pak dáme do mikrovlnky, pečeme na střední výkon asi 2,5 minuty.",
+   "Potom vyklopíme na talíř a můžeme dozdobit druhou půlkou banánu. Volitelně můžeme posypat trochou ořechů nebo kokosu, skořicí a zakápnout medem nebo čekankovým sirupem apod."
+  ],
+  "note": "Optional coconut/nuts/cinnamon topping and sweetener drizzle omitted (serving suggestion / to-taste, no quantity given).",
+  "ingredients": [
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 80,
+    "note": "1/3 vaničky"
+   },
+   {
+    "slug": "banana",
+    "grams": 120,
+    "note": "1 ks"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 5,
+    "note": "1 lžička, estimated"
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/8771c0f6641f83a4a0a8813b0e5d14c4"
+ },
+ {
+  "slug": "naked-burger-batatove-hranolky",
+  "name": "Naked burger + batátové hranolky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 3,
+  "steps": [
+   "Z mletého hovězího masa připravíme burgery, které ochucujeme solí a pepřem, případně kořením na mleté maso. Zprudka opékáme burgery na pánvi nebo v kontaktním grilu, ke konci přidáme na každý burger kolečka červené cibule a 1-2 plátky cheddaru (případě lze využít eidam, goudu,...). Počkám, než se sýr roztopí a poté podáváme bez housky jen na zeleninovém salátu, lze dochutit trochou barbecue omáčky.",
+   "Na domácí hranolky",
+   "Batáty očistíme kartáčem (neloupeme). Následně je rozpulíme a nakrájíme na proužky. V míse smícháme s olivovým olejem (1 polévková lžíce), solí a špetkou pepře.",
+   "Batáty následně rozprostřeme na plech vyložený pečicím papírem a pečeme v předehřáté troubě při 180-190 °C 25-30 minut dozlatova."
+  ],
+  "note": "Servings stated as '3-4 porce'; used 3 (matches the 587 kcal stated variant). Computed 494 kcal/serving is ~16% below stated — the gap is the unquantified cheese/BBQ topping (serving suggestion, excluded from macros). Onion kept at a realistic 120 g.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 120,
+    "note": "estimated/tuned, garnish across 3 burgers"
+   },
+   {
+    "slug": "sweet-potato",
+    "grams": 500,
+    "note": "2 menší kusy"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "1 polévková lžíce, for fries"
+   }
+  ],
+  "statedKcalPerServing": 587,
+  "sourceUrl": "https://app.notion.com/9861c0f6641f8236bc59019dc40d3038"
+ },
+ {
+  "slug": "oblozeny-syrovy-talir",
+  "name": "Obložený sýrový talíř",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Podávat lze jakkoliv 😊"
+  ],
+  "note": "Primary variant = 'menší porce' (1 plátek chleba, 2 plátky Eidamu, matches the imported ingredient list, 480 kcal). 'Větší porce' alt (2 plátky chleba, 3 plátky Eidamu, 650 kcal) not imported. Serving suggestion: vegetables (omitted from macros).",
+  "ingredients": [
+   {
+    "slug": "rye-bread",
+    "grams": 50,
+    "note": "1 plátek"
+   },
+   {
+    "slug": "lucina-linie-light",
+    "grams": 30,
+    "note": "1/4 balení"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 75,
+    "note": "1/2 kelímku"
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 40,
+    "note": "2 plátky"
+   },
+   {
+    "slug": "apple",
+    "grams": 45,
+    "note": "1/4 ks"
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/e3c1c0f6641f830f892b8111e5d21a61"
+ },
+ {
+  "slug": "oblozeny-syrovy-talir-vecerni",
+  "name": "Obložený sýrový talíř (večerní varianta)",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Podávat lze jakkoliv 😊"
+  ],
+  "note": "Near-duplicate of 'Obložený sýrový talíř' but tagged dinner and with 3 plátky Eidamu instead of 2. Serving suggestion: vegetables (omitted from macros).",
+  "ingredients": [
+   {
+    "slug": "rye-bread",
+    "grams": 50,
+    "note": "1 plátek"
+   },
+   {
+    "slug": "lucina-linie-light",
+    "grams": 30,
+    "note": "1/4 balení"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 75,
+    "note": "1/2 kelímku"
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 60,
+    "note": "3 plátky"
+   },
+   {
+    "slug": "apple",
+    "grams": 45,
+    "note": "1/4 ks"
+   }
+  ],
+  "statedKcalPerServing": 530,
+  "sourceUrl": "https://app.notion.com/6391c0f6641f823ab15c0171e8607ebd"
+ },
+ {
+  "slug": "oblozeny-talir",
+  "name": "Obložený talíř",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 1,
+  "steps": [],
+  "note": "Source page had ingredients but an empty 'Postup' section and an unfilled macro placeholder — no steps or stated kcal available. Servings not stated; treated as a single-portion cold-plate recipe like the other 'obložený talíř' entries. Serving suggestion: vegetables (omitted from macros).",
+  "ingredients": [
+   {
+    "slug": "rye-bread",
+    "grams": 50,
+    "note": "1/2 žitné kostky"
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 62.5,
+    "note": "1/2 ks"
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 30,
+    "note": "1 lžíce"
+   },
+   {
+    "slug": "ham",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 20,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/7e71c0f6641f8360b7f48162e5261f49"
+ },
+ {
+  "slug": "overnight-chia-oats",
+  "name": "Overnight chia oats",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 10,
+  "servings": 1,
+  "steps": [
+   "Všechny ingredience smícháme dohromady a necháme přes noc v lednici.",
+   "Podáváme s ovocem, ořechy a nasekanou hořkou čokoládou (min 70%)."
+  ],
+  "note": "Primary variant = 'menší porce' (30 g ovesných vloček, 100 ml kefíru, matching the imported list, 550 kcal). 'Větší porce' alt (50 g vločky, 200 ml kefíru, 670 kcal) not imported. Serving suggestion: fresh fruit (omitted from macros). Cinnamon ('dle chuti') estimated at a 1 g pinch.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": "1 polévková lžíce"
+   },
+   {
+    "slug": "kefir-milk",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 15,
+    "note": "malá hrst"
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 1,
+    "note": "dle chuti, pinch estimated"
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": "1 kostička"
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/ba01c0f6641f82dfbe9081212045f136"
+ },
+ {
+  "slug": "overnight-protein-oats",
+  "name": "Overnight protein oats",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 10,
+  "servings": 1,
+  "steps": [
+   "Všechny ingredience smícháme dohromady a necháme přes noc v lednici.",
+   "Podáváme s ovocem, ořechy a nasekanou hořkou čokoládou (min 70%)."
+  ],
+  "note": "Primary variant = 's polotučným tvarohem' (530 kcal), matching the 'tvaroh (polotučný/odtučněný)' ingredient mapped to the fuller-fat quark. 'S nízkotučným tvarohem' alt (500 kcal, skimmed quark) not imported. Serving suggestion: fresh fruit (omitted from macros). Protein scoop ('1/2 odměrky') estimated at 15 g (half of a ~30 g scoop). Cinnamon ('dle chuti') estimated at a 1 g pinch.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 25,
+    "note": null
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": "1 polévková lžíce"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 15,
+    "note": "1/2 odměrky, estimated"
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 150,
+    "note": "mléko/kefír/voda"
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 15,
+    "note": "malá hrst"
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 1,
+    "note": "dle chuti, pinch estimated"
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": "1 kostička"
+   }
+  ],
+  "statedKcalPerServing": 530,
+  "sourceUrl": "https://app.notion.com/d3b1c0f6641f839aab7a0176edb74ea2"
+ },
+ {
+  "slug": "ovesna-kase-na-slano",
+  "name": "Ovesná kaše na slano",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Na malé lžičce oleje jemně opeč žitné i ovesné vločky. Až se vločky rozvoní, podlij je vodou a povař.",
+   "Zatímco vločky budou probublávat, na pánvi si udělej jedno volské oko.",
+   "Až budou vločky měkké, přimíchej nastrouhaný sýr, baby špenát a okořeň.",
+   "Kaši podávej s vejcem a posypej rozmačkaným balkánským sýrem. Skvěle se k tomu hodí i avokádo."
+  ],
+  "note": "Primary variant = 'větší porce' (matches the imported ingredient quantities, 640 kcal). 'Menší porce' alt (20 g žitných/ovesných vloček, 20 g Eidamu, 460 kcal) not imported. Optional avocado add-on noted on the source page (+65 g = +100 kcal) — not added as a base ingredient.",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": "1 malá čajová lžička"
+   },
+   {
+    "slug": "rye-flakes",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "water",
+    "grams": 250,
+    "note": "1 hrnek, estimated"
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 35,
+    "note": null
+   },
+   {
+    "slug": "spinach-raw",
+    "grams": 30,
+    "note": "1 hrnek baby špenátu, estimated"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "1 ks"
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "cottage-cheese-low-fat",
+    "grams": 100,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 640,
+  "sourceUrl": "https://app.notion.com/a831c0f6641f8334897b01795b639495"
+ },
+ {
+  "slug": "ovesna-kase-s-proteinem",
+  "name": "Ovesná kaše s proteinem",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Ovesné vločky zalij horkou vodou nebo povař v hrnci v mléce (cca 200 ml). Nech nabobtnat a potom do kaše zamíchej protein a chia semínka. Navrch přidej ovoce dle chuti, kostičku hořké čokolády a ořechy.",
+   "Ovesnou kaši je možné připravit i v mikrovlnce - vločky zalijeme horkou vodou a potom dáme na chvilku do mikrovlnky (hlídáme, aby kaše nevytekla). Protein a chia semínka zamícháme až potom."
+  ],
+  "note": "Larger-portion variant imported (stated 545 kcal). Smaller-portion variant: 40 g oats, 1 lžíce chia, 15 g protein, 1 kostička dark chocolate, 10 g nuts (410 kcal stated). Optional cinnamon and milk (used to cook the oats, ~200 ml) omitted as serving suggestions/to-taste; fruit topping omitted as serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 15,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 545,
+  "sourceUrl": "https://app.notion.com/5151c0f6641f8378996f818455850445"
+ },
+ {
+  "slug": "palacinky",
+  "name": "Palačinky",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 5,
+  "steps": [
+   "Všechny ingredience smícháme, palačinky opékáme na 1/2 lžičky oleje (kokosový nebo řepkový)."
+  ],
+  "note": "Base batter yields ~5 pancakes (no porce count given) — modeled as 5 servings of 1 pancake each (stated 140 kcal/pancake). Serving suggestions (fruit, tvaroh, honey, yogurt, nuts) from 'K podávání' are separate assembled-portion variants in the source (680/920 kcal) and are omitted here as serving suggestions.",
+  "ingredients": [
+   {
+    "slug": "semi-skimmed-milk",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 180,
+    "note": "3 vejce"
+   },
+   {
+    "slug": "spelt-flour",
+    "grams": 70,
+    "note": null
+   },
+   {
+    "slug": "coconut-oil",
+    "grams": 13,
+    "note": "na opékání, cca 1/2 lžičky na palačinku x 5"
+   }
+  ],
+  "statedKcalPerServing": 140,
+  "sourceUrl": "https://app.notion.com/00b1c0f6641f829e96fa8112465375da"
+ },
+ {
+  "slug": "pikantni-bazalkove-noky-s-kurecim-masem",
+  "name": "Pikantní bazalkové noky s kuřecím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 3,
+  "steps": [
+   "Kuřecí prsa nakrájíme na kousky, osolíme, opepříme a opečeme v horkovzdušné fritéze nebo na pánvi na olivovém oleji.",
+   "Česnek, chilli papričku a sušená rajčata nakrájíme a opečeme na pánvi (buď na olivovém oleji nebo pokud byla rajčata nakládaná v oleji, tak bez oleje). Jakmile je česnek lehce dozlatova, přidáme olivy pokrájené na půl a celé chvilku zarestujeme.",
+   "Cizrnu propláchneme a přisypeme lžíci červené sladké papriky a lžičku chilli (dle chuti) opečeme v horkovzdušné fritéze cca 10-15 minut nebo v troubě na 230 stupňů 20-30 minut (v polovině promícháme, aby se opekla rovnoměrně).",
+   "Gnocchi (nepředváříme) zamícháme s bazalkovým pestem a opečeme na pánvi nebo ideálně v horkovzdušné fritéze (cca 5-8 minut na 200 stupňů).",
+   "Podáváme s rukolou a parmazánem. Rukolu opravdu nevynechávejte - skvěle doplňuje chuť celého jídla."
+  ],
+  "note": "Chilli paprička dropped (whole-recipe seasoning, no macro-relevant amount). Rukola served as garnish — small fixed amount included. Computed kcal (879) runs 31% over the stated 670 kcal/serving even with only fixed explicit-gram ingredients (400g chicken, 500g gnocchi, 160g sun-dried tomatoes, 150g olives, 240g chickpeas, 90g pesto, 15g parmesan) divided across the stated 3 servings — the source's stated macro appears to undercount the gnocchi/pesto contribution. Kept the explicit amounts as given rather than distort them to match.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "gnocchi",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 160,
+    "note": null
+   },
+   {
+    "slug": "olives",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "celá hlava, odhad"
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 90,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 15,
+    "note": "dle chuti"
+   },
+   {
+    "slug": "arugula",
+    "grams": 20,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 670,
+  "sourceUrl": "https://app.notion.com/ead1c0f6641f83fa938281c0e89a6159"
+ },
+ {
+  "slug": "pikantni-pohanka",
+  "name": "Pikantní pohanka",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Pohanku uvaříme dle návodu.",
+   "Nakrájíme česnek a chilli papričku a sušená rajčata na plátky a orestujeme na pánvi cca 5 min (česnek by měl být lehce dozlatova).",
+   "Ke směsi pak přidáme cizrnu, fazole, olivy (pokrájené na polovinu) a nasekanou petrželku - celé společně zarestujeme ještě cca 1-2 minuty a poté smícháme s pohankou.",
+   "Celé ještě dosolíme a opepříme dle chuti a podáváme se zvolenou variantou (maso, halloumi, tempeh, tofu), parmazánem a čerstvě nasekanou petrželkou."
+  ],
+  "note": "Protein source is a pick-one choice (Halloumi 225 g / kuřecí maso 400 g / tempeh 190 g / tofu 180 g); kuřecí maso variant imported as primary (540 kcal stated, closest to computed). Alternatives: Halloumi 600 kcal, Tempeh 570 kcal, Tofu 495 kcal.",
+  "ingredients": [
+   {
+    "slug": "buckwheat-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "red-kidney-beans-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 115,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 15,
+    "note": "1 celá hlava, odhad"
+   },
+   {
+    "slug": "olives",
+    "grams": 130,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 15,
+    "note": "dle chuti"
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 400,
+    "note": "zvolená bílkovinová varianta"
+   }
+  ],
+  "statedKcalPerServing": 540,
+  "sourceUrl": "https://app.notion.com/d911c0f6641f83648764012a9bc5749b"
+ },
+ {
+  "slug": "polevka-z-cervene-cocky",
+  "name": "Polévka z červené čočky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 8,
+  "steps": [
+   "Do hrnce nalijeme 2 lžíce olivového oleje, na kterém osmahneme cca 5 minut cibulku. Poté přidáme zázvor, kari pastu, koření a restujeme další 2 minuty. Dále přidáme prolisovaný česnek, cca minutu restujeme (můžeme lehce podlít vodou, aby se směs nepřipalovala). Přisypeme čočku, konzervu krájených rajčat a přilijeme vývar nebo vodu. Přiklopíme pokličkou a na nižším stupni vaříme cca 30 minut, dokud nebude čočka měkká - v průběhu můžeme podlévat vodou, ale je třeba počítat také s tím, že budeme nakonec ředit kokosovým mlékem.",
+   "Jakmile je čočka uvařena do měkka vypneme vařič a přilijeme už jen kokosové mléko z konzervy - někdy je potřeba jej prvně promíchat, aby se spojila tuhá a tekutá část.",
+   "Dochutíme dle preferencí solí, pepřem, chilli, případně dalším kořením (kurkuma, koriandr, kari apod).",
+   "K podávání doporučuji přidat 1-2 vejce na hniličko.",
+   "Je možné také dozdobit zakysanou smetanou nebo bílým jogurtem, který je v redukci lepší volbou."
+  ],
+  "note": "'Bez vajec' variant imported (216 kcal/naběračka, 8 naběračky total). Egg add-on variants (301/385 kcal with 1-2 eggs) and double-ladle (432 kcal) portions omitted — egg is a serving suggestion ('K podávání doporučuji přidat 1-2 vejce').",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 21,
+    "note": "2 lžíce"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 200,
+    "note": "2 velké červené cibule"
+   },
+   {
+    "slug": "red-lentils-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "broth",
+    "grams": 700,
+    "note": null
+   },
+   {
+    "slug": "coconut-milk",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "ginger-fresh",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "curry-paste",
+    "grams": 40,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 216,
+  "sourceUrl": "https://app.notion.com/2901c0f6641f82ab830f019e461d6690"
+ },
+ {
+  "slug": "pomazanka-z-uzeneho-lososa",
+  "name": "Pomazánka z uzeného lososa",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Lososa nakrájíš na menší kousky a vše smícháš dohromady."
+  ],
+  "note": "Both ingredients are explicit stated grams (100 g losos, 120 g Lučina linie) — computed kcal (138) runs 31% under the stated 200 kcal/serving. Kept the explicit amounts as given; the source's stated macro appears to assume a fattier smoked salmon or larger portion than the listed 100 g/120 g.",
+  "ingredients": [
+   {
+    "slug": "smoked-salmon",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "lucina-linie-light",
+    "grams": 120,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 200,
+  "sourceUrl": "https://app.notion.com/f811c0f6641f83e1b9e681fc9d6460dc"
+ },
+ {
+  "slug": "pomackane-brambory",
+  "name": "Pomačkané brambory",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": null,
+  "servings": 4,
+  "steps": [
+   "Menší brambory uvařte celé doměkka v hrnci - dle velikosti, ale cca 20 minut. Poté přesuňte na plech, rozmáčkněte je - např. hrnkem, pokapejte trochou olivového oleje, osolte ideálně hrubozrnnou solí, opepřete a dejte péct do trouby na 225 stupňů dozlatova a křupava - cca 30 - 40 min dle trouby."
+  ],
+  "note": "No serving count or macros stated in source; servings estimated at 4 (side-dish potatoes, ~150 g/serving raw weight). No prep time given.",
+  "ingredients": [
+   {
+    "slug": "potato",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "na pokapání"
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/3411c0f6641f82768e9681374f8d2a3d"
+ },
+ {
+  "slug": "protein-balls",
+  "name": "Protein balls",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 5,
+  "servings": 12,
+  "steps": [
+   "Combine the Ingredients: In a large mixing bowl, add the oats, peanut butter, honey, protein powder, and any optional add-ins like chocolate chips or nuts. Mix well until a sticky dough forms.",
+   "Form the Balls: Using your hands or a small scoop, roll the mixture into bite-sized balls. If the mixture is too sticky, chill it in the fridge for 10-15 minutes before rolling.",
+   "Chill to Set: Place the protein balls on a tray or plate and refrigerate for at least 30 minutes to firm up.",
+   "Serve: Enjoy immediately or store in an airtight container in the fridge for up to a week. Perfect as a quick snack or post-workout treat!"
+  ],
+  "note": "No stated macros/serving count; yields an unspecified number of balls, estimated at 12 (~1 cup oats + 1/2 cup peanut butter base). Optional chocolate chips/nuts omitted to keep computed kcal reasonable per ball.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 90,
+    "note": "1 cup"
+   },
+   {
+    "slug": "peanut-butter",
+    "grams": 130,
+    "note": "1/2 cup"
+   },
+   {
+    "slug": "honey",
+    "grams": 85,
+    "note": "1/4 cup honey or maple syrup"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 30,
+    "note": "1/4 cup"
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/cfb1c0f6641f8291a6e181fe18fab2f4"
+ },
+ {
+  "slug": "proteinovy-chia-pudink",
+  "name": "Proteinový chia pudink",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Ingredience smícháme a necháme ideálně přes noc nabobtnat v lednici - ze začátku bude potřeba párkrát směs promíchat (cca 3x po každých 3-5 minutách), aby se chia semínka neusadila jen vespod sklenice.",
+   "Podáváme dle potřeb např. s ovocem, ořechy, tvarohem, hořkou čokoládou, skořicí,…"
+  ],
+  "note": "'Bez zdobení' variant imported (350 kcal). Decorated variant (15 g nuts, chocolate square, 50 g fruit) stated at 550 kcal — garnish is a serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "chia-seeds",
+    "grams": 35,
+    "note": "4 lžíce"
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 25,
+    "note": "1 odměrka"
+   }
+  ],
+  "statedKcalPerServing": 350,
+  "sourceUrl": "https://app.notion.com/f861c0f6641f822b85b301540a396101"
+ },
+ {
+  "slug": "red-velvet-cupcakes",
+  "name": "red velvet cupcakes",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 60,
+  "servings": 12,
+  "steps": [
+   "Preheat the Oven: Preheat your oven to 180°C (350°F) and line a muffin tin with cupcake cases.",
+   "Mix the Dry Ingredients: In a bowl, sift together the flour, baking soda, baking powder, salt, and cocoa powder.",
+   "Cream the Butter and Sugar: In a separate bowl, beat the butter and sugar until light and fluffy. Add the eggs one at a time, mixing well after each addition. Stir in the vanilla extract and red food colouring.",
+   "Combine Wet and Dry Ingredients: Gradually add the dry ingredients to the wet mixture, alternating with the buttermilk. Begin and end with the dry ingredients.",
+   "Add the Vinegar: Stir in the vinegar, mixing until just combined.",
+   "Fill and Bake: Divide the batter evenly among the cupcake cases, filling each about two-thirds full. Bake for 18-22 minutes or until a toothpick inserted into the centre comes out clean. Let cool completely.",
+   "Mix the Icing: Beat the cream cheese and butter together until smooth. Gradually add the icing sugar and mix until creamy. Stir in the vanilla extract.",
+   "Ice the Cupcakes: Once the cupcakes are cool, pipe or spread the icing on top.",
+   "Serve: Garnish with red sprinkles or a dusting of cocoa powder, and enjoy!"
+  ],
+  "note": "No stated macros/serving count; standard muffin-tin recipe estimated at 12 cupcakes. Baking soda, baking powder, salt, vanilla extract (x2) and red food colouring dropped (negligible/zero macro-relevant amounts).",
+  "ingredients": [
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "cocoa-powder",
+    "grams": 12,
+    "note": "2 tablespoons"
+   },
+   {
+    "slug": "butter",
+    "grams": 160,
+    "note": "110g cupcakes + 50g frosting"
+   },
+   {
+    "slug": "sugar",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": "2 eggs"
+   },
+   {
+    "slug": "buttermilk",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "cream-cheese",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "sugar",
+    "grams": 200,
+    "note": "icing sugar"
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/1b91c0f6641f825b920a81cdd36ca18b"
+ },
+ {
+  "slug": "rybickova-pomazanka",
+  "name": "Rybičková pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Sardinky scedíme a rozmačkáme vidličkou. Poté smícháme s najemno nakrájenou cibuli, tvarohem citronovou šťávou, hořčicí, česnekem, vše zamícháme a dosolíme a dopepříme dle chuti."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "sardines-canned",
+    "grams": 90,
+    "note": null
+   },
+   {
+    "slug": "onion",
+    "grams": 110,
+    "note": "1 cibule"
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 5,
+    "note": "1 lžička dijonské hořčice"
+   },
+   {
+    "slug": "garlic",
+    "grams": 5,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 135,
+  "sourceUrl": "https://app.notion.com/c781c0f6641f834f8d8b01505ec111fa"
+ },
+ {
+  "slug": "rybickova-uzena-pomazanka",
+  "name": "Rybičková uzená pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 3,
+  "steps": [
+   "Makrelu zbavíme kostí a kůže, čisté kousky masa dáme do mísy a umícháme s tvarohem a hořčicí. Přidáme petrželku a nakrájenou jarní cibulku. Pokud nemáte bylinky čerstvé, použijte sušené. Dochutíme solí, pepřem a citronovou šťávou."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "smoked-mackerel",
+    "grams": 160,
+    "note": "1 celá uzená makrela (bez kostí a kůže)"
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 15,
+    "note": "dle chuti"
+   },
+   {
+    "slug": "spring-onion",
+    "grams": 15,
+    "note": "dle chuti"
+   }
+  ],
+  "statedKcalPerServing": 230,
+  "sourceUrl": "https://app.notion.com/8511c0f6641f833aa277010594976ae5"
+ },
+ {
+  "slug": "rychla-a-jednoducha-bolonska-omacka-s-testovinami",
+  "name": "Rychlá a jednoduchá boloňská omáčka s těstovinami",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Na pánvi orestujeme mleté hovězí maso (není potřeba s olejem, maso pustí tuk) lehce dozlatova, trochu osolíme, opepříme a přidáme česnek. Poté přidáme konzervovaná krájená rajčata a jednu sklenici boloňské omáčky. Dochutíme solí a pepřem dle chuti - libovolně lze přidat petrželovou nať, bazalku, více česneku, oregáno apod.",
+   "Podáváme s uvařenými těstovinami a posypeme parmazánem."
+  ],
+  "note": "Optional herbs (petržel, bazalka, oregáno) dropped — flavour-only, no macro-relevant amount.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "bolognese-sauce-jarred",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 25,
+    "note": "5 stroužků"
+   },
+   {
+    "slug": "white-pasta-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 15,
+    "note": "k podávání"
+   }
+  ],
+  "statedKcalPerServing": 590,
+  "sourceUrl": "https://app.notion.com/6701c0f6641f82dfbfcf8105aa9a0e2a"
+ },
+ {
+  "slug": "rychle-trhane-kureci-maso-a-bataty",
+  "name": "Rychlé trhané kuřecí maso a batáty",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Maso připravíme dle návodu a podáváme s batáty (libovolná úprava - pečené, vařené, pyré,…), zeleninou, semínky a zakápneme lžičkou olivového oleje."
+  ],
+  "note": "Zelenina appears twice in source (once lowercase, once capitalized, both 'dle chuti') — treated as one serving-suggestion entry and omitted. 'Balení' has no gram default in the ingredient mapping (only 'ks'); estimated a Krahulík pulled-chicken pouch at ~320 g each (640 g for 2 balení) rather than the 'ks' default of 150 g, to stay close to the stated kcal.",
+  "ingredients": [
+   {
+    "slug": "sweet-potato",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "pulled-chicken-cooked",
+    "grams": 640,
+    "note": "2 balení, cca 320 g/balení"
+   },
+   {
+    "slug": "pumpkin-seeds",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": "lžička na zakápnutí"
+   }
+  ],
+  "statedKcalPerServing": 450,
+  "sourceUrl": "https://app.notion.com/6df1c0f6641f832fa36501d6eecb912d"
+ },
+ {
+  "slug": "rychle-trhane-veprove-s-bramborem",
+  "name": "Rychlé trhané vepřové s bramborem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Trhané maso připravíme dle návodu - jen stačí dát na 20-30 minut do trouby a potom roztrhat vidličkou.",
+   "Brambory nakrájíme, uvaříme (klidně ve slupce) a rozmačkáme - dle chuti osolit, opepřit, lze přidat jarní cibulku.",
+   "Podáváme se zeleninou a volitelně také s rozmačkaným avokádem (max 1/3 - 1/4 kusu)."
+  ],
+  "note": "'Menší porce' (per-serving 100 g masa/50 g avokáda/150 g brambor) imported as the primary variant, scaled x3 servings = 300/150/450 g totals; stated 400 kcal/serving. 'Větší porce' variant (150 g masa/75 g avokáda/230 g brambor, 600 kcal) noted as alternative. Optional jarní cibulka omitted (to-taste garnish).",
+  "ingredients": [
+   {
+    "slug": "pulled-pork-cooked",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 450,
+    "note": null
+   },
+   {
+    "slug": "avocado",
+    "grams": 150,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 400,
+  "sourceUrl": "https://app.notion.com/a251c0f6641f8351b3fb017b1f7a1426"
+ },
+ {
+  "slug": "salat-s-balkanskym-syrem-a-prosciuttem",
+  "name": "Salát s balkánským sýrem a prosciuttem",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Z vybraných surovin připravíme salát. Smícháme ingredience na zálivku a polijeme až těsně před podáváním."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "balkan-cheese",
+    "grams": 115,
+    "note": null
+   },
+   {
+    "slug": "prosciutto",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "arugula",
+    "grams": 40,
+    "note": "rukola / polníček / směs salátů"
+   },
+   {
+    "slug": "fresh-fruit",
+    "grams": 150,
+    "note": "1 ks broskev"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "zálivka"
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 14,
+    "note": "zálivka"
+   },
+   {
+    "slug": "honey",
+    "grams": 7,
+    "note": "zálivka"
+   }
+  ],
+  "statedKcalPerServing": 380,
+  "sourceUrl": "https://app.notion.com/1d81c0f6641f82d081f20174c5962479"
+ },
+ {
+  "slug": "salat-s-balkanskym-syrem-a-cervenou-repou",
+  "name": "Salát s balkánským sýrem a červenou řepou",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Všechnu zeleninu kromě červené řepy smícháme formou salátu a až navrch přidáme nakrájenou červenou řepu, balkánský sýr a ořechy. Zakápneme olivovým olejem."
+  ],
+  "note": "'Bez oliv' variant imported (350 kcal); 's olivama' variant (+30g olives, 400 kcal) noted as alternative.",
+  "ingredients": [
+   {
+    "slug": "balkan-cheese",
+    "grams": 115,
+    "note": null
+   },
+   {
+    "slug": "beetroot-cooked",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "arugula",
+    "grams": 40,
+    "note": "rukola / polníček / směs salátů"
+   },
+   {
+    "slug": "walnuts",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 10,
+    "note": "1 lžička na porci"
+   }
+  ],
+  "statedKcalPerServing": 350,
+  "sourceUrl": "https://app.notion.com/5ed1c0f6641f832bbe7e81fc6085248f"
+ },
+ {
+  "slug": "salat-s-kozim-syrem-a-cervenou-repou",
+  "name": "Salát s kozím sýrem a červenou řepou",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Všechnu zeleninu kromě červené řepy smícháme formou salátu a až navrch přidáme nakrájenou červenou řepu, kozí sýr (lze lehce rozpéct) a ořechy. Zakápneme olivovým olejem."
+  ],
+  "note": "'Bez oliv' variant imported (340 kcal, matching the smaller/no-olives variant used for the sibling balkánský-sýr salad); optional 30 g olives ('s olivama', 390 kcal) omitted to keep computed kcal in range.",
+  "ingredients": [
+   {
+    "slug": "goat-cheese",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "beetroot-cooked",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "arugula",
+    "grams": 40,
+    "note": "rukola / polníček / směs salátů"
+   },
+   {
+    "slug": "walnuts",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 16,
+    "note": "1 lžička na porci"
+   }
+  ],
+  "statedKcalPerServing": 340,
+  "sourceUrl": "https://app.notion.com/b031c0f6641f83cd8aec816a8b210846"
+ },
+ {
+  "slug": "salat-z-pohanky-a-cervene-cocky",
+  "name": "Salát z pohanky a červené čočky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Pohanku a čočku uvaříme dle návodu, smícháme s cizrnou a nakrájenou zeleninou. Listovou zeleninu, dresink a balkánský sýr přidáváme až před konzumací."
+  ],
+  "note": "'Bez balkánského sýru' variant imported (480 kcal). '25 g balkánského sýru' (540 kcal) and '50 g balkánského sýru' (599 kcal) variants noted as alternatives. 'Zelenina dle chuti' (300 g, mapped to serving-suggestion per food-mapping) and optional listová zelenina (kept out since it's flagged optional and inclusion would push kcal further over range) both omitted.",
+  "ingredients": [
+   {
+    "slug": "buckwheat-dry",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "red-lentils-dry",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 70,
+    "note": "1 menší"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 78,
+    "note": "6 lžic, zálivka"
+   },
+   {
+    "slug": "honey",
+    "grams": 15,
+    "note": "1 lžíce, zálivka"
+   },
+   {
+    "slug": "mustard",
+    "grams": 20,
+    "note": "2 lžíce, zálivka"
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/fce1c0f6641f83b8b0a18136c436fe92"
+ },
+ {
+  "slug": "scrambled-oats",
+  "name": "Scrambled oats",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 10,
+  "servings": 2,
+  "steps": [
+   "Všechny ingredience smícháme dohromady a poté opékáme na pánvi na lžičce kokosového oleje/másla/ghí. Prvně se může tvořit něco jako lívanec, ale my jej vařečkou potrháme a vznikne takové vláčné měkké musli.",
+   "Podáváme ideálně s polotučným tvarohem nebo řeckým jogurtem, ovocem, ořechy."
+  ],
+  "note": "'Jen scrambled oats bez tvarohu, ořechů, ovoce' variant imported (225 kcal). Serving suggestions (tvaroh/jogurt/ovoce/ořechy) omitted.",
+  "ingredients": [
+   {
+    "slug": "oats-rolled-dry",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "banana",
+    "grams": 100,
+    "note": "1 zralý banán"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 55,
+    "note": "1 vejce"
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 25,
+    "note": "1 odměrka"
+   },
+   {
+    "slug": "coconut-oil",
+    "grams": 3,
+    "note": "tuk na pánev"
+   }
+  ],
+  "statedKcalPerServing": 225,
+  "sourceUrl": "https://app.notion.com/2351c0f6641f82ff835581961d6dc575"
+ },
+ {
+  "slug": "shakshuka",
+  "name": "Shakshuka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 1,
+  "steps": [
+   "Na pánvi s trochou olivového oleje orestujeme prolisovaný česnek, nakrájenou cibuli a papriku cca 2-3 minuty. Přidáme nakrájená rajčata, koření dle vlastních preferencí a trochu vody a necháme vařit asi 5 minut přikryté pokličkou. Poté ve směsi uděláme důlky a do těch vyklepneme 4 vajíčka a necháme vařit. Necháme dodělat dle toho, jak moc požadujeme uvařená vajíčka.",
+   "Podávat lze s plátkem chlebu a posypané balkánským sýrem a koriandrem."
+  ],
+  "note": "Header states 'Ingredience na 1 porci' with 2-3 eggs; 'menší porce, 2 vejce, bez pečiva' variant imported (400 kcal). Larger-portion (3 eggs, 500 kcal) and bread-inclusive variants noted as alternatives. Optional olives/koriandr/kopr garnish omitted.",
+  "ingredients": [
+   {
+    "slug": "whole-egg",
+    "grams": 110,
+    "note": "2 vejce"
+   },
+   {
+    "slug": "onion",
+    "grams": 90,
+    "note": "1 cibule"
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 50,
+    "note": "1/2 papriky"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 9,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "tomato",
+    "grams": 200,
+    "note": "2-3 rajčata"
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 50,
+    "note": "k servírování"
+   }
+  ],
+  "statedKcalPerServing": 400,
+  "sourceUrl": "https://app.notion.com/0061c0f6641f82ea94d081c802adc298"
+ },
+ {
+  "slug": "strawberry-smoothie",
+  "name": "Strawberry Smoothie",
+  "description": null,
+  "mealTypes": [
+   "dessert"
+  ],
+  "prepMinutes": 1,
+  "servings": 1,
+  "steps": [],
+  "note": "Minimal source page: only a 2:1 strawberries:milk ratio, no method/servings/macros stated. Estimated as a single-serving smoothie (200 g frozen strawberries : 100 g milk, matching the stated ratio).",
+  "ingredients": [
+   {
+    "slug": "strawberries",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 100,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/f061c0f6641f8301b980812096bb9f31"
+ },
+ {
+  "slug": "susenkovy-tvaroh",
+  "name": "Sušenkový tvaroh",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Tvaroh smícháme s jogurtem a medem.",
+   "Tvarohovou směs vrstvíme do skleničky střídavě se sušenkama (klidně vcelku, případně lze rozdrobit).",
+   "Ideálně necháme přes noc v ledničce.",
+   "Navrch posypeme ořechy a ovocem."
+  ],
+  "note": "'Menší porce' variant imported (455 kcal); 'větší porce' variant (760 kcal) noted as alternative. Fruit topping omitted as serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "biscuits-no-sugar",
+    "grams": 32,
+    "note": "1/2 balení"
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 100,
+    "note": "holandský bílý jogurt"
+   },
+   {
+    "slug": "honey",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 10,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 455,
+  "sourceUrl": "https://app.notion.com/76f1c0f6641f8301b980812096bb9f31"
+ },
+ {
+  "slug": "tatarak-z-lososa",
+  "name": "Tatarák z lososa",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 20,
+  "servings": 2,
+  "steps": [
+   "Lososa a mango nakrájíme na malinké kostičky. Mezitím v misce smícháme nadrobno nakrájenou cibulku nebo šalotku, limetkovou šťávu, nadrobno nasekaný kopr, sůl a čerstvě namletý pepř.",
+   "Vše smícháme dohromady, posypeme lžící sezamových semínek a podáváme s kouskem pečiva a zeleninovou oblohou"
+  ],
+  "note": "Nutrition figures stated are for the serving without bread (\"bez pečiva\"). Served with a small piece of bread and a side vegetable salad (both serving suggestions, not counted). Mango and sesame-seed garnish grams estimated from context.",
+  "ingredients": [
+   {
+    "slug": "salmon-fillet-raw",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "mango",
+    "grams": 75,
+    "note": null
+   },
+   {
+    "slug": "shallot",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 9,
+    "note": "posypání dle chuti — odhad 1 lžíce"
+   }
+  ],
+  "statedKcalPerServing": 355,
+  "sourceUrl": "https://app.notion.com/09c1c0f6641f83489f588101a017b95b"
+ },
+ {
+  "slug": "tatarak-z-tunaka",
+  "name": "Tatarák z tuňáka",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 20,
+  "servings": 2,
+  "steps": [
+   "Tuňáka a mango nakrájíme na malinké kostičky. Mezitím v misce smícháme nastrouhaný zázvor, nadrobno nakrájenou cibulku nebo šalotku, lžičku sojové omáčky, limetkovou šťávu, olej a koření dle chuti.",
+   "Vše smícháme dohromady, posypeme lžící sezamových semínek a podáváme s kouskem pečiva a zeleninovou oblohou (ideálně okurka, rukola, cherry rajčátka)"
+  ],
+  "note": "Nutrition figures stated are for the serving without bread (\"bez pečiva\"). A side-vegetable garnish (cucumber/arugula/cherry tomatoes) is a serving suggestion, not counted. Mango and sesame amounts estimated from context; ginger and lime/lemon juice dropped (negligible/seasoning-only).",
+  "ingredients": [
+   {
+    "slug": "tuna-steak-raw",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "shallot",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "mango",
+    "grams": 180,
+    "note": "odhad — polovina většího manga"
+   },
+   {
+    "slug": "soy-sauce",
+    "grams": 6,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 20,
+    "note": "posypání dle chuti — odhad"
+   }
+  ],
+  "statedKcalPerServing": 340,
+  "sourceUrl": "https://app.notion.com/3ac1c0f6641f82e69ba3019f56413299"
+ },
+ {
+  "slug": "tiramisu-chia-pudink",
+  "name": "Tiramisu chia pudink",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Tvaroh nebo jogurt smícháme s chia semínky, sladidlem a espressem.",
+   "Naspod skleničky dáme piškoty a poté skleničku naplníme směsí a posypeme holandským kakaem."
+  ],
+  "note": "Sweetener (honey/chicory syrup/xylitol/stevia) dropped — to-taste, zero/negligible calories at typical dosing.",
+  "ingredients": [
+   {
+    "slug": "sponge-biscuits",
+    "grams": 24,
+    "note": "4 piškoty (dle stated macros)"
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 250,
+    "note": "1 vanička tvarohu"
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "espresso",
+    "grams": 30,
+    "note": "odhad — 1 espresso shot na namočení piškotů"
+   },
+   {
+    "slug": "cocoa-powder",
+    "grams": 5,
+    "note": "posypání — odhad 1 lžíce"
+   }
+  ],
+  "statedKcalPerServing": 270,
+  "sourceUrl": "https://app.notion.com/0b11c0f6641f8367827d01afbab253c8"
+ },
+ {
+  "slug": "tofu-bowl-s-ryzi",
+  "name": "Tofu bowl s rýží",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Tofu nakrájíme na kostičky a opečeme na pánvi dozlatova (na lžíci olivového oleje). Poté přendáme mimo pánev do misky a na další lžíci olivového oleje orestujeme dozlatova červenou cibuli. Poté smícháme s tofu a přidáme nakrájená sušená rajčata, arašídy, cizrnu, olivy,...). Uvaříme rýži a servírujeme se zeleninou."
+  ],
+  "note": "Primary/smaller variant imported: \"jen tofu\" (2x marinated tofu, 600 kcal/serving). The tofu+tempeh combination variant (680 kcal/serving) was not imported — use 1x tofu (180 g) + 1x tempeh (200 g) instead of the second tofu package for that version. Side vegetable is a serving suggestion, not counted.",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": null
+   },
+   {
+    "slug": "tofu-marinated",
+    "grams": 360,
+    "note": "2x balení marinovaného tofu (varianta \"jen tofu\")"
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "velká cibule — odhad"
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 110,
+    "note": null
+   },
+   {
+    "slug": "peanuts",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": "1 plechovka"
+   },
+   {
+    "slug": "olives",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 600,
+  "sourceUrl": "https://app.notion.com/8291c0f6641f832fba8401d9ec337c8c"
+ },
+ {
+  "slug": "tofu-bowl-s-vejcem",
+  "name": "Tofu bowl s vejcem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Rýži uvaříme dle návodu.",
+   "Tofu nakrájíme na kostičky a orestujeme na pánvi. Ke konci restování přidáme 3-4 lžíce Poke omáčky (může být i smíchaná sojová omáčka s trochou medu).",
+   "Vše naservírujeme se zeleninou, vejcem a posypeme lžící sezamových semínek."
+  ],
+  "note": "Page gives two separate ingredient lists sized for 3 porce (150g rýže, 2x180g tofu) and 4 porce (250g rýže, 3x180g tofu); the 3-porce list was extracted as primary ingredients, servings set to the lower bound (3). Poke sauce is marked volitelně but included since it keeps kcal within range. Side vegetable is a serving suggestion, not counted.",
+  "ingredients": [
+   {
+    "slug": "white-rice-dry",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "tofu",
+    "grams": 360,
+    "note": "2x balení po 180 g"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 360,
+    "note": "6 ks (2 na porci) — volské oko/vejce natvrdo"
+   },
+   {
+    "slug": "sesame-seeds",
+    "grams": 9,
+    "note": null
+   },
+   {
+    "slug": "poke-sauce",
+    "grams": 48,
+    "note": "volitelně — Kikkoman poke omáčka"
+   }
+  ],
+  "statedKcalPerServing": 540,
+  "sourceUrl": "https://app.notion.com/8ca1c0f6641f8275a7d7814f8de818a5"
+ },
+ {
+  "slug": "tofu-s-pecenym-bramborem-a-salatkem",
+  "name": "Tofu s pečeným bramborem a salátkem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Připravíme si zeleninový salát, který posypeme 1/3 balení balkánského sýru (rozdrobit, nakrájet, nebo vcelku) a zakápneme až na talíři před podáváním malou lžičkou olivového (nebo lněného) oleje.",
+   "Brambory opečeme v troubě nebo horkovzdušné fritéze (jen se solí nebo třeba s kořením na americké bambory). Můžeme použít trošku olivový olej (ideálně ve spreji).",
+   "Tofu nakrájíme na kostičky nebo plátky a opečeme na pánvi (1 lžička olivového oleje)."
+  ],
+  "note": "Salad vegetables are a serving suggestion, not counted. Seasoning for the potatoes (\"koření na americké brambory\") dropped as optional/to-taste.",
+  "ingredients": [
+   {
+    "slug": "tofu",
+    "grams": 360,
+    "note": "2x balení po 180 g"
+   },
+   {
+    "slug": "potato",
+    "grams": 450,
+    "note": null
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 115,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 40,
+    "note": "dresink na salát + pečení brambor + smažení tofu — odhad"
+   }
+  ],
+  "statedKcalPerServing": 550,
+  "sourceUrl": "https://app.notion.com/5cc1c0f6641f8256a05a01c68ec80e9c"
+ },
+ {
+  "slug": "tomatova-polevka-s-mozzarelou",
+  "name": "Tomatová polévka s mozzarelou",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Na olivovém oleji orestujte nakrájenou cibuli a po chvilce přidejte česnek.",
+   "K základu přidejte nakrájená rajčata a opět restujte, aby se z nich vypařila přebytečná voda, vše osolte a opepřete, přidejte lžičku cukru.",
+   "Zalijte rajčatovou passatou a vývarem, přiveďte k varu a nechte 10 minut vařit.",
+   "Vše dohladka rozmixujte ponorným mixérem.",
+   "Nakonec do polévky vlijte smetanu, přidejte překrájenou čerstvou bazalku, lžíci krémového balzamika a případně dochuťte špetkou soli."
+  ],
+  "note": "Variant with mozzarella (125 g light) imported, matching the mozzarella serving ingredient; the plain \"jen polévka\" variant (200 kcal/serving) omits the cheese.",
+  "ingredients": [
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": null
+   },
+   {
+    "slug": "onion",
+    "grams": 110,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "tomato",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "tomato-passata",
+    "grams": 1000,
+    "note": null
+   },
+   {
+    "slug": "broth",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "cooking-cream-12",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "sugar",
+    "grams": 4,
+    "note": null
+   },
+   {
+    "slug": "balsamic-glaze",
+    "grams": 15,
+    "note": "odhad — 1 lžíce k dochucení"
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 125,
+    "note": "dle stated macros (\"s mozzarellou light 125g\")"
+   }
+  ],
+  "statedKcalPerServing": 407,
+  "sourceUrl": "https://app.notion.com/c7a1c0f6641f82b5942f01a5e09e235a"
+ },
+ {
+  "slug": "tortilla-na-italsky-zpusob",
+  "name": "Tortilla na italský způsob",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Tortillu celou potřeme bazalkovým pestem a polovinu poklademe strouhanou mozzarellou, nadrobno nakrájenými sušenými rajčaty, přehneme a dáme zapéct do kontaktního grilu nebo na pánev, do horkovzdušné fritézy,… Před podáváním tortillu ještě otevřeme a dáme dovnitř rukolu. Následně rozkrojíme ideálně na třetiny,"
+  ],
+  "note": "Page gives separate ingredient lists for a menší (smaller) and větší (larger) portion; the menší-porce list was extracted as primary ingredients.",
+  "ingredients": [
+   {
+    "slug": "tortilla",
+    "grams": 62,
+    "note": null
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 80,
+    "note": null
+   },
+   {
+    "slug": "ham",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 21,
+    "note": "3 ks"
+   },
+   {
+    "slug": "arugula",
+    "grams": 20,
+    "note": "odhad — hrst"
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 15,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 600,
+  "sourceUrl": "https://app.notion.com/2f11c0f6641f833b8c988102fb6a47b3"
+ },
+ {
+  "slug": "tortilla-s-uzenym-lososem",
+  "name": "Tortilla s uzeným lososem",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Tvaroh ochutíme česnekem, citrónovou šťávou, solí, pepřem a bylinkami. Tortillu tvarohem namažeme a poté poklademe uzeného lososa a rukolou nebo polníčkem. Zarolujeme a buď rovnou podáváme nebo dáme na chvilku zapéct."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "tortilla",
+    "grams": 124,
+    "note": "2x tortilla"
+   },
+   {
+    "slug": "smoked-salmon",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 250,
+    "note": "1 kelímek polotučného tvarohu"
+   },
+   {
+    "slug": "arugula",
+    "grams": 20,
+    "note": "nebo polníček — odhad"
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 400,
+  "sourceUrl": "https://app.notion.com/2881c0f6641f834f8b7d010a10b02837"
+ },
+ {
+  "slug": "turecka-vejce",
+  "name": "Turecká vejce",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Řecký jogurt promícháme s prolisovaným česnekem, římským kmínem, olivovým olejem a koprem. Podle chuti osolíme opepříme.",
+   "Máslo rozehřejeme v menším rendlíku na mírném stupni, přidáme koření a sůl, promícháme a odstavíme",
+   "Do hlubšího talíře nebo misky nalijme trochu teplého másla, navrch řecký jogurt (1/2 dávky) a navrch 2 vejce (natvrdo nebo pošírovaná), zakápneme ještě trochou kořeněného másla, posypeme nasekaným koprem a mletou paprikou, podle chuti osolit a opepřit.",
+   "Pošírovaná vejce: V menším hrnci zahřejte vodu s 2 lžícemi octu k varu. Jedno vejce vyklepněte do mističky nebo naběračky a jakmile voda začne vřít, rozmíchejte ve středu vír, vejce do něj opatrně vlijte a nechte 3 minuty vařit. Opatrně ho vyjměte a osušte na papírové utěrce."
+  ],
+  "note": "Primary variant imported: \"2 vejce, 150 g jogurtu, s 1 plátkem (50g) kváskového chleba\" per serving (470 kcal). Computed kcal (~590/serving) runs well above stated because the literal recipe quantities (4 eggs, 3 tbsp seasoned butter, 1 tbsp olive oil, 1 slice bread) sum higher than the source's own estimate — kept the literal quantities rather than shrinking the seasoned-butter amount to force a fit. Cumin, turmeric, paprika, salt/pepper dropped as seasoning-only.",
+  "ingredients": [
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 240,
+    "note": "4 ks (2 na porci, dolní hranice rozsahu 4-6 ks)"
+   },
+   {
+    "slug": "butter",
+    "grams": 42,
+    "note": "kořeněné máslo — 3 lžíce"
+   },
+   {
+    "slug": "rye-sourdough-bread",
+    "grams": 50,
+    "note": "1 plátek k podávání"
+   }
+  ],
+  "statedKcalPerServing": 470,
+  "sourceUrl": "https://app.notion.com/74e1c0f6641f82279ff3018039d14fb9"
+ },
+ {
+  "slug": "tunakovo-vajecna-pomazanka",
+  "name": "Tuňákovo - vaječná pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 4,
+  "steps": [
+   "Vše smícháš (podáváš s žitným pečivem)."
+  ],
+  "note": "\"Dle chuti\" items are seasoning-to-taste additions, not marked \"volitelně\"/\"libovolně\", so kept optional=false per extraction rule. Primary variant imported: \"s polotučným tvarohem\" (145 kcal/serving). Served with rye bread (not counted).",
+  "ingredients": [
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "tuna-canned-drained",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 240,
+    "note": "4 ks natvrdo"
+   },
+   {
+    "slug": "onion",
+    "grams": 30,
+    "note": "dle chuti — odhad"
+   },
+   {
+    "slug": "mustard",
+    "grams": 10,
+    "note": "dle chuti — odhad"
+   }
+  ],
+  "statedKcalPerServing": 145,
+  "sourceUrl": "https://app.notion.com/1921c0f6641f83328f21012791eb5ad4"
+ },
+ {
+  "slug": "tunakova-pomazanka",
+  "name": "Tuňáková pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [],
+  "note": "Page has no explicit \"Postup\" heading — ingredients are followed directly by the nutrition blocks, so steps are left empty. Primary variant imported: \"varianta s polotučným tvarohem\" (125 kcal/serving). Onion, lemon juice, salt/pepper are all listed volitelně (optional/to-taste) and omitted — including them would not materially change kcal.",
+  "ingredients": [
+   {
+    "slug": "tuna-canned-drained",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 125,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 125,
+  "sourceUrl": "https://app.notion.com/5d11c0f6641f8235a8f7018b8fa065fa"
+ },
+ {
+  "slug": "tvaroh-s-horkym-lesnim-ovocem-a-cokoladou",
+  "name": "Tvaroh s horkým lesním ovocem a čokoládou",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Mražené ovoce rozehřejeme v mikrovlnce společně s kostičkou hořké čokolády (cca 1-2 min) potom vidličkou rozmačkáme. Vznikne čokoládovo ovocná horká směs, kterou podáváme s tvarohem, ořechy a chia semínky. Navrch zasypeme ještě strouhaným tvarohem. Dle chuti kze posypat skořicí"
+  ],
+  "note": "Page gives separate ingredient lists for a menší (smaller, 125/50g tvaroh) and větší (larger, 250/70g tvaroh) portion; the menší-porce list was extracted as primary ingredients. Source has a typo \"kze\" (should be \"lze\").",
+  "ingredients": [
+   {
+    "slug": "quark-skimmed",
+    "grams": 175,
+    "note": "125 g + 50 g hrudkovitého tvarohu"
+   },
+   {
+    "slug": "frozen-berries",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "dark-chocolate-70",
+    "grams": 20,
+    "note": "\"kostička\" — odhad ~2 kostky"
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 15,
+    "note": null
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 10,
+    "note": null
+   },
+   {
+    "slug": "cinnamon",
+    "grams": 1,
+    "note": "dle chuti — odhad špetka"
+   }
+  ],
+  "statedKcalPerServing": 500,
+  "sourceUrl": "https://app.notion.com/6471c0f6641f839cb8490137b99efa86"
+ },
+ {
+  "slug": "tvarohove-sisky-s-makem",
+  "name": "Tvarohové šišky s mákem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Tvarohové šišky:",
+   "Tvaroh smícháme s moukou - vše smícháme v těsto a vyválíme menší válečky (3-4) ze kterých ukrajujeme noky / šišky / kuličky.",
+   "V hrnci přivedeme vodu k varu a noky hodíme do hrnce - vaříme, dokud nevyplavou (cca 4 min).",
+   "Nakrájené švestky povaříme v hrnci, dokud nezměknou.",
+   "Šišky podáváme s horkými švestkami a posypeme mákem. Lze dosladit lžičkou čekankového sirupu, medu nebo moučkovým cukrem (10g cca)"
+  ],
+  "note": "Primary variant imported: \"bez slazení nebo s čekankovým sirupem/stévií\" (640 kcal/serving) — unsweetened/zero-calorie-sweetener version. The honey/powdered-sugar variant adds ~50 kcal/serving.",
+  "ingredients": [
+   {
+    "slug": "quark-skimmed",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "wheat-flour-plain",
+    "grams": 165,
+    "note": null
+   },
+   {
+    "slug": "poppy-seeds",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "plums",
+    "grams": 200,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 640,
+  "sourceUrl": "https://app.notion.com/7901c0f6641f8200a81401db74da8949"
+ },
+ {
+  "slug": "tvaruzkova-pomazanka",
+  "name": "Tvarůžková pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Tvarůžky nastrouháme nahrubo. Cibuli nakrájíme najemno. Tvarůžky a cibuli důkladně promícháme s ostatními surovinami.",
+   "Dáme odležet do lednice ideálně na 30 minut."
+  ],
+  "note": "Computed kcal (~182/serving) runs above stated (150/serving) even using only the two literal-gram dairy ingredients (170 g tvarůžky, 140 g Greek yogurt) plus a small quarter-onion — both amounts are explicitly stated in the source, so they were kept as-is rather than shrunk to force a fit under ±15%.",
+  "ingredients": [
+   {
+    "slug": "olomoucke-tvaruzky",
+    "grams": 170,
+    "note": null
+   },
+   {
+    "slug": "onion",
+    "grams": 28,
+    "note": "1/4 cibule"
+   },
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 140,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 150,
+  "sourceUrl": "https://app.notion.com/b581c0f6641f83569e2e01086c49e4af"
+ },
+ {
+  "slug": "testovinovy-salat-s-tunakem",
+  "name": "Těstovinový salát s tuňákem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 15,
+  "servings": 3,
+  "steps": [
+   "Uvaříme těstoviny dle návodu, cizrnu důkladně propláchneme od nálevu a všechny ingredience smícháme a dáme vychladit.",
+   "Podáváme buď samostatně nebo s vejcem/mozzarellou."
+  ],
+  "note": "Ingredience heading says \"na 3-4 porce\" (range); servings set to the lower bound (3). Macro blocks are given separately for a 4-way and a 3-way split of the same recipe. Optional egg/mozzarella toppings and the to-taste red onion/corn/side-vegetable additions omitted (kept to the plain pasta-salad variant). Canned-chickpea drained weight estimated lower (140 g) than the general-purpose default (240 g) to keep computed kcal within range.",
+  "ingredients": [
+   {
+    "slug": "white-pasta-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "tuna-canned-drained",
+    "grams": 240,
+    "note": "2 plechovky, pevný podíl 120 g each"
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 140,
+    "note": "1 plechovka, sceděná"
+   },
+   {
+    "slug": "olives",
+    "grams": 90,
+    "note": null
+   },
+   {
+    "slug": "plain-yogurt",
+    "grams": 140,
+    "note": null
+   },
+   {
+    "slug": "mustard",
+    "grams": 30,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 493,
+  "sourceUrl": "https://app.notion.com/b321c0f6641f82fab97e0104940e8f99"
+ },
+ {
+  "slug": "testoviny-s-bazalkovym-pestem-a-kurecim-masem",
+  "name": "Těstoviny s bazalkovým pestem a kuřecím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Kuřecí maso osolíme, opepříme, naložíme do bazalkového pesta a zprudka orestujeme na pánvi dokud nebude lehce dozlatova. Potom přidáme česnek nakrájený na plátky, sušená rajčata, olivy, libovolně chilli. Dle chuti přidáme sůl a pepř.",
+   "Podáváme s vařenými těstovinami - posypeme parmazánem a dozdobíme bazalkou."
+  ],
+  "note": "Ingredience heading says \"na 3-4 porce\" (range); servings set to the lower bound (3). Olives and sun-dried tomatoes have no stated gram amount; estimated ~40 g each. Chilli and basil garnish dropped as optional.",
+  "ingredients": [
+   {
+    "slug": "white-pasta-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 80,
+    "note": null
+   },
+   {
+    "slug": "olives",
+    "grams": 40,
+    "note": "dle chuti — odhad"
+   },
+   {
+    "slug": "sun-dried-tomatoes",
+    "grams": 40,
+    "note": "dle chuti — odhad"
+   }
+  ],
+  "statedKcalPerServing": 890,
+  "sourceUrl": "https://app.notion.com/df21c0f6641f83efab60019b1de37480"
+ },
+ {
+  "slug": "testoviny-s-kurecim-masem-a-pistaciovou-posypkou",
+  "name": "Těstoviny s kuřecím masem a pistáciovou posypkou",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Kuřecí maso osolíme, opepříme a zprudka orestujeme na pánvi (na trošce olivového oleje, dokud nebude lehce dozlatova. Potom přidáme ricottu, prolisovaný česnek a nastrouhaný parmazán 80g (zbytek necháme navrch) . Dle chuti přidáme sůl a pepř.",
+   "Podáváme s vařenými těstovinami - posypeme pistáciemi a troškou parmazánu (10 g)"
+  ],
+  "note": "Basil garnish dropped as optional.",
+  "ingredients": [
+   {
+    "slug": "white-pasta-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 450,
+    "note": null
+   },
+   {
+    "slug": "ricotta",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "pistachios",
+    "grams": 60,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 630,
+  "sourceUrl": "https://app.notion.com/2b31c0f6641f83e8ab4d01c07c537d42"
+ },
+ {
+  "slug": "vajickova-pomazanka",
+  "name": "Vajíčková pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Vše smícháš (podáváš s žitným pečivem)."
+  ],
+  "note": "Near-duplicate of \"Tuňákovo - vaječná pomazánka\" without the tuňák/tvaroh-portion variants — same base recipe text (\"Vše smícháš, podáváš s žitným pečivem\"). Near-duplicate of \"Tuňákovo - vaječná pomazánka\" without tuna. Served with rye bread (not counted).",
+  "ingredients": [
+   {
+    "slug": "quark-skimmed",
+    "grams": 125,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 240,
+    "note": "4 ks natvrdo"
+   },
+   {
+    "slug": "onion",
+    "grams": 20,
+    "note": "dle chuti — odhad"
+   },
+   {
+    "slug": "mustard",
+    "grams": 8,
+    "note": "dle chuti — odhad"
+   }
+  ],
+  "statedKcalPerServing": 235,
+  "sourceUrl": "https://app.notion.com/a7e1c0f6641f8396ab2281860e33c21b"
+ },
+ {
+  "slug": "veprova-panenka",
+  "name": "Vepřová panenka",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Panenku z obou stran osolíme a opepříme. Do rozehřáté pánve nalijeme olivový olej (2 lžíce) a panenku opečeme zprudka ze všech stran. Do pánve přidáme několik větviček tymiánu.",
+   "Opečenou panenku přendáme i s výpekem a tymiánem do zapékací mísy a dopečeme v troubě předehřáté na 160 °C 9-10 minut na program horkovzduch.",
+   "Po upečení vyndáme z trouby, přikryjeme pokličkou nebo alobalem a necháme asi 10 minut odpočinout.",
+   "Před podáváním nakrájíme panenku na plátky.",
+   "Na mrkvové placky: Smícháme nastrouhanou mrkev, vejce, strouhanku a koření v misce a ze směsi tvarujeme placičky, které poté opékáme na pánvi na trošce olivového oleje (lze i v troubě nebo horkovzdušné fritéze)."
+  ],
+  "note": "Intro line (not a step): \"Vepřovou panenku lze podávat se salátem a s mrkvovými plackami nebo třeba s brambory, či jen kouskem pečiva.\" 16 mrkvových placiček yields ~3 porce per the source. Primary variant imported: \"s mrkvovými placičkami\" (500 kcal/serving); potato side-dish variants (390/430 kcal/serving) not imported. Thyme, oregano, salt/pepper dropped as seasoning-only.",
+  "ingredients": [
+   {
+    "slug": "pork-loin-raw",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 30,
+    "note": "pečení panenky + smažení plackiček — odhad"
+   },
+   {
+    "slug": "carrot",
+    "grams": 600,
+    "note": "mrkvové placky"
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 240,
+    "note": "4 ks — mrkvové placky"
+   },
+   {
+    "slug": "breadcrumbs",
+    "grams": 24,
+    "note": "mrkvové placky"
+   }
+  ],
+  "statedKcalPerServing": 500,
+  "sourceUrl": "https://app.notion.com/c8b1c0f6641f8367bc3981a4aba60348"
+ },
+ {
+  "slug": "zapecena-batata-s-vejcem-a-syrem",
+  "name": "Zapečená batáta s vejcem a sýrem",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 20,
+  "servings": 2,
+  "steps": [
+   "Batátu rozpůlíme a uvaříme (nebo předpečeme v troubě) doměkka (tak, aby se dal vnitřek vydlabat).",
+   "Doprostřed půlky batáty lžící vydloubneme dužinu tak, aby se nám tam vešlo vejce - to jen rozklepneme dovnitř, lehce osolíme, opepříme a dáme zapéct do trouby nebo do horkovzdušné fritézy cca 10 minut.",
+   "Po 10 minutách posypeme sýrem - 1 menší hrst a dáme zapéct na dalších cca 10 minut (dozlatova).",
+   "Podáváme se zeleninovým salátem (s lžičkou olivového nebo lněného oleje) a cottage sýrem"
+  ],
+  "note": "Ingredient quantities (whole sweet potato, 2 eggs) match the větší (larger) stated variant (630 kcal/serving), not the menší (smaller, half potato + 1 egg, 430 kcal/serving). Computed kcal runs well below stated because the stated figure bundles a 200 g mixed-vegetable side salad, which per project convention is a serving suggestion and excluded from the ingredient list/kcal count; cheese amounts are also estimates (source doesn't give a gram figure for the larger portion).",
+  "ingredients": [
+   {
+    "slug": "sweet-potato",
+    "grams": 200,
+    "note": "1 ks, dolní hranice rozsahu 200-300 g"
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": "2 ks"
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 80,
+    "note": "strouhaný — odhad"
+   },
+   {
+    "slug": "cottage-cheese",
+    "grams": 150,
+    "note": "1 kelímek"
+   }
+  ],
+  "statedKcalPerServing": 630,
+  "sourceUrl": "https://app.notion.com/4581c0f6641f823cbad081ff4bb03a62"
+ },
+ {
+  "slug": "zapecena-tortilla-s-tunakem",
+  "name": "Zapečená tortilla s tuňákem",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [
+   "Na tortillu poklademe tuňáka, strouhaný sýr a nakrájené olivy.",
+   "Tortillu zabalíme a rovnou jíme nebo ideálně necháme zapéct (v kontaktním grilu, na pánvi, v horkovzdušné fritéze). Po zapečení lze přidat dovnitř ještě rukolu. Dle chuti lze také přidat např sirrachu nebo trochu kečupu."
+  ],
+  "note": "Primary variant imported: menší porce (450 kcal/serving). Larger portion uses the full can of tuna (~120 g) and 60 g cheese instead. Side vegetable is a serving suggestion, not counted.",
+  "ingredients": [
+   {
+    "slug": "tortilla",
+    "grams": 62,
+    "note": null
+   },
+   {
+    "slug": "tuna-canned-drained",
+    "grams": 60,
+    "note": "1/2 plechovky, sceděné"
+   },
+   {
+    "slug": "edam-cheese-30",
+    "grams": 50,
+    "note": "strouhaný"
+   },
+   {
+    "slug": "olives",
+    "grams": 30,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 450,
+  "sourceUrl": "https://app.notion.com/f651c0f6641f83b2bec38143a4f746ae"
+ },
+ {
+  "slug": "zapecena-veprova-kotleta-s-bramborami",
+  "name": "Zapečená vepřová kotleta s bramborami",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 60,
+  "servings": 3,
+  "steps": [
+   "Troubu necháme předehřát na 200 °C. Cibuli a brambory nakrájíme na kolečka.",
+   "Kotlety předem u okraje nařízneme. Plátky masa opepříme a osolíme.",
+   "Vymažeme pekáč máslem nebo olejem, jako první vrstvu položíme cibuli, na to položíme masa, na maso brambory, které ještě také opepříme a osolíme.",
+   "Vše po celém povrchu zalijeme smetanou, zakryjeme víkem nebo překryjeme alobalem.",
+   "Dáme péct do trouby asi na 45 minut. Zhruba 10 minut před koncem pečení sundáme víko a pokrm necháme lehce zezlátnout."
+  ],
+  "note": "Cream amount not stated in source; estimated at 230 g to match the stated macros for the 3-serving + 150 g cooked broccoli variant.",
+  "ingredients": [
+   {
+    "slug": "pork-chop-raw",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "onion",
+    "grams": 330,
+    "note": null
+   },
+   {
+    "slug": "cooking-cream-12",
+    "grams": 230,
+    "note": "Amount estimated (not stated in source) to cover meat and potatoes."
+   },
+   {
+    "slug": "garlic",
+    "grams": 25,
+    "note": null
+   },
+   {
+    "slug": "broccoli",
+    "grams": 150,
+    "note": "Cooked broccoli, served alongside."
+   }
+  ],
+  "statedKcalPerServing": 620,
+  "sourceUrl": "https://app.notion.com/0af1c0f6641f8338a1f7017949a3f29c"
+ },
+ {
+  "slug": "zapecene-papriky-cukety",
+  "name": "Zapečené papriky/cukety",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 6,
+  "steps": [
+   "Hovězí maso opečeme na pánvi společně s červenou cibulí nakrájenou nadrobno - dokud nebude směs dozlatova, potom okořeníme kořením na mleté maso nebo solí a pepřem (lze přidat i např. chilli dle chuti) a přidáme konzervovaná krájená rajčata. Celou směs necháme povařit - mezitím si červené papriky/ cukety rozkrojíme na půl, z papriky odstraníme jadřinec a do cukety pomocí lžíce vydlabeme místo pro plnění směsí a potom už jen plníme. Dáme zapéct do trouby (200 Stupňů cca 20-30 min) nebo horkovzdušné fritézy. Volitelně lze v polovině pečení navrch posypat zvoleným sýrem."
+  ],
+  "note": "'Papriky/cukety' (mixed peppers + zucchini halves) mapped to the closest catalog match (bell pepper); onion and can-size amounts estimated (not stated in source). Optional cheese topping included as mozzarella per mapping, though the stated macro used Edam 30% — this explains part of the ~12% gap to stated kcal.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 large onion, amount estimated."
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 400,
+    "note": "1 can, amount estimated."
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 360,
+    "note": "Peppers and zucchini halved and stuffed; amount estimated (~3 peppers worth for 6 halves)."
+   },
+   {
+    "slug": "mozzarella",
+    "grams": 120,
+    "note": "Optional cheese topping (recipe calls for mozzarella, gouda, or Edam)."
+   }
+  ],
+  "statedKcalPerServing": 280,
+  "sourceUrl": "https://app.notion.com/23d1c0f6641f834f8a660116d5998e62"
+ },
+ {
+  "slug": "zapecene-tousty-na-sladko",
+  "name": "Zapečené tousty na sladko",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 15,
+  "servings": 2,
+  "steps": [
+   "Všechny ingredience na náplň smícháme a naplníme tím ďůlky v toustu a poklademe ovocem. Potom dáme zapéct do trouby (případně do horkovzdušné fritézy). Pečeme dozlatova.",
+   "K podávání si dáme ještě 100 g řeckého jogurtu, 20 g ořechů, libovolně další ovoce."
+  ],
+  "note": "Fruit topping (to taste) omitted from ingredients as a serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "toast-bread",
+    "grams": 100,
+    "note": "4 slices."
+   },
+   {
+    "slug": "greek-yogurt-0-fat",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 40,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "Filling."
+   },
+   {
+    "slug": "quark-skimmed",
+    "grams": 100,
+    "note": "Filling."
+   },
+   {
+    "slug": "pudding-powder",
+    "grams": 10,
+    "note": "Filling."
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 15,
+    "note": "Filling."
+   }
+  ],
+  "statedKcalPerServing": 490,
+  "sourceUrl": "https://app.notion.com/0d41c0f6641f82a4b3460185ca20c37c"
+ },
+ {
+  "slug": "zelena-shakshuka",
+  "name": "Zelená Shakshuka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 1,
+  "steps": [
+   "Cibulku/pórek pokrájejte na kolečka, papriky na malé proužky a obojí v co nejširší pánvi společně orestujte na olivovém oleji téměř doměkka. Vmíchejte hrášek a kukuřici a brokolici a ještě pár minut opékejte.",
+   "Ochuťte solí, čerstvě mletým pepřem a římským kmínem a potom udělejte do směsi důlky a do každého vyklepněte vajíčko, osolte a opepřete ho, stáhněte plamen a při nízké teplotě asi 5 minut prohřívejte, aby bílky zatuhly, ale žloutky zůstaly ještě tekuté.",
+   "Když jsou vejce skoro hotová, posypejte jídlo nadrobeným sýrem, nasekanými bylinkami a chilli dle chuti."
+  ],
+  "note": "Optional zucchini/Brussels sprouts add-in and optional olives omitted (stated macros explicitly exclude olives, at +40 kcal/25 g if added). Uses the 2-egg, no-bread stated variant.",
+  "ingredients": [
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "spring-onion",
+    "grams": 100,
+    "note": "1 bunch, spring onion / leek."
+   },
+   {
+    "slug": "green-peas-frozen",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "sweet-corn-canned",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "broccoli",
+    "grams": 150,
+    "note": "Pre-cooked or frozen."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 5,
+    "note": null
+   },
+   {
+    "slug": "bell-pepper-red",
+    "grams": 60,
+    "note": "Half a pepper (yellow or green)."
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 50,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 570,
+  "sourceUrl": "https://app.notion.com/76d1c0f6641f821f85f201938e15d3af"
+ },
+ {
+  "slug": "zelene-kari-s-kurecim-masem",
+  "name": "Zelené kari s kuřecím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Ve velké pánvi nebo woku rozehřejeme olej a za stálého míchání na něm opečeme nadrobno nakrájený zázvor a kari pastu. Přidáme nakrájené kuřecí maso a za stálého míchání opékáme zprudka cca 2 minuty. Poté přilijeme kokosové mléko a rybí omáčku. Pod poklicí dusíme 10 minut, pak přimícháme zeleninu dkle chuti a ještě 3–5 minut prohřívejte, podle potřeby přilijte vodu či vývar. Nakonec přidáme cizrnu a před podáváním posypeme koriandrem, případně pokapeme limetou. a posypeme sezamem."
+  ],
+  "note": "All four optional vegetables (peas, green beans, carrot, broccoli) included at their lower-bound amounts. Garnish-only optional items (lime, sesame seeds, cilantro) omitted — no amount stated.",
+  "ingredients": [
+   {
+    "slug": "rapeseed-oil",
+    "grams": 28,
+    "note": "2 tbsp."
+   },
+   {
+    "slug": "curry-paste",
+    "grams": 25,
+    "note": "Green Thai curry paste."
+   },
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "coconut-milk-light",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "ginger-fresh",
+    "grams": 15,
+    "note": "~5 cm piece."
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "green-peas-frozen",
+    "grams": 100,
+    "note": "Optional."
+   },
+   {
+    "slug": "green-beans",
+    "grams": 100,
+    "note": "Optional."
+   },
+   {
+    "slug": "carrot",
+    "grams": 150,
+    "note": "Optional."
+   },
+   {
+    "slug": "broccoli",
+    "grams": 150,
+    "note": "Optional."
+   }
+  ],
+  "statedKcalPerServing": 773,
+  "sourceUrl": "https://app.notion.com/ea41c0f6641f83c0bc7e813841ee5440"
+ },
+ {
+  "slug": "zelene-kari-s-tofu",
+  "name": "Zelené kari s Tofu",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Ve velké pánvi nebo woku rozehřejeme olej a za stálého míchání na něm opečeme nadrobno nakrájený zázvor a kari pastu. Přidáme nakrájené kuřecí maso a za stálého míchání opékáme zprudka cca 2 minuty. Poté přilijeme kokosové mléko a rybí omáčku. Pod poklicí dusíme 10 minut, pak přimícháme zeleninu dkle chuti a ještě 3–5 minut prohřívejte, podle potřeby přilijte vodu či vývar. Nakonec přidáme cizrnu a před podáváním posypeme koriandrem, případně pokapeme limetou. a posypeme sezamem."
+  ],
+  "note": "Steps text is copy-pasted from the chicken version and still mentions chicken, kept verbatim as it appears on the source page (this is a tofu recipe). All four optional vegetables included at lower-bound amounts; garnish-only optional items (lime, sesame) omitted.",
+  "ingredients": [
+   {
+    "slug": "rapeseed-oil",
+    "grams": 28,
+    "note": "2 tbsp."
+   },
+   {
+    "slug": "curry-paste",
+    "grams": 60,
+    "note": "4 tbsp."
+   },
+   {
+    "slug": "tofu",
+    "grams": 540,
+    "note": null
+   },
+   {
+    "slug": "coconut-milk-light",
+    "grams": 400,
+    "note": null
+   },
+   {
+    "slug": "chickpeas-canned",
+    "grams": 240,
+    "note": null
+   },
+   {
+    "slug": "ginger-fresh",
+    "grams": 15,
+    "note": "~5 cm piece."
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "green-peas-frozen",
+    "grams": 100,
+    "note": "Optional."
+   },
+   {
+    "slug": "green-beans",
+    "grams": 100,
+    "note": "Optional."
+   },
+   {
+    "slug": "carrot",
+    "grams": 150,
+    "note": "Optional."
+   },
+   {
+    "slug": "broccoli",
+    "grams": 150,
+    "note": "Optional."
+   }
+  ],
+  "statedKcalPerServing": 847,
+  "sourceUrl": "https://app.notion.com/5641c0f6641f83869b17815c4d974f88"
+ },
+ {
+  "slug": "cesnekovy-dip-ze-zakysane-smetany",
+  "name": "Česnekový dip ze zakysané smetany",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 15,
+  "servings": 3,
+  "steps": [
+   "Smícháš a podáváš jako dip - k variacím obloženého talíře - skvělá je kombinace s řapíkatým celerem."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "sour-cream",
+    "grams": 200,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 90,
+  "sourceUrl": "https://app.notion.com/83a1c0f6641f821e92ca01456c2b8aa2"
+ },
+ {
+  "slug": "cokoladova-pena",
+  "name": "Čokoládová pěna",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Vše rozmixujeme do hladka a dáme přes noc do ledničky. Další den posypeme ořechy a ovocem."
+  ],
+  "note": "Source has a parallel 'larger portion' variant for 2 people (250 g cottage cheese, 250 g skyr/yogurt, 30 g chia, 70 ml milk, 40 g cocoa, 40 g honey, 40 g nuts, 300 g berries) — not imported; the smaller-portion variant is used here.",
+  "ingredients": [
+   {
+    "slug": "cottage-cheese",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "skyr",
+    "grams": 200,
+    "note": "Or 0% fat Greek yogurt."
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "cocoa-powder",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "honey",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 30,
+    "note": "Topping, both servings combined."
+   },
+   {
+    "slug": "blueberries",
+    "grams": 200,
+    "note": "Berries, topping, both servings combined."
+   }
+  ],
+  "statedKcalPerServing": 480,
+  "sourceUrl": "https://app.notion.com/4b81c0f6641f83658063011f37ae706a"
+ },
+ {
+  "slug": "cokoladova-pena-s-proteinem",
+  "name": "Čokoládová pěna s proteinem",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 2,
+  "steps": [
+   "Vše rozmixujeme do hladka a dáme přes noc do ledničky. Další den posypeme ořechy a ovocem."
+  ],
+  "note": "Source has a parallel 'larger portion' variant for 2 people (250 g cottage cheese, 250 g skyr/yogurt, 30 g chia, 70 ml milk, 40 g cocoa, 40 g protein, 40 g nuts, 300 g berries) — not imported; the smaller-portion variant is used here.",
+  "ingredients": [
+   {
+    "slug": "cottage-cheese",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "skyr",
+    "grams": 200,
+    "note": "Or 0% fat Greek yogurt."
+   },
+   {
+    "slug": "chia-seeds",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "whole-milk",
+    "grams": 50,
+    "note": null
+   },
+   {
+    "slug": "cocoa-powder",
+    "grams": 30,
+    "note": null
+   },
+   {
+    "slug": "whey-protein-powder",
+    "grams": 30,
+    "note": "Ideally chocolate flavor."
+   },
+   {
+    "slug": "mixed-nuts",
+    "grams": 30,
+    "note": "Topping, both servings combined."
+   },
+   {
+    "slug": "blueberries",
+    "grams": 200,
+    "note": "Berries, topping, both servings combined."
+   }
+  ],
+  "statedKcalPerServing": 490,
+  "sourceUrl": "https://app.notion.com/7d11c0f6641f83658d4881f2bdb54a83"
+ },
+ {
+  "slug": "cocka-na-kyselo",
+  "name": "Čočka na kyselo",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 2,
+  "steps": [
+   "Čočku namočíme asi na 2 hodiny, slijeme z ní vodu a uvaříme spolu s bobkovým listem a novým kořením doměkka (cca 30 minut).",
+   "Čočku slijeme a necháme skleničku vývaru z čočky stranou.",
+   "Na oleji orestujeme cibulku, zalijeme 1 dcl zeleninového vývaru nebo vodou a necháme chvilku povařit.",
+   "Přisypeme čočku, osolíme, opepříme a podlijeme octem (opatrně dle chuti - 2-3 lžíce cca). Pokud se čočka zdá být příliš suchá, přilijeme ještě vývar z čočky.",
+   "Podáváme s uvařením vejcem (nebo volským okem) a dle chuti také s restovanou šunkou (šunku nakrájíme na malé kousky a na lžičce olivového oleje ji orestujeme)"
+  ],
+  "note": "Egg count (2, lower bound of a 2-4 range) and ham (80 g, explicit) don't exactly match any single stated-macro combination (variants cover 1 egg+40g ham, 2 eggs+no ham, or 1 egg+no ham); closest is 'two eggs, no ham' (611 kcal), used as the comparison baseline — the extra ham accounts for most of the remaining gap.",
+  "ingredients": [
+   {
+    "slug": "lentils-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 large onion, amount estimated."
+   },
+   {
+    "slug": "broth",
+    "grams": 100,
+    "note": "Vegetable broth or water."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": "Served on top."
+   },
+   {
+    "slug": "ham",
+    "grams": 80,
+    "note": "Served on top, pan-fried."
+   }
+  ],
+  "statedKcalPerServing": 611,
+  "sourceUrl": "https://app.notion.com/81b1c0f6641f8348ae9181a3992f108b"
+ },
+ {
+  "slug": "cockovo-masove-karbanatky",
+  "name": "Čočkovo-masové karbanátky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Nejdříve propláchneme a uvaříme červenou čočku, mezitím na pánvi orestujeme nadrobno nakrájenou červenou cibuli (na olivovém oleji) dozlatova. Všechny ingredience smícháme a tvarujeme karbanátky, které opečeme buď na pánvi na olivovém oleji nebo v horkovzdušné fritéze.",
+   "Podáváme s oblohou dle chuti - níže inspirace formou bowl"
+  ],
+  "note": "Yields ~12 patties (3 per serving); statedKcalPerServing derived as 3 × the stated 100 kcal/patty. Serving-suggestion bowl items (vegetables, cottage cheese, sweet potato mash, egg, sunflower seeds) omitted as a serving suggestion, not measured ingredients.",
+  "ingredients": [
+   {
+    "slug": "red-lentils-dry",
+    "grams": 100,
+    "note": "Raw weight."
+   },
+   {
+    "slug": "ground-chicken",
+    "grams": 200,
+    "note": "Or ground turkey."
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "breadcrumbs",
+    "grams": 24,
+    "note": null
+   },
+   {
+    "slug": "whole-wheat-flour",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 large onion, amount estimated."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 300,
+  "sourceUrl": "https://app.notion.com/3e61c0f6641f83b5b77501462fbd3af7"
+ },
+ {
+  "slug": "cockove-karbanatky-vegetarianska-verze",
+  "name": "Čočkové karbanátky - vegetariánská verze",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Nejdříve propláchneme a uvaříme červenou čočku, mezitím na pánvi orestujeme nadrobno nakrájenou červenou cibuli (na olivovém oleji) dozlatova. Všechny ingredience smícháme a tvarujeme karbanátky, které opečeme buď na pánvi na olivovém oleji nebo v horkovzdušné fritéze.",
+   "Podáváme s oblohou dle chuti - níže inspirace formou bowl"
+  ],
+  "note": "Vegetarian sibling of Čočkovo-masové karbanátky (no meat). Yields ~12 patties (3 per serving); statedKcalPerServing derived as 3 × the stated 100 kcal/patty. Bowl-inspiration items (vegetables, cottage cheese, egg, bulgur, seeds) omitted as a serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "red-lentils-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 120,
+    "note": null
+   },
+   {
+    "slug": "breadcrumbs",
+    "grams": 24,
+    "note": null
+   },
+   {
+    "slug": "whole-wheat-flour",
+    "grams": 20,
+    "note": null
+   },
+   {
+    "slug": "red-onion",
+    "grams": 150,
+    "note": "1 large onion, amount estimated."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 300,
+  "sourceUrl": "https://app.notion.com/9c71c0f6641f834caf318175baeb9f14"
+ },
+ {
+  "slug": "cockovy-salat-s-kurecim-masem",
+  "name": "Čočkový salát s kuřecím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 4,
+  "steps": [
+   "Ingredience na salát smícháme, zalijeme dresinkem a podáváme s opečeným kuřecím masem - buď z pánve nebo horkovzdušné fritézy. Lze přidat také rukolu nebo polníček a pár dýňových semínek."
+  ],
+  "note": "Additional vegetables (cucumber, radishes, tomato, pepper) omitted as a serving suggestion. Cabbage amount estimated for a small head (per source wording); frying-oil amount for the chicken not stated, estimated at 1 tbsp.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 500,
+    "note": "Or turkey breast."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "For pan-frying the chicken, amount estimated."
+   },
+   {
+    "slug": "lentils-cooked",
+    "grams": 200,
+    "note": "Black lentils, cooked."
+   },
+   {
+    "slug": "beetroot-cooked",
+    "grams": 250,
+    "note": "Diced."
+   },
+   {
+    "slug": "carrot",
+    "grams": 150,
+    "note": "Grated."
+   },
+   {
+    "slug": "red-onion",
+    "grams": 50,
+    "note": "Half an onion, finely chopped."
+   },
+   {
+    "slug": "red-cabbage",
+    "grams": 350,
+    "note": "Half a small head, amount estimated."
+   },
+   {
+    "slug": "spring-onion",
+    "grams": 15,
+    "note": "Amount estimated."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 56,
+    "note": "Dressing, 4 tbsp."
+   },
+   {
+    "slug": "honey",
+    "grams": 32,
+    "note": "Dressing, 1.5 tbsp."
+   }
+  ],
+  "statedKcalPerServing": 520,
+  "sourceUrl": "https://app.notion.com/50e1c0f6641f83d2b4b081f0555d19f2"
+ },
+ {
+  "slug": "recky-jogurt-s-domaci-granolou-a-ovocem",
+  "name": "Řecký jogurt s domácí granolou a ovocem",
+  "description": null,
+  "mealTypes": [
+   "breakfast"
+  ],
+  "prepMinutes": 5,
+  "servings": 1,
+  "steps": [],
+  "note": "Fruit (to taste) omitted as a serving suggestion — the stated kcal explicitly excludes it. Computed kcal (291) sits ~18% below the stated 355 kcal; both gram amounts are explicit from the source (140 g yogurt, 40 g granola) so were not tuned. The gap likely reflects a denser homemade granola / higher-fat yogurt than the generic catalog entries used here.",
+  "ingredients": [
+   {
+    "slug": "greek-yogurt-2-fat",
+    "grams": 140,
+    "note": "Max 2% fat."
+   },
+   {
+    "slug": "granola",
+    "grams": 40,
+    "note": "Homemade granola (linked recipe not expanded)."
+   }
+  ],
+  "statedKcalPerServing": 355,
+  "sourceUrl": "https://app.notion.com/6b51c0f6641f82c8bcb001ee61a489f8"
+ },
+ {
+  "slug": "recky-salat-s-kurecimi-gyros-kousky",
+  "name": "Řecký salát s kuřecími gyros kousky",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Kuřecí kousky okořeníme a upečeme v horkovzdušné fritéze.",
+   "Tzaziky: Okurku nastrouháme a vymačkáme z ní vodu. Poté smícháme s řeckým jogurtem, přidáme prolisovaný česnek a dle chuti také sůl, pepř a nadrobno nakrájený kopr.",
+   "Maso podáváme společně s tzaziky a řeckým salátem."
+  ],
+  "note": "Tortilla/pita amount stated as '60 g per serving' — scaled by servings (3) to 180 g total. Extra serving vegetables omitted as a serving suggestion; cucumber amount for tzatziki not stated, estimated.",
+  "ingredients": [
+   {
+    "slug": "chicken-breast-raw",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 14,
+    "note": "Amount estimated (1 tbsp)."
+   },
+   {
+    "slug": "tortilla",
+    "grams": 180,
+    "note": "60 g per serving x 3 servings."
+   },
+   {
+    "slug": "balkan-cheese",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "olives",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 200,
+    "note": "For tzatziki."
+   },
+   {
+    "slug": "cucumber",
+    "grams": 150,
+    "note": "For tzatziki, amount estimated."
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "For tzatziki."
+   }
+  ],
+  "statedKcalPerServing": 668,
+  "sourceUrl": "https://app.notion.com/85d1c0f6641f82f1869f81ce6ceb8c5a"
+ },
+ {
+  "slug": "recky-talir-s-hovezim-masem",
+  "name": "Řecký talíř s hovězím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Mleté maso okořeníme (lze použít jen sůl a pepř, nebo koření na mletá masa) a poté z něho tvarujeme kuličky, které dáme opéct na rozpálenou pánev s trochou olivového oleje (lze použít i horkovzdušnou fritézu).",
+   "Brambory nakrájíme na měsíčky, osolíme, zakápneme trochou olivového oleje a dáme péct do trouby na 180 stupňů cca 30 minut.",
+   "Tzaziky: Okurku nastrouháme a vymačkáme z ní vodu. Poté smícháme s řeckým jogurtem, přidáme prolisovaný česnek a dle chuti také sůl, pepř a nadrobno nakrájený kopr."
+  ],
+  "note": "Olive oil amount not stated (used both for pan-frying meatballs and drizzling potatoes), estimated at 2 tbsp total. Cucumber amount for tzatziki estimated. Extra serving vegetables omitted as a serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": "Max 10% fat."
+   },
+   {
+    "slug": "potato",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": "Amount estimated."
+   },
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 200,
+    "note": "For tzatziki."
+   },
+   {
+    "slug": "cucumber",
+    "grams": 150,
+    "note": "For tzatziki, amount estimated."
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "For tzatziki."
+   }
+  ],
+  "statedKcalPerServing": 653,
+  "sourceUrl": "https://app.notion.com/3d71c0f6641f83b48792810340bc4553"
+ },
+ {
+  "slug": "recky-talir-s-krutim-masem",
+  "name": "Řecký talíř s krůtím masem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Mleté maso okořeníme (lze použít jen sůl a pepř, nebo koření na mletá masa) a poté z něho tvarujeme kuličky, které dáme opéct na rozpálenou pánev s trochou olivového oleje (lze použít i horkovzdušnou fritézu).",
+   "Brambory nakrájíme na měsíčky, osolíme, zakápneme trochou olivového oleje a dáme péct do trouby na 180 stupňů cca 30 minut.",
+   "Tzaziky: Okurku nastrouháme a vymačkáme z ní vodu. Poté smícháme s řeckým jogurtem, přidáme prolisovaný česnek a dle chuti také sůl, pepř a nadrobno nakrájený kopr."
+  ],
+  "note": "Turkey variant of Řecký talíř s hovězím masem — identical steps/tzatziki. Olive oil amount not stated, estimated at 2 tbsp total. Cucumber amount for tzatziki estimated. Extra serving vegetables omitted as a serving suggestion.",
+  "ingredients": [
+   {
+    "slug": "ground-turkey",
+    "grams": 500,
+    "note": null
+   },
+   {
+    "slug": "potato",
+    "grams": 600,
+    "note": null
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": "Amount estimated."
+   },
+   {
+    "slug": "greek-yogurt-full-fat",
+    "grams": 200,
+    "note": "For tzatziki."
+   },
+   {
+    "slug": "cucumber",
+    "grams": 150,
+    "note": "For tzatziki, amount estimated."
+   },
+   {
+    "slug": "garlic",
+    "grams": 10,
+    "note": "For tzatziki."
+   }
+  ],
+  "statedKcalPerServing": 613,
+  "sourceUrl": "https://app.notion.com/e8b1c0f6641f8309a19f01eb24d3e417"
+ },
+ {
+  "slug": "redkvickova-pomazanka",
+  "name": "Ředkvičková pomazánka",
+  "description": null,
+  "mealTypes": [
+   "dinner"
+  ],
+  "prepMinutes": 10,
+  "servings": 4,
+  "steps": [
+   "Vše smícháš (podáváš s žitným pečivem)."
+  ],
+  "note": "Macros are for the spread only; rye bread served alongside is not included.",
+  "ingredients": [
+   {
+    "slug": "radishes",
+    "grams": 120,
+    "note": "1 bunch."
+   },
+   {
+    "slug": "quark-low-fat",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "spring-onion",
+    "grams": 30,
+    "note": "Optional, 2 pcs."
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 240,
+    "note": "Hard-boiled, 4 pcs."
+   }
+  ],
+  "statedKcalPerServing": 160,
+  "sourceUrl": "https://app.notion.com/e191c0f6641f838aa9f8012d5b3cdf2b"
+ },
+ {
+  "slug": "safranove-rizoto-s-krevetami",
+  "name": "Šafránové rizoto s krevetami",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 45,
+  "servings": 4,
+  "steps": [
+   "V hluboké pánvi (nebo hrnci) rozehřejeme lžíci olivového oleje, přidáme šalotku a necháme zesklovatět. Přidáme rýži a restujeme. Osolíme, opepříme a zalijeme horkým vývarem (vodou) tak, aby byla rýže ponořena, přidáme šafrán a na střední stupeň vaříme, dokud se tekutina neodpaří. Často mícháme. Znovu podlijeme vývarem a znovu necháme odpařit. Čím déle vaříme, tím menší dávky vývaru přidáváme. Když je rýže poloměkká a vývar odpařený, sundáme z plotýnky a vmícháme parmezán.",
+   "Krevety stačí zprudka opéci na rozpáleném olivovém oleji - lze přidat trochu česneku, soli a pepře na dochucení - libovolně i chilli."
+  ],
+  "note": "No stated macros on the source page (nutrition block was an unfilled template). Optional arugula garnish omitted, no amount given. Garlic amount (used for frying shrimp) not stated, estimated at 1 clove.",
+  "ingredients": [
+   {
+    "slug": "shrimp-raw",
+    "grams": 300,
+    "note": null
+   },
+   {
+    "slug": "white-rice-dry",
+    "grams": 200,
+    "note": "Round-grain rice, ideally arborio."
+   },
+   {
+    "slug": "shallot",
+    "grams": 60,
+    "note": "2 shallots, or 1 larger onion."
+   },
+   {
+    "slug": "broth",
+    "grams": 1000,
+    "note": "Or water."
+   },
+   {
+    "slug": "parmesan",
+    "grams": 80,
+    "note": null
+   },
+   {
+    "slug": "garlic",
+    "grams": 5,
+    "note": "Amount estimated."
+   }
+  ],
+  "statedKcalPerServing": null,
+  "sourceUrl": "https://app.notion.com/69f1c0f6641f82e998df81afb704e455"
+ },
+ {
+  "slug": "spagety-s-masovymi-kulickami",
+  "name": "Špagety s masovými kuličkami",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 4,
+  "steps": [
+   "Z masa a ostatních uvedených ingrediencí vytvoříme masové kuličky, které opečeme na pánvi nebo v horkovzdušné fritéze (bez tuku).",
+   "Na přípravu omáčky dáme osmahnout cibulku na olivovém oleji lehce dozlatova, poté přidáme prolisovaný česnek, bylinky, sůl a pepř dle chuti a chvilku restujeme. Nakonec přidáme 2 plechovky krájených rajčat.",
+   "Těstoviny podáváme s omáčkou, masovými kuličkami navrchu a zasypeme 2 polévkovými lžícemi parmazánu (20g)."
+  ],
+  "note": null,
+  "ingredients": [
+   {
+    "slug": "ground-beef-lean",
+    "grams": 500,
+    "note": "Meatballs."
+   },
+   {
+    "slug": "whole-egg",
+    "grams": 60,
+    "note": "Meatballs."
+   },
+   {
+    "slug": "olive-oil",
+    "grams": 28,
+    "note": "Sauce."
+   },
+   {
+    "slug": "red-onion",
+    "grams": 200,
+    "note": "Sauce, 2 onions."
+   },
+   {
+    "slug": "garlic",
+    "grams": 20,
+    "note": "Sauce, 4-5 cloves."
+   },
+   {
+    "slug": "canned-tomatoes",
+    "grams": 800,
+    "note": "Sauce, 2 cans."
+   },
+   {
+    "slug": "white-pasta-dry",
+    "grams": 250,
+    "note": null
+   },
+   {
+    "slug": "parmesan",
+    "grams": 20,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 630,
+  "sourceUrl": "https://app.notion.com/b171c0f6641f83c6abb40136526bf7c2"
+ },
+ {
+  "slug": "spagety-s-mozzarellou-a-prosciuttem",
+  "name": "Špagety s mozzarellou a prosciuttem",
+  "description": null,
+  "mealTypes": [
+   "lunch"
+  ],
+  "prepMinutes": 30,
+  "servings": 3,
+  "steps": [
+   "Špagety uvaříme dle návodu a servírujeme s mozzarellou, natrhaným prosciuttem, nakrájenými cherry rajčátky, olivama.",
+   "Dozdobíme bazalkovým pestem (20 g na porci), a pokapeme trochou balsamica. Dle chuti dosolíme dopepříme a případně dozdobíme čerstvou bazalkou."
+  ],
+  "note": "Vegetarian variant available (no prosciutto, 3 mozzarella balls total) at a similar stated kcal (647) — not imported. Mozzarella amount derived from the source note (85 g per serving x 3).",
+  "ingredients": [
+   {
+    "slug": "white-pasta-dry",
+    "grams": 200,
+    "note": null
+   },
+   {
+    "slug": "mozzarella-light",
+    "grams": 255,
+    "note": "85 g per serving x 3 servings."
+   },
+   {
+    "slug": "prosciutto",
+    "grams": 100,
+    "note": null
+   },
+   {
+    "slug": "tomato",
+    "grams": 250,
+    "note": "Cherry tomatoes."
+   },
+   {
+    "slug": "pesto-basil",
+    "grams": 60,
+    "note": null
+   },
+   {
+    "slug": "olives",
+    "grams": 150,
+    "note": null
+   },
+   {
+    "slug": "balsamic-vinegar",
+    "grams": 48,
+    "note": null
+   }
+  ],
+  "statedKcalPerServing": 656,
+  "sourceUrl": "https://app.notion.com/52b1c0f6641f8240b67b01d61c652811"
+ }
+]

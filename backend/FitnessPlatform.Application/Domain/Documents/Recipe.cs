@@ -111,4 +111,13 @@ public class Recipe
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
+
+    /// <summary>
+    /// Meal types this recipe is suited for (e.g. "breakfast", "lunch", "dinner", "dessert").
+    /// Additive/optional — absent on legacy documents, no backfill needed. No UI consumes this
+    /// yet (follow-up issue); Recipe has no <c>Version</c> field so there is no CAS concern.
+    /// </summary>
+    [BsonElement("mealTypes")]
+    [BsonIgnoreIfNull]
+    public List<string>? MealTypes { get; set; }
 }

@@ -38,6 +38,7 @@ public class MongoIndexInitializer : IHostedService
         await CreatePersonalRecordIndexes(cancellationToken);
         await CreateSectionTemplateIndexes(cancellationToken);
         await CreateSessionLockIndexes(cancellationToken);
+        await CreateWorkoutTemplateIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -470,5 +471,22 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_sessionlock_planId" });
 
         await indexes.CreateManyAsync([sessionIdIndex, ttlIndex, clientIdIndex, planIdIndex], ct);
+    }
+
+    private async Task CreateWorkoutTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.WorkoutTemplates.Indexes;
+
+        // Unique index on externalId for API lookups and MongoSeeder's per-document dedupe.
+        var externalIdIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_externalId", Unique = true });
+
+        // Index on ownerId for per-trainer list queries (mirrors SectionTemplate's ownerTrainerId).
+        var ownerIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.OwnerId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
     }
 }

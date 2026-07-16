@@ -313,9 +313,12 @@ if (args.Contains("--seed"))
 
 // QA fixture for the docker-compose end-to-end harness. Order matters:
 // roles first (QaSeedRunner assigns roles to its users), then the QA users
-// themselves, then Mongo — MongoSeeder.RecipeSeed gates on a nutritionist
-// existing in Postgres, so QaSeedRunner has to land before it on cold boot
-// or the recipes collection stays empty until the next reseed. Idempotent
+// themselves, then Mongo. Note (#809): MongoSeeder's catalog recipes/workout
+// templates no longer gate on a nutritionist existing — the old per-nutritionist
+// private-recipe cloning was removed; catalog recipes are public and owned by
+// the system admin user regardless of which (if any) nutritionists exist.
+// QaSeedRunner still runs before MongoSeeder here so the QA fixture users/plans
+// and the public catalog land in one deterministic pass on cold boot. Idempotent
 // across reruns.
 if (args.Contains("--qa-seed"))
 {

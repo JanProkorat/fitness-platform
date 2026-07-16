@@ -52,9 +52,21 @@ test('recipe-gallery-upload — nutritionist uploads recipe gallery image and it
   // list to load from the compose harness.
   await page.waitForLoadState('networkidle', { timeout: 30_000 });
 
-  // ── 2. Wait for seeded recipe to appear ─────────────────────────────────────
-  // The seed adds QaRecipe1 named "Chicken + Rice + Broccoli bowl".
-  // Default sort is by name ascending; it will appear near the top.
+  // ── 2. Narrow to the seeded recipe via search, then wait for it to appear ────
+  // The seed adds QaRecipe1 named "Chicken, Rice & Broccoli Bowl". As of #809
+  // the harness seeds 124 public recipes (name-ascending, pageSize 50), so the
+  // fixture recipe is no longer guaranteed to land on page 1 — searching keeps
+  // this assertion independent of catalog size / pagination.
+  //
+  // The search input's accessible name comes from RecipesPage's
+  // t('recipes.searchAriaLabel'); match all three locales since the harness
+  // defaults to 'cs' unless a spec's setup forces a different language
+  // (localStorage key 'lang', see project i18n conventions).
+  const recipeSearchInput = page.getByRole('textbox', {
+    name: /Hledat recepty|Search recipes|Rezepte suchen/i,
+  });
+  await recipeSearchInput.fill('Rice & Broccoli');
+
   const recipeRow = page
     .getByRole('table')
     .getByText('Chicken', { exact: false });
