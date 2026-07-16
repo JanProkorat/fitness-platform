@@ -70,7 +70,7 @@ export default function RegisterScreen() {
         confirmPassword,
         firstName,
         lastName,
-        role,
+        roles: [role],
         gdprConsent: true,
         healthDataConsent: role === 'Client' ? true : undefined,
       });
