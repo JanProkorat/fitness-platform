@@ -74,14 +74,10 @@ test('template library — renders 10 public templates, detail shows sections an
   await expect(page.getByText('Warm-up').first()).toBeVisible();
   await expect(page.getByText('Main strength').first()).toBeVisible();
 
-  // Screenshot evidence for the QA handoff.
-  await page.screenshot({ path: '../.qa-artifacts/824/orchestrator-web-detail-dialog.png', fullPage: false });
-
   // Close via the dialog's header close button (sibling of the h2 title).
   await page.locator('h2:has-text("Základy pro celé tělo") + button').click();
   await expect(dialogTitle).not.toBeVisible();
 
   // 5. Page is not in an error state; library coexists with the own-templates area.
   await expect(libraryHeading).toBeVisible();
-  await page.screenshot({ path: '../.qa-artifacts/824/orchestrator-web-library.png', fullPage: true });
 });
