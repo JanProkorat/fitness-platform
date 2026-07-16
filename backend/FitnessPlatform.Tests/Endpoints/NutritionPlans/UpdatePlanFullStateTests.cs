@@ -493,7 +493,11 @@ public class UpdatePlanFullStateTests
         var result = await validator.ValidateAsync(req);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName.Contains("Supplements") && e.PropertyName.Contains("Name"));
+        // Anchor on ErrorMessage, not PropertyName — the global FluentValidation resolver is
+        // camelCased by any app-booting test in the full suite (e.g. CatalogSeedingTests), which
+        // turns PropertyName into "supplements[0].name" and makes case-sensitive Contains("Name")
+        // flake depending on run order. See project convention (FluentValidation PropertyName flake).
+        result.Errors.Should().Contain(e => e.ErrorMessage.Contains("Supplement Name must not be empty"));
     }
 
     [Fact]
@@ -520,7 +524,9 @@ public class UpdatePlanFullStateTests
         var result = await validator.ValidateAsync(req);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName.Contains("Name") && e.ErrorMessage.Contains("100"));
+        // Anchor on ErrorMessage only, not PropertyName — see the flake note above.
+        result.Errors.Should().Contain(e =>
+            e.ErrorMessage.Contains("Supplement Name must not exceed 100 characters"));
     }
 
     [Fact]

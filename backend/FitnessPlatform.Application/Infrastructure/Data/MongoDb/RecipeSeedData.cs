@@ -8,8 +8,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 /// Seed data for the recipes collection — ~124 recipes imported from the user's Notion
 /// "Receptář" database, sourced from the embedded <c>Seed/Data/seed-recipes.json</c> resource.
 /// Ingredient references (by food slug) are resolved against <see cref="FoodSeedData"/> entries
-/// directly in memory — no database round trip needed since both sides derive the same
-/// deterministic <see cref="DeterministicGuid"/> from the slug.
+/// in memory, then bound to the *actual* persisted Food <c>ExternalId</c> via the
+/// name→ExternalId map <see cref="MongoSeeder"/> builds after the food phase — this correctly
+/// resolves to a pre-existing legacy food's random <c>ExternalId</c> when one exists, instead of
+/// dangling on the in-memory <see cref="DeterministicGuid"/> value.
 /// </summary>
 public static class RecipeSeedData
 {
@@ -19,7 +21,14 @@ public static class RecipeSeedData
     /// Builds the recipe documents to seed. All recipes are owned by the system admin account
     /// and public — see the public-catalog-seeding design spec §2/§4 for the rationale.
     /// </summary>
-    public static List<Recipe> GetRecipes()
+    /// <param name="foodNameToExternalId">
+    /// Map of Food <c>Name</c> (English, case-insensitive) → the food's *actual* persisted
+    /// <c>ExternalId</c>, built by <see cref="MongoSeeder"/> from the DB state after the food
+    /// phase completes. On a fresh DB this equals the deterministic ID; on a DB with a
+    /// pre-existing same-named legacy food, it resolves to that document's real (random) ID —
+    /// see #810 review finding B1.
+    /// </param>
+    public static List<Recipe> GetRecipes(IReadOnlyDictionary<string, Guid> foodNameToExternalId)
     {
         var recipeEntries = LoadEntries();
         var foodEntries = FoodSeedData.LoadEntries().ToDictionary(f => f.Slug, StringComparer.Ordinal);
@@ -40,9 +49,16 @@ public static class RecipeSeedData
                         "seed-recipes.json and seed-foods.json are out of sync.");
                 }
 
+                if (!foodNameToExternalId.TryGetValue(food.NameEn, out var foodExternalId))
+                {
+                    throw new InvalidOperationException(
+                        $"Recipe '{entry.Slug}' references food '{food.NameEn}' (slug '{food.Slug}') " +
+                        "which is not present in the foods collection — foods must be seeded before recipes.");
+                }
+
                 mealFoods.Add(new MealFood
                 {
-                    FoodExternalId = DeterministicGuid.Create($"food:{food.Slug}"),
+                    FoodExternalId = foodExternalId,
                     FoodName = food.NameEn,
                     FoodNameCs = food.NameCs,
                     FoodNameEn = food.NameEn,
@@ -86,7 +102,29 @@ public static class RecipeSeedData
     /// <summary>
     /// Loads the raw seed entries. Exposed for tests that need to cross-check the source data.
     /// </summary>
-    public static List<RecipeSeedEntry> LoadEntries() => SeedJsonLoader.Load<RecipeSeedEntry>(ResourceFileName);
+    public static List<RecipeSeedEntry> LoadEntries() => SeedJsonLoader.Load<RecipeSeedEntry>(ResourceFileName, ValidateEntry);
+
+    /// <summary>
+    /// Fails fast with a clear message on a null/empty required field (the recipe's own slug/name,
+    /// and every ingredient's food-slug reference) — see #810 review finding M4.
+    /// </summary>
+    private static void ValidateEntry(RecipeSeedEntry entry, int index)
+    {
+        SeedJsonLoader.RequireNonEmpty(entry.Slug, nameof(entry.Slug), ResourceFileName, index);
+        SeedJsonLoader.RequireNonEmpty(entry.Name, nameof(entry.Name), ResourceFileName, index, entry.Slug);
+
+        if (entry.Ingredients is null)
+        {
+            throw new InvalidOperationException(
+                $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field '{nameof(entry.Ingredients)}' is null.");
+        }
+
+        for (var i = 0; i < entry.Ingredients.Count; i++)
+        {
+            SeedJsonLoader.RequireNonEmpty(
+                entry.Ingredients[i].Slug, $"{nameof(entry.Ingredients)}[{i}].Slug", ResourceFileName, index, entry.Slug);
+        }
+    }
 
     /// <summary>
     /// Prepends the servings-count hint (the JSON has no dedicated Recipe field for it) to the

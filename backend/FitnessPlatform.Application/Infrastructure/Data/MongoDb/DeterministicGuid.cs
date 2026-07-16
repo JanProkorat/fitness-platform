@@ -4,10 +4,14 @@ using System.Text;
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Produces stable, name-based (UUIDv5-style, RFC 4122 §4.3) GUIDs for seeded catalog documents.
-/// Deterministic across runs and machines — this is what lets the seeder be idempotent
-/// (re-running <c>--seed</c> never creates duplicates) and lets cross-referencing seed data
-/// (recipe → food, workout template → exercise) resolve without a database round trip.
+/// Produces stable, name-based (UUIDv3-style — RFC 4122 §4.3, MD5, version 3) GUIDs for seeded
+/// catalog documents. Deterministic across runs and machines — this is what lets the seeder be
+/// idempotent (re-running <c>--seed</c> never creates duplicates) and lets cross-referencing seed
+/// data (recipe → food, workout template → exercise) resolve without a database round trip
+/// <b>on a fresh database</b>. On a DB that already has a same-named legacy document (predating
+/// this scheme, with a random <c>ExternalId</c>), <see cref="MongoSeeder"/> resolves references
+/// against the actual persisted <c>ExternalId</c> instead of this value — see
+/// <c>MongoSeeder.BuildNameToExternalIdMapAsync</c>.
 /// </summary>
 /// <remarks>
 /// Callers pass a namespaced name such as <c>"food:chicken-breast-raw"</c> or
@@ -50,7 +54,7 @@ public static class DeterministicGuid
 
     /// <summary>
     /// GUIDs store the first three fields in machine (little-endian) byte order while RFC 4122
-    /// expects network (big-endian) order — swap so the hash matches other UUIDv5 implementations.
+    /// expects network (big-endian) order — swap so the hash matches other UUIDv3 implementations.
     /// </summary>
     private static void SwapByteOrder(byte[] guid)
     {

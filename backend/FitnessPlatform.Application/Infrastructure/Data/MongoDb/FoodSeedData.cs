@@ -55,7 +55,21 @@ public static class FoodSeedData
     /// Loads the raw seed entries — exposed so <see cref="RecipeSeedData"/> can resolve
     /// ingredient slugs to per-100g nutrient snapshots without a database round trip.
     /// </summary>
-    public static List<FoodSeedEntry> LoadEntries() => SeedJsonLoader.Load<FoodSeedEntry>(ResourceFileName);
+    public static List<FoodSeedEntry> LoadEntries() => SeedJsonLoader.Load<FoodSeedEntry>(ResourceFileName, ValidateEntry);
+
+    /// <summary>
+    /// Fails fast with a clear message on a null/empty required field, instead of letting it
+    /// surface as an NRE deep in the seeding pipeline (e.g. a null <c>Slug</c> silently
+    /// interpolating to an empty string in <see cref="DeterministicGuid.Create"/>).
+    /// </summary>
+    private static void ValidateEntry(FoodSeedEntry entry, int index)
+    {
+        SeedJsonLoader.RequireNonEmpty(entry.Slug, nameof(entry.Slug), ResourceFileName, index);
+        SeedJsonLoader.RequireNonEmpty(entry.NameEn, nameof(entry.NameEn), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameCs, nameof(entry.NameCs), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameDe, nameof(entry.NameDe), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Category, nameof(entry.Category), ResourceFileName, index, entry.Slug);
+    }
 }
 
 /// <summary>A single food entry from <c>seed-foods.json</c>.</summary>

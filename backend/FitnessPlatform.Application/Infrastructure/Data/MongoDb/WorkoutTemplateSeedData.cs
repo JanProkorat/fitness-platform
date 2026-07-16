@@ -8,7 +8,9 @@ namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 /// Seed data for the workoutTemplates collection — at least two templates per
 /// <see cref="WorkoutFormat"/> value, sourced from the embedded
 /// <c>Seed/Data/seed-workout-templates.json</c> resource. Exercise references (by slug) are
-/// resolved against <see cref="ExerciseSeedData"/> entries directly in memory.
+/// resolved against <see cref="ExerciseSeedData"/> entries in memory, then bound to the *actual*
+/// persisted Exercise <c>ExternalId</c> via the name→ExternalId map <see cref="MongoSeeder"/>
+/// builds after the exercise phase — see #810 review finding B1.
 /// </summary>
 public static class WorkoutTemplateSeedData
 {
@@ -18,7 +20,13 @@ public static class WorkoutTemplateSeedData
     /// Builds the workout template documents to seed. All templates are owned by the system
     /// admin account and public — see the public-catalog-seeding design spec §5 for the rationale.
     /// </summary>
-    public static List<WorkoutTemplate> GetWorkoutTemplates()
+    /// <param name="exerciseNameToExternalId">
+    /// Map of Exercise <c>Name</c> (English, case-insensitive) → the exercise's *actual* persisted
+    /// <c>ExternalId</c>, built by <see cref="MongoSeeder"/> from the DB state after the exercise
+    /// phase completes. On a fresh DB this equals the deterministic ID; on a DB with a
+    /// pre-existing same-named legacy exercise, it resolves to that document's real (random) ID.
+    /// </param>
+    public static List<WorkoutTemplate> GetWorkoutTemplates(IReadOnlyDictionary<string, Guid> exerciseNameToExternalId)
     {
         var entries = LoadEntries();
         var exerciseEntries = ExerciseSeedData.LoadEntries().ToDictionary(e => e.Slug, StringComparer.Ordinal);
@@ -48,9 +56,17 @@ public static class WorkoutTemplateSeedData
                             "seed-exercises.json are out of sync.");
                     }
 
+                    if (!exerciseNameToExternalId.TryGetValue(exercise.NameEn, out var exerciseExternalId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Workout template '{entry.Slug}' references exercise '{exercise.NameEn}' " +
+                            $"(slug '{exercise.Slug}') which is not present in the exercises collection " +
+                            "— exercises must be seeded before workout templates.");
+                    }
+
                     return new SessionExercise
                     {
-                        ExerciseExternalId = DeterministicGuid.Create($"exercise:{exercise.Slug}"),
+                        ExerciseExternalId = exerciseExternalId,
                         ExerciseName = exercise.NameEn,
                         // SessionExercise.Order is documented as 1-based — matches the JSON as-is.
                         Order = exerciseRef.Order,
@@ -101,7 +117,53 @@ public static class WorkoutTemplateSeedData
     /// Loads the raw seed entries. Exposed for tests that need to cross-check the source data.
     /// </summary>
     public static List<WorkoutTemplateSeedEntry> LoadEntries() =>
-        SeedJsonLoader.Load<WorkoutTemplateSeedEntry>(ResourceFileName);
+        SeedJsonLoader.Load<WorkoutTemplateSeedEntry>(ResourceFileName, ValidateEntry);
+
+    /// <summary>
+    /// Fails fast with a clear message on a null/empty required field — the template's own
+    /// slug/names, plus every section name and exercise-slug/movement-type reference, since a
+    /// null exercise slug would otherwise silently dangle rather than throw — see #810 review
+    /// finding M4.
+    /// </summary>
+    private static void ValidateEntry(WorkoutTemplateSeedEntry entry, int index)
+    {
+        SeedJsonLoader.RequireNonEmpty(entry.Slug, nameof(entry.Slug), ResourceFileName, index);
+        SeedJsonLoader.RequireNonEmpty(entry.NameEn, nameof(entry.NameEn), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameCs, nameof(entry.NameCs), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameDe, nameof(entry.NameDe), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Difficulty, nameof(entry.Difficulty), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Format, nameof(entry.Format), ResourceFileName, index, entry.Slug);
+
+        if (entry.Sections is null)
+        {
+            throw new InvalidOperationException(
+                $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field '{nameof(entry.Sections)}' is null.");
+        }
+
+        for (var s = 0; s < entry.Sections.Count; s++)
+        {
+            var section = entry.Sections[s];
+            SeedJsonLoader.RequireNonEmpty(
+                section.Name, $"{nameof(entry.Sections)}[{s}].Name", ResourceFileName, index, entry.Slug);
+
+            if (section.Exercises is null)
+            {
+                throw new InvalidOperationException(
+                    $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field " +
+                    $"'{nameof(entry.Sections)}[{s}].{nameof(section.Exercises)}' is null.");
+            }
+
+            for (var e = 0; e < section.Exercises.Count; e++)
+            {
+                var exerciseRef = section.Exercises[e];
+                var fieldPrefix = $"{nameof(entry.Sections)}[{s}].{nameof(section.Exercises)}[{e}]";
+                SeedJsonLoader.RequireNonEmpty(
+                    exerciseRef.ExerciseSlug, $"{fieldPrefix}.{nameof(exerciseRef.ExerciseSlug)}", ResourceFileName, index, entry.Slug);
+                SeedJsonLoader.RequireNonEmpty(
+                    exerciseRef.MovementType, $"{fieldPrefix}.{nameof(exerciseRef.MovementType)}", ResourceFileName, index, entry.Slug);
+            }
+        }
+    }
 
     private static T? ParseNullableEnum<T>(string? value) where T : struct, Enum =>
         value is null ? null : Enum.Parse<T>(value);

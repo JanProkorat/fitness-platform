@@ -50,7 +50,21 @@ public static class ExerciseSeedData
     /// Loads the raw seed entries — exposed so <see cref="WorkoutTemplateSeedData"/> can resolve
     /// exercise slugs to denormalized names/ExternalIds without a database round trip.
     /// </summary>
-    public static List<ExerciseSeedEntry> LoadEntries() => SeedJsonLoader.Load<ExerciseSeedEntry>(ResourceFileName);
+    public static List<ExerciseSeedEntry> LoadEntries() => SeedJsonLoader.Load<ExerciseSeedEntry>(ResourceFileName, ValidateEntry);
+
+    /// <summary>
+    /// Fails fast with a clear message on a null/empty required field — see #810 review finding M4.
+    /// </summary>
+    private static void ValidateEntry(ExerciseSeedEntry entry, int index)
+    {
+        SeedJsonLoader.RequireNonEmpty(entry.Slug, nameof(entry.Slug), ResourceFileName, index);
+        SeedJsonLoader.RequireNonEmpty(entry.NameEn, nameof(entry.NameEn), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameCs, nameof(entry.NameCs), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.NameDe, nameof(entry.NameDe), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Equipment, nameof(entry.Equipment), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Category, nameof(entry.Category), ResourceFileName, index, entry.Slug);
+        SeedJsonLoader.RequireNonEmpty(entry.Difficulty, nameof(entry.Difficulty), ResourceFileName, index, entry.Slug);
+    }
 }
 
 /// <summary>A single exercise entry from <c>seed-exercises.json</c>.</summary>

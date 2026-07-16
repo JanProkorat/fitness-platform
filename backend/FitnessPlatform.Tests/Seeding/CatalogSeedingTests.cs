@@ -362,4 +362,126 @@ public class CatalogSeedingTests : IAsyncLifetime
                 $"at least 2 seeded workout templates must use format {format}");
         }
     }
+
+    /// <summary>
+    /// #810 review finding B1: on a DB seeded before this PR, a food/exercise whose Name already
+    /// exists (with an old, random ExternalId) is skipped by the per-document name-dedupe — but
+    /// recipes/workout templates must still resolve their ingredient/exercise references to that
+    /// PRE-EXISTING document's actual ExternalId, not the in-memory deterministic one. Otherwise
+    /// the reference dangles (points at an ExternalId no document carries).
+    /// Simulates this by pre-inserting a "Whole Egg" food and a "Barbell Bench Press" exercise —
+    /// both referenced by real seed recipes/templates — under random legacy ExternalIds before
+    /// running the seeder.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_LegacyNamedDocsWithRandomExternalIds_RecipeAndTemplateRefsBindToPreExistingDoc()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var legacyFoodExternalId = Guid.NewGuid();
+        var legacyFood = new Food
+        {
+            ExternalId = legacyFoodExternalId,
+            Name = "Whole Egg",
+            LocalizedNames = new LocalizedNames { En = "Whole Egg", Cs = "Legacy vejce", De = "Legacy Ei" },
+            Category = FoodCategory.Dairy,
+            NutrientValue = new NutrientValue { Kcal = 999, Protein = 1, Carbs = 1, Fat = 1 },
+            Visibility = FoodVisibility.Public,
+            DateCreated = DateTime.UtcNow,
+        };
+        await mongo.Foods.InsertOneAsync(legacyFood, cancellationToken: ct);
+
+        var legacyExerciseExternalId = Guid.NewGuid();
+        var legacyExercise = new Exercise
+        {
+            ExternalId = legacyExerciseExternalId,
+            Name = "Barbell Bench Press",
+            LocalizedNames = new LocalizedNames { En = "Barbell Bench Press", Cs = "Legacy bench press", De = "Legacy Bankdrücken" },
+            MuscleGroups = [MuscleGroup.Chest],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsCustom = false,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow,
+        };
+        await mongo.Exercises.InsertOneAsync(legacyExercise, cancellationToken: ct);
+
+        await MongoSeeder.SeedAsync(_factory.Services);
+
+        // No name duplicates — the seeder must have skipped inserting a second "Whole Egg" /
+        // "Barbell Bench Press" and kept the pre-existing legacy document as-is.
+        var wholeEggCount = await mongo.Foods.CountDocumentsAsync(
+            Builders<Food>.Filter.Regex(f => f.Name, new MongoDB.Bson.BsonRegularExpression("^Whole Egg$", "i")),
+            cancellationToken: ct);
+        wholeEggCount.Should().Be(1, "the legacy 'Whole Egg' food must not be duplicated by the seeder");
+
+        var benchPressCount = await mongo.Exercises.CountDocumentsAsync(
+            Builders<Exercise>.Filter.Regex(e => e.Name, new MongoDB.Bson.BsonRegularExpression("^Barbell Bench Press$", "i")),
+            cancellationToken: ct);
+        benchPressCount.Should().Be(1, "the legacy 'Barbell Bench Press' exercise must not be duplicated by the seeder");
+
+        var persistedWholeEgg = await mongo.Foods
+            .Find(f => f.Name == "Whole Egg").FirstOrDefaultAsync(ct);
+        persistedWholeEgg.Should().NotBeNull();
+        persistedWholeEgg!.ExternalId.Should().Be(legacyFoodExternalId,
+            "the pre-existing legacy food's ExternalId must survive — it was not re-inserted");
+
+        var persistedBenchPress = await mongo.Exercises
+            .Find(e => e.Name == "Barbell Bench Press").FirstOrDefaultAsync(ct);
+        persistedBenchPress.Should().NotBeNull();
+        persistedBenchPress!.ExternalId.Should().Be(legacyExerciseExternalId,
+            "the pre-existing legacy exercise's ExternalId must survive — it was not re-inserted");
+
+        // Every recipe referencing "Whole Egg" must bind to the legacy ExternalId, not the
+        // in-memory deterministic one — this is the crux of B1.
+        var recipes = await mongo.Recipes.Find(FilterDefinition<Recipe>.Empty).ToListAsync(ct);
+        var recipesReferencingWholeEgg = recipes
+            .Where(r => r.Foods.Any(mf => mf.FoodName == "Whole Egg"))
+            .ToList();
+        recipesReferencingWholeEgg.Should().NotBeEmpty("at least one seed recipe references Whole Egg — test fixture assumption");
+
+        recipesReferencingWholeEgg.Should().AllSatisfy(r =>
+        {
+            var wholeEggRefs = r.Foods.Where(mf => mf.FoodName == "Whole Egg");
+            wholeEggRefs.Should().AllSatisfy(mf =>
+                mf.FoodExternalId.Should().Be(legacyFoodExternalId,
+                    $"recipe '{r.Name}' must bind its Whole Egg reference to the pre-existing document's ExternalId, not a dangling deterministic one"));
+        });
+
+        // Every workout template referencing "Barbell Bench Press" must bind to the legacy
+        // ExternalId, not the in-memory deterministic one.
+        var templates = await mongo.WorkoutTemplates.Find(FilterDefinition<WorkoutTemplate>.Empty).ToListAsync(ct);
+        var benchPressRefs = templates
+            .SelectMany(t => t.Sections)
+            .SelectMany(s => s.Exercises)
+            .Where(e => e.ExerciseName == "Barbell Bench Press")
+            .ToList();
+        benchPressRefs.Should().NotBeEmpty("at least one seed template references Barbell Bench Press — test fixture assumption");
+
+        benchPressRefs.Should().AllSatisfy(e =>
+            e.ExerciseExternalId.Should().Be(legacyExerciseExternalId,
+                "workout template exercise refs must bind to the pre-existing document's ExternalId, not a dangling deterministic one"));
+
+        // Full cross-reference integrity check, same as the other tests — no dangling refs anywhere.
+        var allFoodExternalIds = (await mongo.Foods
+                .Find(FilterDefinition<Food>.Empty)
+                .Project(f => f.ExternalId)
+                .ToListAsync(ct))
+            .ToHashSet();
+        recipes.SelectMany(r => r.Foods).Should().AllSatisfy(mf =>
+            allFoodExternalIds.Should().Contain(mf.FoodExternalId));
+
+        var allExerciseExternalIds = (await mongo.Exercises
+                .Find(FilterDefinition<Exercise>.Empty)
+                .Project(e => e.ExternalId)
+                .ToListAsync(ct))
+            .ToHashSet();
+        templates.SelectMany(t => t.Sections).SelectMany(s => s.Exercises).Should().AllSatisfy(e =>
+            allExerciseExternalIds.Should().Contain(e.ExerciseExternalId));
+    }
 }
