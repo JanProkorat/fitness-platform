@@ -987,15 +987,14 @@ export class ApiClient {
     }
 
     /**
-     * List check-ins for a week (trainer)
-     * @param weekStartDate ISO-week Monday to filter by (YYYY-MM-DD). Required.
+     * List check-ins for the trainer
+     * @param weekStartDate (optional) ISO-week Monday to filter by (YYYY-MM-DD). Optional — when omitted, the endpoint
+    returns the active (not dismissed, not yet reviewed) set across all weeks.
      * @return Success
      */
-    getTrainerCheckInsEndpoint(weekStartDate: string, signal?: AbortSignal): Promise<GetTrainerCheckInsResponse> {
+    getTrainerCheckInsEndpoint(weekStartDate?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerCheckInsResponse> {
         let url_ = this.baseUrl + "/trainer/weekly-check-ins?";
-        if (weekStartDate === undefined || weekStartDate === null)
-            throw new globalThis.Error("The parameter 'weekStartDate' must be defined and cannot be null.");
-        else
+        if (weekStartDate !== undefined && weekStartDate !== null)
             url_ += "weekStartDate=" + encodeURIComponent("" + weekStartDate) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -1112,7 +1111,7 @@ export class ApiClient {
     }
 
     /**
-     * Get current week's active check-ins (client)
+     * Get active check-ins (client)
      * @return Success
      */
     getCurrentClientCheckInsEndpoint(signal?: AbortSignal): Promise<GetCurrentClientCheckInsResponse> {
@@ -1172,7 +1171,7 @@ export class ApiClient {
     }
 
     /**
-     * Get current week's check-in for a client (trainer)
+     * Get the active check-in for a client (trainer)
      * @param clientUserId Client's ApplicationUser.Id (route parameter).
      * @param profession (optional) Profession to filter by ("Training" or "Nutrition"). Optional.
     When omitted, returns check-ins for all professions.
@@ -4532,7 +4531,7 @@ export class ApiClient {
      * @param pageSize Page size. Defaults to 50.
      * @return Success
      */
-    listSectionTemplatesEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<SectionTemplateResponse[]> {
+    listSectionTemplatesEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<ListSectionTemplatesResponse> {
         let url_ = this.baseUrl + "/training/section-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -4564,7 +4563,7 @@ export class ApiClient {
         });
     }
 
-    protected processListSectionTemplatesEndpoint(response: AxiosResponse): Promise<SectionTemplateResponse[]> {
+    protected processListSectionTemplatesEndpoint(response: AxiosResponse): Promise<ListSectionTemplatesResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -4579,7 +4578,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SectionTemplateResponse[]>(result200);
+            return Promise.resolve<ListSectionTemplatesResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -4600,7 +4599,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SectionTemplateResponse[]>(null as any);
+        return Promise.resolve<ListSectionTemplatesResponse>(null as any);
     }
 
     /**
@@ -6810,6 +6809,81 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ListClientRequestsResponse>(null as any);
+    }
+
+    /**
+     * Retroactively link a photo diary request to a plan
+     * @param requestId The photo diary request ID (from route).
+     * @return Success
+     */
+    linkPlanEndpoint(requestId: string, linkPlanRequest: LinkPlanRequest, signal?: AbortSignal): Promise<LinkPlanResponse> {
+        let url_ = this.baseUrl + "/trainer/photo-diary-requests/{requestId}/link";
+        if (requestId === undefined || requestId === null)
+            throw new globalThis.Error("The parameter 'requestId' must be defined.");
+        url_ = url_.replace("{requestId}", encodeURIComponent("" + requestId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(linkPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processLinkPlanEndpoint(_response);
+        });
+    }
+
+    protected processLinkPlanEndpoint(response: AxiosResponse): Promise<LinkPlanResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<LinkPlanResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<LinkPlanResponse>(null as any);
     }
 
     /**
@@ -11901,6 +11975,81 @@ export class ApiClient {
     }
 
     /**
+     * Record a client's body measurement
+     * @param clientId The client profile's public identifier (route parameter).
+     * @return Success
+     */
+    addClientMeasurementEndpoint(clientId: string, addClientMeasurementRequest: AddClientMeasurementRequest, signal?: AbortSignal): Promise<MeasurementDto> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/measurements";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(addClientMeasurementRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddClientMeasurementEndpoint(_response);
+        });
+    }
+
+    protected processAddClientMeasurementEndpoint(response: AxiosResponse): Promise<MeasurementDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MeasurementDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MeasurementDto>(null as any);
+    }
+
+    /**
      * Submit client onboarding questionnaire
      * @return Onboarding complete
      */
@@ -13433,6 +13582,69 @@ export class ApiClient {
     }
 
     /**
+     * Resend verification email (anonymous)
+     * @return Success
+     */
+    anonymousResendVerificationEndpoint(anonymousResendVerificationRequest: AnonymousResendVerificationRequest, signal?: AbortSignal): Promise<AnonymousResendVerificationResponse> {
+        let url_ = this.baseUrl + "/auth/resend-verification/anonymous";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(anonymousResendVerificationRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAnonymousResendVerificationEndpoint(_response);
+        });
+    }
+
+    protected processAnonymousResendVerificationEndpoint(response: AxiosResponse): Promise<AnonymousResendVerificationResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AnonymousResendVerificationResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AnonymousResendVerificationResponse>(null as any);
+    }
+
+    /**
      * Accept a trainer invitation
      * @return Success
      */
@@ -13912,6 +14124,10 @@ export interface TrainerCheckInDto {
     id?: string;
     /** Client's ApplicationUser.Id. */
     clientUserId?: string;
+    /** Client's ClientProfile.PublicId — the id every client-detail link in the app uses
+(e.g. /clients/{clientPublicId}). Defaults to Guid.Empty if the client has no
+ClientProfile row (should not happen in practice, but the join is null-safe). */
+    clientPublicId?: string;
     /** Client's display name. */
     clientName?: string;
     /** Profession context. */
@@ -14795,6 +15011,12 @@ export interface UpdateClientDataResponse {
 
 /** Request to update a client's profile and nutrition target data. Only non-null fields are updated. */
 export interface UpdateClientDataRequest {
+    /** Client's first name. */
+    firstName?: string | undefined;
+    /** Client's last name. */
+    lastName?: string | undefined;
+    /** Client's email address (also the login identifier). */
+    email?: string | undefined;
     /** Weight in kg. */
     weightKg?: number | undefined;
     /** Height in cm. */
@@ -15487,6 +15709,46 @@ export interface CreateSectionTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** Response wrapper for listing section templates: the calling trainer's own templates (paginated) plus the public workout template library (unpaginated — currently 10 seeded templates, embedded in full). */
+export interface ListSectionTemplatesResponse {
+    /** The calling trainer's own section templates, paginated (unchanged shape/semantics). */
+    ownTemplates?: SectionTemplateResponse[];
+    /** Public workout templates available to all trainers, returned in full. */
+    publicWorkoutTemplates?: PublicWorkoutTemplateResponse[];
+}
+
+/** Response DTO for a single public workout template — surfaced in the trainer's section-templates "template library" alongside their own SectionTemplateResponse list. Embeds full sections -> exercises -> sets so the web client can render a complete detail view without a second call (only ~10 seeded templates; payload size is acceptable). */
+export interface PublicWorkoutTemplateResponse {
+    /** Template's public identifier. */
+    externalId?: string;
+    /** Display name of the template. */
+    name?: string;
+    /** Localized template names (en, cs, de), when available. */
+    localizedNames?: LocalizedNames | undefined;
+    /** Optional description of the template. */
+    description?: string | undefined;
+    /** Difficulty level of the template. */
+    difficulty?: string;
+    /** Estimated total duration of the session in minutes. */
+    estimatedDurationMinutes?: number | undefined;
+    /** Session-level workout format / scoring methodology. */
+    format?: string;
+    /** Format configuration for the session. Null when Format is Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Ordered sections making up the template, each with its exercises and set prescriptions. */
+    sections?: TrainingSection[];
+}
+
+/** Stores food names in supported languages for localization. */
+export interface LocalizedNames {
+    /** English name. */
+    en?: string | undefined;
+    /** Czech name. */
+    cs?: string | undefined;
+    /** German name. */
+    de?: string | undefined;
+}
+
 /** Request for listing the calling trainer's section templates. */
 export interface ListSectionTemplatesRequest {
 }
@@ -15837,6 +16099,15 @@ export interface ResponseAnswerDto {
     valueNumber?: number | undefined;
     valueJson?: string | undefined;
     fileUrl?: string | undefined;
+    /** Label of the questionnaire section (a Type="section" question) this
+answer's question falls under, or null if it appears before the first
+section header. Computed server-side via
+QuestionSectionResolver — additive field, #713. */
+    sectionLabel?: string | undefined;
+    /** 0-based order of SectionLabel relative to the other
+sections in the questionnaire, or null when SectionLabel
+is null. Additive field, #713. */
+    sectionOrder?: number | undefined;
 }
 
 export interface GetClientResponseResponse {
@@ -16078,6 +16349,35 @@ export interface ClientPhotoDiaryRequestSummary {
 
 /** Query parameters for the client's photo diary request list. */
 export interface ListClientRequestsRequest {
+}
+
+/** Response body returned after retroactively linking a photo diary request to a plan. */
+export interface LinkPlanResponse {
+    /** The photo diary request's ID. */
+    id?: string;
+    /** The professional (nutritionist/trainer) who owns this request. */
+    professionalId?: string;
+    /** The client-professional link this request is attached to (if link-based). */
+    linkId?: number | undefined;
+    /** The pending invite this request is bundled with (if invite-based). */
+    pendingInviteId?: number | undefined;
+    /** The plan now linked to this request. */
+    planId?: string | undefined;
+    /** How many days the client has to upload photos. */
+    durationDays?: number;
+    /** Current lifecycle status of the request. */
+    status?: PhotoDiaryStatus;
+    /** When the request was created. */
+    createdAt?: string;
+    /** When the request was last updated (bumped by this link operation). */
+    updatedAt?: string;
+}
+
+/** Route + body for retroactively linking an existing photo diary request to a nutrition or training plan. Diary-level (whole-diary) granularity — mirrors #777's response-level linking rather than linking individual photos. */
+export interface LinkPlanRequest {
+    /** MongoDB external identifier of the nutrition or training plan to link.
+Must belong to the same client the diary request is attached to. */
+    planId: string;
 }
 
 /** Response returned after a client dismisses a photo diary request. */
@@ -18105,6 +18405,28 @@ export interface AddMeasurementRequest {
     notes?: string | undefined;
 }
 
+/** Request model for a trainer/nutritionist recording a body measurement on behalf of a linked client. */
+export interface AddClientMeasurementRequest {
+    /** Date and time when the measurement was taken. */
+    measuredAt: string;
+    /** Weight in kilograms. */
+    weightKg?: number | undefined;
+    /** Body fat percentage. */
+    bodyFatPercentage?: number | undefined;
+    /** Chest circumference in centimeters. */
+    chestCm?: number | undefined;
+    /** Waist circumference in centimeters. */
+    waistCm?: number | undefined;
+    /** Hips circumference in centimeters. */
+    hipsCm?: number | undefined;
+    /** Biceps circumference in centimeters. */
+    bicepsCm?: number | undefined;
+    /** Thighs circumference in centimeters. */
+    thighsCm?: number | undefined;
+    /** Optional notes about the measurement session. */
+    notes?: string | undefined;
+}
+
 /** Response after successful onboarding submission. */
 export interface SubmitOnboardingResponse {
     /** Confirmation message. */
@@ -18488,6 +18810,18 @@ export interface LoginRequest {
     email: string;
     /** User's password. */
     password: string;
+}
+
+/** Response model for an anonymous resend-verification request. Deliberately generic — the same message is returned regardless of whether the email is registered, already verified, or has hit its resend cap, so the response body never becomes an account-existence oracle. */
+export interface AnonymousResendVerificationResponse {
+    /** Generic, state-independent confirmation message. */
+    message?: string;
+}
+
+/** Request model for requesting a verification-email resend by email address, without an authenticated session. */
+export interface AnonymousResendVerificationRequest {
+    /** Email address of the account to resend a verification email for. */
+    email: string;
 }
 
 /** Response model returned after successfully accepting an invitation. */

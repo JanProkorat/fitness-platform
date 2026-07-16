@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.SectionTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -9,11 +10,12 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.SectionTemplates.ListSectionTemplates;
 
 /// <summary>
-/// Lists the calling trainer's section templates with pagination.
+/// Lists the calling trainer's section templates with pagination, plus the public
+/// workout template library (unpaginated).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class ListSectionTemplatesEndpoint(IMongoContext mongo)
-    : Endpoint<ListSectionTemplatesRequest, List<SectionTemplateResponse>>
+    : Endpoint<ListSectionTemplatesRequest, ListSectionTemplatesResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -23,7 +25,7 @@ public class ListSectionTemplatesEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "List section templates";
-            s.Description = "Returns the calling trainer's section templates, paginated.";
+            s.Description = "Returns the calling trainer's section templates (paginated) and the public workout template library (unpaginated).";
         });
     }
 
@@ -56,6 +58,17 @@ public class ListSectionTemplatesEndpoint(IMongoContext mongo)
             ct);
 
         var templates = await cursor.ToListAsync(ct);
-        await Send.OkAsync(templates.Select(SectionTemplateResponse.FromDocument).ToList(), ct);
+
+        var publicFilter = Builders<WorkoutTemplate>.Filter.Eq(t => t.Visibility, WorkoutTemplateVisibility.Public);
+        using var publicCursor = await mongo.WorkoutTemplates.FindAsync(publicFilter, cancellationToken: ct);
+        var publicTemplates = await publicCursor.ToListAsync(ct);
+
+        var response = new ListSectionTemplatesResponse
+        {
+            OwnTemplates = templates.Select(SectionTemplateResponse.FromDocument).ToList(),
+            PublicWorkoutTemplates = publicTemplates.Select(PublicWorkoutTemplateResponse.FromDocument).ToList()
+        };
+
+        await Send.OkAsync(response, ct);
     }
 }

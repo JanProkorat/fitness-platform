@@ -3,16 +3,37 @@ import type {
   SectionTemplateResponse,
   CreateSectionTemplateRequest,
   UpdateSectionTemplateRequest,
+  ListSectionTemplatesResponse,
+  PublicWorkoutTemplateResponse,
 } from '@/api/generated';
 
-export type { SectionTemplateResponse, CreateSectionTemplateRequest, UpdateSectionTemplateRequest };
+export type {
+  SectionTemplateResponse,
+  CreateSectionTemplateRequest,
+  UpdateSectionTemplateRequest,
+  PublicWorkoutTemplateResponse,
+};
 
-/** List section templates for the authenticated trainer. Backend caps pageSize at 200. */
-export async function listSectionTemplates(): Promise<SectionTemplateResponse[]> {
-  const { data } = await api.get<SectionTemplateResponse[]>('/training/section-templates', {
+/** Result of {@link listSectionTemplates} — the trainer's own templates plus the public library. */
+export interface SectionTemplatesListResult {
+  /** The calling trainer's own section templates (unchanged shape/semantics). */
+  ownTemplates: SectionTemplateResponse[];
+  /** Public workout templates available to all trainers, embedded in full. */
+  publicWorkoutTemplates: PublicWorkoutTemplateResponse[];
+}
+
+/**
+ * List section templates for the authenticated trainer, plus the public
+ * workout template library. Backend caps pageSize at 200.
+ */
+export async function listSectionTemplates(): Promise<SectionTemplatesListResult> {
+  const { data } = await api.get<ListSectionTemplatesResponse>('/training/section-templates', {
     params: { page: 1, pageSize: 200 },
   });
-  return data;
+  return {
+    ownTemplates: data.ownTemplates ?? [],
+    publicWorkoutTemplates: data.publicWorkoutTemplates ?? [],
+  };
 }
 
 /** Get a single section template by ID. */

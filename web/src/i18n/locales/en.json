@@ -1391,7 +1391,16 @@
       "deleteError": "Failed to delete workout.",
       "deleteConfirmTitle": "Delete Workout",
       "deleteConfirmMessage": "Are you sure you want to delete the workout «{{name}}»? This cannot be undone.",
-      "versionConflict": "Workout was changed elsewhere, reloading."
+      "versionConflict": "Workout was changed elsewhere, reloading.",
+      "library": {
+        "title": "Template library",
+        "subtitle": "Public workout templates you can use as a starting point.",
+        "colSections": "Sections",
+        "durationMinutes": "{{count}} min",
+        "viewDetails": "View details",
+        "formatConfigLabel": "Format",
+        "descriptionLabel": "Description"
+      }
     },
     "completionState": {
       "setCompleted": "Completed",
