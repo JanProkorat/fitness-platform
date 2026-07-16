@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -23,6 +24,7 @@ public class AppleSocialLoginEndpointTests
 {
     private static readonly string JwtSecret = new('x', 64);
     private readonly IPendingInviteConversationSeeder _inviteConversationSeeder = Substitute.For<IPendingInviteConversationSeeder>();
+    private readonly ILogger<AppleSocialLoginEndpoint> _logger = Substitute.For<ILogger<AppleSocialLoginEndpoint>>();
 
     // Raw nonce used in all tests — the DB is seeded with a valid record for this value.
     private const string ValidNonce = "test-raw-nonce-apple";
@@ -130,7 +132,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().Build(); // no nonce rows
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = "unknown-nonce" },
@@ -157,7 +159,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(consumedNonce).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -183,7 +185,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(expiredNonce).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -203,7 +205,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — SendProblemAsync writes the response; it does NOT throw.
         await ep.HandleAsync(
@@ -234,7 +236,7 @@ public class AppleSocialLoginEndpointTests
         // Override the default return: atomic consume lost the race.
         db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(0);
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -264,7 +266,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(
@@ -292,7 +294,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "unverified-email-token", Nonce = ValidNonce },
@@ -318,7 +320,7 @@ public class AppleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "replay-token", Nonce = ValidNonce },
@@ -352,7 +354,7 @@ public class AppleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -373,7 +375,7 @@ public class AppleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build(); // no external logins
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "no-email-token", Nonce = ValidNonce },
@@ -402,7 +404,7 @@ public class AppleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -440,7 +442,7 @@ public class AppleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -478,7 +480,7 @@ public class AppleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -526,7 +528,7 @@ public class AppleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — no FirstName/LastName in body
         await ep.HandleAsync(
@@ -565,7 +567,7 @@ public class AppleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — name from body (first auth)
         await ep.HandleAsync(
@@ -616,6 +618,63 @@ public class AppleSocialLoginEndpointTests
     }
 
     /// <summary>
+    /// Non-fatal seeding per review (#803/#817): the account + Apple link are already
+    /// committed before the seed runs, so a seed failure must not turn a successful
+    /// Apple sign-up into a 401/500 — the client would otherwise be told to retry a
+    /// sign-in that has already succeeded.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NewUser_SeedThrows_StillReturnsTokens_AndLogsWarning()
+    {
+        var verifier = MakeVerifier(PrivateRelayPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+
+        userManager.FindByEmailAsync(PrivateRelayPayload.Email!).Returns((ApplicationUser?)null);
+        userManager.CreateAsync(Arg.Any<ApplicationUser>())
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client)
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Client"]);
+
+        _inviteConversationSeeder
+            .SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new InvalidOperationException("mongo down"));
+
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new AppleSocialLoginRequest
+            {
+                IdentityToken = "valid-token",
+                FirstName = "Anna",
+                LastName = "Smith",
+                Nonce = ValidNonce
+            },
+            CancellationToken.None);
+
+        // The seed failure must not propagate — tokens are still returned.
+        ep.ValidationFailed.Should().BeFalse();
+        ep.Response.AccessToken.Should().NotBeNullOrEmpty();
+        ep.Response.RefreshToken.Should().NotBeNullOrEmpty();
+
+        // The account + external login must still be committed despite the seed failure.
+        await userManager.Received(1).CreateAsync(Arg.Any<ApplicationUser>());
+        db.UserExternalLogins.Received(1).Add(Arg.Any<UserExternalLogin>());
+
+        // The failure is logged as an error, not swallowed silently.
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains(PrivateRelayPayload.Email!)),
+            Arg.Is<Exception>(ex => ex is InvalidOperationException && ex.Message == "mongo down"),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    /// <summary>
     /// #803/#817 — the invite-conversation seed only applies to brand-new accounts. A
     /// returning user with an existing Apple link must NOT re-run the pending-invite
     /// lookup on every login.
@@ -646,7 +705,7 @@ public class AppleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new AppleSocialLoginRequest { IdentityToken = "valid-token", Nonce = ValidNonce },
@@ -679,7 +738,7 @@ public class AppleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<AppleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — no name in body (Apple omitted on first auth for this test)
         await ep.HandleAsync(

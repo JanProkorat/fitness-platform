@@ -327,6 +327,55 @@ public class RegisterEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_SeedThrows_StillReturns201_AndLogsWarning()
+    {
+        _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())
+            .Returns(IdentityResult.Success);
+        _userManager.AddToRolesAsync(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>())
+            .Returns(IdentityResult.Success);
+
+        _inviteConversationSeeder
+            .SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new InvalidOperationException("mongo down"));
+
+        var ep = Factory.Create<RegisterEndpoint>(_userManager, _db, _audit, _tokenService, _logger, _inviteConversationSeeder);
+
+        var req = new RegisterRequest
+        {
+            Email = "seedfails@example.com",
+            Password = "TestPass1!",
+            ConfirmPassword = "TestPass1!",
+            FirstName = "John",
+            LastName = "Doe",
+            Roles = new List<string> { "Client" },
+            GdprConsent = true
+        };
+
+        // Act — the seed failure must not propagate. The account is already committed
+        // (#803/#817 non-fatal seeding per review).
+        await ep.HandleAsync(req, CancellationToken.None);
+
+        // Assert — registration still succeeds and the account is created.
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        ep.Response.Email.Should().Be("seedfails@example.com");
+        await _userManager.Received(1).CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
+
+        // The email + audit steps must still have run despite the seed failure.
+        _db.EmailVerificationTokens.Received(1).Add(Arg.Any<EmailVerificationToken>());
+        await _audit.Received(1).LogAsync(
+            Arg.Any<Guid?>(), "Register", nameof(ApplicationUser), Arg.Any<Guid?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+
+        // The failure is logged as an error, not swallowed silently.
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains("seedfails@example.com")),
+            Arg.Is<Exception>(ex => ex is InvalidOperationException && ex.Message == "mongo down"),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
     public async Task HandleAsync_TrainerOnlyRole_DoesNotSeedPendingInviteConversations()
     {
         _userManager.CreateAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>())

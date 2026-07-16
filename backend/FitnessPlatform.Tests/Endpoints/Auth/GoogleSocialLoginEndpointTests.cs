@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
@@ -23,6 +24,7 @@ public class GoogleSocialLoginEndpointTests
 {
     private static readonly string JwtSecret = new('x', 64);
     private readonly IPendingInviteConversationSeeder _inviteConversationSeeder = Substitute.For<IPendingInviteConversationSeeder>();
+    private readonly ILogger<GoogleSocialLoginEndpoint> _logger = Substitute.For<ILogger<GoogleSocialLoginEndpoint>>();
 
     // Raw nonce used in all tests — the DB is seeded with a valid record for this value.
     private const string ValidNonce = "test-raw-nonce-google";
@@ -115,7 +117,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().Build(); // no nonce rows
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = "unknown-nonce" },
@@ -142,7 +144,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(consumedNonce).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
@@ -168,7 +170,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(expiredNonce).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
@@ -188,7 +190,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — SendProblemAsync writes the response; it does NOT throw.
         await ep.HandleAsync(
@@ -219,7 +221,7 @@ public class GoogleSocialLoginEndpointTests
         // Override the default return: atomic consume lost the race.
         db.ConsumeNonceAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(0);
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
@@ -258,7 +260,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(
@@ -287,7 +289,7 @@ public class GoogleSocialLoginEndpointTests
         var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var db = new MockDbBuilder().With(MakeValidNonce()).Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "replay-token", Nonce = ValidNonce },
@@ -327,7 +329,7 @@ public class GoogleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act — SendProblemAsync writes the response and does NOT throw.
         await ep.HandleAsync(
@@ -357,7 +359,7 @@ public class GoogleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(
@@ -398,7 +400,7 @@ public class GoogleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(
@@ -442,7 +444,7 @@ public class GoogleSocialLoginEndpointTests
             .With(MakeValidNonce())
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(
@@ -479,6 +481,57 @@ public class GoogleSocialLoginEndpointTests
     }
 
     /// <summary>
+    /// Non-fatal seeding per review (#803/#817): the account + Google link are already
+    /// committed before the seed runs, so a seed failure must not turn a successful
+    /// Google sign-up into a 401/500 — the client would otherwise be told to retry a
+    /// sign-in that has already succeeded.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NewUser_SeedThrows_StillReturnsTokens_AndLogsWarning()
+    {
+        var verifier = MakeVerifier(ValidPayload);
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+
+        userManager.FindByEmailAsync(ValidPayload.Email).Returns((ApplicationUser?)null);
+        userManager.CreateAsync(Arg.Any<ApplicationUser>())
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), AppRoles.Client)
+            .Returns(Microsoft.AspNetCore.Identity.IdentityResult.Success);
+        userManager.GetRolesAsync(Arg.Any<ApplicationUser>()).Returns(["Client"]);
+
+        _inviteConversationSeeder
+            .SeedForNewUserAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>())
+            .Returns<Task>(_ => throw new InvalidOperationException("mongo down"));
+
+        var db = new MockDbBuilder()
+            .With(MakeValidNonce())
+            .Build();
+        var config = MakeConfig();
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
+
+        await ep.HandleAsync(
+            new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
+            CancellationToken.None);
+
+        // The seed failure must not propagate — tokens are still returned.
+        ep.ValidationFailed.Should().BeFalse();
+        ep.Response.AccessToken.Should().NotBeNullOrEmpty();
+        ep.Response.RefreshToken.Should().NotBeNullOrEmpty();
+
+        // The account + external login must still be committed despite the seed failure.
+        await userManager.Received(1).CreateAsync(Arg.Any<ApplicationUser>());
+        db.UserExternalLogins.Received(1).Add(Arg.Any<UserExternalLogin>());
+
+        // The failure is logged as an error, not swallowed silently.
+        _logger.Received(1).Log(
+            LogLevel.Error,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString()!.Contains(ValidPayload.Email)),
+            Arg.Is<Exception>(ex => ex is InvalidOperationException && ex.Message == "mongo down"),
+            Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    /// <summary>
     /// #803/#817 — the invite-conversation seed only applies to brand-new accounts. A
     /// returning user with an existing Google link must NOT re-run the pending-invite
     /// lookup on every login.
@@ -509,7 +562,7 @@ public class GoogleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         await ep.HandleAsync(
             new GoogleSocialLoginRequest { IdToken = "valid-token", Nonce = ValidNonce },
@@ -549,7 +602,7 @@ public class GoogleSocialLoginEndpointTests
             .With(externalLogin)
             .Build();
         var config = MakeConfig();
-        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder);
+        var ep = Factory.Create<GoogleSocialLoginEndpoint>(verifier, userManager, db, config, _inviteConversationSeeder, _logger);
 
         // Act
         await ep.HandleAsync(

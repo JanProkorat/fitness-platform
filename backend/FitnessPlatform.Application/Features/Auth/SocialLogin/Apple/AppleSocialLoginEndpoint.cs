@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.Auth.SocialLogin.Apple;
 
@@ -30,7 +31,8 @@ public class AppleSocialLoginEndpoint(
     IConfiguration config,
     // Seeds a professional-client conversation against any message-bearing PendingInvite
     // already addressed to a newly-provisioned account's email (#803/#817).
-    IPendingInviteConversationSeeder inviteConversationSeeder) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
+    IPendingInviteConversationSeeder inviteConversationSeeder,
+    ILogger<AppleSocialLoginEndpoint> logger) : Endpoint<AppleSocialLoginRequest, AppleSocialLoginResponse>
 {
     private const string AppleProvider = "apple";
 
@@ -215,7 +217,19 @@ public class AppleSocialLoginEndpoint(
             // New account (always Client role for social login) — if it matches an
             // existing message-bearing PendingInvite, seed the professional-client
             // conversation now instead of waiting for the client to accept (#803/#817).
-            await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
+            // Non-fatal: the account (and its Apple link) are already committed above,
+            // so a conversation-seed failure must not turn a successful sign-in into a
+            // 500 — accept-time seeding remains the fallback path.
+            try
+            {
+                await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "Failed to seed pending-invite conversation(s) for {Email} during Apple sign-up. User {UserId} created; conversation will still be seeded at invite-accept time.",
+                    newUser.Email, newUser.Id);
+            }
         }
 
         // 3. Check if the account is active.
