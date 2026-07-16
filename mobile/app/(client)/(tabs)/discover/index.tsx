@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { href } from '@/lib/navigation'
+import { href, hrefParams } from '@/lib/navigation'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
@@ -141,7 +141,7 @@ function SearchTab() {
         onContactPress={() => {
           if (!isPending) setInviteTarget({ id: item.id, name: item.name, role: item.role, city: item.city })
         }}
-        onViewInvitePress={() => router.push(href('/(client)/discover/invite'))}
+        onViewInvitePress={() => router.push(hrefParams('/(client)/invite', { origin: 'collab' }))}
         onRevokePress={() => {
           Alert.alert(
             t('collab.revokeTitle'),

@@ -5,6 +5,12 @@
  * profile via TanStack Query, sharing the ['trainer-profile', id] cache with
  * the standalone [trainerId].tsx detail screen.
  *
+ * Also reused by the invite-detail screen ((client)/invite.tsx, #813) for
+ * profile-parity content (hero/bio/certificates/specialisations) — see the
+ * `children` and `footer` props below for how that screen injects its
+ * invite-specific sections (trainer message, "what's included", Accept/
+ * Decline CTAs) without duplicating this component's markup.
+ *
  * All colors route through useTheme() — no hardcoded hex values.
  * The SPEC_COLORS map from [trainerId].tsx is replaced with a token-backed
  * lookup using theme system color slots.
@@ -73,6 +79,15 @@ interface ProProfileViewProps {
    *  Defaults to true — the bar is shown for active collaborators.
    *  Pass false for non-linked profiles viewed from the discovery detail screen. */
   showActionBar?: boolean
+  /** Extra content rendered after the specialisations section and before the
+   *  footer/action bar. Used by the invite-detail screen to inject the
+   *  trainer's message + "what collaboration includes" list without
+   *  duplicating this component's hero/bio/specialisations markup. */
+  children?: React.ReactNode
+  /** Custom footer rendered in place of the default Zpráva/Ukončit action
+   *  bar (overrides `showActionBar` when provided). Used by the
+   *  invite-detail screen for Přijmout/Odmítnout CTAs (#813). */
+  footer?: React.ReactNode
 }
 
 // ─── Component ────────────────────────────────────────────────────────
@@ -84,6 +99,8 @@ export function ProProfileView({
   onMessagePress,
   onEndCollabPress,
   showActionBar = true,
+  children,
+  footer,
 }: ProProfileViewProps) {
   const colors = useTheme()
   const { t, i18n } = useTranslation()
@@ -237,8 +254,11 @@ export function ProProfileView({
         </View>
       )}
 
-      {/* ── Bottom action bar ──────────────────────────────────────── */}
-      {showActionBar && (
+      {/* ── Extra content (invite message, "what's included", etc.) ──── */}
+      {children}
+
+      {/* ── Bottom action bar / custom footer ─────────────────────── */}
+      {footer ?? (showActionBar && (
         <View style={styles.actionBar}>
           <Pressable
             onPress={onMessagePress}
@@ -266,7 +286,7 @@ export function ProProfileView({
             </Text>
           </Pressable>
         </View>
-      )}
+      ))}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>

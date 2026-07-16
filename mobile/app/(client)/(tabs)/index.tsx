@@ -247,7 +247,7 @@ export default function TodayScreen() {
                 onError: () => Toast.show(t('collab.actionFailed')),
               })
             }
-            onViewInvite={() => router.push(href('/(client)/discover/invite'))}
+            onViewInvite={() => router.push(hrefParams('/(client)/invite', { origin: 'today' }))}
           />
         )}
 
