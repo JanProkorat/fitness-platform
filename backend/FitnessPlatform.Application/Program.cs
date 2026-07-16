@@ -229,6 +229,12 @@ builder.Services.AddScoped<IRealtimeNotifier, SignalRNotifier>();
 // and AcceptInvitationEndpoint (#768).
 builder.Services.AddScoped<IConversationSeedService, ConversationSeedService>();
 
+// Seeds a professional-client conversation for a brand-new account against any
+// message-bearing PendingInvite already addressed to their email — shared by
+// RegisterEndpoint, GoogleSocialLoginEndpoint, and AppleSocialLoginEndpoint so the
+// coach's opening message is visible before the client accepts (#803/#817).
+builder.Services.AddScoped<IPendingInviteConversationSeeder, PendingInviteConversationSeeder>();
+
 // Weekly check-in scheduler — registered as both singleton (for test access) and hosted service.
 builder.Services.AddSingleton<WeeklyCheckInScheduler>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WeeklyCheckInScheduler>());

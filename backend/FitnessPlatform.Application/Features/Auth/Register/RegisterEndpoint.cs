@@ -17,7 +17,18 @@ namespace FitnessPlatform.Application.Features.Auth.Register;
 /// <param name="audit">Audit logging service.</param>
 /// <param name="tokenService">Shared email-verification token issuance service (see #679).</param>
 /// <param name="logger">Logger for non-fatal send failures.</param>
-public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplicationDbContext dbContext, IAuditService audit, IEmailVerificationTokenService tokenService, ILogger<RegisterEndpoint> logger) : Endpoint<RegisterRequest, RegisterResponse>
+/// <param name="inviteConversationSeeder">
+/// Seeds a professional-client conversation against any message-bearing PendingInvite
+/// already addressed to this email, so the coach's opening message is visible on
+/// Messages before the client accepts (#803/#817).
+/// </param>
+public class RegisterEndpoint(
+    UserManager<ApplicationUser> userManager,
+    IApplicationDbContext dbContext,
+    IAuditService audit,
+    IEmailVerificationTokenService tokenService,
+    ILogger<RegisterEndpoint> logger,
+    IPendingInviteConversationSeeder inviteConversationSeeder) : Endpoint<RegisterRequest, RegisterResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -110,6 +121,28 @@ public class RegisterEndpoint(UserManager<ApplicationUser> userManager, IApplica
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             newValues: $"{{\"gdprConsent\":true,\"healthDataConsent\":{healthDataConsentValue},\"roles\":[{string.Join(",", roles.Select(r => $"\"{r}\""))}]}}",
             ct: ct);
+
+        // If this new account has the Client role and matches an existing message-bearing
+        // PendingInvite, seed the professional-client conversation now — instead of waiting
+        // for the client to accept the invite (#803/#817). PendingInvite always represents an
+        // invitation of a client, so this is a no-op (and skipped) for coach-only signups.
+        // Non-fatal, same as the verification-email step above: the account already exists
+        // and is fully usable even if this seed fails (accept-time seeding remains the
+        // fallback path) — a conversation-seed error must never turn an already-created
+        // account into a 500 (the user's retry would then hit "email already registered").
+        if (isClient)
+        {
+            try
+            {
+                await inviteConversationSeeder.SeedForNewUserAsync(user, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "Failed to seed pending-invite conversation(s) for {Email} during registration. User {UserId} created; conversation will still be seeded at invite-accept time.",
+                    user.Email, user.Id);
+            }
+        }
 
         await Send.ResponseAsync(new RegisterResponse
         {
