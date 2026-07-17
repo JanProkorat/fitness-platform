@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -18,8 +18,12 @@ import { useAuthStore } from '@/stores/auth';
 import { useTheme } from '@/hooks/useTheme';
 import { Colors } from '@/constants/colors';
 
-const ROLES = ['Client', 'Trainer', 'Nutritionist'] as const;
-const ROLE_META: Record<(typeof ROLES)[number], { icon: string; labelKey: string; descKey: string }> = {
+const CLIENT_ROLE = 'Client' as const;
+const COACH_ROLES = ['Trainer', 'Nutritionist'] as const;
+const ROLES = [CLIENT_ROLE, ...COACH_ROLES] as const;
+type RoleName = (typeof ROLES)[number];
+
+const ROLE_META: Record<RoleName, { icon: string; labelKey: string; descKey: string }> = {
   Client: { icon: '👤', labelKey: 'auth.register.roleClient', descKey: 'auth.register.roleClientDesc' },
   Trainer: { icon: '🏋️', labelKey: 'auth.register.roleTrainer', descKey: 'auth.register.roleTrainerDesc' },
   Nutritionist: { icon: '🥗', labelKey: 'auth.register.roleNutritionist', descKey: 'auth.register.roleNutritionistDesc' },
@@ -35,10 +39,43 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<string>('Client');
+  const [selectedRoles, setSelectedRoles] = useState<Set<RoleName>>(new Set([CLIENT_ROLE]));
   const [personalDataConsent, setPersonalDataConsent] = useState(false);
   const [healthDataConsent, setHealthDataConsent] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const isClientSelected = selectedRoles.has(CLIENT_ROLE);
+
+  // Health-data consent is only interactive (and only meaningful) for the
+  // Client role. Whenever Client stops being selected, force the checkbox
+  // back to unchecked so a stale `true` can never leak into a coach payload.
+  useEffect(() => {
+    if (!isClientSelected && healthDataConsent) {
+      setHealthDataConsent(false);
+    }
+  }, [isClientSelected, healthDataConsent]);
+
+  const toggleRole = (r: RoleName) => {
+    setSelectedRoles((prev) => {
+      const next = new Set(prev);
+      if (r === CLIENT_ROLE) {
+        if (next.has(CLIENT_ROLE)) {
+          next.delete(CLIENT_ROLE);
+        } else {
+          next.clear();
+          next.add(CLIENT_ROLE);
+        }
+      } else {
+        if (next.has(r)) {
+          next.delete(r);
+        } else {
+          next.delete(CLIENT_ROLE);
+          next.add(r);
+        }
+      }
+      return next;
+    });
+  };
 
   const handleRegister = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
@@ -57,7 +94,11 @@ export default function RegisterScreen() {
       Alert.alert(t('auth.register.consentRequiredTitle'), t('auth.register.consentRequiredMessage'));
       return;
     }
-    if (role === 'Client' && !healthDataConsent) {
+    if (selectedRoles.size === 0) {
+      Alert.alert(t('auth.register.noRoleTitle'), t('auth.register.noRoleMessage'));
+      return;
+    }
+    if (isClientSelected && !healthDataConsent) {
       Alert.alert(t('auth.register.consentRequiredTitle'), t('auth.register.healthDataConsentRequiredMessage'));
       return;
     }
@@ -70,9 +111,9 @@ export default function RegisterScreen() {
         confirmPassword,
         firstName,
         lastName,
-        roles: [role],
+        roles: Array.from(selectedRoles),
         gdprConsent: true,
-        healthDataConsent: role === 'Client' ? true : undefined,
+        healthDataConsent: isClientSelected ? true : undefined,
       });
 
       // Auto-login after registration
@@ -109,6 +150,49 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderRoleCard = (r: RoleName, indicator: 'radio' | 'checkbox') => {
+    const meta = ROLE_META[r];
+    const active = selectedRoles.has(r);
+    return (
+      <TouchableOpacity
+        key={r}
+        style={[
+          styles.roleCard,
+          { backgroundColor: active ? colors.gold : colors.bg2, borderColor: active ? colors.gold : colors.sep },
+        ]}
+        onPress={() => toggleRole(r)}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.roleIconWrap, { backgroundColor: active ? 'rgba(0,0,0,0.12)' : colors.bg3 }]}>
+          <Text style={styles.roleIcon}>{meta.icon}</Text>
+        </View>
+        <View style={styles.roleTextWrap}>
+          <Text style={[styles.roleName, { color: active ? Colors.light.onGoldChip : colors.label }]}>
+            {t(meta.labelKey)}
+          </Text>
+          <Text style={[styles.roleDesc, { color: active ? 'rgba(0,0,0,0.7)' : colors.label3 }]}>
+            {t(meta.descKey)}
+          </Text>
+        </View>
+        {indicator === 'radio' ? (
+          <View style={[styles.roleRadio, { borderColor: active ? Colors.light.onGoldChip : colors.sep }]}>
+            {active && <View style={[styles.roleRadioDot, { backgroundColor: Colors.light.onGoldChip }]} />}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.roleCheckbox,
+              { borderColor: active ? Colors.light.onGoldChip : colors.sep },
+              active && { backgroundColor: Colors.light.onGoldChip },
+            ]}
+          >
+            {active && <Text style={[styles.roleCheckboxMark, { color: colors.gold }]}>✓</Text>}
+          </View>
+        )}
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -174,38 +258,25 @@ export default function RegisterScreen() {
         />
 
         <Text style={[styles.label, { color: colors.label2 }]}>{t('auth.register.iAmA')}</Text>
+
+        {/* Client sits in its own mutually-exclusive group — selecting it
+            clears any selected coach role and vice versa (see toggleRole). */}
         <View style={styles.roleStack}>
-          {ROLES.map((r) => {
-            const meta = ROLE_META[r];
-            const active = role === r;
-            return (
-              <TouchableOpacity
-                key={r}
-                style={[
-                  styles.roleCard,
-                  { backgroundColor: active ? colors.gold : colors.bg2, borderColor: active ? colors.gold : colors.sep },
-                ]}
-                onPress={() => setRole(r)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.roleIconWrap, { backgroundColor: active ? 'rgba(0,0,0,0.12)' : colors.bg3 }]}>
-                  <Text style={styles.roleIcon}>{meta.icon}</Text>
-                </View>
-                <View style={styles.roleTextWrap}>
-                  <Text style={[styles.roleName, { color: active ? Colors.light.onGoldChip : colors.label }]}>
-                    {t(meta.labelKey)}
-                  </Text>
-                  <Text style={[styles.roleDesc, { color: active ? 'rgba(0,0,0,0.7)' : colors.label3 }]}>
-                    {t(meta.descKey)}
-                  </Text>
-                </View>
-                <View style={[styles.roleRadio, { borderColor: active ? Colors.light.onGoldChip : colors.sep }]}>
-                  {active && <View style={[styles.roleRadioDot, { backgroundColor: Colors.light.onGoldChip }]} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+          {renderRoleCard(CLIENT_ROLE, 'radio')}
         </View>
+
+        <Text style={[styles.roleOrHint, { color: colors.label3 }]}>{t('auth.register.roleOrHint')}</Text>
+        <Text style={[styles.roleCoachHint, { color: colors.label3 }]}>{t('auth.register.roleCoachHint')}</Text>
+
+        {/* Trainer + Nutritionist support multi-select — square checkbox
+            indicators communicate that both can be active together. */}
+        <View style={styles.roleStack}>
+          {COACH_ROLES.map((r) => renderRoleCard(r, 'checkbox'))}
+        </View>
+
+        <Text style={[styles.roleExclusivityHint, { color: colors.label3 }]}>
+          {t('auth.register.roleExclusivityHint')}
+        </Text>
 
         <TouchableOpacity
           style={styles.consentRow}
@@ -220,19 +291,38 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
 
-        {role === 'Client' && (
-          <TouchableOpacity
-            style={styles.consentRow}
-            onPress={() => setHealthDataConsent(!healthDataConsent)}
-            activeOpacity={0.8}
+        {/* Always rendered — never conditionally mounted — so switching
+            roles never causes a layout jump. Only interactive when Client
+            is selected; disabled + visually muted for coach-only selection. */}
+        <TouchableOpacity
+          style={styles.consentRow}
+          onPress={() => isClientSelected && setHealthDataConsent(!healthDataConsent)}
+          activeOpacity={isClientSelected ? 0.8 : 1}
+          disabled={!isClientSelected}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              {
+                borderColor: isClientSelected ? colors.sep : colors.sep2,
+                backgroundColor: isClientSelected ? colors.bg2 : colors.fill2,
+              },
+              isClientSelected && healthDataConsent && [
+                styles.checkboxChecked,
+                { backgroundColor: colors.gold, borderColor: colors.gold },
+              ],
+            ]}
           >
-            <View style={[styles.checkbox, { borderColor: colors.sep, backgroundColor: colors.bg2 }, healthDataConsent && [styles.checkboxChecked, { backgroundColor: colors.gold, borderColor: colors.gold }]]}>
-              {healthDataConsent && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={[styles.consentText, { color: colors.label2 }]}>
-              {t('auth.register.healthDataConsent')}
-            </Text>
-          </TouchableOpacity>
+            {isClientSelected && healthDataConsent && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <Text style={[styles.consentText, { color: isClientSelected ? colors.label2 : colors.label3 }]}>
+            {t('auth.register.healthDataConsent')}
+          </Text>
+        </TouchableOpacity>
+        {!isClientSelected && (
+          <Text style={[styles.consentHint, { color: colors.label3 }]}>
+            {t('auth.register.healthDataConsentDisabledHint')}
+          </Text>
         )}
 
         <TouchableOpacity
@@ -356,11 +446,48 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+  roleCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleCheckboxMark: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  roleOrHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  roleCoachHint: {
+    fontSize: 11,
+    lineHeight: 14,
+    marginBottom: 6,
+  },
+  roleExclusivityHint: {
+    fontSize: 11,
+    lineHeight: 14,
+    marginBottom: 12,
+  },
   consentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginBottom: 12,
+  },
+  consentHint: {
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: -8,
+    marginBottom: 12,
+    marginLeft: 30,
   },
   checkbox: {
     width: 20,
