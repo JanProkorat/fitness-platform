@@ -38,7 +38,6 @@ import {
 } from '@/api/diaryRequests'
 import { getCurrentCheckIns, type CheckInSummary } from '@/api/weeklyCheckIns'
 import { onEvent } from '@/api/signalr'
-import { Toast } from '@/lib/toast'
 
 // ─── Main Screen ──────────────────────────────────────────────────────
 
@@ -61,8 +60,10 @@ export default function TodayScreen() {
     markRead,
   } = useNotifications()
 
-  // Pending invite — always fetch, client can receive invites in any state
-  const { invite, accept, decline } = useClientInvite(true)
+  // Pending invite — always fetch, client can receive invites in any state.
+  // #814 — accept/decline now live only on the invite detail screen; the
+  // Today card just links there via onViewInvite.
+  const { invite } = useClientInvite(true)
 
   // ── Weekly check-ins (pending banner) ──
   const hasActiveLink = useAuthStore((s) => s.user?.hasActiveLink ?? false)
@@ -236,17 +237,6 @@ export default function TodayScreen() {
         {invite && (
           <InviteCard
             invite={invite}
-            onAccept={() => {
-              accept(invite.id, {
-                onSuccess: () => Toast.show(t('today.inviteAccepted')),
-                onError: () => Toast.show(t('collab.actionFailed')),
-              })
-            }}
-            onDecline={() =>
-              decline(invite.id, {
-                onError: () => Toast.show(t('collab.actionFailed')),
-              })
-            }
             onViewInvite={() => router.push(hrefParams('/(client)/invite', { origin: 'today' }))}
           />
         )}
