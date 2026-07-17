@@ -1,3 +1,10 @@
+---
+paths:
+  - "backend/**"
+  - "web/**"
+  - "mobile/**"
+  - "docs/**"
+---
 # Rules: Scope boundaries
 
 Universal across the project — every dev sub-agent and `pr-reviewer`

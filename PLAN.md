@@ -1,82 +1,86 @@
-# Implementation Plan — Training Session Edit-Lock
+# Execution Plan — Backend Hardening Batch (#650–#662)
 
-Spec: `docs/superpowers/specs/2026-06-01-training-session-lock-design.md`
-Model: **epic** (backend + web + mobile). Epic branch → sub-issue branches.
+**Integration model:** Umbrella epic (per user decision). One epic branch off
+`develop`; each of the 13 issues is a sub-issue whose PR auto-merges into the
+epic branch (no per-issue auth); one final epic PR → `develop` with a single
+user authorization.
 
-## Dependency graph
-
-```
-#1 backend: SessionLock foundation
-   ├── #2 backend: trainer-side enforcement   ┐
-   └── #3 backend: client-side enforcement     ├─→ #4 cross-pkg: SignalR lock events
-                                                │      ├── #5 web:    trainer lock UI
-                                                │      └── #6 mobile: client lock UI
-```
-
-`#2` and `#3` are independent of each other (parallelizable after `#1`).
-`#5`/`#6` depend on `#4` (realtime) and their respective backend slice + `regen-api`.
+All 13 are `scope:backend` → dev agent is `backend-dotnet` for every one.
+Each issue still runs the full gate: design-review → dev → qa-tester →
+pr-reviewer → (auto-merge to epic branch).
 
 ---
 
-## Phase 1 — `#1` backend: SessionLock foundation
-**Branch:** `feature/<child>-session-lock-foundation` off the epic branch.
-- `Domain/Documents/SessionLock.cs`; `Domain/Enums/LockHolder.cs`, `LockType.cs`.
-- Register collection in `MongoContext`; ensure indexes: unique `{sessionId}`,
-  TTL `{expiresAt}` (`expireAfterSeconds:0`), `{clientId}`, `{planId}`.
-- `Domain/Interfaces/ISessionLockService.cs` +
-  `Infrastructure/Services/SessionLockService.cs`: `AcquireAsync` (E11000 →
-  `LockConflict` result), `ReleaseAsync` (idempotent), `RefreshAsync` (slide
-  `expiresAt`), `GetStateAsync(sessionIds[])` (batch).
-- Tests (Testcontainers): contention → one winner; release idempotency; TTL doc
-  expiry via past `expiresAt`; refresh slides expiry.
-- **Verify:** `dotnet build` + `dotnet test` slice.
+## Phase 0 — Epic setup (one turn)
 
-## Phase 2 — `#2` backend: trainer-side enforcement
-**Depends:** `#1`. Branch off epic.
-- `POST /training/plans/{planId}/sessions/{sessionId}/unlock` (acquire `Editing`,
-  409 if `Live`).
-- `POST /training/plans/{planId}/sessions/{sessionId}/relock` (release `Editing`).
-- `UpdateTrainingPlan` diff+gate (§6): normalized content projection per published
-  session; reject `409 session_locked` for changed sessions not `Editing`; release
-  edited sessions' locks on success.
-- `PublishTrainingWeek` defensive lock cleanup for the week's sessions.
-- Tests: unlock-fails-when-live; diff-gate reject/allow; auto-release on save.
-- **Verify:** `dotnet build` + `dotnet test` slice.
+1. `github-issues`: create umbrella epic **"Backend hardening batch (#650–#662)"**
+   (`type:chore` / `scope:backend`), body enumerating the 13 as a checklist,
+   and add each as a sub-issue / back-reference.
+2. Orchestrator: create + push epic branch `feature/<E>-backend-hardening`
+   off latest `develop`.
+3. Start time-tracking clocks for all 13 under the epic name.
 
-## Phase 3 — `#3` backend: client-side enforcement
-**Depends:** `#1`. Branch off epic. (Parallel with `#2`.)
-- `StartWorkout`: `Stable → Live` CAS, 409 if `Editing`, set `expiresAt`.
-- `FinishWorkout` / abandon: release `Live` lock.
-- `MarkExerciseComplete` + set-update endpoints: `RefreshAsync` slide.
-- `GetTodaySession` / `GetFullPlan` responses: add per-session lock `state` + `holder`.
-- Tests: start-fails-when-editing; finish releases; TTL refresh on set-log;
-  response carries lock state.
-- **Verify:** `dotnet build` + `dotnet test` slice.
-
-## Phase 4 — `#4` cross-package: SignalR lock events
-**Depends:** `#2`, `#3`. One branch, sequential per-package (via `signalr-event`).
-- Backend: emit `sessioneditlockchanged { planId, sessionId, state, holder }` on
-  acquire/release (both holders).
-- Web + mobile: consume → invalidate the relevant TanStack Query keys.
-- **Verify:** all three package verification surfaces.
-
-## Phase 5 — `#5` web: trainer lock UI
-**Depends:** `#2`, `#4`. `regen-api` first.
-- Unlock-to-edit / relock action on a published session; editable-while-editing.
-- In-progress badge + disabled edit affordance when `Live` (tooltip).
-- Gated-save `409 session_locked` inline error naming sessions + unlock offer.
-- i18n cs/en/de. Prototype: `docs/prototypes/notion/scenes/session-lock.html`.
-- **Verify:** `npm run build`.
-
-## Phase 6 — `#6` mobile: client lock UI
-**Depends:** `#3`, `#4`. `regen-api` first.
-- "Coach is updating — confirm before starting" banner when session `Editing`.
-- Start-blocked 409 → toast; Live/finish handling.
-- i18n cs/en/de. Prototype: `docs/prototypes/mobile/scenes/session-lock.html`.
-- **Verify:** `npx tsc --noEmit` + `npx expo-doctor`.
+*Stop for confirmation that the epic + branch look right before dispatching.*
 
 ---
 
-## Out of scope (file as separate issues if wanted)
-- Snapshot-on-start + prescribed-vs-actual audit history.
-- Stable per-instance completion-key IDs (replace `exerciseExternalId` keying).
+## Wave A — independent fixes, parallel-safe (worktrees off epic branch)
+
+Disjoint file sets → run in parallel sub-batches of ~3–4. Each dev agent in its
+own worktree `.worktrees/<N>-<short>/` based on `origin/<epic-branch>`.
+
+| # | Pri | Scope (files) | Note |
+|---|-----|---------------|------|
+| #653 | P1 | `Messaging/StartConversation` | empty-name `[..1]` crash guard, 2 call sites |
+| #651 | P1 | `TrainingPlans/FinishSession` + `WorkoutCompletionService` | ClientId convention (UserId, not PublicId) |
+| #652 | P1 | `Auth/RefreshToken` + `RefreshToken` entity **+ EF migration** | reuse/theft detection + concurrency guard |
+| #654 | P2 | `Client/Invites/Accept` + `Decline` | recipient NormalizedEmail check (IDOR) |
+| #656 | P2 | `Auth/ResetPassword` | normalize error msg (enumeration oracle) |
+| #657 | P2 | `Questionnaires/GetClientResponse(s)` | add `IsActive` to link check |
+| #658 | P2 | `Users/Avatar` + `Professionals/Avatar` (+ validators) | validate BlobUrl host + key pattern |
+| #661 | P2 | `WorkoutLogs/UpdateWorkout` | hoist history fetch out of PR loop |
+| #662 | P2 | `ClientTraining/MarkWholeDayComplete` | `Filter.In` batch query |
+
+**#652 caveat:** adds an EF migration → hits the merge **exclusion list**
+(`Migrations/**`). Its sub-issue PR is human-merged onto the epic branch, not
+auto-merged. Flagged to user at that point.
+
+---
+
+## Wave B — Trainers/Compliance cluster (sequential; shared `ComplianceService` surface)
+
+1. **#650** (P1) — correctness: `GetClientTimeline`, `ListClientPlans`,
+   `ComplianceService` keyed on `ClientProfile.PublicId` not `UserId`.
+2. **#660** (P2) — perf: `GetDashboardSummary` N+1 → `Task.WhenAll` batching
+   (rebased on #650, since both touch the compliance call surface).
+
+---
+
+## Wave C — Publish-week refactor cluster (sequential; shared `PublishWeek` files)
+
+1. **#655** (P2) — reorder: version-gated replace first, archive siblings only
+   after `ModifiedCount == 1`, in both Nutrition + Training publish endpoints.
+2. **#659** (P2 refactor) — extract `Domain/Services/PlanConcurrencyGuardService`
+   (fetch-check-replace-409 skeleton) across the 6 pairs; preserves the
+   #655-correct ordering as a single code path. Rebased on #655.
+
+---
+
+## Phase 3 — Epic PR → develop
+
+Once all 13 sub-issues are merged into the epic branch: open epic PR
+`head=<epic-branch>`, `base=develop`; `pr-reviewer` two-pass review on the
+consolidated diff; present URL and **wait for explicit merge authorization**.
+CI-gate before merge. After merge: `notion-docs` (update mode), one entry
+covering the whole batch.
+
+---
+
+## Execution discipline
+
+- **One wave per turn**, commit per issue (natural resume points).
+- Full `dotnet build` + relevant `dotnet test` slice per issue; full feature
+  namespace when an endpoint's behaviour/constructor changes (per memory).
+- Parallel dev agents never share the main tree — worktree each.
+- Likely `/clear` between waves to keep orchestrator context fresh.
+- Sibling rebase onto epic-branch tip after each sub-issue auto-merge.

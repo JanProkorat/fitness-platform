@@ -17,7 +17,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-session-lock':'Zámek sekce','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-live-session-runner':'Living session · runner','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány (původní)','ph-plans-sched':'Plány — 1 plán','ph-plans-two':'Plány — 2 plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-session-lock':'Zámek sekce','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-live-session-runner':'Living session · runner','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek','ph-hydration-setup':'Pitný režim · nastavení'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
@@ -78,17 +78,53 @@ function setCollabState(state) {
      coach-only, training-stat for both (training is the primary KPI). */
   if(trainingStat)  trainingStat.style.display  = hasTrainer ? '' : 'none';
   if(nutritionStat) nutritionStat.style.display = (hasCoach && !hasTrainer) ? '' : 'none';
+  // When the drinking-regimen feature is on, the hydration card owns the middle
+  // stat slot — re-apply that override on top of the role-based tile choice.
+  if(typeof applyHydrationStatSlot === 'function') applyHydrationStatSlot();
 
-  // Discover screen states
-  ['none','trainer','coach','both'].forEach(function(s) {
-    var el = document.getElementById('collab-state-' + s);
-    if(el) el.style.display = s === state ? '' : 'none';
+  // Spolupráce — configure the tab switcher (Trenér / Poradce / Hledat).
+  // Enablement rules: own pro's tab is enabled; the missing pro's tab is
+  // disabled; Hledat is disabled only once the client has both.
+  var enable = { trainer: hasTrainer, coach: hasCoach, search: !(hasTrainer && hasCoach) };
+  ['trainer','coach','search'].forEach(function(t) {
+    var seg = document.getElementById('seg-tab-' + t);
+    if(seg) seg.classList.toggle('disabled', !enable[t]);
   });
+  // Land on the client's own pro first; fall back to Hledat when they have none.
+  selectCollabTab(hasTrainer ? 'trainer' : (hasCoach ? 'coach' : 'search'));
 
   // Nav bar buttons
   ['none','pending','trainer','coach','both'].forEach(function(s) {
     var btn = document.getElementById('btn-state-' + s);
     if(btn) btn.classList.toggle('active', s === state);
+  });
+}
+
+// Switch the Spolupráce tab. No-op for disabled tabs (e.g. the missing
+// pro, or Hledat once the client has both a trainer and a coach).
+function selectCollabTab(tab) {
+  var seg = document.getElementById('seg-tab-' + tab);
+  if(seg && seg.classList.contains('disabled')) return;
+  ['trainer','coach','search'].forEach(function(t) {
+    var s = document.getElementById('seg-tab-' + t);
+    if(s) s.classList.toggle('active', t === tab);
+    var pane = document.getElementById('collab-tab-' + t);
+    if(pane) pane.style.display = t === tab ? '' : 'none';
+  });
+}
+
+// Switch the Plány page Trénink / Výživa pane (only present when the client
+// has both a training and a nutrition plan active at once).
+function selectPlanTab(tab) {
+  ['training','nutrition'].forEach(function(t) {
+    var seg = document.getElementById('plantab-seg-' + t);
+    if(seg) seg.classList.toggle('active', t === tab);
+    var pane = document.getElementById('plantab-' + t);
+    if(pane) pane.style.display = t === tab ? '' : 'none';
+  });
+  // Sync in-card toggles (the switch merged into the navy hero card)
+  document.querySelectorAll('[data-plantab]').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-plantab') === tab);
   });
 }
 

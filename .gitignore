@@ -126,8 +126,14 @@ Thumbs.db
 **/.claude/.typecheck-state/
 **/.claude/hooks/log/
 **/.claude/state/
+**/.claude/private/
 .worktrees/
 .remember/
 .qa-artifacts/
 mobile/.qa-cache/
 .playwright-mcp/
+.auth/
+.serena/
+.mongo-backup/
+scratchpad/
+**/.claude/scheduled_tasks.lock

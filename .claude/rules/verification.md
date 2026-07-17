@@ -1,3 +1,10 @@
+---
+paths:
+  - "backend/**"
+  - "web/**"
+  - "mobile/**"
+  - "docs/**"
+---
 # Rules: Verification surfaces
 
 What `qa-tester` runs (and dev agents must self-check) before the AC

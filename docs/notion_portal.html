@@ -564,6 +564,7 @@ body.dark .btn-auth-primary { color: #0d0900; }
   <button class="tn-btn active" onclick="showScreen('s-dashboard')">Dashboard</button>
   <button class="tn-btn" onclick="showScreen('s-client')">Klient</button>
   <button class="tn-btn" onclick="showScreen('s-training')">Trén. plán</button>
+  <button class="tn-btn" onclick="showScreen('s-training-v2')">Trén. plán (nový)</button>
   <button class="tn-btn" onclick="showScreen('s-training-session-builder')">Plán · sekce</button>
   <button class="tn-btn" onclick="showScreen('s-training-section-templates')">Šablony sekcí</button>
   <button class="tn-btn" onclick="showScreen('s-session-lock')">Zámek sekce</button>
@@ -1025,6 +1026,325 @@ body.dark .btn-auth-primary { color: #0d0900; }
 <!-- ═══════════════════════════════════════════════════════════
      ZPRÁVY
 ═══════════════════════════════════════════════════════════ -->
+<div id="s-training-v2" class="screen">
+<style>
+/* ══ Training plan detail — redesign (A2: week timeline on top, full-width editor) ══ */
+/* page header — ONE compact row: icon + title + subtitle + tabs + global actions */
+.tv2-head{display:flex;align-items:center;gap:14px;padding:10px 24px;border-bottom:1px solid var(--br);flex:none}
+.tv2-head__icon{font-size:30px;line-height:1;flex:none}
+.tv2-head__titles{min-width:0}
+.tv2-head__titles h1{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:0}
+.tv2-head__sub{font-size:12px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv2-tabs{display:flex;gap:4px;flex:none}
+.tv2-tab{padding:5px 14px;border-radius:99px;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;border:none;background:transparent}
+.tv2-tab:hover{background:var(--bgh);color:var(--t)}
+.tv2-tab.active{background:var(--acc);color:#fff;font-weight:600}
+.tv2-head__actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex:none}
+.tv2-btn-gold{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.tv2-btn-gold:hover{background:#b9982f}
+.tv2-startdate{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--t2);white-space:nowrap;padding-right:10px;margin-right:2px;border-right:1px solid var(--br)}
+/* week-bar right group: start date + add week */
+.tv2-weekbar__right{display:flex;align-items:center;gap:8px;flex:none;margin-left:8px}
+.tv2-datelbl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t2);white-space:nowrap}
+.tv2-dateval{border:1px solid var(--brm);border-radius:var(--rm);padding:5px 10px;font-size:13px;background:var(--bg);color:var(--t);font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
+.tv2-dateval:hover{background:var(--bgh)}
+
+/* week timeline bar */
+.tv2-weekbar{display:flex;align-items:center;gap:14px;padding:8px 24px;border-bottom:1px solid var(--br);flex:none}
+.tv2-stepper{display:flex;align-items:center;gap:6px;flex:none}
+.tv2-step{width:28px;height:28px;border-radius:var(--rm);border:1px solid var(--brm);background:var(--bg);color:var(--t2);cursor:pointer;font-size:12px;display:grid;place-items:center;transition:background .1s}
+.tv2-step:hover{background:var(--bgh);color:var(--t)}
+.tv2-wklabel{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;flex:none;min-width:166px;cursor:pointer;padding:4px 8px;border-radius:var(--rm);border:1px solid var(--brm)}
+.tv2-wklabel:hover{background:var(--bgh)}
+.tv2-wklabel .tv2-muted{font-weight:400;color:var(--t3)}
+.tv2-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tv2-dot.done{background:var(--green)}
+.tv2-dot.live{background:var(--orange);box-shadow:0 0 0 3px var(--orange-bg)}
+.tv2-dot.draft{background:var(--t4)}
+
+/* connected timeline */
+.tv2-rail{flex:1;min-width:0;display:flex;align-items:center;padding:6px 0}
+.tv2-node{flex:1;display:flex;align-items:center;min-width:0}
+.tv2-node--add{flex:none}
+.tv2-knob{width:26px;height:26px;border-radius:50%;border:2px solid var(--brm);background:var(--bg);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--t3);cursor:pointer;font-variant-numeric:tabular-nums;transition:border-color .1s,color .1s;flex:none}
+.tv2-knob:hover{border-color:var(--t3);color:var(--t2)}
+.tv2-seg{flex:1;min-width:10px;height:2px;background:var(--brm)}
+.tv2-node.done .tv2-knob{background:var(--green);border-color:var(--green);color:#fff}
+.tv2-node.done .tv2-seg{background:var(--green)}
+.tv2-node.live .tv2-knob{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.tv2-node.active .tv2-knob{outline:3px solid var(--acc-bg);border-color:var(--acc);color:var(--t)}
+.tv2-knob--add{border-style:dashed;font-size:15px;color:var(--t3)}
+.tv2-knob--add:hover{border-color:var(--acc);color:var(--acc)}
+
+/* day tabs */
+.tv2-daytabs{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--br);overflow-x:auto;flex:none}
+.tv2-daytab{flex:1;min-width:0;border:none;background:transparent;cursor:pointer;padding:9px 8px;border-bottom:2px solid transparent;text-align:center;font-size:13px;color:var(--t2);white-space:nowrap;transition:background .1s}
+.tv2-daytab:hover{background:var(--bgh)}
+.tv2-daytab.active{border-bottom-color:var(--t)}
+.tv2-daytab.active .tv2-dname{color:var(--t);font-weight:600}
+.tv2-dname{color:var(--t2)}
+.tv2-ddate{color:var(--t3)}
+
+/* content: editor + stats */
+.tv2-content{display:flex;gap:0}
+.tv2-editor{flex:1;min-width:0;padding:16px 24px 60px}
+.tv2-dayhead{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.tv2-dayhead h3{font-size:16px;font-weight:600}
+.tv2-dayhead span{font-size:13px;color:var(--t3)}
+.tv2-daynote{width:100%;border:1px dashed var(--brm);background:var(--bg2);border-radius:var(--rm);padding:8px 11px;color:var(--t3);font:inherit;font-size:13px;margin-bottom:14px}
+
+/* session card */
+.tv2-session{border:1px solid var(--br);border-radius:var(--rl);background:var(--bg);margin-bottom:14px;overflow:hidden}
+.tv2-shead{display:flex;align-items:center;gap:10px;padding:11px 14px;border-left:3px solid var(--acc);background:var(--bg2)}
+.tv2-chev{color:var(--t3);font-size:11px}
+.tv2-sname{font-weight:600;font-size:14px}
+.tv2-smeta{color:var(--t3);font-size:12px;margin-left:auto}
+.tv2-sbody{padding:6px 14px 14px 30px}
+
+/* workout block */
+.tv2-block{border:1px solid var(--br);border-radius:var(--rm);margin:10px 0;border-left:3px solid var(--purple)}
+.tv2-block.std{border-left-color:var(--t3)}
+.tv2-bhead{display:flex;align-items:center;gap:9px;padding:10px 12px}
+.tv2-bname{font-weight:600;font-size:13px}
+.tv2-pill{font-size:10px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:99px}
+.tv2-pill.emom{background:var(--purple-bg);color:var(--purple)}
+.tv2-pill.std{background:var(--bg3);color:var(--t2)}
+.tv2-bcfg{display:flex;gap:18px;padding:0 12px 10px;color:var(--t2);font-size:12px}
+.tv2-bcfg b{color:var(--t);font-variant-numeric:tabular-nums}
+
+/* exercise row */
+.tv2-ex{padding:8px 12px;border-top:1px solid var(--br)}
+.tv2-exhead{display:flex;align-items:center;gap:8px}
+.tv2-exname{font-weight:500;font-size:13px}
+.tv2-extag{font-size:10px;padding:1px 6px;border-radius:var(--r)}
+.tv2-extag.chest{color:var(--blue);background:var(--blue-bg)}
+.tv2-extag.tri{color:var(--purple);background:var(--purple-bg)}
+.tv2-extag.shoulder{color:var(--orange);background:var(--orange-bg)}
+.tv2-exspec{margin-left:auto;color:var(--t3);font-size:12px}
+.tv2-setline{display:flex;gap:8px;margin-top:8px;align-items:flex-end}
+.tv2-field{display:flex;flex-direction:column;gap:3px}
+.tv2-field label{font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--t3)}
+.tv2-field input{width:72px;border:1px solid var(--brm);border-radius:var(--r);padding:5px 8px;font:inherit;font-size:13px;text-align:center;background:var(--bg)}
+.tv2-field input:focus{outline:none;border-color:var(--acc);background:var(--acc-bg)}
+
+/* stats aside */
+.tv2-stats{width:264px;flex:none;border-left:1px solid var(--br);background:var(--bg2);padding:18px 18px 40px;align-self:stretch}
+.tv2-eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin:0 0 10px}
+.tv2-big{font-size:38px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.tv2-biglbl{color:var(--t2);font-size:12px;margin:4px 0 14px}
+.tv2-statrow{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--br);font-size:13px}
+.tv2-statrow span{color:var(--t2)}
+.tv2-statrow b{font-variant-numeric:tabular-nums}
+.tv2-mbar{margin:9px 0}
+.tv2-mtop{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.tv2-mtop span:last-child{color:var(--t3)}
+.tv2-mtrack{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden}
+.tv2-mfill{height:100%;border-radius:3px}
+.tv2-pubcard{margin-top:18px;padding:12px;border:1px solid var(--acc-br);border-radius:var(--rm);background:var(--acc-bg);text-align:center;font-size:13px}
+.tv2-pubcard b{color:var(--acc)}
+</style>
+
+<div class="shell">
+<div class="sb" id="sb-training"></div>
+<div class="main">
+  <div class="tv2-head">
+    <div class="tv2-head__icon">🏋️</div>
+    <div class="tv2-head__titles">
+      <h1>Tréninkový plán</h1>
+      <div class="tv2-head__sub">Petra Horáková · Tvorba a správa tréninkového plánu klienta</div>
+    </div>
+    <div class="tv2-head__actions">
+      <span class="tv2-startdate">📅 Datum zahájení <span class="tv2-dateval">20. 4. 2026</span></span>
+      <button class="btn ghost">Zahodit změny</button>
+      <button class="btn primary">Uložit</button>
+      <button class="btn tv2-btn-gold" onclick="openDialog('dlg-complete-plan')">Dokončit plán</button>
+    </div>
+  </div>
+
+  <!-- WEEK BAR: plan/photos tabs + week stepper + timeline + add week -->
+  <div class="tv2-weekbar">
+    <div class="tv2-tabs">
+      <button class="tv2-tab active">Tréninkový plán</button>
+      <button class="tv2-tab" onclick="showScreen('s-client-photos')">Fotky</button>
+    </div>
+    <div class="tv2-stepper">
+      <button class="tv2-step">◀</button>
+      <div class="tv2-wklabel"><span class="tv2-dot live"></span> Týden 9 <span class="tv2-muted">15. – 21. 6. ▾</span></div>
+      <button class="tv2-step">▶</button>
+    </div>
+    <div class="tv2-rail">
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 1 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 2 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 3 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 4 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 5 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 6 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 7 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node done"><div class="tv2-knob" title="Týden 8 · dokončený">✓</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node live active"><div class="tv2-knob" title="Týden 9 · publikovaný (živý)">9</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node draft"><div class="tv2-knob" title="Týden 10 · koncept">10</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node draft"><div class="tv2-knob" title="Týden 11 · koncept">11</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node draft"><div class="tv2-knob" title="Týden 12 · koncept">12</div><div class="tv2-seg"></div></div>
+      <div class="tv2-node tv2-node--add"><div class="tv2-knob tv2-knob--add" title="Přidat týden" onclick="showToast('Nový týden přidán')">+</div></div>
+    </div>
+  </div>
+
+  <!-- DAY TABS -->
+  <div class="tv2-daytabs">
+    <button class="tv2-daytab active" onclick="tv2Day(0)"><span class="tv2-dname">Pondělí</span> · <span class="tv2-ddate">15. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(1)"><span class="tv2-dname">Úterý</span> · <span class="tv2-ddate">16. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(2)"><span class="tv2-dname">Středa</span> · <span class="tv2-ddate">17. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(3)"><span class="tv2-dname">Čtvrtek</span> · <span class="tv2-ddate">18. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(4)"><span class="tv2-dname">Pátek</span> · <span class="tv2-ddate">19. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(5)"><span class="tv2-dname">Sobota</span> · <span class="tv2-ddate">20. 6.</span></button>
+    <button class="tv2-daytab" onclick="tv2Day(6)"><span class="tv2-dname">Neděle</span> · <span class="tv2-ddate">21. 6.</span></button>
+  </div>
+
+  <!-- CONTENT: editor + stats -->
+  <div class="tv2-content">
+    <div class="tv2-editor">
+      <div class="tv2-dayhead"><h3>Pondělí</h3><span>15. 6. · Push A</span></div>
+      <textarea class="tv2-daynote" rows="1" placeholder="+ Přidat poznámku ke dni"></textarea>
+
+      <div class="tv2-session">
+        <div class="tv2-shead">
+          <span class="tv2-chev">▾</span>
+          <span class="tv2-sname">Push A</span>
+          <span class="tv2-smeta">2 workouty · 5 cviků · 60 min</span>
+          <button class="btn" style="padding:4px 8px;font-size:12px">⧉</button>
+          <button class="btn" style="padding:4px 8px;font-size:12px">✕</button>
+        </div>
+        <div class="tv2-sbody">
+          <!-- Standard block -->
+          <div class="tv2-block std">
+            <div class="tv2-bhead">
+              <span class="tv2-chev" style="transform:rotate(90deg)">▶</span>
+              <span class="tv2-bname">Hlavní blok</span>
+              <span class="tv2-pill std">Standard</span>
+            </div>
+            <div class="tv2-ex">
+              <div class="tv2-exhead">
+                <span class="tv2-exname">Bench press s činkou</span>
+                <span class="tv2-extag chest">Hrudník</span><span class="tv2-extag tri">Triceps</span><span class="tv2-extag shoulder">Ramena</span>
+                <span class="tv2-exspec">4 série</span>
+              </div>
+              <div class="tv2-setline">
+                <div class="tv2-field"><label>Série</label><input value="4"></div>
+                <div class="tv2-field"><label>Opakování</label><input value="8–10"></div>
+                <div class="tv2-field"><label>Váha (kg)</label><input value="80"></div>
+                <div class="tv2-field"><label>Odpočinek</label><input value="120 s"></div>
+              </div>
+            </div>
+            <div class="tv2-ex">
+              <div class="tv2-exhead">
+                <span class="tv2-exname">Vojenský tlak</span>
+                <span class="tv2-extag shoulder">Ramena</span><span class="tv2-extag tri">Triceps</span>
+                <span class="tv2-exspec">3 série</span>
+              </div>
+              <div class="tv2-setline">
+                <div class="tv2-field"><label>Série</label><input value="3"></div>
+                <div class="tv2-field"><label>Opakování</label><input value="10–12"></div>
+                <div class="tv2-field"><label>Váha (kg)</label><input value="55"></div>
+                <div class="tv2-field"><label>Odpočinek</label><input value="90 s"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EMOM finisher block -->
+          <div class="tv2-block">
+            <div class="tv2-bhead">
+              <span class="tv2-chev" style="transform:rotate(90deg)">▶</span>
+              <span class="tv2-bname">Finisher EMOM</span>
+              <span class="tv2-pill emom">EMOM</span>
+            </div>
+            <div class="tv2-bcfg"><span>Interval <b>60 s</b></span><span>Počet kol <b>10</b></span><span style="margin-left:auto;color:var(--t3)">≈ 10 min</span></div>
+            <div class="tv2-ex">
+              <div class="tv2-exhead">
+                <span class="tv2-exname">Kliky na bradlech</span>
+                <span class="tv2-extag chest">Hrudník</span><span class="tv2-extag tri">Triceps</span>
+                <span class="tv2-exspec">10 · BW</span>
+              </div>
+              <div class="tv2-setline">
+                <div class="tv2-field"><label>Váha (kg)</label><input value="—"></div>
+                <div class="tv2-field"><label>Opakování</label><input value="10"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="meal-add-btn" onclick="openDialog('dlg-add-exercise')"><span>+</span><span>Přidat cvik</span></div>
+        </div>
+      </div>
+
+      <div class="tv2-restday" style="display:none;text-align:center;color:var(--t3);font-style:italic;padding:52px 0;border:1px dashed var(--br);border-radius:var(--rl);background:var(--bg2)">Odpočinek — žádný trénink naplánovaný na tento den.</div>
+
+      <div class="tv2-addworkout meal-add-btn" onclick="openDialog('dlg-add-session')"><span>+</span><span>Přidat workout</span></div>
+    </div>
+
+    <!-- STATS / day overview -->
+    <aside class="tv2-stats">
+      <p class="tv2-eyebrow">Přehled dne</p>
+      <div class="tv2-big">1</div>
+      <div class="tv2-biglbl">tréninků celkem</div>
+      <div class="tv2-statrow"><span>Workoutů</span><b>2</b></div>
+      <div class="tv2-statrow"><span>Cviků</span><b>5</b></div>
+      <div class="tv2-statrow"><span>Sérií</span><b>14</b></div>
+      <div class="tv2-statrow"><span>Objem</span><b>3 240 kg</b></div>
+      <div class="tv2-statrow"><span>Odhad. doba</span><b>60 min</b></div>
+
+      <div class="tv2-muscles">
+        <p class="tv2-eyebrow" style="margin-top:22px">Svalové partie</p>
+        <div class="tv2-mbar"><div class="tv2-mtop"><span>Hrudník</span><span>7 sérií</span></div><div class="tv2-mtrack"><div class="tv2-mfill" style="width:100%;background:var(--blue)"></div></div></div>
+        <div class="tv2-mbar"><div class="tv2-mtop"><span>Ramena</span><span>6 sérií</span></div><div class="tv2-mtrack"><div class="tv2-mfill" style="width:86%;background:var(--orange)"></div></div></div>
+        <div class="tv2-mbar"><div class="tv2-mtop"><span>Triceps</span><span>5 sérií</span></div><div class="tv2-mtrack"><div class="tv2-mfill" style="width:72%;background:var(--purple)"></div></div></div>
+        <div class="tv2-mbar"><div class="tv2-mtop"><span>Záda</span><span>1 série</span></div><div class="tv2-mtrack"><div class="tv2-mfill" style="width:14%;background:var(--green)"></div></div></div>
+      </div>
+
+      <div class="tv2-pubcard">Týden 9 · <b>Publikováno ✓</b></div>
+    </aside>
+  </div>
+</div>
+</div>
+
+<script>
+/* Day switching for the training-plan redesign scene (illustrative content). */
+(function(){
+  var DAYS=[
+    {n:'Pondělí',d:'15. 6.',title:'Push A',meta:'2 workouty · 5 cviků · 60 min',rest:false,big:'1',stats:['2','5','14','3 240 kg','60 min']},
+    {n:'Úterý',d:'16. 6.',title:'Pull A',meta:'2 workouty · 5 cviků · 55 min',rest:false,big:'1',stats:['2','5','15','3 600 kg','55 min']},
+    {n:'Středa',d:'17. 6.',title:null,rest:true},
+    {n:'Čtvrtek',d:'18. 6.',title:'Legs A',meta:'1 workout · 4 cviky · 55 min',rest:false,big:'1',stats:['1','4','16','5 200 kg','55 min']},
+    {n:'Pátek',d:'19. 6.',title:'Push B',meta:'2 workouty · 5 cviků · 55 min',rest:false,big:'1',stats:['2','5','14','3 100 kg','55 min']},
+    {n:'Sobota',d:'20. 6.',title:null,rest:true},
+    {n:'Neděle',d:'21. 6.',title:'Pull B',meta:'2 workouty · 4 cviky · 50 min',rest:false,big:'1',stats:['2','4','12','2 900 kg','50 min']}
+  ];
+  window.tv2Day=function(i){
+    var root=document.getElementById('s-training-v2'); if(!root) return;
+    var day=DAYS[i];
+    root.querySelectorAll('.tv2-daytab').forEach(function(t,idx){t.classList.toggle('active',idx===i);});
+    var head=root.querySelector('.tv2-dayhead');
+    if(head) head.innerHTML='<h3>'+day.n+'</h3><span>'+day.d+(day.title?' · '+day.title:'')+'</span>';
+    var sess=root.querySelector('.tv2-session');
+    var note=root.querySelector('.tv2-daynote');
+    var rest=root.querySelector('.tv2-restday');
+    var addw=root.querySelector('.tv2-addworkout');
+    var muscles=root.querySelector('.tv2-muscles');
+    if(day.rest){
+      if(sess)sess.style.display='none'; if(note)note.style.display='none';
+      if(addw)addw.style.display='none'; if(rest)rest.style.display='block';
+      if(muscles)muscles.style.display='none';
+      root.querySelector('.tv2-big').textContent='0';
+      root.querySelectorAll('.tv2-statrow b').forEach(function(b){b.textContent='–';});
+    } else {
+      if(sess){sess.style.display='';var sn=sess.querySelector('.tv2-sname');if(sn)sn.textContent=day.title;var sm=sess.querySelector('.tv2-smeta');if(sm)sm.textContent=day.meta;}
+      if(note)note.style.display=''; if(addw)addw.style.display='';
+      if(rest)rest.style.display='none'; if(muscles)muscles.style.display='';
+      root.querySelector('.tv2-big').textContent=day.big;
+      root.querySelectorAll('.tv2-statrow b').forEach(function(b,idx){b.textContent=day.stats[idx];});
+    }
+  };
+})();
+</script>
+</div>
 <div id="s-training-session-builder" class="screen">
 <div class="shell">
 <div class="sb" id="sb-training"></div>
@@ -4802,12 +5122,12 @@ function buildSidebar(containerId, activeScreen){
   html+='<div class="sb-item'+(activeScreen==='s-profile'?' active':'')+'" onclick="showScreen(\'s-profile\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">Profil</span></div>';
   html+='<div class="sb-item'+(activeScreen==='s-messages'?' active':'')+'" onclick="showScreen(\'s-messages\')"><span class="sbi-icon">✉</span><span class="sbi-lbl">Zprávy</span><span class="sbi-badge">1</span></div></div>';
   html+='<div class="sb-div"></div><div class="sb-sec"><div class="sb-sec-lbl">Klienti</div>';
-  var clientScreens=['s-client','s-training','s-training-session-builder','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
+  var clientScreens=['s-client','s-training','s-training-v2','s-training-session-builder','s-nutrition','s-goals','s-client-photos','s-settings-checkins'];
   CLIENTS.forEach(function(cl){
     var isCl=clientScreens.indexOf(activeScreen)!==-1&&cl.id===1;
     html+='<div class="sb-item'+(isCl?' active':'')+'" onclick="showScreen(\'s-client\')"><span class="sbi-icon">👤</span><span class="sbi-lbl">'+cl.name+'</span><div class="sb-acts"><span>···</span></div></div>';
     if(isCl){
-      html+='<div class="sb-item indent'+((activeScreen==='s-training'||activeScreen==='s-training-session-builder')?' active':'')+'" onclick="showScreen(\'s-training-session-builder\')"><span class="sbi-icon">🏋️</span><span class="sbi-lbl">Trén. plán</span></div>';
+      html+='<div class="sb-item indent'+((activeScreen==='s-training'||activeScreen==='s-training-v2'||activeScreen==='s-training-session-builder')?' active':'')+'" onclick="showScreen(\'s-training-session-builder\')"><span class="sbi-icon">🏋️</span><span class="sbi-lbl">Trén. plán</span></div>';
       html+='<div class="sb-item indent'+(activeScreen==='s-nutrition'?' active':'')+'" onclick="showScreen(\'s-nutrition\')"><span class="sbi-icon">🥗</span><span class="sbi-lbl">Jídelníček</span></div>';
       html+='<div class="sb-item indent'+(activeScreen==='s-goals'?' active':'')+'" onclick="showScreen(\'s-goals\')"><span class="sbi-icon">🎯</span><span class="sbi-lbl">Cíle a makra</span></div>';
     }
@@ -4830,7 +5150,7 @@ function showScreen(id){
   document.querySelectorAll('.tn-btn').forEach(function(b){if(b.getAttribute('onclick')==="showScreen('"+id+"')") b.classList.add('active');});
   window.scrollTo(0,0);
   // Build sidebars
-  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
+  var sbMap={'s-dashboard':'sb-dashboard','s-client':'sb-client','s-training':'sb-training','s-training-v2':'sb-training','s-training-session-builder':'sb-training','s-training-section-templates':'sb-training','s-messages':'sb-messages','s-nutrition':'sb-nutrition','s-foods':'sb-foods','s-goals':'sb-goals','s-settings-checkins':'sb-settings-checkins','s-client-photos':'sb-client-photos','s-profile':'sb-profile','s-recipes':'sb-recipes'};
   if(sbMap[id]) buildSidebar(sbMap[id],id);
   // Init nutrition editor
   if(id==='s-nutrition'&&!_nutrInit){_nutrInit=true;initNutrition();}
