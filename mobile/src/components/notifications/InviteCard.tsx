@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/hooks/useTheme'
@@ -11,17 +11,33 @@ import type { TrainerInvite } from '@/hooks/useClientInvite'
 
 interface InviteCardProps {
   invite: TrainerInvite
-  onAccept: () => void
-  onDecline: () => void
   onViewInvite: () => void
 }
 
-export function InviteCard({ invite, onAccept, onDecline, onViewInvite }: InviteCardProps) {
+// #814 — Accept/Decline moved to the invite detail screen only; this card is
+// now a read-only summary + single CTA. That also removes the old
+// exit-collapse animation entirely (nothing inside the card triggers
+// dismissal anymore — the card just unmounts when `invite` goes null after
+// the user decides on the detail screen).
+//
+// #812 — the entrance animation now runs fully on the native (UI) thread
+// (`useNativeDriver: true`) and only ever touches `opacity`/`transform`,
+// neither of which Yoga includes in layout measurement. Previously the
+// wrapper also carried a JS-driven (`useNativeDriver: false`) `maxHeight`
+// Animated.Value pinned at a constant 300 — since transform/opacity updates
+// on the JS thread are applied via imperative native-prop patches rather
+// than a normal Yoga re-layout, that combination risked the wrapper's
+// reserved height lagging behind its true rendered content size on first
+// mount, which could clip into the `StatStrip` row rendered right after it
+// in the Today ScrollView. Dropping the maxHeight cap (dead weight now that
+// the collapse animation is gone) and native-driving the remaining
+// transform/opacity means Yoga always measures the card's real content
+// height up front, so `StatStrip` is reliably positioned below it.
+export function InviteCard({ invite, onViewInvite }: InviteCardProps) {
   const colors = useTheme()
   const { t } = useTranslation()
   const opacity = useRef(new Animated.Value(0)).current
   const translateY = useRef(new Animated.Value(-40)).current
-  const maxHeight = useRef(new Animated.Value(300)).current
 
   useEffect(() => {
     Animated.parallel([
@@ -29,36 +45,18 @@ export function InviteCard({ invite, onAccept, onDecline, onViewInvite }: Invite
         toValue: 0,
         damping: 18,
         stiffness: 200,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
     ]).start()
   }, [])
 
-  const animateOut = useCallback(
-    (callback: () => void) => {
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: false,
-        }),
-        Animated.timing(maxHeight, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: false,
-        }),
-      ]).start(() => callback())
-    },
-    [opacity, maxHeight],
-  )
-
   return (
-    <Animated.View style={[styles.wrapper, { opacity, maxHeight, transform: [{ translateY }] }]}>
+    <Animated.View style={[styles.wrapper, { opacity, transform: [{ translateY }] }]}>
       <View
         style={[
           styles.card,
@@ -77,7 +75,7 @@ export function InviteCard({ invite, onAccept, onDecline, onViewInvite }: Invite
               {invite.trainerName}
             </Text>
             <Text style={[Type.caption1, { color: colors.label2 }]}>
-              {invite.trainerRole}{invite.trainerCity ? ` \u00b7 ${invite.trainerCity}` : ''}
+              {invite.trainerRole}{invite.trainerCity ? ` · ${invite.trainerCity}` : ''}
             </Text>
           </View>
           <Pressable
@@ -95,22 +93,6 @@ export function InviteCard({ invite, onAccept, onDecline, onViewInvite }: Invite
         <Text style={[Type.subheadline, { color: colors.label2, marginTop: 10 }]}>
           {t('today.inviteCard.subtitle', { name: invite.trainerName })}
         </Text>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Pressable
-            style={[styles.btn, { backgroundColor: colors.gold, flex: 1 }]}
-            onPress={() => animateOut(onAccept)}
-          >
-            <Text style={[styles.btnTextPrimary, { color: colors.onAccent }]}>{t('today.inviteCard.accept')}</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.btn, { backgroundColor: colors.fill, flex: 1 }]}
-            onPress={() => animateOut(onDecline)}
-          >
-            <Text style={[styles.btnTextSecondary, { color: colors.label2 }]}>{t('today.inviteCard.decline')}</Text>
-          </Pressable>
-        </View>
       </View>
     </Animated.View>
   )
@@ -120,7 +102,6 @@ export default InviteCard
 
 const styles = StyleSheet.create({
   wrapper: {
-    overflow: 'hidden',
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -147,23 +128,5 @@ const styles = StyleSheet.create({
   viewInviteText: {
     fontSize: 13,
     fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  btn: {
-    paddingVertical: 12,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-  },
-  btnTextPrimary: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  btnTextSecondary: {
-    fontSize: 15,
-    fontWeight: '500',
   },
 })

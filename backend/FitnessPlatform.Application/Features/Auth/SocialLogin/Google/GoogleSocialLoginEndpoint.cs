@@ -4,10 +4,12 @@ using FastEndpoints.Security;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FitnessPlatform.Application.Features.Auth.SocialLogin.Google;
 
@@ -21,7 +23,11 @@ public class GoogleSocialLoginEndpoint(
     IGoogleTokenVerifier googleVerifier,
     UserManager<ApplicationUser> userManager,
     IApplicationDbContext db,
-    IConfiguration config) : Endpoint<GoogleSocialLoginRequest, GoogleSocialLoginResponse>
+    IConfiguration config,
+    // Seeds a professional-client conversation against any message-bearing PendingInvite
+    // already addressed to a newly-provisioned account's email (#803/#817).
+    IPendingInviteConversationSeeder inviteConversationSeeder,
+    ILogger<GoogleSocialLoginEndpoint> logger) : Endpoint<GoogleSocialLoginRequest, GoogleSocialLoginResponse>
 {
     private const string GoogleProvider = "google";
 
@@ -186,6 +192,23 @@ public class GoogleSocialLoginEndpoint(
 
             await db.SaveChangesAsync(ct);
             user = newUser;
+
+            // New account (always Client role for social login) — if it matches an
+            // existing message-bearing PendingInvite, seed the professional-client
+            // conversation now instead of waiting for the client to accept (#803/#817).
+            // Non-fatal: the account (and its Google link) are already committed above,
+            // so a conversation-seed failure must not turn a successful sign-in into a
+            // 500 — accept-time seeding remains the fallback path.
+            try
+            {
+                await inviteConversationSeeder.SeedForNewUserAsync(newUser, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex,
+                    "Failed to seed pending-invite conversation(s) for {Email} during Google sign-up. User {UserId} created; conversation will still be seeded at invite-accept time.",
+                    newUser.Email, newUser.Id);
+            }
         }
 
         // 3. Check if the account is active.

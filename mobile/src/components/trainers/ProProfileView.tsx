@@ -5,6 +5,12 @@
  * profile via TanStack Query, sharing the ['trainer-profile', id] cache with
  * the standalone [trainerId].tsx detail screen.
  *
+ * Also reused by the invite-detail screen ((client)/invite.tsx, #813) for
+ * profile-parity content (hero/bio/certificates/specialisations) — see the
+ * `children` and `footer` props below for how that screen injects its
+ * invite-specific sections (trainer message, "what's included", Accept/
+ * Decline CTAs) without duplicating this component's markup.
+ *
  * All colors route through useTheme() — no hardcoded hex values.
  * The SPEC_COLORS map from [trainerId].tsx is replaced with a token-backed
  * lookup using theme system color slots.
@@ -47,6 +53,11 @@ function getSpecStyle(spec: string, colors: ColorScheme): SpecStyle {
   }
 }
 
+// Base bottom padding of the scroll content — mirrored by `contentInsetBottom`
+// math below so an external fixed footer (e.g. the invite-detail screen's
+// Accept/Decline bar) can extend it without duplicating the literal.
+const SCROLL_CONTENT_BASE_BOTTOM_PADDING = 40
+
 const SPEC_EMOJI: Record<string, string> = {
   'Silový trénink': '🏋️',
   'HIIT': '⚡',
@@ -62,28 +73,51 @@ const SPEC_EMOJI: Record<string, string> = {
 interface ProProfileViewProps {
   /** Public ID of the professional — used as the query key and API param. */
   professionalPublicId: string
-  /** Display name used in the end-collab alert. */
-  displayName: string
+  /** Display name used in the end-collab alert. Only relevant when the
+   *  default action bar (`showActionBar`) is shown. */
+  displayName?: string
   /** ISO date string when the collaboration started (from auth store).
-   *  Pass empty string to suppress the active-since badge. */
-  activeSince: string
-  onMessagePress: () => void
-  onEndCollabPress: () => void
+   *  Pass empty string (or omit) to suppress the active-since badge. */
+  activeSince?: string
+  onMessagePress?: () => void
+  onEndCollabPress?: () => void
   /** When false, hides the Zpráva/Ukončit action bar.
    *  Defaults to true — the bar is shown for active collaborators.
-   *  Pass false for non-linked profiles viewed from the discovery detail screen. */
+   *  Pass false for non-linked profiles viewed from the discovery detail
+   *  screen, or when the caller renders its own always-visible action
+   *  region outside this component (see the invite-detail screen, #828). */
   showActionBar?: boolean
+  /** Extra content rendered after the specialisations section and before the
+   *  footer/action bar. Used by the invite-detail screen to inject the
+   *  trainer's message + "what collaboration includes" list without
+   *  duplicating this component's hero/bio/specialisations markup. */
+  children?: React.ReactNode
+  /** Custom footer rendered in place of the default Zpráva/Ukončit action
+   *  bar (overrides `showActionBar` when provided). NOTE: this renders
+   *  inside the internal ScrollView, AFTER the loading/error early
+   *  returns — do not use it for content that must stay reachable while
+   *  the profile fetch is pending or failed (see #828). The invite-detail
+   *  screen renders its Přijmout/Odmítnout CTAs itself, outside this
+   *  component, for exactly that reason. */
+  footer?: React.ReactNode
+  /** Extra bottom padding for the scroll content, in px. Lets a caller that
+   *  overlays its own fixed bottom bar (outside this component) avoid that
+   *  bar clipping the last scrollable section. Defaults to 0. */
+  contentInsetBottom?: number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
 
 export function ProProfileView({
   professionalPublicId,
-  displayName,
-  activeSince,
-  onMessagePress,
-  onEndCollabPress,
+  displayName = '',
+  activeSince = '',
+  onMessagePress = () => {},
+  onEndCollabPress = () => {},
   showActionBar = true,
+  children,
+  footer,
+  contentInsetBottom = 0,
 }: ProProfileViewProps) {
   const colors = useTheme()
   const { t, i18n } = useTranslation()
@@ -136,7 +170,13 @@ export function ProProfileView({
   const restBio = bioSentences.slice(2).join('. ')
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={[
+        styles.scrollContent,
+        contentInsetBottom ? { paddingBottom: SCROLL_CONTENT_BASE_BOTTOM_PADDING + contentInsetBottom } : null,
+      ]}
+    >
       {/* ── Hero ──────────────────────────────────────────────────── */}
       <View style={styles.hero}>
         <Avatar
@@ -237,8 +277,11 @@ export function ProProfileView({
         </View>
       )}
 
-      {/* ── Bottom action bar ──────────────────────────────────────── */}
-      {showActionBar && (
+      {/* ── Extra content (invite message, "what's included", etc.) ──── */}
+      {children}
+
+      {/* ── Bottom action bar / custom footer ─────────────────────── */}
+      {footer ?? (showActionBar && (
         <View style={styles.actionBar}>
           <Pressable
             onPress={onMessagePress}
@@ -266,7 +309,7 @@ export function ProProfileView({
             </Text>
           </Pressable>
         </View>
-      )}
+      ))}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -278,7 +321,7 @@ export function ProProfileView({
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     scrollContent: {
-      paddingBottom: 40,
+      paddingBottom: SCROLL_CONTENT_BASE_BOTTOM_PADDING,
     },
     loadingContainer: {
       flex: 1,
