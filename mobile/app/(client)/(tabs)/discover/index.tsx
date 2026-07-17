@@ -58,35 +58,86 @@ function toTrainerCardData(p: ProfessionalSummary): TrainerCardData {
   }
 }
 
-// ─── Determine which tabs are enabled and the default selected tab ─────
+// ─── Determine which tabs are visible/enabled and the default selections ──
+//
+// "Visible" drives which segments are rendered in the tab row at all (#818):
+// a destination with no assigned coach of that type is omitted entirely
+// rather than rendered as a disabled/dead tab. "Enabled" (a subset of
+// visible) drives whether a rendered segment is tappable — e.g. once both
+// a trainer and a coach are assigned, the Hledat destination is still shown
+// (three full tabs, per the both-coaches AC) but stays disabled since no
+// further discovery is needed. The tab row itself is hidden entirely when
+// fewer than two destinations are visible (the no-coach state, where the
+// screen is directly the search view).
 
 interface TabConfig {
+  trainerVisible: boolean
+  coachVisible: boolean
   trainerEnabled: boolean
   coachEnabled: boolean
   searchEnabled: boolean
   defaultTab: CollabTab
+  defaultRoleFilter: 'all' | 'trainer' | 'coach'
 }
 
 function getTabConfig(hasTrainer: boolean, hasCoach: boolean): TabConfig {
   if (hasTrainer && hasCoach) {
-    return { trainerEnabled: true, coachEnabled: true, searchEnabled: false, defaultTab: 'trainer' }
+    return {
+      trainerVisible: true,
+      coachVisible: true,
+      trainerEnabled: true,
+      coachEnabled: true,
+      searchEnabled: false,
+      defaultTab: 'trainer',
+      defaultRoleFilter: 'all',
+    }
   }
   if (hasTrainer) {
-    return { trainerEnabled: true, coachEnabled: false, searchEnabled: true, defaultTab: 'trainer' }
+    return {
+      trainerVisible: true,
+      coachVisible: false,
+      trainerEnabled: true,
+      coachEnabled: false,
+      searchEnabled: true,
+      defaultTab: 'trainer',
+      // Missing role defaults the search chip to the coach the client
+      // doesn't have yet, per #818 AC.
+      defaultRoleFilter: 'coach',
+    }
   }
   if (hasCoach) {
-    return { trainerEnabled: false, coachEnabled: true, searchEnabled: true, defaultTab: 'coach' }
+    return {
+      trainerVisible: false,
+      coachVisible: true,
+      trainerEnabled: false,
+      coachEnabled: true,
+      searchEnabled: true,
+      defaultTab: 'coach',
+      defaultRoleFilter: 'trainer',
+    }
   }
-  return { trainerEnabled: false, coachEnabled: false, searchEnabled: true, defaultTab: 'search' }
+  return {
+    trainerVisible: false,
+    coachVisible: false,
+    trainerEnabled: false,
+    coachEnabled: false,
+    searchEnabled: true,
+    defaultTab: 'search',
+    defaultRoleFilter: 'all',
+  }
 }
 
 // ─── Hledat tab (discovery list) ──────────────────────────────────────
 
-function SearchTab() {
+interface SearchTabProps {
+  initialRoleFilter: 'all' | 'trainer' | 'coach'
+}
+
+function SearchTab({ initialRoleFilter }: SearchTabProps) {
   const colors = useTheme()
   const router = useRouter()
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'trainer' | 'coach'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'trainer' | 'coach'>(initialRoleFilter)
   const [inviteTarget, setInviteTarget] = useState<InviteTarget | null>(null)
   const pendingRequests = useAuthStore((s) => s.pendingRequests)
   const { sendRequest, cancelRequest, isSendingRequest } = useCollaboration()
@@ -255,7 +306,20 @@ export default function DiscoverScreen() {
   const coach = useAuthStore((s) => s.coach)
   const { endTrainerCollab, endCoachCollab } = useCollaboration()
 
-  const { trainerEnabled, coachEnabled, searchEnabled, defaultTab } = getTabConfig(hasTrainer, hasCoach)
+  const {
+    trainerVisible,
+    coachVisible,
+    trainerEnabled,
+    coachEnabled,
+    searchEnabled,
+    defaultTab,
+    defaultRoleFilter,
+  } = getTabConfig(hasTrainer, hasCoach)
+
+  // The tab row itself only makes sense once there are 2+ destinations to
+  // choose between — a single visible destination (no-coach state) renders
+  // as the search view directly, no tab row at all (#818 AC).
+  const showTabRow = trainerVisible || coachVisible
 
   const [selectedTab, setSelectedTab] = useState<CollabTab>(defaultTab)
 
@@ -267,11 +331,22 @@ export default function DiscoverScreen() {
     return selectedTab
   })()
 
-  const segmentOptions = [
-    { key: 'trainer' as const, label: t('collab.tabTrainer'), disabled: !trainerEnabled },
-    { key: 'coach' as const, label: t('collab.tabCoach'), disabled: !coachEnabled },
-    { key: 'search' as const, label: t('collab.tabSearch'), disabled: !searchEnabled },
-  ]
+  // Build segment options from visible destinations only — a coach type the
+  // client doesn't have is omitted entirely rather than rendered as a dead
+  // disabled tab (#818). Hledat is always present when the row is shown; it
+  // stays disabled (but visible) once both a trainer and a coach are already
+  // assigned, matching the pre-existing "no further discovery needed" rule.
+  const segmentOptions = useMemo(() => {
+    const options: { key: CollabTab; label: string; disabled: boolean }[] = []
+    if (trainerVisible) {
+      options.push({ key: 'trainer', label: t('collab.tabTrainer'), disabled: !trainerEnabled })
+    }
+    if (coachVisible) {
+      options.push({ key: 'coach', label: t('collab.tabCoach'), disabled: !coachEnabled })
+    }
+    options.push({ key: 'search', label: t('collab.tabSearch'), disabled: !searchEnabled })
+    return options
+  }, [trainerVisible, coachVisible, trainerEnabled, coachEnabled, searchEnabled, t])
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
@@ -280,12 +355,14 @@ export default function DiscoverScreen() {
         <Text style={[Type.largeTitle, { color: colors.label }]}>{t('collab.title')}</Text>
       </View>
 
-      {/* Segmented control */}
-      <SegmentedControl
-        options={segmentOptions}
-        selectedKey={effectiveTab}
-        onSelect={(key) => setSelectedTab(key as CollabTab)}
-      />
+      {/* Segmented control — hidden entirely in the no-coach state (#818) */}
+      {showTabRow && (
+        <SegmentedControl
+          options={segmentOptions}
+          selectedKey={effectiveTab}
+          onSelect={(key) => setSelectedTab(key as CollabTab)}
+        />
+      )}
 
       {/* Tab content */}
       {effectiveTab === 'trainer' && trainer && (
@@ -294,7 +371,7 @@ export default function DiscoverScreen() {
       {effectiveTab === 'coach' && coach && (
         <ProTab collaborator={coach} onEnd={endCoachCollab} />
       )}
-      {effectiveTab === 'search' && <SearchTab />}
+      {effectiveTab === 'search' && <SearchTab initialRoleFilter={defaultRoleFilter} />}
     </SafeAreaView>
   )
 }
