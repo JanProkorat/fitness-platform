@@ -161,15 +161,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Reset the __DEV__ deep-link bypass token slot so a subsequent bypass with
     // a fresh token (post-logout QA flow) can reach restoreSession() correctly.
     resetConsumedTokens();
-    import('../stores/todayStore').then(({ useTodayStore }) => {
-      useTodayStore.getState().reset();
-    });
-    import('../stores/liveSessionStore').then(({ useLiveSessionStore }) => {
-      useLiveSessionStore.getState().discard();
-    });
-    import('../stores/hydrationStore').then(({ useHydrationStore }) => {
-      useHydrationStore.getState().reset();
-    });
+    // NOTE: this used to also reset todayStore / liveSessionStore /
+    // hydrationStore here. Those UI-state stores were removed as part of
+    // the clean-slate UI redesign (see cleanup manifest); re-add their
+    // reset-on-logout calls here once the new design system re-introduces
+    // equivalent stores.
     import('../stores/messagesStore').then(({ useMessagesStore }) => {
       useMessagesStore.getState().reset();
     });

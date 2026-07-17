@@ -1,49 +1,31 @@
 import '../src/i18n';
 import { useEffect } from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { href } from '@/lib/navigation';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
-import {
-  useFonts,
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from '@expo-google-fonts/inter';
 import { useAuthStore, storage } from '@/stores/auth';
 import { useOfflineMutations } from '@/hooks/useOfflineMutations';
-import { OfflineBanner } from '@/components/OfflineBanner';
-import { ToastProvider } from '@/components/ui/Toast';
-import { useTheme } from '@/hooks/useTheme';
 import { queryClient } from '@/lib/queryClient';
 import { markTokenConsumed, wasTokenConsumed } from '@/lib/e2eAuthBypass';
+
+// ─── Root layout — provider wiring only ─────────────────────────────────────
+//
+// This is a trimmed clean-slate scaffold (see PLAN / cleanup-manifest for the
+// #ui-redesign effort). All screens + the design-token system were removed;
+// this file wires up the surviving infra (TanStack Query, i18n, auth restore,
+// offline-mutation draining, the __DEV__ e2e-auth deep-link bypass) around a
+// single placeholder route so Expo Router boots. No `useTheme()` dependency —
+// intentional; the new design system will re-introduce theming later.
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
 
-function AuthGate() {
-  const router = useRouter();
-  const segments = useSegments();
-  const colors = useTheme();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+function AppShell() {
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const restoreSession = useAuthStore((s) => s.restoreSession);
-  const user = useAuthStore((s) => s.user);
-  const pendingInviteToken = useAuthStore((s) => s.pendingInviteToken);
-  const setPendingInviteToken = useAuthStore((s) => s.setPendingInviteToken);
-
-  // Load Inter weights used across the app — typography.ts maps fontWeight →
-  // Inter_<weight><Name> family name. Splash stays up until the fonts are in.
-  const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
 
   useOfflineMutations();
 
@@ -90,62 +72,26 @@ function AuthGate() {
   }, [restoreSession]);
 
   useEffect(() => {
-    if (!isInitialized || !fontsLoaded) return;
-    SplashScreen.hideAsync();
-
-    const seg = segments as string[];
-    const inAuthGroup = seg[0] === '(auth)';
-    const currentScreen = seg[1] as string | undefined;
-    const onVerifyScreen = inAuthGroup && currentScreen === 'verify-email';
-    const onQuestionnaireScreen = inAuthGroup && currentScreen === 'questionnaire';
-    const onInviteScreen = inAuthGroup && currentScreen === 'invite';
-
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (isAuthenticated && !user?.emailConfirmed && !onVerifyScreen) {
-      router.replace(href('/(auth)/verify-email'));
-    } else if (isAuthenticated && user?.emailConfirmed && pendingInviteToken && !onInviteScreen) {
-      // Deterministic invite hand-off (#606). login.tsx recorded the intent
-      // in the store instead of navigating imperatively — AuthGate is the
-      // single routing authority. The flag is kept SET (not consumed here)
-      // and the branch is guarded on `!onInviteScreen`, so it keeps winning
-      // over the `/(client)` branch below on every re-run until `segments`
-      // actually reaches the invite screen. Consuming the flag here instead
-      // let a re-run with a cleared flag but still-stale `seg=login` fall
-      // through to `/(client)` and stomp the in-flight navigation.
-      router.replace(`/(auth)/invite/${pendingInviteToken}`);
-    } else if (isAuthenticated && user?.emailConfirmed && inAuthGroup && !onQuestionnaireScreen && !onInviteScreen) {
-      router.replace('/(client)');
+    if (isInitialized) {
+      SplashScreen.hideAsync();
     }
+  }, [isInitialized]);
 
-    // Consume the one-shot invite flag only once we've actually landed on the
-    // invite screen — clearing it earlier reopens the stale-segments race.
-    if (onInviteScreen && pendingInviteToken) {
-      setPendingInviteToken(null);
-    }
-  }, [isAuthenticated, isInitialized, fontsLoaded, segments, router, user, pendingInviteToken, setPendingInviteToken]);
-
-  if (!isInitialized || !fontsLoaded) {
+  if (!isInitialized) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.bg }]}>
-        <ActivityIndicator size="large" color={colors.gold} />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
-  return (
-    <>
-      <OfflineBanner />
-      <ToastProvider />
-      <Slot />
-    </>
-  );
+  return <Slot />;
 }
 
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGate />
+      <AppShell />
     </QueryClientProvider>
   );
 }

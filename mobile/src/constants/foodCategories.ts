@@ -1,12 +1,14 @@
-import { Brand } from './colors'
-
 export const FOOD_CATEGORY_COLORS: Record<string, string> = {
   Fruit: '#c0392b',
   Vegetables: '#0f7b6c',
   Meat: '#8b5e3c',
   FishAndSeafood: '#0b6e99',
   Dairy: '#9b9a97',
-  GrainsAndCereals: Brand.gold,
+  // Brand gold — matches the theme's Brand.gold token (constants/colors.ts,
+  // removed in the clean-slate UI redesign). Kept as a literal here because
+  // this map is itself a fixed data palette (every other entry is already a
+  // literal hex), not a themed UI style.
+  GrainsAndCereals: '#c9a84c',
   Legumes: '#6d8c54',
   NutsAndSeeds: '#ad5700',
   OilsAndFats: '#7a8b3c',

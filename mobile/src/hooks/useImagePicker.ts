@@ -32,7 +32,6 @@ import { useCallback, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { Toast } from '../lib/toast';
 import { transcodeHeicToJpeg } from '../lib/heicTranscode';
 
 // ---------------------------------------------------------------------------
@@ -172,7 +171,7 @@ export function useImagePicker(
       const camResult =
         await ImagePicker.requestCameraPermissionsAsync();
       if (camResult.status !== 'granted') {
-        Toast.show(t('imagePicker.permissionDenied'));
+        setError(new Error(t('imagePicker.permissionDenied')));
         return false;
       }
     }
@@ -180,7 +179,7 @@ export function useImagePicker(
     const libResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (libResult.status !== 'granted') {
-      Toast.show(t('imagePicker.permissionDenied'));
+      setError(new Error(t('imagePicker.permissionDenied')));
       return false;
     }
 
@@ -383,7 +382,6 @@ export function useImagePicker(
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       setError(err);
-      Toast.show(t('common.error'));
       return;
     }
 
@@ -404,16 +402,18 @@ export function useImagePicker(
 
       const contentType = getMimeType(asset.uri);
       if (!contentType) {
-        Toast.show(t('imagePicker.invalidType'));
+        setError(new Error(t('imagePicker.invalidType')));
         return;
       }
 
       const sizeBytes = await resolveFileSize(asset);
       if (sizeBytes > 0 && sizeBytes > maxBytes) {
-        Toast.show(
-          t('imagePicker.oversize', {
-            maxMb: (maxBytes / (1024 * 1024)).toFixed(0),
-          }),
+        setError(
+          new Error(
+            t('imagePicker.oversize', {
+              maxMb: (maxBytes / (1024 * 1024)).toFixed(0),
+            }),
+          ),
         );
         return;
       }
@@ -435,7 +435,6 @@ export function useImagePicker(
         if (e instanceof Error && e.name === 'AbortError') return;
         const err = e instanceof Error ? e : new Error(String(e));
         setError(err);
-        Toast.show(t('common.error'));
       } finally {
         setUploading(false);
       }
@@ -481,15 +480,18 @@ export function useImagePicker(
       const failCount = assets.length - succeeded.length;
 
       if (failCount > 0 && succeeded.length > 0) {
-        // Partial failure: surface what succeeded, toast the rest.
-        Toast.show(
-          t('imagePicker.partialUpload', {
-            succeeded: succeeded.length,
-            total: assets.length,
-          }),
+        // Partial failure: surface what succeeded via a non-fatal error so
+        // the caller can decide how to present it (no toast mechanism until
+        // the new design system re-introduces one).
+        setError(
+          new Error(
+            t('imagePicker.partialUpload', {
+              succeeded: succeeded.length,
+              total: assets.length,
+            }),
+          ),
         );
       } else if (failCount > 0 && succeeded.length === 0) {
-        Toast.show(t('common.error'));
         setError(new Error(`All ${assets.length} uploads failed`));
         return;
       }

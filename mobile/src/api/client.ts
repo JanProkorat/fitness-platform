@@ -2,8 +2,6 @@ import axios from 'axios';
 import { getLocales } from 'expo-localization';
 import { useAuthStore } from '../stores/auth';
 import { executeRefresh } from '../lib/refresh';
-import { Toast } from '../lib/toast';
-import i18n from '../i18n';
 
 // `EXPO_PUBLIC_API_BASE_URL` lets QA dev builds point at the compose-exposed
 // API (https://localhost:5001) without rebuilding. Inlined at bundle time by
@@ -51,11 +49,16 @@ function isRateLimited(error: unknown): boolean {
 }
 
 /**
- * Show the rate-limit toast and return a rejected promise.
+ * Return a rejected promise for a rate-limited request.
  * Does NOT call logout() — the user session remains valid.
+ *
+ * NOTE: this used to also surface a `Toast.show(...)` here. `lib/toast.ts`
+ * was removed as part of the clean-slate UI redesign (its only consumer,
+ * `ui/Toast.tsx`, is a design-system component); the new design system will
+ * need to re-wire user-facing rate-limit feedback once it lands. The reject
+ * behavior itself (no logout) is unchanged.
  */
 function rejectWithRateLimit(error: unknown): Promise<never> {
-  Toast.show(i18n.t('errors.rateLimit'));
   return Promise.reject(error);
 }
 

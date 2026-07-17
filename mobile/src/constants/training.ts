@@ -1,5 +1,4 @@
 import type { WorkoutFormat } from '@/api/training';
-import type { ColorScheme } from '@/constants/colors';
 
 /**
  * Maps each WorkoutFormat to its i18n key suffix under `training.format.*`.
@@ -18,64 +17,9 @@ export const FORMAT_LABEL_KEYS: Record<WorkoutFormat, string> = {
   Tabata: 'tabata',
 };
 
-/**
- * Returns the saturated text color for a format chip from the active theme.
- *
- * Mapping (mirrors `FORMAT_COLORS` / `FORMAT_BG_COLORS` on the web):
- *   Standard → colors.label3 (neutral)
- *   AMRAP    → colors.orange
- *   EMOM     → colors.purple
- *   Tabata   → colors.red
- *   ForTime  → colors.blue
- *
- * All values come from the theme — never hardcoded hex.
- */
-export function formatChipColor(
-  format: WorkoutFormat | null | undefined,
-  colors: ColorScheme,
-): string {
-  switch (format) {
-    case 'AMRAP':
-      return colors.orange;
-    case 'EMOM':
-      return colors.purple;
-    case 'Tabata':
-      return colors.red;
-    case 'ForTime':
-      return colors.blue;
-    case 'Standard':
-    default:
-      return colors.label3;
-  }
-}
-
-/**
- * Returns the soft background color for a format chip (8% alpha tint).
- *
- * Derives from the same mapping as `formatChipColor`:
- *   Standard → colors.fill2
- *   AMRAP    → colors.orange + '14'  (~8% alpha)
- *   EMOM     → colors.purple + '14'
- *   Tabata   → colors.red + '14'
- *   ForTime  → colors.blue + '14'
- *
- * '14' = 20 in decimal ≈ 8% opacity (consistent with muscle-group chips).
- */
-export function formatChipBg(
-  format: WorkoutFormat | null | undefined,
-  colors: ColorScheme,
-): string {
-  switch (format) {
-    case 'AMRAP':
-      return colors.orange + '14';
-    case 'EMOM':
-      return colors.purple + '14';
-    case 'Tabata':
-      return colors.red + '14';
-    case 'ForTime':
-      return colors.blue + '14';
-    case 'Standard':
-    default:
-      return colors.fill2;
-  }
-}
+// NOTE: `formatChipColor` / `formatChipBg` used to live here, mapping a
+// WorkoutFormat to theme colors (`ColorScheme` from the now-deleted
+// `constants/colors.ts`). They were presentation helpers, not domain data,
+// so they were dropped as part of the clean-slate UI redesign rather than
+// severed — the new design system will need its own chip-color mapping
+// against its own token shape.
