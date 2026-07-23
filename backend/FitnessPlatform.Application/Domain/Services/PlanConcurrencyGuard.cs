@@ -135,4 +135,87 @@ public class PlanConcurrencyGuard
 
         return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.Success, Document = doc };
     }
+
+    /// <summary>
+    /// Fetches a document via <paramref name="lookupFilter"/>, runs <paramref name="validate"/>
+    /// against it, and — if validation passes — persists a targeted <c>$set</c>/<c>$inc</c> via
+    /// <c>FindOneAndUpdateAsync</c> using <paramref name="writeFilter"/> and
+    /// <paramref name="arrayFilters"/>, returning the post-update document.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Added for #839 (targeted publish-week <c>$set</c>) alongside
+    /// <see cref="ReplaceWithVersionGuardAsync{TDoc}"/> — deliberately additive. Unlike the
+    /// replace-based guard, this method does NOT compare a caller-supplied expected version: the
+    /// caller is expected to fold the concurrency guard directly into <paramref name="writeFilter"/>
+    /// (e.g. an <c>ElemMatch</c> on the specific array element being mutated) so that unrelated
+    /// document-level changes never produce a false conflict, while a genuine race on the same
+    /// targeted element still causes the write to match zero documents.
+    /// </para>
+    /// <para>
+    /// This method's <see cref="PlanConcurrencyResult{TDoc}.Outcome"/> never returns
+    /// <see cref="PlanConcurrencyOutcome.VersionConflict"/> — that enum value only applies to the
+    /// version-gated replace path above.
+    /// </para>
+    /// </remarks>
+    /// <param name="collection">The Mongo collection to read from and write to.</param>
+    /// <param name="lookupFilter">Filter identifying the document by ExternalId and owner (e.g. NutritionistId/TrainerId).</param>
+    /// <param name="validate">
+    /// Endpoint-specific validation logic, run against the freshly fetched document. Must NOT
+    /// mutate the document — the actual mutation happens server-side via the targeted update. May
+    /// throw to short-circuit (e.g. via FastEndpoints' <c>ThrowError</c>) — the exception
+    /// propagates to the caller unchanged. For error paths that already write a response directly
+    /// rather than throwing, the delegate must return <c>false</c> to signal the guard to stop
+    /// before the write; returning <c>true</c> proceeds to <c>FindOneAndUpdateAsync</c>.
+    /// </param>
+    /// <param name="writeFilter">
+    /// Filter identifying the document AND gating the concurrency-sensitive element (e.g.
+    /// ExternalId + owner + an <c>ElemMatch</c> requiring the target array element still be in
+    /// its expected pre-mutation state). Zero matches here means a genuine concurrency conflict.
+    /// </param>
+    /// <param name="update">The targeted <c>$set</c>/<c>$inc</c> update definition.</param>
+    /// <param name="arrayFilters">
+    /// Array filters identifying which array element(s) the positional <c>$[identifier]</c> tokens
+    /// in <paramref name="update"/> refer to.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task<PlanConcurrencyResult<TDoc>> UpdateWithArrayFilterGuardAsync<TDoc>(
+        IMongoCollection<TDoc> collection,
+        FilterDefinition<TDoc> lookupFilter,
+        Func<TDoc, CancellationToken, Task<bool>> validate,
+        FilterDefinition<TDoc> writeFilter,
+        UpdateDefinition<TDoc> update,
+        IEnumerable<ArrayFilterDefinition> arrayFilters,
+        CancellationToken ct)
+    {
+        var cursor = await collection.FindAsync(lookupFilter, cancellationToken: ct);
+        var doc = await cursor.FirstOrDefaultAsync(ct);
+
+        if (doc is null)
+        {
+            return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.NotFound };
+        }
+
+        var shouldContinue = await validate(doc, ct);
+
+        if (!shouldContinue)
+        {
+            return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.HandledByMutator };
+        }
+
+        var options = new FindOneAndUpdateOptions<TDoc>
+        {
+            ReturnDocument = ReturnDocument.After,
+            ArrayFilters = arrayFilters?.ToList()
+        };
+
+        var updated = await collection.FindOneAndUpdateAsync(writeFilter, update, options, ct);
+
+        if (updated is null)
+        {
+            return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.ReplaceConflict };
+        }
+
+        return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.Success, Document = updated };
+    }
 }
