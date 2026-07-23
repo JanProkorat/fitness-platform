@@ -37,7 +37,15 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
     /// datePublished). Deliberately excludes <c>weeks[].days</c> — the heavy content this
     /// endpoint doesn't need until the current week is resolved.
     /// </summary>
-    private static readonly ProjectionDefinition<Domain.Documents.NutritionPlan> LightPlanProjection =
+    /// <remarks>
+    /// <c>internal</c> (not <c>private</c>) so Testcontainers integration tests
+    /// (<c>GetTodayPlanProjectionIntegrationTests</c>) can execute this EXACT production
+    /// projection against a real MongoDB instance and assert the metadata-retained /
+    /// content-excluded shape directly — proving the projection itself, not a re-derived copy
+    /// of it. See <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> in
+    /// <c>Domain/Services/ClientVerdictService.cs</c>.
+    /// </remarks>
+    internal static readonly ProjectionDefinition<Domain.Documents.NutritionPlan> LightPlanProjection =
         Builders<Domain.Documents.NutritionPlan>.Projection.Combine(
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.ExternalId),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.ClientId),
@@ -193,7 +201,15 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
             Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.ExternalId, planExternalId),
             Builders<Domain.Documents.NutritionPlan>.Filter.Eq("weeks.weekNumber", weekNumber));
 
-        var weekProjection = Builders<Domain.Documents.NutritionPlan>.Projection.Include("weeks.$");
+        // CRITICAL: an inclusion-only projection like "weeks.$" returns ONLY `_id` and `weeks` —
+        // every other field (including `externalId`) is excluded and deserializes to its C#
+        // default (Guid.Empty). Without explicitly re-including ExternalId here, the defensive
+        // ExternalId match below always fails against real MongoDB, silently making this method
+        // return null on every call in production (#838 fresh-eyes catch — the mocked unit tests
+        // never exercise real Mongo's field-inclusion semantics, so this was invisible there).
+        var weekProjection = Builders<Domain.Documents.NutritionPlan>.Projection.Combine(
+            Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.ExternalId),
+            Builders<Domain.Documents.NutritionPlan>.Projection.Include("weeks.$"));
 
         using var cursor = await mongo.NutritionPlans.FindAsync(
             weekFilter,
