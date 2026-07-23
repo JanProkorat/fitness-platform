@@ -85,14 +85,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             return;
         }
 
-        // ── 3. Backfill legacy flat-exercise sessions, then batch-fetch Exercise docs ─
-        // Schema-on-read: call WithBackfilledSections() on every session so that
-        // documents stored before the sections migration (with only flat LegacyExercises)
-        // are transparently migrated into a single "Hlavní" section in memory.
-        // This must happen before any iteration of s.Exercises or s.Sections.
-        foreach (var session in plan.Weeks.SelectMany(w => w.Sessions))
-            session.WithBackfilledSections();
-
+        // ── 3. Batch-fetch Exercise docs for muscle-group enrichment ──────────────
         var exerciseIds = plan.Weeks
             .SelectMany(w => w.Sessions)
             .SelectMany(s => s.Exercises)
@@ -201,7 +194,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // duplicates by taking the first occurrence per catalog id; downstream
         // code only needs ANY matching planned exercise to look up its set
         // list, and shared-catalog instances within one session have identical
-        // set-number prescriptions for the legacy flat completion path.
+        // set-number prescriptions when resolved via the section-aware map.
         var sessionExerciseLookup = plan.Weeks
             .SelectMany(w => w.Sessions)
             .ToDictionary(
@@ -209,6 +202,11 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 s => s.Exercises
                     .GroupBy(e => e.ExerciseExternalId)
                     .ToDictionary(g => g.Key, g => g.First()));
+
+        // Session lookup for resolving the section-aware completed-exercise view below.
+        var sessionLookup = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .ToDictionary(s => s.SessionId);
 
         var completedSectionIdsBySession = new Dictionary<Guid, HashSet<Guid>>();
 
@@ -236,7 +234,15 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 var stampedAt = tc.DateUpdated ?? tc.DateCreated;
 
                 // Fully-completed exercises: mark every planned set as complete.
-                foreach (var exerciseId in tc.CompletedExerciseIds)
+                // Sourced from the section-aware CompletedExerciseIdsBySection map (the
+                // retired flat CompletedExerciseIds field is kept only as a derived mirror —
+                // see TrainingCompletion.cs).
+                var effectiveIds = sessionLookup.TryGetValue(tc.SessionId, out var tcSession)
+                    ? TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(tc, tcSession)
+                        .Values.SelectMany(ids => ids).ToHashSet()
+                    : [];
+
+                foreach (var exerciseId in effectiveIds)
                 {
                     if (!exLookup.TryGetValue(exerciseId, out var planExercise))
                         continue;

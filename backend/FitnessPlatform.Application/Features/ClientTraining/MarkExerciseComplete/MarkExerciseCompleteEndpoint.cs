@@ -108,8 +108,6 @@ public class MarkExerciseCompleteEndpoint(
         await lockService.RefreshAsync(req.SessionId, LockType.Live,
             TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
-        session.WithBackfilledSections();
-
         // Validate section exists within the session.
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)

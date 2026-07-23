@@ -95,8 +95,6 @@ public class UnlockTrainingSessionEndpoint(
 
         // Signal 2: fully-complete TrainingCompletion (written by mobile home-checkbox path).
         // Match any completion for this session regardless of date — finished state is permanent.
-        // Call WithBackfilledSections() first so legacy flat-exercise sessions are handled correctly.
-        session.WithBackfilledSections();
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, plan.ClientId)
                                & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
         var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);

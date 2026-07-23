@@ -136,8 +136,6 @@ public class UpdateTrainingPlanEndpoint(
                 //   2. Before ReplaceOneAsync (guard, below).
                 //   3. Auto-release Editing locks only after ModifiedCount > 0 (post-guard, below).
                 //
-                // Run the projection on the backfilled section view for BOTH stored and
-                // incoming sessions so legacy flat-exercise docs don't false-positive.
                 // Key change-detection on stable SessionId; do NOT diff on freshly-assigned
                 // SectionId Guids (they are minted at map time and are not stable).
                 //
@@ -147,7 +145,6 @@ public class UpdateTrainingPlanEndpoint(
                 var storedPublishedSessions = plan.Weeks
                     .Where(w => w.Status == WeekStatus.Published)
                     .SelectMany(w => w.Sessions)
-                    .Select(s => s.WithBackfilledSections())
                     .ToDictionary(s => s.SessionId);
 
                 // Pre-flight: every session in a published week must carry a non-null SessionId.

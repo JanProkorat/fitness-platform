@@ -323,13 +323,13 @@ public class ComplianceService : IComplianceService
     /// <summary>
     /// Checks whether all sections in a session are complete for the given date.
     /// A section is "done" when:
-    ///   - it has exercises AND every exercise is in <c>CompletedExerciseIds</c>, OR
+    ///   - it has exercises AND every exercise is in the section-aware
+    ///     <c>CompletedExerciseIdsBySection</c> effective view, OR
     ///   - it has no exercises AND its <c>SectionId</c> is in <c>CompletedSectionIds</c>.
     /// </summary>
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
-        session.WithBackfilledSections();
         if (session.Sections.Count == 0)
             return false;
 

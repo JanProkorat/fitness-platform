@@ -180,9 +180,6 @@ public class FinishSessionEndpoint(
         DateTime completedAt,
         Guid clientUserId)
     {
-        // Backfill legacy flat-exercise sessions into the section structure first.
-        session.WithBackfilledSections();
-
         var workoutSections = session.Sections
             .Select(section => new WorkoutSection
             {
