@@ -2191,4 +2191,273 @@ public class GetTodaySessionEndpointTests
         // The unknown exercise must be absent — not an exception, just missing.
         response.ExerciseMuscleGroups.Should().NotContainKey(unknownExerciseId);
     }
+
+    // -------------------------------------------------------------------------
+    // #838 — two-phase projected read: byte-equivalence across edge cases.
+    // These assert the phase-1 (light projection) + phase-2 (per-week hydration)
+    // split still produces the exact same response shape as the old single
+    // full-fetch implementation for the tricky window/week-resolution cases.
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// A plan whose StartDate is far enough in the future that its window
+    /// <c>[StartDate, StartDate + weekCount*7)</c> doesn't contain today must never
+    /// reach phase-2 hydration — <see cref="PlanWindowResolver.ResolveCurrentPlan{T}"/>
+    /// filters it out at phase 1 already (it isn't "the current plan" at all, same as
+    /// pre-#838 behavior), so the response must be the bare HasSession=false state with
+    /// no plan metadata and no leaked session content from the not-yet-started week.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FutureStartDate_ReturnsNoPlanState()
+    {
+        var todayDow = TodayDow();
+        var futureStart = DateTime.UtcNow.Date.AddDays(30);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Not Started Yet Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = futureStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = futureStart,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = Guid.NewGuid(),
+                            DayOfWeek = todayDow,
+                            Name = "Future Session",
+                            Order = 1,
+                            Sections = []
+                        }
+                    ]
+                }
+            ],
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeFalse("the plan's window doesn't contain today yet");
+        response.PlanId.Should().BeNull("a plan whose window excludes today is not resolved as 'current' — same as pre-#838 behavior");
+        response.Sessions.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression for #838: when the resolved week number is past the last PUBLISHED
+    /// week (trainer hasn't queued anything for today yet, even though the plan's
+    /// window still contains today), the endpoint must return the metadata-only
+    /// response without ever calling phase-2 hydration for a week that doesn't exist
+    /// as "current".
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_PastLastPublishedWeek_ReturnsMetadataOnlyNoSession()
+    {
+        var todayDow = TodayDow();
+        // Plan started 3 weeks ago; only week 1 is published. Today resolves to
+        // week 4 (daysSinceStart/7+1), which is past the last published week (1).
+        var startDate = StartOfCurrentWeek().AddDays(-21);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Stale Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Sessions =
+                    [
+                        new TrainingSession
+                        {
+                            SessionId = Guid.NewGuid(),
+                            DayOfWeek = todayDow,
+                            Name = "Week 1 Session",
+                            Order = 1,
+                            Sections = []
+                        }
+                    ]
+                },
+                new TrainingWeek { WeekNumber = 2, Status = WeekStatus.Draft, Sessions = [] },
+                new TrainingWeek { WeekNumber = 3, Status = WeekStatus.Draft, Sessions = [] },
+                new TrainingWeek { WeekNumber = 4, Status = WeekStatus.Draft, Sessions = [] }
+            ],
+            Version = 1,
+            DateCreated = startDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeFalse("the trainer hasn't published anything for the current week yet");
+        response.PlanId.Should().Be(plan.ExternalId);
+        response.TotalWeeks.Should().Be(4);
+        response.Sessions.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression for #838: gap-skip. Trainer published weeks 1, 2 and 4 but left
+    /// week 3 as a Draft. Today's calculated week is 3 (unpublished) — the endpoint
+    /// must fall back to the latest published week not after the calculated one
+    /// (week 2), and phase-2 hydration must fetch WEEK 2's session content — not
+    /// week 3's (doesn't exist) and not week 4's (ahead of the trainer's cursor).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_GapSkipWeek_HydratesFallbackWeekNotCalculatedOrAheadWeek()
+    {
+        var todayDow = TodayDow();
+        // Plan started 2 full weeks ago, so today falls in week 3 (daysSinceStart/7+1 = 3).
+        var startDate = StartOfCurrentWeek().AddDays(-14);
+        var week2SessionId = Guid.NewGuid();
+        var week4SessionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Gap Skip Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session", Order = 1, Sections = [] }]
+                },
+                new TrainingWeek
+                {
+                    WeekNumber = 2,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (fallback target)", Order = 1, Sections = [] }]
+                },
+                new TrainingWeek
+                {
+                    // Week 3 is the calculated week (unpublished) — must be skipped entirely.
+                    WeekNumber = 3,
+                    Status = WeekStatus.Draft,
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 3 Session (must never appear)", Order = 1, Sections = [] }]
+                },
+                new TrainingWeek
+                {
+                    // Week 4 is published but AHEAD of the calculated week — must never appear either.
+                    WeekNumber = 4,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Sessions = [new TrainingSession { SessionId = week4SessionId, DayOfWeek = todayDow, Name = "Week 4 Session (must never appear)", Order = 1, Sections = [] }]
+                }
+            ],
+            Version = 1,
+            DateCreated = startDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeTrue();
+        response.CurrentWeek.Should().Be(2, "the resolver must fall back to the latest published week not after the calculated (unpublished) week 3");
+#pragma warning disable CS0618
+        response.Session!.SessionId.Should().Be(week2SessionId, "phase-2 hydration must fetch week 2's content, not week 3's or week 4's");
+        response.Session!.Name.Should().Be("Week 2 Session (fallback target)");
+#pragma warning restore CS0618
+    }
+
+    /// <summary>
+    /// Regression for #838: legacy plans with no StartDate cycle through published
+    /// weeks based on the first published week's DatePublished. This asserts phase-2
+    /// hydration fetches the CORRECT cycled week's session content, not week 1's by
+    /// default.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LegacyNoStartDate_CyclesToCorrectWeek_HydratesThatWeeksSession()
+    {
+        var todayDow = TodayDow();
+        var week2SessionId = Guid.NewGuid();
+        // Two published weeks, published 8 days ago: (8 / 7) % 2 = 1 → cycles to week index 1 (week 2).
+        var firstPublishDate = DateTime.UtcNow.Date.AddDays(-8);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Legacy Cycling Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = null, // legacy plan — no StartDate
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = firstPublishDate,
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session (must never appear)", Order = 1, Sections = [] }]
+                },
+                new TrainingWeek
+                {
+                    WeekNumber = 2,
+                    Status = WeekStatus.Published,
+                    DatePublished = firstPublishDate,
+                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (cycle target)", Order = 1, Sections = [] }]
+                }
+            ],
+            Version = 1,
+            DateCreated = firstPublishDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeTrue();
+        response.CurrentWeek.Should().Be(2, "8 days since first publish cycles to week index 1 (week 2) for a 2-week legacy plan");
+#pragma warning disable CS0618
+        response.Session!.SessionId.Should().Be(week2SessionId);
+        response.Session!.Name.Should().Be("Week 2 Session (cycle target)");
+#pragma warning restore CS0618
+    }
 }
