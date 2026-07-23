@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
@@ -17,6 +18,13 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
 /// <summary>
 /// Tests for <see cref="PublishTrainingWeekEndpoint"/>.
+///
+/// #839: publish now persists via a targeted <c>FindOneAndUpdateAsync</c> + arrayFilters $set
+/// rather than a full-document version-gated <c>ReplaceOneAsync</c>. These NSubstitute-based
+/// unit tests exercise the ENDPOINT'S logic (validation ordering, sibling-archive gating,
+/// outcome-to-status-code mapping) with an explicitly stubbed write result — they do NOT and
+/// cannot prove real MongoDB arrayFilters/$set semantics. That proof lives in
+/// <see cref="PublishTrainingWeekConcurrencyIntegrationTests"/> (Testcontainers, real Mongo).
 /// </summary>
 public class PublishTrainingWeekEndpointTests
 {
@@ -30,6 +38,49 @@ public class PublishTrainingWeekEndpointTests
         return svc;
     }
 
+    /// <summary>
+    /// Builds the plan the mocked <c>FindOneAndUpdateAsync</c> should return for a successful
+    /// publish of <paramref name="weekNumber"/> — a shallow clone of <paramref name="plan"/> with
+    /// the target week Published and the plan-level fields the real targeted $set would touch.
+    /// </summary>
+    private static TrainingPlan AsPublished(TrainingPlan plan, int weekNumber) => new()
+    {
+        ExternalId = plan.ExternalId,
+        ClientId = plan.ClientId,
+        TrainerId = plan.TrainerId,
+        Name = plan.Name,
+        Description = plan.Description,
+        Status = TrainingPlanStatus.Active,
+        Weeks = plan.Weeks.Select(w => new TrainingWeek
+        {
+            WeekNumber = w.WeekNumber,
+            Status = w.WeekNumber == weekNumber ? WeekStatus.Published : w.Status,
+            DatePublished = w.WeekNumber == weekNumber ? DateTime.UtcNow : w.DatePublished,
+            Sessions = w.Sessions,
+            DayNotes = w.DayNotes
+        }).ToList(),
+        Version = plan.Version + 1,
+        DateCreated = plan.DateCreated,
+        DateUpdated = DateTime.UtcNow,
+        StartDate = plan.StartDate
+    };
+
+    private static void StubSuccessfulPublish(IMongoContext mongo, TrainingPlan published) =>
+        mongo.TrainingPlans.FindOneAndUpdateAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<UpdateDefinition<TrainingPlan>>(),
+                Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns((TrainingPlan?)published);
+
+    private static void StubConflictingPublish(IMongoContext mongo) =>
+        mongo.TrainingPlans.FindOneAndUpdateAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<UpdateDefinition<TrainingPlan>>(),
+                Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns((TrainingPlan?)null);
+
     [Fact]
     public async Task HandleAsync_ValidPublish_Returns200()
     {
@@ -38,6 +89,7 @@ public class PublishTrainingWeekEndpointTests
             externalId: planId, trainerId: _trainerId, weekCount: 2);
         plan.StartDate = DateTime.UtcNow.Date;
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
 
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -60,16 +112,56 @@ public class PublishTrainingWeekEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
     }
 
+    /// <summary>
+    /// Regression test for #839 AC#4: publishing must no longer 409 just because the plan's
+    /// Version has moved since the caller last read it. The endpoint no longer compares
+    /// req.Version against the document at all — concurrency for the write is gated on the
+    /// TARGET WEEK's own state via the write filter's ElemMatch, not the document-level Version.
+    /// </summary>
     [Fact]
-    public async Task HandleAsync_VersionConflict_Returns409WithProblemDetailsShape()
+    public async Task HandleAsync_ConcurrentVersionBump_StillPublishes_Returns200()
     {
-        // Verifies the version-mismatch path uses SendProblemAsync (RFC 7807 Problem Details)
-        // with the correct errorCode and content type. A regression to the old raw SendAsync
-        // would still return 409 but would not set application/problem+json.
         var planId = Guid.NewGuid();
         var plan = TrainingPlanTestHelpers.CreatePlan(
             externalId: planId, trainerId: _trainerId, version: 3);
+        plan.StartDate = DateTime.UtcNow.Date;
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
+
+        var ep = Factory.Create<PublishTrainingWeekEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService(),
+            new PlanConcurrencyGuard());
+
+        await ep.HandleAsync(new PublishTrainingWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1 // stale relative to plan.Version=3 — must NOT cause a 409
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ConcurrentSameWeekPublish_Returns409WithProblemDetailsShape()
+    {
+        // Verifies the race-conflict path uses SendProblemAsync (RFC 7807 Problem Details) with
+        // the correct errorCode and content type. The genuine same-week race: another request
+        // published the SAME week between our fetch and our write, so the targeted write's
+        // ElemMatch/arrayFilter matches zero documents (FindOneAndUpdateAsync returns null).
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, version: 3);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        StubConflictingPublish(mongo);
 
         using var responseBody = new MemoryStream();
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(
@@ -91,7 +183,7 @@ public class PublishTrainingWeekEndpointTests
         {
             PlanId = planId,
             WeekNumber = 1,
-            Version = 1  // plan is at version 3
+            Version = 1
         }, TestContext.Current.CancellationToken);
 
         // 1. HTTP status
@@ -134,6 +226,7 @@ public class PublishTrainingWeekEndpointTests
         planB.StartDate = DateTime.UtcNow.Date;
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(planB, planA);
+        StubSuccessfulPublish(mongo, AsPublished(planB, weekNumber: 1));
 
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -164,28 +257,18 @@ public class PublishTrainingWeekEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_ReplaceLosesRace_Returns409AndDoesNotArchiveSiblings()
+    public async Task HandleAsync_ConcurrentSameWeekPublish_ArrayFilterMatchesZero_Returns409AndDoesNotArchiveSiblings()
     {
-        // Regression test for #655: the version-gated ReplaceOneAsync can lose a
-        // concurrency race (another request bumped the Version between our initial
-        // fetch and our write) even though the initial plan.Version == req.Version
-        // check passed. In that case the client's other active plans must NOT be
-        // archived — archiving must only happen after the replace is confirmed.
+        // Regression test for the genuine same-week race (#839 error path 7): another request
+        // published the SAME week between our fetch and our write. The targeted write's
+        // ElemMatch/arrayFilter then matches zero documents (FindOneAndUpdateAsync returns null),
+        // and the endpoint must return 409 without archiving any sibling plans.
         var planId = Guid.NewGuid();
         var plan = TrainingPlanTestHelpers.CreatePlan(
             externalId: planId, trainerId: _trainerId, weekCount: 1, version: 1);
         plan.StartDate = DateTime.UtcNow.Date;
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
-
-        // Simulate the lost race: ReplaceOneAsync reports ModifiedCount == 0.
-        var lostRaceResult = Substitute.For<ReplaceOneResult>();
-        lostRaceResult.ModifiedCount.Returns(0);
-        mongo.TrainingPlans.ReplaceOneAsync(
-                Arg.Any<FilterDefinition<TrainingPlan>>(),
-                Arg.Any<TrainingPlan>(),
-                Arg.Any<ReplaceOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(lostRaceResult);
+        StubConflictingPublish(mongo);
 
         var ep = Factory.Create<PublishTrainingWeekEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -207,7 +290,7 @@ public class PublishTrainingWeekEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);
 
-        // Siblings must NOT be archived when the version-gated write loses the race.
+        // Siblings must NOT be archived when the targeted write loses the race.
         await mongo.TrainingPlans.DidNotReceive().UpdateManyAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Any<UpdateDefinition<TrainingPlan>>(),

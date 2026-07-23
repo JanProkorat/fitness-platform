@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.PublishWeek;
@@ -54,63 +55,84 @@ public class PublishWeekEndpoint(
 
         var lookupFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
-        var replaceFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                            & Builders<NutritionPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        // Computed inside the mutate delegate BEFORE the mutation (reflects pre-publish state);
-        // consumed after a confirmed successful replace to decide whether to archive siblings.
+        // Computed inside the validate delegate BEFORE the write (reflects pre-publish state);
+        // consumed after a confirmed successful update to decide whether to archive siblings.
         var hadPublishedWeeks = false;
 
-        var guardResult = await guard.ReplaceWithVersionGuardAsync(
+        Task<bool> Validate(NutritionPlan plan, CancellationToken _)
+        {
+            var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
+            if (week is null)
+            {
+                ThrowError($"Week {req.WeekNumber} not found in plan.");
+                return Task.FromResult(false);
+            }
+
+            if (week.Status == WeekStatus.Published)
+            {
+                ThrowError($"Week {req.WeekNumber} is already published.");
+                return Task.FromResult(false);
+            }
+
+            // Start date must be set before publishing
+            if (!plan.StartDate.HasValue)
+            {
+                ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
+                return Task.FromResult(false);
+            }
+
+            // The target week's Monday must not be in the past
+            var weekStartDate = DateOnly.FromDateTime(plan.StartDate.Value.AddDays((req.WeekNumber - 1) * 7));
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (weekStartDate < today)
+            {
+                ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
+                return Task.FromResult(false);
+            }
+
+            // Check if this is the first published week — if so, archive other active plans
+            // afterward. Computed BEFORE the write below so it reflects pre-publish state.
+            hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
+
+            return Task.FromResult(true);
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Targeted $set on the matched week only (#839 — replaces the previous full-document
+        // ReplaceOneAsync). The write filter's ElemMatch gates on the TARGET WEEK still being
+        // unpublished — NOT on the document's Version — so a concurrent edit to an unrelated
+        // week/field never produces a false 409 (AC#4), while a genuine race that publishes the
+        // SAME week between our fetch and this write causes zero documents to match (AC#2/#7).
+        var writeFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+            & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId)
+            & Builders<NutritionPlan>.Filter.ElemMatch(p => p.Weeks,
+                w => w.WeekNumber == req.WeekNumber && w.Status != WeekStatus.Published);
+
+        var update = Builders<NutritionPlan>.Update
+            .Set("weeks.$[w].status", WeekStatus.Published.ToString())
+            .Set("weeks.$[w].datePublished", now)
+            .Set(p => p.Status, NutritionPlanStatus.Active)
+            .Set(p => p.DateUpdated, now)
+            .Inc(p => p.Version, 1);
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument
+            {
+                { "w.weekNumber", req.WeekNumber },
+                { "w.status", new BsonDocument("$ne", WeekStatus.Published.ToString()) }
+            })
+        };
+
+        var guardResult = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.NutritionPlans,
             lookupFilter,
-            replaceFilter,
-            req.Version,
-            p => p.Version,
-            (plan, _) =>
-            {
-                var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
-                if (week is null)
-                {
-                    ThrowError($"Week {req.WeekNumber} not found in plan.");
-                    return Task.FromResult(false);
-                }
-
-                if (week.Status == WeekStatus.Published)
-                {
-                    ThrowError($"Week {req.WeekNumber} is already published.");
-                    return Task.FromResult(false);
-                }
-
-                // Start date must be set before publishing
-                if (!plan.StartDate.HasValue)
-                {
-                    ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
-                    return Task.FromResult(false);
-                }
-
-                // The target week's Monday must not be in the past
-                var weekStartDate = DateOnly.FromDateTime(plan.StartDate.Value.AddDays((req.WeekNumber - 1) * 7));
-                var today = DateOnly.FromDateTime(DateTime.UtcNow);
-                if (weekStartDate < today)
-                {
-                    ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
-                    return Task.FromResult(false);
-                }
-
-                // Check if this is the first published week — if so, archive other active plans
-                // afterward. Computed BEFORE the mutation below so it reflects pre-publish state.
-                hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
-
-                // Publish the week
-                week.Status = WeekStatus.Published;
-                week.DatePublished = DateTime.UtcNow;
-                plan.Status = NutritionPlanStatus.Active;
-                plan.DateUpdated = DateTime.UtcNow;
-                plan.Version += 1;
-
-                return Task.FromResult(true);
-            },
+            Validate,
+            writeFilter,
+            update,
+            arrayFilters,
             ct);
 
         switch (guardResult.Outcome)
@@ -118,16 +140,12 @@ public class PublishWeekEndpoint(
             case PlanConcurrencyOutcome.NotFound:
                 await Send.NotFoundAsync(ct);
                 return;
-            case PlanConcurrencyOutcome.VersionConflict:
-                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                    "Version conflict. The plan was modified by another request.", ct);
-                return;
             case PlanConcurrencyOutcome.ReplaceConflict:
                 await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                    "Version conflict. The plan was modified concurrently.", ct);
+                    "Version conflict. The week was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // Never reached: this endpoint's validate delegate never writes a response directly.
                 return;
         }
 

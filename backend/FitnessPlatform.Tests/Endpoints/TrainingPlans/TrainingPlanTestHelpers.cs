@@ -215,6 +215,17 @@ public static class TrainingPlanTestHelpers
                 Arg.Any<CancellationToken>())
             .Returns(updateResult);
 
+        // FindOneAndUpdateAsync — default stub for the #839 targeted-$set publish path.
+        // Tests exercising the write path (success / genuine-race-conflict) override this with an
+        // explicit .Returns() for the specific plan/null they expect; this default is only reached
+        // by tests that never get past validation (e.g. NotFound, AlreadyPublished).
+        collection.FindOneAndUpdateAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<UpdateDefinition<TrainingPlan>>(),
+                Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns((TrainingPlan?)plans.FirstOrDefault());
+
         return collection;
     }
 
