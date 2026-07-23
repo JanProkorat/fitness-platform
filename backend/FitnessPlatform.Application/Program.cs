@@ -61,7 +61,11 @@ var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
 var mongoClient = new MongoClient(mongoConnection);
 builder.Services.AddSingleton<IMongoDatabase>(_ => mongoClient.GetDatabase(mongoDatabaseName));
 builder.Services.AddSingleton<IMongoContext, MongoContext>();
-builder.Services.AddHostedService<MongoIndexInitializer>();
+
+// MongoIndexInitializer is registered as a plain singleton, NOT via AddHostedService.
+// It is invoked explicitly, awaited, and completed BEFORE app.Run() below — see that
+// call site for why. Index creation is idempotent and stays part of the same pass.
+builder.Services.AddSingleton<MongoIndexInitializer>();
 
 // Blob Storage (MinIO)
 builder.Services.AddSingleton<IBlobStorageService, MinioBlobStorageService>();
@@ -477,5 +481,28 @@ app.UseFastEndpoints(c =>
     });
 });
 app.UseSwaggerGen();
+
+// #837 fix (pass-2 review M1): guarantee the retire-schema-on-read migration
+// (backfilling legacy TrainingSession/WorkoutLog/TrainingCompletion documents,
+// plus its idempotent index creation) COMPLETES before Kestrel accepts any
+// request. This is why MongoIndexInitializer is registered above as a plain
+// AddSingleton, NOT AddHostedService: in the generic/web host, hosted services
+// start sequentially in registration order, and the framework's own web-hosting
+// service (which actually starts Kestrel listening) is registered ahead of
+// anything added later in this file — so a plain AddHostedService<MongoIndexInitializer>
+// would let Kestrel begin serving BEFORE (or concurrently with) this migration's
+// StartAsync, not after it. A request racing an unfinished migration would read
+// an un-migrated legacy TrainingSession/WorkoutLog document and throw
+// BsonSerializationException — #837 deleted the graceful WithBackfilledSections
+// request-time fallback, and the document types carry no [BsonIgnoreExtraElements],
+// so that read no longer self-heals the way it did pre-#837. Awaiting the explicit
+// call below, strictly before app.Run(), removes that race entirely: there is no
+// hosted-service ordering to reason about because this is plain sequential code.
+using (var migrationScope = app.Services.CreateScope())
+{
+    await migrationScope.ServiceProvider
+        .GetRequiredService<MongoIndexInitializer>()
+        .StartAsync(CancellationToken.None);
+}
 
 app.Run();

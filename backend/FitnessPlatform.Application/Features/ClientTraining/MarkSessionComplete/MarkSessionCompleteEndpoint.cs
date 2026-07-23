@@ -106,7 +106,6 @@ public class MarkSessionCompleteEndpoint(
         await lockService.RefreshAsync(req.SessionId, LockType.Live,
             TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
-        session.WithBackfilledSections();
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
         var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
         // Per-section attribution map: each section explicitly carries the

@@ -143,7 +143,6 @@ public class WorkoutCompletionService(
             return;
         }
 
-        session.WithBackfilledSections();
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
         var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
         var completedBySection = session.Sections.ToDictionary(
@@ -181,6 +180,9 @@ public class WorkoutCompletionService(
         if (existing is not null)
         {
             // Idempotency: skip the write only when every per-session field already matches.
+            // Consults the section-aware CompletedExerciseIdsBySection map only — the retired
+            // flat CompletedExerciseIds field is kept as a derived mirror (see TrainingCompletion.cs)
+            // and is no longer an authoritative signal for this check.
             var sectionDictAligned =
                 existing.CompletedExerciseIdsBySection is not null
                 && completedBySection.All(kvp =>
@@ -188,9 +190,7 @@ public class WorkoutCompletionService(
                     && kvp.Value.All(id => ids.Contains(id)));
             var sectionIdsAligned = allSectionIds.All(id =>
                 (existing.CompletedSectionIds ?? new List<Guid>()).Contains(id));
-            if (allExerciseIds.All(id => existing.CompletedExerciseIds.Contains(id))
-                && sectionDictAligned
-                && sectionIdsAligned)
+            if (sectionDictAligned && sectionIdsAligned)
                 return;
 
             var versionedFilter = completionFilter

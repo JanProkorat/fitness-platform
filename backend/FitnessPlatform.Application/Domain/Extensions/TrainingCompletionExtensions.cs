@@ -21,16 +21,15 @@ public static class TrainingCompletionExtensions
     ///     <see cref="TrainingCompletion.CompletedSectionIds"/>.</description></item>
     /// </list>
     /// <para>
-    /// A session with zero sections is <b>never</b> considered complete — callers must ensure
-    /// <see cref="TrainingSession.WithBackfilledSections"/> has been called on
-    /// <paramref name="session"/> before invoking this helper so that legacy flat-exercise
-    /// sessions get their synthetic section, making zero-section the abnormal/corrupt case.
+    /// A session with zero sections is <b>never</b> considered complete — every
+    /// <see cref="TrainingSession"/> document carries a populated <see cref="TrainingSession.Sections"/>
+    /// list (the one-time boot migration in <c>MongoIndexInitializer</c>, #837, backfilled every
+    /// legacy flat-exercise document into a synthetic section), so zero sections signals an
+    /// abnormal/corrupt session definition.
     /// </para>
-    /// Call <see cref="TrainingSession.WithBackfilledSections"/> on <paramref name="session"/> before
-    /// passing it here to ensure legacy flat-exercise documents are handled transparently.
     /// </summary>
     /// <param name="completion">The completion document to test. Must not be null.</param>
-    /// <param name="session">The session definition (already backfilled). Must not be null.</param>
+    /// <param name="session">The session definition. Must not be null.</param>
     /// <summary>
     /// Returns <c>true</c> when the specified section within the session is done, using the
     /// two-signal model:
@@ -70,16 +69,17 @@ public static class TrainingCompletionExtensions
 
     public static bool IsSessionComplete(this TrainingCompletion completion, TrainingSession session)
     {
-        // Guard: a session with no sections is never complete.
-        // After WithBackfilledSections() a legacy flat-exercise session always has at least one
-        // synthetic section, so zero sections signals an empty/corrupt session definition.
+        // Guard: a session with no sections is never complete. Every TrainingSession document
+        // carries a populated Sections list (see the boot migration in MongoIndexInitializer,
+        // #837), so zero sections signals an empty/corrupt session definition.
         if (session.Sections.Count == 0)
             return false;
 
         // Build the section-aware effective view using the authoritative per-section dict
-        // (falls back to the legacy flat list via backfill for older documents). This avoids
-        // the false-positive where the same exercise id appears in two sections and the flat
-        // CompletedExerciseIds list treats both as complete when only one was actually done.
+        // (falls back to the flat mirror list for the rare doc the boot migration could not
+        // resolve a session for). This avoids the false-positive where the same exercise id
+        // appears in two sections and the flat CompletedExerciseIds list treats both as
+        // complete when only one was actually done.
         var effectiveBySection =
             TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
 

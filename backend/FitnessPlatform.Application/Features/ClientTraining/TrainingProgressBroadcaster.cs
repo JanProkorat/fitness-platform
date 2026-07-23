@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.Extensions.Logging;
@@ -259,20 +260,20 @@ internal static class TrainingProgressBroadcaster
         using var cursor = await mongo.TrainingCompletions.FindAsync(filter, cancellationToken: ct);
         var completions = await cursor.ToListAsync(ct);
 
-        var completionMap = completions.ToDictionary(c => c.SessionId, c => c.CompletedExerciseIds);
+        var completionMap = completions.ToDictionary(c => c.SessionId);
 
         var count = 0;
         foreach (var session in plannedSessions)
         {
-            session.WithBackfilledSections();
             if (session.Exercises.Count == 0)
                 continue;
 
-            if (completionMap.TryGetValue(session.SessionId, out var completedIds))
-            {
-                if (session.Exercises.All(e => completedIds.Contains(e.ExerciseExternalId)))
-                    count++;
-            }
+            // Uses the shared section-aware TrainingCompletionExtensions.IsSessionComplete
+            // helper (consults CompletedExerciseIdsBySection, not the retired flat mirror)
+            // so a duplicate exercise id spanning two sections can't false-positive.
+            if (completionMap.TryGetValue(session.SessionId, out var completion)
+                && completion.IsSessionComplete(session))
+                count++;
         }
 
         return count;

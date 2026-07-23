@@ -92,7 +92,6 @@ public class MarkSectionIncompleteEndpoint(
         }
 
         // Validate the section exists in the session
-        session.WithBackfilledSections();
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)
         {

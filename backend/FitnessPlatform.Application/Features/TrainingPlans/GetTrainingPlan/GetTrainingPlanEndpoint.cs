@@ -145,9 +145,6 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             response.SessionExecutions = bestLogBySession
                 .Select(log =>
                 {
-                    // Apply schema-on-read backfill for legacy flat-exercise documents.
-                    log.WithBackfilledSections();
-
                     // Build the per-exercise maps of completed set numbers and logged set data.
                     // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
                     //
@@ -242,9 +239,6 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // scheduled occurrences for the same session definition.
         if (completions.Count > 0)
         {
-            // sessionLookup sessions are already backfilled by FromDocument() — WithBackfilledSections()
-            // was called there on the same plan object. IsSessionComplete() can be called directly.
-
             // Find sessions whose TrainingCompletion is fully done (any date — finished state is permanent).
             var finishedByCompletion = completions
                 .Where(c => sessionLookup.TryGetValue(c.SessionId, out var s) && c.IsSessionComplete(s))

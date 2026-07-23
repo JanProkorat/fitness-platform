@@ -91,8 +91,6 @@ public class MarkSessionIncompleteEndpoint(
             return;
         }
 
-        session.WithBackfilledSections();
-
         var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
                                & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
                                & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
@@ -160,7 +158,6 @@ public class MarkSessionIncompleteEndpoint(
 
             foreach (var log in matchingLogs)
             {
-                log.WithBackfilledSections();
                 foreach (var exercise in log.Exercises)
                     foreach (var set in exercise.Sets)
                         set.CompletedAt = null;

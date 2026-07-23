@@ -524,8 +524,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
     /// vacuously complete — <c>Enumerable.All()</c> over an empty collection returns <c>true</c>,
     /// which would cause any completion doc (even an empty one) to match.
     ///
-    /// A zero-section session indicates an empty/corrupt session definition (after
-    /// WithBackfilledSections() a legacy flat-exercise session always gets a synthetic section).
+    /// A zero-section session indicates an empty/corrupt session definition (every
+    /// TrainingSession document is guaranteed to carry a populated sections list post-#837).
     /// Even with a non-empty TrainingCompletion document for that session, IsSessionFinished
     /// must remain false.
     /// </summary>

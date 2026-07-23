@@ -13,7 +13,6 @@ public class PrDetectionService(IMongoContext mongo) : IPrDetectionService
     /// <inheritdoc />
     public async Task<List<string>> DetectAndMarkPRsAsync(WorkoutLog workoutLog, CancellationToken ct)
     {
-        workoutLog.WithBackfilledSections();
         var prDescriptions = new List<string>();
 
         foreach (var exercise in workoutLog.Exercises)
@@ -32,7 +31,6 @@ public class PrDetectionService(IMongoContext mongo) : IPrDetectionService
 
             foreach (var log in previousLogs)
             {
-                log.WithBackfilledSections();
                 var prevExercise = log.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == exercise.ExerciseExternalId);
 

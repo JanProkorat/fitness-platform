@@ -553,139 +553,14 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.Exercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
     }
 
-    /// <summary>
-    /// Schema-on-read backfill: a plan stored with only flat LegacyExercises (no Sections)
-    /// must be transparently backfilled into a single "Hlavní" section at read time.
-    /// </summary>
-    [Fact]
-    public async Task GetFullPlan_WithLegacyFlatExercises_BackfillsIntoHlavniSection()
-    {
-        var httpClient = factory.CreateClient();
-
-        var clientEmail = UniqueEmail();
-        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Legacy", "Client", "Client");
-        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
-
-        Guid clientPublicId;
-        using (var scope = factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var user = await db.Users.FirstAsync(
-                u => u.Email == clientEmail,
-                TestContext.Current.CancellationToken);
-            var profile = await db.ClientProfiles.FirstAsync(
-                cp => cp.UserId == user.Id,
-                TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
-        }
-
-        var squatId = Guid.NewGuid();
-        var squatExercise = new Exercise
-        {
-            ExternalId = squatId,
-            Name = "Squat",
-            MuscleGroups = [MuscleGroup.Quadriceps],
-            Equipment = ExerciseEquipment.Barbell,
-            Category = ExerciseCategory.Strength,
-            Difficulty = ExerciseDifficulty.Intermediate,
-            IsActive = true,
-            Source = "system",
-            DateCreated = DateTime.UtcNow
-        };
-
-        var planId = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-
-        // Build a plan whose session has only LegacyExercises and an empty Sections list.
-        // This simulates a pre-sections document in MongoDB.
-        var legacySession = new TrainingSession
-        {
-            SessionId = sessionId,
-            DayOfWeek = 3,
-            Name = "Legacy Day",
-            Order = 1,
-            Sections = [], // explicitly empty — legacy document
-            LegacyExercises =
-            [
-                new SessionExercise
-                {
-                    ExerciseExternalId = squatId,
-                    ExerciseName = "Squat",
-                    Order = 1,
-                    Sets =
-                    [
-                        new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 80 },
-                        new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 5, WeightKg = 80 }
-                    ]
-                }
-            ]
-        };
-
-        var plan = new TrainingPlan
-        {
-            ExternalId = planId,
-            ClientId = clientPublicId,
-            TrainerId = Guid.NewGuid(),
-            Name = "Legacy Flat Plan",
-            Status = TrainingPlanStatus.Active,
-            Version = 1,
-            DateCreated = DateTime.UtcNow.AddDays(-3),
-            Weeks =
-            [
-                new TrainingWeek
-                {
-                    WeekNumber = 1,
-                    Status = WeekStatus.Published,
-                    DatePublished = DateTime.UtcNow.AddDays(-2),
-                    Sessions = [legacySession]
-                }
-            ]
-        };
-
-        using (var scope = factory.Services.CreateScope())
-        {
-            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-            await mongo.Exercises.InsertOneAsync(squatExercise, cancellationToken: TestContext.Current.CancellationToken);
-            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-        }
-
-        TestHelpers.SetBearerToken(httpClient, accessToken);
-        var response = await httpClient.GetAsync(
-            $"/client/training/plans/{planId}",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new JsonStringEnumConverter() }
-        };
-
-        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
-            jsonOptions,
-            cancellationToken: TestContext.Current.CancellationToken);
-
-        body.Should().NotBeNull();
-
-        var session = body!.Weeks[0].Sessions[0];
-
-        // ── Schema-on-read: one section backfilled as "Hlavní" ───────────────────
-        session.Sections.Should().HaveCount(1, "legacy exercises must be wrapped in a single default section");
-        var hlavni = session.Sections[0];
-        hlavni.Name.Should().Be("Hlavní");
-        hlavni.Format.Should().BeNull();
-        hlavni.Exercises.Should().HaveCount(1);
-        hlavni.Exercises[0].ExerciseExternalId.Should().Be(squatId);
-        hlavni.Exercises[0].Sets.Should().HaveCount(2);
-
-        // ── Backward-compat flat list also populated ─────────────────────────────
-        session.Exercises.Should().HaveCount(1);
-        session.Exercises[0].ExerciseExternalId.Should().Be(squatId);
-
-        // ── Muscle-group enrichment works for backfilled exercises ────────────────
-        session.Exercises[0].MuscleGroups.Should().Contain(MuscleGroup.Quadriceps);
-    }
+    // ── Legacy flat-exercise schema-on-read is retired (#837) ────────────────────
+    //
+    // The flat-`exercises`-no-sections scenario previously covered here
+    // (WithBackfilledSections() at read time) is retired: the one-time boot migration
+    // in MongoIndexInitializer now backfills every embedded TrainingSession to the
+    // sections shape, so a plan at this layer is always sections-populated. See
+    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
+    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
 
     // ── SectionDto.IsCompleted tests ─────────────────────────────────────────────
 

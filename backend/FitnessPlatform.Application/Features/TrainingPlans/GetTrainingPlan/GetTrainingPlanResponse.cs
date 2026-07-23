@@ -278,15 +278,6 @@ public class GetTrainingPlanResponse
     /// </summary>
     public static GetTrainingPlanResponse FromDocument(TrainingPlan plan)
     {
-        // Schema-on-read: materialize legacy flat exercises into a default "Hlavní" section.
-        foreach (var week in plan.Weeks)
-        {
-            foreach (var session in week.Sessions)
-            {
-                session.WithBackfilledSections();
-            }
-        }
-
         return new GetTrainingPlanResponse
         {
             PlanId = plan.ExternalId,

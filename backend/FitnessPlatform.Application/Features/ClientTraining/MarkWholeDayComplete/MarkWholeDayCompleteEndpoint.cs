@@ -128,7 +128,6 @@ public class MarkWholeDayCompleteEndpoint(
 
         foreach (var session in sessionsForDay)
         {
-            session.WithBackfilledSections();
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
             var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
             // Per-section attribution map: each section explicitly carries the
@@ -154,11 +153,11 @@ public class MarkWholeDayCompleteEndpoint(
 
             if (existing is not null)
             {
-                // Already fully complete — idempotent (per-section rule mirrors ComplianceService)
-                var alreadyComplete = session.Sections.All(sec =>
-                    sec.Exercises.Count > 0
-                        ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                        : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                // Already fully complete — idempotent. Uses the shared section-aware
+                // TrainingCompletionExtensions.IsSessionComplete helper (consults
+                // CompletedExerciseIdsBySection, not the retired flat mirror) so a
+                // duplicate exercise id spanning two sections can't false-positive.
+                var alreadyComplete = existing.IsSessionComplete(session);
                 if (alreadyComplete)
                 {
                     summaries.Add(new SessionCompletionSummary
@@ -218,10 +217,7 @@ public class MarkWholeDayCompleteEndpoint(
                         throw;
                     }
 
-                    var retryAlreadyComplete = session.Sections.All(sec =>
-                        sec.Exercises.Count > 0
-                            ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                            : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                    var retryAlreadyComplete = existing.IsSessionComplete(session);
                     if (retryAlreadyComplete)
                     {
                         version = existing.Version;

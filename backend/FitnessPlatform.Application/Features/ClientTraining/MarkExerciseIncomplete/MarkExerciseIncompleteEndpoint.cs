@@ -92,8 +92,6 @@ public class MarkExerciseIncompleteEndpoint(
         }
 
         // Validate the exercise exists in the session (section-aware).
-        session.WithBackfilledSections();
-
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)
         {
@@ -116,25 +114,12 @@ public class MarkExerciseIncompleteEndpoint(
         using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
         var existing = await completionCursor.FirstOrDefaultAsync(ct);
 
-        // Auto-backfill: legacy completion docs (written before per-section
-        // tracking was added) carry the flat `CompletedExerciseIds` but
-        // leave `CompletedExerciseIdsBySection` null. The idempotency check
-        // + removal logic below only consult the per-section dict, so
-        // without this step the legacy doc would short-circuit at "nothing
-        // to remove" and the flat list would never clear — the exercise
-        // would reappear as complete after every refresh via the read-time
-        // backfill in `TrainingCompletionBackfill`. Populating the dict
-        // up-front gives the removal logic something to delete from.
-        if (existing is not null
-            && (existing.CompletedExerciseIdsBySection is null
-                || existing.CompletedExerciseIdsBySection.Count == 0)
-            && existing.CompletedExerciseIds.Count > 0)
-        {
-            var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(existing, session);
-            existing.CompletedExerciseIdsBySection = effective.ToDictionary(
-                kvp => kvp.Key.ToString(),
-                kvp => kvp.Value.ToList());
-        }
+        // Note: pre-#837, legacy completion docs (written before per-section tracking was
+        // added) carried the flat `CompletedExerciseIds` but left `CompletedExerciseIdsBySection`
+        // null, requiring a request-time auto-backfill here so the idempotency/removal logic
+        // below had something to consult. The one-time boot migration in MongoIndexInitializer
+        // now backfills CompletedExerciseIdsBySection for every existing document, so this
+        // request-time backfill is no longer needed — the field is always populated on read.
 
         // Idempotency: check whether this exercise is complete in this specific section.
         var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
@@ -219,7 +204,6 @@ public class MarkExerciseIncompleteEndpoint(
 
             foreach (var log in matchingLogs)
             {
-                log.WithBackfilledSections();
                 var exerciseEntry = log.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
 

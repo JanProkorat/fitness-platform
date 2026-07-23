@@ -279,20 +279,24 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             {
                 if (!completedBySession.TryGetValue(doc.SessionId, out var set))
                     completedBySession[doc.SessionId] = set = [];
-                foreach (var exId in doc.CompletedExerciseIds)
-                    set.Add(exId);
 
                 response.VersionBySession[doc.SessionId] = doc.Version;
                 response.CompletedSectionIdsBySession[doc.SessionId] =
                     (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
 
-                // Populate section-aware field using read-time backfill.
+                // Populate the per-session completed-exercise set from the section-aware
+                // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
+                // field is kept only as a derived mirror (see TrainingCompletion.cs) and is
+                // no longer consulted here.
                 if (sessionLookup.TryGetValue(doc.SessionId, out var completionSession))
                 {
                     var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
                         doc, completionSession);
                     response.CompletedExerciseIdsBySectionAndSession[doc.SessionId] =
                         effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+
+                    foreach (var exId in effective.Values.SelectMany(ids => ids))
+                        set.Add(exId);
                 }
             }
 

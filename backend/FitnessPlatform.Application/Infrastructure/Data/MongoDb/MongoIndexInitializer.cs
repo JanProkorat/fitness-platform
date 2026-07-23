@@ -1,12 +1,34 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Features.ClientTraining;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Hosted service that creates MongoDB indexes at application startup.
+/// Creates MongoDB indexes and runs one-time, idempotent data-migration backfills
+/// at application startup (see the #837 migration methods near the bottom of this
+/// file for the schema-on-read retirement).
 /// </summary>
+/// <remarks>
+/// Registered in <c>Program.cs</c> as a plain <c>AddSingleton</c>, NOT
+/// <c>AddHostedService</c>. <see cref="StartAsync"/> is invoked explicitly and
+/// awaited immediately before <c>app.Run()</c> — deliberately NOT via the
+/// <see cref="IHostedService"/> pipeline. Hosted services start sequentially in
+/// registration order, and the framework's own web-hosting service (which starts
+/// Kestrel listening) is registered ahead of anything user code adds afterwards —
+/// so wiring this class via <c>AddHostedService</c> would let Kestrel begin
+/// accepting requests before (or concurrently with) this migration completing.
+/// The data-migration piece specifically MUST finish before any request can read
+/// a legacy document: #837 deleted the graceful request-time
+/// <c>WithBackfilledSections</c> fallback, and the document types carry no
+/// <c>[BsonIgnoreExtraElements]</c>, so a request racing an unfinished migration
+/// throws <c>BsonSerializationException</c> instead of self-healing. This class
+/// still exposes the <see cref="StartAsync"/>/<see cref="StopAsync"/> shape (and
+/// tests still construct it directly, e.g. <c>new MongoIndexInitializer(mongo, logger)</c>)
+/// purely for familiarity/consistency — it is not resolved as an <c>IHostedService</c>
+/// anywhere in this codebase.
+/// </remarks>
 public class MongoIndexInitializer : IHostedService
 {
     private readonly IMongoContext _mongo;
@@ -22,7 +44,9 @@ public class MongoIndexInitializer : IHostedService
     }
 
     /// <summary>
-    /// Creates all required MongoDB indexes.
+    /// Creates all required MongoDB indexes and runs the one-time #837 migration
+    /// backfills. Must be awaited to completion before the app serves any request —
+    /// see the class-level remarks and the explicit call site in <c>Program.cs</c>.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -169,6 +193,14 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateTrainingPlanIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837), BEFORE any typed read of
+        // TrainingPlans elsewhere in this initializer or the app: legacy embedded
+        // TrainingSession documents that still carry a flat `exercises` field (and no
+        // C# LegacyExercises property to bind it) would throw a BSON deserialization
+        // error the moment anything reads them through the typed collection. Idempotent —
+        // safe to run on every boot.
+        await BackfillTrainingPlanSections(ct);
+
         var indexes = _mongo.TrainingPlans.Indexes;
 
         // Compound index on clientId + status for filtered queries
@@ -193,6 +225,12 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateWorkoutLogIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837): legacy WorkoutLog documents
+        // that still carry a flat `exercises` field (and no C# LegacyExercises property to
+        // bind it) would throw a BSON deserialization error the moment anything reads them
+        // through the typed collection below. Idempotent — safe to run on every boot.
+        await BackfillWorkoutLogSections(ct);
+
         var indexes = _mongo.WorkoutLogs.Indexes;
 
         // Unique index on externalId for API lookups
@@ -362,6 +400,14 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateTrainingCompletionIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837). Must run AFTER
+        // BackfillTrainingPlanSections (called from CreateTrainingPlanIndexes, which runs
+        // earlier in StartAsync) — resolving the effective per-section completion map below
+        // requires reading TrainingPlans through the typed collection, which is only safe
+        // once every embedded TrainingSession has been migrated off the legacy flat shape.
+        // Idempotent — safe to run on every boot.
+        await BackfillTrainingCompletionVersionAndSections(ct);
+
         var indexes = _mongo.TrainingCompletions.Indexes;
 
         // Unique index on externalId for API lookups
@@ -488,5 +534,279 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    // ── #837: retire plan/workout/completion schema-on-read ──────────────────────
+    //
+    // The three read-time backfills these endpoints used to perform on every request
+    // (TrainingSession.WithBackfilledSections, WorkoutLog.WithBackfilledSections, and the
+    // request-time CompletedExerciseIdsBySection seed in MarkExerciseIncompleteEndpoint)
+    // are replaced by these one-time, idempotent boot migrations. All three operate
+    // directly on raw BSON where the legacy shape includes a field with no corresponding
+    // C# property (the `exercises` flat list) — reading such a document through the typed
+    // collection would throw a BSON deserialization error. This means the migration must
+    // complete BEFORE any request can be served, not merely before the other private
+    // methods in this class run their own typed reads — see the class-level remarks
+    // above and Program.cs's explicit pre-`app.Run()` invocation, which is what actually
+    // provides that guarantee (this class is no longer wired via `AddHostedService`).
+
+    /// <summary>
+    /// Backfills every embedded <see cref="TrainingSession"/> across all <see cref="TrainingPlan"/>
+    /// documents that still carries the legacy flat <c>exercises</c> field: synthesizes a single
+    /// "Hlavní" section wrapping the flat exercises when <c>sections</c> is empty, then <c>$unset</c>s
+    /// the legacy field. A session that already has <c>sections</c> populated (with a stale
+    /// <c>exercises</c> field left over from an earlier partial write) only has the legacy field
+    /// stripped — its modern <c>sections</c> data is left untouched.
+    /// </summary>
+    private async Task BackfillTrainingPlanSections(CancellationToken ct)
+    {
+        var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
+            _mongo.TrainingPlans.CollectionNamespace.CollectionName);
+
+        // Candidate docs: any embedded session under any week still carries the legacy flat
+        // `exercises` field. Mongo matches dotted paths across nested arrays automatically.
+        var legacyFilter = new BsonDocument("weeks.sessions.exercises", new BsonDocument("$exists", true));
+
+        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedPlanCount = 0;
+        var migratedSessionCount = 0;
+
+        foreach (var planDoc in candidates)
+        {
+            var planModified = false;
+
+            if (!planDoc.TryGetValue("weeks", out var weeksValue) || weeksValue is not BsonArray weeks)
+                continue;
+
+            foreach (var weekValue in weeks)
+            {
+                if (weekValue is not BsonDocument week) continue;
+                if (!week.TryGetValue("sessions", out var sessionsValue) || sessionsValue is not BsonArray sessions)
+                    continue;
+
+                foreach (var sessionValue in sessions)
+                {
+                    if (sessionValue is not BsonDocument session) continue;
+                    if (!session.Contains("exercises")) continue;
+
+                    var legacyExercises = session["exercises"] as BsonArray ?? [];
+                    var sectionsIsEmpty = !session.TryGetValue("sections", out var sectionsValue)
+                                           || sectionsValue is not BsonArray existingSections
+                                           || existingSections.Count == 0;
+
+                    if (sectionsIsEmpty && legacyExercises.Count > 0)
+                    {
+                        var synthesizedSection = new BsonDocument
+                        {
+                            { "sectionId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                            { "order", 0 },
+                            { "name", "Hlavní" },
+                            { "exercises", legacyExercises }
+                        };
+                        session["sections"] = new BsonArray { synthesizedSection };
+                        migratedSessionCount++;
+                    }
+
+                    session.Remove("exercises");
+                    planModified = true;
+                }
+            }
+
+            if (planModified)
+            {
+                await rawPlans.ReplaceOneAsync(
+                    Builders<BsonDocument>.Filter.Eq("_id", planDoc["_id"]),
+                    planDoc,
+                    cancellationToken: ct);
+                migratedPlanCount++;
+            }
+        }
+
+        if (migratedPlanCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingPlan sections backfill: migrated {SessionCount} legacy session(s) across " +
+                "{PlanCount} plan(s) to the sections shape",
+                migratedSessionCount, migratedPlanCount);
+        }
+    }
+
+    /// <summary>
+    /// Backfills every <see cref="WorkoutLog"/> document that still carries the legacy flat
+    /// <c>exercises</c> field: synthesizes a single "Hlavní" section wrapping the flat exercises
+    /// (carrying over the session-level <c>wodResult</c>, if any) when <c>sections</c> is empty,
+    /// then <c>$unset</c>s the legacy field.
+    /// </summary>
+    private async Task BackfillWorkoutLogSections(CancellationToken ct)
+    {
+        var rawLogs = _mongo.WorkoutLogs.Database.GetCollection<BsonDocument>(
+            _mongo.WorkoutLogs.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("exercises", new BsonDocument("$exists", true));
+
+        using var cursor = await rawLogs.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedCount = 0;
+
+        foreach (var logDoc in candidates)
+        {
+            var legacyExercises = logDoc["exercises"] as BsonArray ?? [];
+            var sectionsIsEmpty = !logDoc.TryGetValue("sections", out var sectionsValue)
+                                   || sectionsValue is not BsonArray existingSections
+                                   || existingSections.Count == 0;
+
+            if (sectionsIsEmpty && legacyExercises.Count > 0)
+            {
+                var synthesizedSection = new BsonDocument
+                {
+                    { "sectionId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                    { "order", 0 },
+                    { "name", "Hlavní" },
+                    { "exercises", legacyExercises }
+                };
+
+                // Session-level WodResult (if present) carries over onto the synthesized
+                // section, mirroring the retired WorkoutLog.WithBackfilledSections() behaviour.
+                if (logDoc.TryGetValue("wodResult", out var wodResult) && wodResult is not BsonNull)
+                    synthesizedSection["wodResult"] = wodResult;
+
+                logDoc["sections"] = new BsonArray { synthesizedSection };
+            }
+
+            logDoc.Remove("exercises");
+
+            await rawLogs.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("_id", logDoc["_id"]),
+                logDoc,
+                cancellationToken: ct);
+
+            migratedCount++;
+        }
+
+        if (migratedCount > 0)
+        {
+            _logger.LogInformation(
+                "WorkoutLog sections backfill: migrated {Count} legacy log(s) to the sections shape",
+                migratedCount);
+        }
+    }
+
+    /// <summary>
+    /// Two-part <see cref="TrainingCompletion"/> backfill:
+    /// <list type="number">
+    ///   <item><description>
+    ///     Version — legacy documents predating the <c>Version</c> field deserialize to the C#
+    ///     initializer value (1, not 0), so an <c>Eq(version, 0)</c> filter would never match
+    ///     them (a previously documented incident). Targets absent-Version docs explicitly via
+    ///     <c>$exists:false</c> and sets the same concrete value (1) so a subsequent
+    ///     <c>Eq(version, existing.Version)</c> optimistic-concurrency filter matches the
+    ///     persisted document instead of silently failing every update with a 409.
+    ///   </description></item>
+    ///   <item><description>
+    ///     CompletedExerciseIdsBySection — reproduces
+    ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/> exactly
+    ///     (first matching section wins; ids no longer present in the resolved session are
+    ///     dropped). Not self-contained: the completion carries <c>SessionId</c> but no
+    ///     <c>PlanId</c>, so the owning <see cref="TrainingSession"/> must be resolved from the
+    ///     <c>trainingPlans</c> collection by (ClientId, SessionId) — TrainingCompletion.ClientId
+    ///     and TrainingPlan.ClientId are both ClientProfile.PublicId, so they compare directly.
+    ///     When no plan/session resolves (deleted or restructured plan), the document is left
+    ///     with a null map rather than throwing — read sites tolerate a null map. If a client
+    ///     has two plans that happen to share a SessionId (should not occur in practice, but
+    ///     not structurally prevented), the most-recently-updated plan's session wins — see
+    ///     the tie-break comment at the <c>sessionLookup</c> construction below. That ambiguity
+    ///     cannot cause data loss: the flat <c>CompletedExerciseIds</c> mirror is untouched
+    ///     either way.
+    ///   </description></item>
+    /// </list>
+    /// </summary>
+    private async Task BackfillTrainingCompletionVersionAndSections(CancellationToken ct)
+    {
+        // (a) Version backfill.
+        var versionMissingFilter = Builders<TrainingCompletion>.Filter.Exists(c => c.Version, exists: false);
+        var versionUpdateResult = await _mongo.TrainingCompletions.UpdateManyAsync(
+            versionMissingFilter,
+            Builders<TrainingCompletion>.Update.Set(c => c.Version, 1),
+            cancellationToken: ct);
+
+        if (versionUpdateResult.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingCompletion version backfill: set version=1 on {Count} field-absent document(s)",
+                versionUpdateResult.ModifiedCount);
+        }
+
+        // (b) CompletedExerciseIdsBySection backfill.
+        var bySectionMissingFilter = Builders<TrainingCompletion>.Filter.Exists(
+            c => c.CompletedExerciseIdsBySection, exists: false);
+
+        using var legacyCursor = await _mongo.TrainingCompletions.FindAsync(bySectionMissingFilter, cancellationToken: ct);
+        var legacyCompletions = await legacyCursor.ToListAsync(ct);
+
+        if (legacyCompletions.Count == 0)
+            return;
+
+        var migratedCount = 0;
+        var unresolvedCount = 0;
+
+        foreach (var clientGroup in legacyCompletions.GroupBy(c => c.ClientId))
+        {
+            var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientGroup.Key);
+            using var planCursor = await _mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+            var clientPlans = await planCursor.ToListAsync(ct);
+
+            // Tie-break for the (rare, non-data-loss) case where a client has two plans
+            // sharing a SessionId with divergent section layouts: order plans by recency
+            // (DateUpdated, falling back to DateCreated) BEFORE flattening to sessions, so
+            // GroupBy/First deterministically prefers the most-recently-updated plan's
+            // session rather than whichever plan happened to sort first out of Mongo.
+            // LINQ's GroupBy preserves first-encountered order within each group, and
+            // SelectMany preserves the source (plan) ordering — so ordering clientPlans
+            // descending by recency here is sufficient; no need to re-sort inside each
+            // group. This only affects section ATTRIBUTION for the derived
+            // CompletedExerciseIdsBySection map — the flat CompletedExerciseIds mirror is
+            // never touched, so a wrong pick here is not data loss, only a (very rare)
+            // mis-attributed section key that self-corrects if the stale plan is ever
+            // resolved differently on a later pass.
+            var sessionLookup = clientPlans
+                .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
+                .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions))
+                .GroupBy(s => s.SessionId)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            foreach (var completion in clientGroup)
+            {
+                if (!sessionLookup.TryGetValue(completion.SessionId, out var session))
+                {
+                    // Session no longer resolvable (plan deleted/restructured) — leave
+                    // CompletedExerciseIdsBySection null for this document. The flat
+                    // CompletedExerciseIds mirror is untouched/preserved, and read sites
+                    // handle a null map without throwing.
+                    unresolvedCount++;
+                    continue;
+                }
+
+                var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
+                var bySection = effective.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value.ToList());
+
+                await _mongo.TrainingCompletions.UpdateOneAsync(
+                    Builders<TrainingCompletion>.Filter.Eq(c => c.ExternalId, completion.ExternalId),
+                    Builders<TrainingCompletion>.Update.Set(c => c.CompletedExerciseIdsBySection, bySection),
+                    cancellationToken: ct);
+
+                migratedCount++;
+            }
+        }
+
+        if (migratedCount > 0 || unresolvedCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingCompletion section backfill: populated CompletedExerciseIdsBySection on " +
+                "{Migrated} document(s); {Unresolved} document(s) skipped (session no longer resolvable)",
+                migratedCount, unresolvedCount);
+        }
     }
 }

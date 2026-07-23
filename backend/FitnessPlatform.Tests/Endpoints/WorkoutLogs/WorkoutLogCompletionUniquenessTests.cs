@@ -201,7 +201,11 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        // The MongoIndexInitializer runs during host startup (IHostedService).
+        // Program.cs invokes MongoIndexInitializer explicitly (awaited) before
+        // app.Run() — not via AddHostedService (see MongoIndexInitializer's class
+        // remarks for why). WebApplicationFactory<Program> runs that same
+        // top-level statement when this factory boots, so by the time we get a
+        // scope here the index is already guaranteed to exist.
         // We just need to verify the index is present.
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();

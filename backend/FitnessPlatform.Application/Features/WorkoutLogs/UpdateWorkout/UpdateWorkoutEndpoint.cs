@@ -70,7 +70,6 @@ public class UpdateWorkoutEndpoint(
         // ── Snapshot previously-completed sets BEFORE we overwrite them ──────────
         // Key: (sectionId, exerciseExternalId, setNumber) → true if already completed.
         // Used downstream to determine which sets are *newly* completed this call.
-        log.WithBackfilledSections();
         var previouslyCompleted = log.Sections
             .SelectMany(sec => sec.Exercises
                 .SelectMany(e => e.Sets
@@ -330,11 +329,6 @@ public class UpdateWorkoutEndpoint(
             priorLogFilter,
             cancellationToken: ct);
         var priorLogs = await priorCursor.ToListAsync(ct);
-
-        foreach (var priorLog in priorLogs)
-        {
-            priorLog.WithBackfilledSections();
-        }
 
         var anyPrFlagged = false;
 
