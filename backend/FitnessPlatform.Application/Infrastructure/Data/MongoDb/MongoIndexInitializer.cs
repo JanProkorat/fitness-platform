@@ -6,8 +6,29 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Hosted service that creates MongoDB indexes at application startup.
+/// Creates MongoDB indexes and runs one-time, idempotent data-migration backfills
+/// at application startup (see the #837 migration methods near the bottom of this
+/// file for the schema-on-read retirement).
 /// </summary>
+/// <remarks>
+/// Registered in <c>Program.cs</c> as a plain <c>AddSingleton</c>, NOT
+/// <c>AddHostedService</c>. <see cref="StartAsync"/> is invoked explicitly and
+/// awaited immediately before <c>app.Run()</c> — deliberately NOT via the
+/// <see cref="IHostedService"/> pipeline. Hosted services start sequentially in
+/// registration order, and the framework's own web-hosting service (which starts
+/// Kestrel listening) is registered ahead of anything user code adds afterwards —
+/// so wiring this class via <c>AddHostedService</c> would let Kestrel begin
+/// accepting requests before (or concurrently with) this migration completing.
+/// The data-migration piece specifically MUST finish before any request can read
+/// a legacy document: #837 deleted the graceful request-time
+/// <c>WithBackfilledSections</c> fallback, and the document types carry no
+/// <c>[BsonIgnoreExtraElements]</c>, so a request racing an unfinished migration
+/// throws <c>BsonSerializationException</c> instead of self-healing. This class
+/// still exposes the <see cref="StartAsync"/>/<see cref="StopAsync"/> shape (and
+/// tests still construct it directly, e.g. <c>new MongoIndexInitializer(mongo, logger)</c>)
+/// purely for familiarity/consistency — it is not resolved as an <c>IHostedService</c>
+/// anywhere in this codebase.
+/// </remarks>
 public class MongoIndexInitializer : IHostedService
 {
     private readonly IMongoContext _mongo;
@@ -23,7 +44,9 @@ public class MongoIndexInitializer : IHostedService
     }
 
     /// <summary>
-    /// Creates all required MongoDB indexes.
+    /// Creates all required MongoDB indexes and runs the one-time #837 migration
+    /// backfills. Must be awaited to completion before the app serves any request —
+    /// see the class-level remarks and the explicit call site in <c>Program.cs</c>.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -521,8 +544,11 @@ public class MongoIndexInitializer : IHostedService
     // are replaced by these one-time, idempotent boot migrations. All three operate
     // directly on raw BSON where the legacy shape includes a field with no corresponding
     // C# property (the `exercises` flat list) — reading such a document through the typed
-    // collection would throw a BSON deserialization error, so the migration must complete
-    // before any other code path in this initializer (or the app) performs a typed read.
+    // collection would throw a BSON deserialization error. This means the migration must
+    // complete BEFORE any request can be served, not merely before the other private
+    // methods in this class run their own typed reads — see the class-level remarks
+    // above and Program.cs's explicit pre-`app.Run()` invocation, which is what actually
+    // provides that guarantee (this class is no longer wired via `AddHostedService`).
 
     /// <summary>
     /// Backfills every embedded <see cref="TrainingSession"/> across all <see cref="TrainingPlan"/>
@@ -688,7 +714,12 @@ public class MongoIndexInitializer : IHostedService
     ///     <c>trainingPlans</c> collection by (ClientId, SessionId) — TrainingCompletion.ClientId
     ///     and TrainingPlan.ClientId are both ClientProfile.PublicId, so they compare directly.
     ///     When no plan/session resolves (deleted or restructured plan), the document is left
-    ///     with a null map rather than throwing — read sites tolerate a null map.
+    ///     with a null map rather than throwing — read sites tolerate a null map. If a client
+    ///     has two plans that happen to share a SessionId (should not occur in practice, but
+    ///     not structurally prevented), the most-recently-updated plan's session wins — see
+    ///     the tie-break comment at the <c>sessionLookup</c> construction below. That ambiguity
+    ///     cannot cause data loss: the flat <c>CompletedExerciseIds</c> mirror is untouched
+    ///     either way.
     ///   </description></item>
     /// </list>
     /// </summary>
@@ -727,7 +758,21 @@ public class MongoIndexInitializer : IHostedService
             using var planCursor = await _mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
             var clientPlans = await planCursor.ToListAsync(ct);
 
+            // Tie-break for the (rare, non-data-loss) case where a client has two plans
+            // sharing a SessionId with divergent section layouts: order plans by recency
+            // (DateUpdated, falling back to DateCreated) BEFORE flattening to sessions, so
+            // GroupBy/First deterministically prefers the most-recently-updated plan's
+            // session rather than whichever plan happened to sort first out of Mongo.
+            // LINQ's GroupBy preserves first-encountered order within each group, and
+            // SelectMany preserves the source (plan) ordering — so ordering clientPlans
+            // descending by recency here is sufficient; no need to re-sort inside each
+            // group. This only affects section ATTRIBUTION for the derived
+            // CompletedExerciseIdsBySection map — the flat CompletedExerciseIds mirror is
+            // never touched, so a wrong pick here is not data loss, only a (very rare)
+            // mis-attributed section key that self-corrects if the stale plan is ever
+            // resolved differently on a later pass.
             var sessionLookup = clientPlans
+                .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
                 .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions))
                 .GroupBy(s => s.SessionId)
                 .ToDictionary(g => g.Key, g => g.First());
