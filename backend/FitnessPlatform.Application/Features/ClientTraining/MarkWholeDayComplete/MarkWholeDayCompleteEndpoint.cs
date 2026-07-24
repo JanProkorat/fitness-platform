@@ -72,7 +72,8 @@ public class MarkWholeDayCompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDateOnly = req.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var targetDate = targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 

@@ -3,13 +3,10 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Tests.Builders;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -33,16 +30,6 @@ public class FinishSessionPlannedSnapshotTests
             .Returns(new List<string>());
         return svc;
     }
-
-    /// <summary>
-    /// Builds a mock <see cref="IApplicationDbContext"/> containing a <see cref="ClientProfile"/>
-    /// whose PublicId matches the plan's ClientId — the resolution FinishSessionEndpoint performs
-    /// when materializing a new WorkoutLog (see #651).
-    /// </summary>
-    private static IApplicationDbContext CreateDbWithProfileForPlan(TrainingPlan plan) =>
-        new MockDbBuilder()
-            .With(new ClientProfile { Id = 1, UserId = Guid.NewGuid(), PublicId = plan.ClientId })
-            .Build();
 
     private static TrainingPlan CreatePlanWithPrescribedSets(Guid trainerId, Guid sessionId)
     {
@@ -127,7 +114,6 @@ public class FinishSessionPlannedSnapshotTests
         var sessionId = Guid.NewGuid();
         var plan = CreatePlanWithPrescribedSets(_trainerId, sessionId);
         var (mongo, logCollection) = CreateMockMongoWithInsert(plan, []);
-        var db = CreateDbWithProfileForPlan(plan);
         var completionService = StubCompletionService();
 
         WorkoutLog? insertedLog = null;
@@ -140,7 +126,7 @@ public class FinishSessionPlannedSnapshotTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, db, completionService);
+            mongo, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -174,14 +160,13 @@ public class FinishSessionPlannedSnapshotTests
         var sessionId = Guid.NewGuid();
         var plan = CreatePlanWithPrescribedSets(_trainerId, sessionId);
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
-        var db = CreateDbWithProfileForPlan(plan);
         var completionService = StubCompletionService();
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, db, completionService);
+            mongo, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },

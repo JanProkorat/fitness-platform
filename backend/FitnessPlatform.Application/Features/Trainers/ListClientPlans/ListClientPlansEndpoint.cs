@@ -83,18 +83,18 @@ public class ListClientPlansEndpoint(
             return;
         }
 
-        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId.
-        // WorkoutLog.ClientId and PersonalRecord.ClientId store ApplicationUser.Id (UserId).
-        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId).
-        var clientPublicId = clientProfile.PublicId;
+        // Every Mongo document's clientId (NutritionPlan, TrainingPlan, WorkoutLog,
+        // PersonalRecord) is now keyed on ApplicationUser.Id (#840) — one identifier
+        // serves all of them. clientProfile.Id is the long PK used by BodyMeasurement
+        // (keyed on ClientProfileId), unrelated to the Mongo key.
         var clientUserId = clientProfile.UserId;
         var clientProfileId = clientProfile.Id;
 
-        // Load all plans from Mongo in parallel — keyed on PublicId
+        // Load all plans from Mongo in parallel — keyed on ApplicationUser.Id
         var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
-            .Eq(p => p.ClientId, clientPublicId);
+            .Eq(p => p.ClientId, clientUserId);
         var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
-            .Eq(p => p.ClientId, clientPublicId);
+            .Eq(p => p.ClientId, clientUserId);
 
         var nutritionTask = mongo.NutritionPlans
             .Find(nutritionFilter)
@@ -195,7 +195,7 @@ public class ListClientPlansEndpoint(
             }
 
             var complianceResult = await complianceService.CalculateComplianceAsync(
-                clientPublicId, plan.StartDate.Value, periodEnd, ct);
+                clientUserId, plan.StartDate.Value, periodEnd, ct);
             return ((decimal?)complianceResult.NutritionCompliancePercent, weightDeltaKg);
         }).ToList();
 

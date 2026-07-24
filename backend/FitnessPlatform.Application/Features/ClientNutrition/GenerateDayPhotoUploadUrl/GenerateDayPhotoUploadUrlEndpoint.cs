@@ -63,7 +63,8 @@ public class GenerateDayPhotoUploadUrlEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Verify the client has an Active nutrition plan whose date window contains today
         // (authorization gate) — a client may hold several sequential, non-overlapping Active

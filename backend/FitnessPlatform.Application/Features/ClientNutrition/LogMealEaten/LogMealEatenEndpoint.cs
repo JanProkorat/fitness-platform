@@ -54,7 +54,8 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Resolve the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
@@ -101,7 +102,10 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
 
         await mongo.MealLogs.InsertOneAsync(mealLog, cancellationToken: ct);
 
-        await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientId, ct);
+        // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
+        // convention (unrelated to the Mongo document clientId key migrated in #840) —
+        // pass clientProfile.PublicId explicitly rather than the (now UserId-valued) clientId.
+        await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientProfile.PublicId, ct);
 
         await HttpContext.Response.SendAsync(new { Message = "Meal logged successfully." }, 201, cancellation: ct);
     }

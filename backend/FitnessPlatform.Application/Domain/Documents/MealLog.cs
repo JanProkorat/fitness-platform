@@ -17,11 +17,11 @@ public class MealLog
     public ObjectId Id { get; set; }
 
     /// <summary>
-    /// The client who ate the meal (matches ClientProfile.PublicId — NOT
-    /// ApplicationUser.Id). This is the same convention used by
-    /// NutritionPlan.ClientId, TrainingPlan.ClientId, and TrainingCompletion.ClientId;
-    /// WorkoutLog.ClientId and PersonalRecord.ClientId are the only collections
-    /// keyed on ApplicationUser.Id instead.
+    /// The client who ate the meal (matches ApplicationUser.Id). Every Mongo document's
+    /// clientId field — NutritionPlan, TrainingPlan, TrainingCompletion, DayLog, MealLog,
+    /// SessionLog, SessionLock, WorkoutLog, PersonalRecord — is keyed on ApplicationUser.Id
+    /// since #840 (the plan-side use of ClientProfile.PublicId was incidental and has been
+    /// migrated away).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

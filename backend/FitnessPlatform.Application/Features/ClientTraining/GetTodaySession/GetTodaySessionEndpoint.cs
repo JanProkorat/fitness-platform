@@ -98,11 +98,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        // WorkoutLog.ClientId is stored as the auth user's Id (ApplicationUser.Id),
-        // not the ClientProfile.PublicId. Keep a separate variable so the two
-        // collections can be queried with the correct identifier.
-        var userIdGuid = Guid.Parse(userId);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840) — TrainingPlan,
+        // TrainingCompletion, and SessionLog now all key on the same value as WorkoutLog,
+        // so a single variable serves every collection queried below.
+        var clientId = clientProfile.UserId;
 
         // Find the Active training plan whose date window contains today — a client may hold
         // several sequential, non-overlapping Active plans (#780).
@@ -302,11 +301,11 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
             // 2. WorkoutLog — live-training logs for today. An exercise counts as
             // completed when every planned set has a CompletedAt timestamp.
-            // IMPORTANT: WorkoutLog.ClientId is written as the auth user's Id (Guid),
-            // NOT clientProfile.PublicId. Use userIdGuid here — using clientId silently
-            // returns nothing because the two identifiers never match.
+            // WorkoutLog.ClientId has always been ApplicationUser.Id, and since #840 every
+            // other collection queried in this endpoint uses the same identifier — clientId
+            // is safe to reuse here.
             var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
+                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientId)
                 & Builders<WorkoutLog>.Filter.In(l => l.SessionId, todaySessionIds.Cast<Guid?>())
                 & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
                 & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
@@ -439,7 +438,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
             // ── Batch-fetch SessionLog docs for today (photo gallery) ─────────────
             // One query for all of today's sessions; keyed by SessionId in the response.
-            // ClientId in SessionLog = ClientProfile.PublicId (same as clientId here).
+            // SessionLog.ClientId = ApplicationUser.Id (#840), same as clientId here.
             var sessionLogFilter =
                 Builders<SessionLog>.Filter.Eq(l => l.ClientId, clientId)
                 & Builders<SessionLog>.Filter.In(l => l.SessionId, todaySessionIds)

@@ -63,7 +63,8 @@ public class MarkSessionIncompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Validate session ownership via the Active plan whose date window contains today — a
@@ -142,13 +143,12 @@ public class MarkSessionIncompleteEndpoint(
 
         // Mirror the un-mark into today's WorkoutLog(s) so the read side
         // (GetTodaySessionEndpoint) no longer re-merges stale CompletedAt stamps.
-        // NOTE: WorkoutLog.ClientId is stored as the auth user's Id, NOT clientProfile.PublicId.
-        var userIdGuid = Guid.Parse(userId);
+        // WorkoutLog.ClientId is ApplicationUser.Id — same as clientId since #840.
         try
         {
             var tomorrow = targetDate.AddDays(1);
             var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
+                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientId)
                 & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, (Guid?)req.SessionId)
                 & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
                 & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);

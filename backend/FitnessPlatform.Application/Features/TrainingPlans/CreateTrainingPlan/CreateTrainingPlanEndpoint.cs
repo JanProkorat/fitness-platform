@@ -62,6 +62,20 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             return;
         }
 
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
+        // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
@@ -88,7 +102,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         {
             var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
 
-            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Archived)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Completed)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.StartDate, null);
@@ -112,7 +126,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = req.ClientId,
+            ClientId = clientUserId,
             TrainerId = trainerId,
             Name = req.Name,
             Description = req.Description?.Trim(),

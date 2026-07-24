@@ -62,10 +62,10 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        // WorkoutLog.ClientId is stored as the auth user's Id (ApplicationUser.Id),
-        // not clientProfile.PublicId. Keep a separate variable for WorkoutLog queries.
-        var userIdGuid = Guid.Parse(userId);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840) — WorkoutLog,
+        // TrainingPlan, and TrainingCompletion all key on the same value now, so a
+        // single variable serves every collection queried below.
+        var clientId = clientProfile.UserId;
         var planId = Route<Guid>("planId");
 
         // ── 2. Fetch training plan (ownership check baked into filter) ────────────
@@ -111,9 +111,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // Walk them once to build a lookup keyed by (sessionId, exerciseExternalId, setNumber).
         // A set is "completed" when it has a CompletedAt value in WorkoutSet.
         // We prefer the earliest non-null CompletedAt per set if multiple logs exist for the same session.
-        // IMPORTANT: WorkoutLog.ClientId is stored as the auth user's Id (Guid), not PublicId.
         var logFilter = Builders<WorkoutLog>.Filter.And(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid),
+            Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientId),
             Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId));
 
         var workoutLogs = await mongo.WorkoutLogs

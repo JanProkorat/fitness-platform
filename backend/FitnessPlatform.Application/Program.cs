@@ -500,9 +500,22 @@ app.UseSwaggerGen();
 // hosted-service ordering to reason about because this is plain sequential code.
 using (var migrationScope = app.Services.CreateScope())
 {
-    await migrationScope.ServiceProvider
-        .GetRequiredService<MongoIndexInitializer>()
-        .StartAsync(CancellationToken.None);
+    var mongoIndexInitializer = migrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+
+    await mongoIndexInitializer.StartAsync(CancellationToken.None);
+
+    // #840: standardise every Mongo document's clientId field on ApplicationUser.Id
+    // (NutritionPlan, TrainingPlan, TrainingCompletion, DayLog, MealLog, SessionLog,
+    // SessionLock — WorkoutLog and PersonalRecord already used ApplicationUser.Id).
+    // Same pre-app.Run() timing requirement as StartAsync above: endpoints filter
+    // these collections by ApplicationUser.Id, and a request racing an unmigrated
+    // document would silently match zero documents rather than throw, so this must
+    // also complete before Kestrel accepts traffic. IApplicationDbContext is scoped,
+    // so it's resolved from this same scope and passed in as a parameter — see
+    // MongoIndexInitializer.MigrateClientIdsAsync's remarks for why it isn't a
+    // constructor dependency.
+    var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+    await mongoIndexInitializer.MigrateClientIdsAsync(migrationDbContext, CancellationToken.None);
 }
 
 app.Run();

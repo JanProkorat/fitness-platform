@@ -34,7 +34,7 @@ public class TrainingCompletion
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The client this completion record belongs to (matches ApplicationUser.PublicId / ClientProfile.PublicId).
+    /// The client this completion record belongs to (matches ApplicationUser.Id — #840).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

@@ -116,9 +116,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
-                clientProfile.PublicId, complianceFrom, complianceTo, ct);
+                clientProfile.UserId, complianceFrom, complianceTo, ct);
             compliancePercent = compliance.CompliancePercent;
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.PublicId, ct);
+            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -160,14 +160,15 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
         // Query the Active NutritionPlan whose date window contains today to source
         // goal + targetWeightKg plan-first. Fallback to OnboardingData only when the plan
-        // value is null. Key: plan.ClientId == clientProfile.PublicId (the ClientProfile.PublicId
-        // Guid, NOT UserId). A client may hold several sequential, non-overlapping Active plans
-        // (#780), so pick the one whose window contains today rather than the most recent.
+        // value is null. Key: plan.ClientId == clientProfile.UserId — ApplicationUser.Id is
+        // the canonical clientId for Mongo documents (#840). A client may hold several
+        // sequential, non-overlapping Active plans (#780), so pick the one whose window
+        // contains today rather than the most recent.
         NutritionPlan? activePlan = null;
         try
         {
             var planFilter = Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.PublicId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
                 Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
             using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);

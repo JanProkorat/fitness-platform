@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 
@@ -13,10 +15,13 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="authHelper">Helper for verifying trainer-client relationships.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="db">Relational database context — resolves the client's public id to
+/// ApplicationUser.Id, the canonical clientId key ComplianceService reads from Mongo (#840).</param>
 public class GetClientProgressEndpoint(
     IComplianceService complianceService,
     NutritionAuthHelper authHelper,
-    IAuditService audit)
+    IAuditService audit,
+    IApplicationDbContext db)
     : Endpoint<GetClientProgressRequest, GetClientProgressResponse>
 {
     /// <inheritdoc />
@@ -53,12 +58,26 @@ public class GetClientProgressEndpoint(
             return;
         }
 
+        // req.ClientId is the client's public id — resolve to ApplicationUser.Id before
+        // calling ComplianceService, which reads Mongo documents keyed on that id (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
         var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 
-        var compliance = await complianceService.CalculateComplianceAsync(req.ClientId, from, to, ct);
-        var streak = await complianceService.CalculateStreakAsync(req.ClientId, ct);
-        var averageMacros = await complianceService.CalculateAverageMacrosAsync(req.ClientId, from, to, ct);
+        var compliance = await complianceService.CalculateComplianceAsync(clientUserId, from, to, ct);
+        var streak = await complianceService.CalculateStreakAsync(clientUserId, ct);
+        var averageMacros = await complianceService.CalculateAverageMacrosAsync(clientUserId, from, to, ct);
 
         // Audit: trainer accessing client health/progress data
         await audit.LogAsync(
