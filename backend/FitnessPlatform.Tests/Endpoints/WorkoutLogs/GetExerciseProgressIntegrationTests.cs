@@ -118,44 +118,52 @@ public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
         var exerciseId = Guid.NewGuid();
         var exerciseName = "Deadlift";
 
-        // Seed a completed WorkoutLog with ClientId = UserId (the correct key)
+        // Seed a completed SessionExecution with ClientId = UserId (the correct key).
+        // #841: GetExerciseProgressEndpoint now reads mongo.SessionExecutions exclusively —
+        // the retired WorkoutLogs collection is no longer consulted.
         using (var scope = factory.Services.CreateScope())
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            var startedAt = DateTime.UtcNow.AddDays(-3);
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,    // ← MUST be UserId, not PublicId
-                StartedAt = DateTime.UtcNow.AddDays(-3),
-                CompletedAt = DateTime.UtcNow.AddDays(-3).AddHours(1),
-                IsCompleted = true,
-                Sections =
-                [
-                    new WorkoutSection
-                    {
-                        SectionId = Guid.NewGuid(),
-                        Name = "Main",
-                        Exercises =
-                        [
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = exerciseId,
-                                ExerciseName = exerciseName,
-                                Sets =
-                                [
-                                    new WorkoutSet
-                                    {
-                                        SetNumber = 1,
-                                        WeightKg = 140m,
-                                        Reps = 5,
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ],
+                Date = SessionExecution.ToCompletionDateUtc(startedAt),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = startedAt,
+                    CompletedAt = startedAt.AddHours(1),
+                    Sections =
+                    [
+                        new WorkoutSection
+                        {
+                            SectionId = Guid.NewGuid(),
+                            Name = "Main",
+                            Exercises =
+                            [
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = exerciseId,
+                                    ExerciseName = exerciseName,
+                                    Sets =
+                                    [
+                                        new WorkoutSet
+                                        {
+                                            SetNumber = 1,
+                                            WeightKg = 140m,
+                                            Reps = 5,
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
                 DateCreated = DateTime.UtcNow,
+                Version = 1
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
 
@@ -187,44 +195,51 @@ public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
 
         var exerciseId = Guid.NewGuid();
 
-        // Seed a completed WorkoutLog with ClientId = PublicId (wrong key — pre-fix bug)
+        // Seed a completed SessionExecution with ClientId = PublicId (wrong key — pre-fix bug).
+        // #841: GetExerciseProgressEndpoint now reads mongo.SessionExecutions exclusively.
         using (var scope = factory.Services.CreateScope())
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            var startedAt = DateTime.UtcNow.AddDays(-3);
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientPublicId,   // ← WRONG: PublicId stored where UserId expected
-                StartedAt = DateTime.UtcNow.AddDays(-3),
-                CompletedAt = DateTime.UtcNow.AddDays(-3).AddHours(1),
-                IsCompleted = true,
-                Sections =
-                [
-                    new WorkoutSection
-                    {
-                        SectionId = Guid.NewGuid(),
-                        Name = "Main",
-                        Exercises =
-                        [
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = exerciseId,
-                                ExerciseName = "Squat",
-                                Sets =
-                                [
-                                    new WorkoutSet
-                                    {
-                                        SetNumber = 1,
-                                        WeightKg = 100m,
-                                        Reps = 5,
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ],
+                Date = SessionExecution.ToCompletionDateUtc(startedAt),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = startedAt,
+                    CompletedAt = startedAt.AddHours(1),
+                    Sections =
+                    [
+                        new WorkoutSection
+                        {
+                            SectionId = Guid.NewGuid(),
+                            Name = "Main",
+                            Exercises =
+                            [
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = exerciseId,
+                                    ExerciseName = "Squat",
+                                    Sets =
+                                    [
+                                        new WorkoutSet
+                                        {
+                                            SetNumber = 1,
+                                            WeightKg = 100m,
+                                            Reps = 5,
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
                 DateCreated = DateTime.UtcNow,
+                Version = 1
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
 

@@ -283,8 +283,16 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             isCompleted: true, completedAt: today, date: midnightToday);
         await mongo.SessionExecutions.InsertOneAsync(winner, cancellationToken: ct);
 
-        // The "loser" is in-progress, same key, and will call CompleteAsync.
-        var loser = BuildExecution(clientId: clientId, sessionId: sessionId, isCompleted: false, date: midnightToday);
+        // The "loser" is in-progress and currently keyed to a DIFFERENT day (e.g. a session
+        // started yesterday and still open) so its own insert doesn't collide with the winner.
+        // Completing it "today" below moves its Date to today's key, which is where the TOCTOU
+        // race against the winner actually happens — the unique index rejects the REPLACE, not
+        // the initial insert (Date is always present, so two same-day docs can never coexist
+        // even in draft form; the real race is a still-open draft from a prior day converging
+        // onto today's key at completion time).
+        var loser = BuildExecution(
+            clientId: clientId, sessionId: sessionId, isCompleted: false,
+            date: SessionExecution.ToCompletionDateUtc(today.AddDays(-1)));
         await mongo.SessionExecutions.InsertOneAsync(loser, cancellationToken: ct);
 
         var svc = scope.ServiceProvider.GetRequiredService<Application.Domain.Interfaces.IWorkoutCompletionService>();

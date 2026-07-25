@@ -82,8 +82,8 @@ public class SessionLockEnforcementTests
         // Assert — draft log created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -102,8 +102,8 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -122,8 +122,8 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
