@@ -207,43 +207,52 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             ]
         };
 
-        var log = new WorkoutLog
+        // #841: UpdateTrainingPlanEndpoint reads mongo.SessionExecutions exclusively — seed a
+        // completed SessionExecution (Performance mirrors the retired WorkoutLog shape) instead
+        // of a WorkoutLog document.
+        var startedAt = DateTime.UtcNow.AddHours(-1);
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = Guid.NewGuid(),
+            ClientId = clientId,
             PlanId = planId,
             SessionId = sessionId,
-            StartedAt = DateTime.UtcNow.AddHours(-1),
-            IsCompleted = true,
-            CompletedAt = DateTime.UtcNow.AddMinutes(-30),
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = sectionAId, Order = 0, Name = "Section A",
-                    Exercises = [new WorkoutExercise
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = DateTime.UtcNow.AddMinutes(-30),
+                Sections =
+                [
+                    new WorkoutSection
                     {
-                        ExerciseExternalId = exerciseAId, ExerciseName = "Squat",
-                        Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, CompletedAt = DateTime.UtcNow.AddMinutes(-50) }]
-                    }]
-                },
-                new WorkoutSection
-                {
-                    SectionId = sectionBId, Order = 1, Name = "Section B",
-                    Exercises = [new WorkoutExercise
+                        SectionId = sectionAId, Order = 0, Name = "Section A",
+                        Exercises = [new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseAId, ExerciseName = "Squat",
+                            Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, CompletedAt = DateTime.UtcNow.AddMinutes(-50) }]
+                        }]
+                    },
+                    new WorkoutSection
                     {
-                        ExerciseExternalId = exerciseBId, ExerciseName = "Press",
-                        Sets = [new WorkoutSet { SetNumber = 1, Reps = 8, CompletedAt = DateTime.UtcNow.AddMinutes(-40) }]
-                    }]
-                }
-            ],
-            DateCreated = DateTime.UtcNow.AddHours(-1)
+                        SectionId = sectionBId, Order = 1, Name = "Section B",
+                        Exercises = [new WorkoutExercise
+                        {
+                            ExerciseExternalId = exerciseBId, ExerciseName = "Press",
+                            Sets = [new WorkoutSet { SetNumber = 1, Reps = 8, CompletedAt = DateTime.UtcNow.AddMinutes(-40) }]
+                        }]
+                    }
+                ]
+            },
+            DateCreated = startedAt,
+            Version = 1
         };
 
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-        await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: TestContext.Current.CancellationToken);
+        await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
 
         return (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId);
     }
@@ -318,12 +327,15 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         };
 
         // Partial completion: only section A's exercise done.
-        var completion = new TrainingCompletion
+        // #841: UpdateTrainingPlanEndpoint reads mongo.SessionExecutions exclusively — seed a
+        // Partial SessionExecution carrying the completion flags instead of a TrainingCompletion.
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseIds = [exerciseAId],
             CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
             {
@@ -336,7 +348,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-        await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+        await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
 
         return (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId);
     }

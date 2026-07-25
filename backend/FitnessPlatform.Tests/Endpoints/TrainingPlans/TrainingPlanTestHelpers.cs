@@ -257,11 +257,16 @@ public static class TrainingPlanTestHelpers
                 Arg.Any<CancellationToken>())
             .Returns(cursorTask);
 
+        // NSubstitute can't evaluate the real FilterDefinition, so this approximates the two
+        // shapes production code actually queries: FinishSessionEndpoint's "already completed"
+        // guard filters on Status==Completed; pagination totals want the full seeded count.
+        // Counting only Completed executions is the safer default — it keeps a Partial-only
+        // fixture from tripping the "already completed" guard in tests that never intended it.
         collection.CountDocumentsAsync(
                 Arg.Any<FilterDefinition<SessionExecution>>(),
                 Arg.Any<CountOptions>(),
                 Arg.Any<CancellationToken>())
-            .Returns(executions.Count);
+            .Returns(executions.Count(e => e.Status == SessionExecutionStatus.Completed));
 
         collection.InsertOneAsync(
                 Arg.Any<SessionExecution>(),
