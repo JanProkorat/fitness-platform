@@ -514,6 +514,7 @@ internal sealed class BackfillTestMongoContext : IMongoContext
     public IMongoCollection<Recipe> Recipes           => _db.GetCollection<Recipe>("recipes");
     public IMongoCollection<TrainingPlan> TrainingPlans => _db.GetCollection<TrainingPlan>("trainingPlans");
     public IMongoCollection<TrainingCompletion> TrainingCompletions => _db.GetCollection<TrainingCompletion>("trainingCompletions");
+    public IMongoCollection<SessionExecution> SessionExecutions => _db.GetCollection<SessionExecution>("sessionExecutions");
     public IMongoCollection<PersonalRecord> PersonalRecords => _db.GetCollection<PersonalRecord>("personalRecords");
     public IMongoCollection<DayLog> DayLogs               => _db.GetCollection<DayLog>("dayLogs");
     public IMongoCollection<SectionTemplate> SectionTemplates => _db.GetCollection<SectionTemplate>("sectionTemplates");

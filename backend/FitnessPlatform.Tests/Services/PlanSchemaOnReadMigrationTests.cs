@@ -638,6 +638,7 @@ internal sealed class MigrationTestMongoContext : IMongoContext
     public IMongoCollection<TrainingPlan> TrainingPlans => _db.GetCollection<TrainingPlan>("trainingPlans");
     public IMongoCollection<WorkoutLog> WorkoutLogs => _db.GetCollection<WorkoutLog>("workoutLogs");
     public IMongoCollection<TrainingCompletion> TrainingCompletions => _db.GetCollection<TrainingCompletion>("trainingCompletions");
+    public IMongoCollection<SessionExecution> SessionExecutions => _db.GetCollection<SessionExecution>("sessionExecutions");
 
     public IMongoCollection<Food> Foods => _db.GetCollection<Food>("foods");
     public IMongoCollection<NutritionPlan> NutritionPlans => _db.GetCollection<NutritionPlan>("nutritionPlans");
