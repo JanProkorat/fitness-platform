@@ -161,6 +161,14 @@ public class CreateTrainingPlanEndpointTests
     /// trainer-facing ClientProfile.PublicId in req.ClientId. A plan linked to a valid,
     /// submitted questionnaire response for this client must be creatable.
     /// </summary>
+    /// <remarks>
+    /// #840 test-strengthening: PublicId and UserId must be DISTINCT guids here. With the
+    /// same guid for both (the original fixture), the pre-fix comparison
+    /// (<c>r.ClientId == req.ClientId</c>) and the post-fix comparison
+    /// (<c>r.ClientId == clientUserId</c>) both reduce to true, so the test stays green even
+    /// if the questionnaire-link fix in <see cref="CreateTrainingPlanEndpoint"/> is reverted.
+    /// Keeping them distinct makes the old (broken) comparison actually fail the link check.
+    /// </remarks>
     [Fact]
     public async Task HandleAsync_WithValidQuestionnaireResponseLink_CreatesPlan()
     {
@@ -168,13 +176,19 @@ public class CreateTrainingPlanEndpointTests
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
         var questionnaireResponseId = Guid.NewGuid();
 
+        // Distinct on purpose — see remarks above. PublicId is the trainer-facing key the
+        // endpoint receives on the request; UserId is the ApplicationUser.Id that
+        // QuestionnaireResponse.ClientId is actually keyed on.
+        var clientPublicId = Guid.NewGuid();
+        var clientUserId = Guid.NewGuid();
+
         var db = new MockDbBuilder()
-            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(new ClientProfile { UserId = clientUserId, PublicId = clientPublicId })
             .With(new QuestionnaireResponse
             {
                 PublicId = questionnaireResponseId,
                 QuestionnaireId = 1,
-                ClientId = _clientId,
+                ClientId = clientUserId,
                 ProfessionalId = _trainerId,
                 LinkId = 1,
                 Status = QuestionnaireResponseStatus.Submitted,
@@ -191,7 +205,7 @@ public class CreateTrainingPlanEndpointTests
 
         var request = new CreateTrainingPlanRequest
         {
-            ClientId = _clientId,
+            ClientId = clientPublicId,
             Name = "Linked Questionnaire Plan",
             WeekCount = 2,
             QuestionnaireResponseId = questionnaireResponseId,
@@ -204,6 +218,7 @@ public class CreateTrainingPlanEndpointTests
         await mongo.TrainingPlans.Received(1).InsertOneAsync(
             Arg.Is<TrainingPlan>(p =>
                 p.Name == "Linked Questionnaire Plan" &&
+                p.ClientId == clientUserId &&
                 p.QuestionnaireResponseId == questionnaireResponseId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
