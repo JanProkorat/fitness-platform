@@ -1,5 +1,8 @@
+using System.Linq.Expressions;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Features.ClientTraining;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -69,6 +72,120 @@ public class MongoIndexInitializer : IHostedService
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
+    //
+    // Canonical decision: every Mongo document's clientId field is ApplicationUser.Id.
+    // The plan-side use of ClientProfile.PublicId (NutritionPlan, TrainingPlan,
+    // TrainingCompletion, DayLog, MealLog, SessionLog, SessionLock) was incidental —
+    // WorkoutLog and PersonalRecord already used ApplicationUser.Id and are untouched
+    // by this migration.
+    //
+    // Deliberately NOT a constructor dependency: this class is registered as a plain
+    // AddSingleton (see class remarks) and resolved directly from the ROOT service
+    // provider in Program.cs and in FitnessApiFactoryTests — injecting a scoped
+    // IApplicationDbContext into the constructor would break that resolution under
+    // ASP.NET Core's scope validation. Program.cs instead resolves IApplicationDbContext
+    // from the SAME pre-app.Run() scope used for StartAsync and passes it in here as a
+    // plain method parameter.
+    //
+    // Idempotency (design-review MINOR-2): PublicId and UserId are both GUIDs, so shape
+    // alone cannot distinguish a migrated document from an unmigrated one. The only safe
+    // signal is "clientId currently equals an EXISTING ClientProfile.PublicId" — the
+    // PublicId -> UserId map is built once from Postgres, then each collection is
+    // rewritten via one UpdateMany per client, matched on the OLD PublicId value.
+    // Already-migrated documents (clientId = UserId) never match Eq(clientId, publicId)
+    // on a second run (UserId and PublicId are independent, non-overlapping GUID spaces
+    // per ClientProfile), so a re-run mutates 0 documents, and a partial-interruption
+    // re-run only touches the remaining un-migrated documents.
+    //
+    // Index safety: ClientProfile.PublicId and ClientProfile.UserId are both unique
+    // per ClientProfile (enforced by Postgres unique constraints), so the PublicId ->
+    // UserId map is a bijection over existing clients. Rewriting clientId via UpdateMany
+    // relabels an entire client's document set from one unique value to another — it
+    // never merges two clients' documents under one clientId — so the UNIQUE
+    // (clientId, date, sessionId) index on TrainingCompletion cannot be violated
+    // mid-migration.
+    /// <summary>
+    /// One-time, idempotent migration (#840): rewrites every Mongo document's clientId
+    /// field from ClientProfile.PublicId to ApplicationUser.Id across NutritionPlan,
+    /// TrainingPlan, TrainingCompletion, DayLog, MealLog, SessionLog, and SessionLock.
+    /// Must be awaited to completion before the app serves any request — see the call
+    /// site in <c>Program.cs</c>, invoked in the same pre-<c>app.Run()</c> scope as
+    /// <see cref="StartAsync"/>.
+    /// </summary>
+    /// <param name="db">Relational database context — resolved from a DI scope by the
+    /// caller (see class remarks on why this isn't a constructor dependency).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task MigrateClientIdsAsync(IApplicationDbContext db, CancellationToken ct)
+    {
+        var profiles = await db.ClientProfiles
+            .AsNoTracking()
+            .Select(cp => new { cp.PublicId, cp.UserId })
+            .ToListAsync(ct);
+
+        if (profiles.Count == 0)
+        {
+            _logger.LogInformation("ClientId standardisation (#840): no ClientProfiles found, skipping");
+            return;
+        }
+
+        var userIdByPublicId = profiles.ToDictionary(p => p.PublicId, p => p.UserId);
+
+        var nutritionCount = await MigrateCollectionClientIdsAsync(_mongo.NutritionPlans, p => p.ClientId, userIdByPublicId, ct);
+        var trainingCount = await MigrateCollectionClientIdsAsync(_mongo.TrainingPlans, p => p.ClientId, userIdByPublicId, ct);
+        var completionCount = await MigrateCollectionClientIdsAsync(_mongo.TrainingCompletions, c => c.ClientId, userIdByPublicId, ct);
+        var dayLogCount = await MigrateCollectionClientIdsAsync(_mongo.DayLogs, l => l.ClientId, userIdByPublicId, ct);
+        var mealLogCount = await MigrateCollectionClientIdsAsync(_mongo.MealLogs, l => l.ClientId, userIdByPublicId, ct);
+        var sessionLogCount = await MigrateCollectionClientIdsAsync(_mongo.SessionLogs, l => l.ClientId, userIdByPublicId, ct);
+        var sessionLockCount = await MigrateCollectionClientIdsAsync(_mongo.SessionLocks, l => l.ClientId, userIdByPublicId, ct);
+
+        var total = nutritionCount + trainingCount + completionCount + dayLogCount + mealLogCount + sessionLogCount + sessionLockCount;
+
+        if (total > 0)
+        {
+            _logger.LogInformation(
+                "ClientId standardisation (#840): rewrote {Total} document(s) to ApplicationUser.Id " +
+                "(NutritionPlan={Nutrition}, TrainingPlan={Training}, TrainingCompletion={Completion}, " +
+                "DayLog={DayLog}, MealLog={MealLog}, SessionLog={SessionLog}, SessionLock={SessionLock})",
+                total, nutritionCount, trainingCount, completionCount, dayLogCount, mealLogCount, sessionLogCount, sessionLockCount);
+        }
+        else
+        {
+            _logger.LogInformation("ClientId standardisation (#840): no documents needed migration (already up to date)");
+        }
+    }
+
+    /// <summary>
+    /// Rewrites the clientId field of every document in <paramref name="collection"/> whose
+    /// current value is a key in <paramref name="userIdByPublicId"/> (i.e. still a
+    /// ClientProfile.PublicId) to the corresponding ApplicationUser.Id. One
+    /// <see cref="UpdateManyModel{TDocument}"/> per client is batched into a single
+    /// <c>BulkWriteAsync</c> round trip per collection. <c>IsOrdered = false</c> is safe here:
+    /// each client's filter/update pair targets a disjoint set of documents (matched on that
+    /// client's unique PublicId), so write order between clients never matters.
+    /// </summary>
+    private static async Task<long> MigrateCollectionClientIdsAsync<T>(
+        IMongoCollection<T> collection,
+        Expression<Func<T, Guid>> clientIdSelector,
+        IReadOnlyDictionary<Guid, Guid> userIdByPublicId,
+        CancellationToken ct)
+    {
+        var writes = new List<WriteModel<T>>(userIdByPublicId.Count);
+
+        foreach (var (publicId, userId) in userIdByPublicId)
+        {
+            writes.Add(new UpdateManyModel<T>(
+                Builders<T>.Filter.Eq(clientIdSelector, publicId),
+                Builders<T>.Update.Set(clientIdSelector, userId)));
+        }
+
+        if (writes.Count == 0)
+            return 0;
+
+        var result = await collection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+        return result.ModifiedCount;
+    }
 
     private async Task CreateFoodIndexes(CancellationToken ct)
     {

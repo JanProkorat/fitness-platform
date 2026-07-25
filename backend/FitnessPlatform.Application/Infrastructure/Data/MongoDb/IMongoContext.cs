@@ -72,7 +72,7 @@ public interface IMongoContext
 
     /// <summary>
     /// Session log entries — photos and notes attached to a specific training session diary entry.
-    /// Keyed by (ClientId = ClientProfile.PublicId, PlanId, SessionId, LogDate).
+    /// Keyed by (ClientId = ApplicationUser.Id, PlanId, SessionId, LogDate).
     /// </summary>
     IMongoCollection<SessionLog> SessionLogs { get; }
 

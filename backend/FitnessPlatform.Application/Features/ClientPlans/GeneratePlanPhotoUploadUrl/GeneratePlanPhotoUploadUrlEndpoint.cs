@@ -62,7 +62,8 @@ public class GeneratePlanPhotoUploadUrlEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Verify ownership: try nutrition plan first, then training plan.
         var planExists = await PlanExistsForClientAsync(req.PlanId, clientId, ct);

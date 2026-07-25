@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
@@ -12,7 +14,9 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
 /// Lists nutrition plans for the authenticated nutritionist with optional filtering and pagination.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetPlansEndpoint(IMongoContext mongo) : Endpoint<GetPlansRequest, GetPlansResponse>
+/// <param name="db">Relational database context — resolves the client's public id to
+/// ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).</param>
+public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db) : Endpoint<GetPlansRequest, GetPlansResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -44,7 +48,14 @@ public class GetPlansEndpoint(IMongoContext mongo) : Endpoint<GetPlansRequest, G
 
         if (req.ClientId.HasValue)
         {
-            filter &= filterBuilder.Eq(p => p.ClientId, req.ClientId.Value);
+            // req.ClientId is the client's public id — resolve to ApplicationUser.Id before
+            // filtering NutritionPlan.ClientId (#840). No match means the plan list is empty,
+            // not an error — mirrors the "not found leaks nothing" style used elsewhere.
+            var clientProfile = await db.ClientProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId.Value, ct);
+
+            filter &= filterBuilder.Eq(p => p.ClientId, clientProfile?.UserId ?? Guid.Empty);
         }
 
         if (req.Status.HasValue)

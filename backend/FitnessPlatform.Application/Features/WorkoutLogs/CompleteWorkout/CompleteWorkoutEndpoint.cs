@@ -126,7 +126,7 @@ public class CompleteWorkoutEndpoint(
                     }
 
                     // Emit trainingprogressupdated so the trainer portal reflects the finished state in real time.
-                    // plan.ClientId is the ClientProfile.PublicId — the same key used by compliance / TrainingCompletion.
+                    // plan.ClientId is the ApplicationUser.Id (#840) — the same key used by compliance / TrainingCompletion.
                     // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
                     var totalExercises = log.Exercises.Count;
                     await TrainingProgressBroadcaster.BroadcastSessionAsync(

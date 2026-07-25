@@ -185,9 +185,9 @@ public class ListClientPlansTests
         var clientUser = EntityBuilder.User.WithId(clientUserId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(10).WithUser(clientUser).Build();
 
-        // NutritionPlan.ClientId stores ClientProfile.PublicId (not UserId).
+        // NutritionPlan.ClientId stores ApplicationUser.Id (#840, previously PublicId).
         var nutritionPlan = CreateNutritionPlan(
-            clientProfile.PublicId,
+            clientProfile.UserId,
             startDate: planStart,
             dateCompleted: planEnd,
             name: "Weight Loss Plan");
@@ -221,13 +221,14 @@ public class ListClientPlansTests
             .With(measurementEnd)
             .Build();
 
-        // Regression guard for #650: ListClientPlansEndpoint must call CalculateComplianceAsync
-        // with clientProfile.PublicId, not clientProfile.UserId. NutritionPlan/MealLog/
-        // TrainingCompletion collections all key ClientId on PublicId. This substitute is
-        // configured ONLY for PublicId — a call made with UserId (the old bug) would hit no
-        // matching setup and return default(ComplianceResult) == null, causing a NullReferenceException.
+        // Regression guard for #840 (supersedes #650): ListClientPlansEndpoint must call
+        // CalculateComplianceAsync with clientProfile.UserId, not clientProfile.PublicId.
+        // NutritionPlan/MealLog/TrainingCompletion collections all key ClientId on UserId now.
+        // This substitute is configured ONLY for UserId — a call made with PublicId (the
+        // now-stale identifier) would hit no matching setup and return
+        // default(ComplianceResult) == null, causing a NullReferenceException.
         _complianceService
-            .CalculateComplianceAsync(clientProfile.PublicId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientProfile.UserId, planStart, planEnd, Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 87.5m,
@@ -254,16 +255,16 @@ public class ListClientPlansTests
     }
 
     /// <summary>
-    /// Regression guard for #650: asserts the exact argument passed to
+    /// Regression guard for #840 (supersedes #650): asserts the exact argument passed to
     /// <see cref="IComplianceService.CalculateComplianceAsync"/> is
-    /// <c>ClientProfile.PublicId</c>, not <c>ApplicationUser.Id</c>. Before the fix,
-    /// ListClientPlansEndpoint:198 passed <c>clientUserId</c> — this test's
-    /// <c>Received()</c> assertion on <c>PublicId</c> fails against the old code, and its
-    /// <c>DidNotReceive()</c> assertion on <c>UserId</c> fails too (the old code called
-    /// with UserId). Both assertions pass only once the argument is corrected.
+    /// <c>ApplicationUser.Id</c>, not <c>ClientProfile.PublicId</c>. Prior to #840,
+    /// ListClientPlansEndpoint called with <c>clientPublicId</c> — this test's
+    /// <c>Received()</c> assertion on <c>UserId</c> fails against that old code, and its
+    /// <c>DidNotReceive()</c> assertion on <c>PublicId</c> fails too (the old code called
+    /// with PublicId). Both assertions pass only once the argument is UserId.
     /// </summary>
     [Fact]
-    public async Task List_NutritionPlan_CallsComplianceServiceWithPublicId_NotUserId()
+    public async Task List_NutritionPlan_CallsComplianceServiceWithUserId_NotPublicId()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
         var clientPublicId = clientProfile.PublicId;
@@ -272,11 +273,11 @@ public class ListClientPlansTests
         var planStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
         var planEnd = new DateTime(2025, 3, 31, 0, 0, 0, DateTimeKind.Utc);
 
-        var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: planStart, dateCompleted: planEnd, name: "Adhered Plan");
+        var nutritionPlan = CreateNutritionPlan(clientUserId, startDate: planStart, dateCompleted: planEnd, name: "Adhered Plan");
         var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
 
         _complianceService
-            .CalculateComplianceAsync(clientPublicId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientUserId, planStart, planEnd, Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 92.0m,
@@ -295,9 +296,9 @@ public class ListClientPlansTests
             "nutrition compliance must be non-zero when the client adheres to the plan");
 
         await _complianceService.Received(1).CalculateComplianceAsync(
-            clientPublicId, planStart, planEnd, Arg.Any<CancellationToken>());
+            clientUserId, planStart, planEnd, Arg.Any<CancellationToken>());
         await _complianceService.DidNotReceive().CalculateComplianceAsync(
-            clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+            clientPublicId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

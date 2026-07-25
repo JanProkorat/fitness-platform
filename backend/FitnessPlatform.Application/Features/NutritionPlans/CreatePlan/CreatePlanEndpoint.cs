@@ -62,14 +62,31 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
             return;
         }
 
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
+        // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
+            // QuestionnaireResponse.ClientId is ApplicationUser.Id (set from the auth user
+            // id), so compare against the already-resolved clientUserId, not req.ClientId
+            // (which is the trainer-facing ClientProfile.PublicId) — see #840.
             var responseExists = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
                                && r.ProfessionalId == nutritionistId
-                               && r.ClientId == req.ClientId
+                               && r.ClientId == clientUserId
                                && r.Status == QuestionnaireResponseStatus.Submitted, ct);
 
             if (!responseExists)
@@ -88,7 +105,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
         {
             var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
 
-            var existingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+            var existingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Archived)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Completed)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null);
@@ -112,7 +129,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
         var plan = new NutritionPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = req.ClientId,
+            ClientId = clientUserId,
             NutritionistId = nutritionistId,
             Name = req.Name,
             Status = NutritionPlanStatus.Draft,

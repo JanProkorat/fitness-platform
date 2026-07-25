@@ -53,7 +53,8 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var now = DateTime.UtcNow;
 
         // Parse status filter

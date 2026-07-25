@@ -26,10 +26,10 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// </para>
 ///
 /// <para>
-/// Join key: <c>plan.ClientId</c> is the <c>ClientProfile.PublicId</c> Guid.
-/// It is <strong>NOT</strong> <c>ClientProfile.UserId</c> (the ApplicationUser.Id).
-/// <c>CreatePlanEndpoint</c> writes <c>plan.ClientId = clientProfile.PublicId</c>,
-/// so the join must resolve via <c>ClientProfile.PublicId</c>.
+/// Join key: <c>plan.ClientId</c> is the client's <c>ApplicationUser.Id</c> (#840) —
+/// <c>CreatePlanEndpoint</c> resolves the trainer-supplied public id to
+/// <c>ClientProfile.UserId</c> before writing <c>plan.ClientId</c>, so the join here
+/// must resolve via <c>ClientProfile.UserId</c> too.
 /// </para>
 /// </summary>
 public class PlanGoalBackfillService(
@@ -77,27 +77,27 @@ public class PlanGoalBackfillService(
             "Pass A (nutrition plans): found {Count} candidate plans to inspect",
             candidates.Count);
 
-        // Collect all unique ClientIds (which are ClientProfile.PublicId Guids) from the candidate plans.
+        // Collect all unique ClientIds (which are ClientProfile.UserId Guids, #840) from the candidate plans.
         var clientIds = candidates.Select(p => p.ClientId).Distinct().ToList();
 
-        // Resolve ClientProfile.PublicId -> OnboardingData in a single Postgres query.
-        // CRITICAL: plan.ClientId == ClientProfile.PublicId (NOT ClientProfile.UserId).
-        var onboardingByPublicId = await db.ClientProfiles
+        // Resolve ClientProfile.UserId -> OnboardingData in a single Postgres query.
+        // plan.ClientId == ClientProfile.UserId (ApplicationUser.Id) since #840.
+        var onboardingByUserId = await db.ClientProfiles
             .AsNoTracking()
-            .Where(cp => clientIds.Contains(cp.PublicId) && cp.OnboardingData != null)
+            .Where(cp => clientIds.Contains(cp.UserId) && cp.OnboardingData != null)
             .Select(cp => new
             {
-                cp.PublicId,
+                cp.UserId,
                 cp.OnboardingData!.PrimaryGoal,
                 cp.OnboardingData.TargetWeightKg
             })
-            .ToDictionaryAsync(cp => cp.PublicId, ct);
+            .ToDictionaryAsync(cp => cp.UserId, ct);
 
         var updatedCount = 0;
 
         foreach (var plan in candidates)
         {
-            if (!onboardingByPublicId.TryGetValue(plan.ClientId, out var od))
+            if (!onboardingByUserId.TryGetValue(plan.ClientId, out var od))
                 continue;
 
             // PrimaryGoal is a non-nullable enum so we always have a value to write.
@@ -150,23 +150,23 @@ public class PlanGoalBackfillService(
 
         var clientIds = candidates.Select(p => p.ClientId).Distinct().ToList();
 
-        // CRITICAL: plan.ClientId == ClientProfile.PublicId (NOT ClientProfile.UserId).
-        var onboardingByPublicId = await db.ClientProfiles
+        // plan.ClientId == ClientProfile.UserId (ApplicationUser.Id) since #840.
+        var onboardingByUserId = await db.ClientProfiles
             .AsNoTracking()
-            .Where(cp => clientIds.Contains(cp.PublicId) && cp.OnboardingData != null)
+            .Where(cp => clientIds.Contains(cp.UserId) && cp.OnboardingData != null)
             .Select(cp => new
             {
-                cp.PublicId,
+                cp.UserId,
                 cp.OnboardingData!.PrimaryGoal,
                 cp.OnboardingData.TargetWeightKg
             })
-            .ToDictionaryAsync(cp => cp.PublicId, ct);
+            .ToDictionaryAsync(cp => cp.UserId, ct);
 
         var updatedCount = 0;
 
         foreach (var plan in candidates)
         {
-            if (!onboardingByPublicId.TryGetValue(plan.ClientId, out var od))
+            if (!onboardingByUserId.TryGetValue(plan.ClientId, out var od))
                 continue;
 
             var update = Builders<TrainingPlan>.Update

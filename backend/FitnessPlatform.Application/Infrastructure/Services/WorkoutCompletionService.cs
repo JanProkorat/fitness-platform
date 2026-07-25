@@ -3,9 +3,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Services;
@@ -20,7 +18,6 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// </summary>
 public class WorkoutCompletionService(
     IMongoContext mongo,
-    IApplicationDbContext db,
     IPrDetectionService prDetection,
     INotificationService notifications,
     ILogger<WorkoutCompletionService> logger) : IWorkoutCompletionService
@@ -149,21 +146,9 @@ public class WorkoutCompletionService(
             s => s.SectionId.ToString(),
             s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
-        // Resolve clientId as PublicId — TrainingCompletion keyed by ClientProfile.PublicId,
-        // not the raw UserId stored on WorkoutLog.ClientId.
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == log.ClientId, ct);
-
-        if (clientProfile is null)
-        {
-            logger.LogWarning(
-                "TrainingCompletion fan-out: ClientProfile not found for UserId {UserId}.",
-                log.ClientId);
-            return;
-        }
-
-        var clientId = clientProfile.PublicId;
+        // TrainingCompletion.ClientId is ApplicationUser.Id (#840) — same identifier
+        // WorkoutLog.ClientId has always used, so no ClientProfile translation is needed.
+        var clientId = log.ClientId;
 
         // Date key: the calendar day of the supplied completion instant (NOT DateTime.UtcNow).
         // Uses WorkoutLog.ToCompletionDateUtc — the same helper used for WorkoutLog.CompletedDate —

@@ -39,8 +39,6 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
             return;
         }
 
-        // MealLogs and NutritionPlans in Mongo are keyed by ClientProfile.PublicId,
-        // not the ApplicationUser.Id — we must resolve the profile first.
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
@@ -51,7 +49,8 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
         var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 

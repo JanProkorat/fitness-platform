@@ -92,7 +92,8 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).

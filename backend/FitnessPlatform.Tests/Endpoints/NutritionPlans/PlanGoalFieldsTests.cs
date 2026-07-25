@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -34,7 +35,9 @@ public class PlanGoalFieldsTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -68,7 +71,9 @@ public class PlanGoalFieldsTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(

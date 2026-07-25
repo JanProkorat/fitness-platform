@@ -41,14 +41,16 @@ public static class QaSeedRunner
     public static readonly Guid TrainerUserId   = new("22222222-2222-2222-2222-222222222222");
     public static readonly Guid NutriUserId     = new("33333333-3333-3333-3333-333333333333");
 
-    // Stable PublicIds for profile rows — used by nutrition/training plans and
-    // compliance queries that key on ClientProfile.PublicId / ProfessionalProfile.PublicId.
+    // Stable PublicIds for profile rows — the public identifier trainers/nutritionists
+    // use to reference a client (route params, DTOs). Unrelated to the Mongo document
+    // clientId key since #840 — see ClientUserId/Client2UserId for that.
     public static readonly Guid ClientProfilePublicId  = new("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     public static readonly Guid TrainerProfilePublicId = new("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     public static readonly Guid NutriProfilePublicId   = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     // Stable ExternalId for the seeded training plan (ForTime + 0-exercise fixture).
-    // ClientId on the plan = ClientProfilePublicId (NOT ClientUserId) per GetClientPlansEndpoint filter.
+    // ClientId on the plan = ClientUserId (ApplicationUser.Id, #840) — every Mongo
+    // document's clientId field uses this canonical identifier.
     public static readonly Guid QaTrainingPlanExternalId = new("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
     // -------------------------------------------------------------------------
@@ -351,16 +353,17 @@ public static class QaSeedRunner
             await EnsureExercisesAsync(mongo, logger);
 
             // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
-            await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+            // ClientUserId (ApplicationUser.Id, #840) — not clientProfile.PublicId.
+            await EnsureTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
             // Main-plan completed WorkoutLog — exercises four planned-vs-actual set cases (#457).
             await EnsureMainPlanWorkoutLogAsync(mongo, logger);
 
             // Past-dated training plan — three sessions in distinct completion states for #326.
-            await EnsurePastTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+            await EnsurePastTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
             // #474 — Multi-section plan + completed WorkoutLog for section-keying coach-detail fixture.
-            await EnsureMultiSectionTrainingPlanAsync(mongo, client2Profile.PublicId, Trainer2UserId, logger);
+            await EnsureMultiSectionTrainingPlanAsync(mongo, Client2UserId, Trainer2UserId, logger);
             await EnsureMultiSectionWorkoutLogAsync(mongo, logger);
 
             // Foods + Recipes + NutritionPlan.
@@ -370,7 +373,8 @@ public static class QaSeedRunner
             // RECIPE_NOT_OWNED (HTTP 400) when the e2e flow calls the upload-url endpoint.
             await EnsureFoodsAsync(mongo, NutriUserId, logger);
             await EnsureRecipesAsync(mongo, NutriUserId, logger);
-            await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, NutriUserId, logger);
+            // ClientUserId (ApplicationUser.Id, #840) — not clientProfile.PublicId.
+            await EnsureNutritionPlanAsync(mongo, ClientUserId, NutriUserId, logger);
 
             // #715 — Questionnaire template + submitted response owned by the
             // QA trainer, linked to the training plan created above.
@@ -547,9 +551,8 @@ public static class QaSeedRunner
     ///   3. Standard (null format), two synthetic exercises — non-regression.
     ///   4. Tabata, WorkSeconds=20, RestSeconds=10, TotalRounds=8, one exercise — #327 iOS QA fixture.
     ///
-    /// ClientId = clientProfilePublicId (NOT ClientUserId) — GetClientPlansEndpoint
-    /// filters by ClientProfile.PublicId. Using the user id would make the plan
-    /// invisible to GET /client/plans.
+    /// ClientId = clientUserId (ApplicationUser.Id, #840) — GetClientPlansEndpoint
+    /// filters TrainingPlan.ClientId by the same identifier since the #840 migration.
     ///
     /// The week Status must be WeekStatus.Published — GetClientPlansEndpoint line 142
     /// applies ElemMatch(w => w.Status == WeekStatus.Published). A Draft week silently
@@ -557,7 +560,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsureTrainingPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid trainerProfilePublicId,
         ILogger logger)
     {
@@ -577,7 +580,7 @@ public static class QaSeedRunner
         var plan = new TrainingPlan
         {
             ExternalId      = QaTrainingPlanExternalId,
-            ClientId        = clientProfilePublicId,
+            ClientId        = clientUserId,
             // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
             // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
             // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
@@ -717,7 +720,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaTrainingPlanExternalId, clientProfilePublicId);
+            QaTrainingPlanExternalId, clientUserId);
     }
 
     /// <summary>
@@ -923,7 +926,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsurePastTrainingPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid trainerProfilePublicId,
         ILogger logger)
     {
@@ -949,13 +952,12 @@ public static class QaSeedRunner
             var plan = new TrainingPlan
             {
                 ExternalId    = QaPastTrainingPlanExternalId,
-                // ClientId is keyed on ClientProfile.PublicId (NOT ApplicationUser.Id) —
-                // GetTrainingPlansEndpoint filters by ClientId = ClientProfile.PublicId when
-                // the caller passes a clientId query param, and TrainingCompletion.ClientId
-                // (written by WorkoutCompletionService) is also keyed on ClientProfile.PublicId.
+                // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) since
+                // #840 — GetTrainingPlansEndpoint and TrainingCompletion (written by
+                // WorkoutCompletionService) are both keyed on the same ApplicationUser.Id.
                 // plan.ClientId and TrainingCompletion.ClientId must match for the completions
-                // fold-in in GetTrainingPlanEndpoint (line 59 filters by plan.ClientId).
-                ClientId      = clientProfilePublicId,
+                // fold-in in GetTrainingPlanEndpoint (line 67 filters by plan.ClientId).
+                ClientId      = clientUserId,
                 // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
                 // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
                 // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
@@ -1125,9 +1127,10 @@ public static class QaSeedRunner
                 // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) —
                 // CompleteWorkoutEndpoint (live client finish) filters WorkoutLogs by
                 // ClientId == Guid.Parse(AppClaims.UserId), which is ApplicationUser.Id.
-                // WorkoutCompletionService resolves the ClientProfile by cp.UserId == log.ClientId,
-                // then uses clientProfile.PublicId for the TrainingCompletion — so the fan-out
-                // correctly produces a TrainingCompletion.ClientId = ClientProfile.PublicId.
+                // Post-#840, WorkoutCompletionService no longer resolves a ClientProfile at
+                // all — it copies log.ClientId straight onto TrainingCompletion.ClientId, so
+                // the fan-out correctly produces a TrainingCompletion.ClientId that matches
+                // this same ApplicationUser.Id (ClientUserId), not ClientProfile.PublicId.
                 ClientId      = ClientUserId,
                 PlanId        = QaPastTrainingPlanExternalId,
                 SessionId     = QaPastSessionCompletedId,
@@ -1277,11 +1280,11 @@ public static class QaSeedRunner
     /// values even when the exercise is the same object.
     ///
     /// TrainerId = Trainer2UserId (ApplicationUser.Id) — same rule as all other plans.
-    /// ClientId  = client2ProfilePublicId (ClientProfile.PublicId) — same rule as all other plans.
+    /// ClientId  = Client2UserId (ApplicationUser.Id, #840) — same rule as all other plans.
     /// </summary>
     private static async Task EnsureMultiSectionTrainingPlanAsync(
         IMongoContext mongo,
-        Guid client2ProfilePublicId,
+        Guid client2UserId,
         Guid trainer2UserId,
         ILogger logger)
     {
@@ -1301,7 +1304,7 @@ public static class QaSeedRunner
         var plan = new TrainingPlan
         {
             ExternalId    = QaMultiSectionPlanExternalId,
-            ClientId      = client2ProfilePublicId,
+            ClientId      = client2UserId,
             TrainerId     = trainer2UserId,
             Name          = "QA Multi-Section Plan — shared-exercise section-keying fixture",
             Status        = TrainingPlanStatus.Active,
@@ -1384,7 +1387,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA MultiSection TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaMultiSectionPlanExternalId, client2ProfilePublicId);
+            QaMultiSectionPlanExternalId, client2UserId);
     }
 
     /// <summary>
@@ -1711,7 +1714,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid nutriUserId,
         ILogger logger)
     {
@@ -1731,7 +1734,7 @@ public static class QaSeedRunner
         var plan = new NutritionPlan
         {
             ExternalId     = QaNutritionPlanExternalId,
-            ClientId       = clientProfilePublicId,
+            ClientId       = clientUserId,
             NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
@@ -1787,7 +1790,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaNutritionPlanExternalId, clientProfilePublicId);
+            QaNutritionPlanExternalId, clientUserId);
     }
 
     /// <summary>

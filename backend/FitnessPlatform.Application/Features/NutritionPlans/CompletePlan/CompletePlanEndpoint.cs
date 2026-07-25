@@ -101,10 +101,10 @@ public class CompletePlanEndpoint(
 
         var plan = guardResult.Document!;
 
-        // Notify the client
+        // Notify the client — NutritionPlan.ClientId is ApplicationUser.Id (#840).
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+            .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
         if (clientProfile is not null)
         {
