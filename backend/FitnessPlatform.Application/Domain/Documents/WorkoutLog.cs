@@ -6,6 +6,14 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document recording a client's completed workout session.
 /// </summary>
+/// <remarks>
+/// <b>Deprecated (#841).</b> Superseded by <see cref="SessionExecution"/>, which unifies this
+/// document with <see cref="TrainingCompletion"/>. The <c>workoutLogs</c> collection is kept
+/// read-only (no new writes) for one release as the rollback path for the
+/// <c>--migrate-session-executions</c> data migration — do not add new write sites against this
+/// type. Scheduled for removal in a follow-up chore once production has soaked on the merged
+/// model.
+/// </remarks>
 public class WorkoutLog
 {
     /// <summary>

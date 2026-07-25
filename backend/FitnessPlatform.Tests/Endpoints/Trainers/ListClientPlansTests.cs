@@ -546,11 +546,26 @@ public class ListClientPlansTests
         var workoutCollection = CreateMockCollection(workoutLogs?.ToList() ?? []);
         var recordsCollection = CreateMockCollection(personalRecords?.ToList() ?? []);
 
+        // SessionExecutions (#841) — ListClientPlansEndpoint computes TotalTrainings from
+        // this unified collection exclusively (Status=Completed, Performance present, PlanId
+        // matched), not the retired WorkoutLogs collection stubbed above for legacy call-site
+        // compatibility. The endpoint's Mongo query applies the Status=Completed filter
+        // server-side and only re-filters by PlanId client-side afterward — since this mock's
+        // FindAsync ignores the filter argument entirely (see CreateMockCollection), the
+        // Completed-only narrowing must happen HERE, at seed time, mirroring what the real
+        // server-side filter would have already excluded.
+        var executionDocs = (workoutLogs?.ToList() ?? [])
+            .Where(l => l.IsCompleted)
+            .Select(FitnessPlatform.Tests.Endpoints.ClientTraining.TrainingCompletionTestHelpers.ToSessionExecution)
+            .ToList();
+        var executionCollection = CreateMockCollection(executionDocs);
+
         var mongo = Substitute.For<IMongoContext>();
         mongo.NutritionPlans.Returns(nutritionCollection);
         mongo.TrainingPlans.Returns(trainingCollection);
         mongo.WorkoutLogs.Returns(workoutCollection);
         mongo.PersonalRecords.Returns(recordsCollection);
+        mongo.SessionExecutions.Returns(executionCollection);
         return mongo;
     }
 

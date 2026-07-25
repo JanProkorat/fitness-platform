@@ -74,9 +74,9 @@ public class StartWorkoutOwnershipTests
         // Assert — 201 created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        // WorkoutLog.ClientId must be the ApplicationUser.Id.
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w =>
+        // SessionExecution.ClientId must be the ApplicationUser.Id.
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w =>
                 w.ClientId == _clientUserId &&
                 w.PlanId == _planId &&
                 w.SessionId == _sessionId),
@@ -110,8 +110,8 @@ public class StartWorkoutOwnershipTests
         // Assert — 403, nothing created
         ep.HttpContext.Response.StatusCode.Should().Be(403);
 
-        await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
-            Arg.Any<WorkoutLog>(),
+        await mongo.SessionExecutions.DidNotReceive().InsertOneAsync(
+            Arg.Any<SessionExecution>(),
             Arg.Any<MongoDB.Driver.InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

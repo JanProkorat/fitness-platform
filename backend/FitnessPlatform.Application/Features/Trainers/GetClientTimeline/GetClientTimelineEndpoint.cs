@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -123,11 +124,14 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 2. Workout logs (completed) ──
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, from)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
+        // #841: scoped to executions that carry Performance data (a live-training-assistant
+        // log) — checkbox-only completions never appeared in the old WorkoutLogs collection.
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Exists(l => l.Performance)
+            & Builders<SessionExecution>.Filter.Gte(l => l.Performance!.StartedAt, from)
+            & Builders<SessionExecution>.Filter.Eq(l => l.Status, SessionExecutionStatus.Completed);
 
-        using (var cursor = await mongo.WorkoutLogs.FindAsync(workoutFilter, cancellationToken: ct))
+        using (var cursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct))
         {
             var logs = await cursor.ToListAsync(ct);
             foreach (var log in logs)
@@ -136,7 +140,7 @@ public class GetClientTimelineEndpoint(
                 {
                     Id = $"workout:{log.ExternalId}",
                     Type = "workout",
-                    OccurredAt = log.CompletedAt ?? log.StartedAt,
+                    OccurredAt = log.Performance!.CompletedAt ?? log.Performance.StartedAt,
                     Title = "Dokončil trénink",
                     Description = log.Exercises.Count > 0
                         ? $"{log.Exercises.Count} cviků"

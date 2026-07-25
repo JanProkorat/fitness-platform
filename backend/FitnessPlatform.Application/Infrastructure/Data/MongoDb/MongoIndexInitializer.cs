@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +68,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateSectionTemplateIndexes(cancellationToken);
         await CreateSessionLockIndexes(cancellationToken);
         await CreateWorkoutTemplateIndexes(cancellationToken);
+        await CreateSessionExecutionIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -651,6 +654,312 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    // ── #841: SessionExecution — unified WorkoutLog + TrainingCompletion indexes ─────
+    //
+    // Reconciles two prior constraints into one:
+    //   - WorkoutLog's partial-unique (planId, sessionId, completedDate | isCompleted==true)
+    //   - TrainingCompletion's unconditional unique (clientId, date, sessionId)
+    // into a single partial-unique (clientId, sessionId, date) index, active whenever BOTH
+    // sessionId and date are present (i.e. NOT limited to completed executions — the whole
+    // point of the merge is that a session has exactly one execution per day, draft or done).
+    // Ad-hoc (unplanned) executions have a null SessionId and are exempt.
+    //
+    // Same backfill → dedup → create-unique-index ordering as CreateWorkoutLogIndexes, so a
+    // rare interrupted --migrate-session-executions run (or any future write bug) that leaves
+    // more than one document per (clientId, sessionId, date) doesn't blow up index creation
+    // with E11000. No backfill step is needed here — every SessionExecution write path always
+    // sets Date at creation time (unlike legacy WorkoutLog.CompletedDate, which was backfilled
+    // from CompletedAt) — but dedup is retained as defense in depth.
+    private async Task CreateSessionExecutionIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.SessionExecutions.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys.Ascending(e => e.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessionexecution_externalId", Unique = true });
+
+        var clientDateIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions { Name = "idx_sessionexecution_clientId_date" });
+
+        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex], ct);
+
+        // ── Dedup, BEFORE creating the partial unique index ──────────────────────────
+        var keyedFilter =
+            Builders<SessionExecution>.Filter.Exists(e => e.SessionId)
+            & Builders<SessionExecution>.Filter.Exists(e => e.Date);
+
+        var dupCheckResult = await _mongo.SessionExecutions
+            .Aggregate()
+            .Match(keyedFilter)
+            .Group(new BsonDocument
+            {
+                { "_id", new BsonDocument
+                    {
+                        { "clientId",  "$clientId" },
+                        { "sessionId", "$sessionId" },
+                        { "date",      "$date" }
+                    }
+                },
+                { "count", new BsonDocument("$sum", 1) }
+            })
+            .Match(new BsonDocument("count", new BsonDocument("$gt", 1)))
+            .Limit(1)
+            .ToListAsync(ct);
+
+        if (dupCheckResult.Count > 0)
+        {
+            using var dedupCursor = await _mongo.SessionExecutions.FindAsync(keyedFilter, cancellationToken: ct);
+            var all = await dedupCursor.ToListAsync(ct);
+
+            var groups = all
+                .GroupBy(e => (e.ClientId, e.SessionId, e.Date))
+                .Where(g => g.Count() > 1);
+
+            var deleteCount = 0;
+
+            foreach (var group in groups)
+            {
+                // Keep the most "authoritative" document: prefer Completed status, then most
+                // recently updated. Delete the rest.
+                var ordered = group
+                    .OrderByDescending(e => e.Status == SessionExecutionStatus.Completed)
+                    .ThenByDescending(e => e.DateUpdated ?? e.DateCreated)
+                    .ToList();
+
+                var toDelete = ordered.Skip(1).Select(e => e.ExternalId).ToList();
+
+                await _mongo.SessionExecutions.DeleteManyAsync(
+                    Builders<SessionExecution>.Filter.In(e => e.ExternalId, toDelete),
+                    cancellationToken: ct);
+
+                deleteCount += toDelete.Count;
+            }
+
+            if (deleteCount > 0)
+            {
+                _logger.LogWarning(
+                    "SessionExecution dedup: deleted {Count} duplicate document(s) before creating partial unique index",
+                    deleteCount);
+            }
+        }
+
+        // ── Partial unique index: one execution per (clientId, sessionId, date) ──────
+        var partialFilter =
+            Builders<SessionExecution>.Filter.Exists(e => e.SessionId)
+            & Builders<SessionExecution>.Filter.Exists(e => e.Date);
+
+        var uniqueIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.SessionId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions<SessionExecution>
+            {
+                Name = "idx_sessionexecution_clientId_sessionId_date_unique",
+                Unique = true,
+                PartialFilterExpression = partialFilter
+            });
+
+        await indexes.CreateOneAsync(uniqueIndex, cancellationToken: ct);
+    }
+
+    // ── #841: migrate WorkoutLog + TrainingCompletion → SessionExecution ────────────
+    //
+    // PRODUCTION entrypoint: `dotnet run -- --migrate-session-executions` (see Program.cs),
+    // mirroring the `--migrate-client-ids` (#840) one-shot CLI arg pattern — Render does not
+    // set Database:RunMigrationsOnStartup, so this must be run once as an intentional deploy
+    // step, not relied on via any startup gate.
+    //
+    // Identity / idempotency: a plan-bound execution's identity is (clientId, sessionId, date);
+    // an ad-hoc (unplanned) execution's identity is its ExternalId (carried over 1:1 from the
+    // source WorkoutLog). Before creating any document this method checks whether one already
+    // exists at that identity and skips if so — a re-run after a full migration mutates 0
+    // documents, and a re-run after a partial/interrupted migration only processes what's left.
+    //
+    // ExternalId carry-over: whenever a source WorkoutLog exists for a key (both-exist or
+    // log-only), the new SessionExecution.ExternalId is set to that WorkoutLog's ExternalId —
+    // NOT a freshly-generated Guid — so PersonalRecord.WorkoutLogId (and its unique
+    // (workoutLogId, exerciseExternalId, setNumber) idempotency index) continue to resolve
+    // without any PersonalRecord data migration. Completion-only keys (no source WorkoutLog,
+    // hence no PersonalRecord could reference them) get a fresh ExternalId.
+    /// <summary>
+    /// One-time, idempotent migration (#841): merges every <see cref="WorkoutLog"/> and
+    /// <see cref="TrainingCompletion"/> document into the unified <see cref="SessionExecution"/>
+    /// collection. See the remarks above this method for the identity/idempotency contract.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Per-category counts of documents created/skipped, for CLI output.</returns>
+    public async Task<(long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped)> MigrateSessionExecutionsAsync(
+        CancellationToken ct)
+    {
+        var allLogs = await _mongo.WorkoutLogs.Find(Builders<WorkoutLog>.Filter.Empty).ToListAsync(ct);
+        var allCompletions = await _mongo.TrainingCompletions.Find(Builders<TrainingCompletion>.Filter.Empty).ToListAsync(ct);
+
+        long mergedCount = 0, logOnlyCount = 0, completionOnlyCount = 0, adHocCount = 0, skippedCount = 0;
+
+        // Plan-bound logs keyed by (clientId, sessionId, date). When more than one log shares
+        // a key (e.g. a stale draft alongside the finished one), prefer the completed log, then
+        // the most recently updated — mirrors the dedup precedence used elsewhere in this file.
+        var planBoundLogsByKey = allLogs
+            .Where(l => l.SessionId.HasValue)
+            .GroupBy(l => (l.ClientId, SessionId: l.SessionId!.Value, Date: l.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(l.StartedAt)))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(l => l.IsCompleted)
+                       .ThenByDescending(l => l.DateUpdated ?? l.DateCreated)
+                       .First());
+
+        // TrainingCompletion's own historical unique index already guarantees at most one
+        // document per (clientId, date, sessionId), so a plain ToDictionary is safe here.
+        var completionsByKey = allCompletions
+            .ToDictionary(c => (c.ClientId, SessionId: c.SessionId, Date: c.Date));
+
+        var allKeys = planBoundLogsByKey.Keys.Union(completionsByKey.Keys).ToList();
+
+        // Per-client (planId, TrainingSession) lookup, resolved once per client and cached —
+        // mirrors the tie-break logic in BackfillTrainingCompletionVersionAndSections (prefer
+        // the most-recently-updated plan's session when a client has more than one plan sharing
+        // a SessionId).
+        var sessionLookupByClient = new Dictionary<Guid, Dictionary<Guid, (Guid PlanId, TrainingSession Session)>>();
+
+        async Task<Dictionary<Guid, (Guid PlanId, TrainingSession Session)>> GetClientSessionLookupAsync(Guid clientId)
+        {
+            if (sessionLookupByClient.TryGetValue(clientId, out var cached))
+                return cached;
+
+            var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId);
+            using var planCursor = await _mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+            var clientPlans = await planCursor.ToListAsync(ct);
+
+            var lookup = clientPlans
+                .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
+                .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions).Select(s => (Plan: p, Session: s)))
+                .GroupBy(x => x.Session.SessionId)
+                .ToDictionary(g => g.Key, g => (g.First().Plan.ExternalId, g.First().Session));
+
+            sessionLookupByClient[clientId] = lookup;
+            return lookup;
+        }
+
+        foreach (var key in allKeys)
+        {
+            var (clientId, sessionId, date) = key;
+
+            var existingFilter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, sessionId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.Date, date);
+
+            if (await _mongo.SessionExecutions.Find(existingFilter).AnyAsync(ct))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            planBoundLogsByKey.TryGetValue(key, out var log);
+            completionsByKey.TryGetValue(key, out var completion);
+
+            var clientSessionLookup = await GetClientSessionLookupAsync(clientId);
+            clientSessionLookup.TryGetValue(sessionId, out var resolved);
+
+            SessionExecution execution;
+
+            if (log is not null && completion is not null)
+            {
+                execution = BuildFromLog(log, clientId, sessionId, date);
+                ApplyCompletionFlags(execution, completion);
+                var isComplete = log.IsCompleted || (resolved.Session is not null && completion.IsSessionComplete(resolved.Session));
+                execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                mergedCount++;
+            }
+            else if (log is not null)
+            {
+                execution = BuildFromLog(log, clientId, sessionId, date);
+                execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                logOnlyCount++;
+            }
+            else
+            {
+                execution = new SessionExecution
+                {
+                    ExternalId = Guid.NewGuid(),
+                    ClientId = clientId,
+                    PlanId = resolved.PlanId == Guid.Empty ? null : resolved.PlanId,
+                    SessionId = sessionId,
+                    Date = date,
+                    DateCreated = completion!.DateCreated,
+                    DateUpdated = completion.DateUpdated,
+                    Version = 1
+                };
+                ApplyCompletionFlags(execution, completion!);
+                var isComplete = resolved.Session is not null && completion.IsSessionComplete(resolved.Session);
+                execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                completionOnlyCount++;
+            }
+
+            await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+        }
+
+        // ── Ad-hoc (unplanned) WorkoutLogs — 1:1 migration, identity = ExternalId ────────
+        foreach (var log in allLogs.Where(l => !l.SessionId.HasValue))
+        {
+            var existingFilter = Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, log.ExternalId);
+            if (await _mongo.SessionExecutions.Find(existingFilter).AnyAsync(ct))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var date = log.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(log.StartedAt);
+            var execution = BuildFromLog(log, log.ClientId, null, date);
+            execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+
+            await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            adHocCount++;
+        }
+
+        _logger.LogInformation(
+            "SessionExecution migration (#841): merged={Merged} logOnly={LogOnly} completionOnly={CompletionOnly} " +
+            "adHoc={AdHoc} skipped(alreadyMigrated)={Skipped}",
+            mergedCount, logOnlyCount, completionOnlyCount, adHocCount, skippedCount);
+
+        return (mergedCount, logOnlyCount, completionOnlyCount, adHocCount, skippedCount);
+    }
+
+    private static SessionExecution BuildFromLog(WorkoutLog log, Guid clientId, Guid? sessionId, DateTime date)
+    {
+        return new SessionExecution
+        {
+            ExternalId = log.ExternalId,
+            ClientId = clientId,
+            PlanId = log.PlanId,
+            SessionId = sessionId,
+            Date = date,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = log.StartedAt,
+                CompletedAt = log.CompletedAt,
+                Mood = log.Mood,
+                Notes = log.Notes,
+                WodResult = log.WodResult,
+                Sections = log.Sections
+            },
+            DateCreated = log.DateCreated,
+            DateUpdated = log.DateUpdated,
+            Version = 1
+        };
+    }
+
+    private static void ApplyCompletionFlags(SessionExecution execution, TrainingCompletion completion)
+    {
+        execution.CompletedExerciseIds = completion.CompletedExerciseIds;
+        execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
+        execution.CompletedSectionIds = completion.CompletedSectionIds;
+        execution.CompletedSets = completion.CompletedSets;
     }
 
     // ── #837: retire plan/workout/completion schema-on-read ──────────────────────

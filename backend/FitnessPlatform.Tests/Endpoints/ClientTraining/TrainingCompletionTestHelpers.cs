@@ -170,9 +170,12 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates a <see cref="TrainingCompletion"/> document for the given session and date.
+    /// Creates a <see cref="SessionExecution"/> document (checkbox-only — no Performance) for the
+    /// given session and date. #841: unifies the retired <c>TrainingCompletion</c> document this
+    /// helper used to build; kept the same name/parameter shape for minimal call-site churn across
+    /// the ClientTraining test suite.
     /// </summary>
-    public static TrainingCompletion CreateCompletion(
+    public static SessionExecution CreateCompletion(
         Guid clientId,
         Guid sessionId,
         DateTime date,
@@ -181,12 +184,13 @@ public static class TrainingCompletionTestHelpers
         int version = 1,
         Dictionary<string, List<Guid>>? completedExerciseIdsBySection = null)
     {
-        return new TrainingCompletion
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
             Date = date.Date,
             SessionId = sessionId,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
             CompletedSectionIds = completedSectionIds?.ToList(),
             CompletedExerciseIdsBySection = completedExerciseIdsBySection,
@@ -266,16 +270,19 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoContext"/> with configured collections for
-    /// training plans and training completions. <paramref name="workoutLogs"/> is
-    /// optional; when supplied the mock WorkoutLogs collection will contain those
-    /// documents and <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> will
-    /// return a successful result.
+    /// Creates a mock <see cref="IMongoContext"/> with configured collections for training plans
+    /// and (#841) the unified SessionExecutions collection. <paramref name="existingCompletion"/>
+    /// is a checkbox-flag-only <see cref="SessionExecution"/> (see <see cref="CreateCompletion"/>);
+    /// <paramref name="workoutLogs"/> is retained for call-site compatibility with tests written
+    /// against the retired dual-collection model — Performance-bearing fixtures passed here are
+    /// converted to SessionExecution documents and merged into the SAME stubbed collection, since
+    /// every Mark*/GetTodaySession endpoint under test now reads exclusively
+    /// <see cref="IMongoContext.SessionExecutions"/>.
     /// </summary>
-    public static (IMongoContext Mongo, IMongoCollection<TrainingCompletion> CompletionCollection)
+    public static (IMongoContext Mongo, IMongoCollection<SessionExecution> ExecutionCollection)
         CreateMockMongo(
             TrainingPlan? plan = null,
-            TrainingCompletion? existingCompletion = null,
+            SessionExecution? existingCompletion = null,
             IReadOnlyList<WorkoutLog>? workoutLogs = null)
     {
         var mongo = Substitute.For<IMongoContext>();
@@ -285,19 +292,120 @@ public static class TrainingCompletionTestHelpers
         var planCollection = CreateMockPlanCollection(plans);
         mongo.TrainingPlans.Returns(planCollection);
 
-        // Training completions
-        var completions = existingCompletion is not null
-            ? new List<TrainingCompletion> { existingCompletion }
-            : new List<TrainingCompletion>();
-        var completionCollection = CreateMockCompletionCollection(completions);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        // SessionExecutions (#841) — checkbox-flag fixture plus any Performance-bearing
+        // WorkoutLog fixtures translated to SessionExecution documents.
+        var executions = new List<SessionExecution>();
+        if (existingCompletion is not null)
+            executions.Add(existingCompletion);
+        foreach (var log in workoutLogs ?? [])
+            executions.Add(ToSessionExecution(log));
 
-        // WorkoutLogs — empty by default so the new best-effort WorkoutLog cleanup
-        // paths in MarkSessionIncomplete / MarkExerciseIncomplete don't throw.
-        var logCollection = CreateMockWorkoutLogCollection(workoutLogs ?? []);
-        mongo.WorkoutLogs.Returns(logCollection);
+        var executionCollection = CreateMockSessionExecutionCollection(executions);
+        mongo.SessionExecutions.Returns(executionCollection);
 
-        return (mongo, completionCollection);
+        return (mongo, executionCollection);
+    }
+
+    /// <summary>
+    /// Converts a legacy <see cref="WorkoutLog"/> fixture into a Performance-bearing
+    /// <see cref="SessionExecution"/> — the shape every ClientTraining endpoint under test now
+    /// reads instead of the retired WorkoutLog document (#841).
+    /// </summary>
+    public static SessionExecution ToSessionExecution(WorkoutLog log)
+    {
+        return new SessionExecution
+        {
+            ExternalId = log.ExternalId,
+            ClientId = log.ClientId,
+            PlanId = log.PlanId,
+            SessionId = log.SessionId,
+            Date = log.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(log.StartedAt),
+            Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = log.StartedAt,
+                CompletedAt = log.CompletedAt,
+                Mood = log.Mood,
+                Notes = log.Notes,
+                WodResult = log.WodResult,
+                Sections = log.Sections
+            },
+            DateCreated = log.DateCreated,
+            DateUpdated = log.DateUpdated,
+            Version = 1
+        };
+    }
+
+    /// <summary>
+    /// Creates a mock <see cref="IMongoCollection{SessionExecution}"/> backed by the supplied list.
+    /// FindAsync/CountDocumentsAsync return-value semantics mirror the pre-#841
+    /// CreateMockCompletionCollection; InsertOneAsync/UpdateOneAsync/ReplaceOneAsync are stubbed to
+    /// succeed without mutating the seeded list (tests inspect the in-memory objects directly or
+    /// assert on ReceivedCalls()).
+    /// </summary>
+    public static IMongoCollection<SessionExecution> CreateMockSessionExecutionCollection(
+        List<SessionExecution> executions,
+        bool updateSucceeds = true)
+    {
+        var collection = Substitute.For<IMongoCollection<SessionExecution>>();
+
+        collection.FindAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateExecutionCursor(executions));
+
+        collection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(executions.Count);
+
+        collection.InsertOneAsync(
+                Arg.Any<SessionExecution>(),
+                Arg.Any<InsertOneOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(updateSucceeds ? 1L : 0L);
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<UpdateDefinition<SessionExecution>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
+
+        var replaceResult = Substitute.For<ReplaceOneResult>();
+        replaceResult.ModifiedCount.Returns(1L);
+        collection.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<SessionExecution>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(replaceResult);
+
+        return collection;
+    }
+
+    private static IAsyncCursor<SessionExecution> CreateExecutionCursor(List<SessionExecution> executions)
+    {
+        var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
+        var moved = false;
+        cursor.Current.Returns(executions);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return executions.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return executions.Count > 0;
+        });
+        return cursor;
     }
 
     /// <summary>

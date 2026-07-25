@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -12,12 +13,12 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutLogs.UpdateWorkout;
 
 /// <summary>
-/// Progressively updates a workout log with exercise/set data.
+/// Progressively updates a session execution's Performance data with exercise/set data.
 /// Designed for offline-first: replaces all exercise data with current state.
 /// As a best-effort side-effect, detects newly-completed sets that beat the
 /// client's historical best weight (tie-broken by reps) and writes a
 /// <see cref="PersonalRecord"/> document for each one, then marks the
-/// corresponding <see cref="WorkoutSet.IsPR"/> flag on the log.
+/// corresponding <see cref="WorkoutSet.IsPR"/> flag on the execution.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">PostgreSQL context (used for trainer-link lookup).</param>
@@ -54,11 +55,12 @@ public class UpdateWorkoutEndpoint(
 
         var clientId = Guid.Parse(userId);
 
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, req.LogId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, false);
+        var filter = Builders<SessionExecution>.Filter.Eq(w => w.ExternalId, req.LogId)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Partial);
 
-        using var cursor = await mongo.WorkoutLogs.FindAsync(filter, cancellationToken: ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
         var log = await cursor.FirstOrDefaultAsync(ct);
 
         if (log is null)
@@ -67,10 +69,12 @@ public class UpdateWorkoutEndpoint(
             return;
         }
 
+        var performance = log.Performance!;
+
         // ── Snapshot previously-completed sets BEFORE we overwrite them ──────────
         // Key: (sectionId, exerciseExternalId, setNumber) → true if already completed.
         // Used downstream to determine which sets are *newly* completed this call.
-        var previouslyCompleted = log.Sections
+        var previouslyCompleted = performance.Sections
             .SelectMany(sec => sec.Exercises
                 .SelectMany(e => e.Sets
                     .Where(s => s.CompletedAt.HasValue)
@@ -85,7 +89,7 @@ public class UpdateWorkoutEndpoint(
         //
         // Keying includes SectionId so that the same exercise repeated in two
         // different sections (e.g. standard + AMRAP) gets independent snapshots.
-        var storedSetLookup = log.Sections
+        var storedSetLookup = performance.Sections
             .SelectMany(sec => sec.Exercises
                 .SelectMany(e => e.Sets.Select(s => (sec.SectionId, e.ExerciseExternalId, s))))
             .ToDictionary(
@@ -97,9 +101,9 @@ public class UpdateWorkoutEndpoint(
         var allHaveSectionId = req.Exercises.Count > 0
                                && req.Exercises.All(e => e.SectionId.HasValue);
 
-        log.Mood = req.Mood;
-        log.Notes = req.Notes?.Trim();
-        log.WodResult = req.WodResult;
+        performance.Mood = req.Mood;
+        performance.Notes = req.Notes?.Trim();
+        performance.WodResult = req.WodResult;
 
         if (allHaveSectionId)
         {
@@ -115,7 +119,7 @@ public class UpdateWorkoutEndpoint(
 
             // Walk existing sections and update their exercise lists.
             // Sections in the stored log that are not in the request remain untouched.
-            foreach (var section in log.Sections)
+            foreach (var section in performance.Sections)
             {
                 if (!exercisesBySectionId.TryGetValue(section.SectionId, out var sectionExercises))
                     continue;
@@ -151,17 +155,17 @@ public class UpdateWorkoutEndpoint(
 
             // Handle exercises for sections that don't exist yet in the stored log
             // (can happen on first write if the document was just created with no sections).
-            var existingSectionIds = log.Sections.Select(s => s.SectionId).ToHashSet();
+            var existingSectionIds = performance.Sections.Select(s => s.SectionId).ToHashSet();
             foreach (var (sectionId, sectionExercises) in exercisesBySectionId)
             {
                 if (existingSectionIds.Contains(sectionId))
                     continue;
 
                 // New section for this log — add it at the end.
-                log.Sections.Add(new WorkoutSection
+                performance.Sections.Add(new WorkoutSection
                 {
                     SectionId = sectionId,
-                    Order = log.Sections.Count,
+                    Order = performance.Sections.Count,
                     Name = "Hlavní",
                     Exercises = sectionExercises.Select(re => new WorkoutExercise
                     {
@@ -194,8 +198,8 @@ public class UpdateWorkoutEndpoint(
             // This preserves backward compatibility with clients that do not send SectionId.
             // For multi-section logs that already exist, all request exercises collapse
             // into the first section — this is the existing behaviour for legacy clients.
-            var fallbackSectionId = log.Sections.Count > 0
-                ? log.Sections[0].SectionId
+            var fallbackSectionId = performance.Sections.Count > 0
+                ? performance.Sections[0].SectionId
                 : Guid.NewGuid();
 
             var exercises = req.Exercises.Select(re => new WorkoutExercise
@@ -229,13 +233,13 @@ public class UpdateWorkoutEndpoint(
                 }).ToList()
             }).ToList();
 
-            if (log.Sections.Count == 1)
+            if (performance.Sections.Count == 1)
             {
-                log.Sections[0].Exercises = exercises;
+                performance.Sections[0].Exercises = exercises;
             }
             else
             {
-                log.Sections =
+                performance.Sections =
                 [
                     new WorkoutSection
                     {
@@ -250,7 +254,7 @@ public class UpdateWorkoutEndpoint(
 
         log.DateUpdated = DateTime.UtcNow;
 
-        await mongo.WorkoutLogs.ReplaceOneAsync(
+        await mongo.SessionExecutions.ReplaceOneAsync(
             w => w.ExternalId == req.LogId,
             log,
             cancellationToken: ct);
@@ -268,7 +272,7 @@ public class UpdateWorkoutEndpoint(
             if (prFlagsChanged)
             {
                 log.DateUpdated = DateTime.UtcNow;
-                await mongo.WorkoutLogs.ReplaceOneAsync(
+                await mongo.SessionExecutions.ReplaceOneAsync(
                     w => w.ExternalId == req.LogId,
                     log,
                     cancellationToken: ct);
@@ -277,7 +281,7 @@ public class UpdateWorkoutEndpoint(
         catch (Exception ex)
         {
             logger.LogWarning(ex,
-                "PR detection side-effect failed for workout log {LogId}. Log update succeeded.",
+                "PR detection side-effect failed for session execution {LogId}. Log update succeeded.",
                 req.LogId);
         }
 
@@ -289,7 +293,7 @@ public class UpdateWorkoutEndpoint(
     // (so the caller knows to persist the updated log).
 
     private async Task<bool> DetectAndPersistPRsAsync(
-        WorkoutLog log,
+        SessionExecution log,
         Guid clientId,
         HashSet<(Guid SectionId, Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
         IRealtimeNotifier realtimeNotifier,
@@ -298,7 +302,7 @@ public class UpdateWorkoutEndpoint(
         // Collect newly-completed sets (CompletedAt moved null → non-null),
         // only for sets with both weight and reps recorded (required for comparison).
         // Key lookup uses (SectionId, ExerciseExternalId, SetNumber) to match the updated snapshot.
-        var newlyCompletedByExercise = log.Sections
+        var newlyCompletedByExercise = log.Performance!.Sections
             .SelectMany(sec => sec.Exercises
                 .SelectMany(e => e.Sets
                     .Where(s =>
@@ -315,17 +319,16 @@ public class UpdateWorkoutEndpoint(
 
         // ── Historical logs for prior-max lookups — fetched ONCE per request ───────
         // Exercises now live inside sections, so ElemMatch on a flat exercises field is not
-        // available. Filter by clientId + isCompleted + not-this-log; exercise lookup is done
-        // in-memory per exercise group below. This query does not vary by exercise, so it is
-        // hoisted above the per-exercise loop (was previously re-issued once per distinct
-        // exercise in the session — see #661). The per-exercise running-max scan below is
-        // unchanged, so results are identical to the pre-fix behavior.
-        var priorLogFilter = Builders<WorkoutLog>.Filter.And(
-            Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId),
-            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true),
-            Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, log.ExternalId));
+        // available. Filter by clientId + completed + carries Performance + not-this-log;
+        // exercise lookup is done in-memory per exercise group below. This query does not vary
+        // by exercise, so it is hoisted above the per-exercise loop (see #661).
+        var priorLogFilter = Builders<SessionExecution>.Filter.And(
+            Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientId),
+            Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed),
+            Builders<SessionExecution>.Filter.Exists(w => w.Performance),
+            Builders<SessionExecution>.Filter.Ne(w => w.ExternalId, log.ExternalId));
 
-        using var priorCursor = await mongo.WorkoutLogs.FindAsync(
+        using var priorCursor = await mongo.SessionExecutions.FindAsync(
             priorLogFilter,
             cancellationToken: ct);
         var priorLogs = await priorCursor.ToListAsync(ct);
@@ -337,7 +340,7 @@ public class UpdateWorkoutEndpoint(
             var exerciseExternalId = exerciseGroup.Key;
             var exercise = exerciseGroup.First().Exercise;
 
-            // ── 1. Historical max from prior COMPLETED workout logs ───────────────
+            // ── 1. Historical max from prior COMPLETED session executions ─────────
             decimal runningBestWeight = 0m;
             int runningBestReps = 0;
 

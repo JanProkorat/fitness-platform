@@ -40,10 +40,10 @@ public class StartWorkoutEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w =>
                 w.ClientId == _clientId &&
-                !w.IsCompleted),
+                w.Status == SessionExecutionStatus.Partial),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -76,8 +76,8 @@ public class StartWorkoutEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
-            Arg.Any<WorkoutLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await mongo.SessionExecutions.DidNotReceive().InsertOneAsync(
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public class StartWorkoutEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(403);
 
-        await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
-            Arg.Any<WorkoutLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await mongo.SessionExecutions.DidNotReceive().InsertOneAsync(
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -142,12 +142,12 @@ public class StartWorkoutEndpointTests
         // 201 created — draft log exists but no lock was acquired
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w =>
                 w.ClientId == _clientId &&
                 w.PlanId == planId &&
                 w.SessionId == sessionId &&
-                !w.IsCompleted),
+                w.Status == SessionExecutionStatus.Partial),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

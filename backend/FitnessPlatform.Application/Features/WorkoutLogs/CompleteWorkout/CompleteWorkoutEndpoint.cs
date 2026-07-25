@@ -15,9 +15,9 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 
 /// <summary>
-/// Completes a workout session: runs PR detection, creates notifications, marks as done,
-/// and fans out a <see cref="TrainingCompletion"/> document so that compliance and streak
-/// calculations pick up the live workout alongside plan-driven completions.
+/// Completes a workout session: runs PR detection, creates notifications, and marks the
+/// <see cref="SessionExecution"/> Completed (Performance + checkbox completion flags in a single
+/// write — #841 retired the separate TrainingCompletion fan-out).
 /// Also releases the <c>Live</c> session lock when the log is plan-bound
 /// (i.e. when the log carries a non-null <c>SessionId</c>).
 /// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is released.
@@ -63,11 +63,12 @@ public class CompleteWorkoutEndpoint(
 
         var clientId = Guid.Parse(userId);
 
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, req.LogId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, false);
+        var filter = Builders<SessionExecution>.Filter.Eq(w => w.ExternalId, req.LogId)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Partial);
 
-        using var cursor = await mongo.WorkoutLogs.FindAsync(filter, cancellationToken: ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
         var log = await cursor.FirstOrDefaultAsync(ct);
 
         if (log is null)
@@ -133,7 +134,7 @@ public class CompleteWorkoutEndpoint(
                         notifier, compliance, mongo, plan,
                         clientId: plan.ClientId,
                         sessionId: log.SessionId.Value,
-                        date: DateOnly.FromDateTime(log.CompletedDate ?? DateTime.UtcNow),
+                        date: DateOnly.FromDateTime(log.Date),
                         completedExerciseCount: totalExercises,
                         totalExerciseCount: totalExercises,
                         logger, ct);

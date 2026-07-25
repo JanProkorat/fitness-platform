@@ -396,6 +396,33 @@ if (args.Contains("--migrate-client-ids"))
     return;
 }
 
+// One-shot migration (#841): merge every WorkoutLog + TrainingCompletion document into the
+// unified SessionExecution collection.
+//
+// This is the PRODUCTION entrypoint for this migration, mirroring --migrate-client-ids (#840)
+// above — Render does not set Database:RunMigrationsOnStartup, so this must be run once as an
+// intentional deploy step:
+//
+//   dotnet run -- --migrate-session-executions
+//
+// Idempotent — safe to re-run; see MongoIndexInitializer.MigrateSessionExecutionsAsync's
+// remarks for the idempotency argument (identity = (clientId, sessionId, date) for plan-bound
+// executions, ExternalId for ad-hoc ones).
+//
+// Pure Mongo-to-Mongo — unlike --migrate-client-ids this needs no IApplicationDbContext scope.
+if (args.Contains("--migrate-session-executions"))
+{
+    using var scope = app.Services.CreateScope();
+    var mongoIndexInitializer = scope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+    var (merged, logOnly, completionOnly, adHoc, skipped) =
+        await mongoIndexInitializer.MigrateSessionExecutionsAsync(CancellationToken.None);
+    Console.WriteLine(
+        $"SessionExecution migration (#841) complete — merged={merged} logOnly={logOnly} " +
+        $"completionOnly={completionOnly} adHoc={adHoc} skipped(alreadyMigrated)={skipped}. " +
+        "See log output above for details.");
+    return;
+}
+
 // Auto-apply pending EF Core migrations — OPT-IN via Database:RunMigrationsOnStartup=true.
 //
 // This flag is intentionally OFF by default. It must be set explicitly in the

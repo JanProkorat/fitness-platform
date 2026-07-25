@@ -19,13 +19,13 @@ public class ComplianceServiceTests
 
     /// <summary>
     /// Creates a mocked IMongoContext with nutrition plans, meal logs, training plans,
-    /// and training completions collections.
+    /// and (#841) the unified SessionExecutions collection.
     /// </summary>
     private static IMongoContext CreateMongo(
         NutritionPlan[]? nutritionPlans = null,
         List<MealLog>? mealLogs = null,
         TrainingPlan? trainingPlan = null,
-        List<TrainingCompletion>? completions = null)
+        List<SessionExecution>? completions = null)
     {
         var mongo = PlanTestHelpers.CreateMockMongo(nutritionPlans);
 
@@ -49,10 +49,10 @@ public class ComplianceServiceTests
             .Returns(_ => CreateTrainingPlanCursor(trainingPlanList));
         mongo.TrainingPlans.Returns(trainingPlanColl);
 
-        // Training completions
+        // SessionExecutions (#841) — unified checkbox + performance collection
         var completionList = completions ?? [];
-        var completionColl = TrainingCompletionTestHelpers.CreateMockCompletionCollection(completionList);
-        mongo.TrainingCompletions.Returns(completionColl);
+        var completionColl = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(completionList);
+        mongo.SessionExecutions.Returns(completionColl);
 
         return mongo;
     }

@@ -39,10 +39,11 @@ public class GetWorkoutLogEndpoint(IMongoContext mongo) : Endpoint<GetWorkoutLog
 
         var clientId = Guid.Parse(userId);
 
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, req.LogId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId);
+        var filter = Builders<SessionExecution>.Filter.Eq(w => w.ExternalId, req.LogId)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
 
-        using var cursor = await mongo.WorkoutLogs.FindAsync(filter, cancellationToken: ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
         var log = await cursor.FirstOrDefaultAsync(ct);
 
         if (log is null)
