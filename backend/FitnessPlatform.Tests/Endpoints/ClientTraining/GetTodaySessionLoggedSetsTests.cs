@@ -118,6 +118,26 @@ public class GetTodaySessionLoggedSetsTests
             });
         mongo.WorkoutLogs.Returns(logCollection);
 
+        // SessionExecutions (#841) — GetTodaySessionEndpoint reads this collection
+        // exclusively; the TrainingCompletions/WorkoutLogs stubs above are retained only
+        // for legacy call-site compatibility and are never consulted by the endpoint.
+        var executionDocs = logDocs.Select(TrainingCompletionTestHelpers.ToSessionExecution).ToList();
+        var executionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
+        executionCollection.FindAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
+                var moved = false;
+                cursor.Current.Returns(executionDocs);
+                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return executionDocs.Count > 0; });
+                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return executionDocs.Count > 0; });
+                return cursor;
+            });
+        mongo.SessionExecutions.Returns(executionCollection);
+
         // SessionLogs collection (empty)
         var sessionLogCollection = Substitute.For<IMongoCollection<SessionLog>>();
         sessionLogCollection.FindAsync(
