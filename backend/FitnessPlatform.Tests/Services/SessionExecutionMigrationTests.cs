@@ -384,4 +384,145 @@ public class SessionExecutionMigrationTests
             .Find(Builders<SessionExecution>.Filter.Empty).ToListAsync(ct);
         totalExecutions.Should().HaveCount(2, "exactly one pre-existing (client A) plus one newly-migrated (client B) document");
     }
+
+    // ── (5) M1 (#841) — E11000 TOCTOU GUARD ──────────────────────────────────────────
+    //
+    // Render deploys the migration CLI arg (--migrate-session-executions) while the
+    // service keeps serving live traffic — there is no maintenance window. The up-front
+    // existence check MigrateSessionExecutionsAsync runs per key is a plain, unlocked
+    // read; a concurrent live write for the same identity can land between that check
+    // and the migration's own InsertOneAsync. These two tests reproduce that race
+    // deterministically via the test-only BeforePlanBoundInsertAsync / BeforeAdHocInsertAsync
+    // hooks (fired at the exact point the race would occur) instead of relying on real
+    // thread timing, and prove the resulting E11000 is swallowed — counted as skipped —
+    // rather than bubbling up and aborting the rest of the migration run.
+
+    [Fact]
+    public async Task MigrateSessionExecutionsAsync_ConcurrentLiveInsertBetweenCheckAndInsert_PlanBound_SkipsWithoutThrowing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (container, mongo) = await CreateMongoAsync("session_execution_toctou_planbound_test", ct);
+        await using var containerDisposable = container;
+
+        var initializer = CreateInitializer(mongo);
+
+        // The partial unique index (clientId, sessionId, date) is what turns this race into
+        // an E11000 in the first place. MigrateSessionExecutionsAsync itself never creates
+        // it — that's StartAsync's job, run once at boot — so without creating it here the
+        // "concurrent" duplicate insert below would succeed silently and this test would
+        // prove nothing.
+        await initializer.CreateSessionExecutionIndexes(ct);
+
+        var clientId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+        var date = DateTime.UtcNow.Date;
+
+        var log = BuildLog(clientId, planId, sessionId, date, isCompleted: true, exerciseId);
+        await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: ct);
+
+        // Simulate the concurrent live writer: e.g. the client finishing this workout via
+        // the running API, in a separate process, landing at the exact same
+        // (clientId, sessionId, date) identity right between the migration's up-front
+        // existence check and its own insert.
+        var concurrentWrite = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            SessionId = sessionId,
+            Date = date,
+            Status = SessionExecutionStatus.Completed,
+            DateCreated = date,
+            Version = 1
+        };
+        initializer.BeforePlanBoundInsertAsync = async (_, _, _) =>
+        {
+            initializer.BeforePlanBoundInsertAsync = null; // fire once
+            await mongo.SessionExecutions.InsertOneAsync(concurrentWrite, cancellationToken: ct);
+        };
+
+        (long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped) result = default;
+        var act = async () => { result = await initializer.MigrateSessionExecutionsAsync(ct); };
+
+        await act.Should().NotThrowAsync(
+            "an E11000 raised by a concurrent live write racing the migration's own insert must " +
+            "be swallowed and counted as skipped, not bubble up and abort the whole migration run");
+
+        result.Merged.Should().Be(0, "the migration's own insert lost the race, so it must not count itself as merged");
+        result.LogOnly.Should().Be(0);
+        result.CompletionOnly.Should().Be(0);
+        result.AdHoc.Should().Be(0);
+        result.Skipped.Should().Be(1, "the duplicate-key race must be counted as skipped");
+
+        // Exactly the concurrent writer's document survives — the migration must not have
+        // overwritten it or created a second document at the same key.
+        var executions = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, sessionId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.Date, date))
+            .ToListAsync(ct);
+        executions.Should().HaveCount(1, "only the concurrent live writer's document must exist at this key");
+        executions.Single().ExternalId.Should().Be(concurrentWrite.ExternalId,
+            "the surviving document must be the concurrent writer's, not one the migration tried to insert");
+    }
+
+    [Fact]
+    public async Task MigrateSessionExecutionsAsync_ConcurrentLiveInsertBetweenCheckAndInsert_AdHoc_SkipsWithoutThrowing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (container, mongo) = await CreateMongoAsync("session_execution_toctou_adhoc_test", ct);
+        await using var containerDisposable = container;
+
+        var initializer = CreateInitializer(mongo);
+
+        // Same rationale as the plan-bound test above, but this time it's the ExternalId
+        // unique index (idx_sessionexecution_externalId) that the ad-hoc insert path relies
+        // on to turn the race into an E11000.
+        await initializer.CreateSessionExecutionIndexes(ct);
+
+        var clientId = Guid.NewGuid();
+        var exerciseId = Guid.NewGuid();
+        var date = DateTime.UtcNow.Date;
+
+        // Ad-hoc (unplanned) log — no SessionId, so identity is the WorkoutLog's own ExternalId.
+        var log = BuildLog(clientId, planId: null, sessionId: null, date, isCompleted: true, exerciseId);
+        await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: ct);
+
+        // Concurrent live writer creates the SessionExecution at the SAME ExternalId
+        // (carried over 1:1 from the source WorkoutLog per the migration's identity
+        // contract) before the migration's own insert executes.
+        var concurrentWrite = new SessionExecution
+        {
+            ExternalId = log.ExternalId,
+            ClientId = clientId,
+            Status = SessionExecutionStatus.Completed,
+            DateCreated = date,
+            Version = 1
+        };
+        initializer.BeforeAdHocInsertAsync = async _ =>
+        {
+            initializer.BeforeAdHocInsertAsync = null; // fire once
+            await mongo.SessionExecutions.InsertOneAsync(concurrentWrite, cancellationToken: ct);
+        };
+
+        (long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped) result = default;
+        var act = async () => { result = await initializer.MigrateSessionExecutionsAsync(ct); };
+
+        await act.Should().NotThrowAsync(
+            "an E11000 raised by a concurrent live write racing the migration's own ad-hoc insert " +
+            "must be swallowed and counted as skipped, not bubble up and abort the whole migration run");
+
+        result.Merged.Should().Be(0);
+        result.LogOnly.Should().Be(0);
+        result.CompletionOnly.Should().Be(0);
+        result.AdHoc.Should().Be(0, "the migration's own ad-hoc insert lost the race, so it must not count itself");
+        result.Skipped.Should().Be(1, "the duplicate-key race must be counted as skipped");
+
+        var executions = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, log.ExternalId))
+            .ToListAsync(ct);
+        executions.Should().HaveCount(1, "only the concurrent live writer's document must exist at this ExternalId");
+        executions.Single().ClientId.Should().Be(clientId);
+    }
 }

@@ -40,6 +40,24 @@ public class MongoIndexInitializer : IHostedService
     private readonly ILogger<MongoIndexInitializer> _logger;
 
     /// <summary>
+    /// Test-only hook (#841 M1). Invoked with (ClientId, SessionId, Date) immediately after
+    /// the plan-bound up-front existence check in <see cref="MigrateSessionExecutionsAsync"/>
+    /// has already returned "not found", but before that key's own <c>InsertOneAsync</c>
+    /// runs. Lets integration tests deterministically simulate the TOCTOU race this method
+    /// guards against — a concurrent live write landing at the same identity between the
+    /// check and the insert — without depending on real thread timing. Always <c>null</c> in
+    /// production.
+    /// </summary>
+    internal Func<Guid, Guid, DateTime, Task>? BeforePlanBoundInsertAsync { get; set; }
+
+    /// <summary>
+    /// Test-only hook (#841 M1), same purpose as <see cref="BeforePlanBoundInsertAsync"/> but
+    /// for the ad-hoc (ExternalId-identity) insert path. Invoked with the WorkoutLog's
+    /// ExternalId. Always <c>null</c> in production.
+    /// </summary>
+    internal Func<Guid, Task>? BeforeAdHocInsertAsync { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of <see cref="MongoIndexInitializer"/>.
     /// </summary>
     public MongoIndexInitializer(IMongoContext mongo, ILogger<MongoIndexInitializer> logger)
@@ -672,7 +690,15 @@ public class MongoIndexInitializer : IHostedService
     // with E11000. No backfill step is needed here — every SessionExecution write path always
     // sets Date at creation time (unlike legacy WorkoutLog.CompletedDate, which was backfilled
     // from CompletedAt) — but dedup is retained as defense in depth.
-    private async Task CreateSessionExecutionIndexes(CancellationToken ct)
+    /// <summary>
+    /// Creates the SessionExecution indexes (ExternalId unique, ClientId+Date, and the
+    /// partial-unique ClientId+SessionId+Date). <c>internal</c> rather than <c>private</c>
+    /// solely so <c>SessionExecutionMigrationTests</c> can create these indexes directly in
+    /// a dedicated per-test container without needing to call the full <see cref="StartAsync"/>
+    /// (which also runs the unrelated #837 backfills) — see
+    /// <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> elsewhere in this assembly.
+    /// </summary>
+    internal async Task CreateSessionExecutionIndexes(CancellationToken ct)
     {
         var indexes = _mongo.SessionExecutions.Indexes;
 
@@ -867,6 +893,7 @@ public class MongoIndexInitializer : IHostedService
             clientSessionLookup.TryGetValue(sessionId, out var resolved);
 
             SessionExecution execution;
+            Action recordCategory;
 
             if (log is not null && completion is not null)
             {
@@ -874,13 +901,13 @@ public class MongoIndexInitializer : IHostedService
                 ApplyCompletionFlags(execution, completion);
                 var isComplete = log.IsCompleted || (resolved.Session is not null && completion.IsSessionComplete(resolved.Session));
                 execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
-                mergedCount++;
+                recordCategory = () => mergedCount++;
             }
             else if (log is not null)
             {
                 execution = BuildFromLog(log, clientId, sessionId, date);
                 execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
-                logOnlyCount++;
+                recordCategory = () => logOnlyCount++;
             }
             else
             {
@@ -898,10 +925,46 @@ public class MongoIndexInitializer : IHostedService
                 ApplyCompletionFlags(execution, completion!);
                 var isComplete = resolved.Session is not null && completion.IsSessionComplete(resolved.Session);
                 execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
-                completionOnlyCount++;
+                recordCategory = () => completionOnlyCount++;
             }
 
-            await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            // M1 (#841): the up-front existence check (allKeys / the per-key candidate
+            // query above) is a plain read — it does not lock anything. When this
+            // migration is run while the service serves live traffic (the Render deploy
+            // model has no maintenance window), a live write for this same
+            // (clientId, sessionId, date) key can land between that check and this
+            // insert (TOCTOU). The live path already created the authoritative document
+            // in that race, so an E11000 here means "already handled" — count it as
+            // skipped and move on rather than letting the whole migration run abort.
+            if (BeforePlanBoundInsertAsync is not null)
+                await BeforePlanBoundInsertAsync(clientId, sessionId, date);
+
+            try
+            {
+                await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on plan-bound insert for " +
+                    "client={ClientId} session={SessionId} date={Date:u} — a concurrent live " +
+                    "write won the race; skipping.",
+                    clientId, sessionId, date);
+                skippedCount++;
+                continue;
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000 || ex.CodeName == "DuplicateKey")
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on plan-bound insert for " +
+                    "client={ClientId} session={SessionId} date={Date:u} — a concurrent live " +
+                    "write won the race; skipping.",
+                    clientId, sessionId, date);
+                skippedCount++;
+                continue;
+            }
+
+            recordCategory();
         }
 
         // ── Ad-hoc (unplanned) WorkoutLogs — 1:1 migration, identity = ExternalId ────────
@@ -918,7 +981,35 @@ public class MongoIndexInitializer : IHostedService
             var execution = BuildFromLog(log, log.ClientId, null, date);
             execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
 
-            await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            // M1 (#841): same TOCTOU guard as the plan-bound insert above — a concurrent
+            // live write may have created a SessionExecution at this ExternalId between
+            // the existence check and this insert.
+            if (BeforeAdHocInsertAsync is not null)
+                await BeforeAdHocInsertAsync(log.ExternalId);
+
+            try
+            {
+                await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on ad-hoc insert for " +
+                    "externalId={ExternalId} — a concurrent live write won the race; skipping.",
+                    log.ExternalId);
+                skippedCount++;
+                continue;
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000 || ex.CodeName == "DuplicateKey")
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on ad-hoc insert for " +
+                    "externalId={ExternalId} — a concurrent live write won the race; skipping.",
+                    log.ExternalId);
+                skippedCount++;
+                continue;
+            }
+
             adHocCount++;
         }
 
