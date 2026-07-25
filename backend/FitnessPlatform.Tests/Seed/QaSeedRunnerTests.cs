@@ -420,13 +420,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.TrainerId.Should().Be(QaSeedRunner.TrainerUserId,
             "TrainingPlan.TrainerId must be ApplicationUser.Id — GetTrainingPlansEndpoint scopes by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId");
-        // ClientId must stay as ClientProfile.PublicId so that TrainingCompletion.ClientId
-        // (written by WorkoutCompletionService as clientProfile.PublicId) matches
+        // ClientId is ApplicationUser.Id (#840) so that TrainingCompletion.ClientId
+        // (written by WorkoutCompletionService as clientProfile.UserId) matches
         // plan.ClientId used in GetTrainingPlanEndpoint's completions fold-in filter.
-        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "TrainingPlan.ClientId must be ClientProfile.PublicId — GetTrainingPlanEndpoint queries " +
+        plan.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "TrainingPlan.ClientId must be ApplicationUser.Id — GetTrainingPlanEndpoint queries " +
             "TrainingCompletion by plan.ClientId and WorkoutCompletionService writes " +
-            "TrainingCompletion.ClientId = clientProfile.PublicId");
+            "TrainingCompletion.ClientId = clientProfile.UserId");
 
         // COMPLETED session — WorkoutLog with IsCompleted=true.
         var completedLog = await mongo.WorkoutLogs
@@ -497,10 +497,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "TrainingPlan.TrainerId must be ApplicationUser.Id (22222222-...) — " +
             "GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId (bbbbbbbb-...)");
-        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "TrainingPlan.ClientId must remain ClientProfile.PublicId (aaaaaaaa-...) — " +
-            "GetClientPlansEndpoint filters by ClientProfile.PublicId and " +
-            "TrainingCompletion.ClientId is also keyed on ClientProfile.PublicId");
+        plan.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "TrainingPlan.ClientId must be ApplicationUser.Id (11111111-...) since #840 — " +
+            "GetClientPlansEndpoint filters TrainingPlan.ClientId by ApplicationUser.Id and " +
+            "TrainingCompletion.ClientId is also keyed on the same identifier");
     }
 
     /// <summary>
@@ -552,8 +552,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
             .FirstOrDefaultAsync(ct);
 
         plan.Should().NotBeNull("QaSeedRunner must create the QA nutrition plan");
-        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "NutritionPlan.ClientId must be keyed on ClientProfile.PublicId, not ApplicationUser.Id");
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "NutritionPlan.ClientId must be keyed on ApplicationUser.Id since #840, not ClientProfile.PublicId");
         plan.NutritionistId.Should().Be(QaSeedRunner.NutriUserId,
             "NutritionPlan.NutritionistId must be keyed on ApplicationUser.Id (NutriUserId), not the professional profile PublicId, so nutritionist endpoint filters match AppClaims.UserId");
         plan.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active);
@@ -733,8 +733,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.Should().NotBeNull("multi-section training plan must be seeded");
         plan!.TrainerId.Should().Be(QaSeedRunner.Trainer2UserId,
             "TrainingPlan.TrainerId must be Trainer2UserId (ApplicationUser.Id)");
-        plan.ClientId.Should().Be(QaSeedRunner.Client2ProfilePublicId,
-            "TrainingPlan.ClientId must be Client2ProfilePublicId (ClientProfile.PublicId)");
+        plan.ClientId.Should().Be(QaSeedRunner.Client2UserId,
+            "TrainingPlan.ClientId must be Client2UserId (ApplicationUser.Id, #840)");
 
         var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
         session.Sections.Should().HaveCount(2, "session has Standard + AMRAP sections");

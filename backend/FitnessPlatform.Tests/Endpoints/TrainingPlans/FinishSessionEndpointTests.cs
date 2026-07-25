@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;

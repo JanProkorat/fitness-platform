@@ -2,9 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
@@ -17,10 +15,8 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
 /// Ad-hoc workouts (null PlanId or null SessionId) skip plan/ownership validation entirely.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="db">Relational database context — used to resolve the caller's ClientProfile.PublicId.</param>
 public class StartWorkoutEndpoint(
-    IMongoContext mongo,
-    IApplicationDbContext db) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
+    IMongoContext mongo) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -56,20 +52,6 @@ public class StartWorkoutEndpoint(
         // there is no session to gate and no trainer who could be editing.
         if (req.PlanId.HasValue && req.SessionId.HasValue)
         {
-            // Resolve the caller's ClientProfile.PublicId — this is what TrainingPlan.ClientId stores.
-            // (TrainingPlan.ClientId = ClientProfile.PublicId, NOT ApplicationUser.Id.)
-            var clientProfile = await db.ClientProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(cp => cp.UserId == clientUserIdGuid, ct);
-
-            if (clientProfile is null)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            var profilePublicId = clientProfile.PublicId;
-
             // Load the plan to validate ownership.
             var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId.Value);
             using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
@@ -81,9 +63,10 @@ public class StartWorkoutEndpoint(
                 return;
             }
 
-            // Ownership check: TrainingPlan.ClientId holds the ClientProfile.PublicId.
-            // Compare against the resolved publicId, NOT the ApplicationUser.Id.
-            if (plan.ClientId != profilePublicId)
+            // Ownership check: TrainingPlan.ClientId holds the ApplicationUser.Id since #840 —
+            // compare directly against the caller's JWT-derived UserId (no ClientProfile lookup
+            // required for this check).
+            if (plan.ClientId != clientUserIdGuid)
             {
                 await Send.ForbiddenAsync(ct);
                 return;

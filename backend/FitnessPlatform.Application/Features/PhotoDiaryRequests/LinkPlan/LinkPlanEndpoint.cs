@@ -60,14 +60,15 @@ public class LinkPlanEndpoint(
             return;
         }
 
-        // Resolve the client's PublicId so the plan-ownership check (below) can verify the
-        // target plan actually belongs to this diary's client. Invite-based requests that
-        // haven't been accepted into a link yet have no resolvable client — the plan can
-        // never be proven to belong to them, so treat as not-owned.
-        Guid? clientPublicId = request.Link?.ClientProfile.PublicId;
+        // Resolve the client's ApplicationUser.Id (Mongo plan documents' ClientId key since
+        // #840) so the plan-ownership check (below) can verify the target plan actually
+        // belongs to this diary's client. Invite-based requests that haven't been accepted
+        // into a link yet have no resolvable client — the plan can never be proven to belong
+        // to them, so treat as not-owned.
+        Guid? clientUserId = request.Link?.ClientProfile.UserId;
 
         var planBelongsToClient = false;
-        if (clientPublicId.HasValue)
+        if (clientUserId.HasValue)
         {
             // Ownership check mirrors CreateRequestEndpoint: check nutrition plans first, then
             // fall back to training plans — the request isn't scoped to a single plan kind.
@@ -79,7 +80,7 @@ public class LinkPlanEndpoint(
 
             if (nutritionPlan is not null)
             {
-                planBelongsToClient = nutritionPlan.ClientId == clientPublicId.Value;
+                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value;
             }
             else
             {
@@ -89,7 +90,7 @@ public class LinkPlanEndpoint(
                     .FindAsync(trainingFilter, cancellationToken: ct))
                     .FirstOrDefaultAsync(ct);
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientPublicId.Value;
+                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value;
             }
         }
 

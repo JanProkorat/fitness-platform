@@ -926,7 +926,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsurePastTrainingPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid trainerProfilePublicId,
         ILogger logger)
     {
@@ -952,13 +952,12 @@ public static class QaSeedRunner
             var plan = new TrainingPlan
             {
                 ExternalId    = QaPastTrainingPlanExternalId,
-                // ClientId is keyed on ClientProfile.PublicId (NOT ApplicationUser.Id) —
-                // GetTrainingPlansEndpoint filters by ClientId = ClientProfile.PublicId when
-                // the caller passes a clientId query param, and TrainingCompletion.ClientId
-                // (written by WorkoutCompletionService) is also keyed on ClientProfile.PublicId.
+                // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) since
+                // #840 — GetTrainingPlansEndpoint and TrainingCompletion (written by
+                // WorkoutCompletionService) are both keyed on the same ApplicationUser.Id.
                 // plan.ClientId and TrainingCompletion.ClientId must match for the completions
-                // fold-in in GetTrainingPlanEndpoint (line 59 filters by plan.ClientId).
-                ClientId      = clientProfilePublicId,
+                // fold-in in GetTrainingPlanEndpoint (line 67 filters by plan.ClientId).
+                ClientId      = clientUserId,
                 // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
                 // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
                 // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
@@ -1280,11 +1279,11 @@ public static class QaSeedRunner
     /// values even when the exercise is the same object.
     ///
     /// TrainerId = Trainer2UserId (ApplicationUser.Id) — same rule as all other plans.
-    /// ClientId  = client2ProfilePublicId (ClientProfile.PublicId) — same rule as all other plans.
+    /// ClientId  = Client2UserId (ApplicationUser.Id, #840) — same rule as all other plans.
     /// </summary>
     private static async Task EnsureMultiSectionTrainingPlanAsync(
         IMongoContext mongo,
-        Guid client2ProfilePublicId,
+        Guid client2UserId,
         Guid trainer2UserId,
         ILogger logger)
     {
@@ -1304,7 +1303,7 @@ public static class QaSeedRunner
         var plan = new TrainingPlan
         {
             ExternalId    = QaMultiSectionPlanExternalId,
-            ClientId      = client2ProfilePublicId,
+            ClientId      = client2UserId,
             TrainerId     = trainer2UserId,
             Name          = "QA Multi-Section Plan — shared-exercise section-keying fixture",
             Status        = TrainingPlanStatus.Active,
@@ -1387,7 +1386,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA MultiSection TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaMultiSectionPlanExternalId, client2ProfilePublicId);
+            QaMultiSectionPlanExternalId, client2UserId);
     }
 
     /// <summary>
@@ -1714,7 +1713,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid nutriUserId,
         ILogger logger)
     {
@@ -1734,7 +1733,7 @@ public static class QaSeedRunner
         var plan = new NutritionPlan
         {
             ExternalId     = QaNutritionPlanExternalId,
-            ClientId       = clientProfilePublicId,
+            ClientId       = clientUserId,
             NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
@@ -1790,7 +1789,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaNutritionPlanExternalId, clientProfilePublicId);
+            QaNutritionPlanExternalId, clientUserId);
     }
 
     /// <summary>
