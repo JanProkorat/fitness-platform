@@ -97,17 +97,17 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Proj", "Plan", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var user = await db.Users.FirstAsync(
                 u => u.Email == email,
                 TestContext.Current.CancellationToken);
-            var profile = await db.ClientProfiles.FirstAsync(
-                cp => cp.UserId == user.Id,
-                TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            // GetTodayPlanEndpoint resolves the caller's ClientProfile by UserId and filters
+            // NutritionPlan.ClientId on ClientProfile.UserId (#840) — seed the plan with
+            // UserId, not PublicId, or the endpoint's own-plan lookup matches nothing.
+            clientUserId = user.Id;
         }
 
         var todayDow = (int)DateTime.UtcNow.DayOfWeek;
@@ -127,7 +127,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
         var plan = new NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             NutritionistId = Guid.NewGuid(),
             Name = "Projection Test Plan",
             Status = NutritionPlanStatus.Active,
