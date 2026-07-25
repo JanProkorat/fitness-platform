@@ -159,6 +159,59 @@ public class CreatePlanEndpointTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// #840 pass-2 fix: QuestionnaireResponse.ClientId is ApplicationUser.Id, not the
+    /// trainer-facing ClientProfile.PublicId in req.ClientId. A plan linked to a valid,
+    /// submitted questionnaire response for this client must be creatable.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_WithValidQuestionnaireResponseLink_CreatesPlan()
+    {
+        var mongo = PlanTestHelpers.CreateMockMongo();
+        var authHelper = CreateAuthHelper(hasLink: true);
+        var questionnaireResponseId = Guid.NewGuid();
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(new QuestionnaireResponse
+            {
+                PublicId = questionnaireResponseId,
+                QuestionnaireId = 1,
+                ClientId = _clientId,
+                ProfessionalId = _nutritionistId,
+                LinkId = 1,
+                Status = QuestionnaireResponseStatus.Submitted,
+                SubmittedAt = DateTime.UtcNow,
+                DateCreated = DateTime.UtcNow,
+            })
+            .Build();
+
+        var ep = Factory.Create<CreatePlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, authHelper, db);
+
+        var request = new CreatePlanRequest
+        {
+            ClientId = _clientId,
+            Name = "Linked Questionnaire Plan",
+            WeekCount = 2,
+            QuestionnaireResponseId = questionnaireResponseId,
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.NutritionPlans.Received(1).InsertOneAsync(
+            Arg.Is<NutritionPlan>(p =>
+                p.Name == "Linked Questionnaire Plan" &&
+                p.QuestionnaireResponseId == questionnaireResponseId),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_NoLink_Returns404()
     {

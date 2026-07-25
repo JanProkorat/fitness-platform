@@ -79,11 +79,14 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
+            // QuestionnaireResponse.ClientId is ApplicationUser.Id (set from the auth user
+            // id), so compare against the already-resolved clientUserId, not req.ClientId
+            // (which is the trainer-facing ClientProfile.PublicId) — see #840.
             var responseExists = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
                                && r.ProfessionalId == nutritionistId
-                               && r.ClientId == req.ClientId
+                               && r.ClientId == clientUserId
                                && r.Status == QuestionnaireResponseStatus.Submitted, ct);
 
             if (!responseExists)
