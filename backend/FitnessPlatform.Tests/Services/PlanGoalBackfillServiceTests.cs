@@ -245,12 +245,12 @@ public class PlanGoalBackfillServiceTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var (_, publicId, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.GainMuscle, 85.0m);
+        var (userId, _, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.GainMuscle, 85.0m);
 
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId   = publicId,   // CRITICAL: must equal ClientProfile.PublicId
+            ClientId   = userId,   // CRITICAL: must equal ClientProfile.UserId (#840)
             TrainerId  = Guid.NewGuid(),
             Name       = "Backfill Training Plan",
             Status     = TrainingPlanStatus.Draft,

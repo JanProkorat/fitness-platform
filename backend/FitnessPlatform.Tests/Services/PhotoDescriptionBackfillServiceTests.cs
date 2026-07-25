@@ -339,7 +339,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
         var ct = TestContext.Current.CancellationToken;
 
         // Arrange — Postgres
-        var (clientProfileId, userId, clientPublicId) = await CreateUserAndClientProfileAsync();
+        var (clientProfileId, userId, _) = await CreateUserAndClientProfileAsync();
 
         var planId  = Guid.NewGuid();
         var blobUrl = $"https://minio/plan-photos/{Guid.NewGuid()}.jpg";
@@ -355,7 +355,8 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
         // Arrange — Mongo: a DayLog for the same (clientId, planId) with a DayPhoto that has a Note
         var dayLog = new DayLog
         {
-            ClientId  = clientPublicId, // matches ClientProfile.PublicId
+            ClientId  = userId, // matches ClientProfile.UserId (#840) — PhotoDescriptionBackfillService
+                                 // resolves ClientProfile.UserId and joins DayLog.ClientId on it
             PlanId    = planId,
             LogDate   = DateTime.UtcNow.Date,
             Photos =
