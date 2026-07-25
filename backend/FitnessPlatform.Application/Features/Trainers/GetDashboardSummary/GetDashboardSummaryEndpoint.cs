@@ -277,10 +277,14 @@ public class GetDashboardSummaryEndpoint(
         // Last activity: most recent workout or measurement
         DateTime? lastActivity = null;
 
-        var lastWorkout = await mongo.WorkoutLogs
-            .Find(Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId))
-            .SortByDescending(w => w.StartedAt)
-            .Project(w => w.StartedAt)
+        // #841: Performance.StartedAt is the equivalent of the retired WorkoutLog.StartedAt —
+        // scoped to executions that carry Performance data (checkbox-only completions never
+        // appeared in the old WorkoutLogs collection either).
+        var lastWorkout = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+                & Builders<SessionExecution>.Filter.Exists(w => w.Performance))
+            .SortByDescending(w => w.Performance!.StartedAt)
+            .Project(w => w.Performance!.StartedAt)
             .FirstOrDefaultAsync(ct);
 
         if (lastWorkout != default) lastActivity = lastWorkout;

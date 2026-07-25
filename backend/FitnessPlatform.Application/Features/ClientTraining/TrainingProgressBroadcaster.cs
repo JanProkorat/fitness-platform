@@ -253,14 +253,14 @@ internal static class TrainingProgressBroadcaster
         var targetDate = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var sessionIds = plannedSessions.Select(s => s.SessionId).ToList();
 
-        var filter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                     & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                     & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, sessionIds);
+        var filter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                     & Builders<SessionExecution>.Filter.In(c => c.SessionId, sessionIds.Cast<Guid?>());
 
-        using var cursor = await mongo.TrainingCompletions.FindAsync(filter, cancellationToken: ct);
-        var completions = await cursor.ToListAsync(ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+        var executions = await cursor.ToListAsync(ct);
 
-        var completionMap = completions.ToDictionary(c => c.SessionId);
+        var executionMap = executions.ToDictionary(c => c.SessionId!.Value);
 
         var count = 0;
         foreach (var session in plannedSessions)
@@ -268,11 +268,11 @@ internal static class TrainingProgressBroadcaster
             if (session.Exercises.Count == 0)
                 continue;
 
-            // Uses the shared section-aware TrainingCompletionExtensions.IsSessionComplete
+            // Uses the shared section-aware SessionExecutionExtensions.IsSessionComplete
             // helper (consults CompletedExerciseIdsBySection, not the retired flat mirror)
             // so a duplicate exercise id spanning two sections can't false-positive.
-            if (completionMap.TryGetValue(session.SessionId, out var completion)
-                && completion.IsSessionComplete(session))
+            if (executionMap.TryGetValue(session.SessionId, out var execution)
+                && execution.IsSessionComplete(session))
                 count++;
         }
 

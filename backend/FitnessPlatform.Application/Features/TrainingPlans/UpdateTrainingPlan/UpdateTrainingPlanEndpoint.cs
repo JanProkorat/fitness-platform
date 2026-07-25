@@ -223,10 +223,9 @@ public class UpdateTrainingPlanEndpoint(
 
                     // ── Section-finished guard (issue #465) ───────────────────────────────
                     // For each locked session, check whether any changed section has already been
-                    // completed by the client. A section is "completed" when either:
-                    //   Signal 1: a finished WorkoutLog exists for the session (IsCompleted=true).
-                    //   Signal 2: the TrainingCompletion document marks that section as done.
-                    // If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
+                    // completed by the client. #841: both signals (finished live workout, home-
+                    // checkbox completion) now live on the SAME SessionExecution document — one
+                    // query covers both. If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
                     //
                     // Only runs for sessions that have an Editing lock (editingLocksBySession).
                     // Sessions without a lock have already been rejected above.
@@ -239,26 +238,13 @@ public class UpdateTrainingPlanEndpoint(
                     {
                         var clientId = plan.ClientId;
 
-                        // Signal 1: completed WorkoutLogs for any of the locked sessions.
-                        var nullableLockedSessionIds = lockedChangedSessionIds.Cast<Guid?>().ToList();
-                        var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
-                                        & Builders<WorkoutLog>.Filter.In(l => l.SessionId, nullableLockedSessionIds)
-                                        & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
-                        using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: mutateCt);
-                        var completedLogs = await logCursor.ToListAsync(mutateCt);
-                        var sessionsWithCompletedLog = completedLogs
-                            .Where(l => l.SessionId.HasValue)
-                            .Select(l => l.SessionId!.Value)
-                            .ToHashSet();
-
-                        // Signal 2: TrainingCompletion documents for any of the locked sessions.
-                        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                                               & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, lockedChangedSessionIds);
-                        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: mutateCt);
-                        var completionDocs = await completionCursor.ToListAsync(mutateCt);
-                        var bestCompletionBySession = completionDocs
+                        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                                               & Builders<SessionExecution>.Filter.In(c => c.SessionId, lockedChangedSessionIds.Cast<Guid?>());
+                        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: mutateCt);
+                        var executionDocs = await executionCursor.ToListAsync(mutateCt);
+                        var bestExecutionBySession = executionDocs
                             .GroupBy(c => c.SessionId)
-                            .ToDictionary(g => g.Key,
+                            .ToDictionary(g => g.Key!.Value,
                                 g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
 
                         // Check each locked session for section-level completions.
@@ -269,11 +255,10 @@ public class UpdateTrainingPlanEndpoint(
                             if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                                 continue;
 
-                            var hasCompletedLog = sessionsWithCompletedLog.Contains(sessionId);
-                            bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
+                            bestExecutionBySession.TryGetValue(sessionId, out var bestExecution);
 
                             // Skip sessions with no completion data (nothing to guard).
-                            if (!hasCompletedLog && bestCompletion is null) continue;
+                            if (bestExecution is null) continue;
 
                             // Build a lookup of incoming sections by SectionId (only those with a non-null SectionId).
                             var incomingSectionsBySectionId = incomingSession.Sections
@@ -297,8 +282,7 @@ public class UpdateTrainingPlanEndpoint(
                                 if (!sectionChanged) continue;
 
                                 // Section content changed — check if it's already completed.
-                                var sectionIsCompleted = bestCompletion.IsSectionComplete(
-                                    storedSession, storedSection, hasCompletedWorkoutLog: hasCompletedLog);
+                                var sectionIsCompleted = bestExecution.IsSectionComplete(storedSession, storedSection);
 
                                 if (sectionIsCompleted)
                                 {

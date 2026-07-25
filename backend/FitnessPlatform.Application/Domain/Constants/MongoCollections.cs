@@ -80,4 +80,10 @@ public static class MongoCollections
     /// Reusable workout templates collection.
     /// </summary>
     public const string WorkoutTemplates = "workoutTemplates";
+
+    /// <summary>
+    /// Session execution documents (#841) — unifies the legacy <see cref="WorkoutLogs"/> and
+    /// <see cref="TrainingCompletions"/> collections into one per-(client, session, date) record.
+    /// </summary>
+    public const string SessionExecutions = "sessionExecutions";
 }

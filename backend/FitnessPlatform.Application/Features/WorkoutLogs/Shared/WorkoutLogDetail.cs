@@ -3,7 +3,8 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 
 /// <summary>
-/// Full workout log detail DTO.
+/// Full workout log detail DTO. Byte-stable wire shape — sourced from
+/// <see cref="SessionExecution"/> (#841) instead of the retired standalone <c>WorkoutLog</c>.
 /// </summary>
 public class WorkoutLogDetail
 {
@@ -44,23 +45,23 @@ public class WorkoutLogDetail
     public bool HasPR { get; set; }
 
     /// <summary>
-    /// Maps a <see cref="WorkoutLog"/> document to a detail DTO.
+    /// Maps a <see cref="SessionExecution"/> document (with non-null Performance) to a detail DTO.
     /// </summary>
-    public static WorkoutLogDetail FromDocument(WorkoutLog log) => new()
+    public static WorkoutLogDetail FromDocument(SessionExecution execution) => new()
     {
-        LogId = log.ExternalId,
-        ClientId = log.ClientId,
-        PlanId = log.PlanId,
-        SessionId = log.SessionId,
-        StartedAt = log.StartedAt,
-        CompletedAt = log.CompletedAt,
-        DurationSeconds = log.CompletedAt.HasValue
-            ? (int)(log.CompletedAt.Value - log.StartedAt).TotalSeconds
+        LogId = execution.ExternalId,
+        ClientId = execution.ClientId,
+        PlanId = execution.PlanId,
+        SessionId = execution.SessionId,
+        StartedAt = execution.Performance?.StartedAt ?? execution.DateCreated,
+        CompletedAt = execution.Performance?.CompletedAt,
+        DurationSeconds = execution.Performance?.CompletedAt.HasValue == true
+            ? (int)(execution.Performance.CompletedAt.Value - execution.Performance.StartedAt).TotalSeconds
             : null,
-        Mood = log.Mood,
-        Notes = log.Notes,
-        IsCompleted = log.IsCompleted,
-        Exercises = log.Exercises.ToList(),
-        HasPR = log.Exercises.Any(e => e.Sets.Any(s => s.IsPR))
+        Mood = execution.Performance?.Mood,
+        Notes = execution.Performance?.Notes,
+        IsCompleted = execution.Performance?.CompletedAt is not null,
+        Exercises = execution.Exercises.ToList(),
+        HasPR = execution.Exercises.Any(e => e.Sets.Any(s => s.IsPR))
     };
 }

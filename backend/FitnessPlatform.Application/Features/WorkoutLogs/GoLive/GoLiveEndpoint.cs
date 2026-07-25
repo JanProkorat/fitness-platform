@@ -13,14 +13,14 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutLogs.GoLive;
 
 /// <summary>
-/// Transitions an existing draft workout log to Live state by acquiring the Live session lock.
+/// Transitions an existing draft session execution to Live state by acquiring the Live session lock.
 /// This endpoint is called when the client presses the Start button on the session intro page —
 /// NOT on page mount. Separating log creation (POST /client/training/logs) from lock acquisition
 /// fixes the timing issue where the "Probíhá trénink" badge fired on intro-page entry rather
 /// than on Start press.
 ///
-/// Requires that the log already exists (created by StartWorkout) and that the session is
-/// plan-bound (non-null PlanId + SessionId on the log).
+/// Requires that the execution already exists (created by StartWorkout) and that the session is
+/// plan-bound (non-null PlanId + SessionId on the execution).
 ///
 /// Returns 409 <c>session_locked</c> when the session is already in Editing state.
 /// Emits <c>sessioneditlockchanged</c> (state=Live) to both client and trainer on successful acquire.
@@ -43,7 +43,7 @@ public class GoLiveEndpoint(
         Summary(s =>
         {
             s.Summary = "Go live with a workout";
-            s.Description = "Acquires the Live session lock for an existing draft workout log. " +
+            s.Description = "Acquires the Live session lock for an existing draft session execution. " +
                             "Call this when the client actually presses Start, not on page mount.";
         });
     }
@@ -61,12 +61,13 @@ public class GoLiveEndpoint(
 
         var clientUserIdGuid = Guid.Parse(userId);
 
-        // Load the log and verify ownership.
-        var logFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, req.LogId)
-                        & Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserIdGuid)
-                        & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, false);
+        // Load the execution and verify ownership.
+        var logFilter = Builders<SessionExecution>.Filter.Eq(w => w.ExternalId, req.LogId)
+                        & Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserIdGuid)
+                        & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                        & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Partial);
 
-        using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
+        using var logCursor = await mongo.SessionExecutions.FindAsync(logFilter, cancellationToken: ct);
         var log = await logCursor.FirstOrDefaultAsync(ct);
 
         if (log is null)
@@ -122,7 +123,7 @@ public class GoLiveEndpoint(
 
         var now = DateTime.UtcNow;
 
-        // Broadcast state=Live AFTER the lock is acquired (and the log already exists in Mongo).
+        // Broadcast state=Live AFTER the lock is acquired (and the execution already exists in Mongo).
         // Best-effort: broadcast failure must NOT fail the request.
         try
         {

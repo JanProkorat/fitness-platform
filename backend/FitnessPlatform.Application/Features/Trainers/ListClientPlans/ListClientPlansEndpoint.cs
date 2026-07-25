@@ -108,14 +108,15 @@ public class ListClientPlansEndpoint(
         var trainingPlans = trainingTask.Result;
 
         // Compute result summaries for training plans:
-        // totalTrainings = count of completed WorkoutLogs with matching PlanId
+        // totalTrainings = count of completed SessionExecutions (with Performance) with matching PlanId
         // prCount = count of PersonalRecords with AchievedAt in [plan.StartDate .. plan.DateCompleted ?? now]
         var trainingPlanIds = trainingPlans.Select(p => p.ExternalId).ToList();
-        var workoutLogs = await mongo.WorkoutLogs
-            .Find(Builders<Domain.Documents.WorkoutLog>.Filter.And(
-                Builders<Domain.Documents.WorkoutLog>.Filter.Eq(l => l.ClientId, clientUserId),
-                Builders<Domain.Documents.WorkoutLog>.Filter.Eq(l => l.IsCompleted, true),
-                Builders<Domain.Documents.WorkoutLog>.Filter.In(l => l.PlanId, trainingPlanIds.Cast<Guid?>())))
+        var workoutLogs = await mongo.SessionExecutions
+            .Find(Builders<Domain.Documents.SessionExecution>.Filter.And(
+                Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId),
+                Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.Status, Domain.Enums.SessionExecutionStatus.Completed),
+                Builders<Domain.Documents.SessionExecution>.Filter.Exists(l => l.Performance),
+                Builders<Domain.Documents.SessionExecution>.Filter.In(l => l.PlanId, trainingPlanIds.Cast<Guid?>())))
             .ToListAsync(ct);
 
         // PersonalRecords have no planId; filter by AchievedAt window per plan (computed per plan below)
@@ -126,7 +127,7 @@ public class ListClientPlansEndpoint(
         // Build training plan items
         var trainingItems = trainingPlans.Select(plan =>
         {
-            var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId && l.IsCompleted);
+            var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId);
 
             // PR window: [plan.StartDate .. plan.DateCompleted ?? now]
             int? prCount = null;

@@ -3,7 +3,8 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 
 /// <summary>
-/// Lightweight workout log summary for list views.
+/// Lightweight workout log summary for list views. Byte-stable wire shape — sourced from
+/// <see cref="SessionExecution"/> (#841) instead of the retired standalone <c>WorkoutLog</c>.
 /// </summary>
 public class WorkoutLogSummary
 {
@@ -35,20 +36,20 @@ public class WorkoutLogSummary
     public bool HasPR { get; set; }
 
     /// <summary>
-    /// Maps a <see cref="WorkoutLog"/> document to a summary DTO.
+    /// Maps a <see cref="SessionExecution"/> document (with non-null Performance) to a summary DTO.
     /// </summary>
-    public static WorkoutLogSummary FromDocument(WorkoutLog log) => new()
+    public static WorkoutLogSummary FromDocument(SessionExecution execution) => new()
     {
-        LogId = log.ExternalId,
-        StartedAt = log.StartedAt,
-        CompletedAt = log.CompletedAt,
-        DurationSeconds = log.CompletedAt.HasValue
-            ? (int)(log.CompletedAt.Value - log.StartedAt).TotalSeconds
+        LogId = execution.ExternalId,
+        StartedAt = execution.Performance?.StartedAt ?? execution.DateCreated,
+        CompletedAt = execution.Performance?.CompletedAt,
+        DurationSeconds = execution.Performance?.CompletedAt.HasValue == true
+            ? (int)(execution.Performance.CompletedAt.Value - execution.Performance.StartedAt).TotalSeconds
             : null,
-        Mood = log.Mood,
-        IsCompleted = log.IsCompleted,
-        ExerciseCount = log.Exercises.Count,
-        SetCount = log.Exercises.Sum(e => e.Sets.Count),
-        HasPR = log.Exercises.Any(e => e.Sets.Any(s => s.IsPR))
+        Mood = execution.Performance?.Mood,
+        IsCompleted = execution.Performance?.CompletedAt is not null,
+        ExerciseCount = execution.Exercises.Count,
+        SetCount = execution.Exercises.Sum(e => e.Sets.Count),
+        HasPR = execution.Exercises.Any(e => e.Sets.Any(s => s.IsPR))
     };
 }

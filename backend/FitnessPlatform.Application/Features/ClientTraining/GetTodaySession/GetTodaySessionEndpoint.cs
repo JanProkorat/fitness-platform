@@ -246,52 +246,53 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 response.ExerciseMuscleGroups[ex.ExternalId] = ex.MuscleGroups;
         }
 
-        // ── Batch-fetch TrainingCompletion + WorkoutLog docs for today ────────
-        // Both collections are sources of truth for "was exercise X completed today":
-        //   - TrainingCompletion — lightweight Today-card checkbox toggles.
-        //   - WorkoutLog         — the live training assistant's per-set logs.
-        // We merge them so the home card reflects progress made via either surface.
+        // ── Batch-fetch SessionExecution docs for today (#841) ────────────────
+        // Unifies the former TrainingCompletion (lightweight Today-card checkbox toggles) and
+        // WorkoutLog (live training assistant's per-set logs) sources of truth for "was exercise
+        // X completed today" into one collection — a single document per (clientId, sessionId,
+        // date) now carries both signals.
         if (todaySessions.Count > 0)
         {
             var targetDate = DateTime.UtcNow.Date;
-            var tomorrow = targetDate.AddDays(1);
             var todaySessionIds = todaySessions.Select(s => s.SessionId).ToList();
 
-            // Per-session accumulator so entries from both collections union cleanly.
+            // Per-session accumulator so entries from both signals (checkbox flags, Performance) union cleanly.
             var completedBySession = new Dictionary<Guid, HashSet<Guid>>();
 
-            // 1. TrainingCompletion — one doc per (clientId, date, sessionId).
-            var completionFilter =
-                Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, todaySessionIds);
+            // 1. Checkbox completion flags — one doc per (clientId, date, sessionId).
+            var executionFilter =
+                Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                & Builders<SessionExecution>.Filter.In(c => c.SessionId, todaySessionIds.Cast<Guid?>());
 
-            using var completionCursor = await mongo.TrainingCompletions.FindAsync(
-                completionFilter,
+            using var executionCursor = await mongo.SessionExecutions.FindAsync(
+                executionFilter,
                 cancellationToken: ct);
-            var completionDocs = await completionCursor.ToListAsync(ct);
+            var executionDocs = await executionCursor.ToListAsync(ct);
 
             // Build a lookup for sessions by sessionId so backfill can resolve section membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
-            foreach (var doc in completionDocs)
+            foreach (var doc in executionDocs)
             {
-                if (!completedBySession.TryGetValue(doc.SessionId, out var set))
-                    completedBySession[doc.SessionId] = set = [];
+                var sessionId = doc.SessionId!.Value;
 
-                response.VersionBySession[doc.SessionId] = doc.Version;
-                response.CompletedSectionIdsBySession[doc.SessionId] =
+                if (!completedBySession.TryGetValue(sessionId, out var set))
+                    completedBySession[sessionId] = set = [];
+
+                response.VersionBySession[sessionId] = doc.Version;
+                response.CompletedSectionIdsBySession[sessionId] =
                     (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
 
                 // Populate the per-session completed-exercise set from the section-aware
                 // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
-                // field is kept only as a derived mirror (see TrainingCompletion.cs) and is
+                // field is kept only as a derived mirror (see SessionExecution.cs) and is
                 // no longer consulted here.
-                if (sessionLookup.TryGetValue(doc.SessionId, out var completionSession))
+                if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
+                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(
                         doc, completionSession);
-                    response.CompletedExerciseIdsBySectionAndSession[doc.SessionId] =
+                    response.CompletedExerciseIdsBySectionAndSession[sessionId] =
                         effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
 
                     foreach (var exId in effective.Values.SelectMany(ids => ids))
@@ -299,34 +300,17 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 }
             }
 
-            // 2. WorkoutLog — live-training logs for today. An exercise counts as
+            // 2. Performance data — live-training logs for today. An exercise counts as
             // completed when every planned set has a CompletedAt timestamp.
-            // WorkoutLog.ClientId has always been ApplicationUser.Id, and since #840 every
-            // other collection queried in this endpoint uses the same identifier — clientId
-            // is safe to reuse here.
-            var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientId)
-                & Builders<WorkoutLog>.Filter.In(l => l.SessionId, todaySessionIds.Cast<Guid?>())
-                & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
-                & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
+            // #841: the unified partial-unique index guarantees at most ONE SessionExecution per
+            // (clientId, sessionId, date) — executionDocs (already filtered to today's Date) has
+            // at most one entry per session, so no further per-session dedup is needed here
+            // (unlike the retired multi-WorkoutLog-per-day model this replaces).
+            var executionsWithPerformanceToday = executionDocs
+                .Where(e => e.Performance is not null)
+                .ToList();
 
-            var workoutLogs = await mongo.WorkoutLogs
-                .Find(logFilter)
-                .ToListAsync(ct);
-
-            // Use only the LATEST log per session (by StartedAt descending).
-            // When the user restarts a session mid-day, the earlier completed log
-            // must not union its fully-done exercises on top of the fresh partial
-            // log — that would falsely mark the whole session as finished on the
-            // Today card even though the current attempt is only partially done.
-            var latestLogPerSession = workoutLogs
-                .Where(l => l.SessionId is not null)
-                .GroupBy(l => l.SessionId!.Value)
-                .Select(g => g.OrderByDescending(l => l.StartedAt)
-                              .ThenByDescending(l => l.DateCreated) // stable tie-breaker: newest insert wins when StartedAt is identical
-                              .First());
-
-            foreach (var log in latestLogPerSession)
+            foreach (var log in executionsWithPerformanceToday)
             {
                 if (!completedBySession.TryGetValue(log.SessionId!.Value, out var set))
                     completedBySession[log.SessionId.Value] = set = [];
