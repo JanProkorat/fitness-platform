@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -94,9 +95,18 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelpe
         var cursor = await mongo.TrainingPlans.FindAsync(filter, options, ct);
         var plans = await cursor.ToListAsync(ct);
 
+        // Batch-resolve ClientId (internal ApplicationUser.Id since #840) back to the
+        // client-facing ClientProfile.PublicId for the response — one query for the whole
+        // page, not one per plan.
+        var clientPublicIds = await db.ResolveClientPublicIdsAsync(plans.Select(p => p.ClientId), ct);
+
         await Send.OkAsync(new GetTrainingPlansResponse
         {
-            Plans = plans.Select(TrainingPlanSummaryDto.FromDocument).ToList(),
+            Plans = plans
+                .Select(p => TrainingPlanSummaryDto.FromDocument(
+                    p,
+                    clientPublicIds.GetValueOrDefault(p.ClientId, p.ClientId)))
+                .ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

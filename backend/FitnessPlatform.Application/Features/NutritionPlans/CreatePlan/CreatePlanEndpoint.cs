@@ -155,7 +155,9 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
 
         await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        var response = PlanSummaryDto.FromDocument(plan);
+        // req.ClientId is already the client-facing ClientProfile.PublicId (resolved above to
+        // clientUserId for storage) — reuse it directly for the response, no extra lookup needed.
+        var response = PlanSummaryDto.FromDocument(plan, req.ClientId);
         await HttpContext.Response.SendAsync(response, 201, cancellation: ct);
     }
 }

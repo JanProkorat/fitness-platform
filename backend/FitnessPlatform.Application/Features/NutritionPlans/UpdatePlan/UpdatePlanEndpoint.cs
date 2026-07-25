@@ -107,7 +107,10 @@ public class UpdatePlanEndpoint(
             }
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract), regardless of whether the published-week notification branch above ran.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 
     /// <summary>

@@ -110,6 +110,9 @@ public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContex
 
         var plan = guardResult.Document!;
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 }

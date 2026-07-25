@@ -1197,4 +1197,140 @@ public class QaSeedRunnerTests : IAsyncLifetime
         linked!.Status.Should().Be("Submitted");
         linked.QuestionnaireTitle.Should().Be("QA Nutrition Intake Questionnaire");
     }
+
+    /// <summary>
+    /// Regression test for the #840/#845 client-identifier semantics regression that broke
+    /// PR #854 (#697/#698 e2e specs). #840 standardised TrainingPlan.ClientId on
+    /// ApplicationUser.Id for internal storage/filters — correct — but
+    /// <see cref="GetTrainingPlanResponse.FromDocument"/> was (pre-fix) still emitting that
+    /// internal UserId verbatim as the response's outward-facing <c>clientId</c> field, which
+    /// TrainingPlanPage.tsx feeds directly into
+    /// <c>GET /trainer/clients/{{clientId}}/questionnaire-responses</c> — a route keyed on
+    /// <c>ClientProfile.PublicId</c>, not <c>ApplicationUser.Id</c>. UserId != PublicId, so the
+    /// browser's real call 404s and the Dotazník tab renders empty.
+    /// <para>
+    /// Unlike <see cref="HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable"/>
+    /// (which calls the responses endpoint with <see cref="QaSeedRunner.ClientProfilePublicId"/>
+    /// directly and therefore cannot detect this class of bug), this test CHAINS the two calls
+    /// exactly the way the browser does: it takes <c>plan.ClientId</c> straight off the first
+    /// HTTP response and feeds it into the second HTTP call, with no test-side knowledge of the
+    /// "real" PublicId. If the response boundary regresses back to emitting the internal
+    /// UserId, this test 404s on step 2.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_TrainerPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /training/plans/{planId} — capture the response's clientId verbatim,
+        // exactly as TrainingPlanPage.tsx does (plan.clientId, no re-derivation). ──
+        var planResponse = await client.GetAsync(
+            $"/training/plans/{QaSeedRunner.QaTrainingPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<GetTrainingPlanResponse>(jsonOptions, ct);
+        plan.Should().NotBeNull();
+
+        // The response's clientId must be the ClientProfile.PublicId contract, NOT the
+        // internal Mongo storage key (ApplicationUser.Id) — this is the exact assertion that
+        // would have caught #854 before it reached the compose-harness e2e gate.
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "GetTrainingPlanResponse.ClientId must be the client-facing ClientProfile.PublicId " +
+            "(pre-#840 contract) — NOT plan.ClientId's internal ApplicationUser.Id storage key");
+        plan.ClientId.Should().NotBe(QaSeedRunner.ClientUserId,
+            "the response must not leak the internal ApplicationUser.Id storage key as clientId");
+
+        // ── 2. CHAIN: feed the plan response's clientId straight into the second call, with
+        // no test-side substitution of the "known-correct" PublicId. This is what makes the
+        // test equivalent to the browser's real request sequence. ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{plan.ClientId}/questionnaire-responses", ct);
+
+        responsesHttp.StatusCode.Should().Be(System.Net.HttpStatusCode.OK,
+            "chaining plan.ClientId into /trainer/clients/{{clientId}}/... must resolve — a 404 " +
+            "here reproduces the #854 regression exactly as the browser experienced it");
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId!.Value);
+
+        linked.Should().NotBeNull(
+            "the chained call must return the same linked Submitted response the direct-PublicId " +
+            "call returns — proving the chained clientId resolves to the same client");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// Nutrition-side counterpart to
+    /// <see cref="HttpFlow_TrainerPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses"/>,
+    /// reproducing the #698 nutrition-plan-questionnaire.spec.ts chained-identifier flow via
+    /// <see cref="GetPlanResponse"/> (nutrition plan detail).
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_NutritionistPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /nutrition/plans/{planId} — capture clientId verbatim, as
+        // NutritionPlanPage.tsx does. ──
+        var planResponse = await client.GetAsync(
+            $"/nutrition/plans/{QaSeedRunner.QaNutritionPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<FitnessPlatform.Application.Features.NutritionPlans.GetPlan.GetPlanResponse>(
+            jsonOptions, ct);
+        plan.Should().NotBeNull();
+
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "GetPlanResponse.ClientId must be the client-facing ClientProfile.PublicId " +
+            "(pre-#840 contract) — NOT plan.ClientId's internal ApplicationUser.Id storage key");
+        plan.ClientId.Should().NotBe(QaSeedRunner.ClientUserId,
+            "the response must not leak the internal ApplicationUser.Id storage key as clientId");
+
+        // ── 2. CHAIN: feed the plan response's clientId straight into the second call. ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{plan.ClientId}/questionnaire-responses", ct);
+
+        responsesHttp.StatusCode.Should().Be(System.Net.HttpStatusCode.OK,
+            "chaining plan.ClientId into /trainer/clients/{{clientId}}/... must resolve — a 404 " +
+            "here reproduces the #854 regression exactly as the browser experienced it");
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId!.Value);
+
+        linked.Should().NotBeNull(
+            "the chained call must return the same linked Submitted response the direct-PublicId " +
+            "call returns — proving the chained clientId resolves to the same client");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Nutrition Intake Questionnaire");
+    }
 }

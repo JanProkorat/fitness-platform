@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -23,7 +24,9 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
-public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService) : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
+/// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
+public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService, IApplicationDbContext db)
+    : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -62,7 +65,11 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             return;
         }
 
-        var response = GetTrainingPlanResponse.FromDocument(plan);
+        // plan.ClientId is the internal ApplicationUser.Id storage key (#840); the response's
+        // ClientId must stay the client-facing ClientProfile.PublicId (pre-#840 contract) since
+        // web/mobile feed it into /trainer/clients/{clientId}/... routes.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        var response = GetTrainingPlanResponse.FromDocument(plan, clientPublicId);
 
         // ── 1. SessionExecution fold-in (#841: unifies the former TrainingCompletion +
         // WorkoutLog fold-ins into a single query — same client-wide scope the old

@@ -210,6 +210,9 @@ public class PublishWeekEndpoint(
             }, ct);
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — reuse the profile already resolved above instead of a second lookup.
+        var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 }

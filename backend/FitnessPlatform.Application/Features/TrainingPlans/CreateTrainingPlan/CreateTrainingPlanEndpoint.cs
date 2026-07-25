@@ -150,7 +150,9 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
 
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        var response = TrainingPlanSummaryDto.FromDocument(plan);
+        // req.ClientId is already the client-facing ClientProfile.PublicId (resolved above to
+        // clientUserId for storage) — reuse it directly for the response, no extra lookup needed.
+        var response = TrainingPlanSummaryDto.FromDocument(plan, req.ClientId);
         await HttpContext.Response.SendAsync(response, 201, cancellation: ct);
     }
 }

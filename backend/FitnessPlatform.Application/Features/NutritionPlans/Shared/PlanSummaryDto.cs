@@ -19,7 +19,10 @@ public class PlanSummaryDto
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Client's user ID.
+    /// The client's <c>ClientProfile.PublicId</c> — the client-facing identifier consumed by
+    /// web/mobile to build routes like <c>/trainer/clients/{clientId}/...</c>. NOT the
+    /// internal Mongo storage key (<c>ApplicationUser.Id</c> since #840) — see
+    /// <see cref="FromDocument"/>.
     /// </summary>
     public Guid ClientId { get; set; }
 
@@ -66,11 +69,19 @@ public class PlanSummaryDto
     /// <summary>
     /// Maps a <see cref="NutritionPlan"/> document to a summary DTO.
     /// </summary>
-    public static PlanSummaryDto FromDocument(NutritionPlan plan) => new()
+    /// <param name="plan">The nutrition plan document.</param>
+    /// <param name="clientPublicId">
+    /// The client's <c>ClientProfile.PublicId</c> to expose as <see cref="ClientId"/> —
+    /// NOT <paramref name="plan"/>.ClientId directly, which is the internal
+    /// <c>ApplicationUser.Id</c> storage key since #840. Callers resolve this via
+    /// <see cref="FitnessPlatform.Application.Domain.Extensions.ClientProfileLookupExtensions.ResolveClientPublicIdsAsync"/>
+    /// (batch — list responses) or the single-item variant before calling this factory.
+    /// </param>
+    public static PlanSummaryDto FromDocument(NutritionPlan plan, Guid clientPublicId) => new()
     {
         PlanId = plan.ExternalId,
         Name = plan.Name,
-        ClientId = plan.ClientId,
+        ClientId = clientPublicId,
         Status = plan.Status.ToString(),
         WeekCount = plan.Weeks.Count,
         Version = plan.Version,

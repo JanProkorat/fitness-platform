@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -24,11 +25,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="lockService">Session lock service for diff-gate enforcement.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+/// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard)
+    PlanConcurrencyGuard guard,
+    IApplicationDbContext db)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -420,7 +423,10 @@ public class UpdateTrainingPlanEndpoint(
             }
         }
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 
     /// <summary>
