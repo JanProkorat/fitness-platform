@@ -1127,9 +1127,10 @@ public static class QaSeedRunner
                 // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) —
                 // CompleteWorkoutEndpoint (live client finish) filters WorkoutLogs by
                 // ClientId == Guid.Parse(AppClaims.UserId), which is ApplicationUser.Id.
-                // WorkoutCompletionService resolves the ClientProfile by cp.UserId == log.ClientId,
-                // then uses clientProfile.PublicId for the TrainingCompletion — so the fan-out
-                // correctly produces a TrainingCompletion.ClientId = ClientProfile.PublicId.
+                // Post-#840, WorkoutCompletionService no longer resolves a ClientProfile at
+                // all — it copies log.ClientId straight onto TrainingCompletion.ClientId, so
+                // the fan-out correctly produces a TrainingCompletion.ClientId that matches
+                // this same ApplicationUser.Id (ClientUserId), not ClientProfile.PublicId.
                 ClientId      = ClientUserId,
                 PlanId        = QaPastTrainingPlanExternalId,
                 SessionId     = QaPastSessionCompletedId,
