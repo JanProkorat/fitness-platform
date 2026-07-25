@@ -242,16 +242,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             // Seed a PR at T2
             await InsertPersonalRecordAsync(mongo, clientUserId, "Squat", 120m, 3, t2);
 
-            // Seed a completed workout log at T3
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Seed a completed workout at T3. #841: GetClientTimelineEndpoint reads the
+            // unified SessionExecutions collection (filtered to Performance-bearing,
+            // Status=Completed documents) instead of the retired WorkoutLogs collection.
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = t3.AddMinutes(-30),
-                CompletedAt = t3,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(t3),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = t3.AddMinutes(-30),
+                    CompletedAt = t3,
+                    Sections = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -455,16 +461,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
 
-            // WorkoutLog — keyed on ApplicationUser.Id, unaffected by #840.
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Workout — keyed on ApplicationUser.Id, unaffected by #840. #841: seeded into the
+            // unified SessionExecutions collection (GetClientTimelineEndpoint reads that
+            // exclusively, filtered to Performance-bearing, Status=Completed documents).
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = workoutAt.AddMinutes(-30),
-                CompletedAt = workoutAt,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(workoutAt),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = workoutAt.AddMinutes(-30),
+                    CompletedAt = workoutAt,
+                    Sections = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
