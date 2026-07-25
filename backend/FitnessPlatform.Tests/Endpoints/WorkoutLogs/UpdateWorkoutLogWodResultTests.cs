@@ -62,12 +62,12 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
-                w.WodResult != null &&
-                w.WodResult.RoundsCompleted == 7 &&
-                w.WodResult.ExtraReps == 4),
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
+                w.Performance!.WodResult != null &&
+                w.Performance!.WodResult.RoundsCompleted == 7 &&
+                w.Performance!.WodResult.ExtraReps == 4),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -94,11 +94,11 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
-                w.WodResult != null &&
-                w.WodResult.TotalTimeSeconds == 342),
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
+                w.Performance!.WodResult != null &&
+                w.Performance!.WodResult.TotalTimeSeconds == 342),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -129,14 +129,14 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
-                w.WodResult != null &&
-                w.WodResult.RoundsCompleted == 8 &&
-                w.WodResult.RepsByRound!.Count == 8 &&
-                w.WodResult.FailedRounds!.Contains(4) &&
-                w.WodResult.FailedRounds!.Contains(7)),
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
+                w.Performance!.WodResult != null &&
+                w.Performance!.WodResult.RoundsCompleted == 8 &&
+                w.Performance!.WodResult.RepsByRound!.Count == 8 &&
+                w.Performance!.WodResult.FailedRounds!.Contains(4) &&
+                w.Performance!.WodResult.FailedRounds!.Contains(7)),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -160,9 +160,9 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w => w.WodResult == null),
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w => w.Performance!.WodResult == null),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -202,9 +202,9 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 w.Exercises.Count == 1 &&
                 w.Exercises[0].WodResult != null &&
                 w.Exercises[0].WodResult!.RoundsCompleted == 5 &&
@@ -250,11 +250,11 @@ public class UpdateWorkoutLogWodResultTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
-                w.WodResult != null &&
-                w.WodResult.TotalTimeSeconds == 480 &&
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
+                w.Performance!.WodResult != null &&
+                w.Performance!.WodResult.TotalTimeSeconds == 480 &&
                 w.Exercises[0].WodResult != null &&
                 w.Exercises[0].WodResult!.RoundsCompleted == 3 &&
                 w.Exercises[1].WodResult == null),

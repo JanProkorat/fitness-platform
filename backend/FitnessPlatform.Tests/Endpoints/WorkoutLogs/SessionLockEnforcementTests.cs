@@ -133,7 +133,7 @@ public class SessionLockEnforcementTests
     private IWorkoutCompletionService MockCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }

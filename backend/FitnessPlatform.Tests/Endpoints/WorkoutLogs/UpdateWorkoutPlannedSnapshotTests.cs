@@ -80,9 +80,9 @@ public class UpdateWorkoutPlannedSnapshotTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Verify planned fields are written to the document.
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 w.Exercises[0].Sets[0].PlannedReps == 10 &&
                 w.Exercises[0].Sets[0].PlannedWeightKg == 100m &&
                 w.Exercises[0].Sets[0].PlannedRpe == 7m),
@@ -130,9 +130,9 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 w.Exercises[0].Sets[0].PlannedDurationSeconds == 120 &&
                 w.Exercises[0].Sets[0].PlannedDistanceMeters == 500m),
             Arg.Any<ReplaceOptions>(),
@@ -172,9 +172,9 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 w.Exercises[0].Sets[0].PlannedReps == null &&
                 w.Exercises[0].Sets[0].PlannedWeightKg == null &&
                 // IsModified must be false when no snapshot exists
@@ -278,7 +278,7 @@ public class UpdateWorkoutPlannedSnapshotTests
         // Simulate the document as it exists AFTER the first PUT:
         // the snapshot fields are already populated.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -340,9 +340,9 @@ public class UpdateWorkoutPlannedSnapshotTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Snapshot fields must remain at the ORIGINAL values (10, 105m), not the request values (12, 110m).
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 w.Exercises[0].Sets[0].PlannedReps == 10 &&
                 w.Exercises[0].Sets[0].PlannedWeightKg == 105m),
             Arg.Any<ReplaceOptions>(),
@@ -361,7 +361,7 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         // Stored state: snapshot already set, actuals from first PUT.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -422,9 +422,9 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 // Actuals are updated to the new values.
                 w.Exercises[0].Sets[0].Reps == 7 &&
                 w.Exercises[0].Sets[0].WeightKg == 82.5m &&
@@ -447,7 +447,7 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         // Stored state: only set 1 exists.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -510,9 +510,9 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 // Set 1: snapshot frozen at original 10.
                 w.Exercises[0].Sets[0].PlannedReps == 10 &&
                 // Set 2 (extra): request planned value flows through.
@@ -603,9 +603,9 @@ public class UpdateWorkoutPlannedSnapshotTests
         // Exactly 2 WorkoutLogs.FindAsync calls total for this request:
         // 1) the initial in-progress-log lookup, 2) the hoisted completed-history
         // fetch. Pre-fix this would have been 1 + N (N = distinct exercises = 2).
-        await mongo.WorkoutLogs.Received(2).FindAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+        await mongo.SessionExecutions.Received(2).FindAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -648,9 +648,9 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         // Only the single initial in-progress-log lookup — the hoisted history
         // query never fires because there are no newly-completed weighted sets.
-        await mongo.WorkoutLogs.Received(1).FindAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+        await mongo.SessionExecutions.Received(1).FindAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 }

@@ -28,7 +28,7 @@ public class CompleteWorkoutEndpointTests
     private IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
@@ -71,7 +71,7 @@ public class CompleteWorkoutEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionService.Received(1).CompleteAsync(
-            Arg.Any<WorkoutLog>(),
+            Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d > DateTime.UtcNow.AddSeconds(-5) && d <= DateTime.UtcNow),
             Arg.Any<CancellationToken>());
     }
@@ -133,7 +133,7 @@ public class CompleteWorkoutEndpointTests
         var after = DateTime.UtcNow;
 
         await completionService.Received(1).CompleteAsync(
-            Arg.Any<WorkoutLog>(),
+            Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d >= before && d <= after),
             Arg.Any<CancellationToken>());
     }
@@ -147,7 +147,7 @@ public class CompleteWorkoutEndpointTests
 
         var completionService = Substitute.For<IWorkoutCompletionService>();
         completionService
-            .CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Throws(new WorkoutAlreadyCompletedException());
 
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
