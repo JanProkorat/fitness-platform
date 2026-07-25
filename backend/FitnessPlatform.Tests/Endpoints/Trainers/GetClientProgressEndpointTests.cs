@@ -7,17 +7,27 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
 /// Unit tests for <see cref="GetClientProgressEndpoint"/>.
+///
+/// Product-lockstep note (#840): <see cref="GetClientProgressEndpoint"/> now takes an
+/// <see cref="IApplicationDbContext"/> dependency to resolve <c>req.ClientId</c>
+/// (ClientProfile.PublicId) to ApplicationUser.Id before calling
+/// <see cref="IComplianceService"/> — Mongo documents are keyed on UserId, not PublicId.
+/// This was already correctly wired in the endpoint; these tests only needed updating to
+/// supply the new constructor dependency and to stub/assert ComplianceService calls with
+/// the resolved UserId rather than the route's PublicId.
 /// </summary>
 public class GetClientProgressEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _clientUserId = Guid.NewGuid();
     private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
@@ -34,14 +44,24 @@ public class GetClientProgressEndpointTests
         return helper;
     }
 
+    /// <summary>
+    /// Builds the endpoint's own <see cref="IApplicationDbContext"/> dependency, seeded with
+    /// a ClientProfile resolving <see cref="_clientId"/> (PublicId) to <see cref="_clientUserId"/>.
+    /// </summary>
+    private IApplicationDbContext CreateDb() =>
+        new MockDbBuilder()
+            .With(EntityBuilder.ClientProfile.WithPublicId(_clientId).WithUserId(_clientUserId).Build())
+            .Build();
+
     [Fact]
     public async Task HandleAsync_ActiveLink_ReturnsProgress()
     {
         // Arrange
         var authHelper = CreateAuthHelper(hasLink: true);
+        var db = CreateDb();
 
         _complianceService.CalculateComplianceAsync(
-                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 CompliancePercent = 75m,
@@ -49,11 +69,11 @@ public class GetClientProgressEndpointTests
                 MealsLogged = 9
             });
 
-        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<CancellationToken>())
+        _complianceService.CalculateStreakAsync(_clientUserId, Arg.Any<CancellationToken>())
             .Returns(4);
 
         _complianceService.CalculateAverageMacrosAsync(
-                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new NutrientTotals
             {
                 Kcal = 1800,
@@ -66,7 +86,7 @@ public class GetClientProgressEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit);
+            _complianceService, authHelper, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -83,7 +103,7 @@ public class GetClientProgressEndpointTests
         ep.Response.AverageDailyMacros.Kcal.Should().Be(1800);
         ep.Response.AverageDailyMacros.Protein.Should().Be(130);
 
-        // Verify audit was logged
+        // Verify audit was logged with the route's PublicId (audit target, unaffected by #840)
         await _audit.Received(1).LogAsync(
             _trainerId,
             "Read",
@@ -100,12 +120,13 @@ public class GetClientProgressEndpointTests
     {
         // Arrange — no active link
         var authHelper = CreateAuthHelper(hasLink: false);
+        var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit);
+            _complianceService, authHelper, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -122,9 +143,10 @@ public class GetClientProgressEndpointTests
     {
         // Arrange — no user claims
         var authHelper = CreateAuthHelper(hasLink: false);
+        var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
-            _complianceService, authHelper, _audit);
+            _complianceService, authHelper, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest

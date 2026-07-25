@@ -300,11 +300,14 @@ public class GetDashboardSummaryEndpointTests
             .With(new BodyMeasurement { ClientProfileId = clientBProfile.Id, MeasuredAt = clientBMeasurement })
             .Build();
 
+        // Keyed on ApplicationUser.Id (#840) — GetDashboardSummaryEndpoint resolves each
+        // client's UserId before calling ComplianceService (Mongo documents are keyed on
+        // UserId, not ClientProfile.PublicId).
         var complianceByClient = new Dictionary<Guid, decimal>
         {
-            [clientAProfile.PublicId] = 10m,
-            [clientBProfile.PublicId] = 20m,
-            [clientCProfile.PublicId] = 30m,
+            [clientAProfile.UserId] = 10m,
+            [clientBProfile.UserId] = 20m,
+            [clientCProfile.UserId] = 30m,
         };
 
         // The test trainer only holds the Trainer role (see FakeUserClaims below),
