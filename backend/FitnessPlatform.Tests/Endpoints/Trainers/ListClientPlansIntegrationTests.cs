@@ -301,7 +301,9 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         await mongo.TrainingPlans.InsertOneAsync(
             plan, cancellationToken: TestContext.Current.CancellationToken);
-        await mongo.TrainingCompletions.InsertOneAsync(
+        // #841: ComplianceService reads exclusively from the unified SessionExecutions
+        // collection — the retired TrainingCompletions collection is no longer consulted.
+        await mongo.SessionExecutions.InsertOneAsync(
             completion, cancellationToken: TestContext.Current.CancellationToken);
 
         var complianceService = scope.ServiceProvider.GetRequiredService<IComplianceService>();

@@ -76,7 +76,7 @@ public class MarkExerciseCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
                 c.CompletedExerciseIds.Contains(_exercise1) &&
@@ -126,12 +126,12 @@ public class MarkExerciseCompleteEndpointTests
 
         // No insert or update should have occurred
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -183,10 +183,10 @@ public class MarkExerciseCompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        // Completion collection returns existing doc but UpdateOneAsync modifies 0 rows (simulating version mismatch)
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        // Execution collection returns existing doc but UpdateOneAsync modifies 0 rows (simulating version mismatch)
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -347,7 +347,7 @@ public class MarkExerciseCompleteEndpointTests
 
         // The inserted document must record completion only in section1, NOT section2.
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.CompletedExerciseIdsBySection != null &&
                 c.CompletedExerciseIdsBySection.ContainsKey(section1Id.ToString()) &&
                 c.CompletedExerciseIdsBySection[section1Id.ToString()].Contains(sharedExerciseId) &&
@@ -456,12 +456,12 @@ public class MarkExerciseCompleteEndpointTests
 
         // UpdateOneAsync must have been called (not Insert) — this is the path that previously threw.
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -556,8 +556,8 @@ public class MarkExerciseCompleteEndpointTests
         var planCollection = CreateMultiPlanCollection([olderPlan, currentPlan]);
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -584,7 +584,7 @@ public class MarkExerciseCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == olderSessionId &&
                 c.Date == backdatedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) &&

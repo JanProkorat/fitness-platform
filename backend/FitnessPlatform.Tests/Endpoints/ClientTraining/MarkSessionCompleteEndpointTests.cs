@@ -70,7 +70,7 @@ public class MarkSessionCompleteEndpointTests
 
         // All exercises in the session should be inserted in one completion document
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
                 c.CompletedExerciseIds.Count == 2 &&
@@ -108,7 +108,7 @@ public class MarkSessionCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.CompletedSectionIds != null &&
                 c.CompletedSectionIds.Contains(expectedSectionId) &&
                 c.CompletedSectionIds.Count == 1),
@@ -155,10 +155,10 @@ public class MarkSessionCompleteEndpointTests
 
         // No writes should occur since it's already complete
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -197,8 +197,8 @@ public class MarkSessionCompleteEndpointTests
 
         // Should have updated with all exercise IDs
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }

@@ -73,8 +73,8 @@ public class MarkExerciseIncompleteEndpointTests
 
         // The update should have been called removing exercise1
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -118,12 +118,12 @@ public class MarkExerciseIncompleteEndpointTests
 
         // No insert or update should have occurred
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -197,9 +197,9 @@ public class MarkExerciseIncompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -311,23 +311,37 @@ public class MarkExerciseIncompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
 
+    /// <summary>
+    /// #841: the endpoint no longer syncs a separate WorkoutLog document — the set-by-set
+    /// Performance data lives on the SAME SessionExecution as the checkbox completion flags.
+    /// Un-marking an exercise clears its Performance sets' CompletedAt in-place on the loaded
+    /// document (mutated before the versioned UpdateOneAsync call), no cross-collection write.
+    /// </summary>
     [Fact]
-    public async Task HandleAsync_ClearsWorkoutLogCompletedAtForExerciseOnly()
+    public async Task HandleAsync_ClearsPerformanceCompletedAtForExerciseOnly()
     {
-        // Arrange — a WorkoutLog with two exercises, both fully completed
+        // Arrange — a single SessionExecution carrying BOTH the checkbox flags AND Performance
+        // (set-by-set) data for two fully-completed exercises.
         var now = DateTime.UtcNow;
-        var workoutLog = new Application.Domain.Documents.WorkoutLog
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            date: now.Date,
+            completedExerciseIds: [_exercise1, _exercise2],
+            version: 1,
+            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
+            {
+                [_sectionId.ToString()] = [_exercise1, _exercise2]
+            });
+        existingCompletion.Performance = new SessionExecutionPerformance
         {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,         // auth user id — matches the JWT claim
-            SessionId = _sessionId,
             StartedAt = now.Date.AddHours(9),
-            IsCompleted = true,
+            CompletedAt = now,
             Sections =
             [
                 new Application.Domain.Documents.WorkoutSection
                 {
-                    SectionId = Guid.NewGuid(),
+                    SectionId = _sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -356,27 +370,15 @@ public class MarkExerciseIncompleteEndpointTests
             ]
         };
 
-        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
-            clientId: _clientId,
-            sessionId: _sessionId,
-            date: now.Date,
-            completedExerciseIds: [_exercise1, _exercise2],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1, _exercise2]
-            });
-
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
             sessionId: _sessionId,
             exerciseIds: [_exercise1, _exercise2],
             sectionId: _sectionId);
 
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+        var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
             plan: plan,
-            existingCompletion: existingCompletion,
-            workoutLogs: [workoutLog]);
+            existingCompletion: existingCompletion);
 
         var db = CreateMockDb();
 
@@ -393,22 +395,21 @@ public class MarkExerciseIncompleteEndpointTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // Exercise A (exercise1): all sets cleared
-        var exerciseA = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise1);
+        // Exercise A (exercise1): all sets cleared, mutated in-place on the same document the
+        // mock's FindAsync returned.
+        var exerciseA = existingCompletion.Performance.Exercises.First(e => e.ExerciseExternalId == _exercise1);
         exerciseA.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().BeNull());
 
         // Exercise B (exercise2): sets still have CompletedAt
-        var exerciseB = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise2);
+        var exerciseB = existingCompletion.Performance.Exercises.First(e => e.ExerciseExternalId == _exercise2);
         exerciseB.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().NotBeNull());
 
-        // IsCompleted remains true because exercise B still has completed sets
-        workoutLog.IsCompleted.Should().BeTrue();
-
-        // ReplaceOneAsync was called for the log
-        await mongo.WorkoutLogs.Received(1).ReplaceOneAsync(
-            Arg.Any<FilterDefinition<Application.Domain.Documents.WorkoutLog>>(),
-            Arg.Any<Application.Domain.Documents.WorkoutLog>(),
-            Arg.Any<ReplaceOptions>(),
+        // UpdateOneAsync was called for the unified SessionExecutions collection — no separate
+        // WorkoutLogs write.
+        await completionCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
+            Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -483,8 +484,8 @@ public class MarkExerciseIncompleteEndpointTests
 
         // The update must be called. The section-aware dict should only remove section1's entry.
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
 
