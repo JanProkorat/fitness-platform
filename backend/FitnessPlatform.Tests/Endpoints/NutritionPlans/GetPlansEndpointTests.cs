@@ -4,6 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.NutritionPlans;
@@ -21,12 +22,13 @@ public class GetPlansEndpointTests
         var plan1 = PlanTestHelpers.CreatePlan(nutritionistId: _nutritionistId, name: "Plan A");
         var plan2 = PlanTestHelpers.CreatePlan(nutritionistId: _nutritionistId, name: "Plan B");
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan1, plan2]);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 
@@ -38,12 +40,13 @@ public class GetPlansEndpointTests
     public async Task HandleAsync_NoPlans_ReturnsEmpty()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 

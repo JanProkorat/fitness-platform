@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 using FitnessPlatform.Tests.Builders;
@@ -25,7 +26,9 @@ public class CreateTrainingPlanEndpointTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -71,7 +74,9 @@ public class CreateTrainingPlanEndpointTests
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(existingPlan);
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         using var responseBody = new MemoryStream();
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
@@ -123,7 +128,9 @@ public class CreateTrainingPlanEndpointTests
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(existingPlan);
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
