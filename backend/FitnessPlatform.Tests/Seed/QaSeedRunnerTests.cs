@@ -1,7 +1,12 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Application.Features.Questionnaires.GetClientResponses;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Seed;
@@ -1075,5 +1080,121 @@ public class QaSeedRunnerTests : IAsyncLifetime
         nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
             "the nutrition plan link must remain stable across re-seeds");
         nutritionPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
+    }
+
+    /// <summary>
+    /// Root-cause probe for the #854 e2e regression (PR #854 / epic #835): reproduces,
+    /// over real HTTP with a real JWT (not a direct Mongo/EF assertion), the exact two
+    /// calls the trainer-portal "Dotazník" tab makes on the training-plan detail page:
+    ///   1. GET /training/plans/{planId} — must return a non-null questionnaireResponseId.
+    ///   2. GET /trainer/clients/{clientPublicId}/questionnaire-responses — must contain
+    ///      a Submitted response whose responsePublicId matches (1).
+    /// The QaSeedRunnerTests above only assert the Mongo document / EF row directly;
+    /// this closes the gap by exercising the actual endpoints the web e2e spec hits.
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        // The API serializes enums as strings (JsonStringEnumConverter globally),
+        // so use matching options when deserializing the test response — see the
+        // same pattern in GetFullTrainingPlanIntegrationTests.
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /training/plans/{planId} — same call TrainingPlanPage.tsx makes ──
+        var planResponse = await client.GetAsync(
+            $"/training/plans/{QaSeedRunner.QaTrainingPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<GetTrainingPlanResponse>(jsonOptions, ct);
+        plan.Should().NotBeNull();
+        plan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
+            "GET /training/plans/{planId} must return the linked questionnaire response id " +
+            "so the web 'Dotazník' tab can resolve it — this is what feeds " +
+            "plan.questionnaireResponseId in TrainingPlanPage.tsx");
+
+        // ── 2. GET /trainer/clients/{clientPublicId}/questionnaire-responses — same call
+        // PlanQuestionnairePanel / QuestionnaireAnswersSection make (getClientQuestionnaireResponses) ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{QaSeedRunner.ClientProfilePublicId}/questionnaire-responses", ct);
+        responsesHttp.EnsureSuccessStatusCode();
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId.Value);
+
+        linked.Should().NotBeNull(
+            "the questionnaire-responses list must contain an entry whose ResponsePublicId " +
+            "matches plan.QuestionnaireResponseId — this is the join TrainingPlanPage.tsx's " +
+            "linkedQuestionnaireResponse useMemo performs client-side");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// Nutritionist-side counterpart to <see cref="HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable"/>,
+    /// reproducing the #698 nutrition-plan-questionnaire.spec.ts flow: GET /nutrition/plans/{planId}
+    /// (GetPlanEndpoint — NOT touched by the #835 epic diff) must return a non-null
+    /// questionnaireResponseId, and GET /trainer/clients/{clientPublicId}/questionnaire-responses
+    /// (also not touched) must return a matching Submitted entry owned by the QA nutritionist.
+    /// Included to rule out an asymmetric nutritionist-role bug — neither endpoint appears in
+    /// the epic's file diff, so this is expected to pass; a failure here would mean the
+    /// regression is NOT confined to the touched TrainingPlans/ClientTraining read paths.
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_NutritionistPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /nutrition/plans/{planId} — same call NutritionPlanPage.tsx makes ──
+        var planResponse = await client.GetAsync(
+            $"/nutrition/plans/{QaSeedRunner.QaNutritionPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<FitnessPlatform.Application.Features.NutritionPlans.GetPlan.GetPlanResponse>(
+            jsonOptions, ct);
+        plan.Should().NotBeNull();
+        plan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
+            "GET /nutrition/plans/{planId} must return the nutritionist-linked questionnaire response id");
+
+        // ── 2. GET /trainer/clients/{clientPublicId}/questionnaire-responses as the nutritionist ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{QaSeedRunner.ClientProfilePublicId}/questionnaire-responses", ct);
+        responsesHttp.EnsureSuccessStatusCode();
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId.Value);
+
+        linked.Should().NotBeNull(
+            "the nutritionist's questionnaire-responses list must contain an entry whose " +
+            "ResponsePublicId matches plan.QuestionnaireResponseId");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Nutrition Intake Questionnaire");
     }
 }
