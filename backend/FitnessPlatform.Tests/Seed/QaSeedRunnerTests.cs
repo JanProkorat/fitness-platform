@@ -384,11 +384,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
     /// <summary>
     /// The past training plan (#326 fixture) must have:
-    ///  - A WorkoutLog for the COMPLETED session with IsCompleted=true.
-    ///  - A WorkoutLog for the SKIPPED session with IsCompleted=false.
-    ///  - No WorkoutLog for the UNTOUCHED session.
+    ///  - A SessionExecution for the COMPLETED session with Status=Completed.
+    ///  - A SessionExecution for the SKIPPED session with Status=Partial.
+    ///  - No SessionExecution for the UNTOUCHED session.
     /// This is the minimal assertion the Playwright spec depends on to distinguish
     /// the three past-session states.
+    ///
+    /// Post-#841 the standalone WorkoutLog/TrainingCompletion documents were unified
+    /// into a single SessionExecution aggregate — QaSeedRunner writes SessionExecution
+    /// exclusively now, so these assertions query mongo.SessionExecutions.
     /// </summary>
     [Fact]
     public async Task SeedAsync_PastTrainingPlan_HasThreeDistinctSessionStates()
@@ -428,47 +432,47 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "TrainingCompletion by plan.ClientId and WorkoutCompletionService writes " +
             "TrainingCompletion.ClientId = clientProfile.UserId");
 
-        // COMPLETED session — WorkoutLog with IsCompleted=true.
-        var completedLog = await mongo.WorkoutLogs
+        // COMPLETED session — SessionExecution with Status=Completed.
+        var completedLog = await mongo.SessionExecutions
             .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedWorkoutLogId)
             .FirstOrDefaultAsync(ct);
 
-        completedLog.Should().NotBeNull("completed WorkoutLog must be seeded");
-        completedLog!.IsCompleted.Should().BeTrue("PAST-COMPLETED log must have IsCompleted=true");
+        completedLog.Should().NotBeNull("completed SessionExecution must be seeded");
+        completedLog!.Status.Should().Be(SessionExecutionStatus.Completed, "PAST-COMPLETED log must have Status=Completed");
         completedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionCompletedId);
         completedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
-        // WorkoutLog.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
-        // CompleteWorkoutEndpoint can filter by it and WorkoutCompletionService can resolve
-        // the ClientProfile via cp.UserId == log.ClientId for the TrainingCompletion fan-out.
+        // SessionExecution.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
+        // CompleteWorkoutEndpoint (live client finish) can filter SessionExecutions by
+        // ClientId == Guid.Parse(AppClaims.UserId).
         completedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
-            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, and WorkoutCompletionService " +
-            "resolves the ClientProfile via cp.UserId == log.ClientId");
-        completedLog.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
-        completedLog.Sections[0].Exercises.Should().HaveCount(2);
-        completedLog.Sections[0].Exercises.Should().AllSatisfy(e =>
+            "SessionExecution.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id");
+        completedLog.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        completedLog.Performance!.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
+        completedLog.Performance.Sections[0].Exercises.Should().HaveCount(2);
+        completedLog.Performance.Sections[0].Exercises.Should().AllSatisfy(e =>
             e.Sets.Should().NotBeEmpty("completed log has sets on every exercise"));
 
-        // SKIPPED session — WorkoutLog with IsCompleted=false.
-        var skippedLog = await mongo.WorkoutLogs
+        // SKIPPED session — SessionExecution with Status=Partial.
+        var skippedLog = await mongo.SessionExecutions
             .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedWorkoutLogId)
             .FirstOrDefaultAsync(ct);
 
-        skippedLog.Should().NotBeNull("skipped WorkoutLog must be seeded");
-        skippedLog!.IsCompleted.Should().BeFalse("PAST-SKIPPED log must have IsCompleted=false");
+        skippedLog.Should().NotBeNull("skipped SessionExecution must be seeded");
+        skippedLog!.Status.Should().Be(SessionExecutionStatus.Partial, "PAST-SKIPPED log must have Status=Partial");
         skippedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionSkippedId);
         skippedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
         // Same id-space requirement as the completed log above.
         skippedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id for the same reason as the completed log");
+            "SessionExecution.ClientId must be ApplicationUser.Id for the same reason as the completed log");
 
-        // UNTOUCHED session — must have NO WorkoutLog.
-        var untouchedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, QaSeedRunner.QaPastSessionUntouchedId),
+        // UNTOUCHED session — must have NO SessionExecution.
+        var untouchedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.SessionId, QaSeedRunner.QaPastSessionUntouchedId),
             cancellationToken: ct);
 
         untouchedLogCount.Should().Be(0,
-            "PAST-UNTOUCHED session must have no WorkoutLog so the web classifies it as untouched");
+            "PAST-UNTOUCHED session must have no SessionExecution so the web classifies it as untouched");
     }
 
     /// <summary>
@@ -522,15 +526,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
             cancellationToken: ct);
         planCount.Should().Be(1, "past training plan must not be duplicated on re-seed");
 
-        var completedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedWorkoutLogId),
+        var completedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedWorkoutLogId),
             cancellationToken: ct);
-        completedLogCount.Should().Be(1, "completed WorkoutLog must not be duplicated on re-seed");
+        completedLogCount.Should().Be(1, "completed SessionExecution must not be duplicated on re-seed");
 
-        var skippedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedWorkoutLogId),
+        var skippedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedWorkoutLogId),
             cancellationToken: ct);
-        skippedLogCount.Should().Be(1, "skipped WorkoutLog must not be duplicated on re-seed");
+        skippedLogCount.Should().Be(1, "skipped SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>
@@ -612,7 +616,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// The completed WorkoutLog seeded for the main QA plan must exercise all four
+    /// The completed SessionExecution seeded for the main QA plan must exercise all four
     /// planned-vs-actual set cases in a single session:
     ///
     ///   QA Squat  Set 1 — MODIFIED      actual != planned  (IsModified=true)
@@ -633,20 +637,21 @@ public class QaSeedRunnerTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var log = await mongo.WorkoutLogs
+        var log = await mongo.SessionExecutions
             .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedWorkoutLogId)
             .FirstOrDefaultAsync(ct);
 
-        log.Should().NotBeNull("main-plan completed WorkoutLog must be seeded");
-        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.Should().NotBeNull("main-plan completed SessionExecution must be seeded");
+        log!.Status.Should().Be(SessionExecutionStatus.Completed, "log is marked complete");
         log.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
         log.SessionId.Should().Be(QaSeedRunner.QaSessionId);
         log.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id (11111111-...) — same contract as past-plan logs");
-        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
+            "SessionExecution.ClientId must be ApplicationUser.Id (11111111-...) — same contract as past-plan logs");
+        log.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
 
-        log.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
-        var section = log.Sections[0];
+        log.Performance.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
+        var section = log.Performance.Sections[0];
         section.Exercises.Should().HaveCount(2);
 
         // ── Exercise 1: QA Squat ───────────────────────────────────────────────
@@ -686,7 +691,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create a duplicate main-plan WorkoutLog.
+    /// Seeding twice must not create a duplicate main-plan SessionExecution.
     /// </summary>
     [Fact]
     public async Task SeedAsync_MainPlanWorkoutLog_IsIdempotent()
@@ -699,18 +704,18 @@ public class QaSeedRunnerTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var count = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedWorkoutLogId),
+        var count = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedWorkoutLogId),
             cancellationToken: ct);
 
-        count.Should().Be(1, "main-plan WorkoutLog must not be duplicated on re-seed");
+        count.Should().Be(1, "main-plan SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>
     /// The multi-section fixture (#474) must seed:
     ///  - A TrainingPlan for the second QA client/trainer pair with one session
     ///    whose two sections BOTH reference the same shared exercise (SharedExerciseId).
-    ///  - A completed WorkoutLog with SectionId set on both sections so the
+    ///  - A completed SessionExecution with SectionId set on both sections so the
     ///    section-keying read path works. The Standard section contains edited
     ///    values (Set 1 and Set 3: IsModified=true). The AMRAP section contains
     ///    a plain logged set with no planned snapshot (IsModified=false).
@@ -752,22 +757,23 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "AMRAP section references the SAME exercise as the Standard section");
         amrapSection.Exercises[0].Sets.Should().BeEmpty("AMRAP section carries no prescribed sets");
 
-        // WorkoutLog must exist with SectionId populated on both sections.
-        var log = await mongo.WorkoutLogs
+        // SessionExecution must exist with SectionId populated on both sections.
+        var log = await mongo.SessionExecutions
             .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionWorkoutLogId)
             .FirstOrDefaultAsync(ct);
 
-        log.Should().NotBeNull("multi-section WorkoutLog must be seeded");
-        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.Should().NotBeNull("multi-section SessionExecution must be seeded");
+        log!.Status.Should().Be(SessionExecutionStatus.Completed, "log is marked complete");
         log.PlanId.Should().Be(QaSeedRunner.QaMultiSectionPlanExternalId);
         log.SessionId.Should().Be(QaSeedRunner.QaMultiSectionSessionId);
         log.ClientId.Should().Be(QaSeedRunner.Client2UserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id (Client2UserId)");
-        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
-        log.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
+            "SessionExecution.ClientId must be ApplicationUser.Id (Client2UserId)");
+        log.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
+        log.Performance.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
 
         // Standard section in the log — SectionId must match the plan section.
-        var logStandard = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        var logStandard = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
         logStandard.Exercises.Should().HaveCount(1);
         var logStandardExercise = logStandard.Exercises[0];
         logStandardExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
@@ -796,7 +802,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         set3.IsModified.Should().BeTrue("Set 3 actual != planned → MODIFIED");
 
         // AMRAP section in the log — SectionId must match the plan AMRAP section.
-        var logAmrap = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        var logAmrap = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
         logAmrap.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         logAmrap.Exercises.Should().HaveCount(1);
         var logAmrapExercise = logAmrap.Exercises[0];
@@ -813,7 +819,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create duplicate multi-section plan or WorkoutLog documents.
+    /// Seeding twice must not create duplicate multi-section plan or SessionExecution documents.
     /// </summary>
     [Fact]
     public async Task SeedAsync_MultiSectionFixture_IsIdempotent()
@@ -831,10 +837,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             cancellationToken: ct);
         planCount.Should().Be(1, "multi-section plan must not be duplicated on re-seed");
 
-        var logCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionWorkoutLogId),
+        var logCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionWorkoutLogId),
             cancellationToken: ct);
-        logCount.Should().Be(1, "multi-section WorkoutLog must not be duplicated on re-seed");
+        logCount.Should().Be(1, "multi-section SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>

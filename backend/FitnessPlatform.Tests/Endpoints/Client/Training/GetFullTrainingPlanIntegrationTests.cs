@@ -39,9 +39,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Test", "Client", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        // ── 2. Resolve client's PublicId and ApplicationUser.Id from Postgres ───────
-        Guid clientPublicId;
-        Guid clientUserId; // ApplicationUser.Id — used as WorkoutLog.ClientId
+        // ── 2. Resolve client's ApplicationUser.Id from Postgres ───────────────────
+        // Post-#840/#845, TrainingPlan.ClientId and SessionExecution.ClientId are both
+        // keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) — GetFullTrainingPlanEndpoint
+        // resolves clientProfile.UserId and filters both collections on that single value.
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -51,8 +53,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
-            clientUserId = user.Id;
+            clientUserId = profile.UserId;
         }
 
         // ── 3. Seed Exercise docs ─────────────────────────────────────────────────
@@ -93,7 +94,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Test Hypertrophy Plan",
             Status = TrainingPlanStatus.Active,
@@ -181,42 +182,49 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             ]
         };
 
-        // ── 5. Seed partial WorkoutLog for Session A (2 of 3 sets completed) ──────
-        // WorkoutLog.ClientId stores the ApplicationUser.Id (not ClientProfile.PublicId).
-        // The endpoint filters by ApplicationUser.Id derived from the JWT claim.
-        var workoutLog = new WorkoutLog
+        // ── 5. Seed partial SessionExecution for Session A (2 of 3 sets completed) ──
+        // SessionExecution.ClientId stores the ApplicationUser.Id (not ClientProfile.PublicId).
+        // The endpoint filters by ApplicationUser.Id derived from the JWT claim. Post-#841 the
+        // standalone WorkoutLog document was unified into SessionExecution.Performance.
+        var startedAt = DateTime.UtcNow.AddDays(-6);
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientUserId,
             PlanId = planId,
             SessionId = sessionAId,
-            StartedAt = DateTime.UtcNow.AddDays(-6),
-            IsCompleted = false,
-            DateCreated = DateTime.UtcNow.AddDays(-6),
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = squatId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(5) },
-                                new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 100, CompletedAt = DateTime.UtcNow.AddDays(-6).AddMinutes(8) },
-                                // Set 3 not completed
-                                new WorkoutSet { SetNumber = 3, Reps = 0, WeightKg = 100, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            DateCreated = startedAt,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = null,
+                Sections =
+                [
+                    new WorkoutSection
+                    {
+                        SectionId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = squatId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 100, CompletedAt = startedAt.AddMinutes(5) },
+                                    new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 100, CompletedAt = startedAt.AddMinutes(8) },
+                                    // Set 3 not completed
+                                    new WorkoutSet { SetNumber = 3, Reps = 0, WeightKg = 100, CompletedAt = null }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
         };
 
         using (var scope = factory.Services.CreateScope())
@@ -225,7 +233,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             await mongo.Exercises.InsertOneAsync(squatExercise, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.Exercises.InsertOneAsync(benchExercise, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-            await mongo.WorkoutLogs.InsertOneAsync(workoutLog, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         // ── 6. GET /client/training/plans/{planId} ────────────────────────────────
@@ -315,7 +323,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var ownerEmail = UniqueEmail();
         await TestHelpers.RegisterAsync(httpClient, ownerEmail, "TestPass1!", "Owner", "Client", "Client");
 
-        Guid ownerPublicId;
+        Guid ownerUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -325,7 +333,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            ownerPublicId = profile.PublicId;
+            ownerUserId = profile.UserId;
         }
 
         // Seed a plan for the owner
@@ -333,7 +341,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var ownerPlan = new TrainingPlan
         {
             ExternalId = ownerPlanId,
-            ClientId = ownerPublicId,
+            ClientId = ownerUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Owner's Secret Plan",
             Status = TrainingPlanStatus.Active,
@@ -387,7 +395,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Section", "Client", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -397,7 +405,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         var squatId = Guid.NewGuid();
@@ -437,7 +445,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Sections Round-trip Plan",
             Status = TrainingPlanStatus.Active,
@@ -577,7 +585,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Empty", "Section", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -587,7 +595,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         var planId = Guid.NewGuid();
@@ -597,7 +605,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Empty Section Plan",
             Status = TrainingPlanStatus.Active,
@@ -634,12 +642,17 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             ]
         };
 
-        var completion = new TrainingCompletion
+        // Post-#841 the standalone TrainingCompletion document was unified into
+        // SessionExecution — the lightweight Today-card checkbox flags (CompletedSectionIds,
+        // CompletedExerciseIds, CompletedSets) now live directly on it (Performance stays null).
+        var completion = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = clientPublicId,
-            Date = DateTime.UtcNow.Date,
+            ClientId = clientUserId,
+            PlanId = planId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseIds = [],
             CompletedSectionIds = [emptySectionId],
             DateCreated = DateTime.UtcNow,
@@ -650,7 +663,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
             await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         TestHelpers.SetBearerToken(httpClient, accessToken);
@@ -690,7 +703,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Nonempty", "Done", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -700,7 +713,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         var planId = Guid.NewGuid();
@@ -738,7 +751,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "All Done Plan",
             Status = TrainingPlanStatus.Active,
@@ -791,13 +804,16 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             ]
         };
 
-        // Mark both exercises complete via TrainingCompletion
-        var completion = new TrainingCompletion
+        // Mark both exercises complete via SessionExecution (post-#841 unification of the
+        // standalone TrainingCompletion document — checkbox flags live on it directly).
+        var completion = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = clientPublicId,
-            Date = DateTime.UtcNow.Date,
+            ClientId = clientUserId,
+            PlanId = planId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
+            Status = SessionExecutionStatus.Completed,
             CompletedExerciseIds = [ex1Id, ex2Id],
             DateCreated = DateTime.UtcNow,
             Version = 1
@@ -809,7 +825,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             await mongo.Exercises.InsertOneAsync(ex1, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.Exercises.InsertOneAsync(ex2, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         TestHelpers.SetBearerToken(httpClient, accessToken);
@@ -846,7 +862,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Partial", "Section", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -856,7 +872,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         var planId = Guid.NewGuid();
@@ -894,7 +910,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Partial Section Plan",
             Status = TrainingPlanStatus.Active,
@@ -947,13 +963,15 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             ]
         };
 
-        // Only ex1 is marked complete (not ex2)
-        var completion = new TrainingCompletion
+        // Only ex1 is marked complete (not ex2) — SessionExecution (post-#841 unification).
+        var completion = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = clientPublicId,
-            Date = DateTime.UtcNow.Date,
+            ClientId = clientUserId,
+            PlanId = planId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseIds = [ex1Id],
             DateCreated = DateTime.UtcNow,
             Version = 1
@@ -965,7 +983,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             await mongo.Exercises.InsertOneAsync(ex1, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.Exercises.InsertOneAsync(ex2, cancellationToken: TestContext.Current.CancellationToken);
             await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
-            await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(completion, cancellationToken: TestContext.Current.CancellationToken);
         }
 
         TestHelpers.SetBearerToken(httpClient, accessToken);
@@ -1003,7 +1021,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "No", "Completion", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        Guid clientPublicId;
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -1013,7 +1031,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         var planId = Guid.NewGuid();
@@ -1038,7 +1056,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "No Completion Plan",
             Status = TrainingPlanStatus.Active,

@@ -296,9 +296,9 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
 
     /// <summary>
     /// POST /test/reset seeds a TrainingPlan with ExternalId = QaTrainingPlanExternalId.
-    /// The plan must be keyed on ClientProfilePublicId (not ClientUserId) and
-    /// have exactly one Published week with one session containing three sections
-    /// in the expected order and format.
+    /// The plan must be keyed on ClientUserId (ApplicationUser.Id, #840/#845 — not
+    /// ClientProfilePublicId) and have exactly one Published week with one session
+    /// containing three sections in the expected order and format.
     /// </summary>
     [Fact]
     public async Task Reset_SeedsTrainingPlan_WithForTimeSectionAndNonRegressionSections()
@@ -318,11 +318,11 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
 
         plan.Should().NotBeNull(because: "QaSeedRunner must create the QA training plan");
 
-        // ClientId must be ClientProfilePublicId — GetClientPlansEndpoint filters by
-        // ClientProfile.PublicId (not by the user id) so using the wrong value makes
-        // the plan invisible to GET /client/plans.
-        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            because: "TrainingPlan.ClientId must equal ClientProfile.PublicId for the plan to be visible via GET /client/plans");
+        // ClientId must be ClientUserId (ApplicationUser.Id) — post-#840/#845,
+        // GetClientPlansEndpoint resolves clientProfile.UserId and filters Mongo
+        // documents on that value, not on ClientProfile.PublicId.
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            because: "TrainingPlan.ClientId must equal ApplicationUser.Id for the plan to be visible via GET /client/plans");
 
         // Plan must be Active (not Draft) with at least one Published week.
         plan.Status.Should().Be(TrainingPlanStatus.Active);
