@@ -510,12 +510,27 @@ using (var migrationScope = app.Services.CreateScope())
     // Same pre-app.Run() timing requirement as StartAsync above: endpoints filter
     // these collections by ApplicationUser.Id, and a request racing an unmigrated
     // document would silently match zero documents rather than throw, so this must
-    // also complete before Kestrel accepts traffic. IApplicationDbContext is scoped,
-    // so it's resolved from this same scope and passed in as a parameter — see
-    // MongoIndexInitializer.MigrateClientIdsAsync's remarks for why it isn't a
+    // also complete before Kestrel accepts traffic when it runs. IApplicationDbContext
+    // is scoped, so it's resolved from this same scope and passed in as a parameter —
+    // see MongoIndexInitializer.MigrateClientIdsAsync's remarks for why it isn't a
     // constructor dependency.
-    var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-    await mongoIndexInitializer.MigrateClientIdsAsync(migrationDbContext, CancellationToken.None);
+    //
+    // GATED behind the SAME runMigrationsOnStartup flag as the relational EF migration
+    // above (unlike StartAsync(), which always runs — it never touches Postgres). This
+    // migration reads ClientProfile rows from Postgres via IApplicationDbContext, and in
+    // the Testcontainers/e2e harness Database:RunMigrationsOnStartup=false while the
+    // relational schema is provisioned later by ApplicationDbContextSeed — so running
+    // this unconditionally raced an unprovisioned Postgres schema and threw Npgsql 42P01
+    // "relation client_profiles does not exist" nondeterministically across the shared
+    // fixture. Production sets RunMigrationsOnStartup=true, so gating here still
+    // preserves the pre-app.Run() guarantee there; the dedicated Testcontainers tests
+    // for this migration invoke MigrateClientIdsAsync directly against an
+    // already-provisioned schema, independent of this startup gate.
+    if (runMigrationsOnStartup)
+    {
+        var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+        await mongoIndexInitializer.MigrateClientIdsAsync(migrationDbContext, CancellationToken.None);
+    }
 }
 
 app.Run();
