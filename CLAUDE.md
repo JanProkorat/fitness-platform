@@ -254,134 +254,16 @@ useTodayState() resolves:
 
 ## Working Principles
 
-These principles apply to every task — direct work and sub-agent delegations alike.
-They exist because past sessions showed the same failure modes recurring: speculative
-fixes that weren't root-caused, "done" claims on animations that were still broken,
-local changes globalised across the codebase, UI iteration death-loops, and
-output-token blowups on oversized tasks.
+The cross-project working principles — root-cause-before-fix, verify-before-done,
+scope discipline, the two-attempt UI rule, plan-then-execute, token/context
+hygiene, and no-verbatim-spec-in-subagent-prompts — live in `~/.claude/CLAUDE.md`
+and load every session. They are **not** restated here. Project-specific deltas:
 
-### 1. Root-cause before fix
-
-Never submit a speculative patch. For any bug:
-
-1. Reproduce it (or explain why you can't) and state the **exact code path** that
-   produced it — file, function, line range.
-2. State the **root cause in one sentence** before proposing the fix. If you can't,
-   keep investigating — don't guess.
-3. Verify the hypothesis: a failing test that goes green, a log line that confirms
-   the path, or a minimal repro. "This edit might fix it" is not a diagnosis.
-
-If the bug originates in a sub-agent's handoff, the orchestrator re-dispatches with
-the root cause explicitly named — sub-agents do not proceed on speculative fixes
-either.
-
-### 2. Verify before declaring done
-
-A task is not complete until its verification surface passes. At minimum:
-
-- **Backend** — `dotnet build` AND the relevant `dotnet test` slice.
-- **Web** — `npm run build` (typecheck is part of the build).
-- **Mobile** — `npx tsc --noEmit` AND, for UI/animation work, simulator
-  confirmation OR an explicit user check. Never claim an animation works from
-  reading the diff.
-
-Run these as a final step before reporting. If you cannot run them (no sandbox,
-no simulator), say so — don't claim they pass.
-
-### 3. Scope discipline
-
-When the user pins a change to a specific place ("the bottom progress bar", "the
-Today screen header", "the foods list on nutrition plans"), apply it **only
-there**. Do not globalise:
-
-- Don't rename across the codebase when the request was local.
-- Don't restyle sibling components because they look related.
-- Don't refactor nearby code opportunistically — propose it separately.
-
-If the scope is ambiguous, ask via `AskUserQuestion` before making changes in
-more than one location.
-
-### 4. UI iteration discipline — the two-attempt rule
-
-Mobile/web animation and layout work is where sessions most often spiral. Enforce
-a hard stop after **two failed attempts** at the same behaviour:
-
-1. First attempt: your best guess.
-2. Second attempt: informed by what broke the first.
-3. **Third attempt is banned** until you have:
-   - A written list of what was tried and precisely how each failed
-     (not "it didn't work" — what rendered, what jumped, what stayed stale).
-   - A short tradeoff doc comparing 2–3 candidate approaches
-     (e.g. Reanimated height interpolation vs `LayoutAnimation` vs
-     `LinearTransition` vs measure() worklet) with the concrete reason to pick one.
-   - An explicit ask for a screen recording, a reference GIF, or a second pair
-     of eyes — text-only feedback is insufficient for animation debugging.
-
-This applies equally to completion-state sync, expand/collapse behaviour, and any
-bug where the user says "it does not work" twice in a row on the same surface.
-Stop iterating blindly — slow down and re-plan.
-
-### 5. Plan-then-execute for large tasks
-
-For any task that touches **more than 5 files** or is expected to generate **more
-than ~500 lines of output** (large refactors, prototype splits, epic
-implementations, bulk doc generation, multi-PR scaffolding):
-
-1. Write a numbered execution plan to `PLAN.md` at the repo root (or invoke
-   `ExitPlanMode` if in plan mode). Each phase must be independently committable.
-2. **Stop and wait for approval.** Do not start executing.
-3. Execute **one phase per turn**, committing at the end of each phase so there
-   are natural resume points if a run gets interrupted by token limits, auth
-   expiration, or tool throttling.
-
-This prevents the output-token blowups and truncated transcripts that lost work
-on earlier refactors (prototype split, Notion bootstrap).
-
-### 6. Token discipline — context hygiene + research delegation
-
-Subscription is a 5h window + weekly limit (shared across Claude.ai and Claude
-Code). Once exhausted, "extra usage" bills at API rates. Token frugality
-directly extends working hours per week.
-
-- **Between unrelated issues → `/clear`.** Cleanest restart; main context
-  stays the size of your brief, not 30 turns of stale state.
-- **Mid-large-task at ~70% context → `/compact`.** Always tell `/compact`
-  what to preserve: `/compact preserve list of changed files, test commands,
-  current branch name`.
-- **Before invoking `ship-epic`** on a multi-child epic, ensure context is
-  fresh. Long pipelines fill context fast; starting from clean state means
-  the orchestrator has the full window for state-tracking, not stale chat.
-- **Research-heavy lookups → subagent.** If you're about to read 5+ files or
-  grep across a wide surface to answer a question, dispatch an Explore /
-  general-purpose subagent (Haiku for scout-level, Sonnet for synthesis).
-  Sub-agent returns a summary; main context stays clean.
-- **`web_search` / `web_fetch` calls** — use the Haiku model. These calls
-  return long-form pages; running them through Opus/Sonnet wastes a lot of
-  context tokens for a job Haiku does competently.
-
-The global `~/.claude/CLAUDE.md` carries the cross-project version of this
-rule and the full model-selection matrix.
-
-### 7. Don't pass spec text verbatim into sub-agent prompts
-
-When the orchestrator dispatches a sub-agent, **never** pass through
-verbatim issue bodies, prototype HTML, schema documents, or other
-source files in the `Agent` prompt. The spec is data; the agent's
-prompt is built from the skill's instructions plus the specific facts
-the orchestrator extracted (issue number, branch, scope summary, file
-list).
-
-Why it matters: passing a 5-KB issue body into 5 parallel sub-agents
-costs 25 KB at the dispatch boundary, plus another 25 KB on every
-turn that re-references it. The model already has access to the issue
-via `gh issue view <N>` — it doesn't need a copy in the prompt.
-
-What to do instead:
-
-- Reference data by ID: "the issue is #142, fetch via gh".
-- Reference files by path: "read `mobile/src/screens/Today/index.tsx`".
-- Pass extracted facts only: "scope: mobile; touch `Today/`; the AC
-  is 4 bullets, summarised as <one sentence>".
-
-`ship-epic` and `signalr-event` MUST follow this rule when fanning out
-parallel children.
+- **Verification surfaces** (what "done" means per package) → [`rules/verification.md`](rules/verification.md).
+  Quick ref: backend `dotnet build` + relevant `dotnet test` slice; web `npm run build`
+  **and** `npm run lint` (0 errors); mobile `npx tsc --noEmit` + `npx expo-doctor`.
+- **Two-attempt UI rule** is enforced by the [`ui-tradeoff`](.claude/skills/) skill.
+- **Root-cause discipline** for multi-layer bugs → the [`root-cause-swarm`](.claude/skills/) skill.
+- **`ship-epic` / `signalr-event`** must follow the no-verbatim-spec rule when
+  fanning out parallel children — pass IDs, paths, and extracted facts, never
+  raw issue/prototype bodies.

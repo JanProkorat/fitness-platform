@@ -66,6 +66,33 @@
             <div style="flex:1;height:28%;background:var(--ios-gold);border-radius:2px"></div>
           </div>
         </div>
+        <!-- Hydration compact stat card — occupies the MIDDLE slot when the
+             drinking-regimen feature is enabled (replaces the Trénink/Kalorie
+             tile). Tap opens the quick-log sheet. Hidden when feature is off. -->
+        <div id="today-hydration-stat-card" onclick="openHydrationSheet()" title="Zaznamenat pití" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em">Pití</div>
+            <div title="Zaznamenat pití" style="width:24px;height:24px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <div id="hyd-home-stat-current" style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">0</div>
+            <div style="font-size:12px;color:var(--ios-label2)">ml</div>
+          </div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">z <span class="hyd-target-lbl">2 500</span> ml</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div id="hyd-home-stat-bar" style="width:0%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
+        <!-- Compliance (Plnění) stat card — occupies the MIDDLE slot when the
+             drinking-regimen feature is OFF. 7-day adherence %. Value + bar use
+             the conditional compliance color (≥80% green · 50–79% gold ·
+             <50% orange) — 35% → orange, same as the real StatCard. -->
+        <div id="today-compliance-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Plnění</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-orange);letter-spacing:-.3px">35%</div>
+          <div style="font-size:12px;color:var(--ios-label3);margin-top:1px">za posledních 7 dní</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:35%;height:100%;background:var(--ios-orange);border-radius:99px"></div></div>
+        </div>
         <div id="today-training-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>
           <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">2 tréninky</div>
@@ -152,6 +179,26 @@
         </div>
         <div onclick="liveResumeFromBanner()" style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:13px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0">Pokračovat</div>
         <div onclick="liveDiscardFromBanner()" style="font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:6px;flex-shrink:0">Zahodit</div>
+      </div>
+
+      <!-- Hydration card (Pitný režim) — DEPRECATED large card. The feature now
+           lives in the middle stat slot (#today-hydration-stat-card). Kept hidden
+           so logHydration() targets still resolve; remove in the real impl. -->
+      <div id="today-hydration-block" style="margin:14px 20px 0;display:none">
+        <div class="ios-card" style="padding:14px 16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:17px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px">Pitný režim</div>
+            <div style="font-size:13px;color:var(--ios-label2)"><span id="hyd-home-current">0</span> z <span class="hyd-target-lbl">2 500</span> ml</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;height:8px;background:var(--ios-fill);border-radius:99px;overflow:hidden">
+              <div id="hyd-home-bar" style="width:0%;height:100%;background:var(--ios-gold);border-radius:99px;transition:width .3s"></div>
+            </div>
+            <div onclick="openHydrationSheet()" title="Zaznamenat pití" style="width:40px;height:40px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Training card -->
@@ -720,6 +767,26 @@
     <!-- ── Waiting for plan state (filled by JS) ── -->
     <div id="today-waiting" style="display:none"></div>
 
+  </div>
+
+  <!-- Hydration quick-log bottom sheet — preset amounts + custom input -->
+  <div class="weight-sheet-overlay" id="hyd-sheet" onclick="if(event.target===this)closeHydrationSheet()">
+    <div class="weight-sheet">
+      <div class="weight-sheet-handle"></div>
+      <div class="weight-sheet-title">Zaznamenat pití</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+        <div onclick="logHydration(200)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+200 ml</div>
+        <div onclick="logHydration(300)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+300 ml</div>
+        <div onclick="logHydration(500)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+500 ml</div>
+        <div onclick="logHydration(750)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+750 ml</div>
+        <div onclick="logHydration(1000)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+1 L</div>
+      </div>
+      <div style="font-size:13px;color:var(--ios-label2);margin-bottom:8px">Vlastní množství</div>
+      <div style="display:flex;gap:10px">
+        <input id="hyd-custom-input" type="text" inputmode="numeric" placeholder="Zadejte ml" style="flex:1;height:46px;border-radius:var(--ios-r);border:1px solid var(--ios-sep);background:var(--ios-fill);color:var(--ios-label);padding:0 14px;font-size:16px;font-family:'Inter',sans-serif">
+        <button onclick="logHydrationCustom()" class="ios-btn ios-btn-primary" style="flex-shrink:0;padding:0 20px;font-size:15px">Zaznamenat</button>
+      </div>
+    </div>
   </div>
 
   <!-- Notification sheet -->

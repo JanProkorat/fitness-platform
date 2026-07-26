@@ -1,3 +1,11 @@
+---
+# Orchestration rule: also load-on-demand at the merge gate — see the
+# "Rules are load-on-demand" directive in .claude/CLAUDE.md.
+paths:
+  - "backend/**"
+  - "web/**"
+  - "mobile/**"
+---
 # Rules: Merge strategy & gate
 
 The merge gate has two sub-rules depending on the PR's base branch.

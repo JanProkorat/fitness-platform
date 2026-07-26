@@ -1,3 +1,9 @@
+---
+paths:
+  - "backend/**"
+  - "web/**"
+  - "mobile/**"
+---
 # Rules: Code quality (hard rules)
 
 These are the BLOCKING-severity rules `pr-reviewer` enforces on every

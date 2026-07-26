@@ -7,6 +7,18 @@ are applied consistently.
 Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
+> **Rules are load-on-demand.** Every `rules/*.md` now carries `paths:`
+> frontmatter, so it auto-loads only when an agent reads a matching package
+> file — it is **no longer in always-on context**. The package rules
+> (`code-quality`, `i18n`, `verification`, `scope-boundaries`) load whenever the
+> relevant code is touched. The orchestration rules (`branch-and-pr`,
+> `merge-strategy`, `epic-branch`) may not be triggered by a file read at a pure
+> orchestration moment, so **before running a gate that cites one, `Read` that
+> `rules/<file>.md` first if it is not already in context** — a citation is a
+> load instruction, not just a pointer. This matters most at: branch/base
+> creation (`branch-and-pr`), epic kickoff (`epic-branch`), and the merge gate
+> (`merge-strategy`).
+
 ## Sub-agents
 
 Project-local dev agents (live in `.claude/agents/`):

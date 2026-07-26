@@ -23,6 +23,7 @@
       <button class="pb" onclick="showPhone('ph-plans')">Plány</button>
       <button class="pb" onclick="showPhone('ph-profile')">Profil</button>
       <button class="pb" onclick="showPhone('ph-profile-photos')">Timeline fotek</button>
+      <button class="pb" onclick="showPhone('ph-hydration-setup')">Pitný režim · nastavení</button>
     </div>
   </div>
   <div class="ps"></div>
@@ -31,6 +32,11 @@
   <div class="pnav-group">
     <button class="pnav-cat" onclick="toggleNavGroup(this)">📋 Plány & Dotazníky ▾</button>
     <div class="pnav-items">
+      <div class="pg">Plány</div>
+      <button class="pb" onclick="showPhone('ph-plans-sched')">Plány — 1 plán</button>
+      <button class="pb" onclick="showPhone('ph-plans-two')">Plány — 2 plány</button>
+      <button class="pb" onclick="showPhone('ph-plans')">Plány (původní)</button>
+      <div class="pg" style="margin-top:4px">Plány & dotazníky</div>
       <button class="pb" onclick="showPhone('ph-plan-history')">Archiv plánů</button>
       <button class="pb" onclick="showPhone('ph-plan-detail-complete')">Dokončený plán</button>
       <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
@@ -105,6 +111,9 @@
       <button class="pb"        id="btn-state-pending-t"  onclick="setPendingPlans('training')">Plán brzy: trénink</button>
       <button class="pb"        id="btn-state-pending-n"  onclick="setPendingPlans('nutrition')">Plán brzy: výživa</button>
       <button class="pb"        id="btn-state-pending-tn" onclick="setPendingPlans('both')">Plán brzy: oba</button>
+      <div class="pg" style="margin-top:4px">Pitný režim</div>
+      <button class="pb active" id="btn-hyd-on"  onclick="setHydrationHome(true)">Povolen (karta nahoře)</button>
+      <button class="pb"        id="btn-hyd-off" onclick="setHydrationHome(false)">Zakázán (Plnění)</button>
       <div class="pg" style="margin-top:4px">Čeká na plán</div>
       <button class="pb"        id="btn-wait-n"   onclick="setWaitingState('nutrition')">Jen výživu</button>
       <button class="pb"        id="btn-wait-t"   onclick="setWaitingState('training')">Jen trénink</button>
@@ -131,8 +140,8 @@
 <!-- ══ STAGE ════════════════════════════════════════════════════════════════ -->
 <div id="stage">
 
-<!-- include: scenes/today.html --><!-- include: scenes/discover.html --><!-- include: scenes/plans.html --><!-- include: scenes/plan-history.html --><!-- include: scenes/plan-detail-complete.html --><!-- include: scenes/pending-questionnaires.html --><!-- include: scenes/weekly-checkin.html --><!-- include: scenes/weekly-checkin-sent.html --><!-- include: scenes/profile.html --><!-- include: scenes/messages.html --><!-- include: scenes/chat.html --><!-- include: scenes/trainer-profile.html --><!-- include: scenes/invite-detail.html --><!-- include: scenes/archive.html --><!-- include: scenes/chat-former.html --><!-- include: scenes/onb-intro.html --><!-- include: scenes/onb-s1.html --><!-- include: scenes/onb-s2.html --><!-- include: scenes/onb-summary.html --><!-- include: scenes/onb-success.html --><!-- include: scenes/nutrition-plan-detail.html --><!-- include: scenes/food-detail.html --><!-- include: scenes/recipe-detail.html --><!-- include: scenes/training-plan-detail.html --><!-- include: scenes/session-lock.html --><!-- include: scenes/live-training.html --><!-- include: scenes/live-amrap.html --><!-- include: scenes/live-emom.html --><!-- include: scenes/live-tabata.html --><!-- include: scenes/live-fortime.html --><!-- include: scenes/live-time-distance-exercise.html --><!-- include: scenes/live-results-summary.html --><!-- include: scenes/live-session-runner.html --><!-- include: scenes/diary-request.html --><!-- include: scenes/diary-dismiss.html --><!-- include: scenes/diary-accept-wizard.html --><!-- include: scenes/diary-bulk.html --><!-- include: scenes/diary-workflow.html --><!-- include: scenes/diary-finalize.html --><!-- include: scenes/meal-log-photo.html --><!-- include: scenes/plan-photos.html --><!-- include: scenes/profile-photos.html --></div><!-- /stage -->
+<!-- include: scenes/today.html --><!-- include: scenes/discover.html --><!-- include: scenes/plans.html --><!-- include: scenes/plans-sched.html --><!-- include: scenes/plans-two.html --><!-- include: scenes/plan-history.html --><!-- include: scenes/plan-detail-complete.html --><!-- include: scenes/pending-questionnaires.html --><!-- include: scenes/weekly-checkin.html --><!-- include: scenes/weekly-checkin-sent.html --><!-- include: scenes/profile.html --><!-- include: scenes/hydration-setup.html --><!-- include: scenes/messages.html --><!-- include: scenes/chat.html --><!-- include: scenes/trainer-profile.html --><!-- include: scenes/invite-detail.html --><!-- include: scenes/archive.html --><!-- include: scenes/chat-former.html --><!-- include: scenes/onb-intro.html --><!-- include: scenes/onb-s1.html --><!-- include: scenes/onb-s2.html --><!-- include: scenes/onb-summary.html --><!-- include: scenes/onb-success.html --><!-- include: scenes/nutrition-plan-detail.html --><!-- include: scenes/food-detail.html --><!-- include: scenes/recipe-detail.html --><!-- include: scenes/training-plan-detail.html --><!-- include: scenes/session-lock.html --><!-- include: scenes/live-training.html --><!-- include: scenes/live-amrap.html --><!-- include: scenes/live-emom.html --><!-- include: scenes/live-tabata.html --><!-- include: scenes/live-fortime.html --><!-- include: scenes/live-time-distance-exercise.html --><!-- include: scenes/live-results-summary.html --><!-- include: scenes/live-session-runner.html --><!-- include: scenes/diary-request.html --><!-- include: scenes/diary-dismiss.html --><!-- include: scenes/diary-accept-wizard.html --><!-- include: scenes/diary-bulk.html --><!-- include: scenes/diary-workflow.html --><!-- include: scenes/diary-finalize.html --><!-- include: scenes/meal-log-photo.html --><!-- include: scenes/plan-photos.html --><!-- include: scenes/profile-photos.html --></div><!-- /stage -->
 
-<script><!-- include: scripts/nav.js --><!-- include: scripts/state.js --><!-- include: scripts/detail.js --><!-- include: scripts/weight.js --><!-- include: scripts/live-training.js --><!-- include: scripts/records.js --></script>
+<script><!-- include: scripts/nav.js --><!-- include: scripts/state.js --><!-- include: scripts/detail.js --><!-- include: scripts/weight.js --><!-- include: scripts/live-training.js --><!-- include: scripts/records.js --><!-- include: scripts/hydration.js --><!-- include: scripts/plans.js --></script>
 </body>
 </html>

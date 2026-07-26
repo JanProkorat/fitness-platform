@@ -55,6 +55,17 @@
         },
         "additionalProperties": false
       }
+    },
+    "orchestrator_consolidation": {
+      "type": "object",
+      "description": "Rule 6.5 (.claude/CLAUDE.md): the orchestrator appends its interactive-QA consolidation here after driving or deferring the INTERACTIVE-REQUIRED ACs on the main thread. Optional — present only once the orchestrator has consolidated. When present, the top-level `verdict` reflects the orchestrator's final call (PASS/FAIL/PARTIAL).",
+      "properties": {
+        "decided_at": { "type": "string" },
+        "decision": { "type": "string", "maxLength": 2000 },
+        "deferred_to_epic_pr_device_pass": { "type": "array", "items": { "type": "string", "maxLength": 200 } },
+        "gate_result": { "type": "string", "maxLength": 400 }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": false

@@ -347,6 +347,11 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 .seg-ctrl{display:flex;background:var(--ios-fill);border-radius:9px;padding:2px;margin:0 20px 16px}
 .seg-opt{flex:1;text-align:center;padding:7px 0;border-radius:7px;font-size:13px;font-weight:var(--sf-med);color:var(--ios-label2);cursor:pointer;transition:background .15s,color .15s}
 .seg-opt.active{background:var(--ios-bg2);color:var(--ios-label);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.seg-opt.disabled{opacity:.35;pointer-events:none;cursor:default}
+.wk-bar{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 20px 2px}
+.wk-step{width:30px;height:30px;border-radius:50%;background:var(--ios-fill);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--ios-blue);cursor:pointer;font-weight:600;flex-shrink:0}
+.wk-step.wk-disabled{opacity:.3;pointer-events:none}
+.wk-lbl{font-size:15px;font-weight:var(--sf-semi);color:var(--ios-label);min-width:130px;text-align:center}
 
 /* Pill tab */
 .pill-tabs{display:flex;gap:8px;padding:4px 20px 8px;overflow-x:auto}
@@ -785,6 +790,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb" onclick="showPhone('ph-plans')">Plány</button>
       <button class="pb" onclick="showPhone('ph-profile')">Profil</button>
       <button class="pb" onclick="showPhone('ph-profile-photos')">Timeline fotek</button>
+      <button class="pb" onclick="showPhone('ph-hydration-setup')">Pitný režim · nastavení</button>
     </div>
   </div>
   <div class="ps"></div>
@@ -793,6 +799,11 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   <div class="pnav-group">
     <button class="pnav-cat" onclick="toggleNavGroup(this)">📋 Plány & Dotazníky ▾</button>
     <div class="pnav-items">
+      <div class="pg">Plány</div>
+      <button class="pb" onclick="showPhone('ph-plans-sched')">Plány — 1 plán</button>
+      <button class="pb" onclick="showPhone('ph-plans-two')">Plány — 2 plány</button>
+      <button class="pb" onclick="showPhone('ph-plans')">Plány (původní)</button>
+      <div class="pg" style="margin-top:4px">Plány & dotazníky</div>
       <button class="pb" onclick="showPhone('ph-plan-history')">Archiv plánů</button>
       <button class="pb" onclick="showPhone('ph-plan-detail-complete')">Dokončený plán</button>
       <button class="pb" onclick="showPhone('ph-nutrition-plan-detail')">Detail výživového plánu</button>
@@ -867,6 +878,9 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <button class="pb"        id="btn-state-pending-t"  onclick="setPendingPlans('training')">Plán brzy: trénink</button>
       <button class="pb"        id="btn-state-pending-n"  onclick="setPendingPlans('nutrition')">Plán brzy: výživa</button>
       <button class="pb"        id="btn-state-pending-tn" onclick="setPendingPlans('both')">Plán brzy: oba</button>
+      <div class="pg" style="margin-top:4px">Pitný režim</div>
+      <button class="pb active" id="btn-hyd-on"  onclick="setHydrationHome(true)">Povolen (karta nahoře)</button>
+      <button class="pb"        id="btn-hyd-off" onclick="setHydrationHome(false)">Zakázán (Plnění)</button>
       <div class="pg" style="margin-top:4px">Čeká na plán</div>
       <button class="pb"        id="btn-wait-n"   onclick="setWaitingState('nutrition')">Jen výživu</button>
       <button class="pb"        id="btn-wait-t"   onclick="setWaitingState('training')">Jen trénink</button>
@@ -961,6 +975,33 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
             <div style="flex:1;height:28%;background:var(--ios-gold);border-radius:2px"></div>
           </div>
         </div>
+        <!-- Hydration compact stat card — occupies the MIDDLE slot when the
+             drinking-regimen feature is enabled (replaces the Trénink/Kalorie
+             tile). Tap opens the quick-log sheet. Hidden when feature is off. -->
+        <div id="today-hydration-stat-card" onclick="openHydrationSheet()" title="Zaznamenat pití" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em">Pití</div>
+            <div title="Zaznamenat pití" style="width:24px;height:24px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <div id="hyd-home-stat-current" style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">0</div>
+            <div style="font-size:12px;color:var(--ios-label2)">ml</div>
+          </div>
+          <div style="font-size:11px;color:var(--ios-label3);margin-top:1px">z <span class="hyd-target-lbl">2 500</span> ml</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div id="hyd-home-stat-bar" style="width:0%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
+        <!-- Compliance (Plnění) stat card — occupies the MIDDLE slot when the
+             drinking-regimen feature is OFF. 7-day adherence %. Value + bar use
+             the conditional compliance color (≥80% green · 50–79% gold ·
+             <50% orange) — 35% → orange, same as the real StatCard. -->
+        <div id="today-compliance-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:none">
+          <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Plnění</div>
+          <div style="font-size:22px;font-weight:700;color:var(--ios-orange);letter-spacing:-.3px">35%</div>
+          <div style="font-size:12px;color:var(--ios-label3);margin-top:1px">za posledních 7 dní</div>
+          <div style="height:4px;background:var(--ios-fill);border-radius:99px;margin-top:6px;overflow:hidden"><div style="width:35%;height:100%;background:var(--ios-orange);border-radius:99px"></div></div>
+        </div>
         <div id="today-training-stat-card" style="flex:1;background:var(--ios-bg2);border-radius:var(--ios-r);padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           <div style="font-size:11px;color:var(--ios-label2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Trénink</div>
           <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">2 tréninky</div>
@@ -1047,6 +1088,26 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         </div>
         <div onclick="liveResumeFromBanner()" style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:13px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0">Pokračovat</div>
         <div onclick="liveDiscardFromBanner()" style="font-size:12px;font-weight:600;color:var(--ios-label3);cursor:pointer;padding:6px;flex-shrink:0">Zahodit</div>
+      </div>
+
+      <!-- Hydration card (Pitný režim) — DEPRECATED large card. The feature now
+           lives in the middle stat slot (#today-hydration-stat-card). Kept hidden
+           so logHydration() targets still resolve; remove in the real impl. -->
+      <div id="today-hydration-block" style="margin:14px 20px 0;display:none">
+        <div class="ios-card" style="padding:14px 16px;background:var(--ios-bg2);border-radius:var(--ios-r-lg);box-shadow:0 1px 3px rgba(0,0,0,.06)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:17px;font-weight:700;color:var(--ios-label);letter-spacing:-.2px">Pitný režim</div>
+            <div style="font-size:13px;color:var(--ios-label2)"><span id="hyd-home-current">0</span> z <span class="hyd-target-lbl">2 500</span> ml</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="flex:1;height:8px;background:var(--ios-fill);border-radius:99px;overflow:hidden">
+              <div id="hyd-home-bar" style="width:0%;height:100%;background:var(--ios-gold);border-radius:99px;transition:width .3s"></div>
+            </div>
+            <div onclick="openHydrationSheet()" title="Zaznamenat pití" style="width:40px;height:40px;border-radius:50%;background:var(--ios-gold);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Training card -->
@@ -1617,6 +1678,26 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
   </div>
 
+  <!-- Hydration quick-log bottom sheet — preset amounts + custom input -->
+  <div class="weight-sheet-overlay" id="hyd-sheet" onclick="if(event.target===this)closeHydrationSheet()">
+    <div class="weight-sheet">
+      <div class="weight-sheet-handle"></div>
+      <div class="weight-sheet-title">Zaznamenat pití</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+        <div onclick="logHydration(200)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+200 ml</div>
+        <div onclick="logHydration(300)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+300 ml</div>
+        <div onclick="logHydration(500)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+500 ml</div>
+        <div onclick="logHydration(750)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+750 ml</div>
+        <div onclick="logHydration(1000)" style="flex:1 1 28%;text-align:center;padding:12px 6px;border-radius:var(--ios-r);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.35);color:var(--ios-gold);font-size:15px;font-weight:600;cursor:pointer">+1 L</div>
+      </div>
+      <div style="font-size:13px;color:var(--ios-label2);margin-bottom:8px">Vlastní množství</div>
+      <div style="display:flex;gap:10px">
+        <input id="hyd-custom-input" type="text" inputmode="numeric" placeholder="Zadejte ml" style="flex:1;height:46px;border-radius:var(--ios-r);border:1px solid var(--ios-sep);background:var(--ios-fill);color:var(--ios-label);padding:0 14px;font-size:16px;font-family:'Inter',sans-serif">
+        <button onclick="logHydrationCustom()" class="ios-btn ios-btn-primary" style="flex-shrink:0;padding:0 20px;font-size:15px">Zaznamenat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Notification sheet -->
   <div class="notif-overlay" id="notif-overlay-ph-today" onclick="if(event.target===this)closeNotifSheet('ph-today')">
     <div class="notif-sheet">
@@ -1708,7 +1789,7 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
 
 <!-- ═══════════════════════════════════════════
-     SPOLUPRÁCE
+     SPOLUPRÁCE — tab switcher (Trenér / Poradce / Hledat)
 ═══════════════════════════════════════════ -->
 <div class="phone-wrap">
 <div class="phone-label">Spolupráce</div>
@@ -1718,24 +1799,173 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 
   <div class="scroll-area">
 
-    <!-- ── STAV A: nemá nikoho — discovery ── -->
-    <div id="collab-state-none">
-      <div class="ios-page-header">
-        <div class="ios-page-title">Spolupráce</div>
-        <div class="ios-page-sub">Najděte trenéra nebo poradce</div>
+    <!-- Page header -->
+    <div class="ios-page-header">
+      <div class="ios-page-title">Spolupráce</div>
+    </div>
+
+    <!-- Tab switcher (Trenér / Poradce / Hledat) -->
+    <div class="seg-ctrl">
+      <div class="seg-opt" id="seg-tab-trainer" onclick="selectCollabTab('trainer')">Trenér</div>
+      <div class="seg-opt" id="seg-tab-coach"   onclick="selectCollabTab('coach')">Poradce</div>
+      <div class="seg-opt" id="seg-tab-search"  onclick="selectCollabTab('search')">Hledat</div>
+    </div>
+
+    <!-- ── TAB: TRENÉR — profil aktivního trenéra ── -->
+    <div id="collab-tab-trainer" style="display:none">
+
+      <!-- Hero -->
+      <div style="padding:8px 20px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="width:88px;height:88px;border-radius:28px;background:rgba(0,122,255,.12);color:var(--ios-blue);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;margin-bottom:12px">MK</div>
+        <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Marek Kovář</div>
+        <div style="font-size:15px;color:var(--ios-label2);margin-top:3px">Osobní trenér & výživový poradce</div>
+        <div style="font-size:13px;color:var(--ios-label3);margin-top:2px">📍 Praha · Online</div>
+        <div style="margin-top:12px;font-size:12px;font-weight:600;padding:5px 14px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">🟢 Aktivní · od 25. 2. 2026</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Silový trénink</div>
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Hubnutí</div>
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Online</div>
+        </div>
+      </div>
+
+      <!-- Zkušenosti -->
+      <div style="border-bottom:.5px solid var(--ios-sep2);padding:14px 8px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">8 let</div>
+        <div style="font-size:11px;color:var(--ios-label3);margin-top:2px">Zkušeností</div>
+      </div>
+
+      <!-- O mně -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">O mně</div>
+        <div style="font-size:15px;color:var(--ios-label2);line-height:1.6">Certifikovaný osobní trenér a výživový poradce s 8 lety praxe. Specializuji se na silový trénink, redukci hmotnosti a rekomposici těla. Pracuji osobně v Praze i online po celé ČR. Věřím, že každý klient je jedinečný — přizpůsobuji plány přesně na míru tvojim cílům.</div>
+      </div>
+
+      <!-- Certifikáty -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Certifikáty</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎓</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--ios-label)">EREPS Level 3</div>
+              <div style="font-size:12px;color:var(--ios-label3)">Osobní trenér · 2018</div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Ověřeno</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(201,168,76,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🥗</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--ios-label)">Precision Nutrition L1</div>
+              <div style="font-size:12px;color:var(--ios-label3)">Výživový poradce · 2020</div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Ověřeno</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Specializace -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Specializace</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(11,110,153,.08);color:#0b6e99;font-size:13px;font-weight:500">🏋️ Silový trénink</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(173,87,0,.08);color:#ad5700;font-size:13px;font-weight:500">⚡ HIIT</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(175,82,222,.08);color:var(--ios-purple);font-size:13px;font-weight:500">📉 Hubnutí</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(0,122,255,.08);color:var(--ios-blue);font-size:13px;font-weight:500">🔄 Rekomposice</div>
+        </div>
+      </div>
+
+      <!-- Akce -->
+      <div style="padding:16px 20px 20px;display:flex;gap:10px">
+        <div onclick="showPhone('ph-messages')" style="flex:1;padding:14px;border-radius:14px;background:var(--ios-fill);text-align:center;font-size:15px;font-weight:600;color:var(--ios-label);cursor:pointer">Zpráva</div>
+        <div style="flex:1;padding:14px;border-radius:14px;background:rgba(255,59,48,.1);text-align:center;font-size:15px;font-weight:600;color:var(--ios-red);cursor:pointer">Ukončit</div>
+      </div>
+    </div>
+
+    <!-- ── TAB: PORADCE — profil aktivního výživového poradce ── -->
+    <div id="collab-tab-coach" style="display:none">
+
+      <!-- Hero -->
+      <div style="padding:8px 20px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="width:88px;height:88px;border-radius:28px;background:rgba(52,199,89,.12);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:700;margin-bottom:12px">LP</div>
+        <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">Lucie Procházková</div>
+        <div style="font-size:15px;color:var(--ios-label2);margin-top:3px">Výživový poradce</div>
+        <div style="font-size:13px;color:var(--ios-label3);margin-top:2px">📍 Brno · Online</div>
+        <div style="margin-top:12px;font-size:12px;font-weight:600;padding:5px 14px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">🟢 Aktivní · od 10. 3. 2026</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;justify-content:center">
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Výživa</div>
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Rekomposice</div>
+          <div style="font-size:12px;font-weight:500;padding:4px 12px;border-radius:99px;background:var(--ios-fill);color:var(--ios-label2)">Online</div>
+        </div>
+      </div>
+
+      <!-- Zkušenosti -->
+      <div style="border-bottom:.5px solid var(--ios-sep2);padding:14px 8px;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:var(--ios-label);letter-spacing:-.3px">6 let</div>
+        <div style="font-size:11px;color:var(--ios-label3);margin-top:2px">Zkušeností</div>
+      </div>
+
+      <!-- O mně -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">O mně</div>
+        <div style="font-size:15px;color:var(--ios-label2);line-height:1.6">Výživová poradkyně se zaměřením na udržitelné stravování a rekomposici těla. Sestavuji jídelníčky na míru, které respektují tvůj životní styl, alergie i chuťové preference. Pracuji online s klienty po celé ČR.</div>
+      </div>
+
+      <!-- Certifikáty -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Certifikáty</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(52,199,89,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🥗</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--ios-label)">Precision Nutrition L2</div>
+              <div style="font-size:12px;color:var(--ios-label3)">Výživový poradce · 2019</div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Ověřeno</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(0,122,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🎓</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;color:var(--ios-label)">Bc. Nutriční terapie</div>
+              <div style="font-size:12px;color:var(--ios-label3)">LF MU Brno · 2018</div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(52,199,89,.1);color:var(--ios-green)">Ověřeno</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Specializace -->
+      <div style="padding:16px 20px;border-bottom:.5px solid var(--ios-sep2)">
+        <div style="font-size:13px;font-weight:600;color:var(--ios-label3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Specializace</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(52,199,89,.08);color:var(--ios-green);font-size:13px;font-weight:500">🥗 Výživa</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(175,82,222,.08);color:var(--ios-purple);font-size:13px;font-weight:500">📉 Hubnutí</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(0,122,255,.08);color:var(--ios-blue);font-size:13px;font-weight:500">🔄 Rekomposice</div>
+          <div style="padding:7px 14px;border-radius:10px;background:rgba(173,87,0,.08);color:#ad5700;font-size:13px;font-weight:500">🌱 Bez laktózy</div>
+        </div>
+      </div>
+
+      <!-- Akce -->
+      <div style="padding:16px 20px 20px;display:flex;gap:10px">
+        <div onclick="showPhone('ph-messages')" style="flex:1;padding:14px;border-radius:14px;background:var(--ios-fill);text-align:center;font-size:15px;font-weight:600;color:var(--ios-label);cursor:pointer">Zpráva</div>
+        <div style="flex:1;padding:14px;border-radius:14px;background:rgba(255,59,48,.1);text-align:center;font-size:15px;font-weight:600;color:var(--ios-red);cursor:pointer">Ukončit</div>
+      </div>
+    </div>
+
+    <!-- ── TAB: HLEDAT — discovery (beze změny) ── -->
+    <div id="collab-tab-search" style="display:none">
 
       <!-- Pending requests section -->
-      <div id="pending-section-none" style="display:none">
+      <div id="pending-section-search" style="display:none">
         <div class="pending-section">
           <div class="pending-section-hdr">
             <div class="pending-section-title">Čekající žádosti</div>
-            <div class="pending-section-count" id="pending-count-none">0</div>
+            <div class="pending-section-count" id="pending-count-search">0</div>
           </div>
-          <div id="pending-list-none"></div>
+          <div id="pending-list-search"></div>
         </div>
         <div style="height:1px;background:var(--ios-sep2);margin:4px 20px 12px"></div>
       </div>
-      </div>
+
       <div class="ios-search" style="margin-bottom:8px">
         <div class="ios-search-icon">🔍</div>
         <input placeholder="Hledat jméno, specializace...">
@@ -1744,12 +1974,6 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
         <div class="seg-opt active">Všichni</div>
         <div class="seg-opt">Trenéři</div>
         <div class="seg-opt">Poradci</div>
-      </div>
-      <div class="pill-tabs">
-        <div class="pill-tab active">Všechny cíle</div>
-        <div class="pill-tab">Hubnutí</div>
-        <div class="pill-tab">Nabírání</div>
-        <div class="pill-tab">Kondice</div>
       </div>
       <div class="trainer-card">
         <div class="trainer-card-top">
@@ -1792,216 +2016,6 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <div style="height:8px"></div>
     </div>
 
-    <!-- ── STAV B: má trenéra, hledá poradce ── -->
-    <div id="collab-state-trainer" style="display:none">
-      <div class="ios-page-header">
-        <div class="ios-page-title">Spolupráce</div>
-      </div>
-
-      <!-- Aktivní trenér -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Tvůj trenér</div>
-
-      <!-- Pending requests section -->
-      <div id="pending-section-trainer" style="display:none">
-        <div class="pending-section">
-          <div class="pending-section-hdr">
-            <div class="pending-section-title">Čekající žádosti</div>
-            <div class="pending-section-count" id="pending-count-trainer">0</div>
-          </div>
-          <div id="pending-list-trainer"></div>
-        </div>
-        <div style="height:1px;background:var(--ios-sep2);margin:4px 20px 12px"></div>
-      </div>
-</div>
-      <div style="margin:0 20px 16px;border-radius:16px;background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 10px">
-          <div style="width:46px;height:46px;border-radius:15px;background:rgba(0,122,255,.12);color:#007aff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">MK</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Marek Kovář</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Osobní trenér · od 25. 2. 2026</div>
-          </div>
-          <div style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Aktivní</div>
-        </div>
-        <div style="display:flex;gap:8px;padding:8px 14px 12px">
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-trainer-profile')">Profil</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-messages')">Zpráva</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:rgba(255,59,48,.08);text-align:center;font-size:13px;font-weight:500;color:var(--ios-red);cursor:pointer">Ukončit</div>
-        </div>
-      </div>
-
-      <!-- Discovery — pouze poradci -->
-      <div style="margin:8px 20px 0;padding:12px 14px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:12px">
-        <div style="font-size:13px;font-weight:600;color:var(--ios-label);margin-bottom:2px">Hledáš výživového poradce?</div>
-        <div style="font-size:12px;color:var(--ios-label2)">Spolupráci s trenérem doplníš o nutričního specialistu.</div>
-      </div>
-      <div class="ios-section-hdr" style="margin-top:8px"><div class="ios-section-title">Výživoví poradci</div></div>
-      <div class="ios-search" style="margin-bottom:8px">
-        <div class="ios-search-icon">🔍</div>
-        <input placeholder="Hledat poradce...">
-      </div>
-      <div class="trainer-card">
-        <div class="trainer-card-top">
-          <div class="trainer-avatar" style="background:rgba(52,199,89,.12);color:#34c759">LP</div>
-          <div class="trainer-info">
-            <div class="trainer-name">Lucie Procházková</div>
-            <div class="trainer-role">Výž. poradce · Brno / online</div>
-            <div class="trainer-rating"><span class="trainer-stars">★★★★★</span><span class="trainer-rating-num">5.0 (21)</span></div>
-          </div>
-          <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-align:right"><div style="font-size:16px;font-weight:700;color:var(--ios-label)">1 800</div><div>Kč/měs.</div></div>
-        </div>
-        <div class="trainer-tags"><div class="trainer-tag">Výživa</div><div class="trainer-tag">Rekomposice</div><div class="trainer-tag">Online</div></div>
-        <div class="trainer-footer">
-          <div style="font-size:13px;color:var(--ios-label2)">🟢 Přijímá klienty</div>
-          <div style="display:flex;gap:8px">
-            <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label);cursor:pointer">Profil</div>
-            <div id="contact-btn-LP2" style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:14px;font-weight:600;color:#fff;cursor:pointer" onclick="sendRequest('LP','Lucie Procházková','Výž. poradce · Brno','#34c759','rgba(52,199,89,.12)')">Oslovit</div>
-          </div>
-        </div>
-      </div>
-      <div style="height:8px"></div>
-    </div>
-
-    <!-- ── STAV C: má poradce, hledá trenéra ── -->
-    <div id="collab-state-coach" style="display:none">
-      <div class="ios-page-header">
-        <div class="ios-page-title">Spolupráce</div>
-      </div>
-
-      <!-- Aktivní poradce -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Tvůj poradce</div>
-
-      <!-- Pending requests section -->
-      <div id="pending-section-coach" style="display:none">
-        <div class="pending-section">
-          <div class="pending-section-hdr">
-            <div class="pending-section-title">Čekající žádosti</div>
-            <div class="pending-section-count" id="pending-count-coach">0</div>
-          </div>
-          <div id="pending-list-coach"></div>
-        </div>
-        <div style="height:1px;background:var(--ios-sep2);margin:4px 20px 12px"></div>
-      </div>
-</div>
-      <div style="margin:0 20px 16px;border-radius:16px;background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 10px">
-          <div style="width:46px;height:46px;border-radius:15px;background:rgba(52,199,89,.12);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">LP</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Lucie Procházková</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Výž. poradce · od 10. 3. 2026</div>
-          </div>
-          <div style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Aktivní</div>
-        </div>
-        <div style="display:flex;gap:8px;padding:8px 14px 12px">
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer">Profil</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-messages')">Zpráva</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:rgba(255,59,48,.08);text-align:center;font-size:13px;font-weight:500;color:var(--ios-red);cursor:pointer">Ukončit</div>
-        </div>
-      </div>
-
-      <!-- Discovery — pouze trenéři -->
-      <div style="margin:8px 20px 0;padding:12px 14px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:12px">
-        <div style="font-size:13px;font-weight:600;color:var(--ios-label);margin-bottom:2px">Hledáš osobního trenéra?</div>
-        <div style="font-size:12px;color:var(--ios-label2)">Výživový plán doplníš o tréninkový program na míru.</div>
-      </div>
-      <div class="ios-section-hdr" style="margin-top:8px"><div class="ios-section-title">Osobní trenéři</div></div>
-      <div class="ios-search" style="margin-bottom:8px">
-        <div class="ios-search-icon">🔍</div>
-        <input placeholder="Hledat trenéra...">
-      </div>
-      <div class="trainer-card">
-        <div class="trainer-card-top">
-          <div class="trainer-avatar" style="background:rgba(0,122,255,.12);color:#007aff">MK</div>
-          <div class="trainer-info">
-            <div class="trainer-name">Marek Kovář</div>
-            <div class="trainer-role">Osobní trenér · Praha</div>
-            <div class="trainer-rating"><span class="trainer-stars">★★★★★</span><span class="trainer-rating-num">4.9 (38)</span></div>
-          </div>
-          <div style="font-size:13px;font-weight:600;color:var(--ios-label2);text-align:right"><div style="font-size:16px;font-weight:700;color:var(--ios-label)">2 500</div><div>Kč/měs.</div></div>
-        </div>
-        <div class="trainer-tags"><div class="trainer-tag">Silový trénink</div><div class="trainer-tag">Hubnutí</div><div class="trainer-tag">Online</div></div>
-        <div class="trainer-footer">
-          <div style="font-size:13px;color:var(--ios-label2)">🟢 Přijímá klienty</div>
-          <div style="display:flex;gap:8px">
-            <div style="padding:8px 14px;border-radius:99px;background:var(--ios-fill);font-size:14px;font-weight:600;color:var(--ios-label);cursor:pointer" onclick="showPhone('ph-trainer-profile')">Profil</div>
-            <div id="contact-btn-MK2" style="padding:8px 14px;border-radius:99px;background:var(--ios-gold);font-size:14px;font-weight:600;color:#fff;cursor:pointer" onclick="sendRequest('MK','Marek Kovář','Osobní trenér · Praha','#007aff','rgba(0,122,255,.12)')">Oslovit</div>
-          </div>
-        </div>
-      </div>
-      <div style="height:8px"></div>
-    </div>
-
-    <!-- ── STAV D: má oboje — jen přehled ── -->
-    <div id="collab-state-both" style="display:none">
-      <div class="ios-page-header">
-        <div class="ios-page-title">Spolupráce</div>
-        <div class="ios-page-sub">Váš tým</div>
-      </div>
-
-      <!-- Pending requests section -->
-      <div id="pending-section-both" style="display:none">
-        <div class="pending-section">
-          <div class="pending-section-hdr">
-            <div class="pending-section-title">Čekající žádosti</div>
-            <div class="pending-section-count" id="pending-count-both">0</div>
-          </div>
-          <div id="pending-list-both"></div>
-        </div>
-        <div style="height:1px;background:var(--ios-sep2);margin:4px 20px 12px"></div>
-      </div>
-
-
-      <!-- Trenér -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Trenér</div></div>
-      <div style="margin:0 20px 12px;border-radius:16px;background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 10px">
-          <div style="width:46px;height:46px;border-radius:15px;background:rgba(0,122,255,.12);color:#007aff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">MK</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Marek Kovář</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Osobní trenér · od 25. 2. 2026</div>
-          </div>
-          <div style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Aktivní</div>
-        </div>
-        <div style="display:flex;gap:8px;padding:8px 14px 12px;border-top:.5px solid var(--ios-sep2)">
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-green)">95 %</div><div style="font-size:10px;color:var(--ios-label3)">Compliance</div></div>
-          <div style="width:.5px;background:var(--ios-sep2)"></div>
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-orange)">21</div><div style="font-size:10px;color:var(--ios-label3)">Streak 🔥</div></div>
-          <div style="width:.5px;background:var(--ios-sep2)"></div>
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-label)">4/12</div><div style="font-size:10px;color:var(--ios-label3)">Týden</div></div>
-        </div>
-        <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-trainer-profile')">Profil</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-messages')">Zpráva</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:rgba(255,59,48,.08);text-align:center;font-size:13px;font-weight:500;color:var(--ios-red);cursor:pointer">Ukončit</div>
-        </div>
-      </div>
-
-      <!-- Poradce -->
-      <div class="ios-section-hdr"><div class="ios-section-title">Výživový poradce</div></div>
-      <div style="margin:0 20px 12px;border-radius:16px;background:var(--ios-bg2);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 14px 10px">
-          <div style="width:46px;height:46px;border-radius:15px;background:rgba(52,199,89,.12);color:#34c759;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">LP</div>
-          <div style="flex:1">
-            <div style="font-size:16px;font-weight:600;color:var(--ios-label)">Lucie Procházková</div>
-            <div style="font-size:13px;color:var(--ios-label2);margin-top:1px">Výž. poradce · od 10. 3. 2026</div>
-          </div>
-          <div style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:rgba(52,199,89,.12);color:var(--ios-green)">Aktivní</div>
-        </div>
-        <div style="display:flex;gap:8px;padding:8px 14px 12px;border-top:.5px solid var(--ios-sep2)">
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-green)">91 %</div><div style="font-size:10px;color:var(--ios-label3)">Compliance</div></div>
-          <div style="width:.5px;background:var(--ios-sep2)"></div>
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-label)">−2,4 kg</div><div style="font-size:10px;color:var(--ios-label3)">Pokrok</div></div>
-          <div style="width:.5px;background:var(--ios-sep2)"></div>
-          <div style="flex:1;text-align:center"><div style="font-size:17px;font-weight:700;color:var(--ios-label)">8/12</div><div style="font-size:10px;color:var(--ios-label3)">Týden</div></div>
-        </div>
-        <div style="display:flex;gap:8px;padding:0 14px 12px">
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer">Profil</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:var(--ios-fill);text-align:center;font-size:13px;font-weight:500;color:var(--ios-label2);cursor:pointer" onclick="showPhone('ph-messages')">Zpráva</div>
-          <div style="flex:1;padding:8px;border-radius:10px;background:rgba(255,59,48,.08);text-align:center;font-size:13px;font-weight:500;color:var(--ios-red);cursor:pointer">Ukončit</div>
-        </div>
-      </div>
-      <div style="height:8px"></div>
-    </div>
-
   </div>
 
 
@@ -2014,7 +2028,6 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
   </div>
 </div>
 </div>
-
 <!-- ═══════════════════════════════════════════
      PLÁNY
 ═══════════════════════════════════════════ -->
@@ -2099,6 +2112,144 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     PLÁNY — finální: jeden plán (rozvrh + přepínač týdnů)
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Plány · 1 plán</div>
+<div class="phone" id="ph-plans-sched" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div class="ios-page-header" style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div class="ios-page-title">Moje plány</div>
+      <div style="font-size:15px;color:var(--ios-blue);font-weight:var(--sf-med);cursor:pointer;padding-bottom:3px" onclick="showPhone('ph-plan-history')">Archiv ›</div>
+    </div>
+
+    <!-- Single plan → no type switch -->
+
+    <!-- Hero -->
+    <div class="ios-card" style="cursor:pointer;margin-top:8px" onclick="showPhone('ph-training-plan-detail')">
+      <div class="grad-push" style="padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em">Tréninkový plán</div>
+            <div style="font-size:20px;font-weight:700;color:#fff;margin-top:2px">Silový A/B</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">12 týdnů · Marek Trenér</div>
+          </div>
+          <div style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
+        </div>
+        <div style="height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:12px;overflow:hidden"><div style="width:33%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+      </div>
+    </div>
+
+    <!-- Week switcher -->
+    <div class="wk-bar">
+      <div id="weekprev-sched" class="wk-step" onclick="stepPlanWeek('sched',-1)">‹</div>
+      <div id="weeklbl-sched" class="wk-lbl">Týden 4 z 12</div>
+      <div id="weeknext-sched" class="wk-step" onclick="stepPlanWeek('sched',1)">›</div>
+    </div>
+
+    <div class="ios-section-hdr"><div class="ios-section-title" id="weeksec-sched">Tento týden</div><div class="ios-section-action" id="weekcount-sched">2 / 4 hotovo</div></div>
+    <div class="ios-list" id="weeklist-sched"></div>
+
+    <div style="height:12px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Spolupráce</div></div>
+    <div class="tab active" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#c9a84c" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
+<!-- ═══════════════════════════════════════════
+     PLÁNY — dva plány: přepínač Trénink / Výživa
+     (přepínač sloučen do modré karty plánu)
+═══════════════════════════════════════════ -->
+<style>
+  /* In-card plan-type toggle — translucent on the navy hero gradient */
+  #ph-plans-two .pcseg{display:inline-flex;gap:2px;padding:2px;border-radius:99px;background:rgba(255,255,255,.14)}
+  #ph-plans-two .pcseg-opt{padding:5px 13px;border-radius:99px;font-size:12px;font-weight:600;color:rgba(255,255,255,.55);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+  #ph-plans-two .pcseg-opt.active{background:rgba(255,255,255,.24);color:#fff}
+</style>
+<div class="phone-wrap">
+<div class="phone-label">Plány · dva plány</div>
+<div class="phone" id="ph-plans-two" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+  <div class="scroll-area">
+    <div class="ios-page-header" style="display:flex;align-items:flex-end;justify-content:space-between">
+      <div class="ios-page-title">Moje plány</div>
+      <div style="font-size:15px;color:var(--ios-blue);font-weight:var(--sf-med);cursor:pointer;padding-bottom:3px" onclick="showPhone('ph-plan-history')">Archiv ›</div>
+    </div>
+
+    <!-- Plan-type switch is merged INTO the navy hero card (top-right) -->
+
+    <!-- ── PANE: TRÉNINK ── -->
+    <div id="plantab-training">
+      <div class="ios-card" style="cursor:pointer" onclick="showPhone('ph-training-plan-detail')">
+        <div class="grad-push" style="padding:16px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
+            <div class="pcseg" onclick="event.stopPropagation()">
+              <div class="pcseg-opt active" data-plantab="training" onclick="event.stopPropagation();selectPlanTab('training')">Trénink</div>
+              <div class="pcseg-opt" data-plantab="nutrition" onclick="event.stopPropagation();selectPlanTab('nutrition')">Výživa</div>
+            </div>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:#fff">Silový A/B</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">12 týdnů · Marek Trenér</div>
+          <div style="height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:12px;overflow:hidden"><div style="width:33%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
+      </div>
+
+      <div class="wk-bar">
+        <div id="weekprev-two-tr" class="wk-step" onclick="stepPlanWeek('two-tr',-1)">‹</div>
+        <div id="weeklbl-two-tr" class="wk-lbl">Týden 4 z 12</div>
+        <div id="weeknext-two-tr" class="wk-step" onclick="stepPlanWeek('two-tr',1)">›</div>
+      </div>
+      <div class="ios-section-hdr"><div class="ios-section-title" id="weeksec-two-tr">Tento týden</div><div class="ios-section-action" id="weekcount-two-tr">2 / 4 hotovo</div></div>
+      <div class="ios-list" id="weeklist-two-tr"></div>
+    </div>
+
+    <!-- ── PANE: VÝŽIVA ── -->
+    <div id="plantab-nutrition" style="display:none">
+      <div class="ios-card" style="cursor:pointer" onclick="showPhone('ph-nutrition-plan-detail')">
+        <div class="grad-nutrition" style="padding:16px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:rgba(52,199,89,.2);color:#34c759">● Aktivní</div>
+            <div class="pcseg" onclick="event.stopPropagation()">
+              <div class="pcseg-opt" data-plantab="training" onclick="event.stopPropagation();selectPlanTab('training')">Trénink</div>
+              <div class="pcseg-opt active" data-plantab="nutrition" onclick="event.stopPropagation();selectPlanTab('nutrition')">Výživa</div>
+            </div>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:#fff">Únor / Březen</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">12 týdnů · 1 700 kcal/den</div>
+          <div style="height:4px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:12px;overflow:hidden"><div style="width:33%;height:100%;background:var(--ios-gold);border-radius:99px"></div></div>
+        </div>
+      </div>
+
+      <div class="wk-bar">
+        <div id="weekprev-two-nu" class="wk-step" onclick="stepPlanWeek('two-nu',-1)">‹</div>
+        <div id="weeklbl-two-nu" class="wk-lbl">Týden 4 z 12</div>
+        <div id="weeknext-two-nu" class="wk-step" onclick="stepPlanWeek('two-nu',1)">›</div>
+      </div>
+      <div class="ios-section-hdr"><div class="ios-section-title" id="weeksec-two-nu">Tento týden</div><div class="ios-section-action" id="weekcount-two-nu">2 / 7 dní</div></div>
+      <div class="ios-list" id="weeklist-two-nu"></div>
+    </div>
+
+    <div style="height:8px"></div>
+  </div>
+  <div class="tab-bar">
+    <div class="tab" onclick="showPhone('ph-today')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" fill="#8e8e93"/><path d="M9 22V12h6v10" fill="#8e8e93"/></svg></div><div class="tab-lbl">Dnes</div></div>
+    <div class="tab" onclick="showPhone('ph-discover')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#8e8e93" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Spolupráce</div></div>
+    <div class="tab active" onclick="showPhone('ph-plans')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#c9a84c" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl" style="color:#c9a84c">Plány</div></div>
+    <div class="tab" onclick="showPhone('ph-messages')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#8e8e93" stroke-width="2" stroke-linejoin="round"/></svg></div><div class="tab-lbl">Zprávy</div></div>
+    <div class="tab" onclick="showPhone('ph-profile')"><div class="tab-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#8e8e93" stroke-width="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="#8e8e93" stroke-width="2" stroke-linecap="round"/></svg></div><div class="tab-lbl">Profil</div></div>
+  </div>
+</div>
+</div>
 <!-- ═══════════════════════════════════════════
      PLÁNY — ARCHIV (dokončené plány)
 ═══════════════════════════════════════════ -->
@@ -2749,6 +2900,59 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
       <div class="ios-row"><div class="ios-row-icon" style="background:rgba(175,82,222,.12)">🌾</div><div class="ios-row-body"><div class="ios-row-title">Alergie</div></div><div class="ios-row-right"><span class="ios-row-val">Laktóza</span><span class="ios-row-chev">›</span></div></div>
     </div>
 
+    <!-- Pitný režim section — placed under "Moje fotky" / profile settings -->
+    <div class="ios-section-hdr" style="margin-top:4px"><div class="ios-section-title">Pitný režim</div></div>
+    <div class="ios-card">
+      <div style="background:var(--ios-bg2)">
+        <!-- Master switch row -->
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+          <div style="width:30px;height:30px;border-radius:8px;background:rgba(0,122,255,.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💧</div>
+          <div style="flex:1">
+            <div style="font-size:16px;color:var(--ios-label)">Sledovat pitný režim</div>
+            <div style="font-size:12px;color:var(--ios-label3);margin-top:1px">Denní cíl a připomínky pití</div>
+          </div>
+          <div id="hyd-profile-switch" data-on="1" onclick="toggleHydration(this)" style="width:51px;height:31px;border-radius:99px;background:var(--ios-gold);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">
+            <div style="position:absolute;top:2px;left:22px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></div>
+          </div>
+        </div>
+
+        <!-- Disabled hint (hidden by default) -->
+        <div id="hyd-profile-disabled" style="display:none;padding:0 16px 16px;font-size:13px;color:var(--ios-label3)">Zapnutím začnete sledovat denní příjem tekutin a můžete si nastavit připomínky.</div>
+
+        <!-- Enabled content: progress + weekly graph + edit -->
+        <div id="hyd-profile-enabled" style="border-top:.5px solid var(--ios-sep2);padding:14px 16px">
+          <!-- Progress -->
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:24px;font-weight:700;color:var(--ios-label);letter-spacing:-.4px"><span id="hyd-prof-current">0</span> <span style="font-size:15px;font-weight:600;color:var(--ios-label2)">z <span class="hyd-target-lbl">2 500</span> ml</span></div>
+            <div style="font-size:13px;color:var(--ios-label3)">dnes</div>
+          </div>
+          <div style="height:8px;background:var(--ios-fill);border-radius:99px;overflow:hidden;margin-bottom:18px">
+            <div id="hyd-prof-bar" style="width:0%;height:100%;background:var(--ios-gold);border-radius:99px;transition:width .3s"></div>
+          </div>
+
+          <!-- Weekly history graph (target line reached → green, else gold) -->
+          <div style="font-size:12px;font-weight:600;color:var(--ios-label2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Posledních 7 dní</div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:58px;background:var(--ios-green);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">Čt</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:42px;background:var(--ios-gold);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">Pá</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:64px;background:var(--ios-green);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">So</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:30px;background:var(--ios-gold);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">Ne</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:54px;background:var(--ios-green);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">Po</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:46px;background:var(--ios-gold);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-label3)">Út</div></div>
+            <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:6px"><div style="height:72px;width:70%;display:flex;align-items:flex-end"><div style="width:100%;height:12px;background:var(--ios-gold);border-radius:4px 4px 0 0"></div></div><div style="font-size:11px;color:var(--ios-gold);font-weight:600">St</div></div>
+          </div>
+
+          <!-- Edit button — reopens the setup window -->
+          <div onclick="showPhone('ph-hydration-setup')" style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:var(--ios-fill);cursor:pointer;margin-top:16px">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span style="font-size:15px;font-weight:500;color:var(--ios-label);flex:1">Upravit nastavení</span>
+            <span style="font-size:14px;color:var(--ios-label3)">cíl, připomínky</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ios-label3)" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="ios-section-hdr" style="margin-top:4px"><div class="ios-section-title">Trenér</div></div>
     <div class="ios-list">
       <div class="ios-row"><div class="ios-row-icon" style="background:rgba(201,168,76,.12);font-size:16px">👤</div><div class="ios-row-body"><div class="ios-row-title">Marek Trenér</div><div class="ios-row-sub">Trenér & výživa · od 25. 2. 2026</div></div><div class="ios-row-right"><span class="ios-row-chev">›</span></div></div>
@@ -2811,6 +3015,80 @@ body.dark-proto .tab.active .tab-lbl{color:#c9a84c}
 </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     PITNÝ REŽIM — NASTAVENÍ (setup window)
+═══════════════════════════════════════════ -->
+<div class="phone-wrap">
+<div class="phone-label">Pitný režim · nastavení</div>
+<div class="phone" id="ph-hydration-setup" style="display:none">
+  <div class="di"></div>
+  <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="21" height="10" rx="3.5" stroke="#000" stroke-width="1" fill="none"/><rect x="22" y="4" width="2.5" height="4" rx="1" fill="#000" opacity=".4"/><rect x="1.5" y="2.5" width="15" height="7" rx="2" fill="#000"/></svg></div></div>
+
+  <div class="scroll-area">
+    <!-- Modal top bar: Zrušit / title / Uložit (sticky inside the scroll area) -->
+    <div style="position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--ios-bg);border-bottom:.5px solid var(--ios-sep2)">
+      <span onclick="showPhone('ph-profile')" style="font-size:16px;color:var(--ios-label2);cursor:pointer">Zrušit</span>
+      <span style="font-size:16px;font-weight:600;color:var(--ios-label)">Pitný režim</span>
+      <span onclick="saveHydration()" style="font-size:16px;font-weight:700;color:var(--ios-gold);cursor:pointer">Uložit</span>
+    </div>
+
+    <!-- Daily goal -->
+    <div class="ios-section-hdr"><div class="ios-section-title">Denní cíl</div></div>
+    <div class="ios-card">
+      <div style="background:var(--ios-bg2);display:flex;align-items:center;gap:12px;padding:14px 16px">
+        <div style="flex:1;font-size:16px;color:var(--ios-label)">Cílový příjem tekutin</div>
+        <input id="hyd-goal-input" type="text" inputmode="numeric" value="2500" style="width:84px;height:38px;border-radius:var(--ios-r);border:1px solid var(--ios-sep);background:var(--ios-fill);color:var(--ios-label);text-align:center;font-size:17px;font-weight:600;font-family:'Inter',sans-serif">
+        <div style="font-size:15px;color:var(--ios-label2)">ml</div>
+      </div>
+    </div>
+    <div style="padding:6px 20px 0;font-size:12px;color:var(--ios-label3)">Doporučené množství je 30–35 ml na kilogram tělesné hmotnosti.</div>
+
+    <!-- Reminders -->
+    <div class="ios-section-hdr" style="margin-top:18px"><div class="ios-section-title">Připomínky</div></div>
+    <div class="ios-card">
+      <div style="background:var(--ios-bg2)">
+        <!-- Master reminder toggle -->
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+          <div style="flex:1">
+            <div style="font-size:16px;color:var(--ios-label)">Připomínat pití</div>
+            <div style="font-size:12px;color:var(--ios-label3);margin-top:2px">Pošleme upozornění ve vybraných časech</div>
+          </div>
+          <div id="hyd-reminder-switch" data-on="1" onclick="hydReminderToggle(this)" style="width:51px;height:31px;border-radius:99px;background:var(--ios-gold);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">
+            <div style="position:absolute;top:2px;left:22px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></div>
+          </div>
+        </div>
+
+        <!-- Reminder time slots -->
+        <div id="hyd-reminder-list">
+          <div id="hyd-reminder-rows">
+            <div class="hyd-rem-row" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:15px;color:var(--ios-label)">Připomenutí 1</div>
+              <div style="font-size:15px;font-weight:600;color:var(--ios-gold)">08:00</div>
+              <div onclick="removeHydReminder(this)" style="font-size:13px;font-weight:600;color:var(--ios-red);cursor:pointer">Odebrat</div>
+            </div>
+            <div class="hyd-rem-row" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:15px;color:var(--ios-label)">Připomenutí 2</div>
+              <div style="font-size:15px;font-weight:600;color:var(--ios-gold)">13:00</div>
+              <div onclick="removeHydReminder(this)" style="font-size:13px;font-weight:600;color:var(--ios-red);cursor:pointer">Odebrat</div>
+            </div>
+            <div class="hyd-rem-row" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:.5px solid var(--ios-sep2)">
+              <div style="flex:1;font-size:15px;color:var(--ios-label)">Připomenutí 3</div>
+              <div style="font-size:15px;font-weight:600;color:var(--ios-gold)">18:00</div>
+              <div onclick="removeHydReminder(this)" style="font-size:13px;font-weight:600;color:var(--ios-red);cursor:pointer">Odebrat</div>
+            </div>
+          </div>
+          <div onclick="addHydReminder()" style="display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:.5px solid var(--ios-sep2);cursor:pointer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ios-gold)" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span style="font-size:15px;font-weight:600;color:var(--ios-gold)">Přidat čas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:24px"></div>
+  </div>
+</div>
+</div>
 <!-- ═══════════════════════════════════════════
      ZPRÁVY — seznam konverzací (klient)
 ════════════════════════════════════════════ -->
@@ -7146,7 +7424,7 @@ function showPhone(id){
   document.querySelectorAll('.phone').forEach(function(p){ p.style.display='none'; });
   var el = document.getElementById(id); if(el) el.style.display='block';
   document.querySelectorAll('.pb').forEach(function(b){ b.classList.remove('active'); });
-  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-session-lock':'Zámek sekce','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-live-session-runner':'Living session · runner','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek'};
+  var map = {'ph-today':'Dnes','ph-invite-detail':'Detail pozvánky','ph-discover':'Spolupráce','ph-trainer-profile':'Profil trenéra','ph-plans':'Plány (původní)','ph-plans-sched':'Plány — 1 plán','ph-plans-two':'Plány — 2 plány','ph-plan-history':'Archiv plánů','ph-plan-detail-complete':'Dokončený plán','ph-nutrition-plan-detail':'Detail výživového plánu','ph-training-plan-detail':'Detail tréninku','ph-session-lock':'Zámek sekce','ph-food-detail':'Detail potraviny','ph-recipe-detail':'Detail receptu','ph-pending-questionnaires':'Čekající dotazníky','ph-weekly-checkin':'Check-in — vyplnit','ph-weekly-checkin-sent':'Check-in — odesláno','ph-profile':'Profil','ph-messages':'Zprávy','ph-archive':'Archiv','ph-chat':'Chat detail','ph-chat-former':'Chat — bývalý trenér','ph-live-training':'Živý trénink','ph-live-amrap':'Živý AMRAP','ph-live-emom':'Živý EMOM','ph-live-tabata':'Živá Tabata','ph-live-fortime':'Živý ForTime','ph-live-time-distance':'Živý Čas/Distance','ph-live-results-summary':'Výsledky tréninku','ph-live-session-runner':'Living session · runner','ph-diary-request':'Žádost','ph-diary-dismiss':'Odmítnutí','ph-diary-accept-wizard':'Výběr způsobu','ph-diary-bulk':'Hromadné nahrání','ph-diary-workflow':'Aktivní workflow','ph-diary-finalize':'Dokončení','ph-meal-log-photo':'Log jídla · foto','ph-plan-photos':'Fotky plánu','ph-profile-photos':'Timeline fotek','ph-hydration-setup':'Pitný režim · nastavení'};
   document.querySelectorAll('.pb').forEach(function(b){
     if(b.textContent.trim() === map[id]) b.classList.add('active');
   });
@@ -7207,17 +7485,53 @@ function setCollabState(state) {
      coach-only, training-stat for both (training is the primary KPI). */
   if(trainingStat)  trainingStat.style.display  = hasTrainer ? '' : 'none';
   if(nutritionStat) nutritionStat.style.display = (hasCoach && !hasTrainer) ? '' : 'none';
+  // When the drinking-regimen feature is on, the hydration card owns the middle
+  // stat slot — re-apply that override on top of the role-based tile choice.
+  if(typeof applyHydrationStatSlot === 'function') applyHydrationStatSlot();
 
-  // Discover screen states
-  ['none','trainer','coach','both'].forEach(function(s) {
-    var el = document.getElementById('collab-state-' + s);
-    if(el) el.style.display = s === state ? '' : 'none';
+  // Spolupráce — configure the tab switcher (Trenér / Poradce / Hledat).
+  // Enablement rules: own pro's tab is enabled; the missing pro's tab is
+  // disabled; Hledat is disabled only once the client has both.
+  var enable = { trainer: hasTrainer, coach: hasCoach, search: !(hasTrainer && hasCoach) };
+  ['trainer','coach','search'].forEach(function(t) {
+    var seg = document.getElementById('seg-tab-' + t);
+    if(seg) seg.classList.toggle('disabled', !enable[t]);
   });
+  // Land on the client's own pro first; fall back to Hledat when they have none.
+  selectCollabTab(hasTrainer ? 'trainer' : (hasCoach ? 'coach' : 'search'));
 
   // Nav bar buttons
   ['none','pending','trainer','coach','both'].forEach(function(s) {
     var btn = document.getElementById('btn-state-' + s);
     if(btn) btn.classList.toggle('active', s === state);
+  });
+}
+
+// Switch the Spolupráce tab. No-op for disabled tabs (e.g. the missing
+// pro, or Hledat once the client has both a trainer and a coach).
+function selectCollabTab(tab) {
+  var seg = document.getElementById('seg-tab-' + tab);
+  if(seg && seg.classList.contains('disabled')) return;
+  ['trainer','coach','search'].forEach(function(t) {
+    var s = document.getElementById('seg-tab-' + t);
+    if(s) s.classList.toggle('active', t === tab);
+    var pane = document.getElementById('collab-tab-' + t);
+    if(pane) pane.style.display = t === tab ? '' : 'none';
+  });
+}
+
+// Switch the Plány page Trénink / Výživa pane (only present when the client
+// has both a training and a nutrition plan active at once).
+function selectPlanTab(tab) {
+  ['training','nutrition'].forEach(function(t) {
+    var seg = document.getElementById('plantab-seg-' + t);
+    if(seg) seg.classList.toggle('active', t === tab);
+    var pane = document.getElementById('plantab-' + t);
+    if(pane) pane.style.display = t === tab ? '' : 'none';
+  });
+  // Sync in-card toggles (the switch merged into the navy hero card)
+  document.querySelectorAll('[data-plantab]').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-plantab') === tab);
   });
 }
 
@@ -7987,7 +8301,7 @@ function setPendingDemo(mode) {
 }
 
 function renderPendingSections() {
-  ['none','trainer','coach','both'].forEach(function(sid) {
+  ['search'].forEach(function(sid) {
     var section = document.getElementById('pending-section-' + sid);
     var list    = document.getElementById('pending-list-'    + sid);
     var count   = document.getElementById('pending-count-'   + sid);
@@ -10049,6 +10363,250 @@ function closePrSheet() {
     setTimeout(initial, 0);
   }
 })();
+
+// ── PITNÝ REŽIM (hydration) ──────────────────────────────────────────────────
+// Drives the redesigned home quick-log card + sheet, the profile section
+// switch/graph, and the setup window. Prototype-only state (resets on reload).
+
+var _hydMl = 750;       // ml logged today (demo seed)
+var _hydTarget = 3500;  // daily goal in ml
+window._hydHomeEnabled = true; // drinking-regimen feature toggle (prototype)
+
+function _hydFmt(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+// Generic on/off pill switch (gold when on, grey when off).
+function _hydSetSwitch(el, on){
+  if(!el) return;
+  el.style.background = on ? 'var(--ios-gold)' : 'var(--ios-sep)';
+  var knob = el.firstElementChild;
+  if(knob) knob.style.left = on ? '22px' : '2px';
+}
+
+// Reflect the running total into every progress UI (home card + profile section).
+function _hydUpdateUI(){
+  var pct = _hydTarget > 0 ? Math.min(100, Math.round(_hydMl / _hydTarget * 100)) : 0;
+  ['hyd-home-current','hyd-prof-current','hyd-home-stat-current'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.textContent = _hydFmt(_hydMl);
+  });
+  ['hyd-home-bar','hyd-prof-bar','hyd-home-stat-bar'].forEach(function(id){
+    var e = document.getElementById(id); if(e) e.style.width = pct + '%';
+  });
+  document.querySelectorAll('.hyd-target-lbl').forEach(function(e){ e.textContent = _hydFmt(_hydTarget); });
+}
+
+// Drinking-regimen feature toggle (prototype state control). When ON, the
+// compact hydration card takes the middle stat slot and the normal middle tile
+// (Trénink / Kalorie) is hidden; when OFF, the normal tile is shown. The big
+// legacy hydration block stays hidden either way. The middle-slot override is
+// re-applied by setCollabState() so switching roles doesn't clobber it.
+function setHydrationHome(on){
+  window._hydHomeEnabled = !!on;
+  if(typeof applyHydrationStatSlot === 'function') applyHydrationStatSlot();
+  ['on','off'].forEach(function(k){
+    var btn = document.getElementById('btn-hyd-' + k);
+    if(btn) btn.classList.toggle('active', (k === 'on') === !!on);
+  });
+  _hydUpdateUI();
+}
+
+// Reconcile the middle stat tile with the hydration feature flag.
+// Feature ON  → compact hydration card owns the middle slot.
+// Feature OFF → compliance (Plnění) card owns it.
+// The role-based Trénink / Kalorie tiles never occupy this slot.
+function applyHydrationStatSlot(){
+  var hyd   = document.getElementById('today-hydration-stat-card');
+  var comp  = document.getElementById('today-compliance-stat-card');
+  var train = document.getElementById('today-training-stat-card');
+  var nutri = document.getElementById('today-nutrition-stat-card');
+  var block = document.getElementById('today-hydration-block');
+  if(block) block.style.display = 'none'; // legacy big card retired
+  if(train) train.style.display = 'none';
+  if(nutri) nutri.style.display = 'none';
+  if(hyd)  hyd.style.display  = window._hydHomeEnabled ? '' : 'none';
+  if(comp) comp.style.display = window._hydHomeEnabled ? 'none' : '';
+}
+
+// ── Home quick-log sheet ──
+function openHydrationSheet(){ var o = document.getElementById('hyd-sheet'); if(o) o.classList.add('open'); }
+function closeHydrationSheet(){ var o = document.getElementById('hyd-sheet'); if(o) o.classList.remove('open'); }
+
+function logHydration(ml){
+  if(!ml || ml < 1) return;
+  _hydMl += ml;
+  _hydUpdateUI();
+  closeHydrationSheet();
+  showToastOn('ph-today', '+' + _hydFmt(ml) + ' ml zaznamenáno');
+}
+
+function logHydrationCustom(){
+  var inp = document.getElementById('hyd-custom-input');
+  var v = parseInt(inp && inp.value, 10);
+  if(!v || v < 1) return;
+  inp.value = '';
+  logHydration(v);
+}
+
+// ── Profile section switch ──
+// Turning ON for the first time opens the setup window (matches the real flow).
+function toggleHydration(el){
+  var on = el.getAttribute('data-on') === '1';
+  var enabled = document.getElementById('hyd-profile-enabled');
+  var disabled = document.getElementById('hyd-profile-disabled');
+  if(!on){
+    el.setAttribute('data-on','1');
+    _hydSetSwitch(el, true);
+    if(enabled) enabled.style.display = '';
+    if(disabled) disabled.style.display = 'none';
+    showPhone('ph-hydration-setup');
+  } else {
+    el.setAttribute('data-on','0');
+    _hydSetSwitch(el, false);
+    if(enabled) enabled.style.display = 'none';
+    if(disabled) disabled.style.display = '';
+  }
+}
+
+// ── Setup window ──
+function hydReminderToggle(el){
+  var on = el.getAttribute('data-on') === '1';
+  el.setAttribute('data-on', on ? '0' : '1');
+  _hydSetSwitch(el, !on);
+  var list = document.getElementById('hyd-reminder-list');
+  if(list) list.style.display = on ? 'none' : '';
+}
+
+function addHydReminder(){
+  var rows = document.getElementById('hyd-reminder-rows');
+  if(!rows) return;
+  var n = rows.children.length + 1;
+  var presets = ['08:00','11:00','14:00','17:00','20:00','22:00'];
+  var t = presets[(n - 1) % presets.length];
+  var row = document.createElement('div');
+  row.className = 'hyd-rem-row';
+  row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:.5px solid var(--ios-sep2)';
+  row.innerHTML =
+    '<div style="flex:1;font-size:15px;color:var(--ios-label)">Připomenutí ' + n + '</div>' +
+    '<div style="font-size:15px;font-weight:600;color:var(--ios-gold)">' + t + '</div>' +
+    '<div onclick="removeHydReminder(this)" style="font-size:13px;font-weight:600;color:var(--ios-red);cursor:pointer">Odebrat</div>';
+  rows.appendChild(row);
+}
+
+function removeHydReminder(el){
+  var row = el.closest('.hyd-rem-row');
+  if(row) row.remove();
+  var rows = document.querySelectorAll('#hyd-reminder-rows .hyd-rem-row');
+  rows.forEach(function(r, i){ r.firstElementChild.textContent = 'Připomenutí ' + (i + 1); });
+}
+
+function saveHydration(){
+  var goal = document.getElementById('hyd-goal-input');
+  var g = parseInt(goal && goal.value, 10);
+  if(g && g > 0) _hydTarget = g;
+  var sw = document.getElementById('hyd-profile-switch');
+  if(sw){ sw.setAttribute('data-on','1'); _hydSetSwitch(sw, true); }
+  var enabled = document.getElementById('hyd-profile-enabled');
+  var disabled = document.getElementById('hyd-profile-disabled');
+  if(enabled) enabled.style.display = '';
+  if(disabled) disabled.style.display = 'none';
+  _hydUpdateUI();
+  showPhone('ph-profile');
+  showToastOn('ph-profile', 'Nastavení uloženo');
+}
+
+// Initial paint — seed the compact card value + apply the feature-flag slot.
+document.addEventListener('DOMContentLoaded', function(){
+  if(typeof applyHydrationStatSlot === 'function') applyHydrationStatSlot();
+  _hydUpdateUI();
+});
+// ── Plány — week stepper ────────────────────────────────────────────────────
+// Lets the user page through every week of a plan directly on the Plány tab.
+// Keys: 'sched' (single-plan schedule), 'two-tr' / 'two-nu' (two-plan panes).
+var _planWeek = { sched: 4, 'two-tr': 4, 'two-nu': 4 };
+var PLAN_REAL_WEEK = 4;     // the week "today" falls in
+var PLAN_TOTAL_WEEKS = 12;
+
+var TRAINING_SESSIONS = [
+  { name: 'Upper Body A', day: 'Pondělí', meta: '6 cviků · 52 min' },
+  { name: 'Lower Body A', day: 'Úterý',   meta: '5 cviků · 48 min' },
+  { name: 'Upper Body B', day: 'Středa',  meta: '6 cviků · 55 min' },
+  { name: 'Lower Body B', day: 'Pátek',   meta: '5 cviků · 50 min' }
+];
+var NUTRI_DAYS = ['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'];
+
+// status: 'done' | 'today' | 'planned'
+function planRow(target, title, sub, status, kind) {
+  var icon, iconStyle, right, titleStyle = '', subStyle = '', rowStyle = '';
+  if (status === 'done') {
+    iconStyle = 'background:rgba(52,199,89,.15);color:var(--ios-green)'; icon = '✓';
+    right = '<div style="font-size:12px;color:var(--ios-green);font-weight:600">' + (kind === 'nutri' ? 'Splněno' : 'Hotovo') + '</div><div class="ios-row-chev">›</div>';
+  } else if (status === 'today') {
+    iconStyle = 'background:rgba(201,168,76,.18);color:var(--ios-gold)'; icon = '●';
+    titleStyle = 'font-weight:var(--sf-semi)'; subStyle = 'color:var(--ios-gold)'; rowStyle = 'background:rgba(201,168,76,.06)';
+    right = '<div style="font-size:12px;font-weight:600;padding:5px 12px;border-radius:99px;background:var(--ios-gold);color:#fff">' + (kind === 'nutri' ? 'Zaznamenat' : 'Začít') + '</div>';
+  } else {
+    iconStyle = 'background:var(--ios-fill);color:var(--ios-label3)'; icon = '○';
+    right = '<div style="font-size:12px;color:var(--ios-label3)">Naplánováno</div><div class="ios-row-chev">›</div>';
+  }
+  return '<div class="ios-row" onclick="showPhone(\'' + target + '\')" style="' + rowStyle + '">'
+    + '<div class="ios-row-icon" style="' + iconStyle + '">' + icon + '</div>'
+    + '<div class="ios-row-body"><div class="ios-row-title" style="' + titleStyle + '">' + title + '</div><div class="ios-row-sub" style="' + subStyle + '">' + sub + '</div></div>'
+    + '<div class="ios-row-right">' + right + '</div></div>';
+}
+
+function weekStatus(week, index) {
+  if (week < PLAN_REAL_WEEK) return 'done';
+  if (week > PLAN_REAL_WEEK) return 'planned';
+  return index < 2 ? 'done' : (index === 2 ? 'today' : 'planned');
+}
+
+function trainingWeekHtml(week) {
+  return TRAINING_SESSIONS.map(function (s, i) {
+    var st = weekStatus(week, i);
+    var sub = st === 'today' ? ('Dnes · ' + s.meta) : (s.day + ' · ' + s.meta);
+    return planRow('ph-training-plan-detail', s.name, sub, st, 'train');
+  }).join('');
+}
+
+function nutritionWeekHtml(week) {
+  return NUTRI_DAYS.map(function (day, i) {
+    var st = weekStatus(week, i);
+    var sub = st === 'today' ? ('Dnes · 1 700 kcal') : '1 700 kcal · 4 jídla';
+    return planRow('ph-nutrition-plan-detail', day, sub, st, 'nutri');
+  }).join('');
+}
+
+function renderPlanWeek(key) {
+  var cur = _planWeek[key];
+  if (!cur) return;
+  var isNutri = key === 'two-nu';
+  var total = isNutri ? 7 : 4;
+  var done = cur < PLAN_REAL_WEEK ? total : (cur === PLAN_REAL_WEEK ? 2 : 0);
+
+  var lbl = document.getElementById('weeklbl-' + key);
+  if (lbl) lbl.textContent = 'Týden ' + cur + ' z ' + PLAN_TOTAL_WEEKS;
+  var prev = document.getElementById('weekprev-' + key);
+  if (prev) prev.classList.toggle('wk-disabled', cur <= 1);
+  var next = document.getElementById('weeknext-' + key);
+  if (next) next.classList.toggle('wk-disabled', cur >= PLAN_TOTAL_WEEKS);
+  var sec = document.getElementById('weeksec-' + key);
+  if (sec) sec.textContent = cur === PLAN_REAL_WEEK ? 'Tento týden' : ('Týden ' + cur);
+  var cnt = document.getElementById('weekcount-' + key);
+  if (cnt) cnt.textContent = done + ' / ' + total + (isNutri ? ' dní' : ' hotovo');
+  var list = document.getElementById('weeklist-' + key);
+  if (list) list.innerHTML = isNutri ? nutritionWeekHtml(cur) : trainingWeekHtml(cur);
+}
+
+function stepPlanWeek(key, delta) {
+  var c = _planWeek[key] + delta;
+  if (c < 1 || c > PLAN_TOTAL_WEEKS) return;
+  _planWeek[key] = c;
+  renderPlanWeek(key);
+}
+
+// Initial render (DOM scenes are above this concatenated script).
+renderPlanWeek('sched');
+renderPlanWeek('two-tr');
+renderPlanWeek('two-nu');
 </script>
 </body>
 </html>

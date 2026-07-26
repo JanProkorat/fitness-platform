@@ -1,3 +1,11 @@
+---
+# Orchestration rule: also load-on-demand at the branch/PR gate — see the
+# "Rules are load-on-demand" directive in .claude/CLAUDE.md.
+paths:
+  - "backend/**"
+  - "web/**"
+  - "mobile/**"
+---
 # Rules: Branch & PR conventions
 
 All code-bearing work follows this branch-name format:
