@@ -56,12 +56,13 @@ public class AbandonWorkoutEndpoint(
 
         var clientUserIdGuid = Guid.Parse(userId);
 
-        // Load the log — must belong to the caller and be incomplete.
-        var logFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, req.LogId)
-                        & Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserIdGuid)
-                        & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, false);
+        // Load the execution — must belong to the caller, carry Performance, and be incomplete.
+        var logFilter = Builders<SessionExecution>.Filter.Eq(w => w.ExternalId, req.LogId)
+                        & Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserIdGuid)
+                        & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                        & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Partial);
 
-        using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
+        using var logCursor = await mongo.SessionExecutions.FindAsync(logFilter, cancellationToken: ct);
         var log = await logCursor.FirstOrDefaultAsync(ct);
 
         if (log is null)

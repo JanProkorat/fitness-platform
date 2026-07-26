@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -63,16 +64,17 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
             return;
         }
 
-        // Find all completed workout logs for this client
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientProfile.UserId)
-                     & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true);
+        // Find all completed session executions (that carry Performance data) for this client
+        var filter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientProfile.UserId)
+                     & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+                     & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
 
-        var options = new FindOptions<WorkoutLog>
+        var options = new FindOptions<SessionExecution>
         {
-            Sort = Builders<WorkoutLog>.Sort.Ascending(w => w.StartedAt)
+            Sort = Builders<SessionExecution>.Sort.Ascending(w => w.Performance!.StartedAt)
         };
 
-        using var cursor = await mongo.WorkoutLogs.FindAsync(filter, options, ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, options, ct);
         var logs = await cursor.ToListAsync(ct);
 
         var exerciseName = "";
@@ -80,7 +82,6 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
 
         foreach (var log in logs)
         {
-            log.WithBackfilledSections();
             var exercise = log.Exercises
                 .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseId);
 
@@ -110,7 +111,7 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
 
             dataPoints.Add(new ExerciseProgressPoint
             {
-                Date = log.StartedAt,
+                Date = log.Performance!.StartedAt,
                 BestWeightKg = bestWeight,
                 BestReps = bestReps,
                 TotalVolume = totalVolume,

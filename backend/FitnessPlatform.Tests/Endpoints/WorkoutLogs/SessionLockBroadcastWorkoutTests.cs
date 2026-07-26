@@ -56,15 +56,6 @@ public class SessionLockBroadcastWorkoutTests
             DateCreated = DateTime.UtcNow
         };
 
-    /// <summary>
-    /// Builds a mock IApplicationDbContext with a ClientProfile for _clientId.
-    /// PublicId = _clientId (test shortcut — plan.ClientId uses _clientId so it still matches).
-    /// </summary>
-    private IApplicationDbContext CreateDbWithProfile() =>
-        new MockDbBuilder()
-            .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId })
-            .Build();
-
     private ISessionLockService AcquiredLiveService()
     {
         var svc = Substitute.For<ISessionLockService>();
@@ -101,7 +92,7 @@ public class SessionLockBroadcastWorkoutTests
     private static IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
@@ -124,10 +115,12 @@ public class SessionLockBroadcastWorkoutTests
         // StartWorkout must NOT emit sessioneditlockchanged — that is GoLive's job (issue #401).
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
 
+        // Since #840, TrainingPlan.ClientId stores ApplicationUser.Id directly, so
+        // StartWorkoutEndpoint's ownership check no longer needs an IApplicationDbContext.
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, CreateDbWithProfile());
+            mongo);
 
         await ep.HandleAsync(
             new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId },

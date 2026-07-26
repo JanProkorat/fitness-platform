@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -62,10 +63,10 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        // WorkoutLog.ClientId is stored as the auth user's Id (ApplicationUser.Id),
-        // not clientProfile.PublicId. Keep a separate variable for WorkoutLog queries.
-        var userIdGuid = Guid.Parse(userId);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840) — WorkoutLog,
+        // TrainingPlan, and TrainingCompletion all key on the same value now, so a
+        // single variable serves every collection queried below.
+        var clientId = clientProfile.UserId;
         var planId = Route<Guid>("planId");
 
         // ── 2. Fetch training plan (ownership check baked into filter) ────────────
@@ -85,14 +86,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             return;
         }
 
-        // ── 3. Backfill legacy flat-exercise sessions, then batch-fetch Exercise docs ─
-        // Schema-on-read: call WithBackfilledSections() on every session so that
-        // documents stored before the sections migration (with only flat LegacyExercises)
-        // are transparently migrated into a single "Hlavní" section in memory.
-        // This must happen before any iteration of s.Exercises or s.Sections.
-        foreach (var session in plan.Weeks.SelectMany(w => w.Sessions))
-            session.WithBackfilledSections();
-
+        // ── 3. Batch-fetch Exercise docs for muscle-group enrichment ──────────────
         var exerciseIds = plan.Weeks
             .SelectMany(w => w.Sessions)
             .SelectMany(s => s.Exercises)
@@ -114,18 +108,26 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 muscleGroupMap[ex.ExternalId] = ex.MuscleGroups;
         }
 
-        // ── 4. Fetch all WorkoutLog docs for this client + plan ───────────────────
+        // ── 4. Fetch all SessionExecution docs for this client + plan's sessions (#841) ──
         // Walk them once to build a lookup keyed by (sessionId, exerciseExternalId, setNumber).
-        // A set is "completed" when it has a CompletedAt value in WorkoutSet.
-        // We prefer the earliest non-null CompletedAt per set if multiple logs exist for the same session.
-        // IMPORTANT: WorkoutLog.ClientId is stored as the auth user's Id (Guid), not PublicId.
-        var logFilter = Builders<WorkoutLog>.Filter.And(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid),
-            Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId));
+        // A set is "completed" when it has a CompletedAt value in WorkoutSet (Performance data),
+        // OR when the checkbox completion flags mark the exercise/set done (folded in below).
+        // We prefer the earliest non-null CompletedAt per set if multiple executions exist for
+        // the same session.
+        var planSessionIds = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .Select(s => s.SessionId)
+            .ToList();
 
-        var workoutLogs = await mongo.WorkoutLogs
-            .Find(logFilter)
+        var executionFilter = Builders<SessionExecution>.Filter.And(
+            Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientId),
+            Builders<SessionExecution>.Filter.In(l => l.SessionId, planSessionIds.Cast<Guid?>()));
+
+        var executions = await mongo.SessionExecutions
+            .Find(executionFilter)
             .ToListAsync(ct);
+
+        var executionsWithPerformance = executions.Where(e => e.Performance is not null).ToList();
 
         // Key: (sessionId, exerciseExternalId, setNumber) → completedAt
         // If a session was logged more than once we take the earliest non-null completedAt
@@ -133,18 +135,18 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         var completedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), DateTime>();
 
         // Extended lookup: (sessionId, exerciseId, setNumber) → WorkoutSet for actual+planned values.
-        // We prefer the most-recently-updated log per session (mirrors the dedup logic used elsewhere).
-        // If two logs for the same session have the set, the one from the "best" log wins.
+        // We prefer the most-recently-updated execution per session (mirrors the dedup logic used
+        // elsewhere). If two executions for the same session have the set, the "best" one wins.
         var loggedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), WorkoutSet>();
 
-        // Deduplicate logs per sessionId: prefer most-recently-updated FINALISED, else most-recent.
-        var bestLogBySession = workoutLogs
+        // Deduplicate executions per sessionId: prefer most-recently-updated FINALISED, else most-recent.
+        var bestLogBySession = executionsWithPerformance
             .Where(l => l.SessionId.HasValue)
             .GroupBy(l => l.SessionId!.Value)
             .Select(g =>
             {
                 var finalised = g
-                    .Where(l => l.IsCompleted)
+                    .Where(l => l.Status == SessionExecutionStatus.Completed)
                     .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
                     .FirstOrDefault();
                 return finalised ?? g.OrderByDescending(l => l.DateUpdated ?? l.DateCreated).First();
@@ -164,7 +166,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             }
         }
 
-        foreach (var log in workoutLogs)
+        foreach (var log in executionsWithPerformance)
         {
             if (log.SessionId is null) continue;
             var sessionId = log.SessionId.Value;
@@ -182,17 +184,13 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             }
         }
 
-        // ── 4b. Fold in TrainingCompletion docs ───────────────────────────────────
+        // ── 4b. Fold in checkbox completion flags ─────────────────────────────────
         // The lightweight Today-card checkboxes (mark-exercise-complete / mark-session-complete)
-        // write to TrainingCompletion — not WorkoutLog. Merge those into the same
-        // completedSets lookup so the plan-detail view reflects both surfaces.
+        // write completion flags on the SAME SessionExecution document (#841). Merge those into
+        // the same completedSets lookup so the plan-detail view reflects both surfaces.
         //
         // SessionId is globally unique within a plan, so we can match by sessionId
         // alone and skip the Date → WeekNumber mapping.
-        var planSessionIds = plan.Weeks
-            .SelectMany(w => w.Sessions)
-            .Select(s => s.SessionId)
-            .ToList();
 
         // Inner dict is keyed by ExerciseExternalId, but the same catalog
         // exercise can legitimately appear in multiple sections of a single
@@ -201,7 +199,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // duplicates by taking the first occurrence per catalog id; downstream
         // code only needs ANY matching planned exercise to look up its set
         // list, and shared-catalog instances within one session have identical
-        // set-number prescriptions for the legacy flat completion path.
+        // set-number prescriptions when resolved via the section-aware map.
         var sessionExerciseLookup = plan.Weeks
             .SelectMany(w => w.Sessions)
             .ToDictionary(
@@ -210,59 +208,62 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     .GroupBy(e => e.ExerciseExternalId)
                     .ToDictionary(g => g.Key, g => g.First()));
 
-        var completedSectionIdsBySession = new Dictionary<Guid, HashSet<Guid>>();
+        // Session lookup for resolving the section-aware completed-exercise view below.
+        var sessionLookup = plan.Weeks
+            .SelectMany(w => w.Sessions)
+            .ToDictionary(s => s.SessionId);
 
-        if (planSessionIds.Count > 0)
+        var completedSectionIdsBySession = executions
+            .Where(e => e.SessionId.HasValue)
+            .GroupBy(e => e.SessionId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(e => e.CompletedSectionIds ?? new List<Guid>()).ToHashSet());
+
+        foreach (var execution in executions.Where(e => e.SessionId.HasValue))
         {
-            var completionFilter = Builders<TrainingCompletion>.Filter.And(
-                Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId),
-                Builders<TrainingCompletion>.Filter.In(c => c.SessionId, planSessionIds));
+            var sessionId = execution.SessionId!.Value;
 
-            var trainingCompletions = await mongo.TrainingCompletions
-                .Find(completionFilter)
-                .ToListAsync(ct);
+            if (!sessionExerciseLookup.TryGetValue(sessionId, out var exLookup))
+                continue;
 
-            completedSectionIdsBySession = trainingCompletions
-                .GroupBy(tc => tc.SessionId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.SelectMany(tc => tc.CompletedSectionIds ?? new List<Guid>()).ToHashSet());
+            var stampedAt = execution.DateUpdated ?? execution.DateCreated;
 
-            foreach (var tc in trainingCompletions)
+            // Fully-completed exercises: mark every planned set as complete.
+            // Sourced from the section-aware CompletedExerciseIdsBySection map (the
+            // retired flat CompletedExerciseIds field is kept only as a derived mirror —
+            // see SessionExecution.cs).
+            var effectiveIds = sessionLookup.TryGetValue(sessionId, out var execSession)
+                ? SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(execution, execSession)
+                    .Values.SelectMany(ids => ids).ToHashSet()
+                : [];
+
+            foreach (var exerciseId in effectiveIds)
             {
-                if (!sessionExerciseLookup.TryGetValue(tc.SessionId, out var exLookup))
+                if (!exLookup.TryGetValue(exerciseId, out var planExercise))
                     continue;
 
-                var stampedAt = tc.DateUpdated ?? tc.DateCreated;
-
-                // Fully-completed exercises: mark every planned set as complete.
-                foreach (var exerciseId in tc.CompletedExerciseIds)
+                foreach (var set in planExercise.Sets)
                 {
-                    if (!exLookup.TryGetValue(exerciseId, out var planExercise))
-                        continue;
+                    var key = (sessionId, exerciseId, set.SetNumber);
+                    if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
+                        completedSets[key] = stampedAt;
+                }
+            }
 
-                    foreach (var set in planExercise.Sets)
+            // Partially-completed exercises: mark only the listed set numbers.
+            if (execution.CompletedSets is not null)
+            {
+                foreach (var (exIdString, setNumbers) in execution.CompletedSets)
+                {
+                    if (!Guid.TryParse(exIdString, out var exId)) continue;
+                    if (!exLookup.ContainsKey(exId)) continue;
+
+                    foreach (var setNumber in setNumbers)
                     {
-                        var key = (tc.SessionId, exerciseId, set.SetNumber);
+                        var key = (sessionId, exId, setNumber);
                         if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
                             completedSets[key] = stampedAt;
-                    }
-                }
-
-                // Partially-completed exercises: mark only the listed set numbers.
-                if (tc.CompletedSets is not null)
-                {
-                    foreach (var (exIdString, setNumbers) in tc.CompletedSets)
-                    {
-                        if (!Guid.TryParse(exIdString, out var exId)) continue;
-                        if (!exLookup.ContainsKey(exId)) continue;
-
-                        foreach (var setNumber in setNumbers)
-                        {
-                            var key = (tc.SessionId, exId, setNumber);
-                            if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
-                                completedSets[key] = stampedAt;
-                        }
                     }
                 }
             }

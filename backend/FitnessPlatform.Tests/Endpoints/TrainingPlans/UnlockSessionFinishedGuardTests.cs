@@ -62,8 +62,13 @@ public class UnlockSessionFinishedGuardTests
         };
 
     /// <summary>
-    /// Creates an IMongoContext where WorkoutLogs.CountDocumentsAsync returns the given count
-    /// and TrainingCompletions.FindAsync returns the given completions (default empty).
+    /// Creates an IMongoContext whose SessionExecutions collection reflects the legacy
+    /// WorkoutLog/TrainingCompletion fixture shape this test file was written against.
+    /// #841: UnlockTrainingSessionEndpoint reads exclusively mongo.SessionExecutions and calls
+    /// IsSessionComplete() on each returned document — a completed-log fixture becomes one
+    /// Status=Completed execution; each TrainingCompletion fixture becomes a Status=Partial
+    /// execution carrying the same completion flags (session-level completeness is then derived
+    /// by the same IsSessionComplete()/IsSectionComplete() extension the endpoint calls).
     /// </summary>
     private IMongoContext CreateMockMongo(
         TrainingPlan plan,
@@ -76,19 +81,45 @@ public class UnlockSessionFinishedGuardTests
         var planCollection = TrainingPlanTestHelpers.CreateMockCollection([plan]);
         mongo.TrainingPlans.Returns(planCollection);
 
-        // WorkoutLogs — CountDocumentsAsync returns the given count (0 or 1)
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.CountDocumentsAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<CountOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(completedLogCount);
-        mongo.WorkoutLogs.Returns(logCollection);
+        var sessionId = plan.Weeks.SelectMany(w => w.Sessions).Select(s => s.SessionId).FirstOrDefault();
+        var executions = new List<SessionExecution>();
 
-        // TrainingCompletions — FindAsync returns the given completions (empty by default)
-        var completionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection(
-            completions ?? []);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        if (completedLogCount > 0)
+        {
+            var now = DateTime.UtcNow;
+            executions.Add(new SessionExecution
+            {
+                ExternalId = Guid.NewGuid(),
+                ClientId = plan.ClientId,
+                SessionId = sessionId,
+                Date = SessionExecution.ToCompletionDateUtc(now),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance { StartedAt = now, CompletedAt = now, Sections = [] },
+                DateCreated = now,
+                Version = 1
+            });
+        }
+
+        foreach (var completion in completions ?? [])
+        {
+            executions.Add(new SessionExecution
+            {
+                ExternalId = Guid.NewGuid(),
+                ClientId = completion.ClientId,
+                SessionId = completion.SessionId,
+                Date = completion.Date,
+                Status = SessionExecutionStatus.Partial,
+                CompletedExerciseIds = completion.CompletedExerciseIds,
+                CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection,
+                CompletedSectionIds = completion.CompletedSectionIds,
+                CompletedSets = completion.CompletedSets,
+                DateCreated = completion.DateCreated,
+                Version = completion.Version
+            });
+        }
+
+        var executionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection(executions);
+        mongo.SessionExecutions.Returns(executionCollection);
 
         return mongo;
     }
@@ -203,17 +234,9 @@ public class UnlockSessionFinishedGuardTests
         var emptyPlanCollection = TrainingPlanTestHelpers.CreateMockCollection([]);
         mongo.TrainingPlans.Returns(emptyPlanCollection);
 
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.CountDocumentsAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<CountOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(0L);
-        mongo.WorkoutLogs.Returns(logCollection);
-
-        // TrainingCompletions not reached (404 fires first) but stub to avoid null ref.
-        var emptyCompletionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(emptyCompletionCollection);
+        // SessionExecutions not reached (404 fires first) but stub to avoid null ref.
+        var emptyExecutionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(emptyExecutionCollection);
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -228,10 +251,10 @@ public class UnlockSessionFinishedGuardTests
         // Assert: 404 — ownership guard fires before finished-guard
         ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        // WorkoutLogs.CountDocumentsAsync must NOT be called (404 short-circuits before finished-guard)
-        await logCollection.DidNotReceive().CountDocumentsAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Any<CountOptions>(),
+        // SessionExecutions.FindAsync must NOT be called (404 short-circuits before finished-guard)
+        await emptyExecutionCollection.DidNotReceive().FindAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 

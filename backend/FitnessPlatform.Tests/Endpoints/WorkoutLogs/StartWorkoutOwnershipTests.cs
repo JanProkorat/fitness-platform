@@ -3,32 +3,29 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
-using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 
 /// <summary>
-/// Regression tests for the StartWorkout ownership identity pattern (issue #382).
+/// Regression tests for the StartWorkout ownership check (issue #382).
 ///
 /// StartWorkout (POST /client/training/logs) now only creates a draft log — lock acquisition
 /// and the Live broadcast have moved to the separate GoLive endpoint (issue #401).
 ///
-/// Root-cause note (preserved for history): the endpoint previously compared
-/// plan.ClientId against ApplicationUser.Id but TrainingPlan.ClientId stores
-/// ClientProfile.PublicId. This file verifies the ownership resolution still uses the
-/// profile public id for the plan check while storing the user id on WorkoutLog.ClientId.
+/// Root-cause note (updated for #840): the endpoint used to compare plan.ClientId
+/// (ClientProfile.PublicId) against a ClientProfile resolved from the caller's
+/// ApplicationUser.Id — a two-hop identity split. Since #840, TrainingPlan.ClientId
+/// stores ApplicationUser.Id directly, so ownership is a single direct comparison
+/// against the caller's JWT-derived UserId; no ClientProfile lookup (and no
+/// IApplicationDbContext dependency) is involved any more.
 /// </summary>
 public class StartWorkoutOwnershipTests
 {
-    // Two distinct GUIDs to prove neither side of the identity split is collapsed.
-    private readonly Guid _clientUserId = Guid.NewGuid();          // ApplicationUser.Id (from JWT)
-    private readonly Guid _clientProfilePublicId = Guid.NewGuid(); // ClientProfile.PublicId
+    private readonly Guid _clientUserId = Guid.NewGuid(); // ApplicationUser.Id (from JWT), also TrainingPlan.ClientId (#840)
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _planId = Guid.NewGuid();
     private readonly Guid _sessionId = Guid.NewGuid();
@@ -36,14 +33,13 @@ public class StartWorkoutOwnershipTests
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// A training plan whose ClientId = _clientProfilePublicId (the real store value).
-    /// This is what the trainer creates on behalf of the client.
+    /// A training plan whose ClientId = _clientUserId (ApplicationUser.Id, #840).
     /// </summary>
     private TrainingPlan MakePlan() =>
         new TrainingPlan
         {
             ExternalId = _planId,
-            ClientId = _clientProfilePublicId, // stores the PROFILE public id, not the user id
+            ClientId = _clientUserId,
             TrainerId = _trainerId,
             Name = "Test Plan",
             Status = TrainingPlanStatus.Active,
@@ -52,20 +48,11 @@ public class StartWorkoutOwnershipTests
             DateCreated = DateTime.UtcNow
         };
 
-    /// <summary>
-    /// A ClientProfile linking the user (_clientUserId) to their profile public id.
-    /// </summary>
-    private IApplicationDbContext MakeDbWithOwnerProfile() =>
-        new MockDbBuilder()
-            .With(new ClientProfile { Id = 1, UserId = _clientUserId, PublicId = _clientProfilePublicId })
-            .Build();
-
     // ── Tests ────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// The owning client (JWT user id → ClientProfile.PublicId == plan.ClientId) creates a
-    /// plan-bound draft log.
-    /// Expected: 201, WorkoutLog.ClientId = ApplicationUser.Id (not profile id).
+    /// The owning client (JWT user id == plan.ClientId) creates a plan-bound draft log.
+    /// Expected: 201, WorkoutLog.ClientId = ApplicationUser.Id.
     /// No lock acquisition here — that happens in GoLive.
     /// </summary>
     [Fact]
@@ -77,7 +64,7 @@ public class StartWorkoutOwnershipTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            mongo, MakeDbWithOwnerProfile());
+            mongo);
 
         // Act
         await ep.HandleAsync(
@@ -87,10 +74,10 @@ public class StartWorkoutOwnershipTests
         // Assert — 201 created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        // WorkoutLog.ClientId must be the ApplicationUser.Id (not profile id).
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w =>
-                w.ClientId == _clientUserId &&   // user id, not profile id
+        // SessionExecution.ClientId must be the ApplicationUser.Id.
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w =>
+                w.ClientId == _clientUserId &&
                 w.PlanId == _planId &&
                 w.SessionId == _sessionId),
             Arg.Any<MongoDB.Driver.InsertOneOptions>(),
@@ -98,27 +85,22 @@ public class StartWorkoutOwnershipTests
     }
 
     /// <summary>
-    /// A different client (JWT user id → a profile whose PublicId != plan.ClientId) tries to create
-    /// a log for a plan that belongs to another client.
+    /// A different client (JWT user id != plan.ClientId) tries to create a log for a plan
+    /// that belongs to another client.
     /// Expected: 403, no log created.
     /// </summary>
     [Fact]
     public async Task StartWorkout_NonOwningClient_Returns403()
     {
-        // Arrange — attacker has a valid profile but it's for a DIFFERENT plan
+        // Arrange — attacker is a different, valid client whose UserId != plan.ClientId
         var attackerUserId = Guid.NewGuid();
-        var attackerProfilePublicId = Guid.NewGuid(); // attacker's public id != plan.ClientId
-
-        var attackerDb = new MockDbBuilder()
-            .With(new ClientProfile { Id = 2, UserId = attackerUserId, PublicId = attackerProfilePublicId })
-            .Build();
 
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
 
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(attackerUserId, AppRoles.Client))),
-            mongo, attackerDb);
+            mongo);
 
         // Act
         await ep.HandleAsync(
@@ -128,8 +110,8 @@ public class StartWorkoutOwnershipTests
         // Assert — 403, nothing created
         ep.HttpContext.Response.StatusCode.Should().Be(403);
 
-        await mongo.WorkoutLogs.DidNotReceive().InsertOneAsync(
-            Arg.Any<WorkoutLog>(),
+        await mongo.SessionExecutions.DidNotReceive().InsertOneAsync(
+            Arg.Any<SessionExecution>(),
             Arg.Any<MongoDB.Driver.InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

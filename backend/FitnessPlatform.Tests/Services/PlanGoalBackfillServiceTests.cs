@@ -22,9 +22,9 @@ namespace FitnessPlatform.Tests.Services;
 /// <c>ClientOnboardingData</c> into <c>NutritionPlan</c> and
 /// <c>TrainingPlan</c> documents, and that a second run is a no-op.
 ///
-/// Join key: <c>plan.ClientId</c> == <c>ClientProfile.PublicId</c> — NOT
-/// <c>ClientProfile.UserId</c> (ApplicationUser.Id). Plans are written by
-/// <c>CreatePlanEndpoint</c> with <c>plan.ClientId = clientProfile.PublicId</c>.
+/// Join key: <c>plan.ClientId</c> == <c>ClientProfile.UserId</c> (ApplicationUser.Id)
+/// since #840 — NOT <c>ClientProfile.PublicId</c>. Plans are written by
+/// <c>CreatePlanEndpoint</c> with <c>plan.ClientId = clientProfile.UserId</c>.
 /// </summary>
 public class PlanGoalBackfillServiceTests : IAsyncLifetime
 {
@@ -76,7 +76,8 @@ public class PlanGoalBackfillServiceTests : IAsyncLifetime
     /// <summary>
     /// Inserts a minimal user + client_profile + client_onboarding_data row via raw SQL.
     /// Returns (UserId, PublicId, ClientProfileId) so callers can seed Mongo plans with
-    /// the correct <c>plan.ClientId = publicId</c> (matching what CreatePlanEndpoint writes).
+    /// the correct <c>plan.ClientId = userId</c> (matching what CreatePlanEndpoint writes
+    /// since #840).
     /// </summary>
     private async Task<(Guid UserId, Guid PublicId, long ClientProfileId)> SeedUserWithOnboardingAsync(
         PrimaryGoal goal,
@@ -181,21 +182,21 @@ public class PlanGoalBackfillServiceTests : IAsyncLifetime
     /// <summary>
     /// A NutritionPlan with null Goal/TargetWeightKg and a matching client
     /// onboarding entry → backfill populates both fields, second run is a no-op.
-    /// Join key is PublicId (not UserId).
+    /// Join key is ApplicationUser.Id (#840), not ClientProfile.PublicId.
     /// </summary>
     [Fact]
     public async Task BackfillAsync_NutritionPlan_CopiesGoalAndTarget_AndIsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var (_, publicId, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.LoseFat, 70.0m);
+        var (userId, _, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.LoseFat, 70.0m);
 
         // Insert a NutritionPlan with null goal/targetWeightKg.
-        // plan.ClientId = publicId, matching what CreatePlanEndpoint writes.
+        // plan.ClientId = userId, matching what CreatePlanEndpoint writes since #840.
         var plan = new NutritionPlan
         {
             ExternalId    = Guid.NewGuid(),
-            ClientId      = publicId,        // CRITICAL: must equal ClientProfile.PublicId
+            ClientId      = userId,        // CRITICAL: must equal ClientProfile.UserId (#840)
             NutritionistId = Guid.NewGuid(),
             Name          = "Backfill Test Plan",
             Status        = NutritionPlanStatus.Draft,
@@ -244,12 +245,12 @@ public class PlanGoalBackfillServiceTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var (_, publicId, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.GainMuscle, 85.0m);
+        var (userId, _, _) = await SeedUserWithOnboardingAsync(PrimaryGoal.GainMuscle, 85.0m);
 
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId   = publicId,   // CRITICAL: must equal ClientProfile.PublicId
+            ClientId   = userId,   // CRITICAL: must equal ClientProfile.UserId (#840)
             TrainerId  = Guid.NewGuid(),
             Name       = "Backfill Training Plan",
             Status     = TrainingPlanStatus.Draft,

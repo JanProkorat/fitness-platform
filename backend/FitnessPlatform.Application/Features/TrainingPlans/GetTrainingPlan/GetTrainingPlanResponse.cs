@@ -188,7 +188,10 @@ public class GetTrainingPlanResponse
     public Guid PlanId { get; set; }
 
     /// <summary>
-    /// Client's public user identifier.
+    /// The client's <c>ClientProfile.PublicId</c> — the client-facing identifier consumed by
+    /// web/mobile to build routes like <c>/trainer/clients/{{clientId}}/...</c>. NOT the
+    /// internal Mongo storage key (<c>ApplicationUser.Id</c> since #840) — see
+    /// <see cref="FromDocument"/>.
     /// </summary>
     public Guid ClientId { get; set; }
 
@@ -276,21 +279,20 @@ public class GetTrainingPlanResponse
     /// <summary>
     /// Maps a <see cref="TrainingPlan"/> document to a detailed response DTO.
     /// </summary>
-    public static GetTrainingPlanResponse FromDocument(TrainingPlan plan)
+    /// <param name="plan">The training plan document.</param>
+    /// <param name="clientPublicId">
+    /// The client's <c>ClientProfile.PublicId</c> to expose as <see cref="ClientId"/> —
+    /// NOT <paramref name="plan"/>.ClientId directly, which is the internal
+    /// <c>ApplicationUser.Id</c> storage key since #840. Callers resolve this via
+    /// <see cref="FitnessPlatform.Application.Domain.Extensions.ClientProfileLookupExtensions.ResolveClientPublicIdAsync"/>
+    /// (or the batch variant for list endpoints) before calling this factory.
+    /// </param>
+    public static GetTrainingPlanResponse FromDocument(TrainingPlan plan, Guid clientPublicId)
     {
-        // Schema-on-read: materialize legacy flat exercises into a default "Hlavní" section.
-        foreach (var week in plan.Weeks)
-        {
-            foreach (var session in week.Sessions)
-            {
-                session.WithBackfilledSections();
-            }
-        }
-
         return new GetTrainingPlanResponse
         {
             PlanId = plan.ExternalId,
-            ClientId = plan.ClientId,
+            ClientId = clientPublicId,
             TrainerId = plan.TrainerId,
             Name = plan.Name,
             Description = plan.Description,

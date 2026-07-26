@@ -50,7 +50,7 @@ public class MarkSectionCompleteEndpointTests
     /// </summary>
     private TrainingPlan CreatePlanWithExerciseFreeSection()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         return new FitnessPlatform.Application.Domain.Documents.TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
@@ -111,7 +111,7 @@ public class MarkSectionCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
                 c.CompletedSectionIds != null &&
@@ -152,12 +152,12 @@ public class MarkSectionCompleteEndpointTests
 
         // No insert or update should have occurred
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -218,9 +218,9 @@ public class MarkSectionCompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 

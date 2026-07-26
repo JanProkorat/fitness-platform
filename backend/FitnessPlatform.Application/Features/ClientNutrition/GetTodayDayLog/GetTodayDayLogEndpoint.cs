@@ -57,7 +57,8 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // NutritionPlan/DayLog/MealLog.ClientId = ApplicationUser.Id since #840.
+        var clientId = clientProfile.UserId;
         var todayUtc = DateTime.UtcNow.Date;
         var tomorrowUtc = todayUtc.AddDays(1);
 

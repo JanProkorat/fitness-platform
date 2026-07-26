@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Options;
 using NSubstitute;
@@ -393,7 +394,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier, new PlanConcurrencyGuard());
+            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -457,7 +458,7 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier, new PlanConcurrencyGuard());
+            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
         var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest

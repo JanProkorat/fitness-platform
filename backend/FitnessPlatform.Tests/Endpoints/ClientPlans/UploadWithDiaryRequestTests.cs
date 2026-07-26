@@ -180,7 +180,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         var nutritionPlan = new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         };
@@ -255,7 +255,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -318,7 +318,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = client2Profile.PublicId,
+            ClientId = client2Profile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -370,7 +370,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -418,7 +418,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -467,7 +467,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -517,7 +517,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -557,7 +557,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientProfile.PublicId,
+            ClientId = clientProfile.UserId,
             NutritionistId = profId,
             Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);

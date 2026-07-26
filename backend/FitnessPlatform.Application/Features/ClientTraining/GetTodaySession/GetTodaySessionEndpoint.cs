@@ -22,8 +22,49 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
+/// <remarks>
+/// Active-plan resolution is a two-phase read (ADR-0001 Tier 2a / #838):
+/// <list type="number">
+/// <item>A lightweight Mongo projection fetches every candidate Active plan with per-week
+/// <b>metadata</b> only (<c>weekNumber</c>, <c>status</c>, <c>datePublished</c>) — excluding the
+/// heavy <c>weeks[].sessions</c> sub-tree. This is enough for
+/// <see cref="PlanWindowResolver.ResolveCurrentPlan{T}"/> and
+/// <see cref="PlanWeekCalculator.ResolveCurrentWeekNumber"/>, both of which only need week
+/// <em>counts</em> and metadata, never session content.</item>
+/// <item>Once the current week is resolved, a second targeted Mongo query hydrates just that one
+/// week's <c>sessions</c> via the positional <c>$</c> projection operator.</item>
+/// </list>
+/// The plan's <c>weeks</c> array itself must never be projected away entirely — doing so would
+/// collapse <see cref="PlanWindowResolver"/>'s week-count selector to zero for every plan.
+/// </remarks>
 public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService) : EndpointWithoutRequest<GetTodaySessionResponse>
 {
+    /// <summary>
+    /// Phase-1 projection: plan-level fields plus per-week metadata only (weekNumber, status,
+    /// datePublished). Deliberately excludes <c>weeks[].sessions</c> and <c>weeks[].dayNotes</c> —
+    /// the heavy content this endpoint doesn't need until the current week is resolved.
+    /// </summary>
+    /// <remarks>
+    /// <c>internal</c> (not <c>private</c>) so Testcontainers integration tests
+    /// (<c>GetTodaySessionProjectionIntegrationTests</c>) can execute this EXACT production
+    /// projection against a real MongoDB instance and assert the metadata-retained /
+    /// content-excluded shape directly — proving the projection itself, not a re-derived copy
+    /// of it. See <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> in
+    /// <c>Domain/Services/ClientVerdictService.cs</c>.
+    /// </remarks>
+    internal static readonly ProjectionDefinition<TrainingPlan> LightPlanProjection = Builders<TrainingPlan>.Projection.Combine(
+        Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
+        Builders<TrainingPlan>.Projection.Include(p => p.ClientId),
+        Builders<TrainingPlan>.Projection.Include(p => p.Name),
+        Builders<TrainingPlan>.Projection.Include(p => p.Status),
+        Builders<TrainingPlan>.Projection.Include(p => p.StartDate),
+        Builders<TrainingPlan>.Projection.Include(p => p.DateCreated),
+        Builders<TrainingPlan>.Projection.Include(p => p.DateCompleted),
+        Builders<TrainingPlan>.Projection.Include(p => p.QuestionnaireResponseId),
+        Builders<TrainingPlan>.Projection.Include("weeks.weekNumber"),
+        Builders<TrainingPlan>.Projection.Include("weeks.status"),
+        Builders<TrainingPlan>.Projection.Include("weeks.datePublished"));
+
     /// <inheritdoc />
     public override void Configure()
     {
@@ -57,18 +98,21 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        // WorkoutLog.ClientId is stored as the auth user's Id (ApplicationUser.Id),
-        // not the ClientProfile.PublicId. Keep a separate variable so the two
-        // collections can be queried with the correct identifier.
-        var userIdGuid = Guid.Parse(userId);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840) — TrainingPlan,
+        // TrainingCompletion, and SessionLog now all key on the same value as WorkoutLog,
+        // so a single variable serves every collection queried below.
+        var clientId = clientProfile.UserId;
 
         // Find the Active training plan whose date window contains today — a client may hold
         // several sequential, non-overlapping Active plans (#780).
+        // Phase 1: lightweight projection — plan metadata + per-week metadata only, no session content.
         var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
 
-        using var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
+        using var cursor = await mongo.TrainingPlans.FindAsync(
+            filter,
+            new FindOptions<TrainingPlan, TrainingPlan> { Projection = LightPlanProjection },
+            ct);
         var activePlans = await cursor.ToListAsync(ct);
         var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
 
@@ -155,6 +199,18 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             }
         }
 
+        // Phase 2: hydrate just the resolved week's session content. currentWeek up to this
+        // point only carries metadata (weekNumber/status/datePublished) from the phase-1 fetch.
+        var hydratedWeek = await FetchHydratedWeekAsync(plan.ExternalId, currentWeek.WeekNumber, ct);
+        if (hydratedWeek is null)
+        {
+            // Plan/week vanished between phase 1 and phase 2 (rare race) — surface as no session.
+            await Send.OkAsync(response, ct);
+            return;
+        }
+
+        currentWeek = hydratedWeek;
+
         // Find today's sessions (1 = Monday, 7 = Sunday)
         var todayDow = (int)DateTime.UtcNow.DayOfWeek;
         todayDow = todayDow == 0 ? 7 : todayDow; // Convert Sunday from 0 to 7
@@ -190,83 +246,71 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 response.ExerciseMuscleGroups[ex.ExternalId] = ex.MuscleGroups;
         }
 
-        // ── Batch-fetch TrainingCompletion + WorkoutLog docs for today ────────
-        // Both collections are sources of truth for "was exercise X completed today":
-        //   - TrainingCompletion — lightweight Today-card checkbox toggles.
-        //   - WorkoutLog         — the live training assistant's per-set logs.
-        // We merge them so the home card reflects progress made via either surface.
+        // ── Batch-fetch SessionExecution docs for today (#841) ────────────────
+        // Unifies the former TrainingCompletion (lightweight Today-card checkbox toggles) and
+        // WorkoutLog (live training assistant's per-set logs) sources of truth for "was exercise
+        // X completed today" into one collection — a single document per (clientId, sessionId,
+        // date) now carries both signals.
         if (todaySessions.Count > 0)
         {
             var targetDate = DateTime.UtcNow.Date;
-            var tomorrow = targetDate.AddDays(1);
             var todaySessionIds = todaySessions.Select(s => s.SessionId).ToList();
 
-            // Per-session accumulator so entries from both collections union cleanly.
+            // Per-session accumulator so entries from both signals (checkbox flags, Performance) union cleanly.
             var completedBySession = new Dictionary<Guid, HashSet<Guid>>();
 
-            // 1. TrainingCompletion — one doc per (clientId, date, sessionId).
-            var completionFilter =
-                Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, todaySessionIds);
+            // 1. Checkbox completion flags — one doc per (clientId, date, sessionId).
+            var executionFilter =
+                Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                & Builders<SessionExecution>.Filter.In(c => c.SessionId, todaySessionIds.Cast<Guid?>());
 
-            using var completionCursor = await mongo.TrainingCompletions.FindAsync(
-                completionFilter,
+            using var executionCursor = await mongo.SessionExecutions.FindAsync(
+                executionFilter,
                 cancellationToken: ct);
-            var completionDocs = await completionCursor.ToListAsync(ct);
+            var executionDocs = await executionCursor.ToListAsync(ct);
 
             // Build a lookup for sessions by sessionId so backfill can resolve section membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
-            foreach (var doc in completionDocs)
+            foreach (var doc in executionDocs)
             {
-                if (!completedBySession.TryGetValue(doc.SessionId, out var set))
-                    completedBySession[doc.SessionId] = set = [];
-                foreach (var exId in doc.CompletedExerciseIds)
-                    set.Add(exId);
+                var sessionId = doc.SessionId!.Value;
 
-                response.VersionBySession[doc.SessionId] = doc.Version;
-                response.CompletedSectionIdsBySession[doc.SessionId] =
+                if (!completedBySession.TryGetValue(sessionId, out var set))
+                    completedBySession[sessionId] = set = [];
+
+                response.VersionBySession[sessionId] = doc.Version;
+                response.CompletedSectionIdsBySession[sessionId] =
                     (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
 
-                // Populate section-aware field using read-time backfill.
-                if (sessionLookup.TryGetValue(doc.SessionId, out var completionSession))
+                // Populate the per-session completed-exercise set from the section-aware
+                // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
+                // field is kept only as a derived mirror (see SessionExecution.cs) and is
+                // no longer consulted here.
+                if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
+                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(
                         doc, completionSession);
-                    response.CompletedExerciseIdsBySectionAndSession[doc.SessionId] =
+                    response.CompletedExerciseIdsBySectionAndSession[sessionId] =
                         effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+
+                    foreach (var exId in effective.Values.SelectMany(ids => ids))
+                        set.Add(exId);
                 }
             }
 
-            // 2. WorkoutLog — live-training logs for today. An exercise counts as
+            // 2. Performance data — live-training logs for today. An exercise counts as
             // completed when every planned set has a CompletedAt timestamp.
-            // IMPORTANT: WorkoutLog.ClientId is written as the auth user's Id (Guid),
-            // NOT clientProfile.PublicId. Use userIdGuid here — using clientId silently
-            // returns nothing because the two identifiers never match.
-            var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
-                & Builders<WorkoutLog>.Filter.In(l => l.SessionId, todaySessionIds.Cast<Guid?>())
-                & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
-                & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
+            // #841: the unified partial-unique index guarantees at most ONE SessionExecution per
+            // (clientId, sessionId, date) — executionDocs (already filtered to today's Date) has
+            // at most one entry per session, so no further per-session dedup is needed here
+            // (unlike the retired multi-WorkoutLog-per-day model this replaces).
+            var executionsWithPerformanceToday = executionDocs
+                .Where(e => e.Performance is not null)
+                .ToList();
 
-            var workoutLogs = await mongo.WorkoutLogs
-                .Find(logFilter)
-                .ToListAsync(ct);
-
-            // Use only the LATEST log per session (by StartedAt descending).
-            // When the user restarts a session mid-day, the earlier completed log
-            // must not union its fully-done exercises on top of the fresh partial
-            // log — that would falsely mark the whole session as finished on the
-            // Today card even though the current attempt is only partially done.
-            var latestLogPerSession = workoutLogs
-                .Where(l => l.SessionId is not null)
-                .GroupBy(l => l.SessionId!.Value)
-                .Select(g => g.OrderByDescending(l => l.StartedAt)
-                              .ThenByDescending(l => l.DateCreated) // stable tie-breaker: newest insert wins when StartedAt is identical
-                              .First());
-
-            foreach (var log in latestLogPerSession)
+            foreach (var log in executionsWithPerformanceToday)
             {
                 if (!completedBySession.TryGetValue(log.SessionId!.Value, out var set))
                     completedBySession[log.SessionId.Value] = set = [];
@@ -378,7 +422,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
             // ── Batch-fetch SessionLog docs for today (photo gallery) ─────────────
             // One query for all of today's sessions; keyed by SessionId in the response.
-            // ClientId in SessionLog = ClientProfile.PublicId (same as clientId here).
+            // SessionLog.ClientId = ApplicationUser.Id (#840), same as clientId here.
             var sessionLogFilter =
                 Builders<SessionLog>.Filter.Eq(l => l.ClientId, clientId)
                 & Builders<SessionLog>.Filter.In(l => l.SessionId, todaySessionIds)
@@ -413,5 +457,41 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         }
 
         await Send.OkAsync(response, ct);
+    }
+
+    /// <summary>
+    /// Phase-2 fetch: hydrates the full session content for exactly one week of one plan, using
+    /// the positional <c>$</c> projection operator so Mongo returns only the matched array
+    /// element instead of the whole <c>weeks</c> tree.
+    /// </summary>
+    private async Task<TrainingWeek?> FetchHydratedWeekAsync(Guid planExternalId, int weekNumber, CancellationToken ct)
+    {
+        var weekFilter = Builders<TrainingPlan>.Filter.And(
+            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planExternalId),
+            Builders<TrainingPlan>.Filter.Eq("weeks.weekNumber", weekNumber));
+
+        // CRITICAL: an inclusion-only projection like "weeks.$" returns ONLY `_id` and `weeks` —
+        // every other field (including `externalId`) is excluded and deserializes to its C#
+        // default (Guid.Empty). Without explicitly re-including ExternalId here, the defensive
+        // ExternalId match below always fails against real MongoDB, silently making this method
+        // return null on every call in production (#838 fresh-eyes catch — the mocked unit tests
+        // never exercise real Mongo's field-inclusion semantics, so this was invisible there).
+        var weekProjection = Builders<TrainingPlan>.Projection.Combine(
+            Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
+            Builders<TrainingPlan>.Projection.Include("weeks.$"));
+
+        using var cursor = await mongo.TrainingPlans.FindAsync(
+            weekFilter,
+            new FindOptions<TrainingPlan, TrainingPlan> { Projection = weekProjection },
+            ct);
+        var hydratedPlans = await cursor.ToListAsync(ct);
+
+        // Match on ExternalId explicitly rather than trusting the query to have filtered
+        // server-side — this keeps the method correct even against a test double that ignores
+        // the filter argument (see GetTodaySessionEndpointTests' NSubstitute-based mocks).
+        return hydratedPlans
+            .FirstOrDefault(p => p.ExternalId == planExternalId)?
+            .Weeks
+            .FirstOrDefault(w => w.WeekNumber == weekNumber);
     }
 }

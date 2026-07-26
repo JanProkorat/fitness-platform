@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -24,11 +25,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="lockService">Session lock service for diff-gate enforcement.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+/// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard)
+    PlanConcurrencyGuard guard,
+    IApplicationDbContext db)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -136,8 +139,6 @@ public class UpdateTrainingPlanEndpoint(
                 //   2. Before ReplaceOneAsync (guard, below).
                 //   3. Auto-release Editing locks only after ModifiedCount > 0 (post-guard, below).
                 //
-                // Run the projection on the backfilled section view for BOTH stored and
-                // incoming sessions so legacy flat-exercise docs don't false-positive.
                 // Key change-detection on stable SessionId; do NOT diff on freshly-assigned
                 // SectionId Guids (they are minted at map time and are not stable).
                 //
@@ -147,7 +148,6 @@ public class UpdateTrainingPlanEndpoint(
                 var storedPublishedSessions = plan.Weeks
                     .Where(w => w.Status == WeekStatus.Published)
                     .SelectMany(w => w.Sessions)
-                    .Select(s => s.WithBackfilledSections())
                     .ToDictionary(s => s.SessionId);
 
                 // Pre-flight: every session in a published week must carry a non-null SessionId.
@@ -226,10 +226,9 @@ public class UpdateTrainingPlanEndpoint(
 
                     // ── Section-finished guard (issue #465) ───────────────────────────────
                     // For each locked session, check whether any changed section has already been
-                    // completed by the client. A section is "completed" when either:
-                    //   Signal 1: a finished WorkoutLog exists for the session (IsCompleted=true).
-                    //   Signal 2: the TrainingCompletion document marks that section as done.
-                    // If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
+                    // completed by the client. #841: both signals (finished live workout, home-
+                    // checkbox completion) now live on the SAME SessionExecution document — one
+                    // query covers both. If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
                     //
                     // Only runs for sessions that have an Editing lock (editingLocksBySession).
                     // Sessions without a lock have already been rejected above.
@@ -242,26 +241,13 @@ public class UpdateTrainingPlanEndpoint(
                     {
                         var clientId = plan.ClientId;
 
-                        // Signal 1: completed WorkoutLogs for any of the locked sessions.
-                        var nullableLockedSessionIds = lockedChangedSessionIds.Cast<Guid?>().ToList();
-                        var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
-                                        & Builders<WorkoutLog>.Filter.In(l => l.SessionId, nullableLockedSessionIds)
-                                        & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
-                        using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: mutateCt);
-                        var completedLogs = await logCursor.ToListAsync(mutateCt);
-                        var sessionsWithCompletedLog = completedLogs
-                            .Where(l => l.SessionId.HasValue)
-                            .Select(l => l.SessionId!.Value)
-                            .ToHashSet();
-
-                        // Signal 2: TrainingCompletion documents for any of the locked sessions.
-                        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                                               & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, lockedChangedSessionIds);
-                        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: mutateCt);
-                        var completionDocs = await completionCursor.ToListAsync(mutateCt);
-                        var bestCompletionBySession = completionDocs
+                        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                                               & Builders<SessionExecution>.Filter.In(c => c.SessionId, lockedChangedSessionIds.Cast<Guid?>());
+                        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: mutateCt);
+                        var executionDocs = await executionCursor.ToListAsync(mutateCt);
+                        var bestExecutionBySession = executionDocs
                             .GroupBy(c => c.SessionId)
-                            .ToDictionary(g => g.Key,
+                            .ToDictionary(g => g.Key!.Value,
                                 g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
 
                         // Check each locked session for section-level completions.
@@ -272,11 +258,10 @@ public class UpdateTrainingPlanEndpoint(
                             if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                                 continue;
 
-                            var hasCompletedLog = sessionsWithCompletedLog.Contains(sessionId);
-                            bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
+                            bestExecutionBySession.TryGetValue(sessionId, out var bestExecution);
 
                             // Skip sessions with no completion data (nothing to guard).
-                            if (!hasCompletedLog && bestCompletion is null) continue;
+                            if (bestExecution is null) continue;
 
                             // Build a lookup of incoming sections by SectionId (only those with a non-null SectionId).
                             var incomingSectionsBySectionId = incomingSession.Sections
@@ -300,8 +285,7 @@ public class UpdateTrainingPlanEndpoint(
                                 if (!sectionChanged) continue;
 
                                 // Section content changed — check if it's already completed.
-                                var sectionIsCompleted = bestCompletion.IsSectionComplete(
-                                    storedSession, storedSection, hasCompletedWorkoutLog: hasCompletedLog);
+                                var sectionIsCompleted = bestExecution.IsSectionComplete(storedSession, storedSection);
 
                                 if (sectionIsCompleted)
                                 {
@@ -439,7 +423,10 @@ public class UpdateTrainingPlanEndpoint(
             }
         }
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 
     /// <summary>

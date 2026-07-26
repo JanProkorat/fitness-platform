@@ -85,7 +85,8 @@ public class FinalizePlanPhotoEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Resolve plan type, link, and owning professional: nutrition first, training fallback
         var (planType, linkId, professionalUserId) = await ResolvePlanAsync(req.PlanId, clientId, ct);

@@ -58,7 +58,7 @@ public class UpdateWorkoutSectionKeyingTests
 
         // Stored log has two sections, same exercise in each.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -150,15 +150,15 @@ public class UpdateWorkoutSectionKeyingTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // The persisted log must have two independent sections.
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 // Standard section: weight was updated to 100 kg
-                w.Sections.First(s => s.SectionId == standardSectionId)
+                w.Performance!.Sections.First(s => s.SectionId == standardSectionId)
                     .Exercises[0].Sets[0].WeightKg == 100m
                 &&
                 // AMRAP section: weight remains at 60 kg (not contaminated by standard edit)
-                w.Sections.First(s => s.SectionId == amrapSectionId)
+                w.Performance!.Sections.First(s => s.SectionId == amrapSectionId)
                     .Exercises[0].Sets[0].WeightKg == 60m),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
@@ -186,7 +186,7 @@ public class UpdateWorkoutSectionKeyingTests
         var sectionId = Guid.NewGuid();
 
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -234,14 +234,14 @@ public class UpdateWorkoutSectionKeyingTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Capture the first ReplaceOneAsync call argument via ReceivedCalls.
-        var replaceArgs = mongo.WorkoutLogs.ReceivedCalls()
-            .Where(c => c.GetMethodInfo().Name == nameof(mongo.WorkoutLogs.ReplaceOneAsync))
-            .Select(c => c.GetArguments()[1] as WorkoutLog)
+        var replaceArgs = mongo.SessionExecutions.ReceivedCalls()
+            .Where(c => c.GetMethodInfo().Name == nameof(mongo.SessionExecutions.ReplaceOneAsync))
+            .Select(c => c.GetArguments()[1] as SessionExecution)
             .Where(w => w is not null)
             .FirstOrDefault();
 
         replaceArgs.Should().NotBeNull("ReplaceOneAsync must have been called");
-        var mainSection = replaceArgs!.Sections.First(s => s.SectionId == sectionId);
+        var mainSection = replaceArgs!.Performance!.Sections.First(s => s.SectionId == sectionId);
         mainSection.Exercises.Should().HaveCount(3);
 
         var squat = mainSection.Exercises.First(e => e.ExerciseExternalId == exerciseA);
@@ -272,7 +272,7 @@ public class UpdateWorkoutSectionKeyingTests
 
         // Stored log with planned values already frozen per section.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -376,15 +376,15 @@ public class UpdateWorkoutSectionKeyingTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
                 // Standard section: original planned values preserved
-                w.Sections.First(s => s.SectionId == standardSectionId)
+                w.Performance!.Sections.First(s => s.SectionId == standardSectionId)
                     .Exercises[0].Sets[0].PlannedWeightKg == 100m
                 &&
                 // AMRAP section: its own original planned values preserved (not standard's)
-                w.Sections.First(s => s.SectionId == amrapSectionId)
+                w.Performance!.Sections.First(s => s.SectionId == amrapSectionId)
                     .Exercises[0].Sets[0].PlannedWeightKg == 60m),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
@@ -404,7 +404,7 @@ public class UpdateWorkoutSectionKeyingTests
         var sectionId = Guid.NewGuid();
 
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Sections =
+        storedLog.Performance!.Sections =
         [
             new WorkoutSection
             {
@@ -439,13 +439,13 @@ public class UpdateWorkoutSectionKeyingTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Exercises must be in the existing single section.
-        await mongo.WorkoutLogs.Received().ReplaceOneAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Is<WorkoutLog>(w =>
-                w.Sections.Count == 1
-                && w.Sections[0].SectionId == sectionId
-                && w.Sections[0].Exercises.Count == 1
-                && w.Sections[0].Exercises[0].ExerciseExternalId == exerciseId),
+        await mongo.SessionExecutions.Received().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<SessionExecution>(w =>
+                w.Performance!.Sections.Count == 1
+                && w.Performance!.Sections[0].SectionId == sectionId
+                && w.Performance!.Sections[0].Exercises.Count == 1
+                && w.Performance!.Sections[0].Exercises[0].ExerciseExternalId == exerciseId),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }

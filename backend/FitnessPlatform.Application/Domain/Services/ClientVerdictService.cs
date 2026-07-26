@@ -196,12 +196,15 @@ public class ClientVerdictService(
         var weekStart = today.AddDays(-(dayOfWeek - 1));
         var weekEnd = weekStart.AddDays(7);
 
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Gte(w => w.CompletedAt, (DateTime?)weekStart)
-            & Builders<WorkoutLog>.Filter.Lt(w => w.CompletedAt, (DateTime?)weekEnd);
+        // #841: only executions that carry Performance data (a live-training-assistant log) count
+        // here — checkbox-only completions never appeared in the old WorkoutLogs collection either.
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+            & Builders<SessionExecution>.Filter.Gte(w => w.Performance!.CompletedAt, (DateTime?)weekStart)
+            & Builders<SessionExecution>.Filter.Lt(w => w.Performance!.CompletedAt, (DateTime?)weekEnd);
 
-        using var workoutCursor = await mongo.WorkoutLogs.FindAsync(workoutFilter, cancellationToken: ct);
+        using var workoutCursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct);
         var completedLogs = await workoutCursor.ToListAsync(ct);
         int actual = completedLogs.Count;
 
@@ -210,16 +213,17 @@ public class ClientVerdictService(
 
     private async Task<DateTime?> FetchLatestWorkoutCompletedAtAsync(Guid clientUserId, CancellationToken ct)
     {
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true);
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
 
-        using var workoutCursor = await mongo.WorkoutLogs.FindAsync(
+        using var workoutCursor = await mongo.SessionExecutions.FindAsync(
             workoutFilter,
-            new FindOptions<WorkoutLog> { Sort = Builders<WorkoutLog>.Sort.Descending(w => w.CompletedAt), Limit = 1 },
+            new FindOptions<SessionExecution> { Sort = Builders<SessionExecution>.Sort.Descending(w => w.Performance!.CompletedAt), Limit = 1 },
             ct);
         var latestWorkout = await workoutCursor.FirstOrDefaultAsync(ct);
 
-        return latestWorkout?.CompletedAt;
+        return latestWorkout?.Performance?.CompletedAt;
     }
 
     private async Task<DateTime?> FetchLatestMealLogTimestampAsync(Guid clientUserId, CancellationToken ct)

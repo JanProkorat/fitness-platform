@@ -19,7 +19,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComple
 /// <summary>
 /// Marks a single exercise within a session as complete for the client on the specified date.
 /// Idempotent: re-completing an already-complete exercise returns success without side effects.
-/// Uses optimistic concurrency on the <see cref="TrainingCompletion"/> document.
+/// Uses optimistic concurrency on the <see cref="SessionExecution"/> document.
 /// Slides the Live lock TTL forward (keep-alive) when a Live lock exists for this session.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
@@ -71,7 +71,8 @@ public class MarkExerciseCompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Resolve the client's Active training plan whose date window contains today (and
@@ -108,8 +109,6 @@ public class MarkExerciseCompleteEndpoint(
         await lockService.RefreshAsync(req.SessionId, LockType.Live,
             TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
-        session.WithBackfilledSections();
-
         // Validate section exists within the session.
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)
@@ -126,13 +125,13 @@ public class MarkExerciseCompleteEndpoint(
             return;
         }
 
-        // Load or create the completion document for (clientId, date, sessionId)
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
+        // Load or create the execution document for (clientId, date, sessionId)
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, req.SessionId);
 
-        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-        var existing = await completionCursor.FirstOrDefaultAsync(ct);
+        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
         if (existing is not null)
         {
@@ -166,16 +165,16 @@ public class MarkExerciseCompleteEndpoint(
 
             var newVersion = existing.Version + 1;
 
-            var versionedFilter = completionFilter
-                                  & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+            var versionedFilter = executionFilter
+                                  & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
-            var update = Builders<TrainingCompletion>.Update
+            var update = Builders<SessionExecution>.Update
                 .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
                 .Set(c => c.CompletedExerciseIds, newIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, newVersion);
 
-            var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+            var updateResult = await mongo.SessionExecutions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
 
             if (updateResult.ModifiedCount == 0)
             {
@@ -197,11 +196,12 @@ public class MarkExerciseCompleteEndpoint(
         }
         else
         {
-            // Create a new completion document
-            var completion = new TrainingCompletion
+            // Create a new execution document
+            var execution = new SessionExecution
             {
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientId,
+                PlanId = plan.ExternalId,
                 Date = targetDate,
                 SessionId = req.SessionId,
                 CompletedExerciseIds = [req.ExerciseExternalId],
@@ -215,13 +215,13 @@ public class MarkExerciseCompleteEndpoint(
 
             try
             {
-                await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
+                await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
             }
             catch (MongoDB.Driver.MongoWriteException ex) when (ex.WriteError?.Code == 11000)
             {
                 // Duplicate-key: a concurrent request inserted the document first.
                 // Re-read and retry the update path once.
-                using var retryCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+                using var retryCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
                 existing = await retryCursor.FirstOrDefaultAsync(ct);
 
                 if (existing is null)
@@ -248,14 +248,14 @@ public class MarkExerciseCompleteEndpoint(
                     : new List<Guid>(existing.CompletedExerciseIds) { req.ExerciseExternalId };
 
                 var retryVersion = existing.Version + 1;
-                var retryVersionedFilter = completionFilter
-                    & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
-                var retryUpdate = Builders<TrainingCompletion>.Update
+                var retryVersionedFilter = executionFilter
+                    & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
+                var retryUpdate = Builders<SessionExecution>.Update
                     .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
                     .Set(c => c.CompletedExerciseIds, retryIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, retryVersion);
-                var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
+                var retryResult = await mongo.SessionExecutions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
 
                 if (retryResult.ModifiedCount == 0)
                 {
@@ -273,17 +273,17 @@ public class MarkExerciseCompleteEndpoint(
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                completion.CompletedExerciseIds.Count, session.Exercises.Count,
+                execution.CompletedExerciseIds.Count, session.Exercises.Count,
                 logger, ct);
 
-            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, completion, session.Exercises.Count), ct);
+            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, execution, session.Exercises.Count), ct);
         }
     }
 
     private static MarkExerciseCompleteResponse BuildResponse(
-        Guid sessionId, DateTime date, TrainingCompletion completion, int totalExercises)
+        Guid sessionId, DateTime date, SessionExecution execution, int totalExercises)
     {
-        var completed = completion.CompletedExerciseIds.Count;
+        var completed = execution.CompletedExerciseIds.Count;
         return new MarkExerciseCompleteResponse
         {
             SessionId = sessionId,
@@ -291,7 +291,7 @@ public class MarkExerciseCompleteEndpoint(
             CompletedExerciseCount = completed,
             TotalExerciseCount = totalExercises,
             SessionComplete = completed >= totalExercises,
-            Version = completion.Version
+            Version = execution.Version
         };
     }
 }

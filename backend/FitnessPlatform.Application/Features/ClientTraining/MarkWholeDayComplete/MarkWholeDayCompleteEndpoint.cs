@@ -19,7 +19,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComple
 /// <summary>
 /// Marks every training session scheduled for a given calendar day complete.
 /// Resolves which sessions apply to the date by mapping the date to a plan week/day-of-week,
-/// then upserts a <see cref="TrainingCompletion"/> document for each session.
+/// then upserts a <see cref="SessionExecution"/> document for each session.
 /// Idempotent: sessions that are already fully complete are skipped.
 /// Slides the Live lock TTL forward for each session resolved for the day (keep-alive).
 /// </summary>
@@ -72,7 +72,8 @@ public class MarkWholeDayCompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDateOnly = req.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
         var targetDate = targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
@@ -106,34 +107,33 @@ public class MarkWholeDayCompleteEndpoint(
 
         var summaries = new List<SessionCompletionSummary>();
 
-        // ── Batch-fetch existing TrainingCompletion docs for the day ──────────
+        // ── Batch-fetch existing SessionExecution docs for the day ──────────
         // One round trip covering every session resolved for the day, instead of
         // a per-session FindAsync inside the loop below. Mirrors the pattern used
         // by GetTodaySessionEndpoint and TrainingProgressBroadcaster.CountCompletedSessionsAsync.
         // Only the READ is batched — writes below stay per-session so the Version
         // bump, the fan-out version-conflict skip, and the 11000 duplicate-key
         // retry all keep their original per-session semantics.
-        var completionsBySessionId = new Dictionary<Guid, TrainingCompletion>();
+        var executionsBySessionId = new Dictionary<Guid, SessionExecution>();
         if (sessionsForDay.Count > 0)
         {
             var sessionIds = sessionsForDay.Select(s => s.SessionId).ToList();
-            var batchFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                              & Builders<TrainingCompletion>.Filter.In(c => c.SessionId, sessionIds);
+            var batchFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                              & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                              & Builders<SessionExecution>.Filter.In(c => c.SessionId, sessionIds.Cast<Guid?>());
 
-            using var batchCursor = await mongo.TrainingCompletions.FindAsync(batchFilter, cancellationToken: ct);
-            var existingCompletions = await batchCursor.ToListAsync(ct);
-            completionsBySessionId = existingCompletions.ToDictionary(c => c.SessionId);
+            using var batchCursor = await mongo.SessionExecutions.FindAsync(batchFilter, cancellationToken: ct);
+            var existingExecutions = await batchCursor.ToListAsync(ct);
+            executionsBySessionId = existingExecutions.ToDictionary(c => c.SessionId!.Value);
         }
 
         foreach (var session in sessionsForDay)
         {
-            session.WithBackfilledSections();
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
             var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
             // Per-section attribution map: each section explicitly carries the
             // exercise ids that belong to IT. Required because the read-time
-            // backfill in `TrainingCompletionBackfill` falls back to "first
+            // backfill in `SessionExecutionBackfill` falls back to "first
             // section that contains this id" — when the same exercise id is
             // referenced from multiple sections (e.g. two AMRAPs sharing
             // "Bench"), the duplicate would get attributed to only the first
@@ -144,21 +144,21 @@ public class MarkWholeDayCompleteEndpoint(
                 s => s.SectionId.ToString(),
                 s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
-            var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                                   & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                                   & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, session.SessionId);
+            var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                                   & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                                   & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, session.SessionId);
 
-            completionsBySessionId.TryGetValue(session.SessionId, out var existing);
+            executionsBySessionId.TryGetValue(session.SessionId, out var existing);
 
             int version;
 
             if (existing is not null)
             {
-                // Already fully complete — idempotent (per-section rule mirrors ComplianceService)
-                var alreadyComplete = session.Sections.All(sec =>
-                    sec.Exercises.Count > 0
-                        ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                        : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                // Already fully complete — idempotent. Uses the shared section-aware
+                // SessionExecutionExtensions.IsSessionComplete helper (consults
+                // CompletedExerciseIdsBySection, not the retired flat mirror) so a
+                // duplicate exercise id spanning two sections can't false-positive.
+                var alreadyComplete = existing.IsSessionComplete(session);
                 if (alreadyComplete)
                 {
                     summaries.Add(new SessionCompletionSummary
@@ -172,27 +172,28 @@ public class MarkWholeDayCompleteEndpoint(
                 }
 
                 var newVersion = existing.Version + 1;
-                var versionedFilter = completionFilter
-                                      & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+                var versionedFilter = executionFilter
+                                      & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
-                var update = Builders<TrainingCompletion>.Update
+                var update = Builders<SessionExecution>.Update
                     .Set(c => c.CompletedExerciseIds, allExerciseIds)
                     .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
                     .Set(c => c.CompletedSectionIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, newVersion);
 
-                var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+                var updateResult = await mongo.SessionExecutions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
 
                 // If version conflict on fan-out, skip this session — don't fail the whole batch
                 version = updateResult.ModifiedCount > 0 ? newVersion : existing.Version;
             }
             else
             {
-                var completion = new TrainingCompletion
+                var execution = new SessionExecution
                 {
                     ExternalId = Guid.NewGuid(),
                     ClientId = clientId,
+                    PlanId = plan.ExternalId,
                     Date = targetDate,
                     SessionId = session.SessionId,
                     CompletedExerciseIds = allExerciseIds,
@@ -204,13 +205,13 @@ public class MarkWholeDayCompleteEndpoint(
 
                 try
                 {
-                    await mongo.TrainingCompletions.InsertOneAsync(completion, cancellationToken: ct);
+                    await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
                     version = 1;
                 }
                 catch (MongoDB.Driver.MongoWriteException ex) when (ex.WriteError?.Code == 11000)
                 {
                     // Duplicate-key: concurrent request inserted first — re-read and retry once.
-                    using var retryCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
+                    using var retryCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
                     existing = await retryCursor.FirstOrDefaultAsync(ct);
 
                     if (existing is null)
@@ -218,10 +219,7 @@ public class MarkWholeDayCompleteEndpoint(
                         throw;
                     }
 
-                    var retryAlreadyComplete = session.Sections.All(sec =>
-                        sec.Exercises.Count > 0
-                            ? sec.Exercises.All(e => existing.CompletedExerciseIds.Contains(e.ExerciseExternalId))
-                            : (existing.CompletedSectionIds ?? []).Contains(sec.SectionId));
+                    var retryAlreadyComplete = existing.IsSessionComplete(session);
                     if (retryAlreadyComplete)
                     {
                         version = existing.Version;
@@ -229,15 +227,15 @@ public class MarkWholeDayCompleteEndpoint(
                     else
                     {
                         var retryVersion = existing.Version + 1;
-                        var retryVersionedFilter = completionFilter
-                            & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
-                        var retryUpdate = Builders<TrainingCompletion>.Update
+                        var retryVersionedFilter = executionFilter
+                            & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
+                        var retryUpdate = Builders<SessionExecution>.Update
                             .Set(c => c.CompletedExerciseIds, allExerciseIds)
                             .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
                             .Set(c => c.CompletedSectionIds, allSectionIds)
                             .Set(c => c.DateUpdated, DateTime.UtcNow)
                             .Set(c => c.Version, retryVersion);
-                        var retryResult = await mongo.TrainingCompletions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
+                        var retryResult = await mongo.SessionExecutions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
                         // If version conflict on fan-out retry, use the existing version — don't fail the whole batch
                         version = retryResult.ModifiedCount > 0 ? retryVersion : existing.Version;
                     }

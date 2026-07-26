@@ -106,7 +106,12 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         return request.Id;
     }
 
-    private async Task<Guid> InsertNutritionPlanAsync(Guid clientPublicId, Guid professionalId)
+    /// <summary>
+    /// ClientId is ApplicationUser.Id (#840), NOT ClientProfile.PublicId — LinkPlanEndpoint
+    /// resolves <c>request.Link.ClientProfile.UserId</c> and compares it against
+    /// <c>NutritionPlan.ClientId</c>/<c>TrainingPlan.ClientId</c> directly.
+    /// </summary>
+    private async Task<Guid> InsertNutritionPlanAsync(Guid clientUserId, Guid professionalId)
     {
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -115,14 +120,18 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             NutritionistId = professionalId,
             Status = NutritionPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
         return planId;
     }
 
-    private async Task<Guid> InsertTrainingPlanAsync(Guid clientPublicId, Guid professionalId)
+    /// <summary>
+    /// ClientId is ApplicationUser.Id (#840), NOT ClientProfile.PublicId — same rule as
+    /// <see cref="InsertNutritionPlanAsync"/>.
+    /// </summary>
+    private async Task<Guid> InsertTrainingPlanAsync(Guid clientUserId, Guid professionalId)
     {
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -131,7 +140,7 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = professionalId,
             Status = TrainingPlanStatus.Active,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -203,9 +212,9 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupProfessionalAsync();
         var (_, otherProfId) = await SetupProfessionalAsync();
         var (_, clientId) = await SetupClientAsync();
-        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, otherProfId);
+        var (linkId, _) = await InsertLinkAsync(clientId, otherProfId);
         var requestId = await InsertDiaryRequestAsync(otherProfId, linkId);
-        var planId = await InsertNutritionPlanAsync(clientPublicId, otherProfId);
+        var planId = await InsertNutritionPlanAsync(clientId, otherProfId);
 
         var response = await http.PostAsJsonAsync(
             $"/trainer/photo-diary-requests/{requestId}/link",
@@ -243,8 +252,8 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
 
         // Plan belongs to a completely different client
         var (_, otherClientId) = await SetupClientAsync();
-        var (_, otherClientPublicId) = await InsertLinkAsync(otherClientId, profId);
-        var planId = await InsertNutritionPlanAsync(otherClientPublicId, profId);
+        await InsertLinkAsync(otherClientId, profId);
+        var planId = await InsertNutritionPlanAsync(otherClientId, profId);
 
         var response = await http.PostAsJsonAsync(
             $"/trainer/photo-diary-requests/{requestId}/link",
@@ -261,9 +270,9 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
     {
         var (http, profId) = await SetupProfessionalAsync();
         var (_, clientId) = await SetupClientAsync();
-        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, profId);
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertDiaryRequestAsync(profId, linkId);
-        var planId = await InsertNutritionPlanAsync(clientPublicId, profId);
+        var planId = await InsertNutritionPlanAsync(clientId, profId);
 
         var response = await http.PostAsJsonAsync(
             $"/trainer/photo-diary-requests/{requestId}/link",
@@ -293,9 +302,9 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
     {
         var (http, profId) = await SetupProfessionalAsync("Trainer");
         var (_, clientId) = await SetupClientAsync();
-        var (linkId, clientPublicId) = await InsertLinkAsync(clientId, profId);
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertDiaryRequestAsync(profId, linkId);
-        var planId = await InsertTrainingPlanAsync(clientPublicId, profId);
+        var planId = await InsertTrainingPlanAsync(clientId, profId);
 
         var response = await http.PostAsJsonAsync(
             $"/trainer/photo-diary-requests/{requestId}/link",

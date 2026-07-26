@@ -28,10 +28,7 @@ public static class TrainingCompletionBackfill
     /// </list>
     /// </remarks>
     /// <param name="completion">The <see cref="TrainingCompletion"/> document to read.</param>
-    /// <param name="session">
-    ///   The <see cref="TrainingSession"/> the completion belongs to.
-    ///   Must already have had <c>WithBackfilledSections()</c> called on it.
-    /// </param>
+    /// <param name="session">The <see cref="TrainingSession"/> the completion belongs to.</param>
     /// <returns>
     ///   A dictionary keyed by <see cref="TrainingSection.SectionId"/>, each value being a
     ///   <see cref="HashSet{Guid}"/> of completed <see cref="SessionExercise.ExerciseExternalId"/> values.

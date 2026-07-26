@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -86,7 +87,8 @@ public class GetTrainingPlanLockStateTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            lockService);
+            lockService,
+            new MockDbBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

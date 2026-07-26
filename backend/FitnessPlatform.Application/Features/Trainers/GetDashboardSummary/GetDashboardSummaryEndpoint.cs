@@ -146,28 +146,30 @@ public class GetDashboardSummaryEndpoint(
         DateTime sevenDaysAgo,
         CancellationToken ct)
     {
-        // ApplicationUser.Id — used for WorkoutLog queries (created by client)
+        // ApplicationUser.Id — the canonical clientId key for every Mongo document
+        // (WorkoutLog, NutritionPlan, TrainingPlan, MealLog, ComplianceService) since #840.
         var clientUserId = link.ClientProfile.User.Id;
-        // ClientProfile.PublicId — used for plans, compliance, meal logs (created by trainer)
+        // ClientProfile.PublicId — the trainer-facing client identifier used only in this
+        // endpoint's response DTO; unrelated to the Mongo document key.
         var clientPublicId = link.ClientProfile.PublicId;
         var clientProfileId = link.ClientProfile.Id;
 
-        // Compliance (last 7 days) — keyed by PublicId
+        // Compliance (last 7 days)
         var compliance = await complianceService.CalculateComplianceAsync(
-            clientPublicId, sevenDaysAgo, now, ct);
+            clientUserId, sevenDaysAgo, now, ct);
 
-        // Streak — keyed by PublicId, scoped to the viewer's discipline
-        var streak = await complianceService.CalculateStreakAsync(clientPublicId, discipline, ct);
+        // Streak — scoped to the viewer's discipline
+        var streak = await complianceService.CalculateStreakAsync(clientUserId, discipline, ct);
 
-        // Average daily kcal (last 7 days) — keyed by PublicId
+        // Average daily kcal (last 7 days)
         var avgMacros = await complianceService.CalculateAverageMacrosAsync(
-            clientPublicId, sevenDaysAgo, now, ct);
+            clientUserId, sevenDaysAgo, now, ct);
 
         // Today's training progress — planned vs completed for today only,
         // sourced from TrainingCompletion (same source of truth as the
         // mobile Today card and the streak calculation).
         var todayCompliance = await complianceService.CalculateComplianceAsync(
-            clientPublicId, now.Date, now.Date, ct);
+            clientUserId, now.Date, now.Date, ct);
         var workoutsCompleted = todayCompliance.TrainingsCompleted;
         var workoutsPlanned = todayCompliance.TrainingsPlanned;
 
@@ -176,15 +178,16 @@ public class GetDashboardSummaryEndpoint(
         // window contains today rather than the most recently published one.
         var activeTrainingPlans = await mongo.TrainingPlans
             .Find(Builders<TrainingPlan>.Filter.And(
-                Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
+                Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId),
                 Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
             .ToListAsync(ct);
         var activePlan = PlanWindowResolver.ResolveCurrentPlan(activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, now);
 
-        // Active nutrition plan — NutritionPlan.ClientId = PublicId. Same date-window selection.
+        // Active nutrition plan — NutritionPlan.ClientId = ApplicationUser.Id (#840). Same
+        // date-window selection.
         var activeNutritionPlans = await mongo.NutritionPlans
             .Find(Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
                 Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)))
             .ToListAsync(ct);
         var activeNutritionPlan = PlanWindowResolver.ResolveCurrentPlan(activeNutritionPlans, p => p.StartDate, p => p.Weeks.Count, now);
@@ -244,7 +247,7 @@ public class GetDashboardSummaryEndpoint(
             // Get which MealIds were logged today
             var todayMealLogs = await mongo.MealLogs
                 .Find(Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Eq(m => m.ClientId, clientPublicId),
+                    Builders<MealLog>.Filter.Eq(m => m.ClientId, clientUserId),
                     Builders<MealLog>.Filter.Gte(m => m.EatenAt, todayStart),
                     Builders<MealLog>.Filter.Lt(m => m.EatenAt, todayStart.AddDays(1))))
                 .Project(m => m.MealId)
@@ -262,7 +265,7 @@ public class GetDashboardSummaryEndpoint(
         var activeNutritionPlansCount = (int)await mongo.NutritionPlans
             .CountDocumentsAsync(
                 Builders<NutritionPlan>.Filter.And(
-                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientPublicId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
                     Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active),
                     Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null),
                     Builders<NutritionPlan>.Filter.Lte(p => p.StartDate, now),
@@ -274,10 +277,14 @@ public class GetDashboardSummaryEndpoint(
         // Last activity: most recent workout or measurement
         DateTime? lastActivity = null;
 
-        var lastWorkout = await mongo.WorkoutLogs
-            .Find(Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId))
-            .SortByDescending(w => w.StartedAt)
-            .Project(w => w.StartedAt)
+        // #841: Performance.StartedAt is the equivalent of the retired WorkoutLog.StartedAt —
+        // scoped to executions that carry Performance data (checkbox-only completions never
+        // appeared in the old WorkoutLogs collection either).
+        var lastWorkout = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+                & Builders<SessionExecution>.Filter.Exists(w => w.Performance))
+            .SortByDescending(w => w.Performance!.StartedAt)
+            .Project(w => w.Performance!.StartedAt)
             .FirstOrDefaultAsync(ct);
 
         if (lastWorkout != default) lastActivity = lastWorkout;

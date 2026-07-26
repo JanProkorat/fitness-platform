@@ -63,7 +63,8 @@ public class MarkSectionIncompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Validate the session belongs to the client's Active plan whose date window contains
@@ -92,7 +93,6 @@ public class MarkSectionIncompleteEndpoint(
         }
 
         // Validate the section exists in the session
-        session.WithBackfilledSections();
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)
         {
@@ -102,13 +102,13 @@ public class MarkSectionIncompleteEndpoint(
 
         var totalExercises = session.Exercises.Count;
 
-        // Load the completion document for (clientId, date, sessionId)
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
+        // Load the execution document for (clientId, date, sessionId)
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, req.SessionId);
 
-        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-        var existing = await completionCursor.FirstOrDefaultAsync(ct);
+        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
         if (existing is null || !(existing.CompletedSectionIds ?? []).Contains(req.SectionId))
         {
@@ -137,15 +137,15 @@ public class MarkSectionIncompleteEndpoint(
         var newSectionIds = existing.CompletedSectionIds!.Where(id => id != req.SectionId).ToList();
         var newVersion = existing.Version + 1;
 
-        var versionedFilter = completionFilter
-                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+        var versionedFilter = executionFilter
+                              & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
-        var update = Builders<TrainingCompletion>.Update
+        var update = Builders<SessionExecution>.Update
             .Set(c => c.CompletedSectionIds, newSectionIds)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 
-        var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+        var updateResult = await mongo.SessionExecutions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
 
         if (updateResult.ModifiedCount == 0)
         {

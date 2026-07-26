@@ -40,8 +40,10 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Test", "Client", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
 
-        // ── 2. Resolve the client's PublicId from Postgres (= ClientId in Mongo) ──
-        Guid clientPublicId;
+        // ── 2. Resolve the client's ApplicationUser.Id from Postgres (= ClientId in Mongo,
+        //      #840/#845 — GetClientPlansEndpoint resolves clientProfile.UserId, NOT
+        //      ClientProfile.PublicId, and filters Mongo documents on that value) ──
+        Guid clientUserId;
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -51,7 +53,7 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
             var profile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == user.Id,
                 TestContext.Current.CancellationToken);
-            clientPublicId = profile.PublicId;
+            clientUserId = profile.UserId;
         }
 
         // ── 3. Seed two TrainingPlan documents directly into the real Mongo ──
@@ -61,7 +63,7 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
         var planA = new TrainingPlan
         {
             ExternalId = planAId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Draft-Only Plan",
             Status = TrainingPlanStatus.Active,
@@ -81,7 +83,7 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
         var planB = new TrainingPlan
         {
             ExternalId = planBId,
-            ClientId = clientPublicId,
+            ClientId = clientUserId,
             TrainerId = Guid.NewGuid(),
             Name = "Published-Week Plan",
             Status = TrainingPlanStatus.Active,

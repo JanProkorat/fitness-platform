@@ -93,9 +93,10 @@ public class UpdatePlanEndpoint(
         // Notify the client in real-time when published weeks were modified
         if (plan.Weeks.Any(w => w.Status == WeekStatus.Published))
         {
+            // NutritionPlan.ClientId is ApplicationUser.Id (#840).
             var clientProfile = await db.ClientProfiles
                 .AsNoTracking()
-                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+                .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
             if (clientProfile is not null)
             {
@@ -106,7 +107,10 @@ public class UpdatePlanEndpoint(
             }
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract), regardless of whether the published-week notification branch above ran.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 
     /// <summary>

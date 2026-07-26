@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Infrastructure;
@@ -190,6 +191,35 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     private static DateTime Midnight(DateTime instant) =>
         WorkoutLog.ToCompletionDateUtc(instant);
 
+    /// <summary>
+    /// Builds a test <see cref="SessionExecution"/> for the unified-index tests (#841).
+    /// </summary>
+    private static SessionExecution BuildExecution(
+        Guid clientId,
+        Guid sessionId,
+        bool isCompleted,
+        DateTime date,
+        DateTime? completedAt = null)
+    {
+        var now = DateTime.UtcNow;
+        return new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            SessionId = sessionId,
+            Date = date,
+            Status = isCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = now.AddMinutes(-30),
+                CompletedAt = completedAt,
+                Sections = []
+            },
+            DateCreated = now.AddMinutes(-30),
+            Version = 1
+        };
+    }
+
     // ── (3) Index exists after startup init ───────────────────────────────────
 
     /// <summary>
@@ -201,7 +231,11 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        // The MongoIndexInitializer runs during host startup (IHostedService).
+        // Program.cs invokes MongoIndexInitializer explicitly (awaited) before
+        // app.Run() — not via AddHostedService (see MongoIndexInitializer's class
+        // remarks for why). WebApplicationFactory<Program> runs that same
+        // top-level statement when this factory boots, so by the time we get a
+        // scope here the index is already guaranteed to exist.
         // We just need to verify the index is present.
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -216,66 +250,80 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     }
 
     // ── (1) Same-day concurrent double-complete → 409 ────────────────────────
+    //
+    // #841: IWorkoutCompletionService.CompleteAsync now takes a SessionExecution, and the
+    // uniqueness guard moved to the unified (clientId, sessionId, date) partial index on
+    // SessionExecutions — see idx_sessionexecution_clientId_sessionId_date_unique in
+    // MongoIndexInitializer.CreateSessionExecutionIndexes. These two tests exercise that
+    // unified index directly (superseding the retired WorkoutLog-level assertions).
 
     /// <summary>
-    /// When two concurrent requests both complete the same (PlanId, SessionId) on the
-    /// same calendar day, exactly one succeeded log must exist and the loser must get
+    /// When two concurrent requests both complete the same (ClientId, SessionId) on the
+    /// same calendar day, exactly one succeeded execution must exist and the loser must get
     /// <see cref="WorkoutAlreadyCompletedException"/> (surfaced as HTTP 409).
     ///
-    /// We simulate the race by inserting a completed log directly (bypassing the service)
-    /// and then calling CompleteAsync on a second log with the same key.
+    /// We simulate the race by inserting a completed execution directly (bypassing the service)
+    /// and then calling CompleteAsync on a second execution with the same key.
     /// </summary>
     [Fact]
     public async Task CompleteAsync_SameDaySameSession_SecondCallThrowsWorkoutAlreadyCompletedException()
     {
         var ct = TestContext.Current.CancellationToken;
-        var planId    = Guid.NewGuid();
+        var clientId  = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var today     = DateTime.UtcNow;
-        var midnightToday = Midnight(today);
+        var midnightToday = SessionExecution.ToCompletionDateUtc(today);
 
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        // Insert the "winner" — already completed today, with CompletedDate set.
-        var winner = BuildLog(
-            planId: planId, sessionId: sessionId,
-            isCompleted: true, completedAt: today, completedDate: midnightToday);
-        await mongo.WorkoutLogs.InsertOneAsync(winner, cancellationToken: ct);
+        // Insert the "winner" — already completed today.
+        var winner = BuildExecution(
+            clientId: clientId, sessionId: sessionId,
+            isCompleted: true, completedAt: today, date: midnightToday);
+        await mongo.SessionExecutions.InsertOneAsync(winner, cancellationToken: ct);
 
-        // The "loser" is in-progress and will call CompleteAsync.
-        var loser = BuildLog(planId: planId, sessionId: sessionId, isCompleted: false);
-        await mongo.WorkoutLogs.InsertOneAsync(loser, cancellationToken: ct);
+        // The "loser" is in-progress and currently keyed to a DIFFERENT day (e.g. a session
+        // started yesterday and still open) so its own insert doesn't collide with the winner.
+        // Completing it "today" below moves its Date to today's key, which is where the TOCTOU
+        // race against the winner actually happens — the unique index rejects the REPLACE, not
+        // the initial insert (Date is always present, so two same-day docs can never coexist
+        // even in draft form; the real race is a still-open draft from a prior day converging
+        // onto today's key at completion time).
+        var loser = BuildExecution(
+            clientId: clientId, sessionId: sessionId, isCompleted: false,
+            date: SessionExecution.ToCompletionDateUtc(today.AddDays(-1)));
+        await mongo.SessionExecutions.InsertOneAsync(loser, cancellationToken: ct);
 
         var svc = scope.ServiceProvider.GetRequiredService<Application.Domain.Interfaces.IWorkoutCompletionService>();
 
         // CompleteAsync on the loser must throw WorkoutAlreadyCompletedException because
-        // the partial unique index {planId, sessionId, completedDate | isCompleted==true}
-        // rejects the second completed log for the same triplet on the same day.
+        // the partial unique index (clientId, sessionId, date) rejects the second completed
+        // execution for the same triplet on the same day.
         var act = async () => await svc.CompleteAsync(loser, today, ct);
         await act.Should().ThrowAsync<WorkoutAlreadyCompletedException>();
 
-        // Exactly one completed log must exist for this session on this day.
-        var completedCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, sessionId),
+        // Exactly one completed execution must exist for this session on this day.
+        var completedCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(e => e.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+            & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, sessionId),
             cancellationToken: ct);
-        completedCount.Should().Be(1, "only one completed log per (planId, sessionId, day) is allowed");
+        completedCount.Should().Be(1, "only one completed execution per (clientId, sessionId, day) is allowed");
     }
 
     // ── (2) Different-day re-completion is ALLOWED ────────────────────────────
 
     /// <summary>
-    /// A different-day re-completion of the same (PlanId, SessionId) MUST succeed.
-    /// The unique index is scoped to CompletedDate — two distinct midnight-UTC values
-    /// for the same (planId, sessionId) are two distinct index keys.
+    /// A different-day re-completion of the same (ClientId, SessionId) MUST succeed.
+    /// The unique index is scoped to Date — two distinct midnight-UTC values
+    /// for the same (clientId, sessionId) are two distinct index keys.
     /// </summary>
     [Fact]
     public async Task CompleteAsync_DifferentDaySameSession_BothLogsAllowed()
     {
         var ct = TestContext.Current.CancellationToken;
-        var planId    = Guid.NewGuid();
+        var clientId  = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
         var day1      = DateTime.UtcNow.AddDays(-7);
         var day2      = DateTime.UtcNow; // different day
@@ -283,30 +331,32 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        // Insert day-1 completed log directly.
-        var firstLog = BuildLog(
-            planId: planId, sessionId: sessionId,
-            isCompleted: true, completedAt: day1, completedDate: Midnight(day1));
-        await mongo.WorkoutLogs.InsertOneAsync(firstLog, cancellationToken: ct);
+        // Insert day-1 completed execution directly.
+        var firstExecution = BuildExecution(
+            clientId: clientId, sessionId: sessionId,
+            isCompleted: true, completedAt: day1, date: SessionExecution.ToCompletionDateUtc(day1));
+        await mongo.SessionExecutions.InsertOneAsync(firstExecution, cancellationToken: ct);
 
-        // Second log: in-progress, same planId/sessionId, completed on day2.
-        var secondLog = BuildLog(planId: planId, sessionId: sessionId, isCompleted: false);
-        await mongo.WorkoutLogs.InsertOneAsync(secondLog, cancellationToken: ct);
+        // Second execution: in-progress, same clientId/sessionId, completed on day2.
+        var secondExecution = BuildExecution(
+            clientId: clientId, sessionId: sessionId, isCompleted: false,
+            date: SessionExecution.ToCompletionDateUtc(day2));
+        await mongo.SessionExecutions.InsertOneAsync(secondExecution, cancellationToken: ct);
 
         var svc = scope.ServiceProvider.GetRequiredService<Application.Domain.Interfaces.IWorkoutCompletionService>();
 
         // Must NOT throw — different day means a different index key.
-        var act = async () => await svc.CompleteAsync(secondLog, day2, ct);
+        var act = async () => await svc.CompleteAsync(secondExecution, day2, ct);
         await act.Should().NotThrowAsync<WorkoutAlreadyCompletedException>(
             "different-day re-completions of the same session are valid");
 
-        // Both completed logs must coexist.
-        var completedCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, sessionId),
+        // Both completed executions must coexist.
+        var completedCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(e => e.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+            & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, sessionId),
             cancellationToken: ct);
-        completedCount.Should().Be(2, "one completed log per distinct day is valid");
+        completedCount.Should().Be(2, "one completed execution per distinct day is valid");
     }
 
     // ── (4) Backfill populates CompletedDate on existing logs ─────────────────
@@ -510,6 +560,7 @@ internal sealed class BackfillTestMongoContext : IMongoContext
     public IMongoCollection<Recipe> Recipes           => _db.GetCollection<Recipe>("recipes");
     public IMongoCollection<TrainingPlan> TrainingPlans => _db.GetCollection<TrainingPlan>("trainingPlans");
     public IMongoCollection<TrainingCompletion> TrainingCompletions => _db.GetCollection<TrainingCompletion>("trainingCompletions");
+    public IMongoCollection<SessionExecution> SessionExecutions => _db.GetCollection<SessionExecution>("sessionExecutions");
     public IMongoCollection<PersonalRecord> PersonalRecords => _db.GetCollection<PersonalRecord>("personalRecords");
     public IMongoCollection<DayLog> DayLogs               => _db.GetCollection<DayLog>("dayLogs");
     public IMongoCollection<SectionTemplate> SectionTemplates => _db.GetCollection<SectionTemplate>("sectionTemplates");

@@ -53,7 +53,8 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Find the client's Active nutrition plan whose date window contains today — a client
         // may hold several sequential, non-overlapping Active plans (#780), so an arbitrary

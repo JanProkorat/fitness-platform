@@ -38,18 +38,19 @@ public class GetWorkoutLogsEndpoint(IMongoContext mongo) : Endpoint<GetWorkoutLo
         }
 
         var clientId = Guid.Parse(userId);
-        var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientId);
+        var filter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
 
-        var totalCount = await mongo.WorkoutLogs.CountDocumentsAsync(filter, cancellationToken: ct);
+        var totalCount = await mongo.SessionExecutions.CountDocumentsAsync(filter, cancellationToken: ct);
 
-        var options = new FindOptions<WorkoutLog>
+        var options = new FindOptions<SessionExecution>
         {
-            Sort = Builders<WorkoutLog>.Sort.Descending(w => w.StartedAt),
+            Sort = Builders<SessionExecution>.Sort.Descending(w => w.Performance!.StartedAt),
             Skip = (req.Page - 1) * req.PageSize,
             Limit = req.PageSize
         };
 
-        using var cursor = await mongo.WorkoutLogs.FindAsync(filter, options, ct);
+        using var cursor = await mongo.SessionExecutions.FindAsync(filter, options, ct);
         var logs = await cursor.ToListAsync(ct);
 
         await Send.OkAsync(new GetWorkoutLogsResponse

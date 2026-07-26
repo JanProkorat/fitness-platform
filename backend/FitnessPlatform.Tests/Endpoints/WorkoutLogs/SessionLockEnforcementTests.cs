@@ -3,15 +3,12 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
-using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -52,21 +49,15 @@ public class SessionLockEnforcementTests
         };
     }
 
-    /// <summary>
-    /// Builds a mock IApplicationDbContext with a ClientProfile for _clientId.
-    /// PublicId = _clientId (test shortcut — plan.ClientId uses _clientId so it still matches).
-    /// </summary>
-    private IApplicationDbContext CreateDbWithProfile() =>
-        new MockDbBuilder()
-            .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId })
-            .Build();
-
     private StartWorkoutEndpoint CreateStartEndpoint(IMongoContext mongo)
     {
+        // Since #840, TrainingPlan.ClientId stores ApplicationUser.Id directly, so
+        // StartWorkoutEndpoint's ownership check no longer needs an IApplicationDbContext
+        // (ClientProfile lookup) — mongo is the endpoint's only dependency.
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, CreateDbWithProfile());
+            mongo);
     }
 
     // ── StartWorkout tests ────────────────────────────────────────────────────
@@ -91,8 +82,8 @@ public class SessionLockEnforcementTests
         // Assert — draft log created
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -111,8 +102,8 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -131,8 +122,8 @@ public class SessionLockEnforcementTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
-        await mongo.WorkoutLogs.Received(1).InsertOneAsync(
-            Arg.Is<WorkoutLog>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -142,7 +133,7 @@ public class SessionLockEnforcementTests
     private IWorkoutCompletionService MockCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }

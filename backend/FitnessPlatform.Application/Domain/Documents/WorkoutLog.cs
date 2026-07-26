@@ -6,6 +6,14 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document recording a client's completed workout session.
 /// </summary>
+/// <remarks>
+/// <b>Deprecated (#841).</b> Superseded by <see cref="SessionExecution"/>, which unifies this
+/// document with <see cref="TrainingCompletion"/>. The <c>workoutLogs</c> collection is kept
+/// read-only (no new writes) for one release as the rollback path for the
+/// <c>--migrate-session-executions</c> data migration — do not add new write sites against this
+/// type. Scheduled for removal in a follow-up chore once production has soaked on the merged
+/// model.
+/// </remarks>
 public class WorkoutLog
 {
     /// <summary>
@@ -96,19 +104,12 @@ public class WorkoutLog
 
     /// <summary>
     /// Sections in this workout. Each section contains completed exercises.
-    /// Schema-on-read: if a stored document has only flat <c>exercises</c> and no <c>sections</c>,
-    /// a single default section named "Hlavní" is synthesized via <see cref="WithBackfilledSections"/>.
+    /// The legacy flat <c>exercises</c> field (pre-sections documents) was retired by the
+    /// one-time boot migration in <c>MongoIndexInitializer</c> (#837) — every document now
+    /// carries this field populated, so no read-time backfill is required or performed.
     /// </summary>
     [BsonElement("sections")]
     public List<WorkoutSection> Sections { get; set; } = [];
-
-    /// <summary>
-    /// Legacy flat exercises list. Only present in documents written before the sections migration.
-    /// Not written on new saves. Used by <see cref="WithBackfilledSections"/> for schema-on-read.
-    /// </summary>
-    [BsonElement("exercises")]
-    [BsonIgnoreIfNull]
-    public List<WorkoutExercise>? LegacyExercises { get; set; }
 
     /// <summary>
     /// When this document was created.
@@ -122,31 +123,6 @@ public class WorkoutLog
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
-
-    /// <summary>
-    /// Returns a view of this log with legacy flat-exercise documents backfilled into a default section.
-    /// If <see cref="Sections"/> is already populated this is a no-op.
-    /// </summary>
-    public WorkoutLog WithBackfilledSections()
-    {
-        if (Sections.Count > 0 || LegacyExercises is null || LegacyExercises.Count == 0)
-            return this;
-
-        Sections =
-        [
-            new WorkoutSection
-            {
-                SectionId = Guid.NewGuid(),
-                Order = 0,
-                Name = "Hlavní",
-                Format = null,
-                WodResult = WodResult,
-                Exercises = LegacyExercises
-            }
-        ];
-        LegacyExercises = null;
-        return this;
-    }
 
     /// <summary>
     /// Flat view of all exercises across all sections. Read-only convenience accessor.

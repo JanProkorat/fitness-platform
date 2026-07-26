@@ -18,6 +18,14 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// with multiple UpdateOne calls replaced by a single FindOneAndReplace, which isn't clearly cheaper.
 /// </para>
 /// </summary>
+/// <remarks>
+/// <b>Deprecated (#841).</b> Superseded by <see cref="SessionExecution"/>, which unifies this
+/// document with <see cref="WorkoutLog"/>. The <c>trainingCompletions</c> collection is kept
+/// read-only (no new writes) for one release as the rollback path for the
+/// <c>--migrate-session-executions</c> data migration — do not add new write sites against this
+/// type. Scheduled for removal in a follow-up chore once production has soaked on the merged
+/// model.
+/// </remarks>
 public class TrainingCompletion
 {
     /// <summary>
@@ -34,7 +42,7 @@ public class TrainingCompletion
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The client this completion record belongs to (matches ApplicationUser.PublicId / ClientProfile.PublicId).
+    /// The client this completion record belongs to (matches ApplicationUser.Id — #840).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

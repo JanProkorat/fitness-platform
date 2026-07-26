@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlans;
+using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -22,11 +23,12 @@ public class GetTrainingPlansEndpointTests
         var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: true);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest { ClientId = _clientId }, TestContext.Current.CancellationToken);
 
@@ -47,11 +49,12 @@ public class GetTrainingPlansEndpointTests
         var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: false);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest { ClientId = _clientId }, TestContext.Current.CancellationToken);
 
@@ -64,11 +67,12 @@ public class GetTrainingPlansEndpointTests
         var plan = TrainingPlanTestHelpers.CreatePlan(trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: false);
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper);
+            mongo, authHelper, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest(), TestContext.Current.CancellationToken);
 

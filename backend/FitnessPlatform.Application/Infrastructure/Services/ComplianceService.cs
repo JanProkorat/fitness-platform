@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -321,48 +322,27 @@ public class ComplianceService : IComplianceService
     }
 
     /// <summary>
-    /// Checks whether all sections in a session are complete for the given date.
-    /// A section is "done" when:
-    ///   - it has exercises AND every exercise is in <c>CompletedExerciseIds</c>, OR
-    ///   - it has no exercises AND its <c>SectionId</c> is in <c>CompletedSectionIds</c>.
+    /// Checks whether a session is complete for the given date. Reads the unified
+    /// <see cref="SessionExecution"/> collection (#841) — a session is done when its execution's
+    /// <c>Status</c> is <c>Completed</c> (either a finished live workout, or every exercise/section
+    /// marked complete via the checkbox flags). See <see cref="SessionExecutionExtensions.IsSessionComplete"/>.
     /// </summary>
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
-        session.WithBackfilledSections();
         if (session.Sections.Count == 0)
             return false;
 
         var dateUtc = date.Date == date ? date : date.Date;
 
-        var filter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                     & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, dateUtc)
-                     & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, session.SessionId);
+        var filter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.Date, dateUtc)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, session.SessionId);
 
-        using var cursor = await _mongo.TrainingCompletions.FindAsync(filter, cancellationToken: ct);
-        var completion = await cursor.FirstOrDefaultAsync(ct);
+        using var cursor = await _mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+        var execution = await cursor.FirstOrDefaultAsync(ct);
 
-        if (completion is null)
-            return false;
-
-        // Use the section-aware view (with read-time backfill for legacy documents).
-        var effectiveBySection = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(
-            completion, session);
-        var completedSectionIds = (completion.CompletedSectionIds ?? new List<Guid>()).ToHashSet();
-
-        // Every section must be "done":
-        //   - has exercises AND every exercise is in effectiveBySection[sectionId], OR
-        //   - has no exercises AND its SectionId is in completedSectionIds
-        return session.Sections.All(sec =>
-        {
-            if (sec.Exercises.Count > 0)
-            {
-                effectiveBySection.TryGetValue(sec.SectionId, out var completedInSection);
-                var set = completedInSection ?? [];
-                return sec.Exercises.All(ex => set.Contains(ex.ExerciseExternalId));
-            }
-            return completedSectionIds.Contains(sec.SectionId);
-        });
+        return execution is not null && execution.IsSessionComplete(session);
     }
 
     /// <summary>

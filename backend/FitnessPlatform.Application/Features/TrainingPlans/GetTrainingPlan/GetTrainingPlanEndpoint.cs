@@ -2,10 +2,12 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -22,7 +24,9 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
-public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService) : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
+/// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
+public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService, IApplicationDbContext db)
+    : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,18 +65,25 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             return;
         }
 
-        var response = GetTrainingPlanResponse.FromDocument(plan);
+        // plan.ClientId is the internal ApplicationUser.Id storage key (#840); the response's
+        // ClientId must stay the client-facing ClientProfile.PublicId (pre-#840 contract) since
+        // web/mobile feed it into /trainer/clients/{clientId}/... routes.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        var response = GetTrainingPlanResponse.FromDocument(plan, clientPublicId);
 
-        // ── 1. TrainingCompletion fold-in (existing behaviour, unchanged) ─────────
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, plan.ClientId);
-        var completionSort = Builders<TrainingCompletion>.Sort
+        // ── 1. SessionExecution fold-in (#841: unifies the former TrainingCompletion +
+        // WorkoutLog fold-ins into a single query — same client-wide scope the old
+        // TrainingCompletion query used, not PlanId-scoped, so this preserves the exact
+        // (slightly broader than PlanId) query shape the response has always had). ─────
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, plan.ClientId);
+        var executionSort = Builders<SessionExecution>.Sort
             .Ascending(c => c.Date)
             .Ascending(c => c.SessionId);
-        var completionCursor = await mongo.TrainingCompletions.FindAsync(
-            completionFilter,
-            new FindOptions<TrainingCompletion> { Sort = completionSort },
+        var executionCursor = await mongo.SessionExecutions.FindAsync(
+            executionFilter,
+            new FindOptions<SessionExecution> { Sort = executionSort },
             ct);
-        var completions = await completionCursor.ToListAsync(ct);
+        var executions = await executionCursor.ToListAsync(ct);
 
         // Build a session lookup for read-time backfill of legacy completions.
         // Keys are SessionId; sessions are already backfilled by FromDocument().
@@ -80,13 +91,14 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             .SelectMany(w => w.Sessions)
             .ToDictionary(s => s.SessionId);
 
-        response.Completions = completions
+        response.Completions = executions
+            .Where(e => e.SessionId.HasValue)
             .Select(c =>
             {
                 Dictionary<Guid, List<Guid>> bySection;
-                if (sessionLookup.TryGetValue(c.SessionId, out var session))
+                if (sessionLookup.TryGetValue(c.SessionId!.Value, out var session))
                 {
-                    var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(c, session);
+                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(c, session);
                     bySection = effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
                 }
                 else
@@ -101,7 +113,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 return new TrainingPlanCompletionDto
                 {
                     Date = DateOnly.FromDateTime(c.Date),
-                    SessionId = c.SessionId,
+                    SessionId = c.SessionId!.Value,
                     CompletedExerciseIds = c.CompletedExerciseIds,
                     CompletedExerciseIdsBySection = bySection,
                     CompletedSectionIds = c.CompletedSectionIds ?? [],
@@ -110,29 +122,24 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             })
             .ToList();
 
-        // ── 2. WorkoutLog fold-in — builds SessionExecutions ─────────────────────
-        // Query WorkoutLogs by PlanId only. Ownership is already validated above
-        // (plan.TrainerId == trainerId), so there is no IDOR risk here.
-        //
-        // WorkoutLog.ClientId stores ApplicationUser.Id (not ClientProfile.PublicId),
-        // but since we filter by PlanId the data cannot belong to a different client.
-        var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId);
-        var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
-        var workoutLogs = await logCursor.ToListAsync(ct);
+        // ── 2. Performance fold-in — builds SessionExecutionDto entries ──────────
+        // Only executions that carry Performance data (a live-training-assistant log) — a
+        // checkbox-only execution has nothing to build set-level DTOs from.
+        var executionsWithPerformance = executions.Where(e => e.Performance is not null).ToList();
 
-        if (workoutLogs.Count > 0)
+        if (executionsWithPerformance.Count > 0)
         {
             // Deduplicate per sessionId:
-            //   - Prefer the most-recently-updated FINALISED log (IsCompleted=true).
-            //   - Fall back to the most recent in-progress log.
+            //   - Prefer the most-recently-updated FINALISED execution (Status == Completed).
+            //   - Fall back to the most recent in-progress execution.
             //   This mirrors the precedence rule in the client GetFullPlan endpoint.
-            var bestLogBySession = workoutLogs
+            var bestLogBySession = executionsWithPerformance
                 .Where(l => l.SessionId.HasValue)
                 .GroupBy(l => l.SessionId!.Value)
                 .Select(g =>
                 {
                     var finalised = g
-                        .Where(l => l.IsCompleted)
+                        .Where(l => l.Status == SessionExecutionStatus.Completed)
                         .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
                         .FirstOrDefault();
 
@@ -145,9 +152,6 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             response.SessionExecutions = bestLogBySession
                 .Select(log =>
                 {
-                    // Apply schema-on-read backfill for legacy flat-exercise documents.
-                    log.WithBackfilledSections();
-
                     // Build the per-exercise maps of completed set numbers and logged set data.
                     // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
                     //
@@ -162,7 +166,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     var loggedSetsBySectionAndExercise = new Dictionary<string, List<LoggedSetDto>>();
                     var sessionHasModifications = false;
 
-                    foreach (var section in log.Sections)
+                    foreach (var section in log.Performance!.Sections)
                     {
                         foreach (var ex in section.Exercises)
                         {
@@ -215,7 +219,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     return new SessionExecutionDto
                     {
                         SessionId = log.SessionId!.Value,
-                        IsSessionFinished = log.IsCompleted,
+                        IsSessionFinished = log.Status == SessionExecutionStatus.Completed,
                         CompletedSetsByExercise = completedSetsByExercise,
                         CompletedSetsBySectionAndExercise = completedSetsBySectionAndExercise,
                         LoggedSetsByExercise = loggedSetsByExercise,
@@ -226,29 +230,27 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 .ToList();
         }
 
-        // ── 3. TrainingCompletion-based finished state fold-in ───────────────────
-        // The mobile "mark whole day complete" checkbox writes a TrainingCompletion document
-        // but NOT a WorkoutLog. Without this step, sessions finished via that path would
-        // never appear as IsSessionFinished=true on the trainer portal (fix for issue #429).
+        // ── 3. Checkbox-completion-based finished state fold-in ──────────────────
+        // The mobile "mark whole day complete" checkbox writes completion flags but may leave
+        // Performance null. Without this step, sessions finished via that path would never
+        // appear as IsSessionFinished=true on the trainer portal (fix for issue #429).
         //
-        // For each session that has at least one fully-complete TrainingCompletion (any date),
-        // ensure a SessionExecutionDto entry exists with IsSessionFinished=true.
-        // A TrainingCompletion is "fully complete" iff IsSessionComplete() returns true —
-        // that uses the same logic as the MarkSessionComplete idempotency check.
+        // For each session that has at least one fully-complete execution (any date), ensure a
+        // SessionExecutionDto entry exists with IsSessionFinished=true. "Fully complete" is
+        // IsSessionComplete() — the same logic as the MarkSessionComplete idempotency check.
         //
-        // Date-scoping: we match the most-complete TrainingCompletion per session regardless
-        // of date, mirroring the WorkoutLog dedup which also collapses across dates. The
-        // finished-state is a permanent property of the session — it does not reset between
-        // scheduled occurrences for the same session definition.
+        // Date-scoping: we match the most-complete execution per session regardless of date,
+        // mirroring the Performance dedup which also collapses across dates. The finished-state
+        // is a permanent property of the session — it does not reset between scheduled
+        // occurrences for the same session definition.
+        var completions = executions.Where(e => e.SessionId.HasValue).ToList();
+
         if (completions.Count > 0)
         {
-            // sessionLookup sessions are already backfilled by FromDocument() — WithBackfilledSections()
-            // was called there on the same plan object. IsSessionComplete() can be called directly.
-
-            // Find sessions whose TrainingCompletion is fully done (any date — finished state is permanent).
+            // Find sessions whose execution is fully done (any date — finished state is permanent).
             var finishedByCompletion = completions
-                .Where(c => sessionLookup.TryGetValue(c.SessionId, out var s) && c.IsSessionComplete(s))
-                .Select(c => c.SessionId)
+                .Where(c => sessionLookup.TryGetValue(c.SessionId!.Value, out var s) && c.IsSessionComplete(s))
+                .Select(c => c.SessionId!.Value)
                 .ToHashSet();
 
             if (finishedByCompletion.Count > 0)
@@ -261,16 +263,16 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 {
                     if (executionsBySession.TryGetValue(sessionId, out var existing))
                     {
-                        // Session has a WorkoutLog entry — OR-in the completion-based flag
-                        // (covers the edge case where the WorkoutLog isn't finalised but the
-                        // home-checkbox completion says it's done).
+                        // Session already has a Performance-backed entry — OR-in the
+                        // completion-based flag (covers the edge case where Performance isn't
+                        // finalised but the home-checkbox completion says it's done).
                         if (!existing.IsSessionFinished)
                             existing.IsSessionFinished = true;
                     }
                     else
                     {
-                        // No WorkoutLog for this session — emit a synthetic entry so the trainer
-                        // portal renders the session as finished and hides the unlock affordance.
+                        // No Performance entry for this session — emit a synthetic entry so the
+                        // trainer portal renders the session as finished and hides the unlock affordance.
                         response.SessionExecutions.Add(new SessionExecutionDto
                         {
                             SessionId = sessionId,
@@ -283,19 +285,15 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         }
 
         // ── 3b. Per-section finished state fold-in ───────────────────────────────
-        // For each session that has execution data (either a WorkoutLog entry or a fully-complete
-        // TrainingCompletion), project per-section finished state into FinishedSections.
-        // This feeds the web trainer portal so it can render a "Finished" label per section
-        // and gate the edit-lock unlock affordance at section granularity (issue #465).
-        //
-        // Two signals are combined:
-        //   Signal 1 — IsSessionFinished=true on the execution DTO means the WorkoutLog is
-        //              finalised; all sections are implicitly finished.
-        //   Signal 2 — TrainingCompletion docs (home-checkbox path) record section-level state.
+        // For each session that has execution data, project per-section finished state into
+        // FinishedSections. This feeds the web trainer portal so it can render a "Finished"
+        // label per section and gate the edit-lock unlock affordance at section granularity
+        // (issue #465). IsSectionComplete() already folds in both signals (finished Performance,
+        // checkbox completion flags) since #841 merged them onto one document.
         if (completions.Count > 0 || response.SessionExecutions.Any(e => e.IsSessionFinished))
         {
             var bestCompletionBySession = completions
-                .GroupBy(c => c.SessionId)
+                .GroupBy(c => c.SessionId!.Value)
                 .ToDictionary(g => g.Key,
                     g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
 
@@ -315,7 +313,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     .Select(sec => new SectionFinishedStateDto
                     {
                         SectionId = sec.SectionId,
-                        IsFinished = bestCompletion.IsSectionComplete(session, sec, hasCompletedWorkoutLog: hasFinishedLog)
+                        IsFinished = bestCompletion.IsSectionComplete(session, sec)
                     })
                     .Where(dto => dto.IsFinished)
                     .ToList();
@@ -328,7 +326,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     }
                     else
                     {
-                        // No execution entry yet (partial TrainingCompletion with no WorkoutLog) —
+                        // No execution entry yet (partial completion with no Performance) —
                         // add a synthetic entry so FinishedSections is visible to the web layer.
                         response.SessionExecutions.Add(new SessionExecutionDto
                         {

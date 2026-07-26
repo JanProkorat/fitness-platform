@@ -1,16 +1,61 @@
+using System.Linq.Expressions;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Features.ClientTraining;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Hosted service that creates MongoDB indexes at application startup.
+/// Creates MongoDB indexes and runs one-time, idempotent data-migration backfills
+/// at application startup (see the #837 migration methods near the bottom of this
+/// file for the schema-on-read retirement).
 /// </summary>
+/// <remarks>
+/// Registered in <c>Program.cs</c> as a plain <c>AddSingleton</c>, NOT
+/// <c>AddHostedService</c>. <see cref="StartAsync"/> is invoked explicitly and
+/// awaited immediately before <c>app.Run()</c> — deliberately NOT via the
+/// <see cref="IHostedService"/> pipeline. Hosted services start sequentially in
+/// registration order, and the framework's own web-hosting service (which starts
+/// Kestrel listening) is registered ahead of anything user code adds afterwards —
+/// so wiring this class via <c>AddHostedService</c> would let Kestrel begin
+/// accepting requests before (or concurrently with) this migration completing.
+/// The data-migration piece specifically MUST finish before any request can read
+/// a legacy document: #837 deleted the graceful request-time
+/// <c>WithBackfilledSections</c> fallback, and the document types carry no
+/// <c>[BsonIgnoreExtraElements]</c>, so a request racing an unfinished migration
+/// throws <c>BsonSerializationException</c> instead of self-healing. This class
+/// still exposes the <see cref="StartAsync"/>/<see cref="StopAsync"/> shape (and
+/// tests still construct it directly, e.g. <c>new MongoIndexInitializer(mongo, logger)</c>)
+/// purely for familiarity/consistency — it is not resolved as an <c>IHostedService</c>
+/// anywhere in this codebase.
+/// </remarks>
 public class MongoIndexInitializer : IHostedService
 {
     private readonly IMongoContext _mongo;
     private readonly ILogger<MongoIndexInitializer> _logger;
+
+    /// <summary>
+    /// Test-only hook (#841 M1). Invoked with (ClientId, SessionId, Date) immediately after
+    /// the plan-bound up-front existence check in <see cref="MigrateSessionExecutionsAsync"/>
+    /// has already returned "not found", but before that key's own <c>InsertOneAsync</c>
+    /// runs. Lets integration tests deterministically simulate the TOCTOU race this method
+    /// guards against — a concurrent live write landing at the same identity between the
+    /// check and the insert — without depending on real thread timing. Always <c>null</c> in
+    /// production.
+    /// </summary>
+    internal Func<Guid, Guid, DateTime, Task>? BeforePlanBoundInsertAsync { get; set; }
+
+    /// <summary>
+    /// Test-only hook (#841 M1), same purpose as <see cref="BeforePlanBoundInsertAsync"/> but
+    /// for the ad-hoc (ExternalId-identity) insert path. Invoked with the WorkoutLog's
+    /// ExternalId. Always <c>null</c> in production.
+    /// </summary>
+    internal Func<Guid, Task>? BeforeAdHocInsertAsync { get; set; }
 
     /// <summary>
     /// Initializes a new instance of <see cref="MongoIndexInitializer"/>.
@@ -22,7 +67,9 @@ public class MongoIndexInitializer : IHostedService
     }
 
     /// <summary>
-    /// Creates all required MongoDB indexes.
+    /// Creates all required MongoDB indexes and runs the one-time #837 migration
+    /// backfills. Must be awaited to completion before the app serves any request —
+    /// see the class-level remarks and the explicit call site in <c>Program.cs</c>.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -39,12 +86,127 @@ public class MongoIndexInitializer : IHostedService
         await CreateSectionTemplateIndexes(cancellationToken);
         await CreateSessionLockIndexes(cancellationToken);
         await CreateWorkoutTemplateIndexes(cancellationToken);
+        await CreateSessionExecutionIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
+    //
+    // Canonical decision: every Mongo document's clientId field is ApplicationUser.Id.
+    // The plan-side use of ClientProfile.PublicId (NutritionPlan, TrainingPlan,
+    // TrainingCompletion, DayLog, MealLog, SessionLog, SessionLock) was incidental —
+    // WorkoutLog and PersonalRecord already used ApplicationUser.Id and are untouched
+    // by this migration.
+    //
+    // Deliberately NOT a constructor dependency: this class is registered as a plain
+    // AddSingleton (see class remarks) and resolved directly from the ROOT service
+    // provider in Program.cs and in FitnessApiFactoryTests — injecting a scoped
+    // IApplicationDbContext into the constructor would break that resolution under
+    // ASP.NET Core's scope validation. Program.cs instead resolves IApplicationDbContext
+    // from the SAME pre-app.Run() scope used for StartAsync and passes it in here as a
+    // plain method parameter.
+    //
+    // Idempotency (design-review MINOR-2): PublicId and UserId are both GUIDs, so shape
+    // alone cannot distinguish a migrated document from an unmigrated one. The only safe
+    // signal is "clientId currently equals an EXISTING ClientProfile.PublicId" — the
+    // PublicId -> UserId map is built once from Postgres, then each collection is
+    // rewritten via one UpdateMany per client, matched on the OLD PublicId value.
+    // Already-migrated documents (clientId = UserId) never match Eq(clientId, publicId)
+    // on a second run (UserId and PublicId are independent, non-overlapping GUID spaces
+    // per ClientProfile), so a re-run mutates 0 documents, and a partial-interruption
+    // re-run only touches the remaining un-migrated documents.
+    //
+    // Index safety: ClientProfile.PublicId and ClientProfile.UserId are both unique
+    // per ClientProfile (enforced by Postgres unique constraints), so the PublicId ->
+    // UserId map is a bijection over existing clients. Rewriting clientId via UpdateMany
+    // relabels an entire client's document set from one unique value to another — it
+    // never merges two clients' documents under one clientId — so the UNIQUE
+    // (clientId, date, sessionId) index on TrainingCompletion cannot be violated
+    // mid-migration.
+    /// <summary>
+    /// One-time, idempotent migration (#840): rewrites every Mongo document's clientId
+    /// field from ClientProfile.PublicId to ApplicationUser.Id across NutritionPlan,
+    /// TrainingPlan, TrainingCompletion, DayLog, MealLog, SessionLog, and SessionLock.
+    /// Must be awaited to completion before the app serves any request — see the call
+    /// site in <c>Program.cs</c>, invoked in the same pre-<c>app.Run()</c> scope as
+    /// <see cref="StartAsync"/>.
+    /// </summary>
+    /// <param name="db">Relational database context — resolved from a DI scope by the
+    /// caller (see class remarks on why this isn't a constructor dependency).</param>
+    /// <param name="ct">Cancellation token.</param>
+    public async Task MigrateClientIdsAsync(IApplicationDbContext db, CancellationToken ct)
+    {
+        var profiles = await db.ClientProfiles
+            .AsNoTracking()
+            .Select(cp => new { cp.PublicId, cp.UserId })
+            .ToListAsync(ct);
+
+        if (profiles.Count == 0)
+        {
+            _logger.LogInformation("ClientId standardisation (#840): no ClientProfiles found, skipping");
+            return;
+        }
+
+        var userIdByPublicId = profiles.ToDictionary(p => p.PublicId, p => p.UserId);
+
+        var nutritionCount = await MigrateCollectionClientIdsAsync(_mongo.NutritionPlans, p => p.ClientId, userIdByPublicId, ct);
+        var trainingCount = await MigrateCollectionClientIdsAsync(_mongo.TrainingPlans, p => p.ClientId, userIdByPublicId, ct);
+        var completionCount = await MigrateCollectionClientIdsAsync(_mongo.TrainingCompletions, c => c.ClientId, userIdByPublicId, ct);
+        var dayLogCount = await MigrateCollectionClientIdsAsync(_mongo.DayLogs, l => l.ClientId, userIdByPublicId, ct);
+        var mealLogCount = await MigrateCollectionClientIdsAsync(_mongo.MealLogs, l => l.ClientId, userIdByPublicId, ct);
+        var sessionLogCount = await MigrateCollectionClientIdsAsync(_mongo.SessionLogs, l => l.ClientId, userIdByPublicId, ct);
+        var sessionLockCount = await MigrateCollectionClientIdsAsync(_mongo.SessionLocks, l => l.ClientId, userIdByPublicId, ct);
+
+        var total = nutritionCount + trainingCount + completionCount + dayLogCount + mealLogCount + sessionLogCount + sessionLockCount;
+
+        if (total > 0)
+        {
+            _logger.LogInformation(
+                "ClientId standardisation (#840): rewrote {Total} document(s) to ApplicationUser.Id " +
+                "(NutritionPlan={Nutrition}, TrainingPlan={Training}, TrainingCompletion={Completion}, " +
+                "DayLog={DayLog}, MealLog={MealLog}, SessionLog={SessionLog}, SessionLock={SessionLock})",
+                total, nutritionCount, trainingCount, completionCount, dayLogCount, mealLogCount, sessionLogCount, sessionLockCount);
+        }
+        else
+        {
+            _logger.LogInformation("ClientId standardisation (#840): no documents needed migration (already up to date)");
+        }
+    }
+
+    /// <summary>
+    /// Rewrites the clientId field of every document in <paramref name="collection"/> whose
+    /// current value is a key in <paramref name="userIdByPublicId"/> (i.e. still a
+    /// ClientProfile.PublicId) to the corresponding ApplicationUser.Id. One
+    /// <see cref="UpdateManyModel{TDocument}"/> per client is batched into a single
+    /// <c>BulkWriteAsync</c> round trip per collection. <c>IsOrdered = false</c> is safe here:
+    /// each client's filter/update pair targets a disjoint set of documents (matched on that
+    /// client's unique PublicId), so write order between clients never matters.
+    /// </summary>
+    private static async Task<long> MigrateCollectionClientIdsAsync<T>(
+        IMongoCollection<T> collection,
+        Expression<Func<T, Guid>> clientIdSelector,
+        IReadOnlyDictionary<Guid, Guid> userIdByPublicId,
+        CancellationToken ct)
+    {
+        var writes = new List<WriteModel<T>>(userIdByPublicId.Count);
+
+        foreach (var (publicId, userId) in userIdByPublicId)
+        {
+            writes.Add(new UpdateManyModel<T>(
+                Builders<T>.Filter.Eq(clientIdSelector, publicId),
+                Builders<T>.Update.Set(clientIdSelector, userId)));
+        }
+
+        if (writes.Count == 0)
+            return 0;
+
+        var result = await collection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+        return result.ModifiedCount;
+    }
 
     private async Task CreateFoodIndexes(CancellationToken ct)
     {
@@ -169,6 +331,14 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateTrainingPlanIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837), BEFORE any typed read of
+        // TrainingPlans elsewhere in this initializer or the app: legacy embedded
+        // TrainingSession documents that still carry a flat `exercises` field (and no
+        // C# LegacyExercises property to bind it) would throw a BSON deserialization
+        // error the moment anything reads them through the typed collection. Idempotent —
+        // safe to run on every boot.
+        await BackfillTrainingPlanSections(ct);
+
         var indexes = _mongo.TrainingPlans.Indexes;
 
         // Compound index on clientId + status for filtered queries
@@ -193,6 +363,12 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateWorkoutLogIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837): legacy WorkoutLog documents
+        // that still carry a flat `exercises` field (and no C# LegacyExercises property to
+        // bind it) would throw a BSON deserialization error the moment anything reads them
+        // through the typed collection below. Idempotent — safe to run on every boot.
+        await BackfillWorkoutLogSections(ct);
+
         var indexes = _mongo.WorkoutLogs.Indexes;
 
         // Unique index on externalId for API lookups
@@ -362,6 +538,14 @@ public class MongoIndexInitializer : IHostedService
 
     private async Task CreateTrainingCompletionIndexes(CancellationToken ct)
     {
+        // One-time retire-schema-on-read migration (#837). Must run AFTER
+        // BackfillTrainingPlanSections (called from CreateTrainingPlanIndexes, which runs
+        // earlier in StartAsync) — resolving the effective per-section completion map below
+        // requires reading TrainingPlans through the typed collection, which is only safe
+        // once every embedded TrainingSession has been migrated off the legacy flat shape.
+        // Idempotent — safe to run on every boot.
+        await BackfillTrainingCompletionVersionAndSections(ct);
+
         var indexes = _mongo.TrainingCompletions.Indexes;
 
         // Unique index on externalId for API lookups
@@ -488,5 +672,658 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    // ── #841: SessionExecution — unified WorkoutLog + TrainingCompletion indexes ─────
+    //
+    // Reconciles two prior constraints into one:
+    //   - WorkoutLog's partial-unique (planId, sessionId, completedDate | isCompleted==true)
+    //   - TrainingCompletion's unconditional unique (clientId, date, sessionId)
+    // into a single partial-unique (clientId, sessionId, date) index, active whenever BOTH
+    // sessionId and date are present (i.e. NOT limited to completed executions — the whole
+    // point of the merge is that a session has exactly one execution per day, draft or done).
+    // Ad-hoc (unplanned) executions have a null SessionId and are exempt.
+    //
+    // Same backfill → dedup → create-unique-index ordering as CreateWorkoutLogIndexes, so a
+    // rare interrupted --migrate-session-executions run (or any future write bug) that leaves
+    // more than one document per (clientId, sessionId, date) doesn't blow up index creation
+    // with E11000. No backfill step is needed here — every SessionExecution write path always
+    // sets Date at creation time (unlike legacy WorkoutLog.CompletedDate, which was backfilled
+    // from CompletedAt) — but dedup is retained as defense in depth.
+    /// <summary>
+    /// Creates the SessionExecution indexes (ExternalId unique, ClientId+Date, and the
+    /// partial-unique ClientId+SessionId+Date). <c>internal</c> rather than <c>private</c>
+    /// solely so <c>SessionExecutionMigrationTests</c> can create these indexes directly in
+    /// a dedicated per-test container without needing to call the full <see cref="StartAsync"/>
+    /// (which also runs the unrelated #837 backfills) — see
+    /// <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> elsewhere in this assembly.
+    /// </summary>
+    internal async Task CreateSessionExecutionIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.SessionExecutions.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys.Ascending(e => e.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessionexecution_externalId", Unique = true });
+
+        var clientDateIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions { Name = "idx_sessionexecution_clientId_date" });
+
+        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex], ct);
+
+        // ── Dedup, BEFORE creating the partial unique index ──────────────────────────
+        var keyedFilter =
+            Builders<SessionExecution>.Filter.Exists(e => e.SessionId)
+            & Builders<SessionExecution>.Filter.Exists(e => e.Date);
+
+        var dupCheckResult = await _mongo.SessionExecutions
+            .Aggregate()
+            .Match(keyedFilter)
+            .Group(new BsonDocument
+            {
+                { "_id", new BsonDocument
+                    {
+                        { "clientId",  "$clientId" },
+                        { "sessionId", "$sessionId" },
+                        { "date",      "$date" }
+                    }
+                },
+                { "count", new BsonDocument("$sum", 1) }
+            })
+            .Match(new BsonDocument("count", new BsonDocument("$gt", 1)))
+            .Limit(1)
+            .ToListAsync(ct);
+
+        if (dupCheckResult.Count > 0)
+        {
+            using var dedupCursor = await _mongo.SessionExecutions.FindAsync(keyedFilter, cancellationToken: ct);
+            var all = await dedupCursor.ToListAsync(ct);
+
+            var groups = all
+                .GroupBy(e => (e.ClientId, e.SessionId, e.Date))
+                .Where(g => g.Count() > 1);
+
+            var deleteCount = 0;
+
+            foreach (var group in groups)
+            {
+                // Keep the most "authoritative" document: prefer Completed status, then most
+                // recently updated. Delete the rest.
+                var ordered = group
+                    .OrderByDescending(e => e.Status == SessionExecutionStatus.Completed)
+                    .ThenByDescending(e => e.DateUpdated ?? e.DateCreated)
+                    .ToList();
+
+                var toDelete = ordered.Skip(1).Select(e => e.ExternalId).ToList();
+
+                await _mongo.SessionExecutions.DeleteManyAsync(
+                    Builders<SessionExecution>.Filter.In(e => e.ExternalId, toDelete),
+                    cancellationToken: ct);
+
+                deleteCount += toDelete.Count;
+            }
+
+            if (deleteCount > 0)
+            {
+                _logger.LogWarning(
+                    "SessionExecution dedup: deleted {Count} duplicate document(s) before creating partial unique index",
+                    deleteCount);
+            }
+        }
+
+        // ── Partial unique index: one execution per (clientId, sessionId, date) ──────
+        var partialFilter =
+            Builders<SessionExecution>.Filter.Exists(e => e.SessionId)
+            & Builders<SessionExecution>.Filter.Exists(e => e.Date);
+
+        var uniqueIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.SessionId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions<SessionExecution>
+            {
+                Name = "idx_sessionexecution_clientId_sessionId_date_unique",
+                Unique = true,
+                PartialFilterExpression = partialFilter
+            });
+
+        await indexes.CreateOneAsync(uniqueIndex, cancellationToken: ct);
+    }
+
+    // ── #841: migrate WorkoutLog + TrainingCompletion → SessionExecution ────────────
+    //
+    // PRODUCTION entrypoint: `dotnet run -- --migrate-session-executions` (see Program.cs),
+    // mirroring the `--migrate-client-ids` (#840) one-shot CLI arg pattern — Render does not
+    // set Database:RunMigrationsOnStartup, so this must be run once as an intentional deploy
+    // step, not relied on via any startup gate.
+    //
+    // Identity / idempotency: a plan-bound execution's identity is (clientId, sessionId, date);
+    // an ad-hoc (unplanned) execution's identity is its ExternalId (carried over 1:1 from the
+    // source WorkoutLog). Before creating any document this method checks whether one already
+    // exists at that identity and skips if so — a re-run after a full migration mutates 0
+    // documents, and a re-run after a partial/interrupted migration only processes what's left.
+    //
+    // ExternalId carry-over: whenever a source WorkoutLog exists for a key (both-exist or
+    // log-only), the new SessionExecution.ExternalId is set to that WorkoutLog's ExternalId —
+    // NOT a freshly-generated Guid — so PersonalRecord.WorkoutLogId (and its unique
+    // (workoutLogId, exerciseExternalId, setNumber) idempotency index) continue to resolve
+    // without any PersonalRecord data migration. Completion-only keys (no source WorkoutLog,
+    // hence no PersonalRecord could reference them) get a fresh ExternalId.
+    /// <summary>
+    /// One-time, idempotent migration (#841): merges every <see cref="WorkoutLog"/> and
+    /// <see cref="TrainingCompletion"/> document into the unified <see cref="SessionExecution"/>
+    /// collection. See the remarks above this method for the identity/idempotency contract.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Per-category counts of documents created/skipped, for CLI output.</returns>
+    public async Task<(long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped)> MigrateSessionExecutionsAsync(
+        CancellationToken ct)
+    {
+        var allLogs = await _mongo.WorkoutLogs.Find(Builders<WorkoutLog>.Filter.Empty).ToListAsync(ct);
+        var allCompletions = await _mongo.TrainingCompletions.Find(Builders<TrainingCompletion>.Filter.Empty).ToListAsync(ct);
+
+        long mergedCount = 0, logOnlyCount = 0, completionOnlyCount = 0, adHocCount = 0, skippedCount = 0;
+
+        // Plan-bound logs keyed by (clientId, sessionId, date). When more than one log shares
+        // a key (e.g. a stale draft alongside the finished one), prefer the completed log, then
+        // the most recently updated — mirrors the dedup precedence used elsewhere in this file.
+        var planBoundLogsByKey = allLogs
+            .Where(l => l.SessionId.HasValue)
+            .GroupBy(l => (l.ClientId, SessionId: l.SessionId!.Value, Date: l.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(l.StartedAt)))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(l => l.IsCompleted)
+                       .ThenByDescending(l => l.DateUpdated ?? l.DateCreated)
+                       .First());
+
+        // TrainingCompletion's own historical unique index already guarantees at most one
+        // document per (clientId, date, sessionId), so a plain ToDictionary is safe here.
+        var completionsByKey = allCompletions
+            .ToDictionary(c => (c.ClientId, SessionId: c.SessionId, Date: c.Date));
+
+        var allKeys = planBoundLogsByKey.Keys.Union(completionsByKey.Keys).ToList();
+
+        // Per-client (planId, TrainingSession) lookup, resolved once per client and cached —
+        // mirrors the tie-break logic in BackfillTrainingCompletionVersionAndSections (prefer
+        // the most-recently-updated plan's session when a client has more than one plan sharing
+        // a SessionId).
+        var sessionLookupByClient = new Dictionary<Guid, Dictionary<Guid, (Guid PlanId, TrainingSession Session)>>();
+
+        async Task<Dictionary<Guid, (Guid PlanId, TrainingSession Session)>> GetClientSessionLookupAsync(Guid clientId)
+        {
+            if (sessionLookupByClient.TryGetValue(clientId, out var cached))
+                return cached;
+
+            var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId);
+            using var planCursor = await _mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+            var clientPlans = await planCursor.ToListAsync(ct);
+
+            var lookup = clientPlans
+                .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
+                .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions).Select(s => (Plan: p, Session: s)))
+                .GroupBy(x => x.Session.SessionId)
+                .ToDictionary(g => g.Key, g => (g.First().Plan.ExternalId, g.First().Session));
+
+            sessionLookupByClient[clientId] = lookup;
+            return lookup;
+        }
+
+        foreach (var key in allKeys)
+        {
+            var (clientId, sessionId, date) = key;
+
+            var existingFilter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, sessionId)
+                & Builders<SessionExecution>.Filter.Eq(e => e.Date, date);
+
+            if (await _mongo.SessionExecutions.Find(existingFilter).AnyAsync(ct))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            planBoundLogsByKey.TryGetValue(key, out var log);
+            completionsByKey.TryGetValue(key, out var completion);
+
+            var clientSessionLookup = await GetClientSessionLookupAsync(clientId);
+            clientSessionLookup.TryGetValue(sessionId, out var resolved);
+
+            SessionExecution execution;
+            Action recordCategory;
+
+            if (log is not null && completion is not null)
+            {
+                execution = BuildFromLog(log, clientId, sessionId, date);
+                ApplyCompletionFlags(execution, completion);
+                var isComplete = log.IsCompleted || (resolved.Session is not null && completion.IsSessionComplete(resolved.Session));
+                execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                recordCategory = () => mergedCount++;
+            }
+            else if (log is not null)
+            {
+                execution = BuildFromLog(log, clientId, sessionId, date);
+                execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                recordCategory = () => logOnlyCount++;
+            }
+            else
+            {
+                execution = new SessionExecution
+                {
+                    ExternalId = Guid.NewGuid(),
+                    ClientId = clientId,
+                    PlanId = resolved.PlanId == Guid.Empty ? null : resolved.PlanId,
+                    SessionId = sessionId,
+                    Date = date,
+                    DateCreated = completion!.DateCreated,
+                    DateUpdated = completion.DateUpdated,
+                    Version = 1
+                };
+                ApplyCompletionFlags(execution, completion!);
+                var isComplete = resolved.Session is not null && completion.IsSessionComplete(resolved.Session);
+                execution.Status = isComplete ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+                recordCategory = () => completionOnlyCount++;
+            }
+
+            // M1 (#841): the up-front existence check (allKeys / the per-key candidate
+            // query above) is a plain read — it does not lock anything. When this
+            // migration is run while the service serves live traffic (the Render deploy
+            // model has no maintenance window), a live write for this same
+            // (clientId, sessionId, date) key can land between that check and this
+            // insert (TOCTOU). The live path already created the authoritative document
+            // in that race, so an E11000 here means "already handled" — count it as
+            // skipped and move on rather than letting the whole migration run abort.
+            if (BeforePlanBoundInsertAsync is not null)
+                await BeforePlanBoundInsertAsync(clientId, sessionId, date);
+
+            try
+            {
+                await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on plan-bound insert for " +
+                    "client={ClientId} session={SessionId} date={Date:u} — a concurrent live " +
+                    "write won the race; skipping.",
+                    clientId, sessionId, date);
+                skippedCount++;
+                continue;
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000 || ex.CodeName == "DuplicateKey")
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on plan-bound insert for " +
+                    "client={ClientId} session={SessionId} date={Date:u} — a concurrent live " +
+                    "write won the race; skipping.",
+                    clientId, sessionId, date);
+                skippedCount++;
+                continue;
+            }
+
+            recordCategory();
+        }
+
+        // ── Ad-hoc (unplanned) WorkoutLogs — 1:1 migration, identity = ExternalId ────────
+        foreach (var log in allLogs.Where(l => !l.SessionId.HasValue))
+        {
+            var existingFilter = Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, log.ExternalId);
+            if (await _mongo.SessionExecutions.Find(existingFilter).AnyAsync(ct))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            var date = log.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(log.StartedAt);
+            var execution = BuildFromLog(log, log.ClientId, null, date);
+            execution.Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial;
+
+            // M1 (#841): same TOCTOU guard as the plan-bound insert above — a concurrent
+            // live write may have created a SessionExecution at this ExternalId between
+            // the existence check and this insert.
+            if (BeforeAdHocInsertAsync is not null)
+                await BeforeAdHocInsertAsync(log.ExternalId);
+
+            try
+            {
+                await _mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
+            }
+            catch (MongoWriteException ex) when (ex.WriteError?.Category == ServerErrorCategory.DuplicateKey)
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on ad-hoc insert for " +
+                    "externalId={ExternalId} — a concurrent live write won the race; skipping.",
+                    log.ExternalId);
+                skippedCount++;
+                continue;
+            }
+            catch (MongoCommandException ex) when (ex.Code == 11000 || ex.CodeName == "DuplicateKey")
+            {
+                _logger.LogWarning(ex,
+                    "SessionExecution migration (#841 M1): E11000 on ad-hoc insert for " +
+                    "externalId={ExternalId} — a concurrent live write won the race; skipping.",
+                    log.ExternalId);
+                skippedCount++;
+                continue;
+            }
+
+            adHocCount++;
+        }
+
+        _logger.LogInformation(
+            "SessionExecution migration (#841): merged={Merged} logOnly={LogOnly} completionOnly={CompletionOnly} " +
+            "adHoc={AdHoc} skipped(alreadyMigrated)={Skipped}",
+            mergedCount, logOnlyCount, completionOnlyCount, adHocCount, skippedCount);
+
+        return (mergedCount, logOnlyCount, completionOnlyCount, adHocCount, skippedCount);
+    }
+
+    private static SessionExecution BuildFromLog(WorkoutLog log, Guid clientId, Guid? sessionId, DateTime date)
+    {
+        return new SessionExecution
+        {
+            ExternalId = log.ExternalId,
+            ClientId = clientId,
+            PlanId = log.PlanId,
+            SessionId = sessionId,
+            Date = date,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = log.StartedAt,
+                CompletedAt = log.CompletedAt,
+                Mood = log.Mood,
+                Notes = log.Notes,
+                WodResult = log.WodResult,
+                Sections = log.Sections
+            },
+            DateCreated = log.DateCreated,
+            DateUpdated = log.DateUpdated,
+            Version = 1
+        };
+    }
+
+    private static void ApplyCompletionFlags(SessionExecution execution, TrainingCompletion completion)
+    {
+        execution.CompletedExerciseIds = completion.CompletedExerciseIds;
+        execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
+        execution.CompletedSectionIds = completion.CompletedSectionIds;
+        execution.CompletedSets = completion.CompletedSets;
+    }
+
+    // ── #837: retire plan/workout/completion schema-on-read ──────────────────────
+    //
+    // The three read-time backfills these endpoints used to perform on every request
+    // (TrainingSession.WithBackfilledSections, WorkoutLog.WithBackfilledSections, and the
+    // request-time CompletedExerciseIdsBySection seed in MarkExerciseIncompleteEndpoint)
+    // are replaced by these one-time, idempotent boot migrations. All three operate
+    // directly on raw BSON where the legacy shape includes a field with no corresponding
+    // C# property (the `exercises` flat list) — reading such a document through the typed
+    // collection would throw a BSON deserialization error. This means the migration must
+    // complete BEFORE any request can be served, not merely before the other private
+    // methods in this class run their own typed reads — see the class-level remarks
+    // above and Program.cs's explicit pre-`app.Run()` invocation, which is what actually
+    // provides that guarantee (this class is no longer wired via `AddHostedService`).
+
+    /// <summary>
+    /// Backfills every embedded <see cref="TrainingSession"/> across all <see cref="TrainingPlan"/>
+    /// documents that still carries the legacy flat <c>exercises</c> field: synthesizes a single
+    /// "Hlavní" section wrapping the flat exercises when <c>sections</c> is empty, then <c>$unset</c>s
+    /// the legacy field. A session that already has <c>sections</c> populated (with a stale
+    /// <c>exercises</c> field left over from an earlier partial write) only has the legacy field
+    /// stripped — its modern <c>sections</c> data is left untouched.
+    /// </summary>
+    private async Task BackfillTrainingPlanSections(CancellationToken ct)
+    {
+        var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
+            _mongo.TrainingPlans.CollectionNamespace.CollectionName);
+
+        // Candidate docs: any embedded session under any week still carries the legacy flat
+        // `exercises` field. Mongo matches dotted paths across nested arrays automatically.
+        var legacyFilter = new BsonDocument("weeks.sessions.exercises", new BsonDocument("$exists", true));
+
+        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedPlanCount = 0;
+        var migratedSessionCount = 0;
+
+        foreach (var planDoc in candidates)
+        {
+            var planModified = false;
+
+            if (!planDoc.TryGetValue("weeks", out var weeksValue) || weeksValue is not BsonArray weeks)
+                continue;
+
+            foreach (var weekValue in weeks)
+            {
+                if (weekValue is not BsonDocument week) continue;
+                if (!week.TryGetValue("sessions", out var sessionsValue) || sessionsValue is not BsonArray sessions)
+                    continue;
+
+                foreach (var sessionValue in sessions)
+                {
+                    if (sessionValue is not BsonDocument session) continue;
+                    if (!session.Contains("exercises")) continue;
+
+                    var legacyExercises = session["exercises"] as BsonArray ?? [];
+                    var sectionsIsEmpty = !session.TryGetValue("sections", out var sectionsValue)
+                                           || sectionsValue is not BsonArray existingSections
+                                           || existingSections.Count == 0;
+
+                    if (sectionsIsEmpty && legacyExercises.Count > 0)
+                    {
+                        var synthesizedSection = new BsonDocument
+                        {
+                            { "sectionId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                            { "order", 0 },
+                            { "name", "Hlavní" },
+                            { "exercises", legacyExercises }
+                        };
+                        session["sections"] = new BsonArray { synthesizedSection };
+                        migratedSessionCount++;
+                    }
+
+                    session.Remove("exercises");
+                    planModified = true;
+                }
+            }
+
+            if (planModified)
+            {
+                await rawPlans.ReplaceOneAsync(
+                    Builders<BsonDocument>.Filter.Eq("_id", planDoc["_id"]),
+                    planDoc,
+                    cancellationToken: ct);
+                migratedPlanCount++;
+            }
+        }
+
+        if (migratedPlanCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingPlan sections backfill: migrated {SessionCount} legacy session(s) across " +
+                "{PlanCount} plan(s) to the sections shape",
+                migratedSessionCount, migratedPlanCount);
+        }
+    }
+
+    /// <summary>
+    /// Backfills every <see cref="WorkoutLog"/> document that still carries the legacy flat
+    /// <c>exercises</c> field: synthesizes a single "Hlavní" section wrapping the flat exercises
+    /// (carrying over the session-level <c>wodResult</c>, if any) when <c>sections</c> is empty,
+    /// then <c>$unset</c>s the legacy field.
+    /// </summary>
+    private async Task BackfillWorkoutLogSections(CancellationToken ct)
+    {
+        var rawLogs = _mongo.WorkoutLogs.Database.GetCollection<BsonDocument>(
+            _mongo.WorkoutLogs.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("exercises", new BsonDocument("$exists", true));
+
+        using var cursor = await rawLogs.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedCount = 0;
+
+        foreach (var logDoc in candidates)
+        {
+            var legacyExercises = logDoc["exercises"] as BsonArray ?? [];
+            var sectionsIsEmpty = !logDoc.TryGetValue("sections", out var sectionsValue)
+                                   || sectionsValue is not BsonArray existingSections
+                                   || existingSections.Count == 0;
+
+            if (sectionsIsEmpty && legacyExercises.Count > 0)
+            {
+                var synthesizedSection = new BsonDocument
+                {
+                    { "sectionId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                    { "order", 0 },
+                    { "name", "Hlavní" },
+                    { "exercises", legacyExercises }
+                };
+
+                // Session-level WodResult (if present) carries over onto the synthesized
+                // section, mirroring the retired WorkoutLog.WithBackfilledSections() behaviour.
+                if (logDoc.TryGetValue("wodResult", out var wodResult) && wodResult is not BsonNull)
+                    synthesizedSection["wodResult"] = wodResult;
+
+                logDoc["sections"] = new BsonArray { synthesizedSection };
+            }
+
+            logDoc.Remove("exercises");
+
+            await rawLogs.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("_id", logDoc["_id"]),
+                logDoc,
+                cancellationToken: ct);
+
+            migratedCount++;
+        }
+
+        if (migratedCount > 0)
+        {
+            _logger.LogInformation(
+                "WorkoutLog sections backfill: migrated {Count} legacy log(s) to the sections shape",
+                migratedCount);
+        }
+    }
+
+    /// <summary>
+    /// Two-part <see cref="TrainingCompletion"/> backfill:
+    /// <list type="number">
+    ///   <item><description>
+    ///     Version — legacy documents predating the <c>Version</c> field deserialize to the C#
+    ///     initializer value (1, not 0), so an <c>Eq(version, 0)</c> filter would never match
+    ///     them (a previously documented incident). Targets absent-Version docs explicitly via
+    ///     <c>$exists:false</c> and sets the same concrete value (1) so a subsequent
+    ///     <c>Eq(version, existing.Version)</c> optimistic-concurrency filter matches the
+    ///     persisted document instead of silently failing every update with a 409.
+    ///   </description></item>
+    ///   <item><description>
+    ///     CompletedExerciseIdsBySection — reproduces
+    ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/> exactly
+    ///     (first matching section wins; ids no longer present in the resolved session are
+    ///     dropped). Not self-contained: the completion carries <c>SessionId</c> but no
+    ///     <c>PlanId</c>, so the owning <see cref="TrainingSession"/> must be resolved from the
+    ///     <c>trainingPlans</c> collection by (ClientId, SessionId) — TrainingCompletion.ClientId
+    ///     and TrainingPlan.ClientId are both ClientProfile.PublicId, so they compare directly.
+    ///     When no plan/session resolves (deleted or restructured plan), the document is left
+    ///     with a null map rather than throwing — read sites tolerate a null map. If a client
+    ///     has two plans that happen to share a SessionId (should not occur in practice, but
+    ///     not structurally prevented), the most-recently-updated plan's session wins — see
+    ///     the tie-break comment at the <c>sessionLookup</c> construction below. That ambiguity
+    ///     cannot cause data loss: the flat <c>CompletedExerciseIds</c> mirror is untouched
+    ///     either way.
+    ///   </description></item>
+    /// </list>
+    /// </summary>
+    private async Task BackfillTrainingCompletionVersionAndSections(CancellationToken ct)
+    {
+        // (a) Version backfill.
+        var versionMissingFilter = Builders<TrainingCompletion>.Filter.Exists(c => c.Version, exists: false);
+        var versionUpdateResult = await _mongo.TrainingCompletions.UpdateManyAsync(
+            versionMissingFilter,
+            Builders<TrainingCompletion>.Update.Set(c => c.Version, 1),
+            cancellationToken: ct);
+
+        if (versionUpdateResult.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingCompletion version backfill: set version=1 on {Count} field-absent document(s)",
+                versionUpdateResult.ModifiedCount);
+        }
+
+        // (b) CompletedExerciseIdsBySection backfill.
+        var bySectionMissingFilter = Builders<TrainingCompletion>.Filter.Exists(
+            c => c.CompletedExerciseIdsBySection, exists: false);
+
+        using var legacyCursor = await _mongo.TrainingCompletions.FindAsync(bySectionMissingFilter, cancellationToken: ct);
+        var legacyCompletions = await legacyCursor.ToListAsync(ct);
+
+        if (legacyCompletions.Count == 0)
+            return;
+
+        var migratedCount = 0;
+        var unresolvedCount = 0;
+
+        foreach (var clientGroup in legacyCompletions.GroupBy(c => c.ClientId))
+        {
+            var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientGroup.Key);
+            using var planCursor = await _mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+            var clientPlans = await planCursor.ToListAsync(ct);
+
+            // Tie-break for the (rare, non-data-loss) case where a client has two plans
+            // sharing a SessionId with divergent section layouts: order plans by recency
+            // (DateUpdated, falling back to DateCreated) BEFORE flattening to sessions, so
+            // GroupBy/First deterministically prefers the most-recently-updated plan's
+            // session rather than whichever plan happened to sort first out of Mongo.
+            // LINQ's GroupBy preserves first-encountered order within each group, and
+            // SelectMany preserves the source (plan) ordering — so ordering clientPlans
+            // descending by recency here is sufficient; no need to re-sort inside each
+            // group. This only affects section ATTRIBUTION for the derived
+            // CompletedExerciseIdsBySection map — the flat CompletedExerciseIds mirror is
+            // never touched, so a wrong pick here is not data loss, only a (very rare)
+            // mis-attributed section key that self-corrects if the stale plan is ever
+            // resolved differently on a later pass.
+            var sessionLookup = clientPlans
+                .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
+                .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions))
+                .GroupBy(s => s.SessionId)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            foreach (var completion in clientGroup)
+            {
+                if (!sessionLookup.TryGetValue(completion.SessionId, out var session))
+                {
+                    // Session no longer resolvable (plan deleted/restructured) — leave
+                    // CompletedExerciseIdsBySection null for this document. The flat
+                    // CompletedExerciseIds mirror is untouched/preserved, and read sites
+                    // handle a null map without throwing.
+                    unresolvedCount++;
+                    continue;
+                }
+
+                var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
+                var bySection = effective.ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value.ToList());
+
+                await _mongo.TrainingCompletions.UpdateOneAsync(
+                    Builders<TrainingCompletion>.Filter.Eq(c => c.ExternalId, completion.ExternalId),
+                    Builders<TrainingCompletion>.Update.Set(c => c.CompletedExerciseIdsBySection, bySection),
+                    cancellationToken: ct);
+
+                migratedCount++;
+            }
+        }
+
+        if (migratedCount > 0 || unresolvedCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingCompletion section backfill: populated CompletedExerciseIdsBySection on " +
+                "{Migrated} document(s); {Unresolved} document(s) skipped (session no longer resolvable)",
+                migratedCount, unresolvedCount);
+        }
     }
 }

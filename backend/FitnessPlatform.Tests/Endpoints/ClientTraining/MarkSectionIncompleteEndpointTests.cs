@@ -34,7 +34,7 @@ public class MarkSectionIncompleteEndpointTests
 
     private TrainingPlan CreatePlanWithExerciseFreeSection()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         return new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
@@ -104,8 +104,8 @@ public class MarkSectionIncompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -131,8 +131,8 @@ public class MarkSectionIncompleteEndpointTests
 
         // Nothing should be updated
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -169,8 +169,8 @@ public class MarkSectionIncompleteEndpointTests
 
         // _sectionId not present in CompletedSectionIds → already incomplete → no update
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -210,9 +210,9 @@ public class MarkSectionIncompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 

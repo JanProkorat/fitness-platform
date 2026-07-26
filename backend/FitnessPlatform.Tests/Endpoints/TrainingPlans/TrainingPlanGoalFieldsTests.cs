@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -40,7 +41,9 @@ public class TrainingPlanGoalFieldsTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -74,7 +77,9 @@ public class TrainingPlanGoalFieldsTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -138,7 +143,8 @@ public class TrainingPlanGoalFieldsTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -186,7 +192,8 @@ public class TrainingPlanGoalFieldsTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -230,7 +237,8 @@ public class TrainingPlanGoalFieldsTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build());
 
         var request = new UpdateTrainingPlanRequest
         {

@@ -7,8 +7,8 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// MongoDB document recording photos and notes attached to a specific training session diary entry.
 /// Keyed by <c>(ClientId, PlanId, SessionId, LogDate)</c> — one document per client per session per calendar day.
 /// <para>
-/// <b>ClientId</b> stores <c>ClientProfile.PublicId</c>, mirroring <see cref="MealLog"/>'s real write convention.
-/// This is <b>not</b> <c>ApplicationUser.Id</c> (which <see cref="WorkoutLog"/> uses — a separate convention).
+/// <b>ClientId</b> stores <c>ApplicationUser.Id</c> (#840) — the same convention every other
+/// Mongo document's clientId field uses, including <see cref="WorkoutLog"/>.
 /// </para>
 /// </summary>
 public class SessionLog
@@ -21,7 +21,7 @@ public class SessionLog
     public ObjectId Id { get; set; }
 
     /// <summary>
-    /// The client who owns this log entry — stores <c>ClientProfile.PublicId</c>.
+    /// The client who owns this log entry — stores <c>ApplicationUser.Id</c>.
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

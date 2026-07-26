@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -86,12 +87,10 @@ public class GetClientTimelineEndpoint(
             return;
         }
 
-        // MealLog.ClientId, NutritionPlan.ClientId, and TrainingPlan.ClientId store
-        // ClientProfile.PublicId. WorkoutLog.ClientId and PersonalRecord.ClientId
-        // store ApplicationUser.Id (UserId). QuestionnaireResponse.ClientId is an
-        // EF entity keyed on UserId as well.
+        // Every Mongo document's clientId (MealLog, NutritionPlan, TrainingPlan,
+        // WorkoutLog, PersonalRecord) is keyed on ApplicationUser.Id (#840).
+        // QuestionnaireResponse.ClientId is an EF entity keyed on UserId too.
         var clientUserId = clientProfile.UserId;
-        var clientPublicId = clientProfile.PublicId;
 
         // Look back up to 90 days; we'll take the top `Limit` overall.
         var from = DateTime.UtcNow.Date.AddDays(-90);
@@ -99,7 +98,7 @@ public class GetClientTimelineEndpoint(
         var items = new List<ClientTimelineItem>();
 
         // ── 1. Meal logs — aggregate per day to avoid dozens of rows ──
-        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientPublicId)
+        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
             & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
 
         using (var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct))
@@ -125,11 +124,14 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 2. Workout logs (completed) ──
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, from)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
+        // #841: scoped to executions that carry Performance data (a live-training-assistant
+        // log) — checkbox-only completions never appeared in the old WorkoutLogs collection.
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Exists(l => l.Performance)
+            & Builders<SessionExecution>.Filter.Gte(l => l.Performance!.StartedAt, from)
+            & Builders<SessionExecution>.Filter.Eq(l => l.Status, SessionExecutionStatus.Completed);
 
-        using (var cursor = await mongo.WorkoutLogs.FindAsync(workoutFilter, cancellationToken: ct))
+        using (var cursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct))
         {
             var logs = await cursor.ToListAsync(ct);
             foreach (var log in logs)
@@ -138,7 +140,7 @@ public class GetClientTimelineEndpoint(
                 {
                     Id = $"workout:{log.ExternalId}",
                     Type = "workout",
-                    OccurredAt = log.CompletedAt ?? log.StartedAt,
+                    OccurredAt = log.Performance!.CompletedAt ?? log.Performance.StartedAt,
                     Title = "Dokončil trénink",
                     Description = log.Exercises.Count > 0
                         ? $"{log.Exercises.Count} cviků"
@@ -194,7 +196,7 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 5. Nutrition & training plan publish events ──
-        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientPublicId)
+        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
             & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
 
         using (var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct))
@@ -214,7 +216,7 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientPublicId)
+        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
             & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
 
         using (var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct))

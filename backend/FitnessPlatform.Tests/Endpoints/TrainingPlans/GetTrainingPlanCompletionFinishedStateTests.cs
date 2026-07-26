@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -114,7 +115,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -524,8 +526,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
     /// vacuously complete — <c>Enumerable.All()</c> over an empty collection returns <c>true</c>,
     /// which would cause any completion doc (even an empty one) to match.
     ///
-    /// A zero-section session indicates an empty/corrupt session definition (after
-    /// WithBackfilledSections() a legacy flat-exercise session always gets a synthetic section).
+    /// A zero-section session indicates an empty/corrupt session definition (every
+    /// TrainingSession document is guaranteed to carry a populated sections list post-#837).
     /// Even with a non-empty TrainingCompletion document for that session, IsSessionFinished
     /// must remain false.
     /// </summary>

@@ -101,10 +101,10 @@ public class CompleteTrainingPlanEndpoint(
 
         var plan = guardResult.Document!;
 
-        // Notify the client
+        // Notify the client — TrainingPlan.ClientId is ApplicationUser.Id (#840).
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+            .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
         if (clientProfile is not null)
         {
@@ -122,6 +122,9 @@ public class CompleteTrainingPlanEndpoint(
             }, ct);
         }
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — reuse the profile already resolved above instead of a second lookup.
+        var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 }

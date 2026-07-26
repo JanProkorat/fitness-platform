@@ -190,13 +190,13 @@ public class MarkWholeDayCompleteEndpointTests
     }
 
     /// <summary>
-    /// Builds an <see cref="IAsyncCursor{TrainingCompletion}"/> substitute backed by the given list —
+    /// Builds an <see cref="IAsyncCursor{SessionExecution}"/> substitute backed by the given list —
     /// local copy of <see cref="TrainingCompletionTestHelpers"/>'s private cursor helper, needed here
     /// to stage sequential FindAsync return values (batch-read vs. duplicate-key retry-read).
     /// </summary>
-    private static IAsyncCursor<TrainingCompletion> CreateCursor(List<TrainingCompletion> completions)
+    private static IAsyncCursor<SessionExecution> CreateCursor(List<SessionExecution> completions)
     {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
+        var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
         var moved = false;
         cursor.Current.Returns(completions);
         cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
@@ -245,8 +245,8 @@ public class MarkWholeDayCompleteEndpointTests
         mongo.TrainingPlans.Returns(planCollection);
 
         // Completions collection starts empty (returns empty list for FindAsync)
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -263,7 +263,7 @@ public class MarkWholeDayCompleteEndpointTests
 
         // Should have inserted two completion documents (one per session)
         await completionCollection.Received(2).InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -289,8 +289,8 @@ public class MarkWholeDayCompleteEndpointTests
         // Completions collection returns the existing completion (for session1)
         // Note: both session queries will return the same existing completion because mock
         // doesn't filter — this tests the "already complete" idempotency branch for session1
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([existingCompletion]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([existingCompletion]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -313,8 +313,8 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo().Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -361,8 +361,8 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -382,8 +382,8 @@ public class MarkWholeDayCompleteEndpointTests
         // already-batched read for the compliance broadcast. Before #662 this was 3 — one
         // per-session FindAsync (2, one per session) plus the broadcaster's read (1).
         await completionCollection.Received(2).FindAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -411,9 +411,9 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -455,36 +455,32 @@ public class MarkWholeDayCompleteEndpointTests
             completedExerciseIds: [_exercise1],
             version: 1);
 
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
+        var completionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
 
         // Batch read (before the insert race) sees nothing yet; the retry read after the
         // 11000 sees the concurrent winner's doc.
         completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
                 Arg.Any<CancellationToken>())
             .Returns(
                 _ => CreateCursor([]),
                 _ => CreateCursor([winnerCompletion]));
 
         completionCollection
-            .InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>())
+            .InsertOneAsync(Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(CreateDuplicateKeyException()));
 
         var updateResult = Substitute.For<UpdateResult>();
         updateResult.ModifiedCount.Returns(1L);
         completionCollection.UpdateOneAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<UpdateDefinition<SessionExecution>>(),
                 Arg.Any<UpdateOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(updateResult);
 
-        mongo.TrainingCompletions.Returns(completionCollection);
-        // Extracted to a local first — configuring a nested substitute inline inside
-        // another .Returns() call corrupts NSubstitute's "last call" tracking.
-        var workoutLogCollection = TrainingCompletionTestHelpers.CreateMockWorkoutLogCollection([]);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -502,10 +498,10 @@ public class MarkWholeDayCompleteEndpointTests
         // Retried after the duplicate-key error, found the winner's doc (only exercise1
         // complete), and fanned out the remaining exercise via an update — not a second insert.
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
 
@@ -519,7 +515,7 @@ public class MarkWholeDayCompleteEndpointTests
     [Fact]
     public async Task HandleAsync_EmptyDay_ReturnsEmptySummariesWithoutBroadcasting()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
@@ -546,8 +542,8 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
@@ -566,8 +562,8 @@ public class MarkWholeDayCompleteEndpointTests
         // No completion read should happen when there's nothing to resolve for the day,
         // and no realtime broadcast should fire.
         await completionCollection.DidNotReceive().FindAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
@@ -656,13 +652,13 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
-        TrainingCompletion? inserted = null;
+        SessionExecution? inserted = null;
         completionCollection
-            .When(x => x.InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>()))
-            .Do(ci => inserted = ci.Arg<TrainingCompletion>());
+            .When(x => x.InsertOneAsync(Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>()))
+            .Do(ci => inserted = ci.Arg<SessionExecution>());
 
         var db = CreateMockDb();
 

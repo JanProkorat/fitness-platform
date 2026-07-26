@@ -52,7 +52,8 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Remove any meal log entries for this meal and client logged today (UTC).
         // Uses the same OR pattern as GetTodayLog and SaveMealPhotos to find all log
@@ -74,7 +75,10 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
 
         if (deleteResult.DeletedCount > 0)
         {
-            await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientId, ct);
+            // The SignalR payload's ClientId is the trainer-facing ClientProfile.PublicId
+            // convention (unrelated to the Mongo document clientId key migrated in #840) —
+            // pass clientProfile.PublicId explicitly rather than the (now UserId-valued) clientId.
+            await NotifyLinkedProfessionalsAsync(clientProfile.Id, clientProfile.PublicId, ct);
         }
 
         await Send.NoContentAsync(ct);

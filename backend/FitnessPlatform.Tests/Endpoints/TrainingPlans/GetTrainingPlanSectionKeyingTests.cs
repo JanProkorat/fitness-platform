@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -182,7 +183,8 @@ public class GetTrainingPlanSectionKeyingTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -357,87 +359,14 @@ public class GetTrainingPlanSectionKeyingTests
         exec.HasModifications.Should().BeTrue();
     }
 
-    // ── Legacy log (schema-on-read backfill) renders without error ───────────────
-
-    /// <summary>
-    /// A log stored with the legacy flat exercises field (no sections) is backfilled
-    /// into a default section on read via <c>WithBackfilledSections()</c>.
-    /// The section-aware map must contain the backfilled section's exercises.
-    /// </summary>
-    [Fact]
-    public async Task SessionExecution_LegacyFlatExerciseLog_BackfillsIntoSectionAwareMap()
-    {
-        var exerciseId = Guid.NewGuid();
-
-        // Build a plan with a single unnamed section.
-        var planSectionId = Guid.NewGuid();
-        var session = new TrainingSession
-        {
-            SessionId = _sessionId,
-            Name = "Session 1",
-            DayOfWeek = 1,
-            Sections =
-            [
-                new TrainingSection
-                {
-                    SectionId = planSectionId,
-                    Name = "Hlavní",
-                    Order = 0,
-                    Exercises = [new SessionExercise { ExerciseExternalId = exerciseId, ExerciseName = "Squat", Order = 0, Sets = [new ExerciseSet { SetNumber = 1 }] }]
-                }
-            ]
-        };
-
-        var plan = new TrainingPlan
-        {
-            ExternalId = _planId,
-            ClientId = _clientId,
-            TrainerId = _trainerId,
-            Name = "Test Plan",
-            Status = TrainingPlanStatus.Active,
-            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, Sessions = [session] }],
-            Version = 1,
-            DateCreated = _now
-        };
-
-        // Legacy log: no Sections, uses LegacyExercises field.
-        var legacyLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            PlanId = _planId,
-            SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Sections = [],   // empty — triggers backfill
-            LegacyExercises =
-            [
-                new WorkoutExercise
-                {
-                    ExerciseExternalId = exerciseId,
-                    ExerciseName = "Squat",
-                    Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 80m, CompletedAt = _now.AddMinutes(-25) }]
-                }
-            ],
-            DateCreated = _now
-        };
-
-        var response = await ExecuteAsync(plan, [legacyLog]);
-
-        response.Should().NotBeNull();
-        var exec = response!.SessionExecutions.Single();
-
-        // The backfill creates a synthetic section with a generated Guid.
-        // We can't predict the SectionId, so verify by checking the flat legacy map
-        // is still populated (backward compat), AND that the section-aware map has
-        // exactly one entry.
-        exec.LoggedSetsByExercise.Should().ContainKey(exerciseId,
-            "legacy flat map must still be populated for backward compat");
-        exec.LoggedSetsBySectionAndExercise.Should().HaveCount(1,
-            "backfilled legacy log has exactly one section");
-        exec.LoggedSetsBySectionAndExercise.Values.Single().Single().ActualWeightKg.Should().Be(80m);
-    }
+    // ── Legacy log schema-on-read is retired (#837) ──────────────────────────────
+    //
+    // The flat-`exercises`-no-sections scenario previously covered here
+    // (WithBackfilledSections() at read time) is retired: the one-time boot migration
+    // in MongoIndexInitializer now backfills every WorkoutLog to the sections shape, so
+    // a log at this layer is always sections-populated. See
+    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
+    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
 
     // ── Graceful degradation: already-collapsed historical log ───────────────────
 

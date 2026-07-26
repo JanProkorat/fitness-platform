@@ -62,14 +62,31 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             return;
         }
 
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
+        // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
+            // QuestionnaireResponse.ClientId is ApplicationUser.Id (set from the auth user
+            // id), so compare against the already-resolved clientUserId, not req.ClientId
+            // (which is the trainer-facing ClientProfile.PublicId) — see #840.
             var responseExists = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
                                && r.ProfessionalId == trainerId
-                               && r.ClientId == req.ClientId
+                               && r.ClientId == clientUserId
                                && r.Status == QuestionnaireResponseStatus.Submitted, ct);
 
             if (!responseExists)
@@ -88,7 +105,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         {
             var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
 
-            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Archived)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Completed)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.StartDate, null);
@@ -112,7 +129,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = req.ClientId,
+            ClientId = clientUserId,
             TrainerId = trainerId,
             Name = req.Name,
             Description = req.Description?.Trim(),
@@ -133,7 +150,9 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
 
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        var response = TrainingPlanSummaryDto.FromDocument(plan);
+        // req.ClientId is already the client-facing ClientProfile.PublicId (resolved above to
+        // clientUserId for storage) — reuse it directly for the response, no extra lookup needed.
+        var response = TrainingPlanSummaryDto.FromDocument(plan, req.ClientId);
         await HttpContext.Response.SendAsync(response, 201, cancellation: ct);
     }
 }

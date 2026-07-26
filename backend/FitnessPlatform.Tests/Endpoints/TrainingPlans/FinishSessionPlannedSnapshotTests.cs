@@ -3,13 +3,10 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Tests.Builders;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -18,9 +15,11 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 /// <summary>
 /// Tests for the snapshot-planned-equals-actual behaviour in
 /// <see cref="FinishSessionEndpoint"/>.MaterializeFromTemplate.
-/// When a trainer retroactively finishes a session the log is built from
+/// When a trainer retroactively finishes a session the execution is built from
 /// the prescription: each set's planned values must equal its actual values
 /// so that IsModified == false (done-as-prescribed).
+/// #841: the endpoint now materializes a <see cref="SessionExecution"/> instead of the
+/// retired <c>WorkoutLog</c>.
 /// </summary>
 public class FinishSessionPlannedSnapshotTests
 {
@@ -29,20 +28,10 @@ public class FinishSessionPlannedSnapshotTests
     private IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<WorkoutLog>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
-
-    /// <summary>
-    /// Builds a mock <see cref="IApplicationDbContext"/> containing a <see cref="ClientProfile"/>
-    /// whose PublicId matches the plan's ClientId — the resolution FinishSessionEndpoint performs
-    /// when materializing a new WorkoutLog (see #651).
-    /// </summary>
-    private static IApplicationDbContext CreateDbWithProfileForPlan(TrainingPlan plan) =>
-        new MockDbBuilder()
-            .With(new ClientProfile { Id = 1, UserId = Guid.NewGuid(), PublicId = plan.ClientId })
-            .Build();
 
     private static TrainingPlan CreatePlanWithPrescribedSets(Guid trainerId, Guid sessionId)
     {
@@ -104,19 +93,19 @@ public class FinishSessionPlannedSnapshotTests
         };
     }
 
-    private static (IMongoContext Mongo, IMongoCollection<WorkoutLog> LogCollection) CreateMockMongoWithInsert(
+    private static (IMongoContext Mongo, IMongoCollection<SessionExecution> ExecutionCollection) CreateMockMongoWithInsert(
         TrainingPlan plan,
-        IReadOnlyList<WorkoutLog> existingLogs)
+        IReadOnlyList<SessionExecution> existingExecutions)
     {
         var mongo = Substitute.For<IMongoContext>();
 
         var planCollection = TrainingPlanTestHelpers.CreateMockCollection([plan]);
         mongo.TrainingPlans.Returns(planCollection);
 
-        var logCollection = TrainingPlanTestHelpers.CreateMockWorkoutLogCollection(existingLogs.ToList());
-        mongo.WorkoutLogs.Returns(logCollection);
+        var executionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection(existingExecutions.ToList());
+        mongo.SessionExecutions.Returns(executionCollection);
 
-        return (mongo, logCollection);
+        return (mongo, executionCollection);
     }
 
     // ── MaterializeFromTemplate: planned == actual for every set ──────────────
@@ -126,13 +115,12 @@ public class FinishSessionPlannedSnapshotTests
     {
         var sessionId = Guid.NewGuid();
         var plan = CreatePlanWithPrescribedSets(_trainerId, sessionId);
-        var (mongo, logCollection) = CreateMockMongoWithInsert(plan, []);
-        var db = CreateDbWithProfileForPlan(plan);
+        var (mongo, executionCollection) = CreateMockMongoWithInsert(plan, []);
         var completionService = StubCompletionService();
 
-        WorkoutLog? insertedLog = null;
-        await logCollection.InsertOneAsync(
-            Arg.Do<WorkoutLog>(l => insertedLog = l),
+        SessionExecution? insertedExecution = null;
+        await executionCollection.InsertOneAsync(
+            Arg.Do<SessionExecution>(l => insertedExecution = l),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
 
@@ -140,7 +128,7 @@ public class FinishSessionPlannedSnapshotTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, db, completionService);
+            mongo, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -148,11 +136,11 @@ public class FinishSessionPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // Re-fetch the log that was inserted (NSubstitute captured it above).
+        // Re-fetch the execution that was inserted (NSubstitute captured it above).
         // Because NSubstitute Arg.Do fires when the method is called but we set
         // up the capture after .Returns(), we verify via the completion-service call.
         await completionService.Received(1).CompleteAsync(
-            Arg.Is<WorkoutLog>(l =>
+            Arg.Is<SessionExecution>(l =>
                 // Every set must have planned == actual and IsModified == false.
                 l.Exercises.All(ex =>
                     ex.Sets.All(s =>
@@ -174,14 +162,13 @@ public class FinishSessionPlannedSnapshotTests
         var sessionId = Guid.NewGuid();
         var plan = CreatePlanWithPrescribedSets(_trainerId, sessionId);
         var (mongo, _) = CreateMockMongoWithInsert(plan, []);
-        var db = CreateDbWithProfileForPlan(plan);
         var completionService = StubCompletionService();
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, db, completionService);
+            mongo, completionService);
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -189,10 +176,10 @@ public class FinishSessionPlannedSnapshotTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // Verify the first set of the materialized log has Rpe snapshot set.
+        // Verify the first set of the materialized execution has Rpe snapshot set.
         // (PlannedRpe = 7m for set 1 as prescribed; set 3 has no Rpe → PlannedRpe null)
         await completionService.Received(1).CompleteAsync(
-            Arg.Is<WorkoutLog>(l =>
+            Arg.Is<SessionExecution>(l =>
                 l.Exercises[0].Sets[0].PlannedRpe == 7m &&
                 l.Exercises[0].Sets[0].PlannedReps == 10 &&
                 l.Exercises[0].Sets[0].PlannedWeightKg == 100m &&

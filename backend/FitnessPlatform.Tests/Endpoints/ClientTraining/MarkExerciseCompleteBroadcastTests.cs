@@ -274,9 +274,9 @@ public class MarkExerciseCompleteBroadcastTests
         mongo.TrainingPlans.Returns(planColl);
 
         // UpdateOneAsync returns ModifiedCount=0 → version conflict
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb(_clientId, _clientId);
 

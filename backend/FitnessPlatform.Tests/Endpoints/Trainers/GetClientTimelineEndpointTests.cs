@@ -228,11 +228,11 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
             // Seed a meal log at T1 (MealLog has no ExternalId/Version fields).
-            // MealLog.ClientId is keyed on ClientProfile.PublicId — NOT UserId (see #650).
+            // MealLog.ClientId is keyed on ApplicationUser.Id (#840, previously PublicId — see #650).
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 PlanId = Guid.NewGuid(),
                 MealId = Guid.NewGuid(),
                 EatenAt = t1,
@@ -242,16 +242,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             // Seed a PR at T2
             await InsertPersonalRecordAsync(mongo, clientUserId, "Squat", 120m, 3, t2);
 
-            // Seed a completed workout log at T3
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Seed a completed workout at T3. #841: GetClientTimelineEndpoint reads the
+            // unified SessionExecutions collection (filtered to Performance-bearing,
+            // Status=Completed documents) instead of the retired WorkoutLogs collection.
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = t3.AddMinutes(-30),
-                CompletedAt = t3,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(t3),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = t3.AddMinutes(-30),
+                    CompletedAt = t3,
+                    Sections = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -393,16 +399,15 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Test 6: Regression guard for #650. MealLog, NutritionPlan, and TrainingPlan all
-    /// key ClientId on ClientProfile.PublicId — NOT ApplicationUser.Id. Prior to the fix,
-    /// GetClientTimelineEndpoint filtered these three collections by clientProfile.UserId,
-    /// so meal_day / nutrition_plan_published / training_plan_published items were always
-    /// silently empty (zero documents, no exception). WorkoutLog stays keyed on UserId and
-    /// must remain visible after the fix — proving the fix only re-keys the three broken
-    /// collections, not the two that were already correct.
+    /// Test 6: Regression guard for #840. MealLog, NutritionPlan, and TrainingPlan are now
+    /// all keyed on ApplicationUser.Id — the same identifier WorkoutLog and PersonalRecord
+    /// already used (previously they were keyed on ClientProfile.PublicId; see #650, now
+    /// superseded). GetClientTimelineEndpoint resolves and filters every Mongo collection by
+    /// clientProfile.UserId, so documents seeded on UserId must appear and the (now-stale)
+    /// PublicId key must NOT match anything.
     /// </summary>
     [Fact]
-    public async Task Timeline_MealNutritionAndTrainingPlanSeededOnPublicId_AllAppear()
+    public async Task Timeline_MealNutritionAndTrainingPlanSeededOnUserId_AllAppear()
     {
         var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
@@ -417,11 +422,11 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-            // MealLog, NutritionPlan, TrainingPlan — keyed on ClientProfile.PublicId.
+            // MealLog, NutritionPlan, TrainingPlan — keyed on ApplicationUser.Id (#840).
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 PlanId = Guid.NewGuid(),
                 MealId = Guid.NewGuid(),
                 EatenAt = mealAt,
@@ -432,7 +437,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 NutritionistId = Guid.NewGuid(),
                 Name = "Timeline Nutrition Plan",
                 Status = NutritionPlanStatus.Active,
@@ -446,7 +451,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 TrainerId = Guid.NewGuid(),
                 Name = "Timeline Training Plan",
                 Status = TrainingPlanStatus.Active,
@@ -456,16 +461,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
 
-            // WorkoutLog — keyed on ApplicationUser.Id, must remain unaffected by the fix.
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Workout — keyed on ApplicationUser.Id, unaffected by #840. #841: seeded into the
+            // unified SessionExecutions collection (GetClientTimelineEndpoint reads that
+            // exclusively, filtered to Performance-bearing, Status=Completed documents).
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = workoutAt.AddMinutes(-30),
-                CompletedAt = workoutAt,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(workoutAt),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = workoutAt.AddMinutes(-30),
+                    CompletedAt = workoutAt,
+                    Sections = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -481,13 +492,13 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body!.Items.Should().Contain(i => i.Type == "meal_day",
-            "MealLog.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "MealLog.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "nutrition_plan_published",
-            "NutritionPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "NutritionPlan.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "training_plan_published",
-            "TrainingPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "TrainingPlan.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "workout",
-            "WorkoutLog stays keyed on UserId and must remain visible after the fix");
+            "WorkoutLog was already keyed on UserId and must remain visible after #840");
     }
 
     // ── local response DTOs ────────────────────────────────────────────────────

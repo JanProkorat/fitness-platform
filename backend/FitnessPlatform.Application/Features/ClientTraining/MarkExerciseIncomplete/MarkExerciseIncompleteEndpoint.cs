@@ -63,7 +63,8 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Validate the session belongs to the client's Active plan whose date window contains
@@ -92,8 +93,6 @@ public class MarkExerciseIncompleteEndpoint(
         }
 
         // Validate the exercise exists in the session (section-aware).
-        session.WithBackfilledSections();
-
         var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
         if (section is null)
         {
@@ -108,33 +107,13 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        // Load the completion document for (clientId, date, sessionId)
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
+        // Load the execution document for (clientId, date, sessionId)
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, req.SessionId);
 
-        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-        var existing = await completionCursor.FirstOrDefaultAsync(ct);
-
-        // Auto-backfill: legacy completion docs (written before per-section
-        // tracking was added) carry the flat `CompletedExerciseIds` but
-        // leave `CompletedExerciseIdsBySection` null. The idempotency check
-        // + removal logic below only consult the per-section dict, so
-        // without this step the legacy doc would short-circuit at "nothing
-        // to remove" and the flat list would never clear — the exercise
-        // would reappear as complete after every refresh via the read-time
-        // backfill in `TrainingCompletionBackfill`. Populating the dict
-        // up-front gives the removal logic something to delete from.
-        if (existing is not null
-            && (existing.CompletedExerciseIdsBySection is null
-                || existing.CompletedExerciseIdsBySection.Count == 0)
-            && existing.CompletedExerciseIds.Count > 0)
-        {
-            var effective = TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(existing, session);
-            existing.CompletedExerciseIdsBySection = effective.ToDictionary(
-                kvp => kvp.Key.ToString(),
-                kvp => kvp.Value.ToList());
-        }
+        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
         // Idempotency: check whether this exercise is complete in this specific section.
         var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
@@ -181,76 +160,40 @@ public class MarkExerciseIncompleteEndpoint(
             ? existing.CompletedExerciseIds
             : existing.CompletedExerciseIds.Where(id => id != req.ExerciseExternalId).ToList();
 
+        // ── #841: if this execution also carries Performance (live-training-assistant data),
+        // clear the matching set's CompletedAt stamp IN THE SAME DOCUMENT — no more best-effort
+        // cross-collection sync into a separate WorkoutLog.
+        if (existing.Performance is not null)
+        {
+            var exerciseEntry = existing.Performance.Exercises
+                .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
+
+            if (exerciseEntry is not null)
+            {
+                foreach (var set in exerciseEntry.Sets)
+                    set.CompletedAt = null;
+            }
+        }
+
         var newVersion = existing.Version + 1;
 
-        var versionedFilter = completionFilter
-                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+        var versionedFilter = executionFilter
+                              & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
-        var update = Builders<TrainingCompletion>.Update
+        var update = Builders<SessionExecution>.Update
             .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
             .Set(c => c.CompletedExerciseIds, newIds)
+            .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 
-        var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+        var updateResult = await mongo.SessionExecutions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
 
         if (updateResult.ModifiedCount == 0)
         {
             await this.SendProblemAsync(409, ErrorCodes.TrainingCompletionVersionConflict,
                 "Version conflict. The completion record was modified by another request.", ct);
             return;
-        }
-
-        // Mirror the un-mark into today's WorkoutLog(s) so the read side
-        // (GetTodaySessionEndpoint) no longer re-merges stale CompletedAt stamps.
-        // NOTE: WorkoutLog.ClientId is stored as the auth user's Id, NOT clientProfile.PublicId.
-        var userIdGuid = Guid.Parse(userId);
-        try
-        {
-            var tomorrow = targetDate.AddDays(1);
-            var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
-                & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, (Guid?)req.SessionId)
-                & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
-                & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
-
-            using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
-            var matchingLogs = await logCursor.ToListAsync(ct);
-
-            foreach (var log in matchingLogs)
-            {
-                log.WithBackfilledSections();
-                var exerciseEntry = log.Exercises
-                    .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
-
-                if (exerciseEntry is null)
-                    continue;
-
-                // Clear only this exercise's set timestamps.
-                foreach (var set in exerciseEntry.Sets)
-                    set.CompletedAt = null;
-
-                // If every set across every exercise now lacks CompletedAt, mark the log as not completed.
-                var anySetStillCompleted = log.Exercises
-                    .SelectMany(e => e.Sets)
-                    .Any(s => s.CompletedAt is not null);
-                if (!anySetStillCompleted)
-                    log.IsCompleted = false;
-
-                log.DateUpdated = DateTime.UtcNow;
-
-                await mongo.WorkoutLogs.ReplaceOneAsync(
-                    Builders<WorkoutLog>.Filter.Eq(l => l.Id, log.Id),
-                    log,
-                    cancellationToken: ct);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "Failed to clear WorkoutLog CompletedAt stamps for exercise {ExerciseExternalId} " +
-                "in session {SessionId} on {Date}. TrainingCompletion was already updated; this is best-effort.",
-                req.ExerciseExternalId, req.SessionId, targetDate);
         }
 
         await TrainingProgressBroadcaster.BroadcastSessionAsync(

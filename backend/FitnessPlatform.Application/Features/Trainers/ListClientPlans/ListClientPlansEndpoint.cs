@@ -83,18 +83,18 @@ public class ListClientPlansEndpoint(
             return;
         }
 
-        // NutritionPlan.ClientId and TrainingPlan.ClientId store ClientProfile.PublicId.
-        // WorkoutLog.ClientId and PersonalRecord.ClientId store ApplicationUser.Id (UserId).
-        // clientProfile.Id is the long PK used by BodyMeasurement (keyed on ClientProfileId).
-        var clientPublicId = clientProfile.PublicId;
+        // Every Mongo document's clientId (NutritionPlan, TrainingPlan, WorkoutLog,
+        // PersonalRecord) is now keyed on ApplicationUser.Id (#840) — one identifier
+        // serves all of them. clientProfile.Id is the long PK used by BodyMeasurement
+        // (keyed on ClientProfileId), unrelated to the Mongo key.
         var clientUserId = clientProfile.UserId;
         var clientProfileId = clientProfile.Id;
 
-        // Load all plans from Mongo in parallel — keyed on PublicId
+        // Load all plans from Mongo in parallel — keyed on ApplicationUser.Id
         var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
-            .Eq(p => p.ClientId, clientPublicId);
+            .Eq(p => p.ClientId, clientUserId);
         var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
-            .Eq(p => p.ClientId, clientPublicId);
+            .Eq(p => p.ClientId, clientUserId);
 
         var nutritionTask = mongo.NutritionPlans
             .Find(nutritionFilter)
@@ -108,14 +108,15 @@ public class ListClientPlansEndpoint(
         var trainingPlans = trainingTask.Result;
 
         // Compute result summaries for training plans:
-        // totalTrainings = count of completed WorkoutLogs with matching PlanId
+        // totalTrainings = count of completed SessionExecutions (with Performance) with matching PlanId
         // prCount = count of PersonalRecords with AchievedAt in [plan.StartDate .. plan.DateCompleted ?? now]
         var trainingPlanIds = trainingPlans.Select(p => p.ExternalId).ToList();
-        var workoutLogs = await mongo.WorkoutLogs
-            .Find(Builders<Domain.Documents.WorkoutLog>.Filter.And(
-                Builders<Domain.Documents.WorkoutLog>.Filter.Eq(l => l.ClientId, clientUserId),
-                Builders<Domain.Documents.WorkoutLog>.Filter.Eq(l => l.IsCompleted, true),
-                Builders<Domain.Documents.WorkoutLog>.Filter.In(l => l.PlanId, trainingPlanIds.Cast<Guid?>())))
+        var workoutLogs = await mongo.SessionExecutions
+            .Find(Builders<Domain.Documents.SessionExecution>.Filter.And(
+                Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId),
+                Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.Status, Domain.Enums.SessionExecutionStatus.Completed),
+                Builders<Domain.Documents.SessionExecution>.Filter.Exists(l => l.Performance),
+                Builders<Domain.Documents.SessionExecution>.Filter.In(l => l.PlanId, trainingPlanIds.Cast<Guid?>())))
             .ToListAsync(ct);
 
         // PersonalRecords have no planId; filter by AchievedAt window per plan (computed per plan below)
@@ -126,7 +127,7 @@ public class ListClientPlansEndpoint(
         // Build training plan items
         var trainingItems = trainingPlans.Select(plan =>
         {
-            var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId && l.IsCompleted);
+            var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId);
 
             // PR window: [plan.StartDate .. plan.DateCompleted ?? now]
             int? prCount = null;
@@ -195,7 +196,7 @@ public class ListClientPlansEndpoint(
             }
 
             var complianceResult = await complianceService.CalculateComplianceAsync(
-                clientPublicId, plan.StartDate.Value, periodEnd, ct);
+                clientUserId, plan.StartDate.Value, periodEnd, ct);
             return ((decimal?)complianceResult.NutritionCompliancePercent, weightDeltaKg);
         }).ToList();
 

@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -42,7 +43,8 @@ public class UpdateTrainingPlanFormatTests
             mongo,
             CreateNoOpLockService(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
     private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>

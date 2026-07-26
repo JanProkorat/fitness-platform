@@ -19,15 +19,16 @@ using MongoDB.Bson;
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
-/// Integration tests for GET /trainer/clients/{clientId}/plans — issue #528.
+/// Integration tests for GET /trainer/clients/{clientId}/plans — issues #528, #650, #840.
 ///
-/// Root cause: ListClientPlansEndpoint was filtering NutritionPlan.ClientId and
-/// TrainingPlan.ClientId by clientProfile.UserId, but those fields store
-/// clientProfile.PublicId. The result was always an empty list.
+/// #840 standardised the canonical Mongo clientId on ApplicationUser.Id: NutritionPlan.ClientId
+/// and TrainingPlan.ClientId are now keyed on UserId (previously ClientProfile.PublicId, see
+/// #528/#650). ListClientPlansEndpoint filters and calls IComplianceService with
+/// clientProfile.UserId.
 ///
-/// These tests use real PostgreSQL + MongoDB (Testcontainers) to validate
-/// that plans are only found when ClientId == PublicId — not when it equals UserId.
-/// A mock-based test cannot catch this bug because mocks ignore the filter value.
+/// These tests use real PostgreSQL + MongoDB (Testcontainers) to validate that plans are only
+/// found when ClientId == UserId — not when it equals the now-stale PublicId. A mock-based
+/// test cannot catch this class of bug because mocks ignore the filter value.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
@@ -105,19 +106,19 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
     // ── regression guard tests ────────────────────────────────────────────────
 
     /// <summary>
-    /// Regression guard for #528: when a NutritionPlan is seeded with
-    /// ClientId = clientProfile.PublicId (the correct key), the endpoint returns it.
-    /// A test seeding with UserId would pass green even with the broken filter —
-    /// this test would fail with the broken filter and pass with the fix.
+    /// Regression guard for #840: NutritionPlan.ClientId is now keyed on
+    /// ApplicationUser.Id (the canonical clientId — previously it was
+    /// ClientProfile.PublicId, see #528). A plan seeded with UserId must be
+    /// returned by the endpoint.
     /// </summary>
     [Fact]
-    public async Task Plans_SeededWithPublicId_AreReturnedByTrainer()
+    public async Task Plans_SeededWithUserId_AreReturnedByTrainer()
     {
         var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
-        var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
-        // Seed a NutritionPlan with ClientId = PublicId (the correct key)
+        // Seed a NutritionPlan with ClientId = UserId (the canonical key post-#840)
         using (var scope = factory.Services.CreateScope())
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -125,9 +126,9 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientPublicId,   // ← MUST be PublicId, not UserId
+                ClientId = clientUserId,   // ← MUST be UserId, not PublicId (#840)
                 NutritionistId = Guid.NewGuid(),
-                Name = "Test Plan PublicId",
+                Name = "Test Plan UserId",
                 Status = NutritionPlanStatus.Active,
                 StartDate = DateTime.UtcNow.AddDays(-7),
                 Weeks = [],
@@ -146,24 +147,23 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
 
         body!.Plans.Should().HaveCountGreaterThanOrEqualTo(1,
-            "the plan seeded with ClientId = PublicId must appear in the list");
-        body.Plans.Should().Contain(p => p.Name == "Test Plan PublicId");
+            "the plan seeded with ClientId = UserId must appear in the list");
+        body.Plans.Should().Contain(p => p.Name == "Test Plan UserId");
     }
 
     /// <summary>
-    /// Regression guard for #528: a plan seeded with ClientId = UserId (the WRONG key,
-    /// the old bug) must NOT appear in the response. Without this guard, a test
-    /// seeding with UserId would still pass green while production (which uses PublicId)
-    /// would silently return zero plans.
+    /// Regression guard for #840: a plan seeded with ClientId = ClientProfile.PublicId
+    /// (the now-stale key, prior to #840) must NOT appear in the response — proving the
+    /// filter was re-keyed to UserId, not left matching either identifier.
     /// </summary>
     [Fact]
-    public async Task Plans_SeededWithUserIdInsteadOfPublicId_AreNotReturned()
+    public async Task Plans_SeededWithPublicIdInsteadOfUserId_AreNotReturned()
     {
         var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
-        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
-        // Seed a NutritionPlan with ClientId = UserId (wrong key — the old bug)
+        // Seed a NutritionPlan with ClientId = PublicId (wrong key post-#840 — the old key)
         using (var scope = factory.Services.CreateScope())
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -171,9 +171,9 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientUserId,   // ← WRONG: UserId not PublicId
+                ClientId = clientPublicId,   // ← WRONG: PublicId not UserId (#840)
                 NutritionistId = Guid.NewGuid(),
-                Name = "WrongKey Plan UserId",
+                Name = "WrongKey Plan PublicId",
                 Status = NutritionPlanStatus.Active,
                 StartDate = DateTime.UtcNow.AddDays(-7),
                 Weeks = [],
@@ -191,26 +191,24 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<PlansResponse>(
             JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
 
-        body!.Plans.Should().NotContain(p => p.Name == "WrongKey Plan UserId",
-            "a plan whose ClientId is UserId (not PublicId) must not match the filter");
+        body!.Plans.Should().NotContain(p => p.Name == "WrongKey Plan PublicId",
+            "a plan whose ClientId is PublicId (not UserId) must not match the filter post-#840");
     }
 
     /// <summary>
-    /// Regression guard for #650: ListClientPlansEndpoint:198 was passing
-    /// <c>clientUserId</c> instead of <c>clientPublicId</c> to
-    /// <see cref="IComplianceService.CalculateComplianceAsync"/>. Because
-    /// NutritionPlan.ClientId and MealLog.ClientId are both keyed on PublicId,
-    /// the compliance lookup silently found no active plan and no logs, forcing
-    /// nutrition compliance to 0% regardless of real adherence. This test seeds a
-    /// real, published nutrition plan and a matching meal log — both keyed on
-    /// PublicId — through the real (unmocked) ComplianceService, and asserts the
-    /// endpoint's HTTP response reports non-zero compliance.
+    /// Regression guard for #840 (supersedes #650): ListClientPlansEndpoint calls
+    /// <see cref="IComplianceService.CalculateComplianceAsync"/> with
+    /// <c>clientProfile.UserId</c>. Because NutritionPlan.ClientId and MealLog.ClientId
+    /// are both now keyed on UserId, the compliance lookup finds the active plan and the
+    /// logged meal. This test seeds a real, published nutrition plan and a matching meal
+    /// log — both keyed on UserId — through the real (unmocked) ComplianceService, and
+    /// asserts the endpoint's HTTP response reports non-zero compliance.
     /// </summary>
     [Fact]
-    public async Task Plans_AdheredNutritionPlanWithMealLogsOnPublicId_ReportsNonZeroNutritionCompliance()
+    public async Task Plans_AdheredNutritionPlanWithMealLogsOnUserId_ReportsNonZeroNutritionCompliance()
     {
         var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
-        var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
         var today = DateTime.UtcNow.Date;
@@ -219,7 +217,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var mondayThisWeek = today.AddDays(-(dow - 1));
 
         var plan = PlanTestHelpers.CreatePlan(
-            clientId: clientPublicId,
+            clientId: clientUserId,
             status: NutritionPlanStatus.Active,
             weekCount: 1,
             name: "Adhered Nutrition Plan");
@@ -236,11 +234,11 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             await mongo.NutritionPlans.InsertOneAsync(
                 plan, cancellationToken: TestContext.Current.CancellationToken);
 
-            // MealLog.ClientId is keyed on ClientProfile.PublicId — matches the plan.
+            // MealLog.ClientId is keyed on ApplicationUser.Id (#840) — matches the plan.
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 PlanId = plan.ExternalId,
                 MealId = plan.Weeks[0].Days[dow - 1].Meals[0].MealId,
                 EatenAt = DateTime.UtcNow,
@@ -303,7 +301,9 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
         await mongo.TrainingPlans.InsertOneAsync(
             plan, cancellationToken: TestContext.Current.CancellationToken);
-        await mongo.TrainingCompletions.InsertOneAsync(
+        // #841: ComplianceService reads exclusively from the unified SessionExecutions
+        // collection — the retired TrainingCompletions collection is no longer consulted.
+        await mongo.SessionExecutions.InsertOneAsync(
             completion, cancellationToken: TestContext.Current.CancellationToken);
 
         var complianceService = scope.ServiceProvider.GetRequiredService<IComplianceService>();

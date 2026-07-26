@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -26,7 +27,8 @@ public class GetTrainingPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -44,7 +46,8 @@ public class GetTrainingPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = plan.ExternalId }, TestContext.Current.CancellationToken);
 

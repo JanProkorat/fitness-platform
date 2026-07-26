@@ -39,7 +39,6 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
             return;
         }
 
-        // MealLogs and NutritionPlans in Mongo are keyed by ClientProfile.PublicId.
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
@@ -50,7 +49,8 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
         var today = DateTime.UtcNow.Date;
 
         // Calculate Monday of the current week (handle Sunday as day 0)

@@ -72,7 +72,7 @@ public interface IMongoContext
 
     /// <summary>
     /// Session log entries — photos and notes attached to a specific training session diary entry.
-    /// Keyed by (ClientId = ClientProfile.PublicId, PlanId, SessionId, LogDate).
+    /// Keyed by (ClientId = ApplicationUser.Id, PlanId, SessionId, LogDate).
     /// </summary>
     IMongoCollection<SessionLog> SessionLogs { get; }
 
@@ -86,4 +86,12 @@ public interface IMongoContext
     /// Reusable workout templates collection.
     /// </summary>
     IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
+
+    /// <summary>
+    /// Session execution documents (#841) — unifies <see cref="WorkoutLogs"/> and
+    /// <see cref="TrainingCompletions"/>. Both legacy collections are retained read-only
+    /// (no new writes) for one release as the rollback path; this is the single
+    /// live source of truth for training-session execution state.
+    /// </summary>
+    IMongoCollection<SessionExecution> SessionExecutions { get; }
 }

@@ -63,7 +63,8 @@ public class GenerateSessionPhotoUploadUrlEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Resolve the client's Active training plan whose date window contains today — a client
         // may hold several sequential, non-overlapping Active plans (#780).

@@ -61,7 +61,11 @@ var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
 var mongoClient = new MongoClient(mongoConnection);
 builder.Services.AddSingleton<IMongoDatabase>(_ => mongoClient.GetDatabase(mongoDatabaseName));
 builder.Services.AddSingleton<IMongoContext, MongoContext>();
-builder.Services.AddHostedService<MongoIndexInitializer>();
+
+// MongoIndexInitializer is registered as a plain singleton, NOT via AddHostedService.
+// It is invoked explicitly, awaited, and completed BEFORE app.Run() below — see that
+// call site for why. Index creation is idempotent and stays part of the same pass.
+builder.Services.AddSingleton<MongoIndexInitializer>();
 
 // Blob Storage (MinIO)
 builder.Services.AddSingleton<IBlobStorageService, MinioBlobStorageService>();
@@ -368,6 +372,57 @@ if (args.Contains("--backfill-plan-goals"))
     return;
 }
 
+// One-shot migration (#840): rewrite every Mongo document's clientId field from
+// ClientProfile.PublicId to ApplicationUser.Id (NutritionPlan, TrainingPlan,
+// TrainingCompletion, DayLog, MealLog, SessionLog, SessionLock).
+//
+// This is the PRODUCTION entrypoint for this migration. Render does not set
+// Database:RunMigrationsOnStartup (see that flag's remarks below), so the
+// startup-gated invocation near app.Run() is dev/e2e-only convenience and never
+// fires in prod. Run this once as an intentional deploy step, the same way EF
+// Core migrations are applied deliberately on Render rather than auto-run:
+//
+//   dotnet run -- --migrate-client-ids
+//
+// Idempotent — safe to re-run; see MongoIndexInitializer.MigrateClientIdsAsync's
+// remarks for the idempotency argument.
+if (args.Contains("--migrate-client-ids"))
+{
+    using var scope = app.Services.CreateScope();
+    var migrationDb = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+    var mongoIndexInitializer = scope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+    await mongoIndexInitializer.MigrateClientIdsAsync(migrationDb, CancellationToken.None);
+    Console.WriteLine("ClientId standardisation (#840) complete — see log output above for per-collection counts.");
+    return;
+}
+
+// One-shot migration (#841): merge every WorkoutLog + TrainingCompletion document into the
+// unified SessionExecution collection.
+//
+// This is the PRODUCTION entrypoint for this migration, mirroring --migrate-client-ids (#840)
+// above — Render does not set Database:RunMigrationsOnStartup, so this must be run once as an
+// intentional deploy step:
+//
+//   dotnet run -- --migrate-session-executions
+//
+// Idempotent — safe to re-run; see MongoIndexInitializer.MigrateSessionExecutionsAsync's
+// remarks for the idempotency argument (identity = (clientId, sessionId, date) for plan-bound
+// executions, ExternalId for ad-hoc ones).
+//
+// Pure Mongo-to-Mongo — unlike --migrate-client-ids this needs no IApplicationDbContext scope.
+if (args.Contains("--migrate-session-executions"))
+{
+    using var scope = app.Services.CreateScope();
+    var mongoIndexInitializer = scope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+    var (merged, logOnly, completionOnly, adHoc, skipped) =
+        await mongoIndexInitializer.MigrateSessionExecutionsAsync(CancellationToken.None);
+    Console.WriteLine(
+        $"SessionExecution migration (#841) complete — merged={merged} logOnly={logOnly} " +
+        $"completionOnly={completionOnly} adHoc={adHoc} skipped(alreadyMigrated)={skipped}. " +
+        "See log output above for details.");
+    return;
+}
+
 // Auto-apply pending EF Core migrations — OPT-IN via Database:RunMigrationsOnStartup=true.
 //
 // This flag is intentionally OFF by default. It must be set explicitly in the
@@ -477,5 +532,64 @@ app.UseFastEndpoints(c =>
     });
 });
 app.UseSwaggerGen();
+
+// #837 fix (pass-2 review M1): guarantee the retire-schema-on-read migration
+// (backfilling legacy TrainingSession/WorkoutLog/TrainingCompletion documents,
+// plus its idempotent index creation) COMPLETES before Kestrel accepts any
+// request. This is why MongoIndexInitializer is registered above as a plain
+// AddSingleton, NOT AddHostedService: in the generic/web host, hosted services
+// start sequentially in registration order, and the framework's own web-hosting
+// service (which actually starts Kestrel listening) is registered ahead of
+// anything added later in this file — so a plain AddHostedService<MongoIndexInitializer>
+// would let Kestrel begin serving BEFORE (or concurrently with) this migration's
+// StartAsync, not after it. A request racing an unfinished migration would read
+// an un-migrated legacy TrainingSession/WorkoutLog document and throw
+// BsonSerializationException — #837 deleted the graceful WithBackfilledSections
+// request-time fallback, and the document types carry no [BsonIgnoreExtraElements],
+// so that read no longer self-heals the way it did pre-#837. Awaiting the explicit
+// call below, strictly before app.Run(), removes that race entirely: there is no
+// hosted-service ordering to reason about because this is plain sequential code.
+using (var migrationScope = app.Services.CreateScope())
+{
+    var mongoIndexInitializer = migrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+
+    await mongoIndexInitializer.StartAsync(CancellationToken.None);
+
+    // #840: standardise every Mongo document's clientId field on ApplicationUser.Id
+    // (NutritionPlan, TrainingPlan, TrainingCompletion, DayLog, MealLog, SessionLog,
+    // SessionLock — WorkoutLog and PersonalRecord already used ApplicationUser.Id).
+    // Same pre-app.Run() timing requirement as StartAsync above: endpoints filter
+    // these collections by ApplicationUser.Id, and a request racing an unmigrated
+    // document would silently match zero documents rather than throw, so this must
+    // also complete before Kestrel accepts traffic when it runs. IApplicationDbContext
+    // is scoped, so it's resolved from this same scope and passed in as a parameter —
+    // see MongoIndexInitializer.MigrateClientIdsAsync's remarks for why it isn't a
+    // constructor dependency.
+    //
+    // GATED behind the SAME runMigrationsOnStartup flag as the relational EF migration
+    // above (unlike StartAsync(), which always runs — it never touches Postgres). This
+    // migration reads ClientProfile rows from Postgres via IApplicationDbContext, and in
+    // the Testcontainers/e2e harness Database:RunMigrationsOnStartup=false while the
+    // relational schema is provisioned later by ApplicationDbContextSeed — so running
+    // this unconditionally raced an unprovisioned Postgres schema and threw Npgsql 42P01
+    // "relation client_profiles does not exist" nondeterministically across the shared
+    // fixture.
+    //
+    // This startup-gated invocation is DEV/E2E CONVENIENCE ONLY. Render does NOT set
+    // Database:RunMigrationsOnStartup (see the flag's own remarks a few dozen lines
+    // above: "Because Render does not set Database__RunMigrationsOnStartup, the flag
+    // stays false and migrations are NEVER auto-applied there"), so this block never
+    // runs in production. The production mechanism is the dedicated
+    // `dotnet run -- --migrate-client-ids` one-shot CLI arg defined earlier in this
+    // file — run it once as an intentional deploy step, mirroring how EF Core
+    // migrations are applied deliberately on Render rather than auto-run. The
+    // Testcontainers tests for this migration invoke MigrateClientIdsAsync directly
+    // against an already-provisioned schema, independent of this startup gate.
+    if (runMigrationsOnStartup)
+    {
+        var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+        await mongoIndexInitializer.MigrateClientIdsAsync(migrationDbContext, CancellationToken.None);
+    }
+}
 
 app.Run();
