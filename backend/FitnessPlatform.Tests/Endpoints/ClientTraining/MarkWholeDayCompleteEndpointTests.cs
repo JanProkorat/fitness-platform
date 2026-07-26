@@ -515,7 +515,7 @@ public class MarkWholeDayCompleteEndpointTests
     [Fact]
     public async Task HandleAsync_EmptyDay_ReturnsEmptySummariesWithoutBroadcasting()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),

@@ -34,7 +34,7 @@ public class MarkSectionIncompleteEndpointTests
 
     private TrainingPlan CreatePlanWithExerciseFreeSection()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         return new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),

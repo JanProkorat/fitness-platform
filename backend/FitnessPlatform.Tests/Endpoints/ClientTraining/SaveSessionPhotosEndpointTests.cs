@@ -35,7 +35,7 @@ public class SaveSessionPhotosEndpointTests
     private TrainingPlan CreateActivePlan(Guid? sessionId = null)
     {
         var sid = sessionId ?? Guid.NewGuid();
-        var startOfWeek = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var startOfWeek = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         return new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),

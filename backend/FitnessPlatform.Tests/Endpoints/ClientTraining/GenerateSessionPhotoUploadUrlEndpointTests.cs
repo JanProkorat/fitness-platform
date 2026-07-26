@@ -42,7 +42,7 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
     private static IMongoContext CreateMongoWithActivePlan(Guid clientId, Guid? sessionId = null, bool addSession = true)
     {
         var sid = sessionId ?? Guid.NewGuid();
-        var startOfWeek = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var startOfWeek = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
         {

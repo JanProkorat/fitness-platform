@@ -50,7 +50,7 @@ public class MarkSectionCompleteEndpointTests
     /// </summary>
     private TrainingPlan CreatePlanWithExerciseFreeSection()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         return new FitnessPlatform.Application.Domain.Documents.TrainingPlan
         {
             ExternalId = Guid.NewGuid(),

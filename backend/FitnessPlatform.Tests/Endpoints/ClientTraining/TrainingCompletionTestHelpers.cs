@@ -13,6 +13,32 @@ namespace FitnessPlatform.Tests.Endpoints.ClientTraining;
 public static class TrainingCompletionTestHelpers
 {
     /// <summary>
+    /// Returns the Monday of the current UTC week.
+    /// </summary>
+    /// <remarks>
+    /// Root cause of the #726-lookalike "scheduler-zombie" CI flake investigated for
+    /// epic #835/PR #854: this file's fixtures previously computed the week start as
+    /// <c>DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1)</c>. That
+    /// formula is correct for Monday(1)..Saturday(6) but breaks on Sunday, where
+    /// <see cref="DayOfWeek.Sunday"/> is <c>0</c>: <c>-(0) + 1 = +1</c> pushes the
+    /// computed "Monday" to TOMORROW instead of 6 days in the past. Every real
+    /// Sunday, the seeded <see cref="TrainingPlan.StartDate"/> lands in the future,
+    /// <c>PlanWindowResolver.ResolveCurrentPlan</c> legitimately finds no plan whose
+    /// window contains "today", and the endpoint under test returns a genuine 404 —
+    /// deterministically, in CI and locally alike, on any machine's real calendar
+    /// Sunday. This is why the failure was 100% reproducible in complete isolation
+    /// (no Testcontainers, no other tests) yet had never been seen before: the branch
+    /// had simply never had CI run on a Sunday until now. Uses the same
+    /// ISO-week-safe formula already proven correct elsewhere in this suite (see
+    /// <c>GetTodaySessionEndpointTests.StartOfCurrentWeek()</c>).
+    /// </remarks>
+    public static DateTime StartOfCurrentWeekUtc()
+    {
+        var today = DateTime.UtcNow.Date;
+        return today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+    }
+
+    /// <summary>
     /// Creates an active <see cref="TrainingPlan"/> with one published week containing
     /// sessions for every day of the week. Each session has the given exercises in a single section.
     /// </summary>
@@ -38,7 +64,7 @@ public static class TrainingCompletionTestHelpers
         var sid = sessionId ?? Guid.NewGuid();
         var secId = sectionId ?? Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
-        var start = startDate ?? DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1); // Monday of current week
+        var start = startDate ?? StartOfCurrentWeekUtc();
 
         return new TrainingPlan
         {
@@ -101,7 +127,7 @@ public static class TrainingCompletionTestHelpers
     {
         var section1Id = Guid.NewGuid();
         var section2Id = Guid.NewGuid();
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
         {
@@ -213,7 +239,7 @@ public static class TrainingCompletionTestHelpers
         var forTimeSectionId = Guid.NewGuid();
         var standardSectionId = Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
         {
