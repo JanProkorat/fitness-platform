@@ -2,7 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.NutritionPlans;
@@ -14,6 +17,21 @@ public class GetPlanEndpointTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
+    /// <summary>
+    /// Builds a mocked <see cref="IApplicationDbContext"/> seeded with a <see cref="ClientProfile"/>
+    /// whose <see cref="ClientProfile.UserId"/> matches the plan's internal storage-key <c>ClientId</c>
+    /// (#840) and whose <see cref="ClientProfile.PublicId"/> is a DISTINCT guid — so assertions that
+    /// compare against <paramref name="clientPublicId"/> actually prove the UserId→PublicId
+    /// translation happened, rather than trivially passing because both values were equal.
+    /// </summary>
+    private static IApplicationDbContext CreateDbWithClientProfile(Guid clientUserId, out Guid clientPublicId)
+    {
+        clientPublicId = Guid.NewGuid();
+        return new MockDbBuilder()
+            .With(new ClientProfile { UserId = clientUserId, PublicId = clientPublicId })
+            .Build();
+    }
+
     [Fact]
     public async Task HandleAsync_PlanExists_ReturnsDetail()
     {
@@ -23,29 +41,36 @@ public class GetPlanEndpointTests
             nutritionistId: _nutritionistId,
             name: "My Plan");
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out var clientPublicId);
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
         ep.Response.Should().NotBeNull();
         ep.Response.Name.Should().Be("My Plan");
+
+        // Outward ClientId must be the ClientProfile.PublicId (#840 restoration), NOT the internal
+        // ApplicationUser.Id storage key — distinct GUIDs prove the translation actually happened.
+        ep.Response.ClientId.Should().Be(clientPublicId);
+        ep.Response.ClientId.Should().NotBe(plan.ClientId);
     }
 
     [Fact]
     public async Task HandleAsync_PlanNotFound_Returns404()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         await ep.HandleAsync(
             new GetPlanRequest { PlanId = Guid.NewGuid() },
@@ -63,12 +88,13 @@ public class GetPlanEndpointTests
         var planId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId);
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan], mealLogs: []);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -95,12 +121,13 @@ public class GetPlanEndpointTests
             eatenAt: null);  // photo-only stub
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan], mealLogs: [log]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -130,12 +157,13 @@ public class GetPlanEndpointTests
             eatenAt: eatenAt);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan], mealLogs: [log]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -158,13 +186,14 @@ public class GetPlanEndpointTests
 
         var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: otherNutritionistId);
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = new MockDbBuilder().Build();
 
         var callerNutritionistId = Guid.NewGuid();  // not the owner
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerNutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -196,12 +225,13 @@ public class GetPlanEndpointTests
         };
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan], mealLogs: logs);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
 
         var ep = Factory.Create<GetPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db);
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
