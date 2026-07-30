@@ -23,6 +23,10 @@ HOOK_LOG="$LOG_DIR/$(date +%F).log"
 # Nothing to do if no state at all.
 if [[ ! -d "$STATE_DIR" ]]; then exit 0; fi
 
+# Give up on a typecheck after this many seconds and clear its state.
+# Generous: web ~10s warm, mobile ~15-17s warm, both slower cold.
+STALE_AFTER="${FITNESS_TYPECHECK_STALE_AFTER:-600}"
+
 report_pkg() {
     local pkg="$1"
     local label="$2"  # human-friendly, e.g. "/web"
@@ -36,19 +40,31 @@ report_pkg() {
         return 0
     fi
 
-    # Still running?
-    if [[ -f "$pid_file" ]] && [[ ! -f "$done_file" ]]; then
-        local pid
-        pid="$(cat "$pid_file" 2>/dev/null || true)"
-        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-            local started_at elapsed now
-            started_at="$(cat "$started_file" 2>/dev/null || echo 0)"
-            now="$(date +%s)"
-            elapsed=$(( now - started_at ))
+    # Not finished yet: decide "still running" vs "stale" from ELAPSED TIME,
+    # not from `kill -0 $pid`. The pid file is written by the spawned shell a
+    # few ms AFTER the spawn returns, so probing it immediately reports a live
+    # typecheck as dead — and the old code then deleted the log it was about
+    # to read. See the matching note in typecheck-on-stop.sh.
+    if [[ ! -f "$done_file" ]]; then
+        local started_at now elapsed
+        started_at="$(cat "$started_file" 2>/dev/null || echo 0)"
+        now="$(date +%s)"
+        elapsed=$(( now - started_at ))
+
+        if (( elapsed < STALE_AFTER )); then
             echo "[typecheck] $label — background tsc still running (~${elapsed}s elapsed). Results will surface next turn." >&2
             return 0
         fi
-        # PID is gone but no .done file — crashed or was killed. Clean up.
+
+        # Past the ceiling: assume it died or hung. Kill it if we have a pid.
+        local pid
+        pid="$(cat "$pid_file" 2>/dev/null || true)"
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+            pkill -P "$pid" 2>/dev/null || true
+            kill -TERM "$pid" 2>/dev/null || true
+        fi
+        printf '[%s] typecheck-on-submit: %s abandoned after %ss\n' \
+          "$(date -Iseconds)" "$label" "$elapsed" >> "$HOOK_LOG"
         rm -f "$pid_file" "$started_file" "$log_file"
         return 0
     fi

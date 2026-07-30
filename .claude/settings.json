@@ -41,7 +41,23 @@
       "Edit(web/src/api/generated.ts)",
       "Write(web/src/api/generated.ts)",
       "Edit(mobile/src/api/generated.ts)",
-      "Write(mobile/src/api/generated.ts)"
+      "Write(mobile/src/api/generated.ts)",
+
+      "Write(**/*.pfx)",
+      "Write(**/*.key)",
+      "Edit(**/*.pem)",
+      "Write(**/*.pem)",
+      "Bash(*>*.pem)",
+
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(ncat:*)",
+      "Bash(telnet:*)",
+      "Bash(curl*--upload-file*)",
+      "Bash(curl*-T *)",
+      "Bash(curl*--data-binary @*)",
+      "Bash(curl*-d @*)",
+      "Bash(eval:*)"
     ],
     "ask": [
       "Bash(gh pr create:*)",
@@ -83,6 +99,17 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate-on-write.sh\""
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",
@@ -101,6 +128,10 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-submit.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/task-flow-trigger.sh\""
           }
         ]
       }
@@ -112,10 +143,6 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/reinject-state.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-task-flow.sh\""
           }
         ]
       }

@@ -245,6 +245,20 @@ These ship as installed plugins. Invoke by their fully-qualified name:
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
+- Handoff/state JSON is **also** validated at write time by the
+  `validate-on-write.sh` PostToolUse hook, so a malformed handoff surfaces on
+  the agent's next turn instead of at the SubagentStop gate. It self-targets:
+  a `.json` file is checked only if it has a top-level `$schema` pointing at a
+  local path (so `.claude/schemas/*.json` themselves are skipped), plus an
+  invalid-JSON check for `state/handoff-*.json` and `state/ship-epic*.json`.
+  `gate-check.sh` remains the authoritative gate — it also catches the
+  "agent never wrote a handoff at all" case, which a write hook cannot.
+- **Typecheck gate** (`typecheck-on-stop.sh` → `typecheck-on-submit.sh`):
+  backgrounded `tsc` on Stop, results surfaced on the next UserPromptSubmit.
+  Note it was inert from 2026-04-30 to 2026-07-27 — it spawned through
+  `setsid`, which macOS does not ship — so 649 detected-change runs produced
+  zero reports. Fixed to fall back to `nohup`; do not reintroduce a bare
+  `setsid` dependency in any hook on this machine.
 - Long-running orchestration state persists to `.claude/state/ship-epic.json`;
   `reinject-state.sh` re-hydrates context after `/clear` or compact.
 

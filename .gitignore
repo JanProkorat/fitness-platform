@@ -127,6 +127,7 @@ Thumbs.db
 **/.claude/hooks/log/
 **/.claude/state/
 **/.claude/private/
+**/.claude/agent-memory-local/
 .worktrees/
 .remember/
 .qa-artifacts/
