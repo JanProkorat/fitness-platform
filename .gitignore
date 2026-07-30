@@ -131,3 +131,10 @@ Thumbs.db
 .qa-artifacts/
 mobile/.qa-cache/
 .playwright-mcp/
+
+# claude-kit onboarding (bin/kit-onboard.sh) — do not remove
+.claude/state/
+.claude/settings.local.json
+.claude/private/
+.claude/hooks/inject-task-flow.py
+.claude/hooks/log/

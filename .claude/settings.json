@@ -1,106 +1,101 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "allow": [
-      "Bash(gh pr merge:*)",
-
-      "Bash(git push -u origin feature/:*)",
-      "Bash(git push -u origin fix/:*)",
-      "Bash(git push -u origin refactor/:*)",
-      "Bash(git push -u origin docs/:*)",
-      "Bash(git push -u origin chore/:*)",
-      "Bash(git push -u origin spike/:*)",
-      "Bash(git push origin feature/:*)",
-      "Bash(git push origin fix/:*)",
-      "Bash(git push origin refactor/:*)",
-      "Bash(git push origin docs/:*)",
-      "Bash(git push origin chore/:*)",
-      "Bash(git push origin spike/:*)"
-    ],
+    "defaultMode": "default",
     "deny": [
       "Bash(git push * --force*)",
-      "Bash(git push * --force-with-lease*)",
-      "Bash(git push * -f *)",
+      "Bash(git push * --force-with-lease)",
       "Bash(git reset --hard *)",
       "Bash(rm -rf *)",
-      "Bash(rm -rf /*)",
+      "Bash(dotnet ef database drop *)",
+      "Bash(curl*)",
+      "Bash(wget*)",
+      "Bash(node*)",
+      "Bash(nc*)",
+      "Bash(ncat*)",
+      "Bash(telnet*)",
+      "Bash(eval*)",
+      "Bash(source *)",
+      "Bash(. *)",
       "Edit(**/.env*)",
       "Edit(**/appsettings.*.json)",
       "Edit(**/secrets.json)",
       "Edit(**/*.pfx)",
       "Edit(**/*.key)",
+      "Edit(**/*.pem)",
       "Write(**/.env*)",
       "Write(**/appsettings.*.json)",
       "Write(**/secrets.json)",
+      "Write(**/*.pfx)",
+      "Write(**/*.key)",
+      "Write(**/*.pem)",
       "Bash(*>*.env*)",
       "Bash(*>>*.env*)",
       "Bash(*>*secrets*)",
       "Bash(*>>*secrets*)",
+      "Bash(*>*appsettings*)",
+      "Bash(*>>*appsettings*)",
       "Bash(*>*.pfx)",
       "Bash(*>*.key)",
-      "Edit(web/src/api/generated.ts)",
-      "Write(web/src/api/generated.ts)",
-      "Edit(mobile/src/api/generated.ts)",
-      "Write(mobile/src/api/generated.ts)"
+      "Bash(*>*.pem)",
+      "Bash(*>>*.pem)"
     ],
     "ask": [
+      "Bash(git push:*)",
       "Bash(gh pr create:*)",
-      "Bash(gh pr merge * develop)",
-      "Bash(gh pr merge * main)",
+      "Bash(gh pr merge:*)",
       "Bash(dotnet ef database update:*)",
       "Bash(dotnet ef migrations add:*)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
-      "Write(.claude/settings.json)"
+      "Write(.claude/settings.json)",
+      "Bash(python3*)"
     ]
   },
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate.py"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/split-compound-commands.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/split-compound-commands.py"
           },
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/deny-subagent-merge.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-bash-allowlist.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/deny-subagent-merge.py"
           }
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-generated-edits.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-specs.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-state-writes.py"
           }
         ]
-      }
-    ],
-    "Stop": [
+      },
       {
-        "matcher": "*",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-stop.sh\""
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/typecheck-on-submit.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-generated-client.py"
           }
         ]
       }
@@ -111,18 +106,37 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/reinject-state.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/reinject-state.py"
           }
         ]
       }
     ],
     "SubagentStop": [
       {
-        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate-check.sh\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gate-check.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-stop.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-submit.py"
           }
         ]
       }

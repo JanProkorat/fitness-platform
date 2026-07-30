@@ -1,0 +1,8 @@
+{
+  "packs": [
+    "dotnet",
+    "react",
+    "expo"
+  ],
+  "mode": "seed"
+}
