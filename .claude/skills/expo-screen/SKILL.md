@@ -36,7 +36,7 @@ inline reads pollute your context.
 3. **Sub-screen folder?** — if the new screen opens *additional* screens
    stacked on top of a tab (e.g. detail views pushed from a list), the
    folder needs a `_layout.tsx` with a `Stack` — without it, back
-   navigation breaks. (See `rules/navigation.md#sub-screen-folders-need-a-layout`.)
+   navigation breaks. (See `rules/navigation.md#sub-screen-folders-need-a-_layouttsx`.)
 4. **Server state vs. app state** — server data belongs in the query cache
    (TanStack Query or equivalent); transient app state (open sheets,
    filters) in whatever lightweight store the repo uses (Zustand, Jotai,
@@ -184,7 +184,7 @@ See `rules/navigation.md`.
    (WebSocket, a managed push-messaging service, Server-Sent Events, or
    similar), subscribe and invalidate queries on the relevant event; don't
    add `refetchInterval`
-   polling as a substitute. See `rules/data-fetching.md#invalidate-dont-poll`.
+   polling as a substitute. See `rules/data-fetching.md#invalidate-on-mutation-or-realtime-push--dont-poll`.
 5. **i18n everywhere.** Every user-visible string via the repo's i18n hook.
    Add keys to every locale the repo supports. Unknown translations → copy
    the source-locale string and flag it. See `rules/i18n.md`.

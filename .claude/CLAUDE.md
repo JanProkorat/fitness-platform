@@ -256,18 +256,18 @@ These ship as installed plugins. Invoke by their fully-qualified name:
 ## Guardrails (enforced by hooks)
 
 - `src/api/generated.ts` in `/web` and `/mobile` is write-locked. The
-  `block-generated-edits` PreToolUse hook rejects Edit/Write/MultiEdit on
+  `block-generated-client.py` PreToolUse hook rejects Edit/Write/MultiEdit on
   those paths. To change shapes, regenerate via the `regen-api` skill.
-- Compound commands (`&&` / `;`) get split via `split-compound-commands.sh`
+- Compound commands (`&&` / `;`) get split via `split-compound-commands.py`
   so each part passes permission validation independently.
-- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.sh`
+- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.py`
   blocks them. Merging is `pr-reviewer`'s job, dispatched from the main thread.
 - Each agent has a curated bash allowlist via `agent-bash-allowlist.sh` —
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
 - Long-running orchestration state persists to `.claude/state/ship-epic.json`;
-  `reinject-state.sh` re-hydrates context after `/clear` or compact.
+  `reinject-state.py` re-hydrates context after `/clear` or compact.
 
 ## Task lifecycle reminder
 
