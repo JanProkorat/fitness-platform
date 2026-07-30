@@ -49,7 +49,7 @@ Project-local workflow agents (also in `.claude/agents/`):
 | Epic-branch model (two-tier integration) | [`rules/epic-branch.md`](rules/epic-branch.md) |
 | Merge strategy, sub-issue auto-merge, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
 | Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
-| i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/data-fetching.md`](rules/data-fetching.md), "Locales" below |
+| i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
 
 ## Scope → stack map

@@ -28,7 +28,7 @@ You have a private, project-local memory (`memory: local`). Use it to avoid re-f
 - [`rules/merge-strategy.md#sub-issue-auto-merge`](../rules/merge-strategy.md#sub-issue-auto-merge) — auto-merge sub-issue PRs into epic branch.
 - [`rules/merge-strategy.md#authorized-merge`](../rules/merge-strategy.md#authorized-merge) — same-turn auth required for develop/main.
 - [`rules/merge-strategy.md#exclusion-list`](../rules/merge-strategy.md#exclusion-list) — refuse PRs touching migrations / Mongo data-mutation / base=main.
-- [`rules/code-quality.md`](../rules/code-quality.md) — full hard-rule gate (apply every BLOCKING rule on the diff).
+- [`rules/code-style.md`](../rules/code-style.md), [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns), [`rules/error-handling.md`](../rules/error-handling.md) — full hard-rule gate (apply every BLOCKING rule on the diff).
 
 You run the code-review gate (rule 7 of `.claude/CLAUDE.md`) and the
 merge gate (rule 8 — split into 8a auto-merge for sub-issue PRs, and 8b
@@ -921,7 +921,7 @@ Before returning your verdict to the orchestrator, write
       "scope": "backend | web | mobile | docs-infra",
       "file": "path/to/file.ts",
       "line": 42,
-      "rule": "rules/code-quality.md#no-hardcoded-colors",
+      "rule": "rules/code-style.md#design-tokens-over-hardcoded-values",
       "found": "<offending excerpt>",
       "fix": "<suggested replacement>",
       "detail": "<one-line context>"

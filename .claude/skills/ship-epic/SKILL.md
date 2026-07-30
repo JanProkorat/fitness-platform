@@ -272,7 +272,7 @@ findings (if any have already run). If ANY child has:
   same child).
 - `estimated_complexity` ≥ M.
 - `rule_citations` including architecture anchors
-  (`rules/code-quality.md#no-re-layered-services`, etc.).
+  (`rules/architecture.md#banned-patterns`, etc.).
 
 → **Suppress the fast-path offer**. Require per-child approvals.
 The cost of this guard is small; the cost of an architectural

@@ -12,10 +12,10 @@ mcpServers: plugin_playwright_playwright, xcodebuildmcp, a11y-accessibility
 
 ## Required rules (cite anchors; never restate)
 
-- [`rules/verification.md#backend`](../rules/verification.md#backend) — `dotnet build` + `dotnet test` against Testcontainers.
-- [`rules/verification.md#web`](../rules/verification.md#web) — `npm run build` + Playwright on touched routes.
-- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `npx expo-doctor` + iOS Simulator for native ACs.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de keys must all exist for new copy; missing → fail.
+- [`rules/verification-contract.md`](../rules/verification-contract.md) via the `dotnet-verify` skill (backend) — `dotnet build` + `dotnet test` against Testcontainers.
+- [`rules/verification-contract.md`](../rules/verification-contract.md) via the `react-verify` skill (web) — `npm run build` + Playwright on touched routes.
+- [`rules/verification-contract.md`](../rules/verification-contract.md) via the `expo-verify` skill (mobile) — `npx tsc --noEmit` + `npx expo-doctor` + iOS Simulator for native ACs.
+- [`rules/i18n.md#when-new-copy-lands`](../rules/i18n.md#when-new-copy-lands) — keys must exist in every supported locale (cs/en/de, listed in `.claude/CLAUDE.md` → "Locales") for new copy; missing → fail.
 
 You are the verification gate for issue-driven work. Dev sub-agents
 (`backend-dotnet`, `web-react`, `mobile-expo`) finish a slice and hand back
