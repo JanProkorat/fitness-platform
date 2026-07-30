@@ -74,6 +74,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/deny-subagent-merge.py"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-bash-allowlist.sh"
           }
         ]
       },
@@ -116,7 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gate-check.py"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/gate-check.sh"
           }
         ]
       }
@@ -127,6 +131,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-stop.py"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-stop.sh"
           }
         ]
       }
@@ -137,6 +145,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/build-on-submit.py"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-on-submit.sh"
           }
         ]
       }
