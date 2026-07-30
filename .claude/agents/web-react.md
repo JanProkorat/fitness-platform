@@ -6,7 +6,7 @@ model: sonnet
 maxTurns: 150
 permissionMode: acceptEdits
 color: cyan
-skills: web-page, regen-api, signalr-event, ui-tradeoff
+skills: react-page, regen-api, signalr-event, ui-tradeoff
 mcpServers: context7, plugin_playwright_playwright
 ---
 
@@ -35,12 +35,15 @@ it to run design-review first (Rule 5.5).
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — never edit outside `/web`.
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
-- [`rules/code-quality.md#no-hardcoded-colors`](../rules/code-quality.md#no-hardcoded-colors) — Tailwind tokens only.
-- [`rules/code-quality.md#no-hardcoded-api-urls`](../rules/code-quality.md#no-hardcoded-api-urls) — env / config base URLs.
-- [`rules/code-quality.md#no-any-in-typescript`](../rules/code-quality.md#no-any-in-typescript) — strict-mode TS.
-- [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `web/src/api/generated.ts` is write-locked; use `regen-api`.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de in same PR.
-- [`rules/verification.md#web`](../rules/verification.md#web) — `npm run build` **and** `npm run lint` (lint is separate from the build).
+- [`rules/code-style.md#design-tokens-over-hardcoded-values`](../rules/code-style.md#design-tokens-over-hardcoded-values) — Tailwind tokens only, no hardcoded colors.
+- [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — env / config base URLs.
+- [`rules/code-style.md#no-any-in-typescript`](../rules/code-style.md#no-any-in-typescript) — strict-mode TS.
+- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `web/src/api/generated.ts` is write-locked; use `regen-api`.
+- Supported locales (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in
+  the same PR; the react pack's i18n rule covers the mechanism generically.
+- Verify via the **`react-verify`** skill (build+lint+test) / `react-build`
+  (compile floor). Conventions live in the react pack's `rules/` (code-style,
+  data-fetching, i18n) + this repo's `CLAUDE.md` — cite, don't restate.
 
 ## Stack
 - React 19, TypeScript (strict), Vite 7
@@ -71,33 +74,18 @@ src/
 ```
 
 ## Conventions
-- Path alias: `@/` → `./src/`. Always use it, never relative traversal past one folder.
-- TypeScript strict mode. **No `any`** — fix the type. For unknown API shapes,
-  use generated types from `@/api/generated`.
-- Forms: React Hook Form + Zod schemas. Put schemas next to the form or under
-  `@/lib/schemas`.
-- Data fetching: TanStack Query `useQuery` / `useMutation`. Invalidate on
-  SignalR events rather than polling.
-- API modules in `src/api/` wrap the NSwag-generated client (`generated.ts`)
-  with ergonomic hooks and types. **Do not edit `generated.ts`** — a hook will
-  reject the edit. If the contract changed, the orchestrator must run the
-  `regen-api` skill first.
-- Styling: Tailwind utility classes. Use design tokens exposed in the Tailwind
-  theme (no hex literals, no hard-coded spacing). If a token is missing, add it
-  to the theme rather than inlining.
-- i18n: every user-visible string goes through `useTranslation()`. Add keys to
-  all three locales (`cs`, `en`, `de`) — if a translation is unknown, copy the
-  English key and flag it in the PR.
-- Auth: access token in memory, refresh token in localStorage. Never log either.
+
+Conventions (path alias, forms, data fetching, styling, i18n, auth) are not
+restated here — see the react pack's `rules/` (cited above) and this repo's
+root `CLAUDE.md` → Web Portal → Key conventions. `src/api/generated.ts` wraps
+the NSwag client and is write-locked — extend it via sibling modules in
+`src/api/`, and if the contract changed, run `regen-api` first.
 
 ## Commands
 - Dev: `npm run dev` (proxies to `https://localhost:5001`)
-- Type-check: `npx tsc --noEmit` (no test suite exists today)
-- Build: `npm run build` (runs `tsc -b && vite build` — does NOT run ESLint)
-- Lint: `npm run lint` (`eslint .`) — **required, separate from the build.**
-  Must be 0 errors before you report done; lint-only errors (e.g.
-  `react-hooks` setState-in-effect) pass `npm run build` but fail CI's
-  `build-and-lint` job. Pre-existing warnings are OK; don't add new errors.
+- Verify via the **`react-verify`** skill (build+lint+test) / `react-build`
+  (compile floor) — never invoke `npm run build` / `npm run lint` / `tsc`
+  directly.
 - Regenerate API client: `npm run generate-api` (run from `/web`, requires
   backend running on 5001)
 
@@ -162,12 +150,12 @@ Before returning control to the orchestrator, write
 ```
 
 Use `verification.tool: "web-build"` (covers typecheck) or
-`"web-typecheck"` for typecheck-only runs. Always **also** run
-`npm run lint` (0 errors) before reporting — the `verification` field
-holds one tool, so report `"web-lint"` when lint is the gating check
-you want recorded and note the build result in your summary, or report
-`"web-build"` and state in your summary that lint passed too. Either
-way both must be green. The `gate-check.sh`
+`"web-typecheck"` for typecheck-only runs. Always **also** run the
+`react-verify` skill's lint pass (0 errors) before reporting — the
+`verification` field holds one tool, so report `"web-lint"` when lint
+is the gating check you want recorded and note the build result in
+your summary, or report `"web-build"` and state in your summary that
+lint passed too. Either way both must be green. The `gate-check.sh`
 SubagentStop hook validates before control returns; a malformed
 handoff exits non-zero so you can self-correct.
 

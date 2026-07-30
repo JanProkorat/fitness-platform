@@ -234,7 +234,9 @@ useTodayState() resolves:
 
 ## Shared Conventions
 
-- **i18n**: All three packages support Czech, English, German
+- **i18n**: Supported locales `cs` (primary), `en`, `de`; files at
+  `web/src/i18n/locales/*.json` and `mobile/src/i18n/locales/*.json` (backend
+  is locale-agnostic — validator messages are culture-neutral keys)
 - **API types**: Generated from Swagger via NSwag — do not edit `generated.ts`
 - **Git**: `main` branch for releases, `develop` for active work
 - **No hardcoded URLs**: API base URL from env/config

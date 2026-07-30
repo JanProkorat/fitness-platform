@@ -6,7 +6,7 @@ model: sonnet
 maxTurns: 150
 permissionMode: acceptEdits
 color: blue
-skills: fe-endpoint, mongo-document, regen-api, signalr-event, root-cause-swarm
+skills: dotnet-feature, mongo-document, regen-api, signalr-event, root-cause-swarm
 mcpServers: context7, mongodb, roslyn-navigator
 ---
 
@@ -45,9 +45,12 @@ return immediately with a request to run design-review first.
 - [`rules/scope-boundaries.md#cross-package-coordination`](../rules/scope-boundaries.md#cross-package-coordination) — sequential dispatch when web/mobile follow.
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
-- [`rules/code-quality.md#no-re-layered-services`](../rules/code-quality.md#no-re-layered-services) — vertical-slice anti-patterns.
-- [`rules/code-quality.md#no-swallowed-exceptions`](../rules/code-quality.md#no-swallowed-exceptions) — Problem Details on errors.
-- [`rules/verification.md#backend`](../rules/verification.md#backend) — `dotnet build` + `dotnet test` (Testcontainers).
+- [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns) — vertical-slice anti-patterns (no repository/service layers).
+- [`rules/error-handling.md`](../rules/error-handling.md) — expected errors via `Send.XAsync`, Problem Details on the rest.
+- Verify via the **`dotnet-verify`** skill (build+test) / `dotnet-build` (compile floor).
+  Conventions live in the dotnet pack's `rules/` (architecture, api-design,
+  csharp-style, ef-core, error-handling, naming, validation) + this repo's
+  `CLAUDE.md` — cite, don't restate.
 
 ## Stack
 - ASP.NET Core 10 (.NET 10), FastEndpoints, FluentValidation, JWT Bearer
@@ -153,32 +156,23 @@ When a task says "add feature X": create the slice folder, scaffold via the
 `fe-endpoint` skill, keep the work inside `HandleAsync`, add the tests
 alongside, and only promote shared code once you've seen it three times.
 
-## Conventions (non-negotiable)
-- One endpoint per file. `Configure()` sets route + policies; `HandleAsync()`
-  runs the work. Use primary constructors for DI.
-- Routes: `/<domain>/<resource>`. Client routes `/client/...`, trainer routes
-  `/trainer/...` or domain-prefixed with a trainer role.
-- Auth: 15-min JWT access token, 7-day refresh token. Never hand-roll token issuance —
-  copy the pattern from `Features/Auth/Login/LoginEndpoint.cs`.
-- Errors: return RFC 7807 Problem Details via `this.ThrowErrorWithCode(ErrorCodes.X, "...")`.
-  Add new codes in `Domain/Constants/ErrorCodes.cs`.
-- Pagination: `page` / `pageSize` query params; set `X-Total-Count` header.
-- Rate limits: apply `AppPolicies.AuthRateLimit` (or the appropriate policy) on
-  anonymous or abuse-prone endpoints.
-- DB: use `IApplicationDbContext` for Postgres, `IMongoContext` for Mongo.
-  Never take concrete types.
-- Mongo writes: bump the `Version` field on every update; compare on load.
-- SignalR events: lowercase event names (`newmessage`, `nutritionplanpublished`).
-  Broadcast via `IRealtimeNotifier`.
-- i18n: validator messages should be culture-neutral keys; user-facing strings
-  belong in the client.
+## Conventions
+
+Conventions (routes, auth, errors, pagination, DB access patterns, SignalR
+event naming, i18n) are not restated here — see the dotnet pack's `rules/`
+(cited above) and this repo's root `CLAUDE.md` → Backend → Key conventions.
+Repo-specific implementation names (`IApplicationDbContext`, `IMongoContext`,
+`IRealtimeNotifier`, `ThrowErrorWithCode`) are discoverable from
+`required_reads` in the design handoff — read the existing pattern rather
+than re-deriving it.
 
 ## Tests
 - Mirror the feature path under `FitnessPlatform.Tests/Endpoints/<Area>/`.
 - Use `EndpointTestHelpers` and the shared `Builders` for test data.
 - Integration tests hit real PostgreSQL and MongoDB via Testcontainers — never
   mock the DB. Docker must be running.
-- Run: `cd backend && dotnet test`.
+- Run via the **`dotnet-verify`** skill — never invoke `dotnet build` /
+  `dotnet test` directly.
 
 ## Research dispatch (token discipline)
 
