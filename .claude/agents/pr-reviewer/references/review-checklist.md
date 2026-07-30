@@ -21,7 +21,7 @@ Severity ladder:
 
 ## 1. Generated files write-locked
 
-**Citation:** [`rules/code-quality.md#generated-files-are-write-locked`](../../../rules/code-quality.md#generated-files-are-write-locked)
+**Citation:** [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../../../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one)
 
 Search the diff for:
 
@@ -35,7 +35,7 @@ Any hit → **BLOCKING**. Author must regenerate via `regen-api`.
 
 ## 2. Hardcoded colors / spacing / fonts
 
-**Citation:** [`rules/code-quality.md#no-hardcoded-colors`](../../../rules/code-quality.md#no-hardcoded-colors)
+**Citation:** [`rules/code-style.md#design-tokens-over-hardcoded-values`](../../../rules/code-style.md#design-tokens-over-hardcoded-values)
 
 In `/web` diff:
 ```bash
@@ -54,7 +54,7 @@ Each match that's not a token reference → **BLOCKING**. Brand accent
 
 ## 3. TypeScript `any` / `as any` / `@ts-ignore`
 
-**Citation:** [`rules/code-quality.md#no-any-in-typescript`](../../../rules/code-quality.md#no-any-in-typescript)
+**Citation:** [`rules/code-style.md#no-any-in-typescript`](../../../rules/code-style.md#no-any-in-typescript)
 
 ```bash
 git diff origin/<base>...HEAD -- '*.ts' '*.tsx' | grep -E '(\\bany\\b|as any|@ts-ignore|@ts-expect-error)'
@@ -67,7 +67,7 @@ follow-up issue → **BLOCKING**.
 
 ## 4. Hardcoded API URLs
 
-**Citation:** [`rules/code-quality.md#no-hardcoded-api-urls`](../../../rules/code-quality.md#no-hardcoded-api-urls)
+**Citation:** [`rules/code-style.md#no-hardcoded-api-base-urls`](../../../rules/code-style.md#no-hardcoded-api-base-urls)
 
 ```bash
 git diff origin/<base>...HEAD | grep -E 'https?://(localhost|[0-9.]+|api\.|fitness-platform)'
@@ -80,7 +80,7 @@ mobile reads `EXPO_PUBLIC_API_BASE_URL`.
 
 ## 5. i18n keys present in cs/en/de
 
-**Citation:** [`rules/i18n.md#supported-languages`](../../../rules/i18n.md#supported-languages)
+**Citation:** [`rules/i18n.md#when-new-copy-lands`](../../../rules/i18n.md#when-new-copy-lands) (supported locales listed in `.claude/CLAUDE.md` → "Locales")
 
 For each new key added to one locale file, confirm it exists in the
 other two:
@@ -142,7 +142,7 @@ Commits not referencing the PR's issue number → **BLOCKING** with
 
 ## 9. Vertical-slice anti-patterns (backend)
 
-**Citation:** [`rules/code-quality.md#no-re-layered-services`](../../../rules/code-quality.md#no-re-layered-services)
+**Citation:** [`rules/architecture.md#banned-patterns`](../../../rules/architecture.md#banned-patterns)
 
 ```bash
 git diff origin/<base>...HEAD -- backend | grep -E '(IRepository<|MediatR\\.|IRequest<|Application\\s*Services)'
@@ -154,7 +154,7 @@ Hits → **BLOCKING**. Path back is to inline the logic into the slice.
 
 ## 10. Swallowed exceptions (backend)
 
-**Citation:** [`rules/code-quality.md#no-swallowed-exceptions`](../../../rules/code-quality.md#no-swallowed-exceptions)
+**Citation:** [`rules/error-handling.md#core-principle`](../../../rules/error-handling.md#core-principle)
 
 ```bash
 git diff origin/<base>...HEAD -- backend | grep -E 'catch \\(Exception.*\\) \\{[^}]*Ok\\(\\)'

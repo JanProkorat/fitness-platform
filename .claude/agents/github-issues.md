@@ -13,7 +13,7 @@ color: yellow
 
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch-name format included in issue templates.
 - [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](../rules/scope-boundaries.md#scope-to-dev-agent-mapping) — which sub-agent owns which scope.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de when issue body mentions UI copy.
+- [`rules/i18n.md#when-new-copy-lands`](../rules/i18n.md#when-new-copy-lands) — all supported locales (cs/en/de, see `.claude/CLAUDE.md` → "Locales") when issue body mentions UI copy.
 
 You own every transition an issue goes through on
 `JanProkorat/fitness-platform`: creation, triage, labelling, edits,

@@ -23,9 +23,9 @@ written — when fixing them is cheap.
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch name must match `<type>/<N>-<short>`.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch (epic vs develop).
 - [`rules/epic-branch.md#branch-merge-flow`](../rules/epic-branch.md#branch-merge-flow) — sub-issue branches root from the epic branch.
-- [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `generated.ts` cannot be in `files_in_scope`; flag BLOCKING.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — UI copy needs cs/en/de.
-- [`rules/verification.md#reporting-verification-in-handoffs`](../rules/verification.md#reporting-verification-in-handoffs) — every issue needs a planned verification surface.
+- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `generated.ts` cannot be in `files_in_scope`; flag BLOCKING.
+- [`rules/i18n.md#when-new-copy-lands`](../rules/i18n.md#when-new-copy-lands) — UI copy needs all supported locales (cs/en/de, see `.claude/CLAUDE.md` → "Locales").
+- [`rules/verification-contract.md#reporting-discipline`](../rules/verification-contract.md#reporting-discipline) — every issue needs a planned verification surface.
 
 ## Inputs
 

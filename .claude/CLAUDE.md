@@ -44,13 +44,46 @@ Project-local workflow agents (also in `.claude/agents/`):
 
 | What | Where |
 |---|---|
-| Scope → dev-agent mapping, package boundaries | [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](rules/scope-boundaries.md#scope-to-dev-agent-mapping) |
+| Scope → dev-agent mapping, package boundaries, scope → stack map | [`rules/scope-boundaries.md`](rules/scope-boundaries.md) |
 | Branch naming, worktree pattern, parallel safety | [`rules/branch-and-pr.md`](rules/branch-and-pr.md) |
 | Epic-branch model (two-tier integration) | [`rules/epic-branch.md`](rules/epic-branch.md) |
 | Merge strategy, sub-issue auto-merge, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
-| Hardcoded-value bans, write-locked generated files | [`rules/code-quality.md`](rules/code-quality.md) |
-| i18n requirements (cs/en/de) | [`rules/i18n.md`](rules/i18n.md) |
-| Verification surfaces per scope | [`rules/verification.md`](rules/verification.md) |
+| Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
+| i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
+| Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
+
+## Scope → stack map
+
+Each `scope:*` label maps to exactly one stack pack. Dev sub-agents and the
+pack `<stack>-verify`/`<stack>-build` skills use this to decide which pack
+applies to a given path (full detail:
+[`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping)):
+
+| Path glob    | Stack    | Verify skill    |
+|--------------|----------|-----------------|
+| `/backend/**`| `dotnet` | `dotnet-verify`  |
+| `/web/**`    | `react`  | `react-verify`   |
+| `/mobile/**` | `expo`   | `expo-verify`    |
+
+## Locales
+
+Supported locales: `cs` (primary), `en`, `de`; files at
+`web/src/i18n/locales/*.json` and `mobile/src/i18n/locales/*.json`. This is
+the repo-specific fact the generic react/expo pack `i18n` rule defers to —
+the packs describe the i18n *mechanism* (keys, `useTranslation()`,
+missing-locale fallback), never a fixed locale list of their own.
+
+## Branch / PR / merge precedence
+
+Branch/PR/merge in this repo follow [`rules/branch-and-pr.md`](rules/branch-and-pr.md)
++ [`rules/merge-strategy.md`](rules/merge-strategy.md) — issue+epic-based,
+with sub-issue auto-merge performed by `pr-reviewer`. Where the seeded hub
+[`rules/pr-workflow.md`](rules/pr-workflow.md) / [`rules/git-workflow.md`](rules/git-workflow.md)
+differ (they assume a `/conductor`-style pipeline and forbid a subagent from
+ever touching the remote — no merges, no pushes), **the local rules win**:
+this repo's pipeline is issue+epic-based, and `pr-reviewer` is explicitly
+the sub-agent that opens PRs and performs sub-issue auto-merge per
+[`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge).
 
 ## Prototype locations
 
@@ -223,18 +256,18 @@ These ship as installed plugins. Invoke by their fully-qualified name:
 ## Guardrails (enforced by hooks)
 
 - `src/api/generated.ts` in `/web` and `/mobile` is write-locked. The
-  `block-generated-edits` PreToolUse hook rejects Edit/Write/MultiEdit on
+  `block-generated-client.py` PreToolUse hook rejects Edit/Write/MultiEdit on
   those paths. To change shapes, regenerate via the `regen-api` skill.
-- Compound commands (`&&` / `;`) get split via `split-compound-commands.sh`
+- Compound commands (`&&` / `;`) get split via `split-compound-commands.py`
   so each part passes permission validation independently.
-- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.sh`
+- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.py`
   blocks them. Merging is `pr-reviewer`'s job, dispatched from the main thread.
 - Each agent has a curated bash allowlist via `agent-bash-allowlist.sh` —
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
 - Long-running orchestration state persists to `.claude/state/ship-epic.json`;
-  `reinject-state.sh` re-hydrates context after `/clear` or compact.
+  `reinject-state.py` re-hydrates context after `/clear` or compact.
 
 ## Task lifecycle reminder
 

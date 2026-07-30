@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": ".claude/schemas/work-items.v1.json",
+  "title": "Work Items v1",
+  "type": "object",
+  "required": ["$schema", "uc_id", "work_items"],
+  "properties": {
+    "$schema":   { "const": ".claude/schemas/work-items.v1.json" },
+    "uc_id":     { "type": "string", "pattern": "^UC-\\d{3,}$" },
+    "work_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "depends_on", "acceptance_criteria", "files_touched", "test_cases", "estimated_complexity"],
+        "properties": {
+          "id":                   { "type": "string", "pattern": "^WI-\\d+$" },
+          "title":                { "type": "string", "minLength": 3, "maxLength": 200 },
+          "depends_on":           { "type": "array", "items": { "type": "string", "pattern": "^WI-\\d+$" } },
+          "required_reads":       { "type": "array", "items": { "type": "string", "maxLength": 400 } },
+          "test_cases":           { "type": "array", "items": { "type": "string", "maxLength": 400 }, "minItems": 1 },
+          "acceptance_criteria":  { "type": "array", "items": { "type": "string", "maxLength": 400 }, "minItems": 1 },
+          "error_paths":          { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "files_touched":        { "type": "array", "items": { "type": "string", "maxLength": 400 }, "minItems": 1 },
+          "estimated_complexity": { "type": "string", "enum": ["XS", "S", "M", "L", "XL"] },
+          "needs_library_research": { "type": "boolean", "description": "When true, the developer dispatches the Haiku research subagent for an API cheat-sheet. Set true only when the WI touches APIs not already used elsewhere in the codebase." },
+          "verification": {
+            "type": "object",
+            "description": "Structured verification command. The developer executes this by substituting values into a fixed template; no raw shell string is evaluated. 'tool' is a free-form non-empty string so any pack (dotnet-test, dotnet-build, swift-test, ...) can populate it; a pack-specific schema extension may narrow it with its own enum.",
+            "required": ["tool"],
+            "properties": {
+              "tool":   { "type": "string", "minLength": 1 },
+              "filter": { "type": "string", "pattern": "^[A-Za-z0-9._~-]+$", "maxLength": 200 }
+            },
+            "additionalProperties": false
+          },
+          "rule_citations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^(rules/[a-z0-9-]+\\.md#[a-z0-9-]+|skills/[a-z0-9-]+/(SKILL\\.md|references/[a-z0-9-]+\\.md)#[a-z0-9-]+|CLAUDE\\.md → [A-Za-z0-9_. -]+)$",
+              "maxLength": 200
+            },
+            "description": "Anchor refs — e.g. 'rules/api-design.md#send-pattern', 'skills/dotnet-tdd/references/testing-conventions.md#collection-attribute', 'CLAUDE.md → AppDbContext'. Must be complete for the WI's scope; sub-agents read only what is cited."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "$schema": ".claude/schemas/work-items.v1.json",
+      "uc_id": "UC-042",
+      "work_items": [
+        {
+          "id": "WI-1",
+          "title": "Add ReassignTask endpoint",
+          "depends_on": [],
+          "required_reads": ["src/{Project}/Features/Tasks/AssignTask.cs"],
+          "test_cases": ["Supervisor_can_reassign", "NonSupervisor_gets_403"],
+          "acceptance_criteria": ["POST /tasks/{id}/reassign returns 200", "Audit entry written"],
+          "files_touched": ["src/{Project}/Features/Tasks/ReassignTask.cs"],
+          "estimated_complexity": "S",
+          "verification": { "tool": "dotnet-test", "filter": "ReassignTask" },
+          "rule_citations": ["rules/api-design.md#endpoint-pattern", "rules/architecture.md#vertical-slice-layout", "rules/api-design.md#send-pattern", "rules/validation.md#when-to-add-a-validator"]
+        }
+      ]
+    }
+  ]
+}

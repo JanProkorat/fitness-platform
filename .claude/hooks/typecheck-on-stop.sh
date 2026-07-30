@@ -36,6 +36,19 @@ HOOK_LOG="$LOG_DIR/$(date +%F).log"
 STATE_DIR="$project_dir/.claude/.typecheck-state"
 mkdir -p "$STATE_DIR"
 
+# macOS does NOT ship `setsid` — it is part of util-linux. Piping the spawn
+# through it on a Mac fails silently (stderr is discarded here), so the
+# background tsc never started and `typecheck-on-submit.sh` had nothing to
+# report: 649 of 1650 invocations detected changed .ts files between
+# 2026-04-30 and 2026-07-27 and produced zero results. Use setsid where it
+# exists (Linux/CI); otherwise `nohup` + `disown` is enough to survive this
+# hook shell exiting.
+if command -v setsid >/dev/null 2>&1; then
+    SPAWN=(setsid nohup)
+else
+    SPAWN=(nohup)
+fi
+
 # Detect modified TS files per package.
 status="$(git status --porcelain 2>/dev/null || true)"
 web_changed=0
@@ -97,21 +110,23 @@ spawn_typecheck() {
 
     date +%s > "$started_file"
 
-    # setsid: new session + process group, so SIGHUP on our shell exit
-    #   doesn't propagate.
-    # nohup: belt-and-braces against SIGHUP.
+    # $SPAWN: `setsid nohup` where setsid exists, else plain `nohup` (macOS).
     # </dev/null: detach stdin so the child doesn't block on tty.
     # >log 2>&1: capture all output.
     # trailing '&': background.
     # The inner bash runs the command then writes the exit code to .done
     #   atomically (via a temp file + mv).
+    # The inner shell records its OWN pid ($$) rather than us recording $!:
+    # where setsid IS present it forks, making $! a short-lived wrapper, so
+    # `kill -0 $!` reports a live typecheck as dead — and the submit side then
+    # deleted the very log it was about to read.
     (
-        setsid nohup bash -c "
+        "${SPAWN[@]}" bash -c "
+            printf '%s' \"\$\$\" > '$pid_file'
             cd '$pkg_dir' && $cmd > '$log_file' 2>&1
             code=\$?
             printf '%s' \"\$code\" > '$done_file.tmp' && mv '$done_file.tmp' '$done_file'
         " </dev/null >/dev/null 2>&1 &
-        echo $! > "$pid_file"
         disown || true
     )
 }
