@@ -564,18 +564,22 @@ public class MarkWholeDayCompleteEndpointTests
     }
 
     /// <summary>
-    /// Regression test for #739: the whole-day mark must write the per-section
-    /// attribution map (<c>CompletedExerciseIdsBySection</c>), not just the flat
-    /// <c>CompletedExerciseIds</c>. When an exercise is shared across two sections
-    /// (e.g. "Bench" in both a Standard block and an AMRAP), the read-time backfill
-    /// (<c>TrainingCompletionBackfill</c>) would otherwise credit it to only the
-    /// first section — leaving the second section reading as not-done after refresh.
-    /// The written map must credit the shared exercise to EVERY section that contains it.
+    /// Regression test for #739, updated for #857 phase 3b: the whole-day mark must complete
+    /// every exercise INSTANCE (<see cref="SessionExercise.ExerciseId"/>) in the session, not
+    /// just distinct catalog exercises. When the same catalog exercise (e.g. "Bench") appears as
+    /// two separate occurrences — one in a Standard block, one in an AMRAP block — each occurrence
+    /// carries its own distinct <c>ExerciseId</c>, so the flat <c>CompletedExerciseInstanceIds</c>
+    /// list must contain BOTH instance ids. Before #857 phase 3b, a per-section attribution map
+    /// keyed on the shared catalog id could lose one section's copy; the flat instance-id list is
+    /// structurally immune to that loss because every occurrence is enumerated independently via
+    /// <see cref="TrainingSession.Exercises"/>.
     /// </summary>
     [Fact]
     public async Task HandleAsync_ExerciseSharedAcrossSections_WritesSharedExerciseToEverySection()
     {
         var sharedExercise = Guid.NewGuid();
+        var sharedExerciseInstanceA = Guid.NewGuid();
+        var sharedExerciseInstanceB = Guid.NewGuid();
         var exA = Guid.NewGuid();
         var exB = Guid.NewGuid();
         var sectionA = Guid.NewGuid();
@@ -616,8 +620,8 @@ public class MarkWholeDayCompleteEndpointTests
                                     Name = "Standard",
                                     Exercises =
                                     [
-                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
-                                        new SessionExercise { ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
+                                        new SessionExercise { ExerciseId = sharedExerciseInstanceA, ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseId = exA, ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
                                     ]
                                 },
                                 new TrainingWorkout
@@ -627,8 +631,8 @@ public class MarkWholeDayCompleteEndpointTests
                                     Name = "AMRAP",
                                     Exercises =
                                     [
-                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
-                                        new SessionExercise { ExerciseExternalId = exB, ExerciseName = "Shyb", Order = 2, Sets = [] }
+                                        new SessionExercise { ExerciseId = sharedExerciseInstanceB, ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseId = exB, ExerciseExternalId = exB, ExerciseName = "Shyb", Order = 2, Sets = [] }
                                     ]
                                 }
                             ]
@@ -665,15 +669,10 @@ public class MarkWholeDayCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         inserted.Should().NotBeNull();
-        inserted!.CompletedExerciseIdsBySection.Should().NotBeNull();
-        // Both sections must be present as keys.
-        inserted.CompletedExerciseIdsBySection!.Keys.Should()
-            .BeEquivalentTo([sectionA.ToString(), sectionB.ToString()]);
-        // Section A carries the shared exercise + its own.
-        inserted.CompletedExerciseIdsBySection[sectionA.ToString()].Should()
-            .BeEquivalentTo([sharedExercise, exA]);
-        // Section B ALSO carries the shared exercise (the bug: it used to be lost). + its own.
-        inserted.CompletedExerciseIdsBySection[sectionB.ToString()].Should()
-            .BeEquivalentTo([sharedExercise, exB]);
+        // The flat instance-id list must contain every exercise occurrence in the session —
+        // both instances of the shared catalog exercise (one per section) plus each section's
+        // own exercise. Nothing is lost across the section boundary.
+        inserted!.CompletedExerciseInstanceIds.Should()
+            .BeEquivalentTo([sharedExerciseInstanceA, exA, sharedExerciseInstanceB, exB]);
     }
 }

@@ -110,8 +110,7 @@ public class UnlockSessionFinishedGuardTests
                 SessionId = completion.SessionId,
                 Date = completion.Date,
                 Status = SessionExecutionStatus.Partial,
-                CompletedExerciseIds = completion.CompletedExerciseIds,
-                CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection,
+                CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds,
                 CompletedWorkoutIds = completion.CompletedWorkoutIds,
                 CompletedSets = completion.CompletedSets,
                 DateCreated = completion.DateCreated,
@@ -286,6 +285,7 @@ public class UnlockSessionFinishedGuardTests
                 [
                     new SessionExercise
                     {
+                        ExerciseId = exerciseId,
                         ExerciseExternalId = exerciseId,
                         ExerciseName = "Squat",
                         Order = 0,
@@ -302,7 +302,7 @@ public class UnlockSessionFinishedGuardTests
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -356,8 +356,8 @@ public class UnlockSessionFinishedGuardTests
                 Name = "Hlavní",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] },
-                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Press", Order = 1, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId1, ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] },
+                    new SessionExercise { ExerciseId = exerciseId2, ExerciseExternalId = exerciseId2, ExerciseName = "Press", Order = 1, Sets = [] }
                 ]
             }
         ];
@@ -369,7 +369,7 @@ public class UnlockSessionFinishedGuardTests
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId1],  // exerciseId2 missing → NOT complete
+            CompletedExerciseInstanceIds = [exerciseId1],  // exerciseId2 missing → NOT complete
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -401,15 +401,16 @@ public class UnlockSessionFinishedGuardTests
     // ── Per-section path tests (Defect 1 regression) ────────────────────────────
 
     /// <summary>
-    /// Regression test for Defect 1: the same exercise id appears in two different sections
-    /// (e.g. "Bench Press" scheduled in both AMRAP block A and AMRAP block B).
-    /// The client completed it in only one section — the <c>CompletedExerciseIdsBySection</c> dict
-    /// contains it only for section A.
+    /// Regression test for Defect 1: the same catalog exercise (<c>ExerciseExternalId</c>) appears
+    /// in two different workouts (e.g. "Bench Press" scheduled in both AMRAP block A and AMRAP
+    /// block B), but each occurrence has its own distinct <c>ExerciseId</c> instance identifier
+    /// (#857 phase 3b). The client completed only section A's instance.
     ///
-    /// The old flat-list check (CompletedExerciseIds.Contains) would see the exercise id once and
-    /// treat BOTH sections as done → false-positive "session complete" → wrong 409 on unlock.
-    ///
-    /// The per-section check must see section B as NOT done and allow the unlock to proceed (204).
+    /// Before instance ids existed, a flat catalog-id check (CompletedExerciseIds.Contains) would
+    /// see the shared exercise id once and treat BOTH sections as done → false-positive "session
+    /// complete" → wrong 409 on unlock. Now that CompletedExerciseInstanceIds holds instance ids,
+    /// a flat membership check is inherently per-occurrence-correct — no per-section dictionary
+    /// is needed to disambiguate.
     /// </summary>
     [Fact]
     public async Task Unlock_DuplicateExerciseAcrossSections_CompletedInOnlyOneSection_Returns204()
@@ -420,7 +421,9 @@ public class UnlockSessionFinishedGuardTests
 
         var sectionIdA = Guid.NewGuid();
         var sectionIdB = Guid.NewGuid();
-        var sharedExerciseId = Guid.NewGuid(); // same exercise in both sections
+        var sharedExerciseId = Guid.NewGuid(); // same catalog exercise in both sections
+        var sectionAInstanceId = Guid.NewGuid();
+        var sectionBInstanceId = Guid.NewGuid();
 
         plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
@@ -431,7 +434,7 @@ public class UnlockSessionFinishedGuardTests
                 Name = "AMRAP A",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = sectionAInstanceId, ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
                 ]
             },
             new TrainingWorkout
@@ -441,28 +444,20 @@ public class UnlockSessionFinishedGuardTests
                 Name = "AMRAP B",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = sectionBInstanceId, ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
                 ]
             }
         ];
 
-        // Client completed section A's exercise but NOT section B's copy.
-        // CompletedExerciseIdsBySection is authoritative — only section A is populated.
+        // Client completed section A's instance but NOT section B's — CompletedExerciseInstanceIds
+        // only contains sectionAInstanceId.
         var completion = new TrainingCompletion
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            // Flat list includes the id once — the OLD code used this and would incorrectly
-            // consider section B complete.
-            CompletedExerciseIds = [sharedExerciseId],
-            // Per-section: only section A done.
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionIdA.ToString()] = [sharedExerciseId]
-                // sectionIdB intentionally absent
-            },
+            CompletedExerciseInstanceIds = [sectionAInstanceId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -493,8 +488,9 @@ public class UnlockSessionFinishedGuardTests
     }
 
     /// <summary>
-    /// A completion populated via <c>CompletedExerciseIdsBySection</c> where every section is
-    /// fully done should be treated as complete and must block the unlock with 409.
+    /// A completion whose flat <c>CompletedExerciseInstanceIds</c> covers every workout's exercise
+    /// instance across both workouts should be treated as complete and must block the unlock
+    /// with 409.
     /// </summary>
     [Fact]
     public async Task Unlock_AllSectionsCompleteViaBySection_Returns409()
@@ -517,7 +513,7 @@ public class UnlockSessionFinishedGuardTests
                 Name = "Section A",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId1, ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
                 ]
             },
             new TrainingWorkout
@@ -527,25 +523,20 @@ public class UnlockSessionFinishedGuardTests
                 Name = "Section B",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Deadlift", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId2, ExerciseExternalId = exerciseId2, ExerciseName = "Deadlift", Order = 0, Sets = [] }
                 ]
             }
         ];
 
-        // Both sections fully done — populated via CompletedExerciseIdsBySection only
-        // (no flat CompletedExerciseIds — as new writes would produce).
+        // Both workouts fully done — every exercise instance across both workouts is present in
+        // the flat CompletedExerciseInstanceIds list.
         var completion = new TrainingCompletion
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [], // flat list empty — new-write shape
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionIdA.ToString()] = [exerciseId1],
-                [sectionIdB.ToString()] = [exerciseId2]
-            },
+            CompletedExerciseInstanceIds = [exerciseId1, exerciseId2],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -565,9 +556,9 @@ public class UnlockSessionFinishedGuardTests
             new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
             TestContext.Current.CancellationToken);
 
-        // Assert: all sections done via CompletedExerciseIdsBySection → 409
+        // Assert: both workouts done via the flat instance list → 409
         ep.HttpContext.Response.StatusCode.Should().Be(409,
-            "a fully-complete CompletedExerciseIdsBySection completion must block the unlock");
+            "a fully-complete CompletedExerciseInstanceIds completion must block the unlock");
 
         // Lock must NOT be acquired
         await lockService.DidNotReceive().AcquireAsync(

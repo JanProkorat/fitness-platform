@@ -63,6 +63,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                                 [
                                     new SessionExercise
                                     {
+                                        ExerciseId = _exerciseId,
                                         ExerciseExternalId = _exerciseId,
                                         ExerciseName = "Squat",
                                         Order = 0,
@@ -83,7 +84,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
         };
     }
 
-    private TrainingCompletion BuildCompletion(List<Guid> completedExerciseIds)
+    private TrainingCompletion BuildCompletion(List<Guid> completedExerciseInstanceIds)
     {
         return new TrainingCompletion
         {
@@ -91,7 +92,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
             ClientId = _clientId,
             Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = completedExerciseIds,
+            CompletedExerciseInstanceIds = completedExerciseInstanceIds,
             Version = 1,
             DateCreated = _now
         };
@@ -333,6 +334,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                                 [
                                     new SessionExercise
                                     {
+                                        ExerciseId = _exerciseAId,
                                         ExerciseExternalId = _exerciseAId,
                                         ExerciseName = "Squat",
                                         Order = 0,
@@ -349,6 +351,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                                 [
                                     new SessionExercise
                                     {
+                                        ExerciseId = _exerciseBId,
                                         ExerciseExternalId = _exerciseBId,
                                         ExerciseName = "Press",
                                         Order = 0,
@@ -380,12 +383,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
             ClientId = _clientId,
             Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseAId, _exerciseBId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionAId.ToString()] = [_exerciseAId],
-                [_sectionBId.ToString()] = [_exerciseBId]
-            },
+            CompletedExerciseInstanceIds = [_exerciseAId, _exerciseBId],
             Version = 1,
             DateCreated = _now
         };
@@ -472,11 +470,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
             ClientId = _clientId,
             Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseAId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionAId.ToString()] = [_exerciseAId]
-            },
+            CompletedExerciseInstanceIds = [_exerciseAId],
             Version = 1,
             DateCreated = _now
         };
@@ -537,11 +531,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
             ClientId = _clientId,
             Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseId], // non-empty flat list
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exerciseId]
-            },
+            CompletedExerciseInstanceIds = [_exerciseId], // non-empty flat list
             Version = 1,
             DateCreated = _now
         };
