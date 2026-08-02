@@ -568,4 +568,5 @@ internal sealed class BackfillTestMongoContext : IMongoContext
     public IMongoCollection<SessionLog> SessionLogs           => _db.GetCollection<SessionLog>("sessionLogs");
     public IMongoCollection<TrainerNote> TrainerNotes         => _db.GetCollection<TrainerNote>("trainer_notes");
     public IMongoCollection<WorkoutTemplate> WorkoutTemplates => _db.GetCollection<WorkoutTemplate>("workoutTemplates");
+    public IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates => _db.GetCollection<NutritionPlanTemplate>("nutritionPlanTemplates");
 }
