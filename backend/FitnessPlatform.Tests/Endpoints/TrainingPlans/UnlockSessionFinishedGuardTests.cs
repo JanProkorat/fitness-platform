@@ -44,17 +44,14 @@ public class UnlockSessionFinishedGuardTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Test Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -81,7 +78,11 @@ public class UnlockSessionFinishedGuardTests
         var planCollection = TrainingPlanTestHelpers.CreateMockCollection([plan]);
         mongo.TrainingPlans.Returns(planCollection);
 
-        var sessionId = plan.Weeks.SelectMany(w => w.Sessions).Select(s => s.SessionId).FirstOrDefault();
+        var sessionId = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
+            .Select(s => s.SessionId)
+            .FirstOrDefault();
         var executions = new List<SessionExecution>();
 
         if (completedLogCount > 0)
@@ -274,7 +275,7 @@ public class UnlockSessionFinishedGuardTests
         // Use a plan with one exercise in a section to make the test realistic.
         var sectionId = Guid.NewGuid();
         var exerciseId = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Workouts =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
             new TrainingWorkout
             {
@@ -346,7 +347,7 @@ public class UnlockSessionFinishedGuardTests
         var sectionId = Guid.NewGuid();
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Workouts =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
             new TrainingWorkout
             {
@@ -421,7 +422,7 @@ public class UnlockSessionFinishedGuardTests
         var sectionIdB = Guid.NewGuid();
         var sharedExerciseId = Guid.NewGuid(); // same exercise in both sections
 
-        plan.Weeks[0].Sessions[0].Workouts =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
             new TrainingWorkout
             {
@@ -507,7 +508,7 @@ public class UnlockSessionFinishedGuardTests
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
 
-        plan.Weeks[0].Sessions[0].Workouts =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
             new TrainingWorkout
             {
