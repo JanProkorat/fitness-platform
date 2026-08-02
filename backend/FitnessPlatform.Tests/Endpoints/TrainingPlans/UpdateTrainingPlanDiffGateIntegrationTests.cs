@@ -386,7 +386,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                             {
                                 new
                                 {
-                                    SectionId = sectionAId.ToString(),
+                                    WorkoutId = sectionAId.ToString(),
                                     Order = 0,
                                     Name = "Section A",
                                     Exercises = new[]
@@ -407,7 +407,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                                 },
                                 new
                                 {
-                                    SectionId = sectionBId.ToString(),
+                                    WorkoutId = sectionBId.ToString(),
                                     Order = 1,
                                     Name = "Section B",
                                     Exercises = new[]
@@ -540,7 +540,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
 
     /// <summary>
     /// When the session has a completed WorkoutLog (Signal 1) and the trainer holds an Editing
-    /// lock, attempting to change any section's content must be rejected with 409 SECTION_ALREADY_COMPLETED.
+    /// lock, attempting to change any section's content must be rejected with 409 WORKOUT_ALREADY_COMPLETED.
     /// </summary>
     [Fact]
     public async Task UpdatePlan_FinishedSectionContent_WorkoutLogSignal_Returns409SectionAlreadyCompleted()
@@ -582,20 +582,20 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             body,
             TestContext.Current.CancellationToken);
 
-        // ── 6. Assert 409 SECTION_ALREADY_COMPLETED ───────────────────────────────
+        // ── 6. Assert 409 WORKOUT_ALREADY_COMPLETED ───────────────────────────────
         var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(
             HttpStatusCode.Conflict,
             $"editing a finished section (WorkoutLog signal) must be rejected 409. Body: {responseBody}");
         responseBody.Should().Contain(
-            "SECTION_ALREADY_COMPLETED",
-            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
+            "WORKOUT_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be WORKOUT_ALREADY_COMPLETED");
     }
 
     /// <summary>
     /// MIXED-STATE: a session where section A is finished (TrainingCompletion Signal 2) and
     /// section B is NOT finished. Editing section B must return 200; editing section A must
-    /// return 409 SECTION_ALREADY_COMPLETED.
+    /// return 409 WORKOUT_ALREADY_COMPLETED.
     /// </summary>
     [Fact]
     public async Task UpdatePlan_MixedState_FinishedAndUnfinishedSections_TrainingCompletionSignal()
@@ -666,7 +666,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             HttpStatusCode.Conflict,
             $"editing the finished section A must return 409. Body: {responseBodyA}");
         responseBodyA.Should().Contain(
-            "SECTION_ALREADY_COMPLETED",
-            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
+            "WORKOUT_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be WORKOUT_ALREADY_COMPLETED");
     }
 }

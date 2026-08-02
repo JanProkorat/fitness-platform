@@ -286,7 +286,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
         // ── 3b. Per-section finished state fold-in ───────────────────────────────
         // For each session that has execution data, project per-section finished state into
-        // FinishedSections. This feeds the web trainer portal so it can render a "Finished"
+        // FinishedWorkouts. This feeds the web trainer portal so it can render a "Finished"
         // label per section and gate the edit-lock unlock affordance at section granularity
         // (issue #465). IsWorkoutComplete() already folds in both signals (finished Performance,
         // checkbox completion flags) since #841 merged them onto one document.
@@ -310,7 +310,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 if (!hasFinishedLog && bestCompletion is null) continue;
 
                 var finishedSections = session.Workouts
-                    .Select(sec => new SectionFinishedStateDto
+                    .Select(sec => new WorkoutFinishedStateDto
                     {
                         SectionId = sec.WorkoutId,
                         IsFinished = bestCompletion.IsWorkoutComplete(session, sec)
@@ -322,18 +322,18 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 {
                     if (exec is not null)
                     {
-                        exec.FinishedSections = finishedSections;
+                        exec.FinishedWorkouts = finishedSections;
                     }
                     else
                     {
                         // No execution entry yet (partial completion with no Performance) —
-                        // add a synthetic entry so FinishedSections is visible to the web layer.
+                        // add a synthetic entry so FinishedWorkouts is visible to the web layer.
                         response.SessionExecutions.Add(new SessionExecutionDto
                         {
                             SessionId = sessionId,
                             IsSessionFinished = false,
                             CompletedSetsByExercise = new Dictionary<Guid, List<int>>(),
-                            FinishedSections = finishedSections
+                            FinishedWorkouts = finishedSections
                         });
                     }
                 }

@@ -68,18 +68,18 @@ public class UpdateSessionRequest
     /// <summary>
     /// Ordered sections in this session. Each section contains its own exercises.
     /// </summary>
-    public List<UpdateSectionRequest> Sections { get; set; } = [];
+    public List<UpdateWorkoutRequest> Sections { get; set; } = [];
 }
 
 /// <summary>
 /// Represents a training section submitted in a full-state session update.
 /// </summary>
-public class UpdateSectionRequest
+public class UpdateWorkoutRequest
 {
     /// <summary>
     /// Optional existing section identifier. New GUID generated if null.
     /// </summary>
-    public Guid? SectionId { get; set; }
+    public Guid? WorkoutId { get; set; }
 
     /// <summary>
     /// Display order within the session (0-based).

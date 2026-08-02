@@ -263,10 +263,10 @@ public class UpdateTrainingPlanEndpoint(
                             // Skip sessions with no completion data (nothing to guard).
                             if (bestExecution is null) continue;
 
-                            // Build a lookup of incoming sections by SectionId (only those with a non-null SectionId).
+                            // Build a lookup of incoming sections by WorkoutId (only those with a non-null WorkoutId).
                             var incomingSectionsBySectionId = incomingSession.Sections
-                                .Where(rs => rs.SectionId.HasValue)
-                                .ToDictionary(rs => rs.SectionId!.Value);
+                                .Where(rs => rs.WorkoutId.HasValue)
+                                .ToDictionary(rs => rs.WorkoutId!.Value);
 
                             foreach (var storedSection in storedSession.Workouts)
                             {
@@ -291,7 +291,7 @@ public class UpdateTrainingPlanEndpoint(
                                 {
                                     await this.SendProblemAsync(
                                         409,
-                                        ErrorCodes.SectionAlreadyCompleted,
+                                        ErrorCodes.WorkoutAlreadyCompleted,
                                         $"Section {storedSection.WorkoutId} in session {sessionId} has already been completed by the client and cannot be edited.",
                                         mutateCt);
                                     return false;
@@ -335,7 +335,7 @@ public class UpdateTrainingPlanEndpoint(
                             FormatConfig = rs.FormatConfig,
                             Workouts = rs.Sections.Select(rsec => new TrainingWorkout
                             {
-                                WorkoutId = rsec.SectionId ?? Guid.NewGuid(),
+                                WorkoutId = rsec.WorkoutId ?? Guid.NewGuid(),
                                 Order = rsec.Order,
                                 Name = rsec.Name,
                                 Format = rsec.Format,
@@ -515,7 +515,7 @@ public class UpdateTrainingPlanEndpoint(
     /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
     /// and their sets (by positional order within the section).
     /// </summary>
-    private static bool HasSectionContentChanged(TrainingWorkout stored, UpdateSectionRequest incoming)
+    private static bool HasSectionContentChanged(TrainingWorkout stored, UpdateWorkoutRequest incoming)
     {
         if (stored.Order != incoming.Order) return true;
         if (stored.Name != incoming.Name) return true;

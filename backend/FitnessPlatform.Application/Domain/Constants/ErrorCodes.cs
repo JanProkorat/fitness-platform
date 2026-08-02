@@ -240,22 +240,22 @@ public static class ErrorCodes
     /// <summary>The caller is not the owning professional for this photo diary request (role-gate rejection).</summary>
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
-    // ── Section Templates ────────────────────────────────────────────
+    // ── Workout Templates ────────────────────────────────────────────
     /// <summary>Section template not found.</summary>
-    public const string WorkoutTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
+    public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
 
     /// <summary>Section template belongs to another trainer.</summary>
-    public const string WorkoutTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
+    public const string WorkoutTemplateNotOwned = "WORKOUT_TEMPLATE_NOT_OWNED";
 
     /// <summary>Section template version mismatch (optimistic concurrency).</summary>
-    public const string WorkoutTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
+    public const string WorkoutTemplateVersionConflict = "WORKOUT_TEMPLATE_VERSION_CONFLICT";
 
-    // ── Training Sections ────────────────────────────────────────────
+    // ── Training Workouts ────────────────────────────────────────────
     /// <summary>Session sections list is empty.</summary>
-    public const string SectionsRequired = "SECTIONS_REQUIRED";
+    public const string WorkoutsRequired = "WORKOUTS_REQUIRED";
 
     /// <summary>Duplicate Order values across sections in the same session.</summary>
-    public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
+    public const string WorkoutOrderDuplicate = "WORKOUT_ORDER_DUPLICATE";
 
     // ── Trainer Finish Session ───────────────────────────────────────
     /// <summary>The session is currently locked by another party (live or editing lock conflict).</summary>
@@ -268,7 +268,7 @@ public static class ErrorCodes
     /// Attempt to edit a training plan section whose content has already been completed
     /// by the client (via a finished WorkoutLog or a TrainingCompletion record).
     /// </summary>
-    public const string SectionAlreadyCompleted = "SECTION_ALREADY_COMPLETED";
+    public const string WorkoutAlreadyCompleted = "WORKOUT_ALREADY_COMPLETED";
 
     /// <summary>completedAt is in the future; backdating to the future is not allowed.</summary>
     public const string CompletedAtInFuture = "COMPLETED_AT_IN_FUTURE";

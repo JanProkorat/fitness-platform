@@ -403,10 +403,10 @@ public class GetTrainingPlanCompletionFinishedStateTests
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull("a session entry must be present when completion data exists");
-        exec!.FinishedSections.Should().HaveCount(2,
+        exec!.FinishedWorkouts.Should().HaveCount(2,
             "both sections are complete so both must appear in FinishedSections");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -457,10 +457,10 @@ public class GetTrainingPlanCompletionFinishedStateTests
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull();
         exec!.IsSessionFinished.Should().BeTrue();
-        exec.FinishedSections.Should().HaveCount(2,
+        exec.FinishedWorkouts.Should().HaveCount(2,
             "a completed WorkoutLog implies all sections are done");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -494,10 +494,10 @@ public class GetTrainingPlanCompletionFinishedStateTests
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull();
-        exec!.FinishedSections.Should().HaveCount(1,
+        exec!.FinishedWorkouts.Should().HaveCount(1,
             "only the finished section must appear — not the unfinished one");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().NotContain(s => s.SectionId == _sectionBId,
+        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().NotContain(s => s.SectionId == _sectionBId,
             "section B is not finished so it must not appear in FinishedSections");
     }
 
@@ -516,7 +516,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         if (exec is not null)
         {
-            exec.FinishedSections.Should().BeEmpty(
+            exec.FinishedWorkouts.Should().BeEmpty(
                 "no completion data means FinishedSections must be empty");
         }
     }

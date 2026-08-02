@@ -47,7 +47,7 @@ public class UpdateTrainingPlanFormatTests
             new MockDbBuilder().Build());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
-    private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
+    private static UpdateWorkoutRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
         new() { Name = "Hlavní", Order = 0, Exercises = exercises ?? [] };
 
     // ── Session-level format round-trip tests ────────────────────────────────

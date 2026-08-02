@@ -8,7 +8,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// A section is "finished" when the client has completed it via either the WorkoutLog path
 /// (session-level completion) or the TrainingCompletion path (home-checkbox / section-complete).
 /// </summary>
-public class SectionFinishedStateDto
+public class WorkoutFinishedStateDto
 {
     /// <summary>
     /// The <see cref="TrainingWorkout.SectionId"/> this finished state belongs to.
@@ -143,7 +143,7 @@ public class SessionExecutionDto
     /// The web layer uses this to render the finished label and disable editing on completed sections
     /// independently of the session-level finished state.
     /// </summary>
-    public List<SectionFinishedStateDto> FinishedSections { get; set; } = [];
+    public List<WorkoutFinishedStateDto> FinishedWorkouts { get; set; } = [];
 }
 
 /// <summary>
