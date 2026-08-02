@@ -241,7 +241,7 @@ public class LibrarySearchHelperTests : IAsyncLifetime
             _collection, Guid.NewGuid(), d => d.Name, search: null,
             page: page, pageSize: pageSize, extraFilter: null, ct: ct);
 
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<ValidationFailureException>();
         ep.HttpContext.Response.StatusCode.Should().Be(400);
     }
 
@@ -257,7 +257,7 @@ public class LibrarySearchHelperTests : IAsyncLifetime
             _collection, Guid.NewGuid(), d => d.Name, search: null,
             page: 1, pageSize: pageSize, extraFilter: null, ct: ct);
 
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<ValidationFailureException>();
         ep.HttpContext.Response.StatusCode.Should().Be(400);
     }
 
@@ -272,7 +272,7 @@ public class LibrarySearchHelperTests : IAsyncLifetime
             _collection, Guid.NewGuid(), d => d.Name, search: overLong,
             page: 1, pageSize: 20, extraFilter: null, ct: ct);
 
-        await act.Should().ThrowAsync<Exception>();
+        await act.Should().ThrowAsync<ValidationFailureException>();
         ep.HttpContext.Response.StatusCode.Should().Be(400);
     }
 }

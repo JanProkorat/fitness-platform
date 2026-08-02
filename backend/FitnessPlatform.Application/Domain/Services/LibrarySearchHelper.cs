@@ -38,6 +38,14 @@ public static class LibrarySearchHelper
     public const int MaxPageSize = 100;
 
     /// <summary>
+    /// Maximum allowed <c>page</c> across every library search endpoint. <c>page</c> has a
+    /// lower bound of 1 but, without an upper bound, a large caller-supplied value overflows
+    /// the <c>(page - 1) * pageSize</c> multiplication to a negative <c>Skip</c>, which Mongo
+    /// rejects — a trivially reachable 500.
+    /// </summary>
+    public const int MaxPage = 100_000;
+
+    /// <summary>
     /// Maximum allowed length of a caller-supplied search term. An uncapped
     /// <see cref="Regex.Escape(string)"/>'d term run as a case-insensitive unanchored regex
     /// over an unindexed name field, across four search endpoints, is a cheap CPU
@@ -52,8 +60,9 @@ public static class LibrarySearchHelper
     /// <paramref name="search"/> is supplied, by a <see cref="Regex.Escape(string)"/>'d
     /// case-insensitive match against <paramref name="nameSelector"/>. Sets the
     /// <c>X-Total-Count</c> response header and returns the same count. Rejects
-    /// <paramref name="page"/> &lt; 1, <paramref name="pageSize"/> outside <c>1..100</c>, and
-    /// an over-length <paramref name="search"/> term with a 400 via
+    /// <paramref name="page"/> outside <c>1..<see cref="MaxPage"/></c>,
+    /// <paramref name="pageSize"/> outside <c>1..100</c>, and an over-length
+    /// <paramref name="search"/> term with a 400 via
     /// <see cref="EndpointErrorExtensions.ThrowErrorWithCode"/>.
     /// </summary>
     /// <typeparam name="TDoc">The sharing-library document type.</typeparam>
@@ -115,9 +124,9 @@ public static class LibrarySearchHelper
 
     private static void ValidatePagingOrThrow(IEndpoint endpoint, int page, int pageSize, string? search)
     {
-        if (page < 1)
+        if (page is < 1 or > MaxPage)
         {
-            endpoint.ThrowErrorWithCode(ErrorCodes.OutOfRange, "Page must be at least 1.");
+            endpoint.ThrowErrorWithCode(ErrorCodes.OutOfRange, $"Page must be between 1 and {MaxPage}.");
         }
 
         if (pageSize is < 1 or > MaxPageSize)

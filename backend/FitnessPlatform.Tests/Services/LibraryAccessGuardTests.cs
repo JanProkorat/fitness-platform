@@ -171,4 +171,53 @@ public class LibraryAccessGuardTests
         denied.Should().BeTrue();
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
+
+    // ── LibraryDenialExtensions.SendLibraryNotFoundAsync — body-equality proof ─
+
+    /// <summary>
+    /// The core AC #858 property: a genuinely-missing entry and another owner's unreadable
+    /// Private entry must be byte-for-byte indistinguishable — not just matching status codes.
+    /// A test that only compares status codes would already pass today and miss the exact
+    /// defect BLOCKING finding #2 raised: a genuinely-missing entry that (incorrectly) still
+    /// went through the repo's usual empty-bodied <c>Send.NotFoundAsync(ct)</c> would report the
+    /// same 404 status as this test's denied-read path, while shipping a different body/headers
+    /// oracle. This test proves both paths route through the same
+    /// <see cref="LibraryDenialExtensions.SendLibraryNotFoundAsync"/> helper and therefore
+    /// produce identical bytes.
+    /// </summary>
+    [Fact]
+    public async Task SendLibraryNotFoundAsync_MissingEntryAndOtherOwnerPrivateEntry_ProduceByteIdenticalResponses()
+    {
+        const string notFoundErrorCode = "MEAL_TEMPLATE_NOT_FOUND";
+        const string notFoundDetail = "Meal template not found.";
+
+        using var missingEntryBody = new MemoryStream();
+        var missingEntryEndpoint = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = missingEntryBody);
+
+        // Simulates the "document does not exist at all" path a real endpoint takes after its
+        // ExternalId lookup returns null — it MUST call this helper, not Send.NotFoundAsync(ct).
+        await missingEntryEndpoint.SendLibraryNotFoundAsync(
+            notFoundErrorCode, notFoundDetail, TestContext.Current.CancellationToken);
+
+        using var otherOwnerPrivateBody = new MemoryStream();
+        var otherOwnerPrivateEndpoint = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = otherOwnerPrivateBody);
+
+        var denied = await otherOwnerPrivateEndpoint.TryDenyReadAsync(
+            OtherCallerId, OwnerId, LibraryVisibility.Private,
+            notFoundErrorCode, notFoundDetail,
+            TestContext.Current.CancellationToken);
+
+        denied.Should().BeTrue();
+
+        missingEntryEndpoint.HttpContext.Response.StatusCode
+            .Should().Be(otherOwnerPrivateEndpoint.HttpContext.Response.StatusCode);
+        missingEntryEndpoint.HttpContext.Response.ContentType
+            .Should().Be(otherOwnerPrivateEndpoint.HttpContext.Response.ContentType);
+
+        missingEntryBody.Seek(0, SeekOrigin.Begin);
+        otherOwnerPrivateBody.Seek(0, SeekOrigin.Begin);
+        missingEntryBody.ToArray().Should().Equal(otherOwnerPrivateBody.ToArray());
+    }
 }
