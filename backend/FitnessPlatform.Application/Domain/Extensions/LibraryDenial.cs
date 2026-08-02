@@ -13,12 +13,15 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// hazard: <c>TryDenyWriteAsync</c> used to take four adjacent <c>string</c> parameters
 /// (notFound code, notFound detail, notOwned code, notOwned detail) in a row — transposing the
 /// notFound/notOwned pair at a call site compiled silently and crossed the error codes clients
-/// localize on. A single <see cref="LibraryDenial"/> value removes both hazards: there is
-/// exactly one place to declare the four strings. This does not make a transposed
-/// <c>new(...)</c> call impossible to write — all four parameters are <c>string</c>, so a
-/// transposed constructor call still compiles — but it reduces the number of sites where that
-/// mistake can occur from one per call site (N) to one per library (1), since every call site
-/// for a library now shares the same pre-built value instead of re-typing the four strings.
+/// localize on. <see cref="VersionConflictErrorCode"/>/<see cref="VersionConflictDetail"/> close
+/// the identical hazard for the 409 pair, previously two loose, adjacent parameters on
+/// <c>LoadAndReplaceLibraryEntryWithVersionGuardAsync</c>. A single <see cref="LibraryDenial"/>
+/// value removes all three hazards: there is exactly one place to declare the six strings. This
+/// does not make a transposed <c>new(...)</c> call impossible to write — every parameter is
+/// <c>string</c>, so a transposed constructor call still compiles — but it reduces the number of
+/// sites where that mistake can occur from one per call site (N) to one per library (1), since
+/// every call site for a library now shares the same pre-built value instead of re-typing the
+/// six strings.
 /// </summary>
 /// <remarks>
 /// Declare exactly one <c>static readonly</c> instance per library (e.g. one for meal templates,
@@ -40,8 +43,19 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// The 403 Problem Details body text for a readable-but-not-owned write attempt. Write-only, see
 /// <see cref="NotOwnedErrorCode"/>.
 /// </param>
+/// <param name="VersionConflictErrorCode">
+/// The library's <c>*_VERSION_CONFLICT</c> error code. Only read by
+/// <see cref="LibraryDenialExtensions.SendLibraryVersionConflictAsync"/> and, internally, by
+/// <see cref="LibraryDenialExtensions.LoadAndReplaceLibraryEntryWithVersionGuardAsync{TDoc}"/>.
+/// </param>
+/// <param name="VersionConflictDetail">
+/// The 409 Problem Details body text for a stale-version or lost-replace-race conflict. See
+/// <see cref="VersionConflictErrorCode"/>.
+/// </param>
 public readonly record struct LibraryDenial(
     string NotFoundErrorCode,
     string NotFoundDetail,
     string NotOwnedErrorCode,
-    string NotOwnedDetail);
+    string NotOwnedDetail,
+    string VersionConflictErrorCode,
+    string VersionConflictDetail);

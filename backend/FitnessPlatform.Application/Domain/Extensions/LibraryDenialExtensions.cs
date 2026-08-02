@@ -36,10 +36,16 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// the loader, then separately call the guard) previously relied on a caller reading this class's
 /// remarks and getting the order right, which is exactly the kind of guarantee that degrades to
 /// "we hope nobody skips it." <see cref="LoadAndReplaceLibraryEntryWithVersionGuardAsync{TDoc}"/>
-/// removes that reliance: it is the sole sanctioned entry point for a version-gated
-/// sharing-library write, and it sequences fetch → denial guard → version check → replace
-/// internally, so the wrong order (version check before denial, or a denial-free path into the
-/// guard) is unrepresentable by a caller of this API — not merely discouraged by a comment.
+/// removes that reliance for a caller who uses it: it is the sole sanctioned entry point for a
+/// version-gated sharing-library write, and it sequences fetch → denial guard → version check →
+/// replace internally, so a caller who goes through <i>this</i> method cannot get the order
+/// wrong. This does not make the wrong order unrepresentable by every caller of this API —
+/// <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> and
+/// <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/> both remain public, so
+/// an endpoint could still inject the guard directly and call it with no denial check ahead of
+/// it. What this method changes is that the correct sequencing is now the available, sanctioned
+/// path rather than a convention documented only in prose — a real improvement, not an
+/// enforcement guarantee.
 /// </para>
 /// <para>
 /// <b>General ordering rule — read this before adding any check on the fetched document.</b> Any
@@ -90,22 +96,22 @@ public static class LibraryDenialExtensions
     /// shape across all four libraries' <c>*_VERSION_CONFLICT</c> error codes, the same way
     /// <see cref="SendLibraryNotFoundAsync"/> pins the 404 shape and the 403 branch inside
     /// <see cref="TryDenyWriteAsync"/> pins the 403 shape — so 409 is not the one denial outcome
-    /// each child endpoint invents its own body for. Unlike <see cref="SendLibraryNotFoundAsync"/>,
-    /// this does not take a <see cref="LibraryDenial"/>: a version conflict has exactly one call
-    /// site per operation (there is no second, independently-written "genuinely missing" leg to
-    /// keep in sync with), so a plain code/detail pair carries no divergence risk. Does NOT throw
-    /// — the caller must return after this call.
+    /// each child endpoint invents its own body for. Takes the same <see cref="LibraryDenial"/> as
+    /// every other denial outcome: <see cref="LibraryDenial.VersionConflictErrorCode"/> and
+    /// <see cref="LibraryDenial.VersionConflictDetail"/> used to be two loose, adjacent
+    /// <c>string</c> parameters here — exactly the transposable-pair hazard
+    /// <see cref="LibraryDenial"/> exists to remove for the 404/403 strings, reintroduced for the
+    /// 409 pair. Folding them in puts all six per-library denial strings behind one declaration.
+    /// Does NOT throw — the caller must return after this call.
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
-    /// <param name="versionConflictErrorCode">The library-specific <c>*_VERSION_CONFLICT</c> error code.</param>
-    /// <param name="versionConflictDetail">Human-readable detail for the 409 Problem Details body.</param>
+    /// <param name="denial">The calling library's pinned denial strings.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task SendLibraryVersionConflictAsync(
         this IEndpoint endpoint,
-        string versionConflictErrorCode,
-        string versionConflictDetail,
+        LibraryDenial denial,
         CancellationToken ct) =>
-        await endpoint.SendProblemAsync(409, versionConflictErrorCode, versionConflictDetail, ct);
+        await endpoint.SendProblemAsync(409, denial.VersionConflictErrorCode, denial.VersionConflictDetail, ct);
 
     /// <summary>
     /// Enforces read access for a library entry already fetched by <c>ExternalId</c> alone.
@@ -300,10 +306,13 @@ public static class LibraryDenialExtensions
     /// <param name="collection">The Mongo collection to read from and write to.</param>
     /// <param name="externalId">The entry's public-facing identifier.</param>
     /// <param name="callerId">The authenticated caller's user id.</param>
-    /// <param name="denial">The calling library's pinned denial strings.</param>
+    /// <param name="denial">
+    /// The calling library's pinned denial strings, including
+    /// <see cref="LibraryDenial.VersionConflictErrorCode"/> and
+    /// <see cref="LibraryDenial.VersionConflictDetail"/> used for the 409 branch — there is no
+    /// separate version-conflict code/detail pair to pass alongside this.
+    /// </param>
     /// <param name="expectedVersion">The version the caller expects the document to currently have.</param>
-    /// <param name="versionConflictErrorCode">The library-specific <c>*_VERSION_CONFLICT</c> error code.</param>
-    /// <param name="versionConflictDetail">Human-readable detail for the 409 Problem Details body.</param>
     /// <param name="guard">The shared version-gated fetch-check-replace-409 skeleton, DI-injected in the calling endpoint.</param>
     /// <param name="mutate">
     /// Endpoint-specific validation and mutation logic, run only against a document whose caller
@@ -320,8 +329,6 @@ public static class LibraryDenialExtensions
         Guid callerId,
         LibraryDenial denial,
         int expectedVersion,
-        string versionConflictErrorCode,
-        string versionConflictDetail,
         PlanConcurrencyGuard guard,
         Func<TDoc, CancellationToken, Task<bool>> mutate,
         CancellationToken ct)
@@ -348,12 +355,16 @@ public static class LibraryDenialExtensions
                 return default;
             case PlanConcurrencyOutcome.VersionConflict:
             case PlanConcurrencyOutcome.ReplaceConflict:
-                await endpoint.SendLibraryVersionConflictAsync(versionConflictErrorCode, versionConflictDetail, ct);
+                await endpoint.SendLibraryVersionConflictAsync(denial, ct);
                 return default;
             case PlanConcurrencyOutcome.HandledByMutator:
                 return default;
-            default:
+            case PlanConcurrencyOutcome.Success:
                 return result.Document;
+            default:
+                throw new InvalidOperationException(
+                    $"Unhandled {nameof(PlanConcurrencyOutcome)} value '{result.Outcome}' — " +
+                    "add an explicit case rather than falling through to an implicit success.");
         }
     }
 

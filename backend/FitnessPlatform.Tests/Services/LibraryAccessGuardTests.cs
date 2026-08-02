@@ -42,11 +42,13 @@ public class LibraryAccessGuardTests
     // declare exactly one `static readonly LibraryDenial` and reuse it at every call site.
     private static readonly LibraryDenial MealTemplateDenial = new(
         "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
-        "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.");
+        "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
+        "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.");
 
     private static readonly LibraryDenial GenericDenial = new(
         "SOME_NOT_FOUND", "not found",
-        "SOME_NOT_OWNED", "not owned");
+        "SOME_NOT_OWNED", "not owned",
+        "SOME_VERSION_CONFLICT", "version conflict");
 
     /// <summary>
     /// Reads the RFC 7807 <c>errorCode</c> extension out of a captured Problem Details response
@@ -241,11 +243,9 @@ public class LibraryAccessGuardTests
         var ep = Factory.Create<LibraryGuardProbeEndpoint>(
             ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
-        await ep.SendLibraryVersionConflictAsync(
-            "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.",
-            TestContext.Current.CancellationToken);
+        await ep.SendLibraryVersionConflictAsync(MealTemplateDenial, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);
-        (await ReadErrorCodeAsync(responseBody)).Should().Be("MEAL_TEMPLATE_VERSION_CONFLICT");
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.VersionConflictErrorCode);
     }
 }

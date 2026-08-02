@@ -45,7 +45,8 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
 
     private static readonly LibraryDenial MealTemplateDenial = new(
         "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
-        "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.");
+        "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
+        "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.");
 
     private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
 
@@ -230,9 +231,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
 
     // ── LibraryDenialExtensions.LoadAndReplaceLibraryEntryWithVersionGuardAsync (MAJOR 2) ──────
 
-    private const string VersionConflictErrorCode = "MEAL_TEMPLATE_VERSION_CONFLICT";
-    private const string VersionConflictDetail = "Meal template was modified by another request.";
-
     [Fact]
     public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_Owner_MutatesAndReplaces()
     {
@@ -256,7 +254,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             _collection, entry.ExternalId, ownerId, MealTemplateDenial,
             expectedVersion: 1,
-            VersionConflictErrorCode, VersionConflictDetail,
             guard,
             mutate: (doc, _) =>
             {
@@ -291,7 +288,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             _collection, Guid.NewGuid(), Guid.NewGuid(), MealTemplateDenial,
             expectedVersion: 1,
-            VersionConflictErrorCode, VersionConflictDetail,
             guard,
             mutate: (_, _) => Task.FromResult(true),
             ct);
@@ -327,7 +323,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             _collection, entry.ExternalId, otherCallerId, MealTemplateDenial,
             expectedVersion: 1,
-            VersionConflictErrorCode, VersionConflictDetail,
             guard,
             mutate: (_, _) => Task.FromResult(true),
             ct);
@@ -362,14 +357,13 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             _collection, entry.ExternalId, ownerId, MealTemplateDenial,
             expectedVersion: 999, // stale — the document is actually at Version 1
-            VersionConflictErrorCode, VersionConflictDetail,
             guard,
             mutate: (_, _) => Task.FromResult(true),
             ct);
 
         result.Should().BeNull();
         ep.HttpContext.Response.StatusCode.Should().Be(409);
-        (await ReadErrorCodeAsync(responseBody)).Should().Be(VersionConflictErrorCode);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.VersionConflictErrorCode);
     }
 
     /// <summary>
@@ -405,7 +399,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
             _collection, entry.ExternalId, otherCallerId, MealTemplateDenial,
             expectedVersion: 999, // deliberately wrong — would trip VersionConflict if version-checked first
-            VersionConflictErrorCode, VersionConflictDetail,
             guard,
             mutate: (_, _) => Task.FromResult(true),
             ct);
@@ -413,5 +406,117 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         result.Should().BeNull();
         ep.HttpContext.Response.StatusCode.Should().Be(404);
         (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
+    }
+
+    /// <summary>
+    /// The <see cref="PlanConcurrencyOutcome.HandledByMutator"/> branch is the only one of the
+    /// six outcomes where <c>mutate</c> has already written its own response (e.g. an
+    /// endpoint-specific business-rule rejection a #859-onwards child adds) and returned
+    /// <c>false</c> specifically to tell the guard to stop before <c>ReplaceOneAsync</c>. Without
+    /// this test, a future "add a fallback Send" regression on this branch would double-write on
+    /// every business-rule rejection: the switch's <c>HandledByMutator</c> case must write
+    /// nothing and simply return <c>default</c>, leaving whatever the mutator already wrote as
+    /// the sole response.
+    /// </summary>
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_MutatorHandlesItsOwnResponse_WritesNothingElse()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Private,
+            Name = "Before",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, ownerId, MealTemplateDenial,
+            expectedVersion: 1,
+            guard,
+            mutate: async (_, mutateCt) =>
+            {
+                await ep.SendProblemAsync(409, "SOME_BUSINESS_RULE_CONFLICT", "Endpoint-specific rejection.", mutateCt);
+                return false;
+            },
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be("SOME_BUSINESS_RULE_CONFLICT");
+
+        var persisted = await (await _collection.FindAsync(
+            Builders<TestLibraryDocument>.Filter.Eq(d => d.ExternalId, entry.ExternalId),
+            cancellationToken: ct)).FirstOrDefaultAsync(ct);
+        persisted.Name.Should().Be("Before");
+        persisted.Version.Should().Be(1);
+    }
+
+    /// <summary>
+    /// The <see cref="PlanConcurrencyOutcome.ReplaceConflict"/> branch — the version-gated
+    /// <c>ReplaceOneAsync</c> matched zero documents because another writer won the race between
+    /// this method's initial fetch and its replace. Reproduced here by having <c>mutate</c> bump
+    /// the PERSISTED <c>Version</c> out-of-band (a separate <c>UpdateOneAsync</c>, behind the
+    /// in-memory <c>doc</c> the guard is about to replace with) before returning <c>true</c> — so
+    /// <c>replaceFilter</c> (ExternalId + the version read at fetch time) matches nothing by the
+    /// time <c>ReplaceOneAsync</c> runs, exactly like a genuine concurrent writer would.
+    /// </summary>
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_LostReplaceRace_Returns409()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Private,
+            Name = "Current",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, ownerId, MealTemplateDenial,
+            expectedVersion: 1,
+            guard,
+            mutate: async (doc, mutateCt) =>
+            {
+                await _collection.UpdateOneAsync(
+                    Builders<TestLibraryDocument>.Filter.Eq(d => d.ExternalId, entry.ExternalId),
+                    Builders<TestLibraryDocument>.Update.Inc(d => d.Version, 1),
+                    cancellationToken: mutateCt);
+                doc.Name = "After";
+                doc.Version += 1;
+                return true;
+            },
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.VersionConflictErrorCode);
+
+        var persisted = await (await _collection.FindAsync(
+            Builders<TestLibraryDocument>.Filter.Eq(d => d.ExternalId, entry.ExternalId),
+            cancellationToken: ct)).FirstOrDefaultAsync(ct);
+        persisted.Name.Should().Be("Current");
+        persisted.Version.Should().Be(2);
     }
 }
