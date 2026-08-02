@@ -64,12 +64,10 @@ public class TrainerSideEnforcementTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
                             Workouts =
@@ -95,8 +93,7 @@ public class TrainerSideEnforcementTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -123,12 +120,10 @@ public class TrainerSideEnforcementTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Draft,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Draft Session",
                             Order = 1,
                             Workouts =
@@ -154,8 +149,7 @@ public class TrainerSideEnforcementTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -175,7 +169,7 @@ public class TrainerSideEnforcementTests
         return new UpdateSessionRequest
         {
             SessionId = sessionId,
-            DayOfWeek = session.DayOfWeek,
+            DayOfWeek = 1, // both CreatePlanWithPublishedSession and CreatePlanWithDraftSession schedule day 1
             Name = session.Name,
             Order = session.Order,
             Notes = session.Notes,
@@ -364,7 +358,7 @@ public class TrainerSideEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -411,7 +405,7 @@ public class TrainerSideEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -457,7 +451,7 @@ public class TrainerSideEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -636,7 +630,7 @@ public class TrainerSideEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var identicalSession = IdenticalSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var identicalSession = IdenticalSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
