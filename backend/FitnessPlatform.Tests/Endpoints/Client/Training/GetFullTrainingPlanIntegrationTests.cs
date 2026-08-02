@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Infrastructure;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -108,13 +109,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-8),
-                    Sessions =
-                    [
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
                         // Session A: Squat, 3 sets — Monday
-                        new TrainingSession
+                        (1, new TrainingSession
                         {
                             SessionId = sessionAId,
-                            DayOfWeek = 1,
                             Name = "Leg Day",
                             Order = 1,
                             Notes = "Focus on depth",
@@ -143,12 +142,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        },
+                        }),
                         // Session B: Bench Press, 3 sets — also Monday (order 2)
-                        new TrainingSession
+                        (1, new TrainingSession
                         {
                             SessionId = sessionBId,
-                            DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 2,
                             Workouts =
@@ -176,8 +174,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
@@ -354,7 +351,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-1),
-                    Sessions = []
+                    Days = TrainingPlanTestHelpers.MaterializeDays()
                 }
             ]
         };
@@ -458,12 +455,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-4),
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(2, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 2,
                             Name = "Full Body",
                             Order = 1,
                             Workouts =
@@ -503,8 +498,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
@@ -619,12 +613,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-2),
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Running",
                             Order = 1,
                             Workouts =
@@ -637,8 +629,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     Exercises = []
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
@@ -765,12 +756,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-2),
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Leg Day",
                             Order = 1,
                             Workouts =
@@ -799,8 +788,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
@@ -924,12 +912,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-2),
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(2, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 2,
                             Name = "Pull Day",
                             Order = 1,
                             Workouts =
@@ -958,8 +944,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
@@ -1070,12 +1055,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-2),
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(3, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 3,
                             Name = "Mixed Day",
                             Order = 1,
                             Workouts =
@@ -1104,8 +1087,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ]
         };
