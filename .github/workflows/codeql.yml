@@ -11,7 +11,7 @@ on:
   push:
     branches: [develop, main]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, 'feature/*']
   schedule:
     # Weekly full scan (Sundays 03:17 UTC) to catch newly-published
     # query updates against code that hasn't changed in a while.

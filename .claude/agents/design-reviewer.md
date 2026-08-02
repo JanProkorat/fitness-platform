@@ -3,7 +3,6 @@ name: design-reviewer
 description: Pre-implementation design review. Reads the GitHub issue + orchestrator's dispatch brief BEFORE dev agents start work; checks scope boundary, package fit, AC coverage, architecture, security, test strategy, branch/base correctness, in-flight epic conflict. Returns APPROVE / NEEDS-REVISION / BLOCK with structured findings.
 tools: Bash, Read, Grep, Glob, Write
 model: opus
-maxTurns: 40
 color: pink
 ---
 

@@ -3,7 +3,6 @@ name: mobile-expo
 description: Use PROACTIVELY for any work touching `/mobile/**` — the React Native + Expo SDK 55 client app (Expo Router, Zustand, TanStack Query). Invoke for screens, components, hooks, stores, API modules, i18n, or styling. Do NOT modify `/backend` or `/web`. Do NOT edit `src/api/generated.ts`. Always use design tokens, never hardcoded colors or spacing.
 tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 model: sonnet
-maxTurns: 150
 permissionMode: acceptEdits
 color: purple
 skills: expo-screen, regen-api, signalr-event, ui-tradeoff, prototype-scene
@@ -157,8 +156,19 @@ still validate).
 The `gate-check.sh` SubagentStop hook validates before control returns;
 a malformed handoff exits non-zero so you can self-correct.
 
-If you hit your `maxTurns` cap mid-task, write `status: "incomplete"`
-with `incomplete_reason: "max-turns at <step>"`.
+**Commit before you can be interrupted.** There is no `maxTurns` cap on this
+project, but a run can still end abruptly — an API stream drop, a stall
+watchdog, or a backgrounded command you are waiting on. You get no warning, so
+commit *early and repeatedly*, not as a final step. As soon as the build or
+typecheck is clean, commit. A committed partial slice is recoverable; an
+uncommitted one has to be reconstructed by hand.
+
+Never background a long-running command (a full test suite) and then end your
+turn waiting for it — the completion notification is routed to the
+orchestrator, not to you, so your turn ends parked and your work is stranded.
+
+If you know you are stopping mid-task, write `status: "incomplete"` with
+`incomplete_reason: "<what remains, at which step>"`.
 
 ## Never
 - Edit anything outside `/mobile`.
