@@ -18,9 +18,8 @@ namespace FitnessPlatform.Tests.Services;
 /// <remarks>
 /// <para>
 /// The method under test is <c>private</c> — it can only be exercised through the public
-/// <see cref="MongoIndexInitializer.StartAsync"/> entry point, mirroring
-/// <see cref="PlanSchemaOnReadMigrationTests"/>. Each test seeds a legacy-shaped document
-/// directly as a raw <see cref="BsonDocument"/> carrying the OLD <c>completedSectionIds</c>
+/// <see cref="MongoIndexInitializer.StartAsync"/> entry point. Each test seeds a legacy-shaped
+/// document directly as a raw <see cref="BsonDocument"/> carrying the OLD <c>completedSectionIds</c>
 /// element name (bypassing the typed <see cref="SessionExecution"/> / <see cref="TrainingCompletion"/>
 /// classes entirely — those classes' <c>CompletedWorkoutIds</c> property already maps to the NEW
 /// <c>completedWorkoutIds</c> element, so seeding through the typed model would write the new name
@@ -28,10 +27,10 @@ namespace FitnessPlatform.Tests.Services;
 /// pre-#857 legacy data looks on disk.
 /// </para>
 /// <para>
-/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container (mirroring
-/// <see cref="PlanSchemaOnReadMigrationTests"/>, reusing its <see cref="MigrationTestMongoContext"/>)
-/// rather than the shared suite-wide container, so the exact document shapes asserted below stay
-/// independent of other test classes' fixtures and of ordering within the full suite run.
+/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container, reusing the shared
+/// <see cref="MigrationTestMongoContext"/> rather than the shared suite-wide container, so the
+/// exact document shapes asserted below stay independent of other test classes' fixtures and of
+/// ordering within the full suite run.
 /// </para>
 /// </remarks>
 public class CompletedWorkoutIdsRenameMigrationTests

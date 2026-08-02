@@ -564,11 +564,12 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
     // ── Legacy flat-exercise schema-on-read is retired (#837) ────────────────────
     //
     // The flat-`exercises`-no-sections scenario previously covered here
-    // (WithBackfilledSections() at read time) is retired: the one-time boot migration
-    // in MongoIndexInitializer now backfills every embedded TrainingSession to the
-    // sections shape, so a plan at this layer is always sections-populated. See
-    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
-    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
+    // (WithBackfilledSections() at read time) is retired: a plan at this layer is
+    // always sections/workouts-populated. (#857 subsequently deleted the boot-time
+    // backfill that used to synthesize the modern shape from legacy flat `exercises`
+    // plans — see MongoIndexInitializer and its TrainingTreeRestructureMigrationTests
+    // absence-test coverage — legacy documents are simply left untouched now, not
+    // migrated on read.)
 
     // ── WorkoutDto.IsCompleted tests ─────────────────────────────────────────────
 

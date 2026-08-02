@@ -21,12 +21,11 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 /// published SessionId does not appear in the incoming map) must be rejected with 409
 /// <c>session_locked</c> unless the trainer holds an Editing lock for that session.
 ///
-/// Gap #5a (legacy-doc no false-positive) was retired by #837 — the one-time boot
-/// migration in <c>MongoIndexInitializer</c> backfills every embedded TrainingSession
-/// to the sections shape, so there is no longer a legacy-doc-vs-section-request
-/// comparison for the diff-gate to false-positive on. See
-/// <c>FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests</c> for the
-/// migration's own coverage.
+/// Gap #5a (legacy-doc no false-positive) was retired by #837: a stored session
+/// reaching this endpoint is always sections/workouts-populated, so there is no
+/// longer a legacy-doc-vs-section-request comparison for the diff-gate to
+/// false-positive on. See the comment above <c>SeedTwoSectionPlanWithCompletedLogAsync</c>
+/// below for the current state of that retirement.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factory)
@@ -115,12 +114,12 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
     // ── gap #5a: legacy-doc backfill no false-positive — RETIRED (#837) ──────────
     //
     // The legacy flat-exercise diff-gate scenario previously covered here is retired:
-    // the one-time boot migration in MongoIndexInitializer backfills every embedded
-    // TrainingSession to the sections shape, so a stored session at this layer is
-    // always sections-populated — there is no longer a legacy-doc-vs-section-request
-    // comparison for the diff-gate to false-positive on. See
-    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
-    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
+    // a stored session reaching this endpoint is always sections/workouts-populated,
+    // so there is no longer a legacy-doc-vs-section-request comparison for the diff-gate
+    // to false-positive on. (#857 subsequently deleted the boot-time backfill that used
+    // to synthesize the modern shape from legacy flat `exercises` docs — see
+    // MongoIndexInitializer and its TrainingTreeRestructureMigrationTests absence-test
+    // coverage — legacy documents are simply left untouched now, not migrated on read.)
 
     // ── Section-finished guard helpers ──────────────────────────────────────────
 

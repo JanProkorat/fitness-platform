@@ -15,9 +15,9 @@ namespace FitnessPlatform.Tests.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container (mirroring
-/// <see cref="PlanSchemaOnReadMigrationTests"/>, reusing its <see cref="MigrationTestMongoContext"/>)
-/// rather than the shared <see cref="FitnessPlatform.Tests.Infrastructure.FitnessApiFactory"/> used
+/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container, reusing the shared
+/// <see cref="MigrationTestMongoContext"/>, rather than the shared
+/// <see cref="FitnessPlatform.Tests.Infrastructure.FitnessApiFactory"/> used
 /// by <see cref="ClientIdStandardizationMigrationTests"/>. Unlike the #840 clientId-standardisation
 /// migration (which only rewrites the key field on documents already matched by a caller-supplied
 /// PublicId→UserId map), <c>MigrateSessionExecutionsAsync</c> unconditionally scans EVERY
@@ -284,7 +284,7 @@ public class SessionExecutionMigrationTests
 
         // Second run — a fresh initializer instance, mirroring a re-run of the CLI command.
         // Capture the returned tuple via closure while still asserting via the idiomatic
-        // NotThrowAsync (matches ClientIdStandardizationMigrationTests / PlanSchemaOnReadMigrationTests).
+        // NotThrowAsync (matches the sibling boot-migration tests in this folder).
         (long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped) secondRun = default;
         var initializer2 = CreateInitializer(mongo);
         var act = async () => { secondRun = await initializer2.MigrateSessionExecutionsAsync(ct); };

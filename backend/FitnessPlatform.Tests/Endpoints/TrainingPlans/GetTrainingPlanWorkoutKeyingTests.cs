@@ -362,11 +362,12 @@ public class GetTrainingPlanSectionKeyingTests
     // ── Legacy log schema-on-read is retired (#837) ──────────────────────────────
     //
     // The flat-`exercises`-no-sections scenario previously covered here
-    // (WithBackfilledSections() at read time) is retired: the one-time boot migration
-    // in MongoIndexInitializer now backfills every WorkoutLog to the sections shape, so
-    // a log at this layer is always sections-populated. See
-    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
-    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
+    // (WithBackfilledSections() at read time) is retired: a log at this layer is
+    // always sections/workouts-populated. (#857 subsequently deleted the boot-time
+    // backfill that used to synthesize the modern shape from legacy flat `exercises`
+    // logs — see MongoIndexInitializer and its TrainingTreeRestructureMigrationTests
+    // absence-test coverage — legacy documents are simply left untouched now, not
+    // migrated on read.)
 
     // ── Graceful degradation: already-collapsed historical log ───────────────────
 
