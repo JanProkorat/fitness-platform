@@ -100,6 +100,7 @@ public static class TrainingCompletionTestHelpers
                                         Name = "Hlavní",
                                         Exercises = exIds.Select((id, i) => new SessionExercise
                                         {
+                                            ExerciseId = id,
                                             ExerciseExternalId = id,
                                             ExerciseName = $"Exercise {i + 1}",
                                             Order = i + 1,
@@ -118,14 +119,19 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates an active <see cref="TrainingPlan"/> where the target session has two sections,
-    /// each containing the same catalog exercise. This is the canonical "same exercise in two sections"
-    /// scenario that caused the original cross-section checkbox bug.
+    /// Creates an active <see cref="TrainingPlan"/> where the target session has two workouts,
+    /// each containing the same catalog exercise (same <see cref="SessionExercise.ExerciseExternalId"/>)
+    /// but a distinct <see cref="SessionExercise.ExerciseExternalId"/> instance identity per occurrence
+    /// (#857 phase 3b). This is the canonical "same exercise in two workouts" scenario that caused the
+    /// original cross-section checkbox bug.
     /// </summary>
     /// <returns>
-    ///   The plan plus the two section IDs. The <paramref name="exerciseId"/> appears in both sections.
+    ///   The plan, the two workout IDs, and the distinct per-instance ExerciseId for each occurrence —
+    ///   <paramref name="exerciseId"/> (the shared catalog external id) appears in both workouts, but
+    ///   <c>Workout1ExerciseId</c>/<c>Workout2ExerciseId</c> are the disambiguating instance ids callers
+    ///   must use to mark ONE occurrence complete without affecting the other.
     /// </returns>
-    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id)
+    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id, Guid Workout1ExerciseId, Guid Workout2ExerciseId)
         CreateActivePlanWithDuplicateExerciseAcrossSections(
             Guid clientId,
             Guid sessionId,
@@ -133,6 +139,8 @@ public static class TrainingCompletionTestHelpers
     {
         var section1Id = Guid.NewGuid();
         var section2Id = Guid.NewGuid();
+        var workout1ExerciseId = Guid.NewGuid();
+        var workout2ExerciseId = Guid.NewGuid();
         var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
@@ -171,6 +179,7 @@ public static class TrainingCompletionTestHelpers
                                         [
                                             new SessionExercise
                                             {
+                                                ExerciseId = workout1ExerciseId,
                                                 ExerciseExternalId = exerciseId,
                                                 ExerciseName = "Shared Exercise",
                                                 Order = 1,
@@ -187,6 +196,7 @@ public static class TrainingCompletionTestHelpers
                                         [
                                             new SessionExercise
                                             {
+                                                ExerciseId = workout2ExerciseId,
                                                 ExerciseExternalId = exerciseId,
                                                 ExerciseName = "Shared Exercise",
                                                 Order = 1,
@@ -204,7 +214,7 @@ public static class TrainingCompletionTestHelpers
             DateCreated = start
         };
 
-        return (plan, section1Id, section2Id);
+        return (plan, section1Id, section2Id, workout1ExerciseId, workout2ExerciseId);
     }
 
     /// <summary>
@@ -219,8 +229,7 @@ public static class TrainingCompletionTestHelpers
         DateTime date,
         IReadOnlyList<Guid>? completedExerciseIds = null,
         IReadOnlyList<Guid>? completedSectionIds = null,
-        int version = 1,
-        Dictionary<string, List<Guid>>? completedExerciseIdsBySection = null)
+        int version = 1)
     {
         return new SessionExecution
         {
@@ -229,9 +238,8 @@ public static class TrainingCompletionTestHelpers
             Date = date.Date,
             SessionId = sessionId,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
+            CompletedExerciseInstanceIds = completedExerciseIds?.ToList() ?? [],
             CompletedWorkoutIds = completedSectionIds?.ToList(),
-            CompletedExerciseIdsBySection = completedExerciseIdsBySection,
             DateCreated = DateTime.UtcNow,
             Version = version
         };
@@ -294,6 +302,7 @@ public static class TrainingCompletionTestHelpers
                                         Name = "Hlavní",
                                         Exercises = exIds.Select((id, i) => new SessionExercise
                                         {
+                                            ExerciseId = id,
                                             ExerciseExternalId = id,
                                             ExerciseName = $"Exercise {i + 1}",
                                             Order = i + 1,

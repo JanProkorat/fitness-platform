@@ -178,8 +178,7 @@ public static class TrainingPlanTestHelpers
 
             if (completion is not null)
             {
-                execution.CompletedExerciseIds = completion.CompletedExerciseIds;
-                execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
+                execution.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;
                 execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
                 execution.CompletedSets = completion.CompletedSets;
             }
