@@ -1,46 +1,32 @@
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Features.ClientTraining;
 
 namespace FitnessPlatform.Application.Domain.Extensions;
 
 /// <summary>
 /// Extension methods for <see cref="TrainingCompletion"/> session-level completeness checks.
 /// </summary>
+/// <remarks>
+/// #857 phase 3b: <see cref="TrainingCompletion.CompletedExerciseInstanceIds"/> holds
+/// <see cref="SessionExercise.ExerciseId"/> instance values, which already disambiguate two
+/// occurrences of the same catalog exercise (in one workout, across workouts, or standalone vs.
+/// nested) — so a flat membership check is sufficient and correct. This removes the need for the
+/// retired per-workout "effective" backfill map that the pre-#857-phase-3b
+/// <c>CompletedExerciseIdsBySection</c> dictionary required.
+/// </remarks>
 public static class TrainingCompletionExtensions
 {
     /// <summary>
-    /// Returns <c>true</c> when every section in the session is done:
-    /// <list type="bullet">
-    ///   <item><description>Sections with exercises — every exercise id is present in the
-    ///     per-section effective map produced by
-    ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>
-    ///     for that specific section instance. This prevents a duplicate exercise id that spans
-    ///     two sections (e.g. the same movement in two AMRAP blocks) from being treated as
-    ///     done in both sections when it was only completed in one.</description></item>
-    ///   <item><description>Exercise-free sections — the SectionId is in
-    ///     <see cref="TrainingCompletion.CompletedWorkoutIds"/>.</description></item>
-    /// </list>
-    /// <para>
-    /// A session with zero sections is <b>never</b> considered complete — every
-    /// <see cref="TrainingSession"/> document carries a populated <see cref="TrainingSession.Workouts"/>
-    /// list (the one-time boot migration in <c>MongoIndexInitializer</c>, #837, backfilled every
-    /// legacy flat-exercise document into a synthetic section), so zero sections signals an
-    /// abnormal/corrupt session definition.
-    /// </para>
-    /// </summary>
-    /// <param name="completion">The completion document to test. Must not be null.</param>
-    /// <param name="session">The session definition. Must not be null.</param>
-    /// <summary>
-    /// Returns <c>true</c> when the specified section within the session is done, using the
+    /// Returns <c>true</c> when the specified workout within the session is done, using the
     /// two-signal model:
     /// <list type="bullet">
     ///   <item><description>Signal 1 — a completed <c>WorkoutLog</c> exists for the session
     ///     (<paramref name="hasCompletedWorkoutLog"/>). Session-level completion implies every
-    ///     section is done.</description></item>
-    ///   <item><description>Signal 2 — the <c>TrainingCompletion</c> document records this
-    ///     section as complete (exercise-free sections via <see cref="TrainingCompletion.CompletedWorkoutIds"/>;
-    ///     exercise-bearing sections via
-    ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>).</description></item>
+    ///     workout is done.</description></item>
+    ///   <item><description>Signal 2 — the <c>TrainingCompletion</c> document records every
+    ///     exercise instance in this workout as complete (exercise-free workouts via
+    ///     <see cref="TrainingCompletion.CompletedWorkoutIds"/>; exercise-bearing workouts via a
+    ///     direct <see cref="TrainingCompletion.CompletedExerciseInstanceIds"/> membership
+    ///     check).</description></item>
     /// </list>
     /// </summary>
     public static bool IsWorkoutComplete(
@@ -54,39 +40,39 @@ public static class TrainingCompletionExtensions
 
         if (completion is null) return false;
 
-        // Exercise-free workouts: completed via CompletedSectionIds.
+        // Exercise-free workouts: completed via CompletedWorkoutIds.
         if (workout.Exercises.Count == 0)
             return (completion.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId);
 
-        // Exercise-bearing workouts: use workout-aware effective map to prevent
-        // cross-workout false positives when the same exercise appears in two workouts.
-        var effectiveByWorkout =
-            TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
-
-        return effectiveByWorkout.TryGetValue(workout.WorkoutId, out var completedInWorkout)
-               && workout.Exercises.All(e => completedInWorkout.Contains(e.ExerciseExternalId));
+        // Exercise-bearing workouts: every exercise instance in this specific workout must be
+        // present in the flat completed-instance list.
+        return workout.Exercises.All(e => completion.CompletedExerciseInstanceIds.Contains(e.ExerciseId));
     }
 
+    /// <summary>
+    /// Returns <c>true</c> when every workout (and standalone exercise) in the session is done —
+    /// see <see cref="IsWorkoutComplete"/> for the per-workout rule.
+    /// <para>
+    /// A session with nothing programmed (no workouts, no standalone exercises) is <b>never</b>
+    /// considered complete — every <see cref="TrainingSession"/> document carries a populated
+    /// <see cref="TrainingSession.Workouts"/> list (the one-time boot migration in
+    /// <c>MongoIndexInitializer</c>, #837) or standalone exercises (#857 phase 3a), so zero of
+    /// both signals an abnormal/corrupt session definition.
+    /// </para>
+    /// </summary>
     public static bool IsSessionComplete(this TrainingCompletion completion, TrainingSession session)
     {
-        // Guard: a session with no workouts is never complete. Every TrainingSession document
-        // carries a populated Workouts list (see the boot migration in MongoIndexInitializer,
-        // #837), so zero workouts signals an empty/corrupt session definition.
-        if (session.Workouts.Count == 0)
+        if (session.Workouts.Count == 0 && session.StandaloneExercises.Count == 0)
             return false;
 
-        // Build the workout-aware effective view using the authoritative per-workout dict
-        // (falls back to the flat mirror list for the rare doc the boot migration could not
-        // resolve a session for). This avoids the false-positive where the same exercise id
-        // appears in two workouts and the flat CompletedExerciseIds list treats both as
-        // complete when only one was actually done.
-        var effectiveByWorkout =
-            TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection(completion, session);
-
-        return session.Workouts.All(workout =>
+        var workoutsComplete = session.Workouts.All(workout =>
             workout.Exercises.Count > 0
-                ? effectiveByWorkout.TryGetValue(workout.WorkoutId, out var completedInWorkout)
-                  && workout.Exercises.All(e => completedInWorkout.Contains(e.ExerciseExternalId))
+                ? workout.Exercises.All(e => completion.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
                 : (completion.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId));
+
+        var standaloneComplete = session.StandaloneExercises.All(
+            e => completion.CompletedExerciseInstanceIds.Contains(e.ExerciseId));
+
+        return workoutsComplete && standaloneComplete;
     }
 }

@@ -123,14 +123,13 @@ public class WorkoutCompletionService(
             return;
         }
 
-        var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
+        // #857 phase 3b: complete every exercise INSTANCE (ExerciseId) directly — the flat
+        // CompletedExerciseInstanceIds list already disambiguates duplicate catalog exercises
+        // across workouts or standalone-vs-nested, so no per-workout attribution map is needed.
+        var allInstanceIds = session.Exercises.Select(e => e.ExerciseId).ToList();
         var allSectionIds = session.Workouts.Select(s => s.WorkoutId).ToList();
-        var completedBySection = session.Workouts.ToDictionary(
-            s => s.WorkoutId.ToString(),
-            s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
-        execution.CompletedExerciseIds = allExerciseIds;
-        execution.CompletedExerciseIdsBySection = completedBySection;
+        execution.CompletedExerciseInstanceIds = allInstanceIds;
         execution.CompletedWorkoutIds = allSectionIds;
     }
 }

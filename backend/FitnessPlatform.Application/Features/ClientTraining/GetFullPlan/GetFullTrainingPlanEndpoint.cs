@@ -234,12 +234,14 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             var stampedAt = execution.DateUpdated ?? execution.DateCreated;
 
             // Fully-completed exercises: mark every planned set as complete.
-            // Sourced from the section-aware CompletedExerciseIdsBySection map (the
-            // retired flat CompletedExerciseIds field is kept only as a derived mirror —
-            // see SessionExecution.cs).
+            // Sourced from the flat CompletedExerciseInstanceIds list (#857 phase 3b) — mapped
+            // back to catalog ExerciseExternalId via the session definition, since exLookup
+            // (below) is keyed by ExerciseExternalId.
             var effectiveIds = sessionLookup.TryGetValue(sessionId, out var execSession)
-                ? SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(execution, execSession)
-                    .Values.SelectMany(ids => ids).ToHashSet()
+                ? execSession.Exercises
+                    .Where(e => execution.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                    .Select(e => e.ExerciseExternalId)
+                    .ToHashSet()
                 : [];
 
             foreach (var exerciseId in effectiveIds)

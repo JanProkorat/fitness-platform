@@ -284,19 +284,37 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 response.CompletedWorkoutIdsBySession[sessionId] =
                     (doc.CompletedWorkoutIds ?? new List<Guid>()).ToList();
 
-                // Populate the per-session completed-exercise set from the section-aware
-                // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
-                // field is kept only as a derived mirror (see SessionExecution.cs) and is
-                // no longer consulted here.
+                // Populate the per-session completed-exercise set from the flat
+                // CompletedExerciseInstanceIds list (#857 phase 3b) — reconstruct the
+                // wire-compatible (ExerciseExternalId-keyed) by-workout shape by mapping each
+                // completed instance back to its containing workout via the session definition.
                 if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(
-                        doc, completionSession);
-                    response.CompletedExerciseIdsBySectionAndSession[sessionId] =
-                        effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                    var bySection = new Dictionary<Guid, List<Guid>>();
 
-                    foreach (var exId in effective.Values.SelectMany(ids => ids))
+                    foreach (var workout in completionSession.Workouts)
+                    {
+                        var completedInWorkout = workout.Exercises
+                            .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                            .Select(e => e.ExerciseExternalId)
+                            .ToList();
+
+                        if (completedInWorkout.Count > 0)
+                        {
+                            bySection[workout.WorkoutId] = completedInWorkout;
+                            foreach (var exId in completedInWorkout)
+                                set.Add(exId);
+                        }
+                    }
+
+                    response.CompletedExerciseIdsBySectionAndSession[sessionId] = bySection;
+
+                    foreach (var exId in completionSession.StandaloneExercises
+                        .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                        .Select(e => e.ExerciseExternalId))
+                    {
                         set.Add(exId);
+                    }
                 }
             }
 

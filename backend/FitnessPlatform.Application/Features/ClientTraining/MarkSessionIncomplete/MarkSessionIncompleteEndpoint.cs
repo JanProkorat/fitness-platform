@@ -137,8 +137,7 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedExerciseIds, new List<Guid>())
-            .Set(c => c.CompletedExerciseIdsBySection, new Dictionary<string, List<Guid>>())
+            .Set(c => c.CompletedExerciseInstanceIds, new List<Guid>())
             .Set(c => c.CompletedWorkoutIds, new List<Guid>())
             .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)

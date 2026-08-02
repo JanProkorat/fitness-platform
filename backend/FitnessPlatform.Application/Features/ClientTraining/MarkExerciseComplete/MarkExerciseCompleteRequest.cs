@@ -11,23 +11,22 @@ public class MarkExerciseCompleteRequest
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// The exercise external ID within the session. Bound from the route.
+    /// The exercise instance ID (<see cref="Domain.Documents.SessionExercise.ExerciseId"/>) within
+    /// the session. Bound from the route.
     /// </summary>
-    public Guid ExerciseExternalId { get; set; }
+    /// <remarks>
+    /// #857 phase 3b: identifies the specific exercise occurrence directly — standalone or nested
+    /// inside a workout — so a catalog exercise programmed twice within the same workout (or once
+    /// standalone and once nested) is unambiguous. Replaces the pre-#857-phase-3b
+    /// <c>ExerciseExternalId</c> + <c>WorkoutId</c> pair, which could not disambiguate that case.
+    /// </remarks>
+    public Guid ExerciseId { get; set; }
 
     /// <summary>
     /// The date on which the exercise was completed (UTC date only).
     /// Defaults to today UTC when not provided.
     /// </summary>
     public DateOnly? CompletedOn { get; set; }
-
-    /// <summary>
-    /// The workout ID within the session that contains this exercise.
-    /// Required so that the same catalog exercise in different workouts is tracked
-    /// independently (workout-aware completion).
-    /// Bound from the request body.
-    /// </summary>
-    public Guid WorkoutId { get; set; }
 
     /// <summary>
     /// Client-supplied version of the existing completion document, used for optimistic

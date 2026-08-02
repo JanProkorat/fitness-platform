@@ -172,7 +172,7 @@ public class MarkWorkoutCompleteEndpoint(
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                existing.CompletedExerciseIds.Count, totalExercises,
+                existing.CompletedExerciseInstanceIds.Count, totalExercises,
                 logger, ct,
                 workoutId: req.WorkoutId, workoutComplete: true);
 
@@ -188,7 +188,7 @@ public class MarkWorkoutCompleteEndpoint(
                 PlanId = plan.ExternalId,
                 Date = targetDate,
                 SessionId = req.SessionId,
-                CompletedExerciseIds = [],
+                CompletedExerciseInstanceIds = [],
                 CompletedWorkoutIds = [req.WorkoutId],
                 DateCreated = DateTime.UtcNow,
                 Version = 1
@@ -240,7 +240,7 @@ public class MarkWorkoutCompleteEndpoint(
                 await TrainingProgressBroadcaster.BroadcastSessionAsync(
                     notifier, compliance, mongo, plan, clientId,
                     req.SessionId, DateOnly.FromDateTime(targetDate),
-                    existing.CompletedExerciseIds.Count, totalExercises,
+                    existing.CompletedExerciseInstanceIds.Count, totalExercises,
                     logger, ct,
                     workoutId: req.WorkoutId, workoutComplete: true);
 
@@ -251,7 +251,7 @@ public class MarkWorkoutCompleteEndpoint(
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                execution.CompletedExerciseIds.Count, totalExercises,
+                execution.CompletedExerciseInstanceIds.Count, totalExercises,
                 logger, ct,
                 workoutId: req.WorkoutId, workoutComplete: true);
 
@@ -267,7 +267,7 @@ public class MarkWorkoutCompleteEndpoint(
             SessionId = sessionId,
             SectionId = sectionId,
             Date = DateOnly.FromDateTime(date),
-            CompletedExerciseCount = execution.CompletedExerciseIds.Count,
+            CompletedExerciseCount = execution.CompletedExerciseInstanceIds.Count,
             TotalExerciseCount = totalExercises,
             Version = execution.Version
         };

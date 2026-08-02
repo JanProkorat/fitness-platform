@@ -92,30 +92,46 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             .SelectMany(d => d.Sessions)
             .ToDictionary(s => s.SessionId);
 
+        // #857 phase 3b: SessionExecution.CompletedExerciseInstanceIds is a flat list of
+        // SessionExercise.ExerciseId instance values. Reconstruct the wire-compatible
+        // (ExerciseExternalId-keyed) shape by mapping each completed instance back to its
+        // catalog external id and containing workout via the session definition — preserves
+        // the exact pre-#857-phase-3b response contract with no client-visible change.
         response.Completions = executions
             .Where(e => e.SessionId.HasValue)
             .Select(c =>
             {
-                Dictionary<Guid, List<Guid>> bySection;
-                if (sessionLookup.TryGetValue(c.SessionId!.Value, out var session))
+                sessionLookup.TryGetValue(c.SessionId!.Value, out var session);
+
+                var completedExternalIds = new List<Guid>();
+                var bySection = new Dictionary<Guid, List<Guid>>();
+
+                if (session is not null)
                 {
-                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(c, session);
-                    bySection = effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
-                }
-                else
-                {
-                    // Session no longer in plan — return whatever is in the dict, or empty.
-                    // Keys are stored as lowercase Guid strings; parse back to Guid, skipping malformed entries.
-                    bySection = c.CompletedExerciseIdsBySection?
-                        .Where(kvp => Guid.TryParse(kvp.Key, out _))
-                        .ToDictionary(kvp => Guid.Parse(kvp.Key), kvp => kvp.Value.ToList()) ?? new();
+                    foreach (var workout in session.Workouts)
+                    {
+                        var completedInWorkout = workout.Exercises
+                            .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                            .Select(e => e.ExerciseExternalId)
+                            .ToList();
+
+                        if (completedInWorkout.Count > 0)
+                        {
+                            bySection[workout.WorkoutId] = completedInWorkout;
+                            completedExternalIds.AddRange(completedInWorkout);
+                        }
+                    }
+
+                    completedExternalIds.AddRange(session.StandaloneExercises
+                        .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                        .Select(e => e.ExerciseExternalId));
                 }
 
                 return new TrainingPlanCompletionDto
                 {
                     Date = DateOnly.FromDateTime(c.Date),
                     SessionId = c.SessionId!.Value,
-                    CompletedExerciseIds = c.CompletedExerciseIds,
+                    CompletedExerciseIds = completedExternalIds.Distinct().ToList(),
                     CompletedExerciseIdsBySection = bySection,
                     CompletedSectionIds = c.CompletedWorkoutIds ?? [],
                     Version = c.Version

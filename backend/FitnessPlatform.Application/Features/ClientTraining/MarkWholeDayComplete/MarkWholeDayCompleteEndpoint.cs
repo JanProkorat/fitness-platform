@@ -129,20 +129,13 @@ public class MarkWholeDayCompleteEndpoint(
 
         foreach (var session in sessionsForDay)
         {
-            var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
+            // #857 phase 3b: complete every exercise INSTANCE (ExerciseId) directly — the flat
+            // CompletedExerciseInstanceIds list already disambiguates duplicate catalog exercises
+            // across workouts or standalone-vs-nested, so no per-workout attribution map is
+            // needed. Mirrors MarkSessionCompleteEndpoint so the whole-day mark and the
+            // per-session mark write identical state.
+            var allInstanceIds = session.Exercises.Select(e => e.ExerciseId).ToList();
             var allSectionIds = session.Workouts.Select(w => w.WorkoutId).ToList();
-            // Per-workout attribution map: each workout explicitly carries the
-            // exercise ids that belong to IT. Required because the read-time
-            // backfill in `SessionExecutionBackfill` falls back to "first
-            // workout that contains this id" — when the same exercise id is
-            // referenced from multiple workouts (e.g. two AMRAPs sharing
-            // "Bench"), the duplicate would get attributed to only the first
-            // workout and the others would read as not-done after refresh.
-            // Mirrors MarkSessionCompleteEndpoint so the whole-day mark and the
-            // per-session mark write identical workout-aware state.
-            var completedBySection = session.Workouts.ToDictionary(
-                w => w.WorkoutId.ToString(),
-                w => w.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
             var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
                                    & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
@@ -154,18 +147,18 @@ public class MarkWholeDayCompleteEndpoint(
 
             if (existing is not null)
             {
-                // Already fully complete — idempotent. Uses the shared section-aware
-                // SessionExecutionExtensions.IsSessionComplete helper (consults
-                // CompletedExerciseIdsBySection, not the retired flat mirror) so a
-                // duplicate exercise id spanning two sections can't false-positive.
+                // Already fully complete — idempotent. Uses the shared
+                // SessionExecutionExtensions.IsSessionComplete helper (a flat
+                // CompletedExerciseInstanceIds membership check) so a duplicate catalog exercise
+                // spanning two workouts (or standalone vs. nested) can't false-positive.
                 var alreadyComplete = existing.IsSessionComplete(session);
                 if (alreadyComplete)
                 {
                     summaries.Add(new SessionCompletionSummary
                     {
                         SessionId = session.SessionId,
-                        CompletedExerciseCount = existing.CompletedExerciseIds.Count,
-                        TotalExerciseCount = allExerciseIds.Count,
+                        CompletedExerciseCount = existing.CompletedExerciseInstanceIds.Count,
+                        TotalExerciseCount = allInstanceIds.Count,
                         Version = existing.Version
                     });
                     continue;
@@ -176,8 +169,7 @@ public class MarkWholeDayCompleteEndpoint(
                                       & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
                 var update = Builders<SessionExecution>.Update
-                    .Set(c => c.CompletedExerciseIds, allExerciseIds)
-                    .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
+                    .Set(c => c.CompletedExerciseInstanceIds, allInstanceIds)
                     .Set(c => c.CompletedWorkoutIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, newVersion);
@@ -196,8 +188,7 @@ public class MarkWholeDayCompleteEndpoint(
                     PlanId = plan.ExternalId,
                     Date = targetDate,
                     SessionId = session.SessionId,
-                    CompletedExerciseIds = allExerciseIds,
-                    CompletedExerciseIdsBySection = completedBySection,
+                    CompletedExerciseInstanceIds = allInstanceIds,
                     CompletedWorkoutIds = allSectionIds,
                     DateCreated = DateTime.UtcNow,
                     Version = 1
@@ -230,8 +221,7 @@ public class MarkWholeDayCompleteEndpoint(
                         var retryVersionedFilter = executionFilter
                             & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
                         var retryUpdate = Builders<SessionExecution>.Update
-                            .Set(c => c.CompletedExerciseIds, allExerciseIds)
-                            .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
+                            .Set(c => c.CompletedExerciseInstanceIds, allInstanceIds)
                             .Set(c => c.CompletedWorkoutIds, allSectionIds)
                             .Set(c => c.DateUpdated, DateTime.UtcNow)
                             .Set(c => c.Version, retryVersion);
@@ -245,8 +235,8 @@ public class MarkWholeDayCompleteEndpoint(
             summaries.Add(new SessionCompletionSummary
             {
                 SessionId = session.SessionId,
-                CompletedExerciseCount = allExerciseIds.Count,
-                TotalExerciseCount = allExerciseIds.Count,
+                CompletedExerciseCount = allInstanceIds.Count,
+                TotalExerciseCount = allInstanceIds.Count,
                 Version = version
             });
         }

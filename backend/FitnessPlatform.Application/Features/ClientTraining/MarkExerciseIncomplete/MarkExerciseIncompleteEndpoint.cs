@@ -34,7 +34,7 @@ public class MarkExerciseIncompleteEndpoint(
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/client/training/sessions/{SessionId}/exercises/{ExerciseExternalId}/complete");
+        Delete("/client/training/sessions/{SessionId}/exercises/{ExerciseId}/complete");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -93,18 +93,12 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        // Validate the exercise exists in the session (workout-aware).
-        var workout = session.Workouts.FirstOrDefault(w => w.WorkoutId == req.WorkoutId);
-        if (workout is null)
-        {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The workout was not found in the specified session.", ct);
-            return;
-        }
-
-        var exerciseExists = workout.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
+        // Validate the exercise instance exists in the session (standalone or nested), resolved
+        // directly by ExerciseId (#857 phase 3b).
+        var exerciseExists = session.Exercises.Any(e => e.ExerciseId == req.ExerciseId);
         if (!exerciseExists)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified workout.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified session.", ct);
             return;
         }
 
@@ -116,14 +110,13 @@ public class MarkExerciseIncompleteEndpoint(
         using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
         var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
-        // Idempotency: check whether this exercise is complete in this specific section.
-        var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.WorkoutId.ToString());
-        var isCompleteInSection = sectionList is not null && sectionList.Contains(req.ExerciseExternalId);
+        // Idempotency: check whether this exercise instance is complete.
+        var isComplete = existing?.CompletedExerciseInstanceIds.Contains(req.ExerciseId) ?? false;
 
-        if (existing is null || !isCompleteInSection)
+        if (existing is null || !isComplete)
         {
-            // Not complete in this section — nothing to remove
-            var completedCount = existing?.CompletedExerciseIds.Count ?? 0;
+            // Not complete — nothing to remove
+            var completedCount = existing?.CompletedExerciseInstanceIds.Count ?? 0;
             await Send.OkAsync(new MarkExerciseIncompleteResponse
             {
                 SessionId = req.SessionId,
@@ -144,30 +137,17 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        // ── Remove from the section-aware dict (only this section) ───────
-        existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-        if (existing.CompletedExerciseIdsBySection.TryGetValue(req.WorkoutId.ToString(), out var currentSectionList))
-        {
-            currentSectionList.Remove(req.ExerciseExternalId);
-            if (currentSectionList.Count == 0)
-                existing.CompletedExerciseIdsBySection.Remove(req.WorkoutId.ToString());
-        }
+        var newInstanceIds = existing.CompletedExerciseInstanceIds.Where(id => id != req.ExerciseId).ToList();
 
-        // ── Mirror: only remove from the legacy flat list if NO other section still has this exId ──
-        var stillPresentInAnotherSection = existing.CompletedExerciseIdsBySection
-            .Any(kvp => kvp.Value.Contains(req.ExerciseExternalId));
-
-        var newIds = stillPresentInAnotherSection
-            ? existing.CompletedExerciseIds
-            : existing.CompletedExerciseIds.Where(id => id != req.ExerciseExternalId).ToList();
-
-        // ── #841: if this execution also carries Performance (live-training-assistant data),
+        // #841: if this execution also carries Performance (live-training-assistant data),
         // clear the matching set's CompletedAt stamp IN THE SAME DOCUMENT — no more best-effort
         // cross-collection sync into a separate WorkoutLog.
         if (existing.Performance is not null)
         {
-            var exerciseEntry = existing.Performance.Exercises
-                .FirstOrDefault(e => e.ExerciseExternalId == req.ExerciseExternalId);
+            var exercise = session.Exercises.FirstOrDefault(e => e.ExerciseId == req.ExerciseId);
+            var exerciseEntry = exercise is not null
+                ? existing.Performance.Exercises.FirstOrDefault(e => e.ExerciseExternalId == exercise.ExerciseExternalId)
+                : null;
 
             if (exerciseEntry is not null)
             {
@@ -182,8 +162,7 @@ public class MarkExerciseIncompleteEndpoint(
                               & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
-            .Set(c => c.CompletedExerciseIds, newIds)
+            .Set(c => c.CompletedExerciseInstanceIds, newInstanceIds)
             .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
@@ -200,16 +179,16 @@ public class MarkExerciseIncompleteEndpoint(
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            newIds.Count, session.Exercises.Count,
+            newInstanceIds.Count, session.Exercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkExerciseIncompleteResponse
         {
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
-            CompletedExerciseCount = newIds.Count,
+            CompletedExerciseCount = newInstanceIds.Count,
             TotalExerciseCount = session.Exercises.Count,
-            SessionComplete = newIds.Count >= session.Exercises.Count,
+            SessionComplete = newInstanceIds.Count >= session.Exercises.Count,
             Version = newVersion
         }, ct);
     }

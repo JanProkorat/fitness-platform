@@ -114,7 +114,7 @@ public class MarkWorkoutIncompleteEndpoint(
         if (existing is null || !(existing.CompletedWorkoutIds ?? []).Contains(req.SectionId))
         {
             // Idempotent: already not complete
-            var completedCount = existing?.CompletedExerciseIds.Count ?? 0;
+            var completedCount = existing?.CompletedExerciseInstanceIds.Count ?? 0;
             await Send.OkAsync(new MarkWorkoutIncompleteResponse
             {
                 SessionId = req.SessionId,
@@ -158,7 +158,7 @@ public class MarkWorkoutIncompleteEndpoint(
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            existing.CompletedExerciseIds.Count, totalExercises,
+            existing.CompletedExerciseInstanceIds.Count, totalExercises,
             logger, ct);
 
         await Send.OkAsync(new MarkWorkoutIncompleteResponse
@@ -166,7 +166,7 @@ public class MarkWorkoutIncompleteEndpoint(
             SessionId = req.SessionId,
             SectionId = req.SectionId,
             Date = DateOnly.FromDateTime(targetDate),
-            CompletedExerciseCount = existing.CompletedExerciseIds.Count,
+            CompletedExerciseCount = existing.CompletedExerciseInstanceIds.Count,
             TotalExerciseCount = totalExercises,
             Version = newVersion
         }, ct);
