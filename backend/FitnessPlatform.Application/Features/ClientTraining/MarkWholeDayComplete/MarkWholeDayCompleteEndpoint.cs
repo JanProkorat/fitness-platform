@@ -271,15 +271,29 @@ public class MarkWholeDayCompleteEndpoint(
     }
 
     /// <summary>
-    /// Maps a calendar date to the sessions in the plan scheduled for that date,
-    /// using the same week-resolution logic as <c>GetTodaySession</c>.
+    /// Maps a calendar date to the sessions in the plan scheduled for that date, via the
+    /// resolved <see cref="TrainingDay"/> entity — see <see cref="ResolveDay"/>.
     /// Returns an empty list if the plan hasn't started, the target week isn't published,
-    /// or there are no sessions for that day of week.
+    /// or no day resolves for that date.
     /// </summary>
     private static IReadOnlyList<TrainingSession> ResolveSessions(TrainingPlan plan, DateOnly targetDate)
     {
+        var day = ResolveDay(plan, targetDate);
+        return day?.Sessions.OrderBy(s => s.Order).ToList() ?? [];
+    }
+
+    /// <summary>
+    /// Resolves the <see cref="TrainingDay"/> entity scheduled for a calendar date, using the
+    /// same week-resolution logic as <c>GetTodaySession</c>. The day is a first-class entity
+    /// (#857 phase 2) — this resolves it directly via <see cref="TrainingWeek.Days"/> rather
+    /// than reimplementing day resolution by scanning a flat session list for a matching
+    /// day-of-week. Returns <c>null</c> if the plan hasn't started, the target week isn't
+    /// published, or no week resolves for the date.
+    /// </summary>
+    private static TrainingDay? ResolveDay(TrainingPlan plan, DateOnly targetDate)
+    {
         if (!plan.StartDate.HasValue || plan.Weeks.Count == 0)
-            return [];
+            return null;
 
         var publishedWeeks = plan.Weeks
             .Where(w => w.Status == WeekStatus.Published)
@@ -287,7 +301,7 @@ public class MarkWholeDayCompleteEndpoint(
             .ToList();
 
         if (publishedWeeks.Count == 0)
-            return [];
+            return null;
 
         var resolvedWeek = PlanWeekCalculator.ResolveCurrentWeekNumber(
             plan.StartDate,
@@ -298,29 +312,26 @@ public class MarkWholeDayCompleteEndpoint(
             targetDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
 
         if (resolvedWeek is null)
-            return [];
+            return null;
 
         // Past the last published week → no sessions for this date.
         // See GetTodaySessionEndpoint for the full rationale.
         if (resolvedWeek.Value > publishedWeeks[^1].WeekNumber)
-            return [];
+            return null;
 
         var currentWeek = plan.Weeks.FirstOrDefault(w => w.WeekNumber == resolvedWeek.Value);
         if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
         {
             // Gap-skip: use the latest published week that's not after the
-            // calculated one. Returns no sessions if no such week exists.
+            // calculated one. Returns no day if no such week exists.
             currentWeek = publishedWeeks.LastOrDefault(w => w.WeekNumber <= resolvedWeek.Value);
-            if (currentWeek is null) return [];
+            if (currentWeek is null) return null;
         }
 
         // Map DateOnly DayOfWeek (0=Sunday) to ISO 1=Monday…7=Sunday
         var dow = (int)targetDate.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
 
-        return currentWeek.Sessions
-            .Where(s => s.DayOfWeek == dow)
-            .OrderBy(s => s.Order)
-            .ToList();
+        return currentWeek.Days.FirstOrDefault(d => d.DayOfWeek == dow);
     }
 }

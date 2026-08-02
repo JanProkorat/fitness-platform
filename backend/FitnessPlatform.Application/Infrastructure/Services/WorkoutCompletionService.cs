@@ -111,7 +111,8 @@ public class WorkoutCompletionService(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == execution.SessionId!.Value);
 
         if (session is null)

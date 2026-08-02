@@ -144,11 +144,13 @@ public class UpdateTrainingPlanEndpoint(
                 //
                 // Draft weeks are never gated.
 
-                // Build a map of stored published sessions keyed by SessionId.
+                // Build a map of stored published sessions keyed by SessionId. Captures the
+                // owning day's DayOfWeek alongside the session — TrainingSession itself no
+                // longer carries DayOfWeek (the parent TrainingDay owns it, #857 phase 2).
                 var storedPublishedSessions = plan.Weeks
                     .Where(w => w.Status == WeekStatus.Published)
-                    .SelectMany(w => w.Sessions)
-                    .ToDictionary(s => s.SessionId);
+                    .SelectMany(w => w.Days.SelectMany(d => d.Sessions.Select(s => (DayOfWeek: d.DayOfWeek, Session: s))))
+                    .ToDictionary(x => x.Session.SessionId, x => x);
 
                 // Pre-flight: every session in a published week must carry a non-null SessionId.
                 // A null SessionId in a published week would create a new session while silently
@@ -183,7 +185,7 @@ public class UpdateTrainingPlanEndpoint(
                 // Identify which stored published sessions have content changes OR have been removed/replaced.
                 // A stored published session that is absent from the incoming map is treated the same as a
                 // changed session — removing or replacing a published session requires an Editing lock (M1).
-                foreach (var (sessionId, storedSession) in storedPublishedSessions)
+                foreach (var (sessionId, stored) in storedPublishedSessions)
                 {
                     if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                     {
@@ -193,7 +195,7 @@ public class UpdateTrainingPlanEndpoint(
                         continue;
                     }
 
-                    if (HasContentChanged(storedSession, incomingSession))
+                    if (HasContentChanged(stored.DayOfWeek, stored.Session, incomingSession))
                         changedSessionIds.Add(sessionId);
                 }
 
@@ -253,7 +255,7 @@ public class UpdateTrainingPlanEndpoint(
                         // Check each locked session for section-level completions.
                         foreach (var sessionId in lockedChangedSessionIds)
                         {
-                            if (!storedPublishedSessions.TryGetValue(sessionId, out var storedSession))
+                            if (!storedPublishedSessions.TryGetValue(sessionId, out var stored))
                                 continue;
                             if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                                 continue;
@@ -268,7 +270,7 @@ public class UpdateTrainingPlanEndpoint(
                                 .Where(rs => rs.WorkoutId.HasValue)
                                 .ToDictionary(rs => rs.WorkoutId!.Value);
 
-                            foreach (var storedSection in storedSession.Workouts)
+                            foreach (var storedSection in stored.Session.Workouts)
                             {
                                 // Determine whether this section's content has changed.
                                 bool sectionChanged;
@@ -285,7 +287,7 @@ public class UpdateTrainingPlanEndpoint(
                                 if (!sectionChanged) continue;
 
                                 // Section content changed — check if it's already completed.
-                                var sectionIsCompleted = bestExecution.IsWorkoutComplete(storedSession, storedSection);
+                                var sectionIsCompleted = bestExecution.IsWorkoutComplete(stored.Session, storedSection);
 
                                 if (sectionIsCompleted)
                                 {
@@ -317,50 +319,64 @@ public class UpdateTrainingPlanEndpoint(
                 plan.Weeks = req.Weeks.Select(rw =>
                 {
                     var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);
+
+                    // Request wire shape stays flat (each session carries its own DayOfWeek,
+                    // plus a separate DayNotes map) — regroup into 7 materialised TrainingDay
+                    // entries at write time, mirroring TrainingDay's read shape (#857 phase 2).
+                    var sessionsByDay = rw.Sessions.GroupBy(rs => rs.DayOfWeek)
+                        .ToDictionary(g => g.Key, g => g.ToList());
+
+                    var notesByDay = rw.DayNotes?
+                        .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value.Trim())
+                        ?? [];
+
                     return new TrainingWeek
                     {
                         WeekNumber = rw.WeekNumber,
                         Status = existing?.Status ?? WeekStatus.Draft,
                         DatePublished = existing?.DatePublished,
-                        DayNotes = rw.DayNotes?.Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
-                            .ToDictionary(kv => kv.Key, kv => kv.Value.Trim()),
-                        Sessions = rw.Sessions.Select(rs => new TrainingSession
+                        Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
                         {
-                            SessionId = rs.SessionId ?? Guid.NewGuid(),
-                            DayOfWeek = rs.DayOfWeek,
-                            Name = rs.Name,
-                            Order = rs.Order,
-                            Notes = rs.Notes?.Trim(),
-                            Format = rs.Format,
-                            FormatConfig = rs.FormatConfig,
-                            Workouts = rs.Sections.Select(rsec => new TrainingWorkout
+                            DayOfWeek = dayOfWeek,
+                            Note = notesByDay.GetValueOrDefault(dayOfWeek),
+                            Sessions = sessionsByDay.GetValueOrDefault(dayOfWeek, []).Select(rs => new TrainingSession
                             {
-                                WorkoutId = rsec.WorkoutId ?? Guid.NewGuid(),
-                                Order = rsec.Order,
-                                Name = rsec.Name,
-                                Format = rsec.Format,
-                                FormatConfig = rsec.FormatConfig,
-                                Notes = rsec.Notes?.Trim(),
-                                Exercises = rsec.Exercises.Select(re => new SessionExercise
+                                SessionId = rs.SessionId ?? Guid.NewGuid(),
+                                Name = rs.Name,
+                                Order = rs.Order,
+                                Notes = rs.Notes?.Trim(),
+                                Format = rs.Format,
+                                FormatConfig = rs.FormatConfig,
+                                Workouts = rs.Sections.Select(rsec => new TrainingWorkout
                                 {
-                                    ExerciseExternalId = re.ExerciseExternalId,
-                                    ExerciseName = re.ExerciseName,
-                                    Order = re.Order,
-                                    Notes = re.Notes?.Trim(),
-                                    RestSeconds = re.RestSeconds,
-                                    MovementType = re.MovementType,
-                                    Format = re.Format,
-                                    FormatConfig = re.FormatConfig,
-                                    Sets = re.Sets.Select(rset => new ExerciseSet
+                                    WorkoutId = rsec.WorkoutId ?? Guid.NewGuid(),
+                                    Order = rsec.Order,
+                                    Name = rsec.Name,
+                                    Format = rsec.Format,
+                                    FormatConfig = rsec.FormatConfig,
+                                    Notes = rsec.Notes?.Trim(),
+                                    Exercises = rsec.Exercises.Select(re => new SessionExercise
                                     {
-                                        SetNumber = rset.SetNumber,
-                                        Type = rset.Type,
-                                        Reps = rset.Reps,
-                                        WeightKg = rset.WeightKg,
-                                        DurationSeconds = rset.DurationSeconds,
-                                        Rpe = rset.Rpe,
-                                        DistanceMeters = rset.DistanceMeters,
-                                        RestSeconds = rset.RestSeconds
+                                        ExerciseExternalId = re.ExerciseExternalId,
+                                        ExerciseName = re.ExerciseName,
+                                        Order = re.Order,
+                                        Notes = re.Notes?.Trim(),
+                                        RestSeconds = re.RestSeconds,
+                                        MovementType = re.MovementType,
+                                        Format = re.Format,
+                                        FormatConfig = re.FormatConfig,
+                                        Sets = re.Sets.Select(rset => new ExerciseSet
+                                        {
+                                            SetNumber = rset.SetNumber,
+                                            Type = rset.Type,
+                                            Reps = rset.Reps,
+                                            WeightKg = rset.WeightKg,
+                                            DurationSeconds = rset.DurationSeconds,
+                                            Rpe = rset.Rpe,
+                                            DistanceMeters = rset.DistanceMeters,
+                                            RestSeconds = rset.RestSeconds
+                                        }).ToList()
                                     }).ToList()
                                 }).ToList()
                             }).ToList()
@@ -433,12 +449,14 @@ public class UpdateTrainingPlanEndpoint(
     /// Computes a normalized content projection for a stored session and an incoming request
     /// session (both already backfilled to section view) and returns true if the content differs.
     /// Keys on section order/name/format/notes and exercise content; does NOT key on SectionId Guids
-    /// (they are freshly-assigned at map time and are not stable identifiers).
+    /// (they are freshly-assigned at map time and are not stable identifiers). <paramref name="storedDayOfWeek"/>
+    /// is the owning <see cref="TrainingDay.DayOfWeek"/> — <see cref="TrainingSession"/> itself no longer
+    /// carries a DayOfWeek (#857 phase 2), so the caller supplies it from the day the session was found under.
     /// </summary>
-    private static bool HasContentChanged(TrainingSession stored, UpdateSessionRequest incoming)
+    private static bool HasContentChanged(int storedDayOfWeek, TrainingSession stored, UpdateSessionRequest incoming)
     {
         // Compare session-level content fields.
-        if (stored.DayOfWeek != incoming.DayOfWeek) return true;
+        if (storedDayOfWeek != incoming.DayOfWeek) return true;
         if (stored.Name != incoming.Name) return true;
         if (stored.Order != incoming.Order) return true;
         if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;

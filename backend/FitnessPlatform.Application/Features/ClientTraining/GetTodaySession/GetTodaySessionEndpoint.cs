@@ -215,10 +215,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         var todayDow = (int)DateTime.UtcNow.DayOfWeek;
         todayDow = todayDow == 0 ? 7 : todayDow; // Convert Sunday from 0 to 7
 
-        var todaySessions = currentWeek.Sessions
-            .Where(s => s.DayOfWeek == todayDow)
+        var todayDay = currentWeek.Days.FirstOrDefault(d => d.DayOfWeek == todayDow);
+        var todaySessions = todayDay?.Sessions
             .OrderBy(s => s.Order)
-            .ToList();
+            .ToList() ?? [];
 
 #pragma warning disable CS0618 // Session is intentionally set for backwards compatibility
         response.Sessions = todaySessions;

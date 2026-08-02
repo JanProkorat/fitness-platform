@@ -388,7 +388,8 @@ public class ComplianceService : IComplianceService
         var dow = (int)target.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
 
-        return week.Sessions.Where(s => s.DayOfWeek == dow).ToList();
+        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dow);
+        return day?.Sessions ?? [];
     }
 
     /// <summary>

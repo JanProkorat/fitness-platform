@@ -232,7 +232,8 @@ internal static class TrainingProgressBroadcaster
         var dow = (int)date.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
 
-        return week.Sessions.Where(s => s.DayOfWeek == dow).OrderBy(s => s.Order).ToList();
+        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dow);
+        return day?.Sessions.OrderBy(s => s.Order).ToList() ?? [];
     }
 
     /// <summary>

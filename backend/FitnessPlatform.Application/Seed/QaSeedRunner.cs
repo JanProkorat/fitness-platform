@@ -558,6 +558,21 @@ public static class QaSeedRunner
     /// applies ElemMatch(w => w.Status == WeekStatus.Published). A Draft week silently
     /// excludes the plan.
     /// </summary>
+    /// <summary>
+    /// Materialises 7 <see cref="TrainingDay"/> entries (Monday..Sunday) for a
+    /// <see cref="TrainingWeek"/> from a sparse day-of-week -> sessions map, mirroring
+    /// <c>CreateTrainingPlanEndpoint</c>'s "always 7 days" invariant (#857 phase 2). Days
+    /// absent from <paramref name="sessionsByDay"/> get an empty session list (a rest day).
+    /// </summary>
+    private static List<TrainingDay> BuildTrainingDays(IReadOnlyDictionary<int, List<TrainingSession>> sessionsByDay) =>
+        Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay
+            {
+                DayOfWeek = dayOfWeek,
+                Sessions = sessionsByDay.TryGetValue(dayOfWeek, out var sessions) ? sessions : []
+            })
+            .ToList();
+
     private static async Task EnsureTrainingPlanAsync(
         IMongoContext mongo,
         Guid clientUserId,
@@ -599,16 +614,18 @@ public static class QaSeedRunner
                     WeekNumber    = 1,
                     Status        = WeekStatus.Published,
                     DatePublished = now,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId  = QaSessionId,
-                            DayOfWeek  = 1, // Monday
-                            Name       = "QA Session",
-                            Order      = 1,
-                            Workouts =
-                            [
+                    Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
+                    {
+                        DayOfWeek = dayOfWeek,
+                        Sessions = dayOfWeek != 1 ? [] :
+                        [
+                            new TrainingSession
+                            {
+                                SessionId  = QaSessionId,
+                                Name       = "QA Session",
+                                Order      = 1,
+                                Workouts =
+                                [
                                 // Section 1 — ForTime + 0 exercises (#258 bug shape)
                                 new TrainingWorkout
                                 {
@@ -710,8 +727,9 @@ public static class QaSeedRunner
                                     ],
                                 },
                             ],
-                        },
-                    ],
+                            },
+                        ]
+                    }).ToList(),
                 },
             ],
         };
@@ -952,6 +970,114 @@ public static class QaSeedRunner
 
         if (existingPlan is null)
         {
+            // Session 1 — will have a completed WorkoutLog. Scheduled Monday.
+            var pastSessionCompleted = new TrainingSession
+            {
+                SessionId = QaPastSessionCompletedId,
+                Name      = "QA Past Session — Completed",
+                Order     = 1,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastCompletedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastBenchPressExerciseId,
+                                ExerciseName       = "QA Bench Press",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastOverheadPressExerciseId,
+                                ExerciseName       = "QA Overhead Press",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            // Session 2 — will have an incomplete (skipped) WorkoutLog. Scheduled Wednesday.
+            var pastSessionSkipped = new TrainingSession
+            {
+                SessionId = QaPastSessionSkippedId,
+                Name      = "QA Past Session — Skipped",
+                Order     = 2,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastSkippedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastBackSquatExerciseId,
+                                ExerciseName       = "QA Back Squat",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
+                                ExerciseName       = "QA Romanian Deadlift",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            // Session 3 — NO WorkoutLog (untouched). Scheduled Monday, week 2.
+            var pastSessionUntouched = new TrainingSession
+            {
+                SessionId = QaPastSessionUntouchedId,
+                Name      = "QA Past Session — Untouched",
+                Order     = 1,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastUntouchedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastPulldownExerciseId,
+                                ExerciseName       = "QA Pull-down",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = PastSeatedRowExerciseId,
+                                ExerciseName       = "QA Seated Row",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
             var plan = new TrainingPlan
             {
                 ExternalId    = QaPastTrainingPlanExternalId,
@@ -979,126 +1105,21 @@ public static class QaSeedRunner
                         WeekNumber    = 1,
                         Status        = WeekStatus.Published,
                         DatePublished = startDate.AddDays(-1),
-                        Sessions      =
-                        [
-                            // Session 1 — will have a completed WorkoutLog.
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionCompletedId,
-                                DayOfWeek = 1, // Monday
-                                Name      = "QA Past Session — Completed",
-                                Order     = 1,
-                                Workouts  =
-                                [
-                                    new TrainingWorkout
-                                    {
-                                        WorkoutId    = PastCompletedWorkoutId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastBenchPressExerciseId,
-                                                ExerciseName       = "QA Bench Press",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastOverheadPressExerciseId,
-                                                ExerciseName       = "QA Overhead Press",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                            // Session 2 — will have an incomplete (skipped) WorkoutLog.
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionSkippedId,
-                                DayOfWeek = 3, // Wednesday
-                                Name      = "QA Past Session — Skipped",
-                                Order     = 2,
-                                Workouts  =
-                                [
-                                    new TrainingWorkout
-                                    {
-                                        WorkoutId    = PastSkippedWorkoutId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastBackSquatExerciseId,
-                                                ExerciseName       = "QA Back Squat",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
-                                                ExerciseName       = "QA Romanian Deadlift",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
+                        Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                        {
+                            [1] = [pastSessionCompleted], // Monday
+                            [3] = [pastSessionSkipped],    // Wednesday
+                        }),
                     },
                     new TrainingWeek
                     {
                         WeekNumber    = 2,
                         Status        = WeekStatus.Published,
                         DatePublished = startDate.AddDays(6),
-                        Sessions      =
-                        [
-                            // Session 3 — NO WorkoutLog (untouched).
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionUntouchedId,
-                                DayOfWeek = 1, // Monday
-                                Name      = "QA Past Session — Untouched",
-                                Order     = 1,
-                                Workouts  =
-                                [
-                                    new TrainingWorkout
-                                    {
-                                        WorkoutId    = PastUntouchedWorkoutId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastPulldownExerciseId,
-                                                ExerciseName       = "QA Pull-down",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastSeatedRowExerciseId,
-                                                ExerciseName       = "QA Seated Row",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
+                        Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                        {
+                            [1] = [pastSessionUntouched], // Monday
+                        }),
                     },
                 ],
             };
@@ -1327,12 +1348,13 @@ public static class QaSeedRunner
                     WeekNumber    = 1,
                     Status        = WeekStatus.Published,
                     DatePublished = now,
-                    Sessions =
-                    [
+                    Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                    {
+                        [2] = // Tuesday
+                        [
                         new TrainingSession
                         {
                             SessionId = QaMultiSectionSessionId,
-                            DayOfWeek = 2, // Tuesday
                             Name      = "QA Multi-Section Session",
                             Order     = 1,
                             Workouts  =
@@ -1387,7 +1409,8 @@ public static class QaSeedRunner
                                 },
                             ],
                         },
-                    ],
+                        ]
+                    }),
                 },
             ],
         };

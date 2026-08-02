@@ -62,7 +62,8 @@ public class RelockTrainingSessionEndpoint(
 
         // Verify the session exists in the plan (any week).
         var sessionExists = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .Any(s => s.SessionId == req.SessionId);
 
         if (!sessionExists)

@@ -88,7 +88,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         // ── 3. Batch-fetch Exercise docs for muscle-group enrichment ──────────────
         var exerciseIds = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .SelectMany(s => s.Exercises)
             .Select(e => e.ExerciseExternalId)
             .Distinct()
@@ -115,7 +116,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // We prefer the earliest non-null CompletedAt per set if multiple executions exist for
         // the same session.
         var planSessionIds = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .Select(s => s.SessionId)
             .ToList();
 
@@ -201,7 +203,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // list, and shared-catalog instances within one session have identical
         // set-number prescriptions when resolved via the section-aware map.
         var sessionExerciseLookup = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .ToDictionary(
                 s => s.SessionId,
                 s => s.Exercises
@@ -210,7 +213,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         // Session lookup for resolving the section-aware completed-exercise view below.
         var sessionLookup = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .ToDictionary(s => s.SessionId);
 
         var completedSectionIdsBySession = executions
@@ -311,8 +315,11 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 weekEnd = weekStart.Value.AddDays(6);
             }
 
-            var sessionDtos = week.Sessions.Select(session =>
+            var sessionDtos = week.Days
+                .SelectMany(day => day.Sessions.Select(session => (day.DayOfWeek, Session: session)))
+                .Select(x =>
             {
+                var (dayOfWeek, session) = x;
                 // Build per-workout DTOs, ordering workouts by their Order field.
                 var workoutDtos = session.Workouts.OrderBy(workout => workout.Order).Select(workout =>
                 {
@@ -413,7 +420,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 return new SessionDto
                 {
                     SessionId = session.SessionId,
-                    DayOfWeek = session.DayOfWeek,
+                    DayOfWeek = dayOfWeek,
                     Name = session.Name,
                     Order = session.Order,
                     Notes = session.Notes,
@@ -435,7 +442,9 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 DatePublished = week.DatePublished,
                 WeekStartDate = weekStart,
                 WeekEndDate = weekEnd,
-                DayNotes = week.DayNotes ?? new Dictionary<int, string>(),
+                DayNotes = week.Days
+                    .Where(d => d.Note is not null)
+                    .ToDictionary(d => d.DayOfWeek, d => d.Note!),
                 Sessions = sessionDtos
             };
         }).ToList();

@@ -88,7 +88,8 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // Build a session lookup for read-time backfill of legacy completions.
         // Keys are SessionId; sessions are already backfilled by FromDocument().
         var sessionLookup = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .ToDictionary(s => s.SessionId);
 
         response.Completions = executions
@@ -344,7 +345,8 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
         var allSessionIds = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .Select(s => s.SessionId)
             .ToList();
 
