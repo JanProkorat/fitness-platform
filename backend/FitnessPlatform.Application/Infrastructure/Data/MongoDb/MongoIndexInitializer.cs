@@ -123,6 +123,13 @@ public class MongoIndexInitializer : IHostedService
         // guarantees.
         await MigrateSessionExerciseIdBackfillAsync(cancellationToken);
 
+        // #857 phase 3b: resolve completedExerciseIdsBySection (workoutId -> [externalId]) into
+        // completedExerciseInstanceIds (flat [ExerciseId]) on sessionExecutions and
+        // trainingCompletions. MUST run after MigrateSessionExerciseIdBackfillAsync above (needs
+        // every SessionExercise.ExerciseId already assigned) and before every Create*Indexes call
+        // below, for the same BsonSerializationException reason as the migrations above.
+        await MigrateCompletionExerciseInstanceIdsAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -808,6 +815,229 @@ public class MongoIndexInitializer : IHostedService
         }
 
         return assignedCount;
+    }
+
+    // ── #857 phase 3b: resolve completedExerciseIdsBySection into completedExerciseInstanceIds ──
+    //
+    // completedExerciseIdsBySection (keyed by TrainingWorkout.WorkoutId, valued with catalog
+    // SessionExercise.ExerciseExternalId values) cannot distinguish two occurrences of the same
+    // catalog exercise within one workout, or between a standalone occurrence and a nested one —
+    // exactly the ambiguity SessionExercise.ExerciseId (#857 phase 3a) exists to remove. This
+    // migration resolves every (workoutId, externalId) pair against the exercise's OWN plan
+    // session — found via the workoutId key, never the flat session-wide exercise view, so a
+    // duplicate catalog exercise appearing both standalone and nested in a workout of the same
+    // session resolves to the correct (workout-scoped) instance rather than an arbitrary one —
+    // to the corresponding SessionExercise.ExerciseId, writes the flat
+    // completedExerciseInstanceIds list, rekeys completedSets from ExerciseExternalId to
+    // ExerciseId, and drops the two retired fields (completedExerciseIds,
+    // completedExerciseIdsBySection) from both sessionExecutions and trainingCompletions
+    // documents.
+    //
+    // Unlike every other #857 migration, a resolution failure here does NOT throw — an entry
+    // that cannot be resolved (its session, workout, or exercise no longer exists in the plan)
+    // is silently indistinguishable from "never completed" once dropped, which is precisely the
+    // failure mode this slice exists to eliminate. So this counts every unresolved entry and logs
+    // a single summary warning; the migration test asserts that count is zero for seeded data.
+    //
+    // MUST run before ANY typed read of either collection (see the call site in StartAsync) —
+    // same BsonSerializationException risk as the other #857 boot migrations: once the C# type
+    // drops CompletedExerciseIds/CompletedExerciseIdsBySection, an unmigrated legacy document
+    // still carrying those elements is an unmapped extra element on the next typed read. Must
+    // also run AFTER MigrateSessionExerciseIdBackfillAsync, since resolution depends on every
+    // SessionExercise already carrying its ExerciseId.
+    //
+    // Idempotency: the candidate filter matches only documents that still carry the OLD
+    // "completedExerciseIdsBySection" element. On a fresh database, or a database that already
+    // ran this migration, the filter matches zero documents and the loop body never runs.
+    /// <summary>
+    /// One-time, idempotent migration (#857 phase 3b): resolves the retired
+    /// <c>completedExerciseIdsBySection</c> dictionary on every <c>sessionExecutions</c> and
+    /// <c>trainingCompletions</c> document into the flat <c>completedExerciseInstanceIds</c> list,
+    /// rekeys <c>completedSets</c> from <see cref="SessionExercise.ExerciseExternalId"/> to
+    /// <see cref="SessionExercise.ExerciseId"/>, and drops the two retired fields. See the remarks
+    /// above this method and the call site in <see cref="StartAsync"/> for why this must run
+    /// before any typed read of either collection.
+    /// </summary>
+    /// <returns>
+    /// The total number of individual (workoutId, exerciseExternalId) completion entries across
+    /// both collections that could not be resolved to a <see cref="SessionExercise"/> instance
+    /// (session, workout, or exercise no longer present in the plan) and were dropped. Internal
+    /// (not private) so Testcontainers migration tests can assert this is zero for seeded data —
+    /// see <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> elsewhere in this assembly.
+    /// </returns>
+    internal async Task<int> MigrateCompletionExerciseInstanceIdsAsync(CancellationToken ct)
+    {
+        var sessionCacheByClient = new Dictionary<Guid, Dictionary<Guid, TrainingSession>>();
+
+        var executionsUnresolved = await ResolveCompletionExerciseInstancesAsync(
+            _mongo.SessionExecutions.Database.GetCollection<BsonDocument>(
+                _mongo.SessionExecutions.CollectionNamespace.CollectionName),
+            "SessionExecution", sessionCacheByClient, ct);
+
+        var completionsUnresolved = await ResolveCompletionExerciseInstancesAsync(
+            _mongo.TrainingCompletions.Database.GetCollection<BsonDocument>(
+                _mongo.TrainingCompletions.CollectionNamespace.CollectionName),
+            "TrainingCompletion", sessionCacheByClient, ct);
+
+        var totalUnresolved = executionsUnresolved + completionsUnresolved;
+        if (totalUnresolved > 0)
+        {
+            _logger.LogWarning(
+                "Completion exercise-instance resolution (#857 phase 3b): {Count} completion " +
+                "entry/entries could not be resolved to a SessionExercise instance (session, " +
+                "workout, or exercise no longer exists in the plan) and were dropped.",
+                totalUnresolved);
+        }
+
+        return totalUnresolved;
+    }
+
+    /// <summary>
+    /// Resolves the legacy <c>completedExerciseIdsBySection</c> shape on every candidate document
+    /// in <paramref name="rawCollection"/> — see the remarks above
+    /// <see cref="MigrateCompletionExerciseInstanceIdsAsync"/> for the full algorithm. Returns the
+    /// number of individual (workoutId, exerciseExternalId) entries that could not be resolved.
+    /// </summary>
+    private async Task<int> ResolveCompletionExerciseInstancesAsync(
+        IMongoCollection<BsonDocument> rawCollection,
+        string collectionLabel,
+        Dictionary<Guid, Dictionary<Guid, TrainingSession>> sessionCacheByClient,
+        CancellationToken ct)
+    {
+        var legacyFilter = new BsonDocument("completedExerciseIdsBySection", new BsonDocument("$exists", true));
+
+        using var cursor = await rawCollection.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        if (candidates.Count == 0)
+        {
+            return 0;
+        }
+
+        var writes = new List<WriteModel<BsonDocument>>();
+        var unresolvedCount = 0;
+        var migratedCount = 0;
+
+        foreach (var doc in candidates)
+        {
+            var clientId = doc["clientId"].AsGuid;
+            var bySection = doc["completedExerciseIdsBySection"].AsBsonDocument;
+
+            // No sessionId (ad-hoc/unplanned doc) — there is no plan session to resolve
+            // against, so every entry in this document is unresolved.
+            if (!doc.TryGetValue("sessionId", out var sessionIdValue) || sessionIdValue.IsBsonNull)
+            {
+                unresolvedCount += bySection.Elements.Sum(element => element.Value.AsBsonArray.Count);
+                doc["completedExerciseInstanceIds"] = new BsonArray();
+                doc.Remove("completedExerciseIdsBySection");
+                doc.Remove("completedExerciseIds");
+                writes.Add(new ReplaceOneModel<BsonDocument>(Builders<BsonDocument>.Filter.Eq("_id", doc["_id"]), doc));
+                migratedCount++;
+                continue;
+            }
+
+            var sessionId = sessionIdValue.AsGuid;
+
+            if (!sessionCacheByClient.TryGetValue(clientId, out var sessionLookup))
+            {
+                sessionLookup = await BuildClientSessionLookupAsync(clientId, ct);
+                sessionCacheByClient[clientId] = sessionLookup;
+            }
+
+            sessionLookup.TryGetValue(sessionId, out var session);
+
+            var completedSets = doc.TryGetValue("completedSets", out var completedSetsValue)
+                && completedSetsValue is BsonDocument completedSetsDoc
+                    ? completedSetsDoc
+                    : null;
+
+            var instanceIds = new BsonArray();
+            var newCompletedSets = new BsonDocument();
+
+            foreach (var element in bySection.Elements)
+            {
+                var externalIds = element.Value.AsBsonArray;
+
+                // Resolve strictly within the NAMED workout — never the session's flat exercise
+                // view — so a catalog exercise duplicated both standalone and nested resolves to
+                // the workout-scoped instance that was actually marked complete.
+                var workout = session is not null && Guid.TryParse(element.Name, out var workoutId)
+                    ? session.Workouts.FirstOrDefault(w => w.WorkoutId == workoutId)
+                    : null;
+
+                foreach (var externalIdValue in externalIds)
+                {
+                    var externalId = externalIdValue.AsGuid;
+                    var exercise = workout?.Exercises.FirstOrDefault(e => e.ExerciseExternalId == externalId);
+
+                    if (exercise is null)
+                    {
+                        unresolvedCount++;
+                        continue;
+                    }
+
+                    instanceIds.Add(new BsonBinaryData(exercise.ExerciseId, GuidRepresentation.Standard));
+
+                    if (completedSets is not null && completedSets.TryGetValue(externalId.ToString(), out var setNumbers))
+                    {
+                        newCompletedSets[exercise.ExerciseId.ToString()] = setNumbers;
+                    }
+                }
+            }
+
+            doc["completedExerciseInstanceIds"] = instanceIds;
+            doc.Remove("completedExerciseIdsBySection");
+            doc.Remove("completedExerciseIds");
+
+            if (completedSets is not null)
+            {
+                if (newCompletedSets.ElementCount > 0)
+                {
+                    doc["completedSets"] = newCompletedSets;
+                }
+                else
+                {
+                    doc.Remove("completedSets");
+                }
+            }
+
+            writes.Add(new ReplaceOneModel<BsonDocument>(Builders<BsonDocument>.Filter.Eq("_id", doc["_id"]), doc));
+            migratedCount++;
+        }
+
+        if (writes.Count > 0)
+        {
+            await rawCollection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+
+            _logger.LogInformation(
+                "{Collection} completion exercise-instance resolution (#857 phase 3b): migrated " +
+                "{Count} document(s), {Unresolved} unresolved entry/entries",
+                collectionLabel, migratedCount, unresolvedCount);
+        }
+
+        return unresolvedCount;
+    }
+
+    /// <summary>
+    /// Builds a lookup of every <see cref="TrainingSession"/> across all of a client's training
+    /// plans, keyed by <see cref="TrainingSession.SessionId"/>. Prefers the most-recently-updated
+    /// plan's session when a client has more than one plan sharing a SessionId. Uses the TYPED
+    /// <see cref="IMongoContext.TrainingPlans"/> collection — safe at this point in
+    /// <see cref="StartAsync"/> because <see cref="MigrateTrainingTreeRestructureAsync"/> and
+    /// <see cref="MigrateSessionExerciseIdBackfillAsync"/> have already run, so every plan
+    /// document is fully in the current C# shape (days materialised, ExerciseId assigned).
+    /// </summary>
+    private async Task<Dictionary<Guid, TrainingSession>> BuildClientSessionLookupAsync(Guid clientId, CancellationToken ct)
+    {
+        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId);
+        using var cursor = await _mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
+        var plans = await cursor.ToListAsync(ct);
+
+        return plans
+            .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
+            .SelectMany(p => p.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions))
+            .GroupBy(s => s.SessionId)
+            .ToDictionary(g => g.Key, g => g.First());
     }
 
     // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
@@ -1739,10 +1969,18 @@ public class MongoIndexInitializer : IHostedService
         };
     }
 
+    /// <summary>
+    /// Copies the checkbox completion flags from a legacy <see cref="TrainingCompletion"/> onto a
+    /// freshly-built <see cref="SessionExecution"/>. Pure field copy — by the time this runs,
+    /// <see cref="MigrateCompletionExerciseInstanceIdsAsync"/> has already resolved
+    /// <paramref name="completion"/>'s <c>completedExerciseIdsBySection</c> into
+    /// <see cref="TrainingCompletion.CompletedExerciseInstanceIds"/> (both collections are
+    /// migrated by the same boot-time step), so this needs no plan/session access of its own —
+    /// re-resolving here would be a second, divergent implementation of the same resolution.
+    /// </summary>
     private static void ApplyCompletionFlags(SessionExecution execution, TrainingCompletion completion)
     {
-        execution.CompletedExerciseIds = completion.CompletedExerciseIds;
-        execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
+        execution.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;
         execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
         execution.CompletedSets = completion.CompletedSets;
     }

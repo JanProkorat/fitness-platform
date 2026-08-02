@@ -88,24 +88,20 @@ public class SessionExecution
     public SessionExecutionStatus Status { get; set; } = SessionExecutionStatus.Partial;
 
     /// <summary>
-    /// List of exercise external IDs that have been marked complete for this session on this date.
+    /// Flat list of completed <see cref="SessionExercise.ExerciseId"/> instance values for this
+    /// session on this date — both standalone exercises and exercises nested inside a workout.
     /// <para>
-    /// <b>Deprecated.</b> New writes populate <see cref="CompletedExerciseIdsBySection"/> instead.
-    /// This flat list is kept for back-compat reads of historical data; it is mirrored from the new
-    /// dict so that legacy readers continue to work.
+    /// Replaces the pre-#857-phase-3b <c>completedExerciseIdsBySection</c> dictionary (keyed by
+    /// <see cref="TrainingWorkout.WorkoutId"/>, valued with catalog
+    /// <see cref="SessionExercise.ExerciseExternalId"/>s), which could not distinguish two
+    /// occurrences of the same catalog exercise within one workout or between a standalone
+    /// occurrence and a nested one. <see cref="SessionExercise.ExerciseId"/> already disambiguates
+    /// every instance, so no per-workout grouping is needed any more — a flat set membership check
+    /// (<c>CompletedExerciseInstanceIds.Contains(exercise.ExerciseId)</c>) is sufficient and correct.
     /// </para>
     /// </summary>
-    [BsonElement("completedExerciseIds")]
-    public List<Guid> CompletedExerciseIds { get; set; } = [];
-
-    /// <summary>
-    /// Per-section completed exercise IDs. Key = <see cref="TrainingWorkout.SectionId"/> serialized
-    /// as a lowercase string, value = list of <see cref="SessionExercise.ExerciseExternalId"/>
-    /// values completed within that specific section instance.
-    /// </summary>
-    [BsonElement("completedExerciseIdsBySection")]
-    [BsonIgnoreIfNull]
-    public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
+    [BsonElement("completedExerciseInstanceIds")]
+    public List<Guid> CompletedExerciseInstanceIds { get; set; } = [];
 
     /// <summary>
     /// Workout IDs (matching <see cref="TrainingWorkout.WorkoutId"/>) that the client has marked
@@ -116,7 +112,10 @@ public class SessionExecution
     public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
-    /// Optional per-set completion data, keyed by exerciseExternalId.
+    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseId"/>
+    /// (serialized as a lowercase Guid string) — rekeyed from the pre-#857-phase-3b
+    /// <see cref="SessionExercise.ExerciseExternalId"/> keying for the same reason as
+    /// <see cref="CompletedExerciseInstanceIds"/>.
     /// Each entry is the set of 1-based set numbers that were completed.
     /// </summary>
     [BsonElement("completedSets")]
