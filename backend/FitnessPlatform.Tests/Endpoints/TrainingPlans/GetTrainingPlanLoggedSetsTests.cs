@@ -32,7 +32,6 @@ public class GetTrainingPlanLoggedSetsTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
             Workouts =
             [
                 new TrainingWorkout
@@ -71,7 +70,7 @@ public class GetTrainingPlanLoggedSetsTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,

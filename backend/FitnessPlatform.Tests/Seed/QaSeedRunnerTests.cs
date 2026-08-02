@@ -598,7 +598,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         plan.Should().NotBeNull("main training plan must be seeded");
 
-        var session = plan!.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaSessionId);
+        var session = plan!.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaSessionId);
         var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.StandardSectionId);
 
         standardSection.Exercises.Should().HaveCount(2, "Standard section has two exercises");
@@ -746,7 +746,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.ClientId.Should().Be(QaSeedRunner.Client2UserId,
             "TrainingPlan.ClientId must be Client2UserId (ApplicationUser.Id, #840)");
 
-        var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
+        var session = plan.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
         session.Workouts.Should().HaveCount(2, "session has Standard + AMRAP sections");
 
         var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);

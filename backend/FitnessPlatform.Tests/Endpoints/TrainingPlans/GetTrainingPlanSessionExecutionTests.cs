@@ -39,7 +39,6 @@ public class GetTrainingPlanSessionExecutionTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1, // Monday
             Workouts =
             [
                 new TrainingWorkout
@@ -79,7 +78,7 @@ public class GetTrainingPlanSessionExecutionTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,
