@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -109,5 +110,293 @@ public class TrainingTreeRestructureMigrationTests
             "no legacy sections wrapper must be synthesized either");
         afterBoot["exercises"].AsBsonArray.Should().HaveCount(1,
             "the flat legacy exercise list must be preserved exactly as seeded, not wrapped or dropped");
+    }
+
+    // ── #857 phase 2: TrainingDay restructure (weeks.sessions[] + weeks.dayNotes ──────
+    //    -> weeks.days[], 7 materialised days per week) ────────────────────────────────
+
+    [Fact]
+    public async Task StartAsync_LegacyFlatSessionsWithDayNotes_RestructuresIntoSevenMaterialisedDays()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("training_tree_days_restructure_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var rawPlans = db.GetCollection<BsonDocument>("trainingPlans");
+
+        var planId = Guid.NewGuid();
+        var sessionMondayId = Guid.NewGuid();
+        var sessionWednesdayId = Guid.NewGuid();
+
+        // NOTE: pre-#857-phase-2 on-disk shape — a flat "sessions" array where each session
+        // embeds its own "dayOfWeek", plus a separate "dayNotes" field stored as
+        // BsonDictionaryOptions(ArrayOfDocuments): an array of {"k": <int>, "v": <string>}
+        // documents, NOT a plain sub-document keyed by day number.
+        var legacyWeekDoc = new BsonDocument
+        {
+            { "weekNumber", 1 },
+            { "status", "Published" },
+            { "datePublished", DateTime.UtcNow },
+            {
+                "sessions", new BsonArray
+                {
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionMondayId) },
+                        { "dayOfWeek", 1 },
+                        { "name", "Monday Session" },
+                        { "order", 1 },
+                        { "workouts", new BsonArray() }
+                    },
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionWednesdayId) },
+                        { "dayOfWeek", 3 },
+                        { "name", "Wednesday Session" },
+                        { "order", 1 },
+                        { "workouts", new BsonArray() }
+                    }
+                }
+            },
+            {
+                "dayNotes", new BsonArray
+                {
+                    new BsonDocument { { "k", 1 }, { "v", "Monday note" } },
+                    new BsonDocument { { "k", 5 }, { "v", "Friday note" } }
+                }
+            }
+        };
+
+        var legacyPlanDoc = new BsonDocument
+        {
+            { "_id", ObjectId.GenerateNewId() },
+            { "externalId", GuidBson(planId) },
+            { "clientId", GuidBson(Guid.NewGuid()) },
+            { "trainerId", GuidBson(Guid.NewGuid()) },
+            { "name", "QA restructure fixture" },
+            { "status", "Active" },
+            { "weeks", new BsonArray { legacyWeekDoc } },
+            { "version", 1 },
+            { "dateCreated", DateTime.UtcNow.AddDays(-1) }
+        };
+
+        await rawPlans.InsertOneAsync(legacyPlanDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        await initializer.StartAsync(ct);
+
+        var migrated = await mongo.TrainingPlans
+            .Find(Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planId))
+            .FirstOrDefaultAsync(ct);
+
+        migrated.Should().NotBeNull();
+        migrated!.Weeks.Should().ContainSingle();
+        var week = migrated.Weeks[0];
+
+        // Assertion: all 7 days exist per week (including empty ones).
+        week.Days.Should().HaveCount(7);
+        week.Days.Select(d => d.DayOfWeek).Should().Equal([1, 2, 3, 4, 5, 6, 7]);
+
+        // Assertion: sessions land under the correct day.
+        var monday = week.Days.Single(d => d.DayOfWeek == 1);
+        monday.Sessions.Should().ContainSingle(s => s.SessionId == sessionMondayId);
+
+        var wednesday = week.Days.Single(d => d.DayOfWeek == 3);
+        wednesday.Sessions.Should().ContainSingle(s => s.SessionId == sessionWednesdayId);
+
+        var tuesday = week.Days.Single(d => d.DayOfWeek == 2);
+        tuesday.Sessions.Should().BeEmpty("a day with no sessions is a rest day, not an absent day");
+
+        // Assertion: notes land on the right day.
+        monday.Note.Should().Be("Monday note");
+        var friday = week.Days.Single(d => d.DayOfWeek == 5);
+        friday.Note.Should().Be("Friday note", "the note must land on Friday even though Friday has no sessions");
+        friday.Sessions.Should().BeEmpty();
+
+        // Assertion: dayNotes and session.dayOfWeek are gone (raw BSON check — the typed
+        // TrainingWeek/TrainingSession no longer expose either field at all, so the only way
+        // to prove they are actually absent on disk, not merely unmapped, is a raw read).
+        var rawAfter = await rawPlans
+            .Find(new BsonDocument("externalId", GuidBson(planId)))
+            .FirstOrDefaultAsync(ct);
+        var rawWeek = rawAfter["weeks"].AsBsonArray[0].AsBsonDocument;
+        rawWeek.Contains("sessions").Should().BeFalse("the legacy flat sessions field must be removed");
+        rawWeek.Contains("dayNotes").Should().BeFalse("the legacy dayNotes field must be removed");
+        rawWeek.Contains("days").Should().BeTrue();
+
+        foreach (var rawDay in rawWeek["days"].AsBsonArray)
+        {
+            foreach (var rawSession in rawDay.AsBsonDocument["sessions"].AsBsonArray)
+            {
+                rawSession.AsBsonDocument.Contains("dayOfWeek").Should().BeFalse(
+                    "dayOfWeek must be dropped from the session — the parent day owns it now");
+            }
+        }
+    }
+
+    [Fact]
+    public async Task StartAsync_SecondBootAfterDaysRestructure_IsIdempotent_NoOpOnAlreadyMigratedDocument()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("training_tree_days_restructure_idempotency_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var rawPlans = db.GetCollection<BsonDocument>("trainingPlans");
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        var legacyWeekDoc = new BsonDocument
+        {
+            { "weekNumber", 1 },
+            { "status", "Published" },
+            { "datePublished", DateTime.UtcNow },
+            {
+                "sessions", new BsonArray
+                {
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionId) },
+                        { "dayOfWeek", 2 },
+                        { "name", "Tuesday Session" },
+                        { "order", 1 },
+                        { "workouts", new BsonArray() }
+                    }
+                }
+            }
+        };
+
+        var legacyPlanDoc = new BsonDocument
+        {
+            { "_id", ObjectId.GenerateNewId() },
+            { "externalId", GuidBson(planId) },
+            { "clientId", GuidBson(Guid.NewGuid()) },
+            { "trainerId", GuidBson(Guid.NewGuid()) },
+            { "name", "QA restructure idempotency fixture" },
+            { "status", "Active" },
+            { "weeks", new BsonArray { legacyWeekDoc } },
+            { "version", 1 },
+            { "dateCreated", DateTime.UtcNow.AddDays(-1) }
+        };
+
+        await rawPlans.InsertOneAsync(legacyPlanDoc, cancellationToken: ct);
+
+        // ── First boot: performs the restructure ─────────────────────────────────────
+        var initializer1 = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        await initializer1.StartAsync(ct);
+
+        var rawAfterFirstBoot = await rawPlans
+            .Find(new BsonDocument("externalId", GuidBson(planId)))
+            .FirstOrDefaultAsync(ct);
+
+        // ── Second boot (simulating a redeploy / restart against the same database):
+        // the $exists guard on the legacy "weeks.sessions" shape must find zero matching
+        // documents and skip cleanly rather than throwing or re-touching the document. ──
+        var initializer2 = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        var act = async () => await initializer2.StartAsync(ct);
+        await act.Should().NotThrowAsync("re-running the migration on an already-restructured document must be safe");
+
+        var rawAfterSecondBoot = await rawPlans
+            .Find(new BsonDocument("externalId", GuidBson(planId)))
+            .FirstOrDefaultAsync(ct);
+
+        // BsonDocument.Equals is structural — proves the second boot mutated 0 documents,
+        // not just that the typed values still happen to look right.
+        rawAfterSecondBoot!.Equals(rawAfterFirstBoot).Should().BeTrue(
+            "a second boot must mutate 0 documents — the already-restructured document is untouched");
+
+        var migrated = await mongo.TrainingPlans
+            .Find(Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planId))
+            .FirstOrDefaultAsync(ct);
+        migrated!.Weeks[0].Days.Should().HaveCount(7, "the day structure must still be intact after the second boot");
+        migrated.Weeks[0].Days.Single(d => d.DayOfWeek == 2).Sessions
+            .Should().ContainSingle(s => s.SessionId == sessionId);
+    }
+
+    [Fact]
+    public async Task StartAsync_DocumentAlreadyOnDaysShape_IsLeftUntouched()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("training_tree_days_restructure_untouched_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var rawPlans = db.GetCollection<BsonDocument>("trainingPlans");
+
+        // A document already on the NEW days shape (e.g. written by post-#857 code, or a
+        // plan with no sessions at all yet) — must NOT match the legacy "weeks.sessions"
+        // $exists filter, so the migration leaves it completely untouched.
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        var newShapeWeekDoc = new BsonDocument
+        {
+            { "weekNumber", 1 },
+            { "status", "Draft" },
+            {
+                "days", new BsonArray(Enumerable.Range(1, 7).Select(dayOfWeek =>
+                    new BsonDocument
+                    {
+                        { "dayOfWeek", dayOfWeek },
+                        {
+                            "sessions", dayOfWeek == 4
+                                ? new BsonArray
+                                {
+                                    new BsonDocument
+                                    {
+                                        { "sessionId", GuidBson(sessionId) },
+                                        { "name", "Thursday Session" },
+                                        { "order", 1 },
+                                        { "workouts", new BsonArray() }
+                                    }
+                                }
+                                : new BsonArray()
+                        }
+                    }))
+            }
+        };
+
+        var newShapePlanDoc = new BsonDocument
+        {
+            { "_id", ObjectId.GenerateNewId() },
+            { "externalId", GuidBson(planId) },
+            { "clientId", GuidBson(Guid.NewGuid()) },
+            { "trainerId", GuidBson(Guid.NewGuid()) },
+            { "name", "QA already-migrated fixture" },
+            { "status", "Draft" },
+            { "weeks", new BsonArray { newShapeWeekDoc } },
+            { "version", 1 },
+            { "dateCreated", DateTime.UtcNow.AddDays(-1) }
+        };
+
+        await rawPlans.InsertOneAsync(newShapePlanDoc, cancellationToken: ct);
+
+        var beforeBoot = await rawPlans.Find(new BsonDocument("externalId", GuidBson(planId))).FirstOrDefaultAsync(ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        await initializer.StartAsync(ct);
+
+        var afterBoot = await rawPlans.Find(new BsonDocument("externalId", GuidBson(planId))).FirstOrDefaultAsync(ct);
+
+        afterBoot!.Equals(beforeBoot).Should().BeTrue(
+            "a document already on the new days shape must be left byte-for-byte untouched");
+
+        var migrated = await mongo.TrainingPlans
+            .Find(Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planId))
+            .FirstOrDefaultAsync(ct);
+        migrated!.Weeks[0].Days.Should().HaveCount(7);
+        migrated.Weeks[0].Days.Single(d => d.DayOfWeek == 4).Sessions
+            .Should().ContainSingle(s => s.SessionId == sessionId);
     }
 }
