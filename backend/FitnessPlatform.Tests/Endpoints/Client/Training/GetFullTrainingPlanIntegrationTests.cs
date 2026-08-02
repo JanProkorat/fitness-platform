@@ -200,11 +200,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             {
                 StartedAt = startedAt,
                 CompletedAt = null,
-                Sections =
+                Workouts =
                 [
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = Guid.NewGuid(),
+                        WorkoutId = Guid.NewGuid(),
                         Order = 0,
                         Name = "Hlavní",
                         Exercises =

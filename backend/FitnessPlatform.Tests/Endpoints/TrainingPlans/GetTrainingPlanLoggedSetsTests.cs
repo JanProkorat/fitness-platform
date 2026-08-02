@@ -90,11 +90,11 @@ public class GetTrainingPlanLoggedSetsTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =

@@ -337,11 +337,11 @@ public class MarkExerciseIncompleteEndpointTests
         {
             StartedAt = now.Date.AddHours(9),
             CompletedAt = now,
-            Sections =
+            Workouts =
             [
-                new Application.Domain.Documents.WorkoutSection
+                new Application.Domain.Documents.LoggedWorkout
                 {
-                    SectionId = _sectionId,
+                    WorkoutId = _sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

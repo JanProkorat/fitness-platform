@@ -246,11 +246,11 @@ public class GetTodaySessionLoggedSetsTests
             SessionId = sessionId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -333,11 +333,11 @@ public class GetTodaySessionLoggedSetsTests
             SessionId = sessionId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -392,11 +392,11 @@ public class GetTodaySessionLoggedSetsTests
             SessionId = sessionId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -453,11 +453,11 @@ public class GetTodaySessionLoggedSetsTests
             SessionId = sessionId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

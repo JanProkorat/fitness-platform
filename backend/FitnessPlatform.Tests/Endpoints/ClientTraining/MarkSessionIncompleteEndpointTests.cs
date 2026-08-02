@@ -273,11 +273,11 @@ public class MarkSessionIncompleteEndpointTests
         {
             StartedAt = now.Date.AddHours(9),
             CompletedAt = now,
-            Sections =
+            Workouts =
             [
-                new Application.Domain.Documents.WorkoutSection
+                new Application.Domain.Documents.LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

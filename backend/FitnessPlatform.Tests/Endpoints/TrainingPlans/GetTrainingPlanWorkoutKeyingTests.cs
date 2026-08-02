@@ -112,11 +112,11 @@ public class GetTrainingPlanSectionKeyingTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = standardSectionId,
+                    WorkoutId = standardSectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -140,9 +140,9 @@ public class GetTrainingPlanSectionKeyingTests
                         }
                     ]
                 },
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = amrapSectionId,
+                    WorkoutId = amrapSectionId,
                     Order = 1,
                     Name = "AMRAP",
                     Exercises =
@@ -321,11 +321,11 @@ public class GetTrainingPlanSectionKeyingTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -421,11 +421,11 @@ public class GetTrainingPlanSectionKeyingTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

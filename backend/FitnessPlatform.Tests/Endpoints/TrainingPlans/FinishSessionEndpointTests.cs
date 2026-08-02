@@ -108,7 +108,7 @@ public class FinishSessionEndpointTests
             SessionId = sessionId,
             Date = SessionExecution.ToCompletionDateUtc(started),
             Status = SessionExecutionStatus.Partial,
-            Performance = new SessionExecutionPerformance { StartedAt = started, Sections = [] },
+            Performance = new SessionExecutionPerformance { StartedAt = started, Workouts = [] },
             DateCreated = started,
             Version = 1
         };
@@ -126,7 +126,7 @@ public class FinishSessionEndpointTests
             SessionId = sessionId,
             Date = SessionExecution.ToCompletionDateUtc(completedAt),
             Status = SessionExecutionStatus.Completed,
-            Performance = new SessionExecutionPerformance { StartedAt = started, CompletedAt = completedAt, Sections = [] },
+            Performance = new SessionExecutionPerformance { StartedAt = started, CompletedAt = completedAt, Workouts = [] },
             DateCreated = started,
             Version = 1
         };
@@ -212,17 +212,17 @@ public class FinishSessionEndpointTests
                 l.SessionId == sessionId &&
                 l.ClientId == plan.ClientId &&
                 l.Status == SessionExecutionStatus.Partial &&
-                l.Performance!.Sections.Count > 0),
+                l.Performance!.Workouts.Count > 0),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
 
-        // Section structure must be preserved (not flat list).
+        // Workout structure must be preserved (not flat list).
         await completionService.Received(1).CompleteAsync(
             Arg.Is<SessionExecution>(l =>
                 l.PlanId == plan.ExternalId &&
                 l.SessionId == sessionId &&
-                l.Performance!.Sections.Count > 0 &&
-                l.Performance!.Sections[0].Exercises.Count > 0),
+                l.Performance!.Workouts.Count > 0 &&
+                l.Performance!.Workouts[0].Exercises.Count > 0),
             Arg.Any<DateTime>(),
             Arg.Any<CancellationToken>());
     }
@@ -256,7 +256,7 @@ public class FinishSessionEndpointTests
             TestContext.Current.CancellationToken);
 
         capturedLog.Should().NotBeNull();
-        var sets = capturedLog!.Performance!.Sections[0].Exercises[0].Sets;
+        var sets = capturedLog!.Performance!.Workouts[0].Exercises[0].Sets;
         sets.Should().HaveCount(2);
         sets[0].SetNumber.Should().Be(1);
         sets[0].Reps.Should().Be(10);

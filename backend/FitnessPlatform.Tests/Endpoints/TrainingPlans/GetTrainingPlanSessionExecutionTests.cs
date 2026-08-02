@@ -101,11 +101,11 @@ public class GetTrainingPlanSessionExecutionTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = isCompleted,
             CompletedAt = isCompleted ? _now : null,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =

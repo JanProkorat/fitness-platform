@@ -878,11 +878,11 @@ public class GetTodaySessionEndpointTests
             SessionId = sessionId,
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -1009,11 +1009,11 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -1147,11 +1147,11 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -1391,11 +1391,11 @@ public class GetTodaySessionEndpointTests
             PlanId = plan.ExternalId,
             StartedAt = DateTime.UtcNow,
             IsCompleted = false,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
