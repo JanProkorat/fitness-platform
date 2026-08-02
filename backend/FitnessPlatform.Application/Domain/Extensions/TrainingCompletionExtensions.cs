@@ -18,7 +18,7 @@ public static class TrainingCompletionExtensions
     ///     two sections (e.g. the same movement in two AMRAP blocks) from being treated as
     ///     done in both sections when it was only completed in one.</description></item>
     ///   <item><description>Exercise-free sections — the SectionId is in
-    ///     <see cref="TrainingCompletion.CompletedSectionIds"/>.</description></item>
+    ///     <see cref="TrainingCompletion.CompletedWorkoutIds"/>.</description></item>
     /// </list>
     /// <para>
     /// A session with zero sections is <b>never</b> considered complete — every
@@ -38,7 +38,7 @@ public static class TrainingCompletionExtensions
     ///     (<paramref name="hasCompletedWorkoutLog"/>). Session-level completion implies every
     ///     section is done.</description></item>
     ///   <item><description>Signal 2 — the <c>TrainingCompletion</c> document records this
-    ///     section as complete (exercise-free sections via <see cref="TrainingCompletion.CompletedSectionIds"/>;
+    ///     section as complete (exercise-free sections via <see cref="TrainingCompletion.CompletedWorkoutIds"/>;
     ///     exercise-bearing sections via
     ///     <see cref="TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>).</description></item>
     /// </list>
@@ -56,7 +56,7 @@ public static class TrainingCompletionExtensions
 
         // Exercise-free workouts: completed via CompletedSectionIds.
         if (workout.Exercises.Count == 0)
-            return (completion.CompletedSectionIds ?? []).Contains(workout.WorkoutId);
+            return (completion.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId);
 
         // Exercise-bearing workouts: use workout-aware effective map to prevent
         // cross-workout false positives when the same exercise appears in two workouts.
@@ -87,6 +87,6 @@ public static class TrainingCompletionExtensions
             workout.Exercises.Count > 0
                 ? effectiveByWorkout.TryGetValue(workout.WorkoutId, out var completedInWorkout)
                   && workout.Exercises.All(e => completedInWorkout.Contains(e.ExerciseExternalId))
-                : (completion.CompletedSectionIds ?? []).Contains(workout.WorkoutId));
+                : (completion.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId));
     }
 }

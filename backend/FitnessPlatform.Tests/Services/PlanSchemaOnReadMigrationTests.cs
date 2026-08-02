@@ -292,7 +292,7 @@ public class PlanSchemaOnReadMigrationTests
         var versionedFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ExternalId, completionId)
                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, 1);
         var update = Builders<TrainingCompletion>.Update
-            .Set(c => c.CompletedSectionIds, new List<Guid> { Guid.NewGuid() })
+            .Set(c => c.CompletedWorkoutIds, new List<Guid> { Guid.NewGuid() })
             .Set(c => c.Version, 2);
 
         var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);

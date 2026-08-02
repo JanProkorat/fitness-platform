@@ -130,6 +130,6 @@ public class WorkoutCompletionService(
 
         execution.CompletedExerciseIds = allExerciseIds;
         execution.CompletedExerciseIdsBySection = completedBySection;
-        execution.CompletedSectionIds = allSectionIds;
+        execution.CompletedWorkoutIds = allSectionIds;
     }
 }

@@ -111,7 +111,7 @@ public class UnlockSessionFinishedGuardTests
                 Status = SessionExecutionStatus.Partial,
                 CompletedExerciseIds = completion.CompletedExerciseIds,
                 CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection,
-                CompletedSectionIds = completion.CompletedSectionIds,
+                CompletedWorkoutIds = completion.CompletedWorkoutIds,
                 CompletedSets = completion.CompletedSets,
                 DateCreated = completion.DateCreated,
                 Version = completion.Version

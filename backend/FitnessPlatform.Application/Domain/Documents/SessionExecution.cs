@@ -108,12 +108,12 @@ public class SessionExecution
     public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
 
     /// <summary>
-    /// Section IDs (matching <see cref="TrainingWorkout.SectionId"/>) that the client has marked
-    /// complete on this date. Used for sections that don't track at the exercise level.
+    /// Workout IDs (matching <see cref="TrainingWorkout.WorkoutId"/>) that the client has marked
+    /// complete on this date. Used for workouts that don't track at the exercise level.
     /// </summary>
-    [BsonElement("completedSectionIds")]
+    [BsonElement("completedWorkoutIds")]
     [BsonIgnoreIfNull]
-    public List<Guid>? CompletedSectionIds { get; set; }
+    public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
     /// Optional per-set completion data, keyed by exerciseExternalId.

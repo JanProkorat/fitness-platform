@@ -281,8 +281,8 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                     completedBySession[sessionId] = set = [];
 
                 response.VersionBySession[sessionId] = doc.Version;
-                response.CompletedSectionIdsBySession[sessionId] =
-                    (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
+                response.CompletedWorkoutIdsBySession[sessionId] =
+                    (doc.CompletedWorkoutIds ?? new List<Guid>()).ToList();
 
                 // Populate the per-session completed-exercise set from the section-aware
                 // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds

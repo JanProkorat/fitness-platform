@@ -114,9 +114,9 @@ public class MarkWorkoutCompleteEndpointTests
             Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
-                c.CompletedSectionIds != null &&
-                c.CompletedSectionIds.Contains(_sectionId) &&
-                c.CompletedSectionIds.Count == 1),
+                c.CompletedWorkoutIds != null &&
+                c.CompletedWorkoutIds.Contains(_sectionId) &&
+                c.CompletedWorkoutIds.Count == 1),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

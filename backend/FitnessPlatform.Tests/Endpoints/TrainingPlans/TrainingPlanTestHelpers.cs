@@ -159,7 +159,7 @@ public static class TrainingPlanTestHelpers
             {
                 execution.CompletedExerciseIds = completion.CompletedExerciseIds;
                 execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
-                execution.CompletedSectionIds = completion.CompletedSectionIds;
+                execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
                 execution.CompletedSets = completion.CompletedSets;
             }
 

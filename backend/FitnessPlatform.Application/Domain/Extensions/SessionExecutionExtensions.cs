@@ -40,7 +40,7 @@ public static class SessionExecutionExtensions
             workout.Exercises.Count > 0
                 ? effectiveByWorkout.TryGetValue(workout.WorkoutId, out var completedInWorkout)
                   && workout.Exercises.All(e => completedInWorkout.Contains(e.ExerciseExternalId))
-                : (execution.CompletedSectionIds ?? []).Contains(workout.WorkoutId));
+                : (execution.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId));
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public static class SessionExecutionExtensions
     ///     <see cref="SessionExecutionStatus.Completed"/> (session-level completion implies every
     ///     workout is done).</description></item>
     ///   <item><description>Signal 2 — the checkbox flags record this specific workout as complete
-    ///     (exercise-free workouts via <see cref="SessionExecution.CompletedSectionIds"/>;
+    ///     (exercise-free workouts via <see cref="SessionExecution.CompletedWorkoutIds"/>;
     ///     exercise-bearing workouts via
     ///     <see cref="SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>).</description></item>
     /// </list>
@@ -67,7 +67,7 @@ public static class SessionExecutionExtensions
 
         // Exercise-free workouts: completed via CompletedSectionIds.
         if (workout.Exercises.Count == 0)
-            return (execution.CompletedSectionIds ?? []).Contains(workout.WorkoutId);
+            return (execution.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId);
 
         // Exercise-bearing workouts: use workout-aware effective map to prevent
         // cross-workout false positives when the same exercise appears in two workouts.

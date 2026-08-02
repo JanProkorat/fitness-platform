@@ -116,7 +116,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     SessionId = c.SessionId!.Value,
                     CompletedExerciseIds = c.CompletedExerciseIds,
                     CompletedExerciseIdsBySection = bySection,
-                    CompletedSectionIds = c.CompletedSectionIds ?? [],
+                    CompletedSectionIds = c.CompletedWorkoutIds ?? [],
                     Version = c.Version
                 };
             })

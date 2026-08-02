@@ -218,7 +218,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             .GroupBy(e => e.SessionId!.Value)
             .ToDictionary(
                 g => g.Key,
-                g => g.SelectMany(e => e.CompletedSectionIds ?? new List<Guid>()).ToHashSet());
+                g => g.SelectMany(e => e.CompletedWorkoutIds ?? new List<Guid>()).ToHashSet());
 
         foreach (var execution in executions.Where(e => e.SessionId.HasValue))
         {

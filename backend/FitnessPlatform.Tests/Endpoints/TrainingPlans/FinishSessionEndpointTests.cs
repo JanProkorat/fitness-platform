@@ -659,7 +659,7 @@ public class FinishSessionEndpointTests
                 e.ClientId == plan.ClientId &&
                 e.SessionId == sessionId &&
                 e.Status == SessionExecutionStatus.Completed &&
-                e.CompletedSectionIds != null && e.CompletedSectionIds.Count > 0),
+                e.CompletedWorkoutIds != null && e.CompletedWorkoutIds.Count > 0),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }

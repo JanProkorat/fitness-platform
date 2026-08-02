@@ -155,7 +155,7 @@ public class MarkSessionCompleteEndpoint(
             var update = Builders<SessionExecution>.Update
                 .Set(c => c.CompletedExerciseIds, allExerciseIds)
                 .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
-                .Set(c => c.CompletedSectionIds, allSectionIds)
+                .Set(c => c.CompletedWorkoutIds, allSectionIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, newVersion);
 
@@ -169,7 +169,7 @@ public class MarkSessionCompleteEndpoint(
             }
 
             existing.CompletedExerciseIds = allExerciseIds;
-            existing.CompletedSectionIds = allSectionIds;
+            existing.CompletedWorkoutIds = allSectionIds;
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
@@ -191,7 +191,7 @@ public class MarkSessionCompleteEndpoint(
                 SessionId = req.SessionId,
                 CompletedExerciseIds = allExerciseIds,
                 CompletedExerciseIdsBySection = completedBySection,
-                CompletedSectionIds = allSectionIds,
+                CompletedWorkoutIds = allSectionIds,
                 DateCreated = DateTime.UtcNow,
                 Version = 1
             };
@@ -227,7 +227,7 @@ public class MarkSessionCompleteEndpoint(
                 var retryUpdate = Builders<SessionExecution>.Update
                     .Set(c => c.CompletedExerciseIds, allExerciseIds)
                     .Set(c => c.CompletedExerciseIdsBySection, completedBySection)
-                    .Set(c => c.CompletedSectionIds, allSectionIds)
+                    .Set(c => c.CompletedWorkoutIds, allSectionIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, retryVersion);
                 var retryResult = await mongo.SessionExecutions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
@@ -240,7 +240,7 @@ public class MarkSessionCompleteEndpoint(
                 }
 
                 existing.CompletedExerciseIds = allExerciseIds;
-                existing.CompletedSectionIds = allSectionIds;
+                existing.CompletedWorkoutIds = allSectionIds;
                 existing.Version = retryVersion;
                 await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, allExerciseIds.Count), ct);
                 return;

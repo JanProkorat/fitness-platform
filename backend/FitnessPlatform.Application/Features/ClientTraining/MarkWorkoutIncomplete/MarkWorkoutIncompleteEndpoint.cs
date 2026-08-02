@@ -110,7 +110,7 @@ public class MarkWorkoutIncompleteEndpoint(
         using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
         var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
-        if (existing is null || !(existing.CompletedSectionIds ?? []).Contains(req.SectionId))
+        if (existing is null || !(existing.CompletedWorkoutIds ?? []).Contains(req.SectionId))
         {
             // Idempotent: already not complete
             var completedCount = existing?.CompletedExerciseIds.Count ?? 0;
@@ -134,14 +134,14 @@ public class MarkWorkoutIncompleteEndpoint(
             return;
         }
 
-        var newSectionIds = existing.CompletedSectionIds!.Where(id => id != req.SectionId).ToList();
+        var newSectionIds = existing.CompletedWorkoutIds!.Where(id => id != req.SectionId).ToList();
         var newVersion = existing.Version + 1;
 
         var versionedFilter = executionFilter
                               & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedSectionIds, newSectionIds)
+            .Set(c => c.CompletedWorkoutIds, newSectionIds)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 

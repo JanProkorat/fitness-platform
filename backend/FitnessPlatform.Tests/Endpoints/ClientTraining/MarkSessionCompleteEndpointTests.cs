@@ -109,9 +109,9 @@ public class MarkSessionCompleteEndpointTests
 
         await completionCollection.Received(1).InsertOneAsync(
             Arg.Is<SessionExecution>(c =>
-                c.CompletedSectionIds != null &&
-                c.CompletedSectionIds.Contains(expectedSectionId) &&
-                c.CompletedSectionIds.Count == 1),
+                c.CompletedWorkoutIds != null &&
+                c.CompletedWorkoutIds.Contains(expectedSectionId) &&
+                c.CompletedWorkoutIds.Count == 1),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

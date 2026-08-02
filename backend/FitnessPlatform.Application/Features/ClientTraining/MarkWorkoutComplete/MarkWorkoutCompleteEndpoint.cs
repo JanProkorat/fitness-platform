@@ -131,7 +131,7 @@ public class MarkWorkoutCompleteEndpoint(
         if (existing is not null)
         {
             // Idempotency: already complete — return success immediately
-            if ((existing.CompletedSectionIds ?? []).Contains(req.WorkoutId))
+            if ((existing.CompletedWorkoutIds ?? []).Contains(req.WorkoutId))
             {
                 await Send.OkAsync(BuildResponse(req.SessionId, req.WorkoutId, targetDate, existing, totalExercises), ct);
                 return;
@@ -145,14 +145,14 @@ public class MarkWorkoutCompleteEndpoint(
                 return;
             }
 
-            var newSectionIds = new List<Guid>(existing.CompletedSectionIds ?? []) { req.WorkoutId };
+            var newSectionIds = new List<Guid>(existing.CompletedWorkoutIds ?? []) { req.WorkoutId };
             var newVersion = existing.Version + 1;
 
             var versionedFilter = executionFilter
                                   & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
             var update = Builders<SessionExecution>.Update
-                .Set(c => c.CompletedSectionIds, newSectionIds)
+                .Set(c => c.CompletedWorkoutIds, newSectionIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, newVersion);
 
@@ -165,7 +165,7 @@ public class MarkWorkoutCompleteEndpoint(
                 return;
             }
 
-            existing.CompletedSectionIds = newSectionIds;
+            existing.CompletedWorkoutIds = newSectionIds;
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
@@ -188,7 +188,7 @@ public class MarkWorkoutCompleteEndpoint(
                 Date = targetDate,
                 SessionId = req.SessionId,
                 CompletedExerciseIds = [],
-                CompletedSectionIds = [req.WorkoutId],
+                CompletedWorkoutIds = [req.WorkoutId],
                 DateCreated = DateTime.UtcNow,
                 Version = 1
             };
@@ -210,18 +210,18 @@ public class MarkWorkoutCompleteEndpoint(
                     throw;
                 }
 
-                if ((existing.CompletedSectionIds ?? []).Contains(req.WorkoutId))
+                if ((existing.CompletedWorkoutIds ?? []).Contains(req.WorkoutId))
                 {
                     await Send.OkAsync(BuildResponse(req.SessionId, req.WorkoutId, targetDate, existing, totalExercises), ct);
                     return;
                 }
 
-                var retryIds = new List<Guid>(existing.CompletedSectionIds ?? []) { req.WorkoutId };
+                var retryIds = new List<Guid>(existing.CompletedWorkoutIds ?? []) { req.WorkoutId };
                 var retryVersion = existing.Version + 1;
                 var retryVersionedFilter = executionFilter
                     & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
                 var retryUpdate = Builders<SessionExecution>.Update
-                    .Set(c => c.CompletedSectionIds, retryIds)
+                    .Set(c => c.CompletedWorkoutIds, retryIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, retryVersion);
                 var retryResult = await mongo.SessionExecutions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
@@ -233,7 +233,7 @@ public class MarkWorkoutCompleteEndpoint(
                     return;
                 }
 
-                existing.CompletedSectionIds = retryIds;
+                existing.CompletedWorkoutIds = retryIds;
                 existing.Version = retryVersion;
 
                 await TrainingProgressBroadcaster.BroadcastSessionAsync(

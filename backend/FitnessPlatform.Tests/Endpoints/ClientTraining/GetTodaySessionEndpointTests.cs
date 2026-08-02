@@ -277,7 +277,7 @@ public class GetTodaySessionEndpointTests
                 // workoutLogs — same key means the real migration would have produced one doc.
                 existing.CompletedExerciseIds = completion.CompletedExerciseIds;
                 existing.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
-                existing.CompletedSectionIds = completion.CompletedSectionIds;
+                existing.CompletedWorkoutIds = completion.CompletedWorkoutIds;
                 existing.CompletedSets = completion.CompletedSets;
             }
             else
@@ -291,7 +291,7 @@ public class GetTodaySessionEndpointTests
                     Status = SessionExecutionStatus.Partial,
                     CompletedExerciseIds = completion.CompletedExerciseIds,
                     CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection,
-                    CompletedSectionIds = completion.CompletedSectionIds,
+                    CompletedWorkoutIds = completion.CompletedWorkoutIds,
                     CompletedSets = completion.CompletedSets,
                     DateCreated = completion.DateCreated,
                     DateUpdated = completion.DateUpdated,

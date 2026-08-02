@@ -83,6 +83,18 @@ public class MongoIndexInitializer : IHostedService
         // physical collection exists yet).
         await MigrateWorkoutTemplateCollectionSwapAsync(cancellationToken);
 
+        // #857 (completion-field rename): MUST also run before every Create*Indexes call
+        // below. Neither SessionExecution nor TrainingCompletion carries
+        // [BsonIgnoreExtraElements], so once the renamed BsonElement("completedWorkoutIds")
+        // is live on the C# type, a legacy on-disk document that still carries the old
+        // "completedSectionIds" element name is an unmapped extra element for the typed
+        // collection — the first typed read (BackfillTrainingCompletionVersionAndSections,
+        // called from CreateTrainingCompletionIndexes; the SessionExecution dedup pass,
+        // called from CreateSessionExecutionIndexes) would throw a BSON deserialization
+        // error. This migration is a no-op on a fresh database and a no-op on any database
+        // that has already run it once (idempotent $exists guard).
+        await MigrateCompletedWorkoutIdsRenameAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -178,6 +190,66 @@ public class MongoIndexInitializer : IHostedService
         }
 
         await database.RenameCollectionAsync(source, target, cancellationToken: ct);
+    }
+
+    // ── #857 (completion-field rename): completedSectionIds -> completedWorkoutIds ────
+    //
+    // Vocabulary rename (section -> workout): SessionExecution.CompletedSectionIds and
+    // TrainingCompletion.CompletedSectionIds are renamed to CompletedWorkoutIds to match the
+    // TrainingWorkout (formerly TrainingSection) vocabulary already in force elsewhere on
+    // these documents. Values are unchanged — this is a pure field rename, no resolution
+    // logic (unlike the CompletedExerciseIdsBySection backfill, which stays untouched).
+    //
+    // MUST run before ANY typed read of either collection (see the call site in StartAsync)
+    // — neither type carries [BsonIgnoreExtraElements], so a legacy document still holding
+    // the old "completedSectionIds" element name is an unmapped extra element once the C#
+    // property maps to "completedWorkoutIds", and the driver throws on deserialization
+    // instead of silently ignoring it.
+    //
+    // Idempotency: each rename is filtered on the OLD element name existing ($exists).
+    // On a fresh database, or a database that already ran this migration, the filter matches
+    // zero documents and UpdateManyAsync is a no-op — the whole migration runs cleanly on
+    // every boot.
+    /// <summary>
+    /// One-time, idempotent migration (#857): <c>$rename</c>s the <c>completedSectionIds</c>
+    /// BSON element to <c>completedWorkoutIds</c> on both the <c>sessionExecutions</c> and
+    /// <c>trainingCompletions</c> collections. Pure field rename — values are unchanged. See
+    /// the remarks above this method and the call site in <see cref="StartAsync"/> for why
+    /// this must run before any typed read of either collection.
+    /// </summary>
+    private async Task MigrateCompletedWorkoutIdsRenameAsync(CancellationToken ct)
+    {
+        var executionsOldFieldFilter = new BsonDocumentFilterDefinition<SessionExecution>(
+            new BsonDocument("completedSectionIds", new BsonDocument("$exists", true)));
+
+        var executionsRenameResult = await _mongo.SessionExecutions.UpdateManyAsync(
+            executionsOldFieldFilter,
+            Builders<SessionExecution>.Update.Rename("completedSectionIds", "completedWorkoutIds"),
+            cancellationToken: ct);
+
+        if (executionsRenameResult.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "SessionExecution field rename: renamed completedSectionIds -> completedWorkoutIds " +
+                "on {Count} document(s)",
+                executionsRenameResult.ModifiedCount);
+        }
+
+        var completionsOldFieldFilter = new BsonDocumentFilterDefinition<TrainingCompletion>(
+            new BsonDocument("completedSectionIds", new BsonDocument("$exists", true)));
+
+        var completionsRenameResult = await _mongo.TrainingCompletions.UpdateManyAsync(
+            completionsOldFieldFilter,
+            Builders<TrainingCompletion>.Update.Rename("completedSectionIds", "completedWorkoutIds"),
+            cancellationToken: ct);
+
+        if (completionsRenameResult.ModifiedCount > 0)
+        {
+            _logger.LogInformation(
+                "TrainingCompletion field rename: renamed completedSectionIds -> completedWorkoutIds " +
+                "on {Count} document(s)",
+                completionsRenameResult.ModifiedCount);
+        }
     }
 
     // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
@@ -1136,7 +1208,7 @@ public class MongoIndexInitializer : IHostedService
     {
         execution.CompletedExerciseIds = completion.CompletedExerciseIds;
         execution.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
-        execution.CompletedSectionIds = completion.CompletedSectionIds;
+        execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
         execution.CompletedSets = completion.CompletedSets;
     }
 

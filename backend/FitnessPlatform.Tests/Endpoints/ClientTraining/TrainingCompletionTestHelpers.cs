@@ -218,7 +218,7 @@ public static class TrainingCompletionTestHelpers
             SessionId = sessionId,
             Status = SessionExecutionStatus.Partial,
             CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
-            CompletedSectionIds = completedSectionIds?.ToList(),
+            CompletedWorkoutIds = completedSectionIds?.ToList(),
             CompletedExerciseIdsBySection = completedExerciseIdsBySection,
             DateCreated = DateTime.UtcNow,
             Version = version

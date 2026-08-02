@@ -80,14 +80,14 @@ public class GetTodaySessionResponse
     public Dictionary<Guid, Dictionary<Guid, List<Guid>>> CompletedExerciseIdsBySectionAndSession { get; set; } = new();
 
     /// <summary>
-    /// Per-session completed section IDs, keyed by SessionId. Sourced from
+    /// Per-session completed workout IDs, keyed by SessionId. Sourced from
     /// TrainingCompletion documents for today. Empty dictionary when no
-    /// section has been section-completed for today (or no active plan exists).
-    /// Sections appear here when the client tapped a section-level checkbox
+    /// workout has been workout-completed for today (or no active plan exists).
+    /// Workouts appear here when the client tapped a workout-level checkbox
     /// (e.g. on a ForTime "Running" workout that has no exercises) or when
-    /// MarkSessionComplete fanned out section IDs.
+    /// MarkSessionComplete fanned out workout IDs.
     /// </summary>
-    public Dictionary<Guid, List<Guid>> CompletedSectionIdsBySession { get; set; } = new();
+    public Dictionary<Guid, List<Guid>> CompletedWorkoutIdsBySession { get; set; } = new();
 
     /// <summary>
     /// Per-session optimistic-concurrency version numbers for today, keyed by SessionId.

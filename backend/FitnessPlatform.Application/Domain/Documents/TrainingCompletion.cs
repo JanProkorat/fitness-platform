@@ -95,14 +95,14 @@ public class TrainingCompletion
     public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
 
     /// <summary>
-    /// Section IDs (matching <see cref="TrainingWorkout.SectionId"/>) that the
-    /// client has marked complete on this date. Used for sections that don't
+    /// Workout IDs (matching <see cref="TrainingWorkout.WorkoutId"/>) that the
+    /// client has marked complete on this date. Used for workouts that don't
     /// track at the exercise level — ForTime workouts that are just a name +
     /// time cap, e.g. "Running".
     /// </summary>
-    [BsonElement("completedSectionIds")]
+    [BsonElement("completedWorkoutIds")]
     [BsonIgnoreIfNull]
-    public List<Guid>? CompletedSectionIds { get; set; }
+    public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
     /// Optional per-set completion data, keyed by exerciseExternalId.
