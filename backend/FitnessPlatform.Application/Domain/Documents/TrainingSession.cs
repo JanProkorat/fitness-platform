@@ -75,22 +75,26 @@ public class TrainingSession
     /// Named <c>StandaloneExercises</c> in C# — not <c>Exercises</c> — to avoid colliding with
     /// the existing computed <see cref="Exercises"/> flat-view convenience below (used
     /// pervasively by completion-tracking endpoints for "every exercise in this session"). The
-    /// wire/BSON element name is still <c>exercises</c> via <see cref="JsonPropertyNameAttribute"/>
-    /// and <see cref="BsonElementAttribute"/>, matching the issue's <c>exercises[]</c> naming and
-    /// <see cref="PlanMeal"/>'s field-naming convention exactly.
+    /// BSON element name is <c>exercises</c>, matching the issue's storage-shape naming and
+    /// <see cref="PlanMeal"/>'s field-naming convention. The JSON property name is deliberately
+    /// distinct (<c>standaloneExercises</c>) — the wire field <c>exercises</c> is owned by the
+    /// computed <see cref="Exercises"/> flat view below, preserving the pre-existing read
+    /// contract that every session's exercises (standalone + nested in workouts) come back under
+    /// that one field.
     /// </remarks>
     [BsonElement("exercises")]
-    [JsonPropertyName("exercises")]
+    [JsonPropertyName("standaloneExercises")]
     public List<SessionExercise> StandaloneExercises { get; set; } = [];
 
     /// <summary>
     /// Flat view of every exercise in this session — the standalone <see cref="StandaloneExercises"/>
-    /// plus every workout's nested exercises. Read-only convenience accessor used by completion-
-    /// tracking endpoints for "how many exercises does this session have". Not stored in MongoDB
-    /// and not part of the API contract — web/mobile derive their own flattened view client-side.
+    /// plus every workout's nested exercises. Computed, never persisted (<see cref="BsonIgnoreAttribute"/>).
+    /// This is the wire field <c>exercises</c> read by completion-tracking endpoints and by
+    /// web/mobile clients — preserving the pre-#857 contract where <c>exercises</c> meant "every
+    /// exercise in this session", not just the standalone ones.
     /// </summary>
     [BsonIgnore]
-    [JsonIgnore]
+    [JsonPropertyName("exercises")]
     public IReadOnlyList<SessionExercise> Exercises =>
         StandaloneExercises.Concat(Workouts.SelectMany(w => w.Exercises)).ToList();
 }

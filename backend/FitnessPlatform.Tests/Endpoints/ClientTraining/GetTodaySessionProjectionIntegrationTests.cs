@@ -250,6 +250,129 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         hydratedSession.Exercises[0].ExerciseName.Should().Be("Exercise for Week 3 Session (target)");
     }
 
+    /// <summary>
+    /// Regression guard for the #857 phase 3a wire-contract break. <see cref="TrainingSession.Exercises"/>
+    /// must remain a union of the standalone exercise list and every workout's nested exercises — not
+    /// just the standalone list. Seeds a single session carrying one standalone exercise AND one
+    /// workout-nested exercise, then asserts the real HTTP response's <c>exercises</c> field contains
+    /// BOTH. This case is only constructible now that phase 3a introduced standalone exercises; before
+    /// that, every real document only ever had the nested shape (covered by the sibling test above).
+    /// </summary>
+    [Fact]
+    public async Task GetTodaySession_SessionWithStandaloneAndWorkoutExercises_ReturnsUnionInExercises()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Union", "Session", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            clientUserId = user.Id;
+        }
+
+        var todayDow = TodayDow();
+        var startDate = StartOfCurrentWeek();
+        var sessionId = Guid.NewGuid();
+        var standaloneExerciseId = Guid.NewGuid();
+        var workoutExerciseId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            Name = "Union Session",
+            Order = 1,
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseExternalId = standaloneExerciseId,
+                    ExerciseName = "Standalone Finisher",
+                    Order = 1,
+                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10 }]
+                }
+            ],
+            Workouts =
+            [
+                new TrainingWorkout
+                {
+                    WorkoutId = Guid.NewGuid(),
+                    Order = 0,
+                    Name = "Hlavní",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseExternalId = workoutExerciseId,
+                            ExerciseName = "Workout Exercise",
+                            Order = 1,
+                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Union Test Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Version = 1,
+            DateCreated = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, session))
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/training/plan/today", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<TodaySessionResponseDto>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        body!.Sessions.Should().ContainSingle();
+
+        var hydratedSession = body.Sessions[0];
+        hydratedSession.Exercises.Should().HaveCount(2,
+            $"the wire `exercises` field must union the standalone list with every workout's nested " +
+            $"exercises, not just the standalone list. raw: {rawBody}");
+        hydratedSession.Exercises.Should().Contain(e => e.ExerciseExternalId == standaloneExerciseId,
+            "the standalone exercise must appear in the wire `exercises` field");
+        hydratedSession.Exercises.Should().Contain(e => e.ExerciseExternalId == workoutExerciseId,
+            "the workout-nested exercise must still appear in the wire `exercises` field");
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record TodaySessionResponseDto(
