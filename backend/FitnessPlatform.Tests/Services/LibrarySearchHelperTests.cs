@@ -229,10 +229,41 @@ public class LibrarySearchHelperTests : IAsyncLifetime
             options => options.WithStrictOrdering());
     }
 
+    /// <summary>
+    /// Distinct-date companion to <see cref="SearchAsync_OrderingIsDeterministic_AcrossPagesWithSharedDateCreated"/>.
+    /// That test gives every document one shared <c>DateCreated</c>, so it only exercises the
+    /// <c>ExternalId</c> tiebreaker — deleting <c>Sort.Descending(d => d.DateCreated)</c> entirely
+    /// would leave every one of its assertions green. This test uses three distinct
+    /// <c>DateCreated</c> values and asserts strict descending order by date, so the primary
+    /// sort key is actually under test.
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_DistinctDateCreatedValues_AreOrderedDescending()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        var oldest = MakeEntry(callerId, "Oldest", dateCreated: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var middle = MakeEntry(callerId, "Middle", dateCreated: new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc));
+        var newest = MakeEntry(callerId, "Newest", dateCreated: new DateTime(2026, 1, 3, 0, 0, 0, DateTimeKind.Utc));
+
+        await _collection.InsertManyAsync([oldest, middle, newest], cancellationToken: ct);
+
+        var ep = Factory.Create<LibrarySearchProbeEndpoint>();
+
+        var (items, totalCount) = await ep.SearchAsync(
+            _collection, callerId, d => d.Name, search: null,
+            page: 1, pageSize: 20, extraFilter: null, ct: ct);
+
+        totalCount.Should().Be(3);
+        items.Select(i => i.Name).Should().Equal("Newest", "Middle", "Oldest");
+    }
+
     [Theory]
     [InlineData(0, 20)]
     [InlineData(-1, 20)]
-    public async Task SearchAsync_PageBelowOne_ThrowsAndSets400(int page, int pageSize)
+    [InlineData(100_001, 20)]
+    public async Task SearchAsync_PageOutOfRange_ThrowsAndSets400(int page, int pageSize)
     {
         var ct = TestContext.Current.CancellationToken;
         var ep = Factory.Create<LibrarySearchProbeEndpoint>();

@@ -27,13 +27,25 @@ internal sealed class LibraryGuardProbeEndpoint : EndpointWithoutRequest
 
 /// <summary>
 /// Unit tests for <see cref="LibraryAccessGuard"/>'s pure predicates and
-/// <see cref="LibraryDenialExtensions"/>'s endpoint-facing 404/403 responses (issue #858).
-/// No Docker required.
+/// <see cref="LibraryDenialExtensions"/>'s endpoint-facing 404/403/409 responses (issue #858).
+/// No Docker required. See <see cref="LibraryEntryLoaderTests"/> (Testcontainers) for the
+/// consumer-realistic byte-identity proof that exercises the fetch-and-guard entry points
+/// against a real Mongo collection.
 /// </summary>
 public class LibraryAccessGuardTests
 {
     private static readonly Guid OwnerId = Guid.NewGuid();
     private static readonly Guid OtherCallerId = Guid.NewGuid();
+
+    // A single, shared descriptor declared once — mirroring how a real library is expected to
+    // declare exactly one `static readonly LibraryDenial` and reuse it at every call site.
+    private static readonly LibraryDenial MealTemplateDenial = new(
+        "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
+        "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.");
+
+    private static readonly LibraryDenial GenericDenial = new(
+        "SOME_NOT_FOUND", "not found",
+        "SOME_NOT_OWNED", "not owned");
 
     // ── LibraryAccessGuard.CanRead ──────────────────────────────────────────────
 
@@ -80,7 +92,7 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyReadAsync(
             OwnerId, OwnerId, LibraryVisibility.Private,
-            "SOME_NOT_FOUND", "not found",
+            GenericDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeFalse();
@@ -94,7 +106,7 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyReadAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Public,
-            "SOME_NOT_FOUND", "not found",
+            GenericDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeFalse();
@@ -108,7 +120,7 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyReadAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Private,
-            "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
+            MealTemplateDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeTrue();
@@ -124,8 +136,7 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyWriteAsync(
             OwnerId, OwnerId, LibraryVisibility.Public,
-            "SOME_NOT_FOUND", "not found",
-            "SOME_NOT_OWNED", "not owned",
+            GenericDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeFalse();
@@ -144,8 +155,7 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyWriteAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Public,
-            "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
-            "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
+            MealTemplateDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeTrue();
@@ -164,60 +174,24 @@ public class LibraryAccessGuardTests
 
         var denied = await ep.TryDenyWriteAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Private,
-            "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
-            "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
+            MealTemplateDenial,
             TestContext.Current.CancellationToken);
 
         denied.Should().BeTrue();
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    // ── LibraryDenialExtensions.SendLibraryNotFoundAsync — body-equality proof ─
+    // ── LibraryDenialExtensions.SendLibraryVersionConflictAsync ─────────────────
 
-    /// <summary>
-    /// The core AC #858 property: a genuinely-missing entry and another owner's unreadable
-    /// Private entry must be byte-for-byte indistinguishable — not just matching status codes.
-    /// A test that only compares status codes would already pass today and miss the exact
-    /// defect BLOCKING finding #2 raised: a genuinely-missing entry that (incorrectly) still
-    /// went through the repo's usual empty-bodied <c>Send.NotFoundAsync(ct)</c> would report the
-    /// same 404 status as this test's denied-read path, while shipping a different body/headers
-    /// oracle. This test proves both paths route through the same
-    /// <see cref="LibraryDenialExtensions.SendLibraryNotFoundAsync"/> helper and therefore
-    /// produce identical bytes.
-    /// </summary>
     [Fact]
-    public async Task SendLibraryNotFoundAsync_MissingEntryAndOtherOwnerPrivateEntry_ProduceByteIdenticalResponses()
+    public async Task SendLibraryVersionConflictAsync_WritesProblemDetailsWith409AndErrorCode()
     {
-        const string notFoundErrorCode = "MEAL_TEMPLATE_NOT_FOUND";
-        const string notFoundDetail = "Meal template not found.";
+        var ep = Factory.Create<LibraryGuardProbeEndpoint>();
 
-        using var missingEntryBody = new MemoryStream();
-        var missingEntryEndpoint = Factory.Create<LibraryGuardProbeEndpoint>(
-            ctx => ctx.Request.HttpContext.Response.Body = missingEntryBody);
-
-        // Simulates the "document does not exist at all" path a real endpoint takes after its
-        // ExternalId lookup returns null — it MUST call this helper, not Send.NotFoundAsync(ct).
-        await missingEntryEndpoint.SendLibraryNotFoundAsync(
-            notFoundErrorCode, notFoundDetail, TestContext.Current.CancellationToken);
-
-        using var otherOwnerPrivateBody = new MemoryStream();
-        var otherOwnerPrivateEndpoint = Factory.Create<LibraryGuardProbeEndpoint>(
-            ctx => ctx.Request.HttpContext.Response.Body = otherOwnerPrivateBody);
-
-        var denied = await otherOwnerPrivateEndpoint.TryDenyReadAsync(
-            OtherCallerId, OwnerId, LibraryVisibility.Private,
-            notFoundErrorCode, notFoundDetail,
+        await ep.SendLibraryVersionConflictAsync(
+            "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.",
             TestContext.Current.CancellationToken);
 
-        denied.Should().BeTrue();
-
-        missingEntryEndpoint.HttpContext.Response.StatusCode
-            .Should().Be(otherOwnerPrivateEndpoint.HttpContext.Response.StatusCode);
-        missingEntryEndpoint.HttpContext.Response.ContentType
-            .Should().Be(otherOwnerPrivateEndpoint.HttpContext.Response.ContentType);
-
-        missingEntryBody.Seek(0, SeekOrigin.Begin);
-        otherOwnerPrivateBody.Seek(0, SeekOrigin.Begin);
-        missingEntryBody.ToArray().Should().Equal(otherOwnerPrivateBody.ToArray());
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
     }
 }
