@@ -276,8 +276,7 @@ public class GetTodaySessionEndpointTests
             {
                 // Merge the checkbox fields onto the Performance-bearing document from
                 // workoutLogs — same key means the real migration would have produced one doc.
-                existing.CompletedExerciseIds = completion.CompletedExerciseIds;
-                existing.CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection;
+                existing.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;
                 existing.CompletedWorkoutIds = completion.CompletedWorkoutIds;
                 existing.CompletedSets = completion.CompletedSets;
             }
@@ -290,8 +289,7 @@ public class GetTodaySessionEndpointTests
                     SessionId = completion.SessionId,
                     Date = completion.Date,
                     Status = SessionExecutionStatus.Partial,
-                    CompletedExerciseIds = completion.CompletedExerciseIds,
-                    CompletedExerciseIdsBySection = completion.CompletedExerciseIdsBySection,
+                    CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds,
                     CompletedWorkoutIds = completion.CompletedWorkoutIds,
                     CompletedSets = completion.CompletedSets,
                     DateCreated = completion.DateCreated,
@@ -1225,6 +1223,7 @@ public class GetTodaySessionEndpointTests
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exerciseId,
                                             ExerciseExternalId = exerciseId,
                                             ExerciseName = "Bench Press",
                                             Order = 1,
@@ -1252,7 +1251,7 @@ public class GetTodaySessionEndpointTests
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -1332,6 +1331,7 @@ public class GetTodaySessionEndpointTests
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exerciseId,
                                             ExerciseExternalId = exerciseId,
                                             ExerciseName = "Pull-up",
                                             Order = 1,
@@ -1393,7 +1393,7 @@ public class GetTodaySessionEndpointTests
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -1574,6 +1574,7 @@ public class GetTodaySessionEndpointTests
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exercise1Id,
                                             ExerciseExternalId = exercise1Id,
                                             ExerciseName = "Bench Press",
                                             Order = 1,
@@ -1581,6 +1582,7 @@ public class GetTodaySessionEndpointTests
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId = exercise2Id,
                                             ExerciseExternalId = exercise2Id,
                                             ExerciseName = "Overhead Press",
                                             Order = 2,
@@ -1602,7 +1604,7 @@ public class GetTodaySessionEndpointTests
             ClientId = _clientId,
             Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exercise1Id],
+            CompletedExerciseInstanceIds = [exercise1Id],
             Version = 3,
             DateCreated = DateTime.UtcNow
         };
