@@ -38,6 +38,16 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <c>MongoIndexInitializer</c>'s per-collection index list) when a library's collection is
 /// registered — this repo's index initializer is out of scope for issue #858 itself.
 /// </para>
+/// <para>
+/// <b>Delete semantics: hard delete, not soft delete.</b> This interface has no deleted/archived
+/// member, and the fetch behind <c>LoadLibraryEntryForReadOrRespondAsync</c>/
+/// <c>LoadLibraryEntryForWriteOrRespondAsync</c> filters on <see cref="ExternalId"/> alone with
+/// no status exclusion — unlike this repo's plan-delete precedent
+/// (<c>DeleteTrainingPlanEndpoint.cs:62-67</c>), which soft-deletes via a <c>Status = Archived</c>
+/// field. A sharing-library delete endpoint must remove the document from its collection (e.g.
+/// <c>DeleteOneAsync</c>); flipping a status flag instead would leave the loader and
+/// <see cref="Services.LibrarySearchHelper.SearchAsync{TDoc}"/> returning tombstones.
+/// </para>
 /// </remarks>
 public interface ILibraryDocument
 {

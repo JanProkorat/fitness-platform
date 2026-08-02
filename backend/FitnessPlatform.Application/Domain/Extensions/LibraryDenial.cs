@@ -14,8 +14,11 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// (notFound code, notFound detail, notOwned code, notOwned detail) in a row — transposing the
 /// notFound/notOwned pair at a call site compiled silently and crossed the error codes clients
 /// localize on. A single <see cref="LibraryDenial"/> value removes both hazards: there is
-/// exactly one place to declare the four strings, and the two-pair shape can't be reordered
-/// because the record's constructor pins it.
+/// exactly one place to declare the four strings. This does not make a transposed
+/// <c>new(...)</c> call impossible to write — all four parameters are <c>string</c>, so a
+/// transposed constructor call still compiles — but it reduces the number of sites where that
+/// mistake can occur from one per call site (N) to one per library (1), since every call site
+/// for a library now shares the same pre-built value instead of re-typing the four strings.
 /// </summary>
 /// <remarks>
 /// Declare exactly one <c>static readonly</c> instance per library (e.g. one for meal templates,
@@ -29,9 +32,9 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// </param>
 /// <param name="NotOwnedErrorCode">
 /// The library's <c>*_NOT_OWNED</c> error code. Only read by
-/// <see cref="LibraryDenialExtensions.TryDenyWriteAsync"/> — read-only call sites may pass a
-/// placeholder if the library has not yet minted a write path, but every shipped library mints
-/// all three codes together (see <c>ErrorCodes</c>'s "Sharing Libraries" section).
+/// <see cref="LibraryDenialExtensions.TryDenyWriteAsync"/>. Every sharing-library mints all
+/// three codes together at once (see <c>ErrorCodes</c>'s "Sharing Libraries" section) — there
+/// is no read-only library to justify a placeholder value here.
 /// </param>
 /// <param name="NotOwnedDetail">
 /// The 403 Problem Details body text for a readable-but-not-owned write attempt. Write-only, see

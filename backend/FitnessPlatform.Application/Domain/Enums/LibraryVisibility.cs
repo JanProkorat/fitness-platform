@@ -16,15 +16,18 @@ namespace FitnessPlatform.Application.Domain.Enums;
 /// mistake to "fix" into consistency with the other three later.
 /// </para>
 /// <para>
-/// <b>Flag for #860:</b> the current <c>WorkoutTemplate.Visibility</c> property is typed
-/// <c>WorkoutTemplateVisibility</c> with a <c>= WorkoutTemplateVisibility.Public</c> initializer.
-/// If a future change retypes that property (or an equivalent, e.g. a renamed
-/// <c>SessionTemplate</c>) to this <see cref="LibraryVisibility"/> and drops the explicit
-/// initializer to match the pattern documents here use, the default for newly created documents
-/// silently flips from Public to Private — because <see cref="Private"/> is this enum's CLR
-/// default, not <c>WorkoutTemplateVisibility</c>'s. That flip may be exactly what the new
-/// sharing model wants, but it changes existing behavior and must be called out explicitly in
-/// whichever PR performs the retype, not discovered later as a regression.
+/// <b>Flag for #860 (post-#857 terms):</b> #857 renames the pre-existing
+/// <c>WorkoutTemplate</c> document to <c>SessionTemplate</c> and mints a distinct, new
+/// <c>WorkoutTemplate</c> document with no visibility field of its own — that new document is
+/// unrelated to this flag. It is <c>SessionTemplate.Visibility</c> (the renamed type) that
+/// stays typed <c>WorkoutTemplateVisibility</c> with a <c>= WorkoutTemplateVisibility.Public</c>
+/// initializer after the rename. If #860 retypes <c>SessionTemplate.Visibility</c> to this
+/// <see cref="LibraryVisibility"/> and drops the explicit initializer to match the pattern
+/// documents here use, the default for newly created documents silently flips from Public to
+/// Private — because <see cref="Private"/> is this enum's CLR default, not
+/// <c>WorkoutTemplateVisibility</c>'s. That flip may be exactly what the new sharing model
+/// wants, but it changes existing behavior and must be called out explicitly in whichever PR
+/// performs the retype, not discovered later as a regression.
 /// </para>
 /// </remarks>
 public enum LibraryVisibility

@@ -24,11 +24,14 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// as <c>SearchRecipesEndpoint.cs</c> does.
 /// </item>
 /// <item>
-/// Sorts <c>DateCreated</c> descending with <c>ExternalId</c> ascending as a tiebreaker, a
-/// deterministic ordering neither <c>SearchRecipesEndpoint.cs:67</c> (DateCreated desc only)
-/// nor <c>ListSectionTemplatesEndpoint.cs:54</c> (CreatedAt asc only) provides on its own —
-/// a non-unique sort key produces nondeterministic paging (repeated or skipped documents
-/// across pages when several entries share one <c>DateCreated</c> value).
+/// Sorts <c>DateCreated</c> descending by default, with <c>ExternalId</c> ascending
+/// <b>always</b> appended as a tiebreaker regardless of what a caller supplies — a deterministic
+/// ordering neither <c>SearchRecipesEndpoint.cs:67</c> (DateCreated desc only) nor
+/// <c>ListSectionTemplatesEndpoint.cs:54</c> (CreatedAt asc only) provides on its own — a
+/// non-unique sort key produces nondeterministic paging (repeated or skipped documents across
+/// pages when several entries share one sort-key value). A library whose design calls for a
+/// different primary sort (e.g. calories) passes <c>primarySort</c> to override the default —
+/// the <c>ExternalId</c> tiebreaker can never be dropped by that override.
 /// </item>
 /// </list>
 /// </summary>
@@ -75,6 +78,12 @@ public static class LibrarySearchHelper
     /// <param name="pageSize">Page size, capped at <see cref="MaxPageSize"/>.</param>
     /// <param name="extraFilter">Additional library-specific filter (e.g. calories, difficulty, goal) AND'd into the own-or-public filter. Pass <c>null</c> when the library has none.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="primarySort">
+    /// Overrides the default <c>DateCreated</c> descending primary sort (e.g. a library that
+    /// sorts on calories). Pass <c>null</c> to use the default. Regardless of what is passed
+    /// here, an <c>ExternalId</c> ascending tiebreaker is always appended internally — a custom
+    /// sort can never drop the determinism guarantee.
+    /// </param>
     public static async Task<(IReadOnlyList<TDoc> Items, long TotalCount)> SearchAsync<TDoc>(
         this IEndpoint endpoint,
         IMongoCollection<TDoc> collection,
@@ -84,8 +93,9 @@ public static class LibrarySearchHelper
         int page,
         int pageSize,
         FilterDefinition<TDoc>? extraFilter,
-        CancellationToken ct)
-        where TDoc : ILibraryDocument
+        CancellationToken ct,
+        SortDefinition<TDoc>? primarySort = null)
+        where TDoc : class, ILibraryDocument
     {
         ValidatePagingOrThrow(endpoint, page, pageSize, search);
 
@@ -111,8 +121,11 @@ public static class LibrarySearchHelper
         {
             Skip = (page - 1) * pageSize,
             Limit = pageSize,
+            // The ExternalId tiebreaker is appended unconditionally, regardless of whether
+            // primarySort was supplied — a custom primary sort can never lose the determinism
+            // guarantee by omission.
             Sort = Builders<TDoc>.Sort.Combine(
-                Builders<TDoc>.Sort.Descending(d => d.DateCreated),
+                primarySort ?? Builders<TDoc>.Sort.Descending(d => d.DateCreated),
                 Builders<TDoc>.Sort.Ascending(d => d.ExternalId))
         };
 

@@ -42,14 +42,24 @@ public static class LibraryAccessGuard
     /// <paramref name="ownerId"/> with the given <paramref name="visibility"/>: the owner
     /// always can, and everyone can read a <see cref="LibraryVisibility.Public"/> entry.
     /// </summary>
+    /// <remarks>
+    /// The ownership comparison also requires <paramref name="callerId"/> to be non-empty. A
+    /// document whose <c>ownerId</c> field is absent deserializes to <see cref="Guid.Empty"/>
+    /// (this repo has been bitten by this exact field-absent-deserializes-to-default shape
+    /// before, on a Mongo document's <c>Version</c> field) — without this guard, a caller whose
+    /// id also resolved to <see cref="Guid.Empty"/> (e.g. an upstream auth bug that defaults an
+    /// unresolved claim to the CLR default instead of rejecting the request) would incorrectly
+    /// own every such document.
+    /// </remarks>
     public static bool CanRead(Guid callerId, Guid ownerId, LibraryVisibility visibility) =>
-        callerId == ownerId || visibility == LibraryVisibility.Public;
+        (callerId != Guid.Empty && callerId == ownerId) || visibility == LibraryVisibility.Public;
 
     /// <summary>
     /// Whether <paramref name="callerId"/> may write (update/delete) an entry owned by
     /// <paramref name="ownerId"/>. Write access never depends on visibility — only the owner
     /// may write, regardless of whether the entry is Public or Private.
     /// </summary>
+    /// <remarks>See <see cref="CanRead"/>'s remarks — the same <see cref="Guid.Empty"/> guard applies here.</remarks>
     public static bool CanWrite(Guid callerId, Guid ownerId) =>
-        callerId == ownerId;
+        callerId != Guid.Empty && callerId == ownerId;
 }

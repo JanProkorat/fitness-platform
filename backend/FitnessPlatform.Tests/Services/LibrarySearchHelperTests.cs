@@ -259,6 +259,40 @@ public class LibrarySearchHelperTests : IAsyncLifetime
         items.Select(i => i.Name).Should().Equal("Newest", "Middle", "Oldest");
     }
 
+    /// <summary>
+    /// Proves the <c>primarySort</c> override parameter (MAJOR 3 fix) is actually honoured — not
+    /// just accepted and ignored — and that the <c>ExternalId</c> tiebreaker is still appended
+    /// unconditionally even when a caller supplies a custom primary sort. Two entries share one
+    /// <c>calories</c> value so only the tiebreaker can be distinguishing them within that pair.
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_CustomPrimarySort_IsHonoured_AndStillTieBreaksOnExternalId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        var lowest = MakeEntry(callerId, "Lowest", calories: 100);
+        var tiedA = MakeEntry(callerId, "TiedA", calories: 500);
+        var tiedB = MakeEntry(callerId, "TiedB", calories: 500);
+        var highest = MakeEntry(callerId, "Highest", calories: 900);
+
+        var tiedInOrder = new[] { tiedA, tiedB }.OrderBy(e => e.ExternalId).ToList();
+
+        await _collection.InsertManyAsync(
+            [lowest, tiedInOrder[0], tiedInOrder[1], highest], cancellationToken: ct);
+
+        var ep = Factory.Create<LibrarySearchProbeEndpoint>();
+        var caloriesAscending = Builders<TestLibraryDocument>.Sort.Ascending(d => d.Calories);
+
+        var (items, totalCount) = await ep.SearchAsync(
+            _collection, callerId, d => d.Name, search: null,
+            page: 1, pageSize: 20, extraFilter: null, ct: ct, primarySort: caloriesAscending);
+
+        totalCount.Should().Be(4);
+        items.Select(i => i.ExternalId).Should().Equal(
+            lowest.ExternalId, tiedInOrder[0].ExternalId, tiedInOrder[1].ExternalId, highest.ExternalId);
+    }
+
     [Theory]
     [InlineData(0, 20)]
     [InlineData(-1, 20)]

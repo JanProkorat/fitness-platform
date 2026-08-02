@@ -18,16 +18,28 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// <b>Fetch and guard together, never separately.</b>
 /// <see cref="LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> and
 /// <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> are the sole sanctioned entry
-/// points for obtaining a sharing-library document: each fetches by <c>ExternalId</c> alone
-/// (never owner-scoped — owner-scoping the lookup filter collapses readable-but-not-owned into
-/// a 404, which is the exact bug this type exists to prevent) and then runs the matching guard
-/// before ever handing the document back. A consumer that only ever calls one of these two
-/// methods cannot obtain a document without having already passed the guard — there is no
-/// second, unguarded fetch exposed by this contract for a consumer to reach for by mistake.
-/// <see cref="TryDenyReadAsync"/> and <see cref="TryDenyWriteAsync"/> remain public for the rare
-/// case a consumer already has the document via some other guarded path, but ordinary sharing-
-/// library endpoints should call the <c>Load*OrRespondAsync</c> helpers and never fetch by
-/// <c>ExternalId</c> directly.
+/// points for obtaining a sharing-library document outside a version-gated write: each fetches
+/// by <c>ExternalId</c> alone (never owner-scoped — owner-scoping the lookup filter collapses
+/// readable-but-not-owned into a 404, which is the exact bug this type exists to prevent) and
+/// then runs the matching guard before ever handing the document back. A consumer that only
+/// ever calls one of these two methods cannot obtain a document without having already passed
+/// the guard. <see cref="TryDenyReadAsync"/> and <see cref="TryDenyWriteAsync"/> remain public
+/// for the rare case a consumer already has the document via some other guarded path, but
+/// ordinary sharing-library endpoints should call the <c>Load*OrRespondAsync</c> helpers and
+/// never fetch by <c>ExternalId</c> directly.
+/// </para>
+/// <para>
+/// <b>Version-gated writes are the one documented exception, and it is no longer prose-only.</b>
+/// <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/> performs its own
+/// fetch-by-filter and hands the result to its <c>mutate</c> delegate with no ownership check —
+/// composing it with <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> by hand (call
+/// the loader, then separately call the guard) previously relied on a caller reading this class's
+/// remarks and getting the order right, which is exactly the kind of guarantee that degrades to
+/// "we hope nobody skips it." <see cref="LoadAndReplaceLibraryEntryWithVersionGuardAsync{TDoc}"/>
+/// removes that reliance: it is the sole sanctioned entry point for a version-gated
+/// sharing-library write, and it sequences fetch → denial guard → version check → replace
+/// internally, so the wrong order (version check before denial, or a denial-free path into the
+/// guard) is unrepresentable by a caller of this API — not merely discouraged by a comment.
 /// </para>
 /// <para>
 /// <b>General ordering rule — read this before adding any check on the fetched document.</b> Any
@@ -36,24 +48,12 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// <c>SESSION_ALREADY_COMPLETED</c>), a lock guard (e.g. <c>session_locked</c>), or any other
 /// business-rule condition — MUST run <i>after</i> the denial check
 /// (<see cref="TryDenyReadAsync"/>/<see cref="TryDenyWriteAsync"/>, or the guard embedded in the
-/// <c>Load*OrRespondAsync</c> helpers), never before. A check placed ahead of the denial hands a
-/// non-owner probing another owner's Private entry a response derived from that entry's internal
-/// state (e.g. a 409 "already archived") before the caller has been confirmed to have any right
-/// to know the entry exists at all — existence disclosed via a side channel the 404/403 pinning
-/// above does not cover. The specific instance of this rule this codebase has already hit is
-/// composing with <see cref="PlanConcurrencyGuard"/>, below.
-/// </para>
-/// <para>
-/// <b>Ordering when composed with <see cref="PlanConcurrencyGuard"/>:</b> a write endpoint MUST
-/// call <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> and return immediately on a
-/// <c>null</c> result, <i>before</i> ever invoking
-/// <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/>. Do not fold the
-/// denial check into that guard's <c>mutate</c> delegate — the guard evaluates
-/// <c>VersionConflict</c> (a 409) before it ever calls <c>mutate</c>, so a denial check placed
-/// there is unreachable until after a 409 has already been decided, and a non-owner probing
-/// another owner's Private entry with a wrong version would get a 409 instead of the mandated
-/// 404 — disclosing existence. See <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/>'s
-/// own remarks for the exact composition.
+/// <c>Load*OrRespondAsync</c> / <c>LoadAndReplaceLibraryEntryWithVersionGuardAsync{TDoc}</c>
+/// helpers), never before. A check placed ahead of the denial hands a non-owner probing another
+/// owner's Private entry a response derived from that entry's internal state (e.g. a 409
+/// "already archived") before the caller has been confirmed to have any right to know the entry
+/// exists at all — existence disclosed via a side channel the 404/403 pinning above does not
+/// cover.
 /// </para>
 /// </remarks>
 public static class LibraryDenialExtensions
@@ -204,7 +204,7 @@ public static class LibraryDenialExtensions
         Guid callerId,
         LibraryDenial denial,
         CancellationToken ct)
-        where TDoc : ILibraryDocument
+        where TDoc : class, ILibraryDocument
     {
         var doc = await FetchByExternalIdAsync(collection, externalId, ct);
 
@@ -230,28 +230,13 @@ public static class LibraryDenialExtensions
     /// must return immediately on a <c>null</c> result.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>Call this — and act on a <c>null</c> result — before ever invoking
-    /// <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/>.</b> The guard
-    /// evaluates <c>VersionConflict</c> before its <c>mutate</c> delegate runs, so a denial
-    /// check placed inside <c>mutate</c> is only reached after a 409 has already been decided.
-    /// The safe composition for a version-gated sharing-library write endpoint is:
-    /// </para>
-    /// <code>
-    /// var doc = await this.LoadLibraryEntryForWriteOrRespondAsync(
-    ///     collection, req.EntryId, callerId, MealTemplateDenial, ct);
-    /// if (doc is null)
-    /// {
-    ///     return; // 404 or 403 already written — caller is confirmed denied.
-    /// }
-    ///
-    /// // Only a confirmed owner reaches here — a VersionConflict/ReplaceConflict 409 below
-    /// // cannot leak existence, because the caller already knows this entry exists and is
-    /// // theirs.
-    /// var result = await guard.ReplaceWithVersionGuardAsync(
-    ///     collection, lookupFilter, replaceFilter, req.Version, d => d.Version,
-    ///     (entry, token) => MutateAsync(entry, req), ct);
-    /// </code>
+    /// <b>Do not compose this method with <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/>
+    /// by hand for a version-gated write.</b> Use
+    /// <see cref="LoadAndReplaceLibraryEntryWithVersionGuardAsync{TDoc}"/> instead — it sequences
+    /// this method's fetch-and-guard with the version-gated replace internally, so the ordering
+    /// this remark used to only describe in prose is now enforced by the method signature itself.
+    /// Call this method directly only for a write endpoint that is NOT version-gated (rare among
+    /// the sharing libraries — none of the four current ones qualify).
     /// </remarks>
     /// <typeparam name="TDoc">The sharing-library document type.</typeparam>
     /// <param name="endpoint">The endpoint instance.</param>
@@ -267,7 +252,7 @@ public static class LibraryDenialExtensions
         Guid callerId,
         LibraryDenial denial,
         CancellationToken ct)
-        where TDoc : ILibraryDocument
+        where TDoc : class, ILibraryDocument
     {
         var doc = await FetchByExternalIdAsync(collection, externalId, ct);
 
@@ -285,11 +270,98 @@ public static class LibraryDenialExtensions
         return doc;
     }
 
+    /// <summary>
+    /// Composes <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> with
+    /// <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/> as a single
+    /// operation: fetch by <c>ExternalId</c> alone → run the write-denial guard (404/403, return
+    /// <c>null</c> on denial) → version-check → <paramref name="mutate"/> → version-gated
+    /// <c>ReplaceOneAsync</c>. This is the sole sanctioned entry point for a version-gated
+    /// sharing-library write — composing the two guards manually is exactly the ordering hazard
+    /// this method exists to close (see the class-level remarks above). Returns the replaced
+    /// document on success; returns <c>null</c> after already writing the matching response
+    /// (404, 403, or 409) for every other outcome. The caller must return immediately on a
+    /// <c>null</c> result.
+    /// </summary>
+    /// <remarks>
+    /// This composes over <see cref="PlanConcurrencyGuard"/> rather than reimplementing its
+    /// fetch/version-check/replace skeleton — <see cref="PlanConcurrencyGuard"/> is explicitly
+    /// out of scope to modify (issue #858), and its existing CAS logic is already covered by
+    /// <c>PlanConcurrencyGuardTests</c>. Composition means this method's own fetch inside
+    /// <see cref="LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> and the guard's internal fetch
+    /// inside <see cref="PlanConcurrencyGuard.ReplaceWithVersionGuardAsync{TDoc}"/> are two
+    /// separate round-trips to Mongo — a deliberate cost. If the document is deleted between the
+    /// two (a narrow concurrent-delete race), <see cref="PlanConcurrencyOutcome.NotFound"/> maps
+    /// to the same 404 the denial guard would have produced, and discloses nothing new: the
+    /// caller already passed the denial guard immediately before, so it already knows the entry
+    /// existed and was theirs.
+    /// </remarks>
+    /// <typeparam name="TDoc">The sharing-library document type.</typeparam>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="collection">The Mongo collection to read from and write to.</param>
+    /// <param name="externalId">The entry's public-facing identifier.</param>
+    /// <param name="callerId">The authenticated caller's user id.</param>
+    /// <param name="denial">The calling library's pinned denial strings.</param>
+    /// <param name="expectedVersion">The version the caller expects the document to currently have.</param>
+    /// <param name="versionConflictErrorCode">The library-specific <c>*_VERSION_CONFLICT</c> error code.</param>
+    /// <param name="versionConflictDetail">Human-readable detail for the 409 Problem Details body.</param>
+    /// <param name="guard">The shared version-gated fetch-check-replace-409 skeleton, DI-injected in the calling endpoint.</param>
+    /// <param name="mutate">
+    /// Endpoint-specific validation and mutation logic, run only against a document whose caller
+    /// has already been confirmed as owner. Must mutate the document in place, including bumping
+    /// its own version and updated-at fields. May throw to short-circuit (e.g. via FastEndpoints'
+    /// <c>ThrowError</c>). For error paths that already write a response directly, the delegate
+    /// must return <c>false</c> to signal the guard to stop before <c>ReplaceOneAsync</c>.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<TDoc?> LoadAndReplaceLibraryEntryWithVersionGuardAsync<TDoc>(
+        this IEndpoint endpoint,
+        IMongoCollection<TDoc> collection,
+        Guid externalId,
+        Guid callerId,
+        LibraryDenial denial,
+        int expectedVersion,
+        string versionConflictErrorCode,
+        string versionConflictDetail,
+        PlanConcurrencyGuard guard,
+        Func<TDoc, CancellationToken, Task<bool>> mutate,
+        CancellationToken ct)
+        where TDoc : class, ILibraryDocument
+    {
+        var doc = await endpoint.LoadLibraryEntryForWriteOrRespondAsync(
+            collection, externalId, callerId, denial, ct);
+
+        if (doc is null)
+        {
+            return default;
+        }
+
+        var lookupFilter = Builders<TDoc>.Filter.Eq(d => d.ExternalId, externalId);
+        var replaceFilter = lookupFilter & Builders<TDoc>.Filter.Eq(d => d.Version, expectedVersion);
+
+        var result = await guard.ReplaceWithVersionGuardAsync(
+            collection, lookupFilter, replaceFilter, expectedVersion, d => d.Version, mutate, ct);
+
+        switch (result.Outcome)
+        {
+            case PlanConcurrencyOutcome.NotFound:
+                await endpoint.SendLibraryNotFoundAsync(denial, ct);
+                return default;
+            case PlanConcurrencyOutcome.VersionConflict:
+            case PlanConcurrencyOutcome.ReplaceConflict:
+                await endpoint.SendLibraryVersionConflictAsync(versionConflictErrorCode, versionConflictDetail, ct);
+                return default;
+            case PlanConcurrencyOutcome.HandledByMutator:
+                return default;
+            default:
+                return result.Document;
+        }
+    }
+
     private static async Task<TDoc?> FetchByExternalIdAsync<TDoc>(
         IMongoCollection<TDoc> collection,
         Guid externalId,
         CancellationToken ct)
-        where TDoc : ILibraryDocument
+        where TDoc : class, ILibraryDocument
     {
         var cursor = await collection.FindAsync(
             Builders<TDoc>.Filter.Eq(d => d.ExternalId, externalId), cancellationToken: ct);

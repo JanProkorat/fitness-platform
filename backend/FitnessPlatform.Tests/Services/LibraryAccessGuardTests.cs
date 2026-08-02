@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FastEndpoints;
 using FastEndpoints.Testing;
 using FitnessPlatform.Application.Domain.Enums;
@@ -47,6 +48,22 @@ public class LibraryAccessGuardTests
         "SOME_NOT_FOUND", "not found",
         "SOME_NOT_OWNED", "not owned");
 
+    /// <summary>
+    /// Reads the RFC 7807 <c>errorCode</c> extension out of a captured Problem Details response
+    /// body. Used to pin the exact machine-readable error code a 404/403/409 response carries —
+    /// asserting <c>StatusCode</c> alone cannot distinguish a correct <c>*_NOT_OWNED</c> code from
+    /// a transposed <c>*_NOT_FOUND</c> code, an empty string, or a dropped extension entirely, all
+    /// three of which still produce the same status code.
+    /// </summary>
+    private static async Task<string?> ReadErrorCodeAsync(MemoryStream responseBody)
+    {
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var document = await JsonDocument.ParseAsync(responseBody);
+        return document.RootElement.TryGetProperty("errorCode", out var errorCode)
+            ? errorCode.GetString()
+            : null;
+    }
+
     // ── LibraryAccessGuard.CanRead ──────────────────────────────────────────────
 
     [Fact]
@@ -68,6 +85,17 @@ public class LibraryAccessGuardTests
         LibraryAccessGuard.CanRead(OtherCallerId, OwnerId, LibraryVisibility.Private).Should().BeFalse();
     }
 
+    /// <summary>
+    /// A document whose <c>ownerId</c> field is absent deserializes to <see cref="Guid.Empty"/>.
+    /// Without the <see cref="Guid.Empty"/> guard, a caller whose own id also resolved to
+    /// <see cref="Guid.Empty"/> would incorrectly own — and be able to read — such a document.
+    /// </summary>
+    [Fact]
+    public void CanRead_EmptyCallerIdMatchingEmptyOwnerId_ReturnsFalse()
+    {
+        LibraryAccessGuard.CanRead(Guid.Empty, Guid.Empty, LibraryVisibility.Private).Should().BeFalse();
+    }
+
     // ── LibraryAccessGuard.CanWrite ─────────────────────────────────────────────
 
     [Fact]
@@ -81,6 +109,16 @@ public class LibraryAccessGuardTests
     {
         // CanWrite takes no visibility parameter — ownership is the only write gate.
         LibraryAccessGuard.CanWrite(OtherCallerId, OwnerId).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// Same field-absent-ownerId hazard as <see cref="CanRead_EmptyCallerIdMatchingEmptyOwnerId_ReturnsFalse"/>,
+    /// but for the write gate.
+    /// </summary>
+    [Fact]
+    public void CanWrite_EmptyCallerIdMatchingEmptyOwnerId_ReturnsFalse()
+    {
+        LibraryAccessGuard.CanWrite(Guid.Empty, Guid.Empty).Should().BeFalse();
     }
 
     // ── LibraryDenialExtensions.TryDenyReadAsync ────────────────────────────────
@@ -116,7 +154,9 @@ public class LibraryAccessGuardTests
     [Fact]
     public async Task TryDenyReadAsync_OtherCallerReadingPrivate_Returns404_IndistinguishableFromMissing()
     {
-        var ep = Factory.Create<LibraryGuardProbeEndpoint>();
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
         var denied = await ep.TryDenyReadAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Private,
@@ -125,6 +165,7 @@ public class LibraryAccessGuardTests
 
         denied.Should().BeTrue();
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
     }
 
     // ── LibraryDenialExtensions.TryDenyWriteAsync ───────────────────────────────
@@ -151,7 +192,9 @@ public class LibraryAccessGuardTests
     [Fact]
     public async Task TryDenyWriteAsync_OtherOwnerPublicEntry_Returns403NotOwned()
     {
-        var ep = Factory.Create<LibraryGuardProbeEndpoint>();
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
         var denied = await ep.TryDenyWriteAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Public,
@@ -160,6 +203,11 @@ public class LibraryAccessGuardTests
 
         denied.Should().BeTrue();
         ep.HttpContext.Response.StatusCode.Should().Be(403);
+        // This is the mutation this test exists to catch: a build that sends
+        // MealTemplateDenial.NotFoundErrorCode on this 403 branch instead of NotOwnedErrorCode
+        // would still pass a StatusCode-only assertion — clients would then localize a
+        // readable-but-not-owned write attempt as "not found" instead of "not owned".
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotOwnedErrorCode);
     }
 
     /// <summary>
@@ -170,7 +218,9 @@ public class LibraryAccessGuardTests
     [Fact]
     public async Task TryDenyWriteAsync_OtherOwnerPrivateEntry_Returns404NotFound()
     {
-        var ep = Factory.Create<LibraryGuardProbeEndpoint>();
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
         var denied = await ep.TryDenyWriteAsync(
             OtherCallerId, OwnerId, LibraryVisibility.Private,
@@ -179,6 +229,7 @@ public class LibraryAccessGuardTests
 
         denied.Should().BeTrue();
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
     }
 
     // ── LibraryDenialExtensions.SendLibraryVersionConflictAsync ─────────────────
@@ -186,12 +237,15 @@ public class LibraryAccessGuardTests
     [Fact]
     public async Task SendLibraryVersionConflictAsync_WritesProblemDetailsWith409AndErrorCode()
     {
-        var ep = Factory.Create<LibraryGuardProbeEndpoint>();
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryGuardProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
         await ep.SendLibraryVersionConflictAsync(
             "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.",
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be("MEAL_TEMPLATE_VERSION_CONFLICT");
     }
 }

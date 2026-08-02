@@ -1,8 +1,10 @@
+using System.Text.Json;
 using FastEndpoints;
 using FastEndpoints.Testing;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -93,6 +95,20 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         await _mongo.DisposeAsync();
     }
 
+    /// <summary>
+    /// Reads the RFC 7807 <c>errorCode</c> extension out of a captured Problem Details response
+    /// body — see <c>LibraryAccessGuardTests.ReadErrorCodeAsync</c> for why status/byte-identity
+    /// alone is insufficient to pin the exact error code a response carries.
+    /// </summary>
+    private static async Task<string?> ReadErrorCodeAsync(MemoryStream responseBody)
+    {
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var document = await JsonDocument.ParseAsync(responseBody);
+        return document.RootElement.TryGetProperty("errorCode", out var errorCode)
+            ? errorCode.GetString()
+            : null;
+    }
+
     // ── tests ─────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -176,6 +192,11 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         missingBody.Seek(0, SeekOrigin.Begin);
         deniedBody.Seek(0, SeekOrigin.Begin);
         missingBody.ToArray().Should().Equal(deniedBody.ToArray());
+
+        // Byte-identity alone would still pass if both legs degraded to the same WRONG value
+        // (e.g. an empty string, or the code dropped entirely) — pin the actual value too.
+        missingBody.Seek(0, SeekOrigin.Begin);
+        (await ReadErrorCodeAsync(missingBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
     }
 
     [Fact]
@@ -195,12 +216,202 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
         };
         await _collection.InsertOneAsync(entry, cancellationToken: ct);
 
-        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>();
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
 
         var result = await ep.LoadLibraryEntryForWriteOrRespondAsync(
             _collection, entry.ExternalId, otherCallerId, MealTemplateDenial, ct);
 
         result.Should().BeNull();
         ep.HttpContext.Response.StatusCode.Should().Be(403);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotOwnedErrorCode);
+    }
+
+    // ── LibraryDenialExtensions.LoadAndReplaceLibraryEntryWithVersionGuardAsync (MAJOR 2) ──────
+
+    private const string VersionConflictErrorCode = "MEAL_TEMPLATE_VERSION_CONFLICT";
+    private const string VersionConflictDetail = "Meal template was modified by another request.";
+
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_Owner_MutatesAndReplaces()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Private,
+            Name = "Before",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>();
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, ownerId, MealTemplateDenial,
+            expectedVersion: 1,
+            VersionConflictErrorCode, VersionConflictDetail,
+            guard,
+            mutate: (doc, _) =>
+            {
+                doc.Name = "After";
+                doc.Version += 1;
+                return Task.FromResult(true);
+            },
+            ct);
+
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("After");
+        result.Version.Should().Be(2);
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var persisted = await (await _collection.FindAsync(
+            Builders<TestLibraryDocument>.Filter.Eq(d => d.ExternalId, entry.ExternalId),
+            cancellationToken: ct)).FirstOrDefaultAsync(ct);
+        persisted.Name.Should().Be("After");
+        persisted.Version.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_MissingEntry_Returns404()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, Guid.NewGuid(), Guid.NewGuid(), MealTemplateDenial,
+            expectedVersion: 1,
+            VersionConflictErrorCode, VersionConflictDetail,
+            guard,
+            mutate: (_, _) => Task.FromResult(true),
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
+    }
+
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_OtherOwnerPublicEntry_Returns403NotOwned()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+        var otherCallerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Public,
+            Name = "Owner's public entry",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, otherCallerId, MealTemplateDenial,
+            expectedVersion: 1,
+            VersionConflictErrorCode, VersionConflictDetail,
+            guard,
+            mutate: (_, _) => Task.FromResult(true),
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotOwnedErrorCode);
+    }
+
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_Owner_StaleVersion_Returns409()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Private,
+            Name = "Current",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, ownerId, MealTemplateDenial,
+            expectedVersion: 999, // stale — the document is actually at Version 1
+            VersionConflictErrorCode, VersionConflictDetail,
+            guard,
+            mutate: (_, _) => Task.FromResult(true),
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(VersionConflictErrorCode);
+    }
+
+    /// <summary>
+    /// The exact ordering hazard MAJOR 2 exists to close: a non-owner probing another owner's
+    /// Private entry, supplying a wrong <c>expectedVersion</c>, must still get the 404 the
+    /// denial guard produces — never the 409 a version-check-first composition would produce.
+    /// A 409 here would disclose the entry's existence (and that a version mismatch specifically
+    /// is the reason for the conflict) to a caller who has no read right to the entry at all.
+    /// </summary>
+    [Fact]
+    public async Task LoadAndReplaceLibraryEntryWithVersionGuardAsync_OtherOwnerPrivateEntry_WrongVersion_Returns404NotVersionConflict()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+        var otherCallerId = Guid.NewGuid();
+
+        var entry = new TestLibraryDocument
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = ownerId,
+            Visibility = LibraryVisibility.Private,
+            Name = "Owner's private entry",
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+        await _collection.InsertOneAsync(entry, cancellationToken: ct);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<LibraryEntryLoaderProbeEndpoint>(
+            ctx => ctx.Request.HttpContext.Response.Body = responseBody);
+        var guard = new PlanConcurrencyGuard();
+
+        var result = await ep.LoadAndReplaceLibraryEntryWithVersionGuardAsync(
+            _collection, entry.ExternalId, otherCallerId, MealTemplateDenial,
+            expectedVersion: 999, // deliberately wrong — would trip VersionConflict if version-checked first
+            VersionConflictErrorCode, VersionConflictDetail,
+            guard,
+            mutate: (_, _) => Task.FromResult(true),
+            ct);
+
+        result.Should().BeNull();
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+        (await ReadErrorCodeAsync(responseBody)).Should().Be(MealTemplateDenial.NotFoundErrorCode);
     }
 }
