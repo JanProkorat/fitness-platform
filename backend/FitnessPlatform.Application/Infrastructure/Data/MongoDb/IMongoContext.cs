@@ -94,4 +94,10 @@ public interface IMongoContext
     /// live source of truth for training-session execution state.
     /// </summary>
     IMongoCollection<SessionExecution> SessionExecutions { get; }
+
+    /// <summary>
+    /// Reusable meal template documents (#859 sharing library) — nutritionist-owned saved
+    /// meals (foods + recipes) shareable across nutrition plans.
+    /// </summary>
+    IMongoCollection<MealTemplate> MealTemplates { get; }
 }

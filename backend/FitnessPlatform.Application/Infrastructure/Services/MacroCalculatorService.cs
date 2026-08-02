@@ -89,14 +89,12 @@ public class MacroCalculatorService : IMacroCalculatorService
         }
     }
 
-    /// <summary>
-    /// Sums nutrient totals across all foods in a meal, scaling by amount.
-    /// </summary>
-    private static NutrientTotals CalculateMealTotals(PlanMeal meal)
+    /// <inheritdoc />
+    public NutrientTotals CalculateMealTotals(IReadOnlyList<MealFood> foods, IReadOnlyList<MealRecipe> recipes)
     {
         var totals = new NutrientTotals();
 
-        foreach (var food in meal.Foods)
+        foreach (var food in foods)
         {
             var ratio = food.AmountGrams / 100m;
             totals.Kcal += food.NutrientValuePer100Grams.Kcal * ratio;
@@ -106,7 +104,7 @@ public class MacroCalculatorService : IMacroCalculatorService
             totals.Fiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * ratio;
         }
 
-        foreach (var recipe in meal.Recipes)
+        foreach (var recipe in recipes)
         {
             totals.Kcal += recipe.NutrientValuePerServing.Kcal * recipe.Servings;
             totals.Protein += recipe.NutrientValuePerServing.Protein * recipe.Servings;
@@ -123,6 +121,15 @@ public class MacroCalculatorService : IMacroCalculatorService
 
         return totals;
     }
+
+    /// <summary>
+    /// Thin delegating wrapper over <see cref="CalculateMealTotals(IReadOnlyList{MealFood}, IReadOnlyList{MealRecipe})"/>
+    /// for the <see cref="PlanMeal"/> shape used by <see cref="RecalculateTotals"/> — kept so
+    /// there remains exactly one summation implementation, reused by both the plan write path
+    /// and the meal-template write path (#859).
+    /// </summary>
+    private NutrientTotals CalculateMealTotals(PlanMeal meal) =>
+        CalculateMealTotals(meal.Foods, meal.Recipes);
 
     /// <summary>
     /// Sums nutrient totals across all meals in a day.
