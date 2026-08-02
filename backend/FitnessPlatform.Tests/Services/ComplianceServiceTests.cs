@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Endpoints.ClientTraining;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -517,25 +518,21 @@ public class ComplianceServiceTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = weekStart,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId1,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session A",
                             Order = 1,
                             Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        },
-                        new TrainingSession
+                        }),
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId2,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session B",
                             Order = 2,
                             Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        }
-                    ]
+                        }))
                 }
             ]
         };

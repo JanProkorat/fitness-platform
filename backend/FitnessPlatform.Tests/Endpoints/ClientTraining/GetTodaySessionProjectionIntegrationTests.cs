@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,35 +60,31 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
             WeekNumber = weekNumber,
             Status = WeekStatus.Published,
             DatePublished = datePublished,
-            Sessions =
-            [
-                new TrainingSession
-                {
-                    SessionId = sessionId,
-                    DayOfWeek = dayOfWeek,
-                    Name = sessionName,
-                    Order = 1,
-                    Workouts =
-                    [
-                        new TrainingWorkout
-                        {
-                            WorkoutId = Guid.NewGuid(),
-                            Order = 0,
-                            Name = "Hlavní",
-                            Exercises =
-                            [
-                                new SessionExercise
-                                {
-                                    ExerciseExternalId = exerciseId,
-                                    ExerciseName = $"Exercise for {sessionName}",
-                                    Order = 1,
-                                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            Days = TrainingPlanTestHelpers.MaterializeDays((dayOfWeek, new TrainingSession
+            {
+                SessionId = sessionId,
+                Name = sessionName,
+                Order = 1,
+                Workouts =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = $"Exercise for {sessionName}",
+                                Order = 1,
+                                Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
+                            }
+                        ]
+                    }
+                ]
+            }))
         };
     }
 
@@ -183,8 +180,8 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
             projected.Weeks.Select(w => w.WeekNumber).Should().BeEquivalentTo(new[] { 1, 2, 3 });
             projected.Weeks.Should().AllSatisfy(w => w.Status.Should().Be(WeekStatus.Published));
             projected.Weeks.Should().AllSatisfy(w => w.DatePublished.Should().Be(startDate));
-            projected.Weeks.Should().AllSatisfy(w => w.Sessions.Should().BeEmpty(
-                "the real phase-1 projection must exclude weeks[].sessions content for EVERY week"));
+            projected.Weeks.Should().AllSatisfy(w => w.Days.Should().BeEmpty(
+                "the real phase-1 projection must exclude weeks[].days content for EVERY week"));
         }
 
         // ── 1b. Direct assertion on the REAL phase-2 positional projection against real Mongo ──
@@ -247,7 +244,8 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
             "sibling weeks' exercise content must never leak into the hydrated response");
 
         // ── 3. Byte-equivalence: matches exactly what a naive full-fetch of the seed would produce ──
-        hydratedSession.DayOfWeek.Should().Be(todayDow);
+        // DayOfWeek is no longer serialized per session (the parent TrainingDay owns it, #857
+        // phase 2) — "today" already implies the day, so the wire contract dropped the field.
         hydratedSession.Order.Should().Be(1);
         hydratedSession.Exercises[0].ExerciseName.Should().Be("Exercise for Week 3 Session (target)");
     }
@@ -265,7 +263,6 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
 
     private record SessionResponseDto(
         Guid SessionId,
-        int DayOfWeek,
         string Name,
         int Order,
         List<ExerciseResponseDto> Exercises);
