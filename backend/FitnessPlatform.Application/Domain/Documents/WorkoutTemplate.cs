@@ -1,15 +1,12 @@
-using FitnessPlatform.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// MongoDB document representing a reusable workout template — a full training-session
-/// skeleton (sections + exercises + prescriptions) that a trainer can copy into a client's
-/// <see cref="TrainingPlan"/>. Reuses the same embedded <see cref="TrainingSection"/> /
-/// <see cref="SessionExercise"/> / <see cref="ExerciseSet"/> docs as training sessions so a
-/// template copies verbatim into a plan.
+/// MongoDB root aggregate for a reusable training section template.
+/// Belongs to a specific trainer; not shared across tenants.
 /// </summary>
 public class WorkoutTemplate
 {
@@ -27,86 +24,57 @@ public class WorkoutTemplate
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The trainer who owns this template. Seeded system templates use
-    /// <see cref="FitnessPlatform.Application.Domain.Constants.SystemUsers.AdminId"/>.
+    /// The trainer who owns this template. Used for per-trainer isolation on every query.
     /// </summary>
-    [BsonElement("ownerId")]
-    public Guid OwnerId { get; set; }
+    [BsonElement("ownerTrainerId")]
+    public Guid OwnerTrainerId { get; set; }
 
     /// <summary>
-    /// Name of the template.
+    /// Display name of the template (e.g. "Warm-up", "AMRAP Finisher").
     /// </summary>
     [BsonElement("name")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Localized template names (en, cs, de) for multi-language support.
+    /// Optional coach notes describing the workout as a whole.
     /// </summary>
-    [BsonElement("localizedNames")]
+    [BsonElement("notes")]
     [BsonIgnoreIfNull]
-    public LocalizedNames? LocalizedNames { get; set; }
+    public string? Notes { get; set; }
 
     /// <summary>
-    /// Optional description of the template.
+    /// Default workout format for sections created from this template.
+    /// Null means no format override (Standard / inherits from session).
     /// </summary>
-    [BsonElement("description")]
+    [BsonElement("defaultFormat")]
     [BsonIgnoreIfNull]
-    public string? Description { get; set; }
-
-    /// <summary>
-    /// Difficulty level of the template.
-    /// </summary>
-    [BsonElement("difficulty")]
     [BsonRepresentation(BsonType.String)]
-    public ExerciseDifficulty Difficulty { get; set; }
+    public WorkoutFormat? DefaultFormat { get; set; }
 
     /// <summary>
-    /// Estimated total duration of the session in minutes.
+    /// Default format configuration. Null when DefaultFormat is null or Standard.
     /// </summary>
-    [BsonElement("estimatedDurationMinutes")]
+    [BsonElement("defaultFormatConfig")]
     [BsonIgnoreIfNull]
-    public int? EstimatedDurationMinutes { get; set; }
+    public WodConfig? DefaultFormatConfig { get; set; }
 
     /// <summary>
-    /// Session-level workout format / scoring methodology.
+    /// Default exercises to pre-populate when applying this template.
     /// </summary>
-    [BsonElement("format")]
-    [BsonRepresentation(BsonType.String)]
-    public WorkoutFormat Format { get; set; } = WorkoutFormat.Standard;
+    [BsonElement("defaultExercises")]
+    public List<SessionExercise> DefaultExercises { get; set; } = [];
 
     /// <summary>
-    /// Format configuration for the session. Null when Format is Standard.
+    /// UTC timestamp when this document was created.
     /// </summary>
-    [BsonElement("formatConfig")]
-    [BsonIgnoreIfNull]
-    public WodConfig? FormatConfig { get; set; }
+    [BsonElement("createdAt")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Ordered sections making up the template.
+    /// UTC timestamp when this document was last updated.
     /// </summary>
-    [BsonElement("sections")]
-    public List<TrainingSection> Sections { get; set; } = [];
-
-    /// <summary>
-    /// Visibility level controlling who can access this template.
-    /// Public templates are visible to all trainers; private ones only to their creator.
-    /// </summary>
-    [BsonElement("visibility")]
-    [BsonRepresentation(BsonType.String)]
-    public WorkoutTemplateVisibility Visibility { get; set; } = WorkoutTemplateVisibility.Public;
-
-    /// <summary>
-    /// When this document was created.
-    /// </summary>
-    [BsonElement("dateCreated")]
-    public DateTime DateCreated { get; set; } = DateTime.UtcNow;
-
-    /// <summary>
-    /// When this document was last updated.
-    /// </summary>
-    [BsonElement("dateUpdated")]
-    [BsonIgnoreIfNull]
-    public DateTime? DateUpdated { get; set; }
+    [BsonElement("updatedAt")]
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Optimistic concurrency version. Incremented on each update.

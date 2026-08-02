@@ -285,7 +285,7 @@ public class UpdateTrainingPlanEndpoint(
                                 if (!sectionChanged) continue;
 
                                 // Section content changed — check if it's already completed.
-                                var sectionIsCompleted = bestExecution.IsSectionComplete(storedSession, storedSection);
+                                var sectionIsCompleted = bestExecution.IsWorkoutComplete(storedSession, storedSection);
 
                                 if (sectionIsCompleted)
                                 {
@@ -333,7 +333,7 @@ public class UpdateTrainingPlanEndpoint(
                             Notes = rs.Notes?.Trim(),
                             Format = rs.Format,
                             FormatConfig = rs.FormatConfig,
-                            Sections = rs.Sections.Select(rsec => new TrainingSection
+                            Sections = rs.Sections.Select(rsec => new TrainingWorkout
                             {
                                 SectionId = rsec.SectionId ?? Guid.NewGuid(),
                                 Order = rsec.Order,
@@ -511,11 +511,11 @@ public class UpdateTrainingPlanEndpoint(
 
     /// <summary>
     /// Returns true when the content of a single stored section differs from the incoming
-    /// update request section. Keyed on <see cref="TrainingSection.SectionId"/> (caller's
+    /// update request section. Keyed on <see cref="TrainingWorkout.SectionId"/> (caller's
     /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
     /// and their sets (by positional order within the section).
     /// </summary>
-    private static bool HasSectionContentChanged(TrainingSection stored, UpdateSectionRequest incoming)
+    private static bool HasSectionContentChanged(TrainingWorkout stored, UpdateSectionRequest incoming)
     {
         if (stored.Order != incoming.Order) return true;
         if (stored.Name != incoming.Name) return true;

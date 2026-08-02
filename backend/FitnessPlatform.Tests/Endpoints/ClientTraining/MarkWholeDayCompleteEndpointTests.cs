@@ -92,7 +92,7 @@ public class MarkWholeDayCompleteEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -112,7 +112,7 @@ public class MarkWholeDayCompleteEndpointTests
                             Order = 2,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -169,7 +169,7 @@ public class MarkWholeDayCompleteEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -617,7 +617,7 @@ public class MarkWholeDayCompleteEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = sectionA,
                                     Order = 0,
@@ -628,7 +628,7 @@ public class MarkWholeDayCompleteEndpointTests
                                         new SessionExercise { ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
                                     ]
                                 },
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = sectionB,
                                     Order = 1,

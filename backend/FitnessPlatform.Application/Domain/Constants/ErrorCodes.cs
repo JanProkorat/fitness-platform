@@ -159,7 +159,7 @@ public static class ErrorCodes
     public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
 
     /// <summary>The section was not found in the specified session.</summary>
-    public const string TrainingSectionNotFound = "TRAINING_SECTION_NOT_FOUND";
+    public const string TrainingWorkoutNotFound = "TRAINING_SECTION_NOT_FOUND";
 
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
@@ -242,13 +242,13 @@ public static class ErrorCodes
 
     // ── Section Templates ────────────────────────────────────────────
     /// <summary>Section template not found.</summary>
-    public const string SectionTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
+    public const string WorkoutTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
 
     /// <summary>Section template belongs to another trainer.</summary>
-    public const string SectionTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
+    public const string WorkoutTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
 
     /// <summary>Section template version mismatch (optimistic concurrency).</summary>
-    public const string SectionTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
+    public const string WorkoutTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
 
     // ── Training Sections ────────────────────────────────────────────
     /// <summary>Session sections list is empty.</summary>

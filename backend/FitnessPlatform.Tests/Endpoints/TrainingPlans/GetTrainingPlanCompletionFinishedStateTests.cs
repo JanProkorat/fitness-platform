@@ -57,7 +57,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                             DayOfWeek = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = _sectionId,
                                     Order = 0,
@@ -331,7 +331,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                             DayOfWeek = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = _sectionAId,
                                     Order = 0,
@@ -347,7 +347,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                                         }
                                     ]
                                 },
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = _sectionBId,
                                     Order = 1,

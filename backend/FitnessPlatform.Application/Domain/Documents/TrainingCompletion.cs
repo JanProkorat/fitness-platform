@@ -74,7 +74,7 @@ public class TrainingCompletion
     public List<Guid> CompletedExerciseIds { get; set; } = [];
 
     /// <summary>
-    /// Per-section completed exercise IDs. Key = <see cref="TrainingSection.SectionId"/> serialized
+    /// Per-section completed exercise IDs. Key = <see cref="TrainingWorkout.SectionId"/> serialized
     /// as a lowercase string (e.g. "3f2504e0-4f89-11d3-9a0c-0305e82c3301"), value = list of
     /// <see cref="SessionExercise.ExerciseExternalId"/> values completed within that specific section instance.
     /// <para>
@@ -95,7 +95,7 @@ public class TrainingCompletion
     public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
 
     /// <summary>
-    /// Section IDs (matching <see cref="TrainingSection.SectionId"/>) that the
+    /// Section IDs (matching <see cref="TrainingWorkout.SectionId"/>) that the
     /// client has marked complete on this date. Used for sections that don't
     /// track at the exercise level — ForTime workouts that are just a name +
     /// time cap, e.g. "Running".

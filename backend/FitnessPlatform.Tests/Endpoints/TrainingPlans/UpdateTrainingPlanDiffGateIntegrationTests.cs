@@ -60,7 +60,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             Order = 1,
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = sectionId,
                     Order = 0,
@@ -146,7 +146,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             Order = 1,
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = sectionAId,
                     Order = 0,
@@ -163,7 +163,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                         }
                     ]
                 },
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = sectionBId,
                     Order = 1,
@@ -279,7 +279,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             Order = 1,
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = sectionAId, Order = 0, Name = "Section A",
                     Exercises = [new SessionExercise
@@ -289,7 +289,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                         Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
                     }]
                 },
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = sectionBId, Order = 1, Name = "Section B",
                     Exercises = [new SessionExercise

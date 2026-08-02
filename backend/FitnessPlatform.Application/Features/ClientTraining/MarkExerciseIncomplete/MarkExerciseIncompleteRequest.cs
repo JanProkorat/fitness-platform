@@ -22,12 +22,12 @@ public class MarkExerciseIncompleteRequest
     public DateOnly? CompletedOn { get; set; }
 
     /// <summary>
-    /// The section ID within the session that contains this exercise.
-    /// Required so that un-marking only removes the exercise from the specified section,
-    /// leaving other sections' completion state for the same catalog exercise untouched.
+    /// The workout ID within the session that contains this exercise.
+    /// Required so that un-marking only removes the exercise from the specified workout,
+    /// leaving other workouts' completion state for the same catalog exercise untouched.
     /// Bound from the request body.
     /// </summary>
-    public Guid SectionId { get; set; }
+    public Guid WorkoutId { get; set; }
 
     /// <summary>
     /// Client-supplied version of the completion document for optimistic concurrency.

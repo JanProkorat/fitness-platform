@@ -39,8 +39,8 @@ internal static class TrainingProgressBroadcaster
     /// <param name="logger">Logger for swallowing broadcast errors.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <param name="sectionId">
-    /// When the mutation originated from a <c>MarkSectionComplete</c> /
-    /// <c>MarkSectionIncomplete</c> call, the specific section that was mutated.
+    /// When the mutation originated from a <c>MarkWorkoutComplete</c> /
+    /// <c>MarkWorkoutIncomplete</c> call, the specific section that was mutated.
     /// Null for exercise-level or whole-session mutations.
     /// </param>
     /// <param name="sectionComplete">

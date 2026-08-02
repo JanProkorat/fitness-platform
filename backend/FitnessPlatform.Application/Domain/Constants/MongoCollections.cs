@@ -56,9 +56,21 @@ public static class MongoCollections
     public const string DayLogs = "dayLogs";
 
     /// <summary>
-    /// Section template documents (per-trainer reusable training section templates).
+    /// Legacy physical collection name for the retired "section template" concept (#857) —
+    /// a single reusable workout, per trainer. Superseded by <see cref="WorkoutTemplates"/>.
+    /// Referenced only by the one-time boot migration
+    /// (<c>MongoIndexInitializer.MigrateWorkoutTemplateCollectionSwapAsync</c>) that renames it
+    /// into the <see cref="WorkoutTemplates"/> collection — never use this for a live
+    /// <c>IMongoCollection</c> accessor.
     /// </summary>
-    public const string SectionTemplates = "sectionTemplates";
+    public const string LegacySectionTemplates = "sectionTemplates";
+
+    /// <summary>
+    /// Reusable workout templates collection (#857) — a single reusable workout per trainer
+    /// (formerly the "section template" concept). Populated by the one-time boot migration
+    /// that renames the legacy <see cref="LegacySectionTemplates"/> collection into this one.
+    /// </summary>
+    public const string WorkoutTemplates = "workoutTemplates";
 
     /// <summary>
     /// Active session lock documents (Editing or Live state; absence = Stable).
@@ -77,9 +89,12 @@ public static class MongoCollections
     public const string TrainerNotes = "trainer_notes";
 
     /// <summary>
-    /// Reusable workout templates collection.
+    /// Reusable full-session templates collection (#857) — a whole reusable training-session
+    /// skeleton (formerly misnamed "workout templates"). Populated by the one-time boot
+    /// migration that renames the legacy physical <c>workoutTemplates</c> collection (the OLD
+    /// WorkoutTemplate type's collection, pre-#857) into this one.
     /// </summary>
-    public const string WorkoutTemplates = "workoutTemplates";
+    public const string SessionTemplates = "sessionTemplates";
 
     /// <summary>
     /// Session execution documents (#841) — unifies the legacy <see cref="WorkoutLogs"/> and

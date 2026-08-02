@@ -607,12 +607,12 @@ public static class QaSeedRunner
                             DayOfWeek  = 1, // Monday
                             Name       = "QA Session",
                             Order      = 1,
-                            Sections =
+                            Workouts =
                             [
                                 // Section 1 — ForTime + 0 exercises (#258 bug shape)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = ForTimeSectionId,
+                                    WorkoutId    = ForTimeSectionId,
                                     Order        = 0,
                                     Name         = "ForTime 30min",
                                     Format       = WorkoutFormat.ForTime,
@@ -620,9 +620,9 @@ public static class QaSeedRunner
                                     Exercises    = [],
                                 },
                                 // Section 2 — AMRAP + 2 synthetic exercises (non-regression)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = AmrapSectionId,
+                                    WorkoutId    = AmrapSectionId,
                                     Order        = 1,
                                     Name         = "AMRAP test",
                                     Format       = WorkoutFormat.AMRAP,
@@ -648,9 +648,9 @@ public static class QaSeedRunner
                                 // Section 3 — Standard (null format) + 2 synthetic exercises with prescribed sets.
                                 // Sets are populated so the planned-vs-actual WorkoutLog (#457) can exercise
                                 // all four UI cases: modified, as-prescribed, skipped, extra.
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = StandardSectionId,
+                                    WorkoutId    = StandardSectionId,
                                     Order        = 2,
                                     Name         = "Standard test",
                                     Format       = null,
@@ -686,9 +686,9 @@ public static class QaSeedRunner
                                     ],
                                 },
                                 // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = TabataSectionId,
+                                    WorkoutId    = TabataSectionId,
                                     Order        = 3,
                                     Name         = "Tabata test",
                                     Format       = WorkoutFormat.Tabata,
@@ -988,11 +988,11 @@ public static class QaSeedRunner
                                 DayOfWeek = 1, // Monday
                                 Name      = "QA Past Session — Completed",
                                 Order     = 1,
-                                Sections  =
+                                Workouts  =
                                 [
-                                    new TrainingSection
+                                    new TrainingWorkout
                                     {
-                                        SectionId    = PastCompletedSectionId,
+                                        WorkoutId    = PastCompletedSectionId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1024,11 +1024,11 @@ public static class QaSeedRunner
                                 DayOfWeek = 3, // Wednesday
                                 Name      = "QA Past Session — Skipped",
                                 Order     = 2,
-                                Sections  =
+                                Workouts  =
                                 [
-                                    new TrainingSection
+                                    new TrainingWorkout
                                     {
-                                        SectionId    = PastSkippedSectionId,
+                                        WorkoutId    = PastSkippedSectionId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1069,11 +1069,11 @@ public static class QaSeedRunner
                                 DayOfWeek = 1, // Monday
                                 Name      = "QA Past Session — Untouched",
                                 Order     = 1,
-                                Sections  =
+                                Workouts  =
                                 [
-                                    new TrainingSection
+                                    new TrainingWorkout
                                     {
-                                        SectionId    = PastUntouchedSectionId,
+                                        WorkoutId    = PastUntouchedSectionId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1335,12 +1335,12 @@ public static class QaSeedRunner
                             DayOfWeek = 2, // Tuesday
                             Name      = "QA Multi-Section Session",
                             Order     = 1,
-                            Sections  =
+                            Workouts  =
                             [
                                 // Section 1 — Standard: prescribed set for QA Kettlebell Swing.
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = MultiSectionStandardSectionId,
+                                    WorkoutId    = MultiSectionStandardSectionId,
                                     Order        = 0,
                                     Name         = "Standard work",
                                     Format       = null,
@@ -1365,9 +1365,9 @@ public static class QaSeedRunner
                                 },
                                 // Section 2 — AMRAP 10 min: same exercise but AMRAP context.
                                 // No prescribed sets (AMRAP format — reps accumulate per round).
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = MultiSectionAmrapSectionId,
+                                    WorkoutId    = MultiSectionAmrapSectionId,
                                     Order        = 1,
                                     Name         = "AMRAP 10 min",
                                     Format       = WorkoutFormat.AMRAP,

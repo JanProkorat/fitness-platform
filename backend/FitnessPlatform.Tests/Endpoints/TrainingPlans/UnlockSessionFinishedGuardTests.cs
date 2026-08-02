@@ -68,7 +68,7 @@ public class UnlockSessionFinishedGuardTests
     /// IsSessionComplete() on each returned document — a completed-log fixture becomes one
     /// Status=Completed execution; each TrainingCompletion fixture becomes a Status=Partial
     /// execution carrying the same completion flags (session-level completeness is then derived
-    /// by the same IsSessionComplete()/IsSectionComplete() extension the endpoint calls).
+    /// by the same IsSessionComplete()/IsWorkoutComplete() extension the endpoint calls).
     /// </summary>
     private IMongoContext CreateMockMongo(
         TrainingPlan plan,
@@ -276,7 +276,7 @@ public class UnlockSessionFinishedGuardTests
         var exerciseId = Guid.NewGuid();
         plan.Weeks[0].Sessions[0].Sections =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionId,
                 Order = 0,
@@ -348,7 +348,7 @@ public class UnlockSessionFinishedGuardTests
         var exerciseId2 = Guid.NewGuid();
         plan.Weeks[0].Sessions[0].Sections =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionId,
                 Order = 0,
@@ -423,7 +423,7 @@ public class UnlockSessionFinishedGuardTests
 
         plan.Weeks[0].Sessions[0].Sections =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionIdA,
                 Order = 0,
@@ -433,7 +433,7 @@ public class UnlockSessionFinishedGuardTests
                     new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
                 ]
             },
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionIdB,
                 Order = 1,
@@ -509,7 +509,7 @@ public class UnlockSessionFinishedGuardTests
 
         plan.Weeks[0].Sessions[0].Sections =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionIdA,
                 Order = 0,
@@ -519,7 +519,7 @@ public class UnlockSessionFinishedGuardTests
                     new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
                 ]
             },
-            new TrainingSection
+            new TrainingWorkout
             {
                 SectionId = sectionIdB,
                 Order = 1,

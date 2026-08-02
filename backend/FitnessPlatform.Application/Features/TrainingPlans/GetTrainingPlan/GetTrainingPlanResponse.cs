@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 public class SectionFinishedStateDto
 {
     /// <summary>
-    /// The <see cref="TrainingSection.SectionId"/> this finished state belongs to.
+    /// The <see cref="TrainingWorkout.SectionId"/> this finished state belongs to.
     /// </summary>
     public Guid SectionId { get; set; }
 

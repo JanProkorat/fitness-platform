@@ -69,7 +69,7 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
                     Order = 1,
                     Sections =
                     [
-                        new TrainingSection
+                        new TrainingWorkout
                         {
                             SectionId = Guid.NewGuid(),
                             Order = 0,

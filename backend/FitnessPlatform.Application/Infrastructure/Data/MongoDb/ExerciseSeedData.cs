@@ -47,7 +47,7 @@ public static class ExerciseSeedData
     }
 
     /// <summary>
-    /// Loads the raw seed entries — exposed so <see cref="WorkoutTemplateSeedData"/> can resolve
+    /// Loads the raw seed entries — exposed so <see cref="SessionTemplateSeedData"/> can resolve
     /// exercise slugs to denormalized names/ExternalIds without a database round trip.
     /// </summary>
     public static List<ExerciseSeedEntry> LoadEntries() => SeedJsonLoader.Load<ExerciseSeedEntry>(ResourceFileName, ValidateEntry);

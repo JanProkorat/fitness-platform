@@ -130,19 +130,19 @@ public class MarkWholeDayCompleteEndpoint(
         foreach (var session in sessionsForDay)
         {
             var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
-            var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
-            // Per-section attribution map: each section explicitly carries the
+            var allSectionIds = session.Workouts.Select(w => w.WorkoutId).ToList();
+            // Per-workout attribution map: each workout explicitly carries the
             // exercise ids that belong to IT. Required because the read-time
             // backfill in `SessionExecutionBackfill` falls back to "first
-            // section that contains this id" — when the same exercise id is
-            // referenced from multiple sections (e.g. two AMRAPs sharing
+            // workout that contains this id" — when the same exercise id is
+            // referenced from multiple workouts (e.g. two AMRAPs sharing
             // "Bench"), the duplicate would get attributed to only the first
-            // section and the others would read as not-done after refresh.
+            // workout and the others would read as not-done after refresh.
             // Mirrors MarkSessionCompleteEndpoint so the whole-day mark and the
-            // per-session mark write identical section-aware state.
-            var completedBySection = session.Sections.ToDictionary(
-                s => s.SectionId.ToString(),
-                s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
+            // per-session mark write identical workout-aware state.
+            var completedBySection = session.Workouts.ToDictionary(
+                w => w.WorkoutId.ToString(),
+                w => w.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
             var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
                                    & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)

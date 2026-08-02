@@ -42,7 +42,7 @@ public class TrainingSession
 
     /// <summary>
     /// Session-level workout format. Kept nullable for one release as an inheritable default —
-    /// sections inherit when their own Format is null. Null means Standard.
+    /// workouts inherit when their own Format is null. Null means Standard.
     /// </summary>
     [BsonElement("format")]
     [BsonIgnoreIfNull]
@@ -57,19 +57,19 @@ public class TrainingSession
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Sections in this session. Each section contains its own exercises.
-    /// The legacy flat <c>exercises</c> field (pre-sections documents) was retired by the
+    /// Workouts in this session. Each workout contains its own exercises.
+    /// The legacy flat <c>exercises</c> field (pre-workouts documents) was retired by the
     /// one-time boot migration in <c>MongoIndexInitializer</c> (#837) — every document now
     /// carries this field populated, so no read-time backfill is required or performed.
     /// </summary>
-    [BsonElement("sections")]
-    public List<TrainingSection> Sections { get; set; } = [];
+    [BsonElement("workouts")]
+    public List<TrainingWorkout> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat view of all exercises across all sections. Read-only convenience accessor.
-    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// Flat view of all exercises across all workouts. Read-only convenience accessor.
+    /// Not stored in MongoDB — computed from <see cref="Workouts"/>.
     /// </summary>
     [BsonIgnore]
     public IReadOnlyList<SessionExercise> Exercises =>
-        Sections.SelectMany(s => s.Exercises).ToList();
+        Workouts.SelectMany(w => w.Exercises).ToList();
 }

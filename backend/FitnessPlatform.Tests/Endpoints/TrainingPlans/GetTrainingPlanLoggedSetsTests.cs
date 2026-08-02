@@ -35,7 +35,7 @@ public class GetTrainingPlanLoggedSetsTests
             DayOfWeek = 1,
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = Guid.NewGuid(),
                     Name = "Main",

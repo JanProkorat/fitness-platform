@@ -109,19 +109,19 @@ public class MarkExerciseCompleteEndpoint(
         await lockService.RefreshAsync(req.SessionId, LockType.Live,
             TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
-        // Validate section exists within the session.
-        var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
-        if (section is null)
+        // Validate the workout exists within the session.
+        var workout = session.Workouts.FirstOrDefault(w => w.WorkoutId == req.WorkoutId);
+        if (workout is null)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingSectionNotFound, "The section was not found in the specified session.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The workout was not found in the specified session.", ct);
             return;
         }
 
-        // Validate the exercise exists within that specific section.
-        var exerciseExists = section.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
+        // Validate the exercise exists within that specific workout.
+        var exerciseExists = workout.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
         if (!exerciseExists)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified section.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified workout.", ct);
             return;
         }
 
@@ -136,7 +136,7 @@ public class MarkExerciseCompleteEndpoint(
         if (existing is not null)
         {
             // Idempotency: already complete in this section — return success immediately.
-            var sectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
+            var sectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.WorkoutId.ToString());
             if (sectionList is not null && sectionList.Contains(req.ExerciseExternalId))
             {
                 await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
@@ -153,8 +153,8 @@ public class MarkExerciseCompleteEndpoint(
 
             // ── Section-aware dict ────────────────────────────────────────────
             existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-            if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var secList))
-                existing.CompletedExerciseIdsBySection[req.SectionId.ToString()] = secList = [];
+            if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.WorkoutId.ToString(), out var secList))
+                existing.CompletedExerciseIdsBySection[req.WorkoutId.ToString()] = secList = [];
             if (!secList.Contains(req.ExerciseExternalId))
                 secList.Add(req.ExerciseExternalId);
 
@@ -207,7 +207,7 @@ public class MarkExerciseCompleteEndpoint(
                 CompletedExerciseIds = [req.ExerciseExternalId],
                 CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
                 {
-                    [req.SectionId.ToString()] = [req.ExerciseExternalId]
+                    [req.WorkoutId.ToString()] = [req.ExerciseExternalId]
                 },
                 DateCreated = DateTime.UtcNow,
                 Version = 1
@@ -230,7 +230,7 @@ public class MarkExerciseCompleteEndpoint(
                     throw;
                 }
 
-                var retrySectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
+                var retrySectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.WorkoutId.ToString());
                 if (retrySectionList is not null && retrySectionList.Contains(req.ExerciseExternalId))
                 {
                     await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
@@ -238,8 +238,8 @@ public class MarkExerciseCompleteEndpoint(
                 }
 
                 existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-                if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var retrySecList))
-                    existing.CompletedExerciseIdsBySection[req.SectionId.ToString()] = retrySecList = [];
+                if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.WorkoutId.ToString(), out var retrySecList))
+                    existing.CompletedExerciseIdsBySection[req.WorkoutId.ToString()] = retrySecList = [];
                 if (!retrySecList.Contains(req.ExerciseExternalId))
                     retrySecList.Add(req.ExerciseExternalId);
 

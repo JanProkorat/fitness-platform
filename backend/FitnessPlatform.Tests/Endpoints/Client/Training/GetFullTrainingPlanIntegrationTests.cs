@@ -120,7 +120,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Notes = "Focus on depth",
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -153,7 +153,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 2,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -468,7 +468,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = warmUpSectionId,
                                     Order = 0,
@@ -485,7 +485,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                         }
                                     ]
                                 },
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = mainSectionId,
                                     Order = 1,
@@ -570,7 +570,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
     // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
     // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
 
-    // ── SectionDto.IsCompleted tests ─────────────────────────────────────────────
+    // ── WorkoutDto.IsCompleted tests ─────────────────────────────────────────────
 
     /// <summary>
     /// Empty-exercise section where MarkWholeDayComplete wrote a CompletedSectionIds entry
@@ -628,7 +628,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = emptySectionId,
                                     Order = 0,
@@ -774,7 +774,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = sectionId,
                                     Order = 0,
@@ -933,7 +933,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = sectionId,
                                     Order = 0,
@@ -1079,14 +1079,14 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = emptySectionId,
                                     Order = 0,
                                     Name = "Running",
                                     Exercises = []
                                 },
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = nonEmptySectionId,
                                     Order = 1,

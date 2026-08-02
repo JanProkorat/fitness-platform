@@ -288,7 +288,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // For each session that has execution data, project per-section finished state into
         // FinishedSections. This feeds the web trainer portal so it can render a "Finished"
         // label per section and gate the edit-lock unlock affordance at section granularity
-        // (issue #465). IsSectionComplete() already folds in both signals (finished Performance,
+        // (issue #465). IsWorkoutComplete() already folds in both signals (finished Performance,
         // checkbox completion flags) since #841 merged them onto one document.
         if (completions.Count > 0 || response.SessionExecutions.Any(e => e.IsSessionFinished))
         {
@@ -313,7 +313,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     .Select(sec => new SectionFinishedStateDto
                     {
                         SectionId = sec.SectionId,
-                        IsFinished = bestCompletion.IsSectionComplete(session, sec)
+                        IsFinished = bestCompletion.IsWorkoutComplete(session, sec)
                     })
                     .Where(dto => dto.IsFinished)
                     .ToList();

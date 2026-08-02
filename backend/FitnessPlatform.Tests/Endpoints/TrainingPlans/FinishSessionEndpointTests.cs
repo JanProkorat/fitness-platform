@@ -67,7 +67,7 @@ public class FinishSessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = sectionId,
                                     Order = 0,

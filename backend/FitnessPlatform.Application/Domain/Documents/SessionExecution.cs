@@ -99,7 +99,7 @@ public class SessionExecution
     public List<Guid> CompletedExerciseIds { get; set; } = [];
 
     /// <summary>
-    /// Per-section completed exercise IDs. Key = <see cref="TrainingSection.SectionId"/> serialized
+    /// Per-section completed exercise IDs. Key = <see cref="TrainingWorkout.SectionId"/> serialized
     /// as a lowercase string, value = list of <see cref="SessionExercise.ExerciseExternalId"/>
     /// values completed within that specific section instance.
     /// </summary>
@@ -108,7 +108,7 @@ public class SessionExecution
     public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
 
     /// <summary>
-    /// Section IDs (matching <see cref="TrainingSection.SectionId"/>) that the client has marked
+    /// Section IDs (matching <see cref="TrainingWorkout.SectionId"/>) that the client has marked
     /// complete on this date. Used for sections that don't track at the exercise level.
     /// </summary>
     [BsonElement("completedSectionIds")]

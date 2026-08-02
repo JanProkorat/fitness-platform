@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
@@ -75,6 +76,13 @@ public class MongoIndexInitializer : IHostedService
     {
         _logger.LogInformation("Creating MongoDB indexes...");
 
+        // #857 step 1-3: MUST run before every Create*Indexes call below. CreateManyAsync
+        // implicitly creates a missing collection, so if any index-creation method ran first,
+        // it would leave an empty target collection and the rename below would then throw
+        // NamespaceExists(48). This migration is a no-op on a fresh database (neither legacy
+        // physical collection exists yet).
+        await MigrateWorkoutTemplateCollectionSwapAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -83,9 +91,9 @@ public class MongoIndexInitializer : IHostedService
         await CreateWorkoutLogIndexes(cancellationToken);
         await CreateTrainingCompletionIndexes(cancellationToken);
         await CreatePersonalRecordIndexes(cancellationToken);
-        await CreateSectionTemplateIndexes(cancellationToken);
-        await CreateSessionLockIndexes(cancellationToken);
         await CreateWorkoutTemplateIndexes(cancellationToken);
+        await CreateSessionLockIndexes(cancellationToken);
+        await CreateSessionTemplateIndexes(cancellationToken);
         await CreateSessionExecutionIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
@@ -93,6 +101,84 @@ public class MongoIndexInitializer : IHostedService
 
     /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    // ── #857 step 1-3: swap the workoutTemplates/sectionTemplates physical collections ──
+    //
+    // Vocabulary rename (section -> workout): the C# type formerly named SectionTemplate
+    // (a single reusable workout, DefaultExercises[]) is now WorkoutTemplate, and the type
+    // formerly named WorkoutTemplate (a whole reusable session skeleton, Sections[]/now
+    // Workouts[]) is now SessionTemplate. The physical Mongo collections must swap identity
+    // to match: the OLD "workoutTemplates" collection's documents become the NEW
+    // SessionTemplate collection, and the OLD "sectionTemplates" collection's documents
+    // become the NEW WorkoutTemplate collection.
+    //
+    // Ordering is load-bearing — reversed, step 2 fails on an existing target:
+    //   1. renameCollection workoutTemplates -> sessionTemplates
+    //   2. renameCollection sectionTemplates -> workoutTemplates
+    //
+    // MUST run before ANY Create*Indexes call touches either collection (see the call site
+    // in StartAsync) — CreateManyAsync implicitly creates a missing collection, so an index
+    // pass ahead of the renames would leave an empty target and renameCollection would then
+    // throw NamespaceExists(48).
+    //
+    // Idempotency (design-review GATE 2c): each rename is guarded on "source exists AND
+    // target absent". On a fresh database neither legacy collection exists, so both guards
+    // skip and this method is a complete no-op. On a pre-857 database the first boot performs
+    // both renames; a second boot finds the source already renamed away (or the target
+    // already populated) and skips — the whole migration runs cleanly twice (AC bullet 9).
+    //
+    // Index carry-over (design-review GATE 2b): MongoDB's renameCollection carries the
+    // source collection's indexes across unchanged. Post-swap, the physical "sessionTemplates"
+    // collection still holds the stale idx_workouttemplate_* names (created against the OLD
+    // WorkoutTemplate type) while CreateSessionTemplateIndexes below requests idx_sessiontemplate_*
+    // over the same keys -> IndexOptionsConflict -> boot throws. Symmetrically for
+    // "workoutTemplates" holding stale idx_sectiontemplate_* names. Step 3 drops the stale
+    // names before CreateWorkoutTemplateIndexes/CreateSessionTemplateIndexes run later in
+    // StartAsync.
+    /// <summary>
+    /// One-time, idempotent migration (#857): swaps the physical <c>workoutTemplates</c> and
+    /// <c>sectionTemplates</c> Mongo collections so their contents land under the renamed
+    /// <see cref="SessionTemplate"/> and <see cref="WorkoutTemplate"/> types, then drops the
+    /// stale carried-over indexes. See the remarks above this method for the full ordering
+    /// and idempotency contract. Must complete before any <c>Create*Indexes</c> method runs —
+    /// see the call site in <see cref="StartAsync"/>.
+    /// </summary>
+    private async Task MigrateWorkoutTemplateCollectionSwapAsync(CancellationToken ct)
+    {
+        var database = _mongo.SessionTemplates.Database;
+
+        // Step 1: workoutTemplates -> sessionTemplates
+        await RenameCollectionIfNeededAsync(database, MongoCollections.WorkoutTemplates, MongoCollections.SessionTemplates, ct);
+
+        // Step 2: sectionTemplates -> workoutTemplates
+        await RenameCollectionIfNeededAsync(database, MongoCollections.LegacySectionTemplates, MongoCollections.WorkoutTemplates, ct);
+
+        // Step 3: drop the stale renamed-in indexes before CreateWorkoutTemplateIndexes /
+        // CreateSessionTemplateIndexes (later in StartAsync) create the correctly-named ones.
+        await TryDropIndexAsync(_mongo.SessionTemplates.Indexes, "idx_workouttemplate_externalId", ct);
+        await TryDropIndexAsync(_mongo.SessionTemplates.Indexes, "idx_workouttemplate_ownerId", ct);
+        await TryDropIndexAsync(_mongo.WorkoutTemplates.Indexes, "idx_sectiontemplate_externalId", ct);
+        await TryDropIndexAsync(_mongo.WorkoutTemplates.Indexes, "idx_sectiontemplate_ownerTrainerId", ct);
+    }
+
+    /// <summary>
+    /// Renames <paramref name="source"/> to <paramref name="target"/> only when
+    /// <paramref name="source"/> currently exists AND <paramref name="target"/> does not —
+    /// the guard that makes the swap idempotent across repeated boots (see remarks on
+    /// <see cref="MigrateWorkoutTemplateCollectionSwapAsync"/>).
+    /// </summary>
+    private static async Task RenameCollectionIfNeededAsync(IMongoDatabase database, string source, string target, CancellationToken ct)
+    {
+        using var nameCursor = await database.ListCollectionNamesAsync(cancellationToken: ct);
+        var existingNames = await nameCursor.ToListAsync(ct);
+
+        if (!existingNames.Contains(source) || existingNames.Contains(target))
+        {
+            return;
+        }
+
+        await database.RenameCollectionAsync(source, target, cancellationToken: ct);
+    }
 
     // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
     //
@@ -250,7 +336,7 @@ public class MongoIndexInitializer : IHostedService
             ct);
     }
 
-    private static async Task TryDropIndexAsync(IMongoIndexManager<Food> indexes, string name, CancellationToken ct)
+    private static async Task TryDropIndexAsync<T>(IMongoIndexManager<T> indexes, string name, CancellationToken ct)
     {
         try
         {
@@ -258,7 +344,8 @@ public class MongoIndexInitializer : IHostedService
         }
         catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Code == 27)
         {
-            // Index did not exist — first boot on a fresh database. Fine.
+            // Index did not exist — first boot on a fresh database, or already dropped
+            // by a previous boot. Fine.
         }
     }
 
@@ -605,19 +692,19 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([clientDateIndex, clientExerciseIndex, idempotencyIndex], ct);
     }
 
-    private async Task CreateSectionTemplateIndexes(CancellationToken ct)
+    private async Task CreateWorkoutTemplateIndexes(CancellationToken ct)
     {
-        var indexes = _mongo.SectionTemplates.Indexes;
+        var indexes = _mongo.WorkoutTemplates.Indexes;
 
         // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<SectionTemplate>(
-            Builders<SectionTemplate>.IndexKeys.Ascending(t => t.ExternalId),
-            new CreateIndexOptions { Name = "idx_sectiontemplate_externalId", Unique = true });
+        var externalIdIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_externalId", Unique = true });
 
         // Index on ownerTrainerId for per-trainer list queries
-        var ownerIndex = new CreateIndexModel<SectionTemplate>(
-            Builders<SectionTemplate>.IndexKeys.Ascending(t => t.OwnerTrainerId),
-            new CreateIndexOptions { Name = "idx_sectiontemplate_ownerTrainerId" });
+        var ownerIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.OwnerTrainerId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_ownerTrainerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
     }
@@ -657,19 +744,19 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([sessionIdIndex, ttlIndex, clientIdIndex, planIdIndex], ct);
     }
 
-    private async Task CreateWorkoutTemplateIndexes(CancellationToken ct)
+    private async Task CreateSessionTemplateIndexes(CancellationToken ct)
     {
-        var indexes = _mongo.WorkoutTemplates.Indexes;
+        var indexes = _mongo.SessionTemplates.Indexes;
 
         // Unique index on externalId for API lookups and MongoSeeder's per-document dedupe.
-        var externalIdIndex = new CreateIndexModel<WorkoutTemplate>(
-            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.ExternalId),
-            new CreateIndexOptions { Name = "idx_workouttemplate_externalId", Unique = true });
+        var externalIdIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_externalId", Unique = true });
 
-        // Index on ownerId for per-trainer list queries (mirrors SectionTemplate's ownerTrainerId).
-        var ownerIndex = new CreateIndexModel<WorkoutTemplate>(
-            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.OwnerId),
-            new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
+        // Index on ownerId for per-trainer list queries (mirrors WorkoutTemplate's ownerTrainerId).
+        var ownerIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Ascending(t => t.OwnerId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
     }
@@ -1070,10 +1157,10 @@ public class MongoIndexInitializer : IHostedService
     /// <summary>
     /// Backfills every embedded <see cref="TrainingSession"/> across all <see cref="TrainingPlan"/>
     /// documents that still carries the legacy flat <c>exercises</c> field: synthesizes a single
-    /// "Hlavní" section wrapping the flat exercises when <c>sections</c> is empty, then <c>$unset</c>s
-    /// the legacy field. A session that already has <c>sections</c> populated (with a stale
+    /// "Hlavní" workout wrapping the flat exercises when <c>workouts</c> is empty, then <c>$unset</c>s
+    /// the legacy field. A session that already has <c>workouts</c> populated (with a stale
     /// <c>exercises</c> field left over from an earlier partial write) only has the legacy field
-    /// stripped — its modern <c>sections</c> data is left untouched.
+    /// stripped — its modern <c>workouts</c> data is left untouched.
     /// </summary>
     private async Task BackfillTrainingPlanSections(CancellationToken ct)
     {
@@ -1109,20 +1196,25 @@ public class MongoIndexInitializer : IHostedService
                     if (!session.Contains("exercises")) continue;
 
                     var legacyExercises = session["exercises"] as BsonArray ?? [];
-                    var sectionsIsEmpty = !session.TryGetValue("sections", out var sectionsValue)
-                                           || sectionsValue is not BsonArray existingSections
-                                           || existingSections.Count == 0;
+                    // #857: the typed TrainingSession/TrainingWorkout classes now bind
+                    // "workouts"/"workoutId" (renamed from "sections"/"sectionId") — this
+                    // backfill must write into the CURRENT field names, or a legacy document
+                    // migrated here would carry a stale "sections" field the typed model no
+                    // longer maps, silently deserializing with an empty Workouts list.
+                    var workoutsIsEmpty = !session.TryGetValue("workouts", out var workoutsValue)
+                                          || workoutsValue is not BsonArray existingWorkouts
+                                          || existingWorkouts.Count == 0;
 
-                    if (sectionsIsEmpty && legacyExercises.Count > 0)
+                    if (workoutsIsEmpty && legacyExercises.Count > 0)
                     {
-                        var synthesizedSection = new BsonDocument
+                        var synthesizedWorkout = new BsonDocument
                         {
-                            { "sectionId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
+                            { "workoutId", new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard) },
                             { "order", 0 },
                             { "name", "Hlavní" },
                             { "exercises", legacyExercises }
                         };
-                        session["sections"] = new BsonArray { synthesizedSection };
+                        session["workouts"] = new BsonArray { synthesizedWorkout };
                         migratedSessionCount++;
                     }
 
@@ -1144,8 +1236,8 @@ public class MongoIndexInitializer : IHostedService
         if (migratedPlanCount > 0)
         {
             _logger.LogInformation(
-                "TrainingPlan sections backfill: migrated {SessionCount} legacy session(s) across " +
-                "{PlanCount} plan(s) to the sections shape",
+                "TrainingPlan workouts backfill: migrated {SessionCount} legacy session(s) across " +
+                "{PlanCount} plan(s) to the workouts shape",
                 migratedSessionCount, migratedPlanCount);
         }
     }

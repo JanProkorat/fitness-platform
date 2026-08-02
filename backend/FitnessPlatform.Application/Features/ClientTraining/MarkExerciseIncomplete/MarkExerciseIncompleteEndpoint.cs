@@ -92,18 +92,18 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        // Validate the exercise exists in the session (section-aware).
-        var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
-        if (section is null)
+        // Validate the exercise exists in the session (workout-aware).
+        var workout = session.Workouts.FirstOrDefault(w => w.WorkoutId == req.WorkoutId);
+        if (workout is null)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingSectionNotFound, "The section was not found in the specified session.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The workout was not found in the specified session.", ct);
             return;
         }
 
-        var exerciseExists = section.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
+        var exerciseExists = workout.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
         if (!exerciseExists)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified section.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified workout.", ct);
             return;
         }
 
@@ -116,7 +116,7 @@ public class MarkExerciseIncompleteEndpoint(
         var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
         // Idempotency: check whether this exercise is complete in this specific section.
-        var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
+        var sectionList = existing?.CompletedExerciseIdsBySection?.GetValueOrDefault(req.WorkoutId.ToString());
         var isCompleteInSection = sectionList is not null && sectionList.Contains(req.ExerciseExternalId);
 
         if (existing is null || !isCompleteInSection)
@@ -145,11 +145,11 @@ public class MarkExerciseIncompleteEndpoint(
 
         // ── Remove from the section-aware dict (only this section) ───────
         existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-        if (existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var currentSectionList))
+        if (existing.CompletedExerciseIdsBySection.TryGetValue(req.WorkoutId.ToString(), out var currentSectionList))
         {
             currentSectionList.Remove(req.ExerciseExternalId);
             if (currentSectionList.Count == 0)
-                existing.CompletedExerciseIdsBySection.Remove(req.SectionId.ToString());
+                existing.CompletedExerciseIdsBySection.Remove(req.WorkoutId.ToString());
         }
 
         // ── Mirror: only remove from the legacy flat list if NO other section still has this exId ──

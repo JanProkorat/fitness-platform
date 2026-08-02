@@ -313,10 +313,10 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
             var sessionDtos = week.Sessions.Select(session =>
             {
-                // Build per-section DTOs, ordering sections by their Order field.
-                var sectionDtos = session.Sections.OrderBy(sec => sec.Order).Select(sec =>
+                // Build per-workout DTOs, ordering workouts by their Order field.
+                var workoutDtos = session.Workouts.OrderBy(workout => workout.Order).Select(workout =>
                 {
-                    var sectionExerciseDtos = sec.Exercises.Select(ex =>
+                    var workoutExerciseDtos = workout.Exercises.Select(ex =>
                     {
                         var muscleGroups = muscleGroupMap.TryGetValue(ex.ExerciseExternalId, out var mg)
                             ? mg
@@ -376,27 +376,27 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         };
                     }).ToList();
 
-                    var sectionIsCompleted = sectionExerciseDtos.Count > 0
-                        ? sectionExerciseDtos.All(e => e.IsCompleted)
+                    var workoutIsCompleted = workoutExerciseDtos.Count > 0
+                        ? workoutExerciseDtos.All(e => e.IsCompleted)
                         : completedSectionIdsBySession.TryGetValue(session.SessionId, out var completedSecs)
-                            && completedSecs.Contains(sec.SectionId);
+                            && completedSecs.Contains(workout.WorkoutId);
 
-                    return new SectionDto
+                    return new WorkoutDto
                     {
-                        SectionId = sec.SectionId,
-                        Order = sec.Order,
-                        Name = sec.Name,
-                        Format = sec.Format?.ToString(),
-                        FormatConfig = sec.FormatConfig,
-                        Notes = sec.Notes,
-                        IsCompleted = sectionIsCompleted,
-                        Exercises = sectionExerciseDtos
+                        WorkoutId = workout.WorkoutId,
+                        Order = workout.Order,
+                        Name = workout.Name,
+                        Format = workout.Format?.ToString(),
+                        FormatConfig = workout.FormatConfig,
+                        Notes = workout.Notes,
+                        IsCompleted = workoutIsCompleted,
+                        Exercises = workoutExerciseDtos
                     };
                 }).ToList();
 
-                // Flat exercise list derived from sections in order — backward-compat for callers
-                // that don't yet consume the Sections field.
-                var exerciseDtos = sectionDtos.SelectMany(s => s.Exercises).ToList();
+                // Flat exercise list derived from workouts in order — backward-compat for callers
+                // that don't yet consume the Workouts field.
+                var exerciseDtos = workoutDtos.SelectMany(w => w.Exercises).ToList();
 
                 var completedExerciseCount = exerciseDtos.Count(e => e.IsCompleted);
                 var sessionHasModifications = exerciseDtos.Any(e => e.HasModifications);
@@ -420,7 +420,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     CompletedExerciseCount = completedExerciseCount,
                     TotalExerciseCount = exerciseDtos.Count,
                     EstimatedDurationMinutes = null, // deferred — requires product-defined set-duration heuristic
-                    Sections = sectionDtos,
+                    Workouts = workoutDtos,
                     Exercises = exerciseDtos,
                     LockState = sessionLockState,
                     LockHolder = sessionLockHolder,

@@ -5,14 +5,14 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// An ordered section within a workout log — mirrors <see cref="TrainingSection"/> but
+/// An ordered section within a workout log — mirrors <see cref="TrainingWorkout"/> but
 /// contains completed <see cref="WorkoutExercise"/> entries instead of planned ones.
 /// Embedded sub-document inside <see cref="WorkoutLog.Sections"/>.
 /// </summary>
 public class WorkoutSection
 {
     /// <summary>
-    /// Stable identifier matching the source <see cref="TrainingSection.SectionId"/>.
+    /// Stable identifier matching the source <see cref="TrainingWorkout.SectionId"/>.
     /// </summary>
     [BsonElement("sectionId")]
     public Guid SectionId { get; set; }

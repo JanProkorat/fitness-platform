@@ -515,7 +515,7 @@ public class MarkExerciseCompleteEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = olderSectionId,
                                     Order = 0,

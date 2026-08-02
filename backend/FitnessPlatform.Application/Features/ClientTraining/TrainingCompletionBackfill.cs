@@ -30,7 +30,7 @@ public static class TrainingCompletionBackfill
     /// <param name="completion">The <see cref="TrainingCompletion"/> document to read.</param>
     /// <param name="session">The <see cref="TrainingSession"/> the completion belongs to.</param>
     /// <returns>
-    ///   A dictionary keyed by <see cref="TrainingSection.SectionId"/>, each value being a
+    ///   A dictionary keyed by <see cref="TrainingWorkout.WorkoutId"/>, each value being a
     ///   <see cref="HashSet{Guid}"/> of completed <see cref="SessionExercise.ExerciseExternalId"/> values.
     /// </returns>
     public static Dictionary<Guid, HashSet<Guid>> GetEffectiveCompletedExerciseIdsBySection(
@@ -57,16 +57,16 @@ public static class TrainingCompletionBackfill
             .SelectMany(ids => ids)
             .ToHashSet();
 
-        // Build a lookup: exerciseExternalId → first section in session that contains it.
-        // We only need to iterate sections once to build this reverse map.
+        // Build a lookup: exerciseExternalId → first workout in session that contains it.
+        // We only need to iterate workouts once to build this reverse map.
         var exerciseToSection = new Dictionary<Guid, Guid>();
-        foreach (var section in session.Sections)
+        foreach (var workout in session.Workouts)
         {
-            foreach (var exercise in section.Exercises)
+            foreach (var exercise in workout.Exercises)
             {
-                // First section wins — matches the "attribute to first matching section" contract.
+                // First workout wins — matches the "attribute to first matching workout" contract.
                 if (!exerciseToSection.ContainsKey(exercise.ExerciseExternalId))
-                    exerciseToSection[exercise.ExerciseExternalId] = section.SectionId;
+                    exerciseToSection[exercise.ExerciseExternalId] = workout.WorkoutId;
             }
         }
 

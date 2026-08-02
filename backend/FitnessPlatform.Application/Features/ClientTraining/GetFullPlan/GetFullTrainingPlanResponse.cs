@@ -106,15 +106,15 @@ public class SessionDto
     public int? EstimatedDurationMinutes { get; set; }
 
     /// <summary>
-    /// Sections in this session, ordered by their Order field.
+    /// Workouts in this session, ordered by their Order field.
     /// Schema-on-read: legacy documents with only flat exercises are backfilled into a single
-    /// "Hlavní" section before this response is built.
+    /// "Hlavní" workout before this response is built.
     /// </summary>
-    public List<SectionDto> Sections { get; set; } = [];
+    public List<WorkoutDto> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat list of all exercises across all sections, in section order.
-    /// Kept for backward-compatibility with callers that don't yet read Sections.
+    /// Flat list of all exercises across all workouts, in workout order.
+    /// Kept for backward-compatibility with callers that don't yet read Workouts.
     /// </summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
 
@@ -142,10 +142,10 @@ public class SessionDto
 /// <summary>
 /// An ordered section within a session (e.g. "Hlavní", "Warm-up", "Cool-down").
 /// </summary>
-public class SectionDto
+public class WorkoutDto
 {
-    /// <summary>Stable identifier for this section.</summary>
-    public Guid SectionId { get; set; }
+    /// <summary>Stable identifier for this workout.</summary>
+    public Guid WorkoutId { get; set; }
 
     /// <summary>Display order within the session (0-based).</summary>
     public int Order { get; set; }
@@ -154,31 +154,31 @@ public class SectionDto
     public string Name { get; set; } = "";
 
     /// <summary>
-    /// Workout format for this section (e.g. "Emom", "Amrap", "Tabata", "ForTime").
-    /// Null means the section uses the default Standard format.
+    /// Workout format for this workout (e.g. "Emom", "Amrap", "Tabata", "ForTime").
+    /// Null means the workout uses the default Standard format.
     /// </summary>
     public string? Format { get; set; }
 
     /// <summary>
-    /// Full format-configuration object for the section (rounds, intervals, work/rest timings).
+    /// Full format-configuration object for the workout (rounds, intervals, work/rest timings).
     /// Null when Format is null or Standard.
-    /// Mirrors <see cref="FitnessPlatform.Application.Domain.Documents.WodConfig"/> on TrainingSection.
+    /// Mirrors <see cref="FitnessPlatform.Application.Domain.Documents.WodConfig"/> on TrainingWorkout.
     /// </summary>
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Optional coach note for this section.
-    /// Mirrors the Notes property on TrainingSection.
+    /// Optional coach note for this workout.
+    /// Mirrors the Notes property on TrainingWorkout.
     /// </summary>
     public string? Notes { get; set; }
 
-    /// <summary>True when this section is considered complete:
-    /// for sections with exercises → every exercise has IsCompleted=true;
-    /// for sections without exercises → the section's id is in the
+    /// <summary>True when this workout is considered complete:
+    /// for workouts with exercises → every exercise has IsCompleted=true;
+    /// for workouts without exercises → the workout's id is in the
     /// TrainingCompletion.CompletedSectionIds set for the owning session.</summary>
     public bool IsCompleted { get; set; }
 
-    /// <summary>Exercises within this section.</summary>
+    /// <summary>Exercises within this workout.</summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
 }
 

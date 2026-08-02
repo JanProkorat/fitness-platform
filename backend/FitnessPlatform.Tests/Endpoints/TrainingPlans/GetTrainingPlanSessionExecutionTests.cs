@@ -42,7 +42,7 @@ public class GetTrainingPlanSessionExecutionTests
             DayOfWeek = 1, // Monday
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = Guid.NewGuid(),
                     Name = "Main",

@@ -841,7 +841,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -969,7 +969,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1108,7 +1108,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1242,7 +1242,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1352,7 +1352,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1496,7 +1496,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1600,7 +1600,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,
@@ -1746,7 +1746,7 @@ public class GetTodaySessionEndpointTests
                             Order = 1,
                             Sections =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
                                     SectionId = Guid.NewGuid(),
                                     Order = 0,

@@ -493,7 +493,7 @@ public class UpdateTrainingPlanFormatTests
             // Format defaults to null, FormatConfig defaults to null
             Sections =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
                     SectionId = Guid.NewGuid(),
                     Order = 0,

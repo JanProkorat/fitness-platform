@@ -89,7 +89,7 @@ public static class TrainingCompletionTestHelpers
                         Order = 1,
                         Sections =
                         [
-                            new TrainingSection
+                            new TrainingWorkout
                             {
                                 SectionId = secId,
                                 Order = 0,
@@ -152,7 +152,7 @@ public static class TrainingCompletionTestHelpers
                         Order = 1,
                         Sections =
                         [
-                            new TrainingSection
+                            new TrainingWorkout
                             {
                                 SectionId = section1Id,
                                 Order = 0,
@@ -168,7 +168,7 @@ public static class TrainingCompletionTestHelpers
                                     }
                                 ]
                             },
-                            new TrainingSection
+                            new TrainingWorkout
                             {
                                 SectionId = section2Id,
                                 Order = 1,
@@ -264,14 +264,14 @@ public static class TrainingCompletionTestHelpers
                         Order = 1,
                         Sections =
                         [
-                            new TrainingSection
+                            new TrainingWorkout
                             {
                                 SectionId = forTimeSectionId,
                                 Order = 0,
                                 Name = "ForTime",
                                 Exercises = [] // exercise-free section
                             },
-                            new TrainingSection
+                            new TrainingWorkout
                             {
                                 SectionId = standardSectionId,
                                 Order = 1,

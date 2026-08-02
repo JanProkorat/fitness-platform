@@ -154,12 +154,12 @@ public class CatalogSeedingTests : IAsyncLifetime
         var foodCount = await mongo.Foods.CountDocumentsAsync(FilterDefinition<Food>.Empty, cancellationToken: ct);
         var recipeCount = await mongo.Recipes.CountDocumentsAsync(FilterDefinition<Recipe>.Empty, cancellationToken: ct);
         var exerciseCount = await mongo.Exercises.CountDocumentsAsync(FilterDefinition<Exercise>.Empty, cancellationToken: ct);
-        var templateCount = await mongo.WorkoutTemplates.CountDocumentsAsync(FilterDefinition<WorkoutTemplate>.Empty, cancellationToken: ct);
+        var templateCount = await mongo.SessionTemplates.CountDocumentsAsync(FilterDefinition<SessionTemplate>.Empty, cancellationToken: ct);
 
         foodCount.Should().Be(FoodSeedData.LoadEntries().Count, "re-seeding foods must not create duplicates");
         recipeCount.Should().Be(RecipeSeedData.LoadEntries().Count, "re-seeding recipes must not create duplicates");
         exerciseCount.Should().Be(ExerciseSeedData.LoadEntries().Count, "re-seeding exercises must not create duplicates");
-        templateCount.Should().Be(WorkoutTemplateSeedData.LoadEntries().Count, "re-seeding workout templates must not create duplicates");
+        templateCount.Should().Be(SessionTemplateSeedData.LoadEntries().Count, "re-seeding workout templates must not create duplicates");
     }
 
     /// <summary>
@@ -320,7 +320,7 @@ public class CatalogSeedingTests : IAsyncLifetime
     /// least two templates per <see cref="WorkoutFormat"/> value (design spec §5).
     /// </summary>
     [Fact]
-    public async Task SeedAsync_WorkoutTemplates_ResolveExercisesAndCoverEveryFormat()
+    public async Task SeedAsync_SessionTemplates_ResolveExercisesAndCoverEveryFormat()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -335,7 +335,7 @@ public class CatalogSeedingTests : IAsyncLifetime
                 .ToListAsync(ct))
             .ToHashSet();
 
-        var templates = await mongo.WorkoutTemplates.Find(FilterDefinition<WorkoutTemplate>.Empty).ToListAsync(ct);
+        var templates = await mongo.SessionTemplates.Find(FilterDefinition<SessionTemplate>.Empty).ToListAsync(ct);
         templates.Should().NotBeEmpty();
 
         templates.Should().AllSatisfy(t =>
@@ -455,7 +455,7 @@ public class CatalogSeedingTests : IAsyncLifetime
 
         // Every workout template referencing "Barbell Bench Press" must bind to the legacy
         // ExternalId, not the in-memory deterministic one.
-        var templates = await mongo.WorkoutTemplates.Find(FilterDefinition<WorkoutTemplate>.Empty).ToListAsync(ct);
+        var templates = await mongo.SessionTemplates.Find(FilterDefinition<SessionTemplate>.Empty).ToListAsync(ct);
         var benchPressRefs = templates
             .SelectMany(t => t.Sections)
             .SelectMany(s => s.Exercises)
