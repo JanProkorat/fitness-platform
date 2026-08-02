@@ -18,7 +18,7 @@ public class TrainingWorkout
 
     /// <summary>
     /// Display order within the session (0-based). Shares one ordering sequence with the
-    /// session's standalone <see cref="TrainingSession.Exercises"/>.
+    /// session's standalone <see cref="TrainingSession.StandaloneExercises"/>.
     /// </summary>
     [BsonElement("order")]
     public int Order { get; set; }

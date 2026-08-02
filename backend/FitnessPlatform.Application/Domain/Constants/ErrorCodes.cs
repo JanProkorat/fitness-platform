@@ -161,6 +161,12 @@ public static class ErrorCodes
     /// <summary>The section was not found in the specified session.</summary>
     public const string TrainingWorkoutNotFound = "TRAINING_SECTION_NOT_FOUND";
 
+    /// <summary>
+    /// A session's standalone exercises and workouts share one ordering sequence; two entries
+    /// (in either list, or across both) claimed the same Order value.
+    /// </summary>
+    public const string TrainingDuplicateSessionOrder = "TRAINING_DUPLICATE_SESSION_ORDER";
+
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
 

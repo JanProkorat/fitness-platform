@@ -356,29 +356,11 @@ public class UpdateTrainingPlanEndpoint(
                                     Format = rsec.Format,
                                     FormatConfig = rsec.FormatConfig,
                                     Notes = rsec.Notes?.Trim(),
-                                    Exercises = rsec.Exercises.Select(re => new SessionExercise
-                                    {
-                                        ExerciseExternalId = re.ExerciseExternalId,
-                                        ExerciseName = re.ExerciseName,
-                                        Order = re.Order,
-                                        Notes = re.Notes?.Trim(),
-                                        RestSeconds = re.RestSeconds,
-                                        MovementType = re.MovementType,
-                                        Format = re.Format,
-                                        FormatConfig = re.FormatConfig,
-                                        Sets = re.Sets.Select(rset => new ExerciseSet
-                                        {
-                                            SetNumber = rset.SetNumber,
-                                            Type = rset.Type,
-                                            Reps = rset.Reps,
-                                            WeightKg = rset.WeightKg,
-                                            DurationSeconds = rset.DurationSeconds,
-                                            Rpe = rset.Rpe,
-                                            DistanceMeters = rset.DistanceMeters,
-                                            RestSeconds = rset.RestSeconds
-                                        }).ToList()
-                                    }).ToList()
-                                }).ToList()
+                                    Exercises = rsec.Exercises.Select(ToSessionExercise).ToList()
+                                }).ToList(),
+                                // #857 phase 3a: standalone exercises directly on the session,
+                                // sharing the same mapping as a workout's nested exercises.
+                                StandaloneExercises = rs.Exercises.Select(ToSessionExercise).ToList()
                             }).ToList()
                         }).ToList()
                     };
@@ -481,68 +463,27 @@ public class UpdateTrainingPlanEndpoint(
             if (ss.Notes?.Trim() != rs.Notes?.Trim()) return true;
             if (!FormatConfigEqual(ss.FormatConfig, rs.FormatConfig)) return true;
 
-            // Compare exercises within this section.
-            var storedExercises = ss.Exercises.OrderBy(e => e.Order).ToList();
-            var incomingExercises = rs.Exercises.OrderBy(e => e.Order).ToList();
-
-            if (storedExercises.Count != incomingExercises.Count) return true;
-
-            for (var j = 0; j < storedExercises.Count; j++)
-            {
-                var se = storedExercises[j];
-                var re = incomingExercises[j];
-
-                if (se.ExerciseExternalId != re.ExerciseExternalId) return true;
-                if (se.ExerciseName != re.ExerciseName) return true;
-                if (se.Order != re.Order) return true;
-                if (se.Notes?.Trim() != re.Notes?.Trim()) return true;
-                if (se.RestSeconds != re.RestSeconds) return true;
-                if (se.MovementType != re.MovementType) return true;
-                if (se.Format != re.Format) return true;
-                if (!FormatConfigEqual(se.FormatConfig, re.FormatConfig)) return true;
-
-                // Compare sets.
-                var storedSets = se.Sets.OrderBy(s => s.SetNumber).ToList();
-                var incomingSets = re.Sets.OrderBy(s => s.SetNumber).ToList();
-
-                if (storedSets.Count != incomingSets.Count) return true;
-
-                for (var k = 0; k < storedSets.Count; k++)
-                {
-                    var storedSet = storedSets[k];
-                    var incomingSet = incomingSets[k];
-
-                    if (storedSet.SetNumber != incomingSet.SetNumber) return true;
-                    if (storedSet.Type != incomingSet.Type) return true;
-                    if (storedSet.Reps != incomingSet.Reps) return true;
-                    if (storedSet.WeightKg != incomingSet.WeightKg) return true;
-                    if (storedSet.DurationSeconds != incomingSet.DurationSeconds) return true;
-                    if (storedSet.Rpe != incomingSet.Rpe) return true;
-                    if (storedSet.DistanceMeters != incomingSet.DistanceMeters) return true;
-                    if (storedSet.RestSeconds != incomingSet.RestSeconds) return true;
-                }
-            }
+            if (HasExercisesChanged(ss.Exercises, rs.Exercises)) return true;
         }
+
+        // #857 phase 3a: standalone exercises directly on the session are session content too —
+        // omitting them here would let a coach stealth-edit a published, locked session via the
+        // standalone list without tripping the Editing-lock/section-finished guards above.
+        if (HasExercisesChanged(stored.StandaloneExercises, incoming.Exercises)) return true;
 
         return false;
     }
 
     /// <summary>
-    /// Returns true when the content of a single stored section differs from the incoming
-    /// update request section. Keyed on <see cref="TrainingWorkout.WorkoutId"/> (caller's
-    /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
-    /// and their sets (by positional order within the section).
+    /// Returns true when a stored list of <see cref="SessionExercise"/> differs in content from an
+    /// incoming list of <see cref="UpdateSessionExerciseRequest"/> — shared by section/workout-nested
+    /// exercises and session-level standalone exercises (#857 phase 3a). Compares by positional
+    /// order (Order field), not ExerciseId — incoming exercises may have newly-assigned Guids.
     /// </summary>
-    private static bool HasSectionContentChanged(TrainingWorkout stored, UpdateWorkoutRequest incoming)
+    private static bool HasExercisesChanged(List<SessionExercise> stored, List<UpdateSessionExerciseRequest> incoming)
     {
-        if (stored.Order != incoming.Order) return true;
-        if (stored.Name != incoming.Name) return true;
-        if (stored.Format != incoming.Format) return true;
-        if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
-        if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
-
-        var storedExercises = stored.Exercises.OrderBy(e => e.Order).ToList();
-        var incomingExercises = incoming.Exercises.OrderBy(e => e.Order).ToList();
+        var storedExercises = stored.OrderBy(e => e.Order).ToList();
+        var incomingExercises = incoming.OrderBy(e => e.Order).ToList();
 
         if (storedExercises.Count != incomingExercises.Count) return true;
 
@@ -560,6 +501,7 @@ public class UpdateTrainingPlanEndpoint(
             if (se.Format != re.Format) return true;
             if (!FormatConfigEqual(se.FormatConfig, re.FormatConfig)) return true;
 
+            // Compare sets.
             var storedSets = se.Sets.OrderBy(s => s.SetNumber).ToList();
             var incomingSets = re.Sets.OrderBy(s => s.SetNumber).ToList();
 
@@ -583,6 +525,54 @@ public class UpdateTrainingPlanEndpoint(
 
         return false;
     }
+
+    /// <summary>
+    /// Returns true when the content of a single stored section differs from the incoming
+    /// update request section. Keyed on <see cref="TrainingWorkout.WorkoutId"/> (caller's
+    /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
+    /// and their sets (by positional order within the section).
+    /// </summary>
+    private static bool HasSectionContentChanged(TrainingWorkout stored, UpdateWorkoutRequest incoming)
+    {
+        if (stored.Order != incoming.Order) return true;
+        if (stored.Name != incoming.Name) return true;
+        if (stored.Format != incoming.Format) return true;
+        if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
+        if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
+
+        return HasExercisesChanged(stored.Exercises, incoming.Exercises);
+    }
+
+    /// <summary>
+    /// Maps an <see cref="UpdateSessionExerciseRequest"/> to a <see cref="SessionExercise"/> —
+    /// shared by both a workout's nested exercises and a session's standalone exercises (#857
+    /// phase 3a). Preserves an existing <see cref="UpdateSessionExerciseRequest.ExerciseId"/> or
+    /// mints a fresh one, mirroring how <see cref="TrainingWorkout.WorkoutId"/> and
+    /// <see cref="TrainingSession.SessionId"/> are resolved above.
+    /// </summary>
+    private static SessionExercise ToSessionExercise(UpdateSessionExerciseRequest re) => new()
+    {
+        ExerciseId = re.ExerciseId ?? Guid.NewGuid(),
+        ExerciseExternalId = re.ExerciseExternalId,
+        ExerciseName = re.ExerciseName,
+        Order = re.Order,
+        Notes = re.Notes?.Trim(),
+        RestSeconds = re.RestSeconds,
+        MovementType = re.MovementType,
+        Format = re.Format,
+        FormatConfig = re.FormatConfig,
+        Sets = re.Sets.Select(rset => new ExerciseSet
+        {
+            SetNumber = rset.SetNumber,
+            Type = rset.Type,
+            Reps = rset.Reps,
+            WeightKg = rset.WeightKg,
+            DurationSeconds = rset.DurationSeconds,
+            Rpe = rset.Rpe,
+            DistanceMeters = rset.DistanceMeters,
+            RestSeconds = rset.RestSeconds
+        }).ToList()
+    };
 
     /// <summary>
     /// Equality check for <see cref="WodConfig"/> nullable pairs.

@@ -69,6 +69,13 @@ public class UpdateSessionRequest
     /// Ordered sections in this session. Each section contains its own exercises.
     /// </summary>
     public List<UpdateWorkoutRequest> Sections { get; set; } = [];
+
+    /// <summary>
+    /// Standalone exercises directly on this session — not grouped under any section/workout.
+    /// Shares one ordering sequence with <see cref="Sections"/>: a duplicate <see cref="UpdateWorkoutRequest.Order"/>/
+    /// <see cref="UpdateSessionExerciseRequest.Order"/> across the two lists is rejected (#857 phase 3a).
+    /// </summary>
+    public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];
 }
 
 /// <summary>
@@ -117,6 +124,12 @@ public class UpdateWorkoutRequest
 /// </summary>
 public class UpdateSessionExerciseRequest
 {
+    /// <summary>
+    /// Optional existing instance identifier for this exercise entry. New GUID generated if null.
+    /// Distinguishes two occurrences of the same catalog exercise within one session (#857 phase 3a).
+    /// </summary>
+    public Guid? ExerciseId { get; set; }
+
     /// <summary>
     /// External (public) identifier of the exercise.
     /// </summary>

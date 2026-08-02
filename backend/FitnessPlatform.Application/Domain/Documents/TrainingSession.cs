@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using FitnessPlatform.Application.Domain.Enums;
@@ -62,10 +63,34 @@ public class TrainingSession
     public List<TrainingWorkout> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat view of all exercises across all workouts. Read-only convenience accessor.
-    /// Not stored in MongoDB — computed from <see cref="Workouts"/>.
+    /// Standalone exercises directly on this session — not grouped under any
+    /// <see cref="TrainingWorkout"/> (e.g. a single finisher movement that doesn't warrant its
+    /// own workout block). Sits alongside <see cref="Workouts"/>, mirroring how
+    /// <see cref="PlanMeal.Foods"/> and <see cref="PlanMeal.Recipes"/> sit side by side (#857
+    /// phase 3a). Shares one ordering sequence with <see cref="Workouts"/> — a duplicate
+    /// <see cref="TrainingWorkout.Order"/>/<see cref="SessionExercise.Order"/> across the two
+    /// lists is rejected by <c>UpdateTrainingPlanValidator</c>.
+    /// </summary>
+    /// <remarks>
+    /// Named <c>StandaloneExercises</c> in C# — not <c>Exercises</c> — to avoid colliding with
+    /// the existing computed <see cref="Exercises"/> flat-view convenience below (used
+    /// pervasively by completion-tracking endpoints for "every exercise in this session"). The
+    /// wire/BSON element name is still <c>exercises</c> via <see cref="JsonPropertyNameAttribute"/>
+    /// and <see cref="BsonElementAttribute"/>, matching the issue's <c>exercises[]</c> naming and
+    /// <see cref="PlanMeal"/>'s field-naming convention exactly.
+    /// </remarks>
+    [BsonElement("exercises")]
+    [JsonPropertyName("exercises")]
+    public List<SessionExercise> StandaloneExercises { get; set; } = [];
+
+    /// <summary>
+    /// Flat view of every exercise in this session — the standalone <see cref="StandaloneExercises"/>
+    /// plus every workout's nested exercises. Read-only convenience accessor used by completion-
+    /// tracking endpoints for "how many exercises does this session have". Not stored in MongoDB
+    /// and not part of the API contract — web/mobile derive their own flattened view client-side.
     /// </summary>
     [BsonIgnore]
+    [JsonIgnore]
     public IReadOnlyList<SessionExercise> Exercises =>
-        Workouts.SelectMany(w => w.Exercises).ToList();
+        StandaloneExercises.Concat(Workouts.SelectMany(w => w.Exercises)).ToList();
 }

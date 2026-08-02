@@ -10,6 +10,18 @@ namespace FitnessPlatform.Application.Domain.Documents;
 public class SessionExercise
 {
     /// <summary>
+    /// Instance identifier for this specific exercise entry within its session — distinguishes
+    /// two occurrences of the same catalog exercise (<see cref="ExerciseExternalId"/>)
+    /// programmed twice in one workout, or once standalone and once nested in a workout of the
+    /// same session. Mirrors <see cref="TrainingWorkout.WorkoutId"/> and
+    /// <see cref="PlanMeal.MealId"/>. Pre-existing documents are backfilled with a fresh,
+    /// distinct value per exercise by the one-time boot migration in
+    /// <c>MongoIndexInitializer</c> (#857 phase 3a).
+    /// </summary>
+    [BsonElement("exerciseId")]
+    public Guid ExerciseId { get; set; }
+
+    /// <summary>
     /// Reference to the original exercise document's ExternalId.
     /// </summary>
     [BsonElement("exerciseExternalId")]

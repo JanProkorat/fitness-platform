@@ -114,6 +114,15 @@ public class MongoIndexInitializer : IHostedService
         // already run it once (idempotent $exists guard on the legacy "weeks.sessions" shape).
         await MigrateTrainingTreeRestructureAsync(cancellationToken);
 
+        // #857 phase 3a: backfill SessionExercise.ExerciseId (a new Guid field, not a rename)
+        // on every pre-existing exercise — nested inside workouts and any standalone ones alike.
+        // Unlike the migrations above, a MISSING scalar field does not throw on typed read (it
+        // simply deserializes to Guid.Empty), so this has no strict "before Create*Indexes"
+        // ordering requirement — it is grouped here with the other #857 migrations purely for
+        // readability. See the method's own remarks for the idempotency and distinctness
+        // guarantees.
+        await MigrateSessionExerciseIdBackfillAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -631,6 +640,177 @@ public class MongoIndexInitializer : IHostedService
         }
 
         return notesByDay;
+    }
+
+    // ── #857 phase 3a: backfill SessionExercise.ExerciseId ───────────────────────────
+    //
+    // SessionExercise gains a new instance-identity field, ExerciseId — a Guid distinguishing
+    // two occurrences of the same catalog exercise (ExerciseExternalId) programmed twice in one
+    // workout, or once standalone and once nested. This is an ADDITIVE field, not a rename:
+    // $rename cannot mint a fresh, per-instance value, so this walks the raw BSON tree (weeks ->
+    // days -> sessions -> {workouts -> exercises, exercises}) and assigns a distinct new Guid to
+    // every exercise element that doesn't already carry one.
+    //
+    // Idempotency: the candidate filter matches documents where ANY exercise anywhere in the
+    // plan (nested in a workout, or standalone directly on a session) lacks "exerciseId" — a
+    // dotted path through nested arrays flattens across every element, so this correctly finds
+    // partially-migrated documents too. On a fresh boot, or a second boot after this migration
+    // has already run, every exercise already carries "exerciseId" and the filter matches zero
+    // documents.
+    //
+    // Distinctness: each exercise element gets its OWN fresh Guid.NewGuid() call — never a value
+    // derived from ExerciseExternalId or any other shared key — so two instances of the same
+    // catalog exercise in one session always end up with distinct ExerciseId values. This is the
+    // entire point of the field; a migration that assigned one id per catalog exercise instead of
+    // per instance would look correct and silently defeat the feature.
+    /// <summary>
+    /// One-time, idempotent migration (#857 phase 3a): assigns a fresh, distinct
+    /// <see cref="SessionExercise.ExerciseId"/> to every exercise in every <c>trainingPlans</c>
+    /// document that doesn't already carry one — both exercises nested inside a workout and any
+    /// standalone exercises directly on a session. See the remarks above this method for the
+    /// idempotency and distinctness guarantees.
+    /// </summary>
+    private async Task MigrateSessionExerciseIdBackfillAsync(CancellationToken ct)
+    {
+        var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
+            _mongo.TrainingPlans.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("$or", new BsonArray
+        {
+            new BsonDocument("weeks.days.sessions.workouts.exercises.exerciseId", new BsonDocument("$exists", false)),
+            new BsonDocument("weeks.days.sessions.exercises.exerciseId", new BsonDocument("$exists", false))
+        });
+
+        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var writes = new List<WriteModel<BsonDocument>>();
+        var assignedCount = 0;
+
+        foreach (var planDoc in candidates)
+        {
+            var planChanged = false;
+
+            if (!planDoc.TryGetValue("weeks", out var weeksValue) || weeksValue is not BsonArray weeks)
+            {
+                continue;
+            }
+
+            foreach (var weekValue in weeks)
+            {
+                if (weekValue is not BsonDocument week
+                    || !week.TryGetValue("days", out var daysValue)
+                    || daysValue is not BsonArray days)
+                {
+                    continue;
+                }
+
+                foreach (var dayValue in days)
+                {
+                    if (dayValue is not BsonDocument day
+                        || !day.TryGetValue("sessions", out var sessionsValue)
+                        || sessionsValue is not BsonArray sessions)
+                    {
+                        continue;
+                    }
+
+                    foreach (var sessionValue in sessions)
+                    {
+                        if (sessionValue is not BsonDocument session)
+                        {
+                            continue;
+                        }
+
+                        var sessionAssignedCount = AssignExerciseIdsWithinSession(session);
+                        if (sessionAssignedCount > 0)
+                        {
+                            planChanged = true;
+                            assignedCount += sessionAssignedCount;
+                        }
+                    }
+                }
+            }
+
+            if (planChanged)
+            {
+                writes.Add(new ReplaceOneModel<BsonDocument>(
+                    Builders<BsonDocument>.Filter.Eq("_id", planDoc["_id"]),
+                    planDoc));
+            }
+        }
+
+        if (writes.Count > 0)
+        {
+            await rawPlans.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+
+            _logger.LogInformation(
+                "SessionExercise ExerciseId backfill (#857 phase 3a): assigned {ExerciseCount} " +
+                "exerciseId value(s) across {PlanCount} training plan document(s)",
+                assignedCount, writes.Count);
+        }
+    }
+
+    /// <summary>
+    /// Assigns a fresh <c>exerciseId</c> to every exercise element within a single session's raw
+    /// BSON — both its standalone <c>exercises</c> array and every workout's nested <c>exercises</c>
+    /// array. Returns the number of exercise elements assigned (0 means the session was already
+    /// fully migrated and is left untouched).
+    /// </summary>
+    private static int AssignExerciseIdsWithinSession(BsonDocument session)
+    {
+        var assignedCount = 0;
+
+        if (session.TryGetValue("exercises", out var standaloneValue) && standaloneValue is BsonArray standaloneExercises)
+        {
+            assignedCount += AssignExerciseIdsWithinArray(standaloneExercises);
+        }
+
+        if (session.TryGetValue("workouts", out var workoutsValue) && workoutsValue is BsonArray workouts)
+        {
+            foreach (var workoutValue in workouts)
+            {
+                if (workoutValue is not BsonDocument workout)
+                {
+                    continue;
+                }
+
+                if (workout.TryGetValue("exercises", out var exercisesValue) && exercisesValue is BsonArray exercises)
+                {
+                    assignedCount += AssignExerciseIdsWithinArray(exercises);
+                }
+            }
+        }
+
+        return assignedCount;
+    }
+
+    /// <summary>
+    /// Assigns a fresh, distinct <c>exerciseId</c> (Guid, Standard representation) to every
+    /// element of <paramref name="exercises"/> that doesn't already carry one. Elements already
+    /// carrying an <c>exerciseId</c> are left untouched — this is what makes a second boot a
+    /// no-op.
+    /// </summary>
+    private static int AssignExerciseIdsWithinArray(BsonArray exercises)
+    {
+        var assignedCount = 0;
+
+        foreach (var exerciseValue in exercises)
+        {
+            if (exerciseValue is not BsonDocument exercise)
+            {
+                continue;
+            }
+
+            if (exercise.Contains("exerciseId"))
+            {
+                continue;
+            }
+
+            exercise["exerciseId"] = new BsonBinaryData(Guid.NewGuid(), GuidRepresentation.Standard);
+            assignedCount++;
+        }
+
+        return assignedCount;
     }
 
     // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
