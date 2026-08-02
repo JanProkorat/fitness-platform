@@ -280,9 +280,21 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
 
     // ── overlap + field mapping ───────────────────────────────────────────────
 
+    /// <summary>
+    /// The start date must be the next Monday, not <c>DateTime.UtcNow.Date</c>. The instantiate
+    /// validator enforces <c>START_DATE_NOT_MONDAY</c> (mirroring <c>CreatePlanValidator</c>), so
+    /// a non-Monday start is rejected with a 400 *before* the endpoint's overlap check runs —
+    /// which made this assertion pass only when the suite happened to execute on a Monday and
+    /// fail on the other six days. A date-dependent test that goes green once a week is worse
+    /// than one that fails consistently.
+    /// </summary>
     [Fact]
     public async Task Instantiate_OverlappingWindow_Returns409PlanOverlap()
     {
+        var today = DateTime.UtcNow.Date;
+        var daysUntilMonday = ((int)DayOfWeek.Monday - (int)today.DayOfWeek + 7) % 7;
+        var nextMonday = today.AddDays(daysUntilMonday == 0 ? 7 : daysUntilMonday);
+
         var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("overlap");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("overlap");
         var professionalProfileId = await GetProfessionalProfileIdAsync(nutritionistId);
@@ -301,16 +313,18 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
                 NutritionistId = nutritionistId,
                 Name = "Existing Plan",
                 Status = NutritionPlanStatus.Active,
-                StartDate = DateTime.UtcNow.Date,
+                StartDate = nextMonday,
                 Version = 1,
                 DateCreated = DateTime.UtcNow,
                 Weeks = Enumerable.Range(1, 4).Select(w => new PlanWeek { WeekNumber = w }).ToList()
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
 
+        // Same start date and week count as the seeded plan, so the windows overlap exactly —
+        // the overlap is the property under test, not an incidental near-miss.
         var response = await nutritionist.PostAsJsonAsync(
             $"/nutrition/plan-templates/{template.ExternalId}/instantiate",
-            new { ClientId = clientPublicId, Name = "Overlapping Plan", StartDate = DateTime.UtcNow.Date });
+            new { ClientId = clientPublicId, Name = "Overlapping Plan", StartDate = nextMonday });
 
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
