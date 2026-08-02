@@ -66,21 +66,27 @@ public class MarkWorkoutCompleteEndpointTests
                     WeekNumber = 1,
                     Status = FitnessPlatform.Application.Domain.Enums.WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d =>
-                        new FitnessPlatform.Application.Domain.Documents.TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d =>
+                        new FitnessPlatform.Application.Domain.Documents.TrainingDay
                         {
-                            SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? _sessionId : Guid.NewGuid(),
                             DayOfWeek = d,
-                            Name = $"Day {d} Session",
-                            Order = 1,
-                            Workouts =
+                            Sessions =
                             [
-                                new FitnessPlatform.Application.Domain.Documents.TrainingWorkout
+                                new FitnessPlatform.Application.Domain.Documents.TrainingSession
                                 {
-                                    WorkoutId = _sectionId,
-                                    Order = 0,
-                                    Name = "Running ForTime",
-                                    Exercises = [] // exercise-free section
+                                    SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? _sessionId : Guid.NewGuid(),
+                                    Name = $"Day {d} Session",
+                                    Order = 1,
+                                    Workouts =
+                                    [
+                                        new FitnessPlatform.Application.Domain.Documents.TrainingWorkout
+                                        {
+                                            WorkoutId = _sectionId,
+                                            Order = 0,
+                                            Name = "Running ForTime",
+                                            Exercises = [] // exercise-free section
+                                        }
+                                    ]
                                 }
                             ]
                         }).ToList()

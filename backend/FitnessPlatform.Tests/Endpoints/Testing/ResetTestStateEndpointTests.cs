@@ -337,8 +337,9 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "week must be Published for GET /client/plans to return the plan");
         week.DatePublished.Should().NotBeNull(because: "published week must have a DatePublished timestamp");
 
-        week.Sessions.Should().HaveCount(1);
-        var session = week.Sessions[0];
+        var sessions = week.Days.SelectMany(d => d.Sessions).ToList();
+        sessions.Should().HaveCount(1);
+        var session = sessions[0];
 
         session.Workouts.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
 

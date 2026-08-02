@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -51,17 +52,13 @@ public class SaveSessionPhotosEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sid,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Workouts = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sid,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ]
         };

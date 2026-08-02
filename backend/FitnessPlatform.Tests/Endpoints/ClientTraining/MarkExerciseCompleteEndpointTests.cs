@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -505,35 +506,31 @@ public class MarkExerciseCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = olderPlanStart,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = olderSessionId,
-                            DayOfWeek = 1,
-                            Name = "Older Session",
-                            Order = 1,
-                            Workouts =
-                            [
-                                new TrainingWorkout
-                                {
-                                    WorkoutId = olderSectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = olderExerciseId,
-                                            ExerciseName = "Old Ex",
-                                            Order = 1,
-                                            Sets = []
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = olderSessionId,
+                        Name = "Older Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = olderSectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = olderExerciseId,
+                                        ExerciseName = "Old Ex",
+                                        Order = 1,
+                                        Sets = []
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,

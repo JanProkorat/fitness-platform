@@ -50,24 +50,29 @@ public class MarkWorkoutIncompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d =>
-                        new TrainingSession
-                        {
-                            SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? _sessionId : Guid.NewGuid(),
-                            DayOfWeek = d,
-                            Name = $"Day {d} Session",
-                            Order = 1,
-                            Workouts =
-                            [
-                                new TrainingWorkout
-                                {
-                                    WorkoutId = _sectionId,
-                                    Order = 0,
-                                    Name = "Running ForTime",
-                                    Exercises = []
-                                }
-                            ]
-                        }).ToList()
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                    {
+                        DayOfWeek = d,
+                        Sessions =
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? _sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = _sectionId,
+                                        Order = 0,
+                                        Name = "Running ForTime",
+                                        Exercises = []
+                                    }
+                                ]
+                            }
+                        ]
+                    }).ToList()
                 }
             ],
             Version = 1,
