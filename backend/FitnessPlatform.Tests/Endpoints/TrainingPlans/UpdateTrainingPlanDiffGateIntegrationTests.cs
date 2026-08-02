@@ -54,7 +54,6 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Modern Day",
             Order = 1,
             Workouts =
@@ -99,7 +98,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
@@ -140,7 +139,6 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Two-Section Day",
             Order = 1,
             Workouts =
@@ -201,7 +199,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
@@ -273,7 +271,6 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Two-Section Day",   // must match BuildTwoSectionUpdateBody
             Order = 1,
             Workouts =
@@ -320,7 +317,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
