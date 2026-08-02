@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComplete;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -151,17 +152,13 @@ public class SessionLockStateTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Push Day",
-                            Order = 1,
-                            Workouts = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,
@@ -226,17 +223,13 @@ public class SessionLockStateTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Pull Day",
-                            Order = 1,
-                            Workouts = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Pull Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,
@@ -293,35 +286,31 @@ public class SessionLockStateTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Refresh Day",
-                            Order = 1,
-                            Workouts =
-                            [
-                                new TrainingWorkout
-                                {
-                                    WorkoutId = sectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Squat",
-                                            Order = 1,
-                                            Sets = [new ExerciseSet { SetNumber = 1 }]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Refresh Day",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = sectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Squat",
+                                        Order = 1,
+                                        Sets = [new ExerciseSet { SetNumber = 1 }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
