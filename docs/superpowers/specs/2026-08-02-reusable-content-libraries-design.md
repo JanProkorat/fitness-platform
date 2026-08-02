@@ -250,13 +250,31 @@ deserializing correctly despite the numeric order differing from the old
 Rules, identical across all libraries:
 
 - **Read** — your own entries at any visibility, plus everyone's `Public` ones.
-- **Write / delete** — owner only, regardless of visibility → `403` with a
-  stable `*_NOT_OWNED` error code.
+- **Write / delete** — owner only. The denial status depends on whether the
+  caller can *read* the entry at all, and this distinction is mandatory:
+  - **readable but not owned** (someone else's `Public` entry) → `403` with a
+    stable `*_NOT_OWNED` error code;
+  - **not readable** (someone else's `Private` entry) → `404` with
+    `*_NOT_FOUND`, **indistinguishable from a genuinely missing id** — same
+    status, same body bytes, same headers.
+
+  > **Correction (2026-08-02, code review of #858).** This bullet originally
+  > read "owner only, regardless of visibility → `403`". That is a
+  > **id-enumeration leak**: answering `403` for someone else's `Private` entry
+  > confirms the entry exists to a caller who has no right to read it, while a
+  > nonexistent id answers `404`. The two-outcome rule above is what #858
+  > implements and what every child must follow — including on endpoints the
+  > shared guard does not cover, such as `POST /{id}/copy` and
+  > `POST /from-plan`.
 - **Copy-to-own** — `POST .../{id}/copy` clones any readable entry to the caller
   as `Private` with a fresh `ExternalId`. This is how a coach adapts someone
-  else's public template.
+  else's public template. Denials follow the same two-outcome rule above.
 - **Concurrency** — document-level `Version` CAS on update, `409` on mismatch,
-  same shape as `PlanConcurrencyGuard`.
+  same shape as `PlanConcurrencyGuard`. **The ownership denial must be resolved
+  before any version comparison** — `PlanConcurrencyGuard` decides
+  `VersionConflict` before it invokes `mutate`, so an ownership check placed
+  inside `mutate` is only reached *after* a `409` has been decided, which leaks
+  existence of another owner's `Private` entry via `409`-vs-`404`.
 
 This adopts issue #766's target model from birth. Foods and Recipes are **not**
 retrofitted here; that stays #766's job.

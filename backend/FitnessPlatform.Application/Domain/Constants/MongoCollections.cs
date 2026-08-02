@@ -101,4 +101,19 @@ public static class MongoCollections
     /// <see cref="TrainingCompletions"/> collections into one per-(client, session, date) record.
     /// </summary>
     public const string SessionExecutions = "sessionExecutions";
+
+    /// <summary>
+    /// Reusable meal templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string MealTemplates = "mealTemplates";
+
+    /// <summary>
+    /// Reusable nutrition plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string NutritionPlanTemplates = "nutritionPlanTemplates";
+
+    /// <summary>
+    /// Reusable training plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string TrainingPlanTemplates = "trainingPlanTemplates";
 }

@@ -3,7 +3,6 @@ name: backend-dotnet
 description: Use PROACTIVELY for any work touching `/backend/**` — ASP.NET Core 10 + FastEndpoints API, EF Core entities, MongoDB documents, SignalR hubs, Testcontainers tests. Invoke when adding/modifying endpoints, entities, documents, services, migrations, or backend tests. Do NOT modify `/web` or `/mobile`.
 tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 model: sonnet
-maxTurns: 150
 permissionMode: acceptEdits
 color: blue
 skills: dotnet-feature, mongo-document, regen-api, signalr-event, root-cause-swarm
@@ -380,8 +379,19 @@ fragment, no quotes/whitespace/shell metacharacters. The `gate-check.sh`
 SubagentStop hook validates the file before control returns; a malformed
 handoff exits non-zero and you'll see the error to self-correct.
 
-If you hit your `maxTurns` cap mid-task, write `status: "incomplete"`
-with `incomplete_reason: "max-turns at <step>"` so the orchestrator can
+**Commit before you can be interrupted.** There is no `maxTurns` cap on this
+project, but a run can still end abruptly — an API stream drop, a stall
+watchdog, or a backgrounded command you are waiting on. You will get no
+warning, so treat committing as something you do *early and repeatedly*, not
+as a final step. As soon as the build is clean, commit. A committed partial
+slice is recoverable; an uncommitted one has to be reconstructed by hand.
+
+Never background a long-running command (a full test suite) and then end your
+turn waiting for it — the completion notification is routed to the
+orchestrator, not to you, so your turn ends parked and your work is stranded.
+
+If you know you are stopping mid-task, write `status: "incomplete"` with
+`incomplete_reason: "<what remains, at which step>"` so the orchestrator can
 decide to resume vs split.
 
 ## Never

@@ -289,4 +289,47 @@ public static class ErrorCodes
 
     /// <summary>DeadlineOffsetHours is not one of the allowed values (24, 48, 72, 120, 168).</summary>
     public const string InvalidDeadlineOffsetHours = "INVALID_DEADLINE_OFFSET_HOURS";
+
+    // ── Sharing Libraries (#858) ──────────────────────────────────────
+    // Meal templates, session templates, nutrition-plan templates, and training-plan
+    // templates — the four reusable-content libraries sharing LibraryVisibility /
+    // LibraryAccessGuard / LibrarySearchHelper. Exactly 12 codes (4 libraries x
+    // NOT_FOUND/NOT_OWNED/VERSION_CONFLICT) — never a WORKOUT_TEMPLATE_* code; that name is
+    // minted by #857's rename of the pre-existing SECTION_TEMPLATE_* codes above.
+
+    /// <summary>Meal template not found, or belongs to another owner and is Private.</summary>
+    public const string MealTemplateNotFound = "MEAL_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Meal template is readable but belongs to another owner.</summary>
+    public const string MealTemplateNotOwned = "MEAL_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Meal template version mismatch (optimistic concurrency).</summary>
+    public const string MealTemplateVersionConflict = "MEAL_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Session template not found, or belongs to another owner and is Private.</summary>
+    public const string SessionTemplateNotFound = "SESSION_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Session template is readable but belongs to another owner.</summary>
+    public const string SessionTemplateNotOwned = "SESSION_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Session template version mismatch (optimistic concurrency).</summary>
+    public const string SessionTemplateVersionConflict = "SESSION_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Nutrition plan template not found, or belongs to another owner and is Private.</summary>
+    public const string NutritionPlanTemplateNotFound = "NUTRITION_PLAN_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Nutrition plan template is readable but belongs to another owner.</summary>
+    public const string NutritionPlanTemplateNotOwned = "NUTRITION_PLAN_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Nutrition plan template version mismatch (optimistic concurrency).</summary>
+    public const string NutritionPlanTemplateVersionConflict = "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Training plan template not found, or belongs to another owner and is Private.</summary>
+    public const string TrainingPlanTemplateNotFound = "TRAINING_PLAN_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Training plan template is readable but belongs to another owner.</summary>
+    public const string TrainingPlanTemplateNotOwned = "TRAINING_PLAN_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Training plan template version mismatch (optimistic concurrency).</summary>
+    public const string TrainingPlanTemplateVersionConflict = "TRAINING_PLAN_TEMPLATE_VERSION_CONFLICT";
 }

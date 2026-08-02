@@ -3,7 +3,6 @@ name: github-issues
 description: Own the GitHub issue lifecycle for `JanProkorat/fitness-platform` — create new issues, edit existing ones, triage incoming reports, manage the `type:*` / `scope:*` / `priority:*` / `status:*` label taxonomy, comment lifecycle updates, and close with the right reason (completed / duplicate / wontfix / invalid). Enforces the project's issue-body conventions (✅ Acceptance criteria for features/refactors, ✅ Expected + ❌ Current for bugs). Never touches code, never opens or merges PRs, never runs dev servers. Invoked whenever an issue needs to be born, changed, or closed — regardless of which package the issue is about.
 tools: Read, Grep, Glob, Bash
 model: sonnet
-maxTurns: 30
 color: yellow
 ---
 

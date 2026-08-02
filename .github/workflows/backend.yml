@@ -5,7 +5,7 @@ on:
     branches: [main, develop]
     paths: ['backend/**']
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/*']
     paths: ['backend/**']
 
 permissions:
