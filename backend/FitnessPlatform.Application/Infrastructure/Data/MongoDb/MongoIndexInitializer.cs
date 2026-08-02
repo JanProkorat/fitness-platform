@@ -103,6 +103,17 @@ public class MongoIndexInitializer : IHostedService
         // and a no-op on any database that has already run it once (idempotent $exists guard).
         await MigrateWorkoutSectionsToWorkoutsRenameAsync(cancellationToken);
 
+        // #857 phase 2: MUST also run before every Create*Indexes call below (specifically
+        // CreateTrainingPlanIndexes, and the typed p.Weeks.Sessions read in
+        // MigrateSessionExecutionsAsync, which is invoked separately but reads the same
+        // collection). Neither TrainingWeek nor TrainingSession carries
+        // [BsonIgnoreExtraElements], so once the new BsonElement("days") is live on the C#
+        // type, a legacy on-disk document that still carries the old flat "sessions"/
+        // "dayNotes" shape is an unmapped/missing-element mismatch for the typed collection.
+        // This migration is a no-op on a fresh database and a no-op on any database that has
+        // already run it once (idempotent $exists guard on the legacy "weeks.sessions" shape).
+        await MigrateTrainingTreeRestructureAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -428,6 +439,198 @@ public class MongoIndexInitializer : IHostedService
             section.Remove("sectionId");
             section["workoutId"] = sectionId;
         }
+    }
+
+    // ── #857 phase 2: materialise TrainingDay under each TrainingWeek ────────────────
+    //
+    // Today's on-disk shape (pre-migration): TrainingWeek carries a flat "sessions" array
+    // where each session embeds its own "dayOfWeek" (int, 1=Monday..7=Sunday), plus a
+    // separate "dayNotes" field — a Dictionary<int,string> stored via
+    // BsonDictionaryOptions(ArrayOfDocuments), i.e. an array of {"k": <int>, "v": <string>}
+    // documents, NOT a plain sub-document keyed by day number.
+    //
+    // Target shape: TrainingWeek carries a "days" array of exactly 7 TrainingDay documents
+    // (dayOfWeek 1..7, always materialised — a rest day is a day with an empty "sessions"
+    // array), each owning its own "sessions" (session's own "dayOfWeek" is dropped — the
+    // parent day owns it now) and an optional "note" (folded in from the old dayNotes entry
+    // for that day).
+    //
+    // This is a document restructure, not a field rename — $rename cannot express
+    // "regroup array elements by a nested key into a new parent array", so this operates on
+    // the raw BsonDocument, groups sessions by dayOfWeek, and writes the whole document back.
+    //
+    // MUST run before ANY typed read of TrainingPlan (see the call site in StartAsync) —
+    // same BsonSerializationException risk as the other #857 boot migrations above.
+    //
+    // Idempotency: the candidate filter matches only documents where at least one week still
+    // carries the OLD "sessions" field. On a fresh database, or a database that already ran
+    // this migration, the filter matches zero documents and the loop body never runs.
+    /// <summary>
+    /// One-time, idempotent migration (#857 phase 2): restructures every <c>trainingPlans</c>
+    /// document's <c>weeks[].sessions[]</c> (flat, each session carrying its own
+    /// <c>dayOfWeek</c>) plus <c>weeks[].dayNotes</c> into <c>weeks[].days[]</c> — 7
+    /// materialised <see cref="TrainingDay"/> documents per week, each owning its own
+    /// <c>sessions</c> (with <c>dayOfWeek</c> dropped from the session) and an optional
+    /// <c>note</c>. See the remarks above this method and the call site in
+    /// <see cref="StartAsync"/> for why this must run before any typed read of the collection.
+    /// </summary>
+    private async Task MigrateTrainingTreeRestructureAsync(CancellationToken ct)
+    {
+        var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
+            _mongo.TrainingPlans.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("weeks.sessions", new BsonDocument("$exists", true));
+
+        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var writes = new List<WriteModel<BsonDocument>>();
+        var migratedWeekCount = 0;
+
+        foreach (var planDoc in candidates)
+        {
+            if (!planDoc.TryGetValue("weeks", out var weeksValue) || weeksValue is not BsonArray weeks)
+            {
+                continue;
+            }
+
+            var planChanged = false;
+
+            foreach (var weekValue in weeks)
+            {
+                if (weekValue is not BsonDocument week)
+                {
+                    continue;
+                }
+
+                if (RestructureWeekToDays(week))
+                {
+                    planChanged = true;
+                    migratedWeekCount++;
+                }
+            }
+
+            if (planChanged)
+            {
+                writes.Add(new ReplaceOneModel<BsonDocument>(
+                    Builders<BsonDocument>.Filter.Eq("_id", planDoc["_id"]),
+                    planDoc));
+            }
+        }
+
+        if (writes.Count > 0)
+        {
+            await rawPlans.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+
+            _logger.LogInformation(
+                "Training tree restructure (#857): migrated {WeekCount} week(s) across " +
+                "{PlanCount} training plan document(s) to the day-level TrainingDay model",
+                migratedWeekCount, writes.Count);
+        }
+    }
+
+    /// <summary>
+    /// Restructures a single week's BSON in place: groups <c>sessions</c> by the session's
+    /// (soon-to-be-dropped) <c>dayOfWeek</c> into 7 materialised day documents, folds
+    /// <c>dayNotes</c> onto the matching day's <c>note</c>, and removes the old <c>sessions</c>/
+    /// <c>dayNotes</c> fields. Returns <c>false</c> without modifying <paramref name="week"/> if
+    /// the week has already been migrated (no <c>sessions</c> field present).
+    /// </summary>
+    private bool RestructureWeekToDays(BsonDocument week)
+    {
+        if (!week.TryGetValue("sessions", out var sessionsValue) || sessionsValue is not BsonArray sessions)
+        {
+            return false;
+        }
+
+        var notesByDay = ExtractLegacyDayNotes(week);
+        var sessionsByDay = new Dictionary<int, BsonArray>();
+
+        foreach (var sessionValue in sessions)
+        {
+            if (sessionValue is not BsonDocument session)
+            {
+                continue;
+            }
+
+            var dayOfWeek = session.TryGetValue("dayOfWeek", out var dayOfWeekValue) ? dayOfWeekValue.ToInt32() : 0;
+            session.Remove("dayOfWeek");
+
+            if (dayOfWeek is < 1 or > 7)
+            {
+                _logger.LogWarning(
+                    "Training tree restructure (#857): session {SessionId} has an invalid " +
+                    "dayOfWeek ({DayOfWeek}) and was dropped during migration",
+                    session.TryGetValue("sessionId", out var sessionId) ? sessionId : BsonNull.Value,
+                    dayOfWeek);
+                continue;
+            }
+
+            if (!sessionsByDay.TryGetValue(dayOfWeek, out var daySessions))
+            {
+                daySessions = new BsonArray();
+                sessionsByDay[dayOfWeek] = daySessions;
+            }
+
+            daySessions.Add(session);
+        }
+
+        var days = new BsonArray();
+
+        for (var dayOfWeek = 1; dayOfWeek <= 7; dayOfWeek++)
+        {
+            var dayDoc = new BsonDocument
+            {
+                { "dayOfWeek", dayOfWeek },
+                { "sessions", sessionsByDay.TryGetValue(dayOfWeek, out var daySessions) ? daySessions : new BsonArray() }
+            };
+
+            if (notesByDay.TryGetValue(dayOfWeek, out var note))
+            {
+                dayDoc["note"] = note;
+            }
+
+            days.Add(dayDoc);
+        }
+
+        week["days"] = days;
+        week.Remove("sessions");
+        week.Remove("dayNotes");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Reads the legacy <c>dayNotes</c> field off a week's raw BSON — stored as
+    /// <c>BsonDictionaryOptions(ArrayOfDocuments)</c>, i.e. an array of
+    /// <c>{"k": &lt;int&gt;, "v": &lt;string&gt;}</c> documents, not a plain sub-document keyed
+    /// by day number. Returns an empty dictionary if the field is absent or malformed.
+    /// </summary>
+    private static Dictionary<int, string> ExtractLegacyDayNotes(BsonDocument week)
+    {
+        var notesByDay = new Dictionary<int, string>();
+
+        if (!week.TryGetValue("dayNotes", out var dayNotesValue) || dayNotesValue is not BsonArray dayNotesArray)
+        {
+            return notesByDay;
+        }
+
+        foreach (var entryValue in dayNotesArray)
+        {
+            if (entryValue is not BsonDocument entry)
+            {
+                continue;
+            }
+
+            if (!entry.TryGetValue("k", out var keyValue) || !entry.TryGetValue("v", out var valueValue))
+            {
+                continue;
+            }
+
+            notesByDay[keyValue.ToInt32()] = valueValue.AsString;
+        }
+
+        return notesByDay;
     }
 
     // ── #840: standardise Mongo clientId on ApplicationUser.Id ───────────────────
@@ -1178,7 +1381,7 @@ public class MongoIndexInitializer : IHostedService
 
             var lookup = clientPlans
                 .OrderByDescending(p => p.DateUpdated ?? p.DateCreated)
-                .SelectMany(p => p.Weeks.SelectMany(w => w.Sessions).Select(s => (Plan: p, Session: s)))
+                .SelectMany(p => p.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).Select(s => (Plan: p, Session: s)))
                 .GroupBy(x => x.Session.SessionId)
                 .ToDictionary(g => g.Key, g => (g.First().Plan.ExternalId, g.First().Session));
 

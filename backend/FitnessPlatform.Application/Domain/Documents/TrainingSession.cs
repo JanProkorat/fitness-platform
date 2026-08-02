@@ -5,7 +5,9 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// A single training session within a week (e.g. "Push Day", "Leg Day").
+/// A single training session within a <see cref="TrainingDay"/> (e.g. "Push Day", "Leg Day").
+/// The parent day owns the day-of-week; a session no longer carries its own — see
+/// <see cref="TrainingDay.DayOfWeek"/>.
 /// </summary>
 public class TrainingSession
 {
@@ -14,12 +16,6 @@ public class TrainingSession
     /// </summary>
     [BsonElement("sessionId")]
     public Guid SessionId { get; set; }
-
-    /// <summary>
-    /// Day of the week (1 = Monday, 7 = Sunday).
-    /// </summary>
-    [BsonElement("dayOfWeek")]
-    public int DayOfWeek { get; set; }
 
     /// <summary>
     /// Display name (e.g. "Push Day", "Upper Body").
