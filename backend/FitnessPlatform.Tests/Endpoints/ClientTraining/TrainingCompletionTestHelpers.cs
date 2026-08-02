@@ -81,26 +81,32 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Workouts =
+                        Sessions =
                         [
-                            new TrainingWorkout
+                            new TrainingSession
                             {
-                                WorkoutId = secId,
-                                Order = 0,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = secId,
+                                        Order = 0,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
@@ -144,43 +150,49 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Workouts =
+                        Sessions =
                         [
-                            new TrainingWorkout
+                            new TrainingSession
                             {
-                                WorkoutId = section1Id,
-                                Order = 0,
-                                Name = "Section A",
-                                Exercises =
-                                [
-                                    new SessionExercise
-                                    {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
-                                        Order = 1,
-                                        Sets = []
-                                    }
-                                ]
-                            },
-                            new TrainingWorkout
-                            {
-                                WorkoutId = section2Id,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Section B",
-                                Exercises =
+                                Workouts =
                                 [
-                                    new SessionExercise
+                                    new TrainingWorkout
                                     {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
+                                        WorkoutId = section1Id,
+                                        Order = 0,
+                                        Name = "Section A",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = section2Id,
                                         Order = 1,
-                                        Sets = []
+                                        Name = "Section B",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -256,33 +268,39 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Workouts =
+                        Sessions =
                         [
-                            new TrainingWorkout
+                            new TrainingSession
                             {
-                                WorkoutId = forTimeSectionId,
-                                Order = 0,
-                                Name = "ForTime",
-                                Exercises = [] // exercise-free section
-                            },
-                            new TrainingWorkout
-                            {
-                                WorkoutId = standardSectionId,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = forTimeSectionId,
+                                        Order = 0,
+                                        Name = "ForTime",
+                                        Exercises = [] // exercise-free section
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = standardSectionId,
+                                        Order = 1,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
