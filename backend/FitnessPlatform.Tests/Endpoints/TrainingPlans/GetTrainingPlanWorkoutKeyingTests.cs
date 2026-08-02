@@ -37,7 +37,6 @@ public class GetTrainingPlanSectionKeyingTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
             Workouts =
             [
                 new TrainingWorkout
@@ -88,7 +87,7 @@ public class GetTrainingPlanSectionKeyingTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,
@@ -282,7 +281,6 @@ public class GetTrainingPlanSectionKeyingTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
             Workouts =
             [
                 new TrainingWorkout
@@ -307,7 +305,7 @@ public class GetTrainingPlanSectionKeyingTests
             TrainerId = _trainerId,
             Name = "Test Plan",
             Status = TrainingPlanStatus.Active,
-            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, Sessions = [session] }],
+            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, Days = TrainingPlanTestHelpers.MaterializeDays((1, session)) }],
             Version = 1,
             DateCreated = _now
         };
@@ -387,7 +385,6 @@ public class GetTrainingPlanSectionKeyingTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
             Workouts =
             [
                 new TrainingWorkout
@@ -407,7 +404,7 @@ public class GetTrainingPlanSectionKeyingTests
             TrainerId = _trainerId,
             Name = "Test Plan",
             Status = TrainingPlanStatus.Active,
-            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, Sessions = [session] }],
+            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, Days = TrainingPlanTestHelpers.MaterializeDays((1, session)) }],
             Version = 1,
             DateCreated = _now
         };
