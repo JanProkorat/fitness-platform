@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -344,19 +345,17 @@ public class GetTodaySessionEndpointTests
                 WeekNumber = w,
                 Status = WeekStatus.Published,
                 DatePublished = startDate,
-                Sessions = w == 1
+                Days = w == 1
                     ?
-                    [
-                        new TrainingSession
+                    TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = capturedSessionId,
-                            DayOfWeek = todayDow,
                             Name = name + " Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
-                    : []
+                        }))
+                    : TrainingPlanTestHelpers.MaterializeDays()
             }).ToList(),
             Version = 1,
             DateCreated = startDate
@@ -456,25 +455,21 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = session1Id,
-                            DayOfWeek = todayDow,
                             Name = "Morning Session",
                             Order = 1,
                             Workouts = []
-                        },
-                        new TrainingSession
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = session2Id,
-                            DayOfWeek = todayDow,
                             Name = "Evening Session",
                             Order = 2,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -530,25 +525,21 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionBId,
-                            DayOfWeek = todayDow,
                             Name = "Second Session",
                             Order = 2,
                             Workouts = []
-                        },
-                        new TrainingSession
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionAId,
-                            DayOfWeek = todayDow,
                             Name = "First Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -599,17 +590,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Only Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -662,17 +650,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(otherDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = otherDow,
                             Name = "Not Today",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -733,7 +718,7 @@ public class GetTodaySessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Draft,
-                    Sessions = []
+                    Days = TrainingPlanTestHelpers.MaterializeDays()
                 }
             ],
             Version = 1,
@@ -831,12 +816,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
                             Workouts =
@@ -861,8 +844,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -959,12 +941,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
                             Workouts =
@@ -991,8 +971,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1098,12 +1077,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
                             Workouts =
@@ -1130,8 +1107,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1232,12 +1208,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
                             Workouts =
@@ -1264,8 +1238,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1342,12 +1315,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
                             Workouts =
@@ -1374,8 +1345,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1486,12 +1456,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
                             Workouts =
@@ -1520,8 +1488,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1590,12 +1557,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
                             Workouts =
@@ -1624,8 +1589,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1681,17 +1645,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1736,12 +1697,10 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Push",
                             Order = 1,
                             Workouts =
@@ -1770,8 +1729,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1842,17 +1800,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = futureStart,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Future Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1903,21 +1858,18 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Week 1 Session",
                             Order = 1,
                             Workouts = []
-                        }
-                    ]
+                        }))
                 },
-                new TrainingWeek { WeekNumber = 2, Status = WeekStatus.Draft, Sessions = [] },
-                new TrainingWeek { WeekNumber = 3, Status = WeekStatus.Draft, Sessions = [] },
-                new TrainingWeek { WeekNumber = 4, Status = WeekStatus.Draft, Sessions = [] }
+                new TrainingWeek { WeekNumber = 2, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() },
+                new TrainingWeek { WeekNumber = 3, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() },
+                new TrainingWeek { WeekNumber = 4, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() }
             ],
             Version = 1,
             DateCreated = startDate
@@ -1969,21 +1921,24 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 1 Session", Order = 1, Workouts = [] }))
                 },
                 new TrainingWeek
                 {
                     WeekNumber = 2,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (fallback target)", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week2SessionId, Name = "Week 2 Session (fallback target)", Order = 1, Workouts = [] }))
                 },
                 new TrainingWeek
                 {
                     // Week 3 is the calculated week (unpublished) — must be skipped entirely.
                     WeekNumber = 3,
                     Status = WeekStatus.Draft,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 3 Session (must never appear)", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 3 Session (must never appear)", Order = 1, Workouts = [] }))
                 },
                 new TrainingWeek
                 {
@@ -1991,7 +1946,8 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 4,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = week4SessionId, DayOfWeek = todayDow, Name = "Week 4 Session (must never appear)", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week4SessionId, Name = "Week 4 Session (must never appear)", Order = 1, Workouts = [] }))
                 }
             ],
             Version = 1,
@@ -2044,14 +2000,16 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = firstPublishDate,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session (must never appear)", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 1 Session (must never appear)", Order = 1, Workouts = [] }))
                 },
                 new TrainingWeek
                 {
                     WeekNumber = 2,
                     Status = WeekStatus.Published,
                     DatePublished = firstPublishDate,
-                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (cycle target)", Order = 1, Workouts = [] }]
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week2SessionId, Name = "Week 2 Session (cycle target)", Order = 1, Workouts = [] }))
                 }
             ],
             Version = 1,

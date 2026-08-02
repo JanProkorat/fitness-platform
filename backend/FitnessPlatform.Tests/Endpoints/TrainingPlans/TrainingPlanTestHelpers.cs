@@ -37,11 +37,32 @@ public static class TrainingPlanTestHelpers
             {
                 WeekNumber = w,
                 Status = WeekStatus.Draft,
-                Sessions = []
+                Days = MaterializeDays()
             }).ToList(),
             Version = version,
             DateCreated = DateTime.UtcNow
         };
+    }
+
+    /// <summary>
+    /// Materializes a full 7-day <see cref="TrainingWeek.Days"/> list (1=Monday..7=Sunday) from a
+    /// flat list of (dayOfWeek, session) pairs — mirrors how <see cref="TrainingDay"/> is always
+    /// fully materialised on the production write path, even for days carrying no sessions. Two
+    /// pairs sharing the same day both land under that day, preserving multi-session-per-day
+    /// fixtures.
+    /// </summary>
+    public static List<TrainingDay> MaterializeDays(params (int DayOfWeek, TrainingSession Session)[] sessions)
+    {
+        var days = Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay { DayOfWeek = dayOfWeek, Sessions = [] })
+            .ToList();
+
+        foreach (var (dayOfWeek, session) in sessions)
+        {
+            days.First(d => d.DayOfWeek == dayOfWeek).Sessions.Add(session);
+        }
+
+        return days;
     }
 
     /// <summary>
