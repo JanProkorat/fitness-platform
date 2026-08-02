@@ -34,8 +34,8 @@ public class PublicSessionTemplateResponse
     /// <summary>Format configuration for the session. Null when Format is Standard.</summary>
     public WodConfig? FormatConfig { get; set; }
 
-    /// <summary>Ordered sections making up the template, each with its exercises and set prescriptions.</summary>
-    public List<TrainingWorkout> Sections { get; set; } = [];
+    /// <summary>Ordered workouts making up the template, each with its exercises and set prescriptions.</summary>
+    public List<TrainingWorkout> Workouts { get; set; } = [];
 
     /// <summary>Maps a <see cref="SessionTemplate"/> document to the response DTO.</summary>
     public static PublicSessionTemplateResponse FromDocument(SessionTemplate t) => new()
@@ -48,6 +48,6 @@ public class PublicSessionTemplateResponse
         EstimatedDurationMinutes = t.EstimatedDurationMinutes,
         Format = t.Format.ToString(),
         FormatConfig = t.FormatConfig,
-        Sections = t.Sections
+        Workouts = t.Workouts
     };
 }

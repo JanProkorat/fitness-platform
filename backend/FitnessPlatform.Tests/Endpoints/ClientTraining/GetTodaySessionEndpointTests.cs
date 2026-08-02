@@ -353,7 +353,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = name + " Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                     : []
@@ -464,7 +464,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Morning Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         },
                         new TrainingSession
                         {
@@ -472,7 +472,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Evening Session",
                             Order = 2,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -538,7 +538,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Second Session",
                             Order = 2,
-                            Sections = []
+                            Workouts = []
                         },
                         new TrainingSession
                         {
@@ -546,7 +546,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "First Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -607,7 +607,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Only Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -670,7 +670,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = otherDow,
                             Name = "Not Today",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -839,11 +839,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -967,11 +967,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1106,11 +1106,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1240,11 +1240,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1350,11 +1350,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1494,11 +1494,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1598,11 +1598,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1689,7 +1689,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -1744,11 +1744,11 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Push",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1850,7 +1850,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Future Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -1911,7 +1911,7 @@ public class GetTodaySessionEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Week 1 Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 },
@@ -1969,21 +1969,21 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session", Order = 1, Workouts = [] }]
                 },
                 new TrainingWeek
                 {
                     WeekNumber = 2,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (fallback target)", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (fallback target)", Order = 1, Workouts = [] }]
                 },
                 new TrainingWeek
                 {
                     // Week 3 is the calculated week (unpublished) — must be skipped entirely.
                     WeekNumber = 3,
                     Status = WeekStatus.Draft,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 3 Session (must never appear)", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 3 Session (must never appear)", Order = 1, Workouts = [] }]
                 },
                 new TrainingWeek
                 {
@@ -1991,7 +1991,7 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 4,
                     Status = WeekStatus.Published,
                     DatePublished = startDate,
-                    Sessions = [new TrainingSession { SessionId = week4SessionId, DayOfWeek = todayDow, Name = "Week 4 Session (must never appear)", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = week4SessionId, DayOfWeek = todayDow, Name = "Week 4 Session (must never appear)", Order = 1, Workouts = [] }]
                 }
             ],
             Version = 1,
@@ -2044,14 +2044,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = firstPublishDate,
-                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session (must never appear)", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = Guid.NewGuid(), DayOfWeek = todayDow, Name = "Week 1 Session (must never appear)", Order = 1, Workouts = [] }]
                 },
                 new TrainingWeek
                 {
                     WeekNumber = 2,
                     Status = WeekStatus.Published,
                     DatePublished = firstPublishDate,
-                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (cycle target)", Order = 1, Sections = [] }]
+                    Sessions = [new TrainingSession { SessionId = week2SessionId, DayOfWeek = todayDow, Name = "Week 2 Session (cycle target)", Order = 1, Workouts = [] }]
                 }
             ],
             Version = 1,

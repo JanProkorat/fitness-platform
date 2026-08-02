@@ -75,7 +75,7 @@ public class GetTodaySessionPhotosTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }

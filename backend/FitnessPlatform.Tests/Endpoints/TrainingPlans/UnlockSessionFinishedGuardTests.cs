@@ -52,7 +52,7 @@ public class UnlockSessionFinishedGuardTests
                             DayOfWeek = 1,
                             Name = "Test Session",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -274,11 +274,11 @@ public class UnlockSessionFinishedGuardTests
         // Use a plan with one exercise in a section to make the test realistic.
         var sectionId = Guid.NewGuid();
         var exerciseId = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Sessions[0].Workouts =
         [
             new TrainingWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -346,11 +346,11 @@ public class UnlockSessionFinishedGuardTests
         var sectionId = Guid.NewGuid();
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Sessions[0].Workouts =
         [
             new TrainingWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -421,11 +421,11 @@ public class UnlockSessionFinishedGuardTests
         var sectionIdB = Guid.NewGuid();
         var sharedExerciseId = Guid.NewGuid(); // same exercise in both sections
 
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Sessions[0].Workouts =
         [
             new TrainingWorkout
             {
-                SectionId = sectionIdA,
+                WorkoutId = sectionIdA,
                 Order = 0,
                 Name = "AMRAP A",
                 Exercises =
@@ -435,7 +435,7 @@ public class UnlockSessionFinishedGuardTests
             },
             new TrainingWorkout
             {
-                SectionId = sectionIdB,
+                WorkoutId = sectionIdB,
                 Order = 1,
                 Name = "AMRAP B",
                 Exercises =
@@ -507,11 +507,11 @@ public class UnlockSessionFinishedGuardTests
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
 
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Sessions[0].Workouts =
         [
             new TrainingWorkout
             {
-                SectionId = sectionIdA,
+                WorkoutId = sectionIdA,
                 Order = 0,
                 Name = "Section A",
                 Exercises =
@@ -521,7 +521,7 @@ public class UnlockSessionFinishedGuardTests
             },
             new TrainingWorkout
             {
-                SectionId = sectionIdB,
+                WorkoutId = sectionIdB,
                 Order = 1,
                 Name = "Section B",
                 Exercises =

@@ -55,11 +55,11 @@ public class GetTrainingPlanCompletionFinishedStateTests
                             SessionId = _sessionId,
                             Name = "Session 1",
                             DayOfWeek = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = _sectionId,
+                                    WorkoutId = _sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -329,11 +329,11 @@ public class GetTrainingPlanCompletionFinishedStateTests
                             SessionId = _sessionId,
                             Name = "Session 1",
                             DayOfWeek = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = _sectionAId,
+                                    WorkoutId = _sectionAId,
                                     Order = 0,
                                     Name = "Section A",
                                     Exercises =
@@ -349,7 +349,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
                                 },
                                 new TrainingWorkout
                                 {
-                                    SectionId = _sectionBId,
+                                    WorkoutId = _sectionBId,
                                     Order = 1,
                                     Name = "Section B",
                                     Exercises =
@@ -536,7 +536,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         // Build a plan where the session has NO sections (empty/corrupt definition).
         var plan = BuildPlan();
-        plan.Weeks[0].Sessions[0].Sections = []; // zero sections
+        plan.Weeks[0].Sessions[0].Workouts = []; // zero sections
 
         // A non-empty completion doc that would match vacuously under the old All() check.
         var completion = new TrainingCompletion

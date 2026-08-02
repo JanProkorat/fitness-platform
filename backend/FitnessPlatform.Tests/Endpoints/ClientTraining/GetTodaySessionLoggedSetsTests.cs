@@ -196,11 +196,11 @@ public class GetTodaySessionLoggedSetsTests
                             DayOfWeek = dow,
                             Name = "Test Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =

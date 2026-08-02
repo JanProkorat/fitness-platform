@@ -491,11 +491,11 @@ public class UpdateTrainingPlanFormatTests
             Name = "Legacy Session",
             Order = 1,
             // Format defaults to null, FormatConfig defaults to null
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

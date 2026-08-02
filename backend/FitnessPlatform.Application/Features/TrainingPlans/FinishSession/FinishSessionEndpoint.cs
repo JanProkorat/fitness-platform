@@ -192,10 +192,10 @@ public class FinishSessionEndpoint(
     /// </summary>
     private static SessionExecutionPerformance BuildPerformanceFromTemplate(TrainingSession session, DateTime completedAt)
     {
-        var workoutSections = session.Sections
+        var workoutSections = session.Workouts
             .Select(section => new WorkoutSection
             {
-                SectionId = section.SectionId,
+                SectionId = section.WorkoutId,
                 Order = section.Order,
                 Name = section.Name,
                 Format = section.Format,

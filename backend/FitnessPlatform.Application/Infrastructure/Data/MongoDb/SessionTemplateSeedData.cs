@@ -5,16 +5,16 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Seed data for the workoutTemplates collection — at least two templates per
+/// Seed data for the sessionTemplates collection — at least two templates per
 /// <see cref="WorkoutFormat"/> value, sourced from the embedded
-/// <c>Seed/Data/seed-workout-templates.json</c> resource. Exercise references (by slug) are
+/// <c>Seed/Data/seed-session-templates.json</c> resource. Exercise references (by slug) are
 /// resolved against <see cref="ExerciseSeedData"/> entries in memory, then bound to the *actual*
 /// persisted Exercise <c>ExternalId</c> via the name→ExternalId map <see cref="MongoSeeder"/>
 /// builds after the exercise phase — see #810 review finding B1.
 /// </summary>
 public static class SessionTemplateSeedData
 {
-    private const string ResourceFileName = "seed-workout-templates.json";
+    private const string ResourceFileName = "seed-session-templates.json";
 
     /// <summary>
     /// Builds the workout template documents to seed. All templates are owned by the system
@@ -36,9 +36,9 @@ public static class SessionTemplateSeedData
 
         foreach (var entry in entries)
         {
-            var sections = entry.Sections.Select(section => new TrainingWorkout
+            var workouts = entry.Sections.Select(section => new TrainingWorkout
             {
-                SectionId = Guid.NewGuid(),
+                WorkoutId = Guid.NewGuid(),
                 // seed-workout-templates.json authors sections with 1-based order;
                 // TrainingWorkout.Order is documented as 0-based.
                 Order = section.Order - 1,
@@ -103,7 +103,7 @@ public static class SessionTemplateSeedData
                 EstimatedDurationMinutes = entry.EstimatedDurationMinutes,
                 Format = Enum.Parse<WorkoutFormat>(entry.Format),
                 FormatConfig = MapWodConfig(entry.FormatConfig),
-                Sections = sections,
+                Workouts = workouts,
                 Visibility = WorkoutTemplateVisibility.Public,
                 Version = 1,
                 DateCreated = now,

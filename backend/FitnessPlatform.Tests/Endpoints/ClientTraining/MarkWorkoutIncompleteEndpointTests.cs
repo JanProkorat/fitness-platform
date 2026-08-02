@@ -57,11 +57,11 @@ public class MarkWorkoutIncompleteEndpointTests
                             DayOfWeek = d,
                             Name = $"Day {d} Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = _sectionId,
+                                    WorkoutId = _sectionId,
                                     Order = 0,
                                     Name = "Running ForTime",
                                     Exercises = []

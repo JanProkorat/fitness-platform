@@ -525,7 +525,7 @@ public class ComplianceServiceTests
                             DayOfWeek = yesterdayDow,
                             Name = "Session A",
                             Order = 1,
-                            Sections = [new TrainingWorkout { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         },
                         new TrainingSession
                         {
@@ -533,7 +533,7 @@ public class ComplianceServiceTests
                             DayOfWeek = yesterdayDow,
                             Name = "Session B",
                             Order = 2,
-                            Sections = [new TrainingWorkout { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         }
                     ]
                 }

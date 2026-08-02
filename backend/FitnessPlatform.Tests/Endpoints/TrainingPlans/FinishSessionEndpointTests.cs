@@ -65,11 +65,11 @@ public class FinishSessionEndpointTests
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionId,
+                                    WorkoutId = sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -508,7 +508,7 @@ public class FinishSessionEndpointTests
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }

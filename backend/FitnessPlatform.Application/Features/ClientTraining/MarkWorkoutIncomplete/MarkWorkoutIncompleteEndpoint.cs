@@ -93,7 +93,7 @@ public class MarkWorkoutIncompleteEndpoint(
         }
 
         // Validate the section exists in the session
-        var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
+        var section = session.Workouts.FirstOrDefault(s => s.WorkoutId == req.SectionId);
         if (section is null)
         {
             await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The section was not found in the specified session.", ct);

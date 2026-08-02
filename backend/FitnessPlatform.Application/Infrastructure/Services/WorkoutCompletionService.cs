@@ -123,9 +123,9 @@ public class WorkoutCompletionService(
         }
 
         var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
-        var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
-        var completedBySection = session.Sections.ToDictionary(
-            s => s.SectionId.ToString(),
+        var allSectionIds = session.Workouts.Select(s => s.WorkoutId).ToList();
+        var completedBySection = session.Workouts.ToDictionary(
+            s => s.WorkoutId.ToString(),
             s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
 
         execution.CompletedExerciseIds = allExerciseIds;

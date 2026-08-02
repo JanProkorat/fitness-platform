@@ -343,9 +343,9 @@ public class CatalogSeedingTests : IAsyncLifetime
             t.OwnerId.Should().Be(SystemUsers.AdminId);
             t.Visibility.Should().Be(WorkoutTemplateVisibility.Public);
             t.Version.Should().Be(1);
-            t.Sections.Should().NotBeEmpty($"template '{t.Name}' must have sections");
+            t.Workouts.Should().NotBeEmpty($"template '{t.Name}' must have sections");
 
-            foreach (var section in t.Sections)
+            foreach (var section in t.Workouts)
             {
                 foreach (var exercise in section.Exercises)
                 {
@@ -457,7 +457,7 @@ public class CatalogSeedingTests : IAsyncLifetime
         // ExternalId, not the in-memory deterministic one.
         var templates = await mongo.SessionTemplates.Find(FilterDefinition<SessionTemplate>.Empty).ToListAsync(ct);
         var benchPressRefs = templates
-            .SelectMany(t => t.Sections)
+            .SelectMany(t => t.Workouts)
             .SelectMany(s => s.Exercises)
             .Where(e => e.ExerciseName == "Barbell Bench Press")
             .ToList();
@@ -481,7 +481,7 @@ public class CatalogSeedingTests : IAsyncLifetime
                 .Project(e => e.ExternalId)
                 .ToListAsync(ct))
             .ToHashSet();
-        templates.SelectMany(t => t.Sections).SelectMany(s => s.Exercises).Should().AllSatisfy(e =>
+        templates.SelectMany(t => t.Workouts).SelectMany(s => s.Exercises).Should().AllSatisfy(e =>
             allExerciseExternalIds.Should().Contain(e.ExerciseExternalId));
     }
 }

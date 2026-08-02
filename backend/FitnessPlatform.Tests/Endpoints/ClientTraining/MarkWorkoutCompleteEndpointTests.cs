@@ -73,11 +73,11 @@ public class MarkWorkoutCompleteEndpointTests
                             DayOfWeek = d,
                             Name = $"Day {d} Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new FitnessPlatform.Application.Domain.Documents.TrainingWorkout
                                 {
-                                    SectionId = _sectionId,
+                                    WorkoutId = _sectionId,
                                     Order = 0,
                                     Name = "Running ForTime",
                                     Exercises = [] // exercise-free section
@@ -105,7 +105,7 @@ public class MarkWorkoutCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -145,7 +145,7 @@ public class MarkWorkoutCompleteEndpointTests
 
         // Mark section complete again — idempotent
         await ep.HandleAsync(
-            new MarkWorkoutCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -177,7 +177,7 @@ public class MarkWorkoutCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -196,7 +196,7 @@ public class MarkWorkoutCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutCompleteRequest { SessionId = _sessionId, SectionId = Guid.NewGuid() },
+            new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -233,7 +233,7 @@ public class MarkWorkoutCompleteEndpointTests
             new MarkWorkoutCompleteRequest
             {
                 SessionId = _sessionId,
-                SectionId = _sectionId,
+                WorkoutId = _sectionId,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -252,7 +252,7 @@ public class MarkWorkoutCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutCompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);

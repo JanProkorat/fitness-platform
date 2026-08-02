@@ -68,7 +68,7 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
                                 DayOfWeek = 1,
                                 Name = "Push Day",
                                 Order = 1,
-                                Sections = []
+                                Workouts = []
                             }
                         ]
                         : []

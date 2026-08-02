@@ -301,7 +301,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
             foreach (var (sessionId, session) in sessionLookup)
             {
-                if (session.Sections.Count == 0) continue;
+                if (session.Workouts.Count == 0) continue;
 
                 var hasFinishedLog = executionIndex.TryGetValue(sessionId, out var exec) && exec.IsSessionFinished;
                 bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
@@ -309,10 +309,10 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 // Skip this session if there is nothing to project.
                 if (!hasFinishedLog && bestCompletion is null) continue;
 
-                var finishedSections = session.Sections
+                var finishedSections = session.Workouts
                     .Select(sec => new SectionFinishedStateDto
                     {
-                        SectionId = sec.SectionId,
+                        SectionId = sec.WorkoutId,
                         IsFinished = bestCompletion.IsWorkoutComplete(session, sec)
                     })
                     .Where(dto => dto.IsFinished)

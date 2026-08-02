@@ -118,11 +118,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             Name = "Leg Day",
                             Order = 1,
                             Notes = "Focus on depth",
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -151,11 +151,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 2,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -466,11 +466,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 2,
                             Name = "Full Body",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = warmUpSectionId,
+                                    WorkoutId = warmUpSectionId,
                                     Order = 0,
                                     Name = "Warm-up",
                                     Format = null,
@@ -487,7 +487,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                 },
                                 new TrainingWorkout
                                 {
-                                    SectionId = mainSectionId,
+                                    WorkoutId = mainSectionId,
                                     Order = 1,
                                     Name = "Hlavní",
                                     Format = Application.Domain.Enums.WorkoutFormat.AMRAP,
@@ -626,11 +626,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 1,
                             Name = "Running",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = emptySectionId,
+                                    WorkoutId = emptySectionId,
                                     Order = 0,
                                     Name = "Running",
                                     Exercises = []
@@ -772,11 +772,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 1,
                             Name = "Leg Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionId,
+                                    WorkoutId = sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -931,11 +931,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 2,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionId,
+                                    WorkoutId = sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1077,18 +1077,18 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             DayOfWeek = 3,
                             Name = "Mixed Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = emptySectionId,
+                                    WorkoutId = emptySectionId,
                                     Order = 0,
                                     Name = "Running",
                                     Exercises = []
                                 },
                                 new TrainingWorkout
                                 {
-                                    SectionId = nonEmptySectionId,
+                                    WorkoutId = nonEmptySectionId,
                                     Order = 1,
                                     Name = "Strength",
                                     Exercises =

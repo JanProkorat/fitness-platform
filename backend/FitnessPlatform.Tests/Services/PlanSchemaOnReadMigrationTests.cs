@@ -144,22 +144,22 @@ public class PlanSchemaOnReadMigrationTests
         migrated.Should().NotBeNull();
         var session = migrated!.Weeks[0].Sessions[0];
 
-        session.Sections.Should().HaveCount(1, "the legacy flat exercises must be wrapped in a single default section");
-        var hlavni = session.Sections[0];
+        session.Workouts.Should().HaveCount(1, "the legacy flat exercises must be wrapped in a single default section");
+        var hlavni = session.Workouts[0];
         hlavni.Name.Should().Be("Hlavní");
         hlavni.Order.Should().Be(0);
         hlavni.Format.Should().BeNull("the synthesized section carries no format override");
         hlavni.Exercises.Should().HaveCount(2);
         hlavni.Exercises.Select(e => e.ExerciseExternalId).Should().ContainInOrder(squatId, benchId);
 
-        // Flat backward-compat accessor derives cleanly from Sections.
+        // Flat backward-compat accessor derives cleanly from Workouts.
         session.Exercises.Should().HaveCount(2);
 
         // ── Assert: legacy field literally unset from the raw document ─────────────
         var rawAfter = await rawPlans.Find(new BsonDocument("externalId", GuidBson(planId))).FirstOrDefaultAsync(ct);
         var rawSession = rawAfter["weeks"][0]["sessions"][0].AsBsonDocument;
         rawSession.Contains("exercises").Should().BeFalse("the legacy flat field must be $unset by the migration");
-        rawSession.Contains("sections").Should().BeTrue();
+        rawSession.Contains("workouts").Should().BeTrue();
     }
 
     // ── (2) WorkoutLog sections backfill ──────────────────────────────────────────
@@ -347,18 +347,18 @@ public class PlanSchemaOnReadMigrationTests
                             DayOfWeek = 1,
                             Name = "Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionAId,
+                                    WorkoutId = sectionAId,
                                     Order = 0,
                                     Name = "A",
                                     Exercises = [new SessionExercise { ExerciseExternalId = exerciseInA, ExerciseName = "Squat", Order = 1 }]
                                 },
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionBId,
+                                    WorkoutId = sectionBId,
                                     Order = 1,
                                     Name = "B",
                                     Exercises = [new SessionExercise { ExerciseExternalId = exerciseInB, ExerciseName = "Bench", Order = 1 }]

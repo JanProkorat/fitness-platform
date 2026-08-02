@@ -67,11 +67,11 @@ public class SessionLockBroadcastTests
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -171,7 +171,7 @@ public class SessionLockBroadcastTests
 
     private static UpdateSessionRequest ChangedSessionRequest(TrainingSession session, Guid sessionId)
     {
-        var section = session.Sections[0];
+        var section = session.Workouts[0];
         var exercise = section.Exercises[0];
         var set = exercise.Sets[0];
         return new UpdateSessionRequest

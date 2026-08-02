@@ -173,7 +173,7 @@ public class MarkWorkoutCompleteEndpoint(
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 existing.CompletedExerciseIds.Count, totalExercises,
                 logger, ct,
-                sectionId: req.WorkoutId, sectionComplete: true);
+                workoutId: req.WorkoutId, workoutComplete: true);
 
             await Send.OkAsync(BuildResponse(req.SessionId, req.WorkoutId, targetDate, existing, totalExercises), ct);
         }
@@ -241,7 +241,7 @@ public class MarkWorkoutCompleteEndpoint(
                     req.SessionId, DateOnly.FromDateTime(targetDate),
                     existing.CompletedExerciseIds.Count, totalExercises,
                     logger, ct,
-                    sectionId: req.WorkoutId, sectionComplete: true);
+                    workoutId: req.WorkoutId, workoutComplete: true);
 
                 await Send.OkAsync(BuildResponse(req.SessionId, req.WorkoutId, targetDate, existing, totalExercises), ct);
                 return;
@@ -252,7 +252,7 @@ public class MarkWorkoutCompleteEndpoint(
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 execution.CompletedExerciseIds.Count, totalExercises,
                 logger, ct,
-                sectionId: req.WorkoutId, sectionComplete: true);
+                workoutId: req.WorkoutId, workoutComplete: true);
 
             await Send.OkAsync(BuildResponse(req.SessionId, req.WorkoutId, targetDate, execution, totalExercises), ct);
         }

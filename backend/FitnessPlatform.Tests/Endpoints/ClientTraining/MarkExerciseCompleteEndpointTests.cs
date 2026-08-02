@@ -70,7 +70,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -119,7 +119,7 @@ public class MarkExerciseCompleteEndpointTests
 
         // Mark exercise1 complete again (already complete — idempotent)
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -156,7 +156,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         // No active plan found for wrongClientId → 404
@@ -201,7 +201,7 @@ public class MarkExerciseCompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                WorkoutId = _sectionId,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -241,7 +241,7 @@ public class MarkExerciseCompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                WorkoutId = _sectionId,
                 Version = 1
             },
             TestContext.Current.CancellationToken);
@@ -267,7 +267,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -284,7 +284,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
@@ -309,7 +309,7 @@ public class MarkExerciseCompleteEndpointTests
 
         // Use a valid sessionId but an unknown sectionId
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = Guid.NewGuid() },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -339,7 +339,7 @@ public class MarkExerciseCompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = sharedExerciseId,
-                SectionId = section1Id
+                WorkoutId = section1Id
             },
             TestContext.Current.CancellationToken);
 
@@ -391,7 +391,7 @@ public class MarkExerciseCompleteEndpointTests
         // Mark exercise1 complete in sectionId. Since the doc has no section dict, the idempotency
         // check on the section dict won't short-circuit — it will proceed to update and populate the dict.
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -448,7 +448,7 @@ public class MarkExerciseCompleteEndpointTests
 
         // Act: mark exercise2 complete in the same section — triggers the UpdateOneAsync path.
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         // Assert: 200 OK — no BsonSerializationException.
@@ -513,11 +513,11 @@ public class MarkExerciseCompleteEndpointTests
                             DayOfWeek = 1,
                             Name = "Older Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = olderSectionId,
+                                    WorkoutId = olderSectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -571,7 +571,7 @@ public class MarkExerciseCompleteEndpointTests
             {
                 SessionId = olderSessionId,
                 ExerciseExternalId = olderExerciseId,
-                SectionId = olderSectionId,
+                WorkoutId = olderSectionId,
                 CompletedOn = backdatedDate
             },
             TestContext.Current.CancellationToken);

@@ -340,10 +340,10 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
         week.Sessions.Should().HaveCount(1);
         var session = week.Sessions[0];
 
-        session.Sections.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
+        session.Workouts.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
 
         // Section 1 — ForTime + 0 exercises (the #258 bug shape).
-        var section1 = session.Sections[0];
+        var section1 = session.Workouts[0];
         section1.Format.Should().Be(WorkoutFormat.ForTime,
             because: "Section 1 must be ForTime format");
         section1.FormatConfig.Should().NotBeNull();
@@ -353,21 +353,21 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "ForTime section intentionally has 0 exercises to exercise the #258 empty-exercise bug shape");
 
         // Section 2 — AMRAP + exercises (non-regression: format-with-exercises path).
-        var section2 = session.Sections[1];
+        var section2 = session.Workouts[1];
         section2.Format.Should().Be(WorkoutFormat.AMRAP,
             because: "Section 2 must be AMRAP format");
         section2.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
             because: "AMRAP section must have at least one exercise for non-regression");
 
         // Section 3 — Standard (null format) + exercises (non-regression: no-format path).
-        var section3 = session.Sections[2];
+        var section3 = session.Workouts[2];
         section3.Format.Should().BeNull(
             because: "Section 3 must be Standard (null format)");
         section3.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
             because: "Standard section must have at least one exercise for non-regression");
 
         // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture).
-        var section4 = session.Sections[3];
+        var section4 = session.Workouts[3];
         section4.Format.Should().Be(WorkoutFormat.Tabata,
             because: "Section 4 must be Tabata format");
         section4.Order.Should().Be(3,

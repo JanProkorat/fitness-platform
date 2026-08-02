@@ -16,7 +16,7 @@ public class MarkWorkoutCompleteValidator : Validator<MarkWorkoutCompleteRequest
         RuleFor(x => x.SessionId)
             .NotEmpty();
 
-        RuleFor(x => x.SectionId)
+        RuleFor(x => x.WorkoutId)
             .NotEmpty();
     }
 }

@@ -159,7 +159,7 @@ public class SessionLockStateTests
                             DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -234,7 +234,7 @@ public class SessionLockStateTests
                             DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }
@@ -301,11 +301,11 @@ public class SessionLockStateTests
                             DayOfWeek = todayDow,
                             Name = "Refresh Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionId,
+                                    WorkoutId = sectionId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -383,7 +383,7 @@ public class SessionLockStateTests
         var req = new MarkExerciseCompleteRequest
         {
             SessionId = _sessionId,
-            SectionId = sectionId,
+            WorkoutId = sectionId,
             ExerciseExternalId = exerciseId
         };
 

@@ -268,11 +268,11 @@ public class UpdateTrainingPlanEndpoint(
                                 .Where(rs => rs.SectionId.HasValue)
                                 .ToDictionary(rs => rs.SectionId!.Value);
 
-                            foreach (var storedSection in storedSession.Sections)
+                            foreach (var storedSection in storedSession.Workouts)
                             {
                                 // Determine whether this section's content has changed.
                                 bool sectionChanged;
-                                if (!incomingSectionsBySectionId.TryGetValue(storedSection.SectionId, out var incomingSectionValue))
+                                if (!incomingSectionsBySectionId.TryGetValue(storedSection.WorkoutId, out var incomingSectionValue))
                                 {
                                     // Section removed from incoming request — counts as changed.
                                     sectionChanged = true;
@@ -292,7 +292,7 @@ public class UpdateTrainingPlanEndpoint(
                                     await this.SendProblemAsync(
                                         409,
                                         ErrorCodes.SectionAlreadyCompleted,
-                                        $"Section {storedSection.SectionId} in session {sessionId} has already been completed by the client and cannot be edited.",
+                                        $"Section {storedSection.WorkoutId} in session {sessionId} has already been completed by the client and cannot be edited.",
                                         mutateCt);
                                     return false;
                                 }
@@ -333,9 +333,9 @@ public class UpdateTrainingPlanEndpoint(
                             Notes = rs.Notes?.Trim(),
                             Format = rs.Format,
                             FormatConfig = rs.FormatConfig,
-                            Sections = rs.Sections.Select(rsec => new TrainingWorkout
+                            Workouts = rs.Sections.Select(rsec => new TrainingWorkout
                             {
-                                SectionId = rsec.SectionId ?? Guid.NewGuid(),
+                                WorkoutId = rsec.SectionId ?? Guid.NewGuid(),
                                 Order = rsec.Order,
                                 Name = rsec.Name,
                                 Format = rsec.Format,
@@ -447,7 +447,7 @@ public class UpdateTrainingPlanEndpoint(
 
         // Compare sections by structural content (order, name, format, notes, exercises).
         // Do NOT compare SectionId — incoming sections may have newly-assigned Guids.
-        var storedSections = stored.Sections.OrderBy(s => s.Order).ToList();
+        var storedSections = stored.Workouts.OrderBy(s => s.Order).ToList();
         var incomingSections = incoming.Sections.OrderBy(s => s.Order).ToList();
 
         if (storedSections.Count != incomingSections.Count) return true;
@@ -511,7 +511,7 @@ public class UpdateTrainingPlanEndpoint(
 
     /// <summary>
     /// Returns true when the content of a single stored section differs from the incoming
-    /// update request section. Keyed on <see cref="TrainingWorkout.SectionId"/> (caller's
+    /// update request section. Keyed on <see cref="TrainingWorkout.WorkoutId"/> (caller's
     /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
     /// and their sets (by positional order within the section).
     /// </summary>

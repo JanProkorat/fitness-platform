@@ -202,7 +202,7 @@ public class WorkoutTemplateEndpointTests
         [
             new TrainingWorkout
             {
-                SectionId = Guid.NewGuid(),
+                WorkoutId = Guid.NewGuid(),
                 Order = 0,
                 Name = "Main",
                 Exercises =

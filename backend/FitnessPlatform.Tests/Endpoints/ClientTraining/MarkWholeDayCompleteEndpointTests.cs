@@ -90,11 +90,11 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -110,11 +110,11 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Session 2",
                             Order = 2,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -167,11 +167,11 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises = exerciseIds.Select((id, i) => new SessionExercise
@@ -615,11 +615,11 @@ public class MarkWholeDayCompleteEndpointTests
                             DayOfWeek = todayDow,
                             Name = "Shared session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionA,
+                                    WorkoutId = sectionA,
                                     Order = 0,
                                     Name = "Standard",
                                     Exercises =
@@ -630,7 +630,7 @@ public class MarkWholeDayCompleteEndpointTests
                                 },
                                 new TrainingWorkout
                                 {
-                                    SectionId = sectionB,
+                                    WorkoutId = sectionB,
                                     Order = 1,
                                     Name = "AMRAP",
                                     Exercises =

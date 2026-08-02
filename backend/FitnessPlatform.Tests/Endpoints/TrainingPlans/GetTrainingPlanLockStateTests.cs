@@ -52,7 +52,7 @@ public class GetTrainingPlanLockStateTests
                             Name = "Push Day",
                             DayOfWeek = 1,
                             Order = 1,
-                            Sections = []
+                            Workouts = []
                         }
                     ]
                 }

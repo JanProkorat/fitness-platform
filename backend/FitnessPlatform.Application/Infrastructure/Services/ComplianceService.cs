@@ -330,7 +330,7 @@ public class ComplianceService : IComplianceService
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
-        if (session.Sections.Count == 0)
+        if (session.Workouts.Count == 0)
             return false;
 
         var dateUtc = date.Date == date ? date : date.Date;

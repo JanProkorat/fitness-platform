@@ -599,7 +599,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.Should().NotBeNull("main training plan must be seeded");
 
         var session = plan!.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaSessionId);
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.StandardSectionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.StandardSectionId);
 
         standardSection.Exercises.Should().HaveCount(2, "Standard section has two exercises");
 
@@ -747,15 +747,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "TrainingPlan.ClientId must be Client2UserId (ApplicationUser.Id, #840)");
 
         var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
-        session.Sections.Should().HaveCount(2, "session has Standard + AMRAP sections");
+        session.Workouts.Should().HaveCount(2, "session has Standard + AMRAP sections");
 
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardSectionId);
         standardSection.Format.Should().BeNull("Standard section has null format");
         standardSection.Exercises.Should().HaveCount(1);
         standardSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
         standardSection.Exercises[0].Sets.Should().HaveCount(3, "Standard section has 3 prescribed sets");
 
-        var amrapSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        var amrapSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapSectionId);
         amrapSection.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         amrapSection.Exercises.Should().HaveCount(1);
         amrapSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,

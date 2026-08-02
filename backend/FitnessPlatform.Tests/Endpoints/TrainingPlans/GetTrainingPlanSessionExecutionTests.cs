@@ -40,11 +40,11 @@ public class GetTrainingPlanSessionExecutionTests
             SessionId = _sessionId,
             Name = "Session 1",
             DayOfWeek = 1, // Monday
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Name = "Main",
                     Order = 0,
                     Exercises =

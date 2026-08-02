@@ -72,11 +72,11 @@ public class TrainerSideEnforcementTests
                             DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -131,11 +131,11 @@ public class TrainerSideEnforcementTests
                             DayOfWeek = 1,
                             Name = "Draft Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -169,7 +169,7 @@ public class TrainerSideEnforcementTests
     /// </summary>
     private static UpdateSessionRequest IdenticalSessionRequest(TrainingSession session, Guid sessionId)
     {
-        var section = session.Sections[0];
+        var section = session.Workouts[0];
         var exercise = section.Exercises[0];
         var set = exercise.Sets[0];
         return new UpdateSessionRequest

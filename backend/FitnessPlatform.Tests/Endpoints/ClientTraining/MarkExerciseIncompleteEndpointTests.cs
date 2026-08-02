@@ -66,7 +66,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -111,7 +111,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -164,7 +164,7 @@ public class MarkExerciseIncompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                WorkoutId = _sectionId,
                 Version = 1  // client thinks it's version 1, server is at 3
             },
             TestContext.Current.CancellationToken);
@@ -213,7 +213,7 @@ public class MarkExerciseIncompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                WorkoutId = _sectionId,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -238,7 +238,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         // No active plan → 404 with NoActiveTrainingPlan code
@@ -263,7 +263,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -288,7 +288,7 @@ public class MarkExerciseIncompleteEndpointTests
 
         // _exercise2 is NOT in the plan's session exercises
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -305,7 +305,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
@@ -389,7 +389,7 @@ public class MarkExerciseIncompleteEndpointTests
 
         // Act — unmark exercise1 only
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -431,7 +431,7 @@ public class MarkExerciseIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = Guid.NewGuid() },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, WorkoutId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -476,7 +476,7 @@ public class MarkExerciseIncompleteEndpointTests
             {
                 SessionId = _sessionId,
                 ExerciseExternalId = sharedExerciseId,
-                SectionId = section1Id
+                WorkoutId = section1Id
             },
             TestContext.Current.CancellationToken);
 

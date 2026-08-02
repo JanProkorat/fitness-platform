@@ -91,7 +91,7 @@ public class MarkSessionCompleteEndpointTests
 
         // Capture the section ID the plan was built with
         var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
-        var expectedSectionId = sessionInPlan.Sections[0].SectionId;
+        var expectedSectionId = sessionInPlan.Workouts[0].WorkoutId;
 
         var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
         var db = CreateMockDb();
@@ -126,7 +126,7 @@ public class MarkSessionCompleteEndpointTests
 
         // Extract the section ID so we can include it in CompletedSectionIds
         var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
-        var sectionId = sessionInPlan.Sections[0].SectionId;
+        var sectionId = sessionInPlan.Workouts[0].WorkoutId;
 
         // Create a completion that already has all exercises AND all sections
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(

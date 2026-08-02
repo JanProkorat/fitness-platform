@@ -58,11 +58,11 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             DayOfWeek = 1,
             Name = "Modern Day",
             Order = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -144,11 +144,11 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             DayOfWeek = 1,
             Name = "Two-Section Day",
             Order = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = sectionAId,
+                    WorkoutId = sectionAId,
                     Order = 0,
                     Name = "Section A",
                     Exercises =
@@ -165,7 +165,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                 },
                 new TrainingWorkout
                 {
-                    SectionId = sectionBId,
+                    WorkoutId = sectionBId,
                     Order = 1,
                     Name = "Section B",
                     Exercises =
@@ -277,11 +277,11 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             DayOfWeek = 1,
             Name = "Two-Section Day",   // must match BuildTwoSectionUpdateBody
             Order = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = sectionAId, Order = 0, Name = "Section A",
+                    WorkoutId = sectionAId, Order = 0, Name = "Section A",
                     Exercises = [new SessionExercise
                     {
                         ExerciseExternalId = exerciseAId, ExerciseName = "Squat", Order = 1,   // must match BuildTwoSectionUpdateBody
@@ -291,7 +291,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                 },
                 new TrainingWorkout
                 {
-                    SectionId = sectionBId, Order = 1, Name = "Section B",
+                    WorkoutId = sectionBId, Order = 1, Name = "Section B",
                     Exercises = [new SessionExercise
                     {
                         ExerciseExternalId = exerciseBId, ExerciseName = "Press", Order = 1,   // must match BuildTwoSectionUpdateBody

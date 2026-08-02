@@ -87,11 +87,11 @@ public static class TrainingCompletionTestHelpers
                         DayOfWeek = d,
                         Name = $"Day {d} Session",
                         Order = 1,
-                        Sections =
+                        Workouts =
                         [
                             new TrainingWorkout
                             {
-                                SectionId = secId,
+                                WorkoutId = secId,
                                 Order = 0,
                                 Name = "Hlavní",
                                 Exercises = exIds.Select((id, i) => new SessionExercise
@@ -150,11 +150,11 @@ public static class TrainingCompletionTestHelpers
                         DayOfWeek = d,
                         Name = $"Day {d} Session",
                         Order = 1,
-                        Sections =
+                        Workouts =
                         [
                             new TrainingWorkout
                             {
-                                SectionId = section1Id,
+                                WorkoutId = section1Id,
                                 Order = 0,
                                 Name = "Section A",
                                 Exercises =
@@ -170,7 +170,7 @@ public static class TrainingCompletionTestHelpers
                             },
                             new TrainingWorkout
                             {
-                                SectionId = section2Id,
+                                WorkoutId = section2Id,
                                 Order = 1,
                                 Name = "Section B",
                                 Exercises =
@@ -262,18 +262,18 @@ public static class TrainingCompletionTestHelpers
                         DayOfWeek = d,
                         Name = $"Day {d} Session",
                         Order = 1,
-                        Sections =
+                        Workouts =
                         [
                             new TrainingWorkout
                             {
-                                SectionId = forTimeSectionId,
+                                WorkoutId = forTimeSectionId,
                                 Order = 0,
                                 Name = "ForTime",
                                 Exercises = [] // exercise-free section
                             },
                             new TrainingWorkout
                             {
-                                SectionId = standardSectionId,
+                                WorkoutId = standardSectionId,
                                 Order = 1,
                                 Name = "Hlavní",
                                 Exercises = exIds.Select((id, i) => new SessionExercise

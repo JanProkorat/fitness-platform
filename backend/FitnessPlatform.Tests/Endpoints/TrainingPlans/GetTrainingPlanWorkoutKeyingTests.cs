@@ -38,11 +38,11 @@ public class GetTrainingPlanSectionKeyingTests
             SessionId = _sessionId,
             Name = "Session 1",
             DayOfWeek = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = standardSectionId,
+                    WorkoutId = standardSectionId,
                     Name = "Hlavní",
                     Order = 0,
                     Exercises =
@@ -58,7 +58,7 @@ public class GetTrainingPlanSectionKeyingTests
                 },
                 new TrainingWorkout
                 {
-                    SectionId = amrapSectionId,
+                    WorkoutId = amrapSectionId,
                     Name = "AMRAP",
                     Order = 1,
                     Exercises =
@@ -283,11 +283,11 @@ public class GetTrainingPlanSectionKeyingTests
             SessionId = _sessionId,
             Name = "Session 1",
             DayOfWeek = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     Name = "Hlavní",
                     Order = 0,
                     Exercises =
@@ -387,11 +387,11 @@ public class GetTrainingPlanSectionKeyingTests
             SessionId = _sessionId,
             Name = "Session 1",
             DayOfWeek = 1,
-            Sections =
+            Workouts =
             [
                 new TrainingWorkout
                 {
-                    SectionId = planSectionA,
+                    WorkoutId = planSectionA,
                     Name = "Hlavní",
                     Order = 0,
                     Exercises = [new SessionExercise { ExerciseExternalId = exerciseId, ExerciseName = "Squat", Order = 0, Sets = [new ExerciseSet { SetNumber = 1 }] }]
