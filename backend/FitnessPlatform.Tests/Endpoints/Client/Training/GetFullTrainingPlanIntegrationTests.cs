@@ -538,25 +538,25 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
         var session = body!.Weeks[0].Sessions[0];
 
-        // ── Sections round-trip ───────────────────────────────────────────────────
-        session.Sections.Should().HaveCount(2, "two sections were persisted");
+        // ── Workouts round-trip ───────────────────────────────────────────────────
+        session.Workouts.Should().HaveCount(2, "two workouts were persisted");
 
-        var warmUp = session.Sections.First(s => s.SectionId == warmUpSectionId);
+        var warmUp = session.Workouts.First(w => w.WorkoutId == warmUpSectionId);
         warmUp.Order.Should().Be(0);
         warmUp.Name.Should().Be("Warm-up");
         warmUp.Format.Should().BeNull("Warm-up has no format");
         warmUp.Exercises.Should().HaveCount(1);
         warmUp.Exercises[0].ExerciseExternalId.Should().Be(squatId);
 
-        var main = session.Sections.First(s => s.SectionId == mainSectionId);
+        var main = session.Workouts.First(w => w.WorkoutId == mainSectionId);
         main.Order.Should().Be(1);
         main.Name.Should().Be("Hlavní");
         main.Format.Should().Be("AMRAP");
         main.Exercises.Should().HaveCount(1);
         main.Exercises[0].ExerciseExternalId.Should().Be(benchId);
 
-        // ── Backward-compat flat list equals sections concatenated in order ────────
-        session.Exercises.Should().HaveCount(2, "total exercises across both sections");
+        // ── Backward-compat flat list equals workouts concatenated in order ────────
+        session.Exercises.Should().HaveCount(2, "total exercises across both workouts");
         session.Exercises[0].ExerciseExternalId.Should().Be(squatId, "Warm-up exercise comes first (Order=0)");
         session.Exercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
     }
@@ -683,10 +683,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        var section = body!.Weeks[0].Sessions[0].Sections[0];
-        section.SectionId.Should().Be(emptySectionId);
-        section.Exercises.Should().BeEmpty();
-        section.IsCompleted.Should().BeTrue(
+        var workout = body!.Weeks[0].Sessions[0].Workouts[0];
+        workout.WorkoutId.Should().Be(emptySectionId);
+        workout.Exercises.Should().BeEmpty();
+        workout.IsCompleted.Should().BeTrue(
             "empty section was added to CompletedSectionIds by MarkWholeDayComplete");
     }
 
@@ -845,9 +845,9 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        var section = body!.Weeks[0].Sessions[0].Sections[0];
-        section.Exercises.Should().HaveCount(2);
-        section.IsCompleted.Should().BeTrue("both exercises are marked complete via TrainingCompletion");
+        var workout = body!.Weeks[0].Sessions[0].Workouts[0];
+        workout.Exercises.Should().HaveCount(2);
+        workout.IsCompleted.Should().BeTrue("both exercises are marked complete via TrainingCompletion");
     }
 
     /// <summary>
@@ -1003,9 +1003,9 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        var section = body!.Weeks[0].Sessions[0].Sections[0];
-        section.Exercises.Should().HaveCount(2);
-        section.IsCompleted.Should().BeFalse("only one of two exercises is done — partial completion");
+        var workout = body!.Weeks[0].Sessions[0].Workouts[0];
+        workout.Exercises.Should().HaveCount(2);
+        workout.IsCompleted.Should().BeFalse("only one of two exercises is done — partial completion");
     }
 
     /// <summary>
@@ -1134,14 +1134,14 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        var sections = body!.Weeks[0].Sessions[0].Sections;
-        sections.Should().HaveCount(2);
+        var workouts = body!.Weeks[0].Sessions[0].Workouts;
+        workouts.Should().HaveCount(2);
 
-        var emptySection = sections.First(s => s.SectionId == emptySectionId);
-        emptySection.IsCompleted.Should().BeFalse("no TrainingCompletion exists — empty section must be false");
+        var emptyWorkout = workouts.First(w => w.WorkoutId == emptySectionId);
+        emptyWorkout.IsCompleted.Should().BeFalse("no TrainingCompletion exists — empty section must be false");
 
-        var nonEmptySection = sections.First(s => s.SectionId == nonEmptySectionId);
-        nonEmptySection.IsCompleted.Should().BeFalse("no TrainingCompletion exists — non-empty section must be false");
+        var nonEmptyWorkout = workouts.First(w => w.WorkoutId == nonEmptySectionId);
+        nonEmptyWorkout.IsCompleted.Should().BeFalse("no TrainingCompletion exists — non-empty section must be false");
     }
 
     // ── Local response DTOs (per slice rules — not shared across features) ────────
@@ -1176,11 +1176,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int CompletedExerciseCount,
         int TotalExerciseCount,
         int? EstimatedDurationMinutes,
-        List<SectionResponse> Sections,
+        List<WorkoutResponse> Workouts,
         List<ExerciseResponse> Exercises);
 
-    private record SectionResponse(
-        Guid SectionId,
+    private record WorkoutResponse(
+        Guid WorkoutId,
         int Order,
         string Name,
         string? Format,
