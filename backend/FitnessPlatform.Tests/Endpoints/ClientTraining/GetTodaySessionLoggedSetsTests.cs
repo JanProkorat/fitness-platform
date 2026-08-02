@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -188,39 +189,35 @@ public class GetTodaySessionLoggedSetsTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = dow,
-                            Name = "Test Session",
-                            Order = 1,
-                            Workouts =
-                            [
-                                new TrainingWorkout
-                                {
-                                    WorkoutId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Squat",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 80m },
-                                                new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 80m }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((dow, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Test Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = Guid.NewGuid(),
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Squat",
+                                        Order = 1,
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 80m },
+                                            new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 80m }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
