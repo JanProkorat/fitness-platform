@@ -651,12 +651,15 @@ public class MongoIndexInitializer : IHostedService
     // days -> sessions -> {workouts -> exercises, exercises}) and assigns a distinct new Guid to
     // every exercise element that doesn't already carry one.
     //
-    // Idempotency: the candidate filter matches documents where ANY exercise anywhere in the
-    // plan (nested in a workout, or standalone directly on a session) lacks "exerciseId" — a
-    // dotted path through nested arrays flattens across every element, so this correctly finds
-    // partially-migrated documents too. On a fresh boot, or a second boot after this migration
-    // has already run, every exercise already carries "exerciseId" and the filter matches zero
-    // documents.
+    // Idempotency: unlike the migrations above, there is no single shallow field whose presence/
+    // absence reliably signals "every exercise in this document already has exerciseId" — the
+    // field lives 4-5 array levels deep (weeks -> days -> sessions -> workouts -> exercises, and
+    // weeks -> days -> sessions -> exercises), and a query filter that gets that traversal subtly
+    // wrong would silently skip documents rather than error. So this scans every trainingPlans
+    // document unconditionally and relies on the per-exercise "skip if exerciseId already present"
+    // check (AssignExerciseIdsWithinArray) for both correctness and idempotency: a document where
+    // every exercise already carries exerciseId is walked but produces 0 assignments, so it is
+    // never added to the BulkWrite batch — a true no-op on every boot after the first.
     //
     // Distinctness: each exercise element gets its OWN fresh Guid.NewGuid() call — never a value
     // derived from ExerciseExternalId or any other shared key — so two instances of the same
@@ -675,13 +678,7 @@ public class MongoIndexInitializer : IHostedService
         var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
             _mongo.TrainingPlans.CollectionNamespace.CollectionName);
 
-        var legacyFilter = new BsonDocument("$or", new BsonArray
-        {
-            new BsonDocument("weeks.days.sessions.workouts.exercises.exerciseId", new BsonDocument("$exists", false)),
-            new BsonDocument("weeks.days.sessions.exercises.exerciseId", new BsonDocument("$exists", false))
-        });
-
-        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        using var cursor = await rawPlans.FindAsync(FilterDefinition<BsonDocument>.Empty, cancellationToken: ct);
         var candidates = await cursor.ToListAsync(ct);
 
         var writes = new List<WriteModel<BsonDocument>>();
