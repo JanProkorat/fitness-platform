@@ -13,6 +13,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -82,12 +83,10 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = _session1,
-                            DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
                             Workouts =
@@ -103,11 +102,10 @@ public class MarkWholeDayCompleteEndpointTests
                                     ]
                                 }
                             ]
-                        },
-                        new TrainingSession
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = _session2,
-                            DayOfWeek = todayDow,
                             Name = "Session 2",
                             Order = 2,
                             Workouts =
@@ -123,8 +121,7 @@ public class MarkWholeDayCompleteEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -159,12 +156,10 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
                             Workouts =
@@ -180,8 +175,7 @@ public class MarkWholeDayCompleteEndpointTests
                                     }).ToList()
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -531,7 +525,7 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = []
+                    Days = TrainingPlanTestHelpers.MaterializeDays()
                 }
             ],
             Version = 1,
@@ -607,12 +601,10 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = _session1,
-                            DayOfWeek = todayDow,
                             Name = "Shared session",
                             Order = 1,
                             Workouts =
@@ -640,8 +632,7 @@ public class MarkWholeDayCompleteEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
