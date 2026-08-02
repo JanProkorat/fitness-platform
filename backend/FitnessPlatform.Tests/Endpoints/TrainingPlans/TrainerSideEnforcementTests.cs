@@ -185,7 +185,7 @@ public class TrainerSideEnforcementTests
             [
                 new UpdateSectionRequest
                 {
-                    SectionId = section.SectionId,
+                    SectionId = section.WorkoutId,
                     Order = section.Order,
                     Name = section.Name,
                     Format = section.Format,

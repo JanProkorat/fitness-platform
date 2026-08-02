@@ -198,7 +198,7 @@ public class WorkoutTemplateEndpointTests
         EstimatedDurationMinutes = 45,
         Format = WorkoutFormat.Standard,
         Visibility = visibility,
-        Sections =
+        Workouts =
         [
             new TrainingWorkout
             {
@@ -427,8 +427,8 @@ public class WorkoutTemplateEndpointTests
         response.EstimatedDurationMinutes.Should().Be(publicTemplate.EstimatedDurationMinutes);
         response.Format.Should().Be(publicTemplate.Format.ToString());
 
-        response.Sections.Should().ContainSingle();
-        var section = response.Sections[0];
+        response.Workouts.Should().ContainSingle();
+        var section = response.Workouts[0];
         section.Name.Should().Be("Main");
         section.Exercises.Should().ContainSingle();
         var exercise = section.Exercises[0];

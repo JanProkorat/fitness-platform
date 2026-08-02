@@ -184,7 +184,7 @@ public class SessionLockBroadcastTests
             [
                 new UpdateSectionRequest
                 {
-                    SectionId = section.SectionId,
+                    SectionId = section.WorkoutId,
                     Order = section.Order,
                     Name = section.Name,
                     Exercises =
