@@ -166,11 +166,11 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     var loggedSetsBySectionAndExercise = new Dictionary<string, List<LoggedSetDto>>();
                     var sessionHasModifications = false;
 
-                    foreach (var section in log.Performance!.Sections)
+                    foreach (var workout in log.Performance!.Workouts)
                     {
-                        foreach (var ex in section.Exercises)
+                        foreach (var ex in workout.Exercises)
                         {
-                            var sectionKey = $"{section.SectionId}:{ex.ExerciseExternalId}";
+                            var sectionKey = $"{workout.WorkoutId}:{ex.ExerciseExternalId}";
 
                             var completedSetNumbers = ex.Sets
                                 .Where(s => s.CompletedAt.HasValue)

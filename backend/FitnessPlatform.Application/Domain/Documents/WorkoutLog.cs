@@ -103,13 +103,13 @@ public class WorkoutLog
     public WodResult? WodResult { get; set; }
 
     /// <summary>
-    /// Sections in this workout. Each section contains completed exercises.
-    /// The legacy flat <c>exercises</c> field (pre-sections documents) was retired by the
+    /// Workouts in this workout log. Each workout contains completed exercises.
+    /// The legacy flat <c>exercises</c> field (pre-workouts documents) was retired by the
     /// one-time boot migration in <c>MongoIndexInitializer</c> (#837) — every document now
     /// carries this field populated, so no read-time backfill is required or performed.
     /// </summary>
-    [BsonElement("sections")]
-    public List<WorkoutSection> Sections { get; set; } = [];
+    [BsonElement("workouts")]
+    public List<LoggedWorkout> Workouts { get; set; } = [];
 
     /// <summary>
     /// When this document was created.
@@ -125,12 +125,12 @@ public class WorkoutLog
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
-    /// Flat view of all exercises across all sections. Read-only convenience accessor.
-    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// Flat view of all exercises across all workouts. Read-only convenience accessor.
+    /// Not stored in MongoDB — computed from <see cref="Workouts"/>.
     /// </summary>
     [BsonIgnore]
     public IReadOnlyList<WorkoutExercise> Exercises =>
-        Sections.SelectMany(s => s.Exercises).ToList();
+        Workouts.SelectMany(w => w.Exercises).ToList();
 
     /// <summary>
     /// Converts a UTC completion instant to the midnight-UTC value used as

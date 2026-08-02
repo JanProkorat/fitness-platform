@@ -223,20 +223,20 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             {
                 StartedAt = startedAt,
                 CompletedAt = DateTime.UtcNow.AddMinutes(-30),
-                Sections =
+                Workouts =
                 [
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = sectionAId, Order = 0, Name = "Section A",
+                        WorkoutId = sectionAId, Order = 0, Name = "Section A",
                         Exercises = [new WorkoutExercise
                         {
                             ExerciseExternalId = exerciseAId, ExerciseName = "Squat",
                             Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, CompletedAt = DateTime.UtcNow.AddMinutes(-50) }]
                         }]
                     },
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = sectionBId, Order = 1, Name = "Section B",
+                        WorkoutId = sectionBId, Order = 1, Name = "Section B",
                         Exercises = [new WorkoutExercise
                         {
                             ExerciseExternalId = exerciseBId, ExerciseName = "Press",

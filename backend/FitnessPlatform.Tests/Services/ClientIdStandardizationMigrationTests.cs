@@ -172,7 +172,7 @@ public class ClientIdStandardizationMigrationTests(FitnessApiFactory factory)
                 ClientId = userId,
                 StartedAt = DateTime.UtcNow.AddMinutes(-30),
                 IsCompleted = false,
-                Sections = [],
+                Workouts = [],
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: ct);
         }

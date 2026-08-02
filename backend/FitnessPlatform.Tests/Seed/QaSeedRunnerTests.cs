@@ -453,9 +453,9 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "SessionExecution.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id");
         completedLog.Performance.Should().NotBeNull("completed log has live-workout performance data");
-        completedLog.Performance!.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
-        completedLog.Performance.Sections[0].Exercises.Should().HaveCount(2);
-        completedLog.Performance.Sections[0].Exercises.Should().AllSatisfy(e =>
+        completedLog.Performance!.Workouts.Should().HaveCount(1, "log mirrors the single workout in the session");
+        completedLog.Performance.Workouts[0].Exercises.Should().HaveCount(2);
+        completedLog.Performance.Workouts[0].Exercises.Should().AllSatisfy(e =>
             e.Sets.Should().NotBeEmpty("completed log has sets on every exercise"));
 
         // SKIPPED session — SessionExecution with Status=Partial.
@@ -655,8 +655,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
         log.Performance.Should().NotBeNull("completed log has live-workout performance data");
         log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
 
-        log.Performance.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
-        var section = log.Performance.Sections[0];
+        log.Performance.Workouts.Should().HaveCount(1, "one workout mirrors the Standard section");
+        var section = log.Performance.Workouts[0];
         section.Exercises.Should().HaveCount(2);
 
         // ── Exercise 1: QA Squat ───────────────────────────────────────────────
@@ -749,13 +749,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
         session.Workouts.Should().HaveCount(2, "session has Standard + AMRAP sections");
 
-        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardSectionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         standardSection.Format.Should().BeNull("Standard section has null format");
         standardSection.Exercises.Should().HaveCount(1);
         standardSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
         standardSection.Exercises[0].Sets.Should().HaveCount(3, "Standard section has 3 prescribed sets");
 
-        var amrapSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapSectionId);
+        var amrapSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         amrapSection.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         amrapSection.Exercises.Should().HaveCount(1);
         amrapSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
@@ -775,10 +775,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "SessionExecution.ClientId must be ApplicationUser.Id (Client2UserId)");
         log.Performance.Should().NotBeNull("completed log has live-workout performance data");
         log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
-        log.Performance.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
+        log.Performance.Workouts.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
 
-        // Standard section in the log — SectionId must match the plan section.
-        var logStandard = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        // Standard section in the log — WorkoutId must match the plan section.
+        var logStandard = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         logStandard.Exercises.Should().HaveCount(1);
         var logStandardExercise = logStandard.Exercises[0];
         logStandardExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
@@ -806,13 +806,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         set3.WeightKg.Should().Be(28m);
         set3.IsModified.Should().BeTrue("Set 3 actual != planned → MODIFIED");
 
-        // AMRAP section in the log — SectionId must match the plan AMRAP section.
-        var logAmrap = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        // AMRAP section in the log — WorkoutId must match the plan AMRAP section.
+        var logAmrap = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         logAmrap.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         logAmrap.Exercises.Should().HaveCount(1);
         var logAmrapExercise = logAmrap.Exercises[0];
         logAmrapExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
-            "AMRAP section references the SAME exercise but is keyed by a different SectionId");
+            "AMRAP section references the SAME exercise but is keyed by a different WorkoutId");
         logAmrapExercise.Sets.Should().HaveCount(1);
 
         var amrapSet = logAmrapExercise.Sets[0];

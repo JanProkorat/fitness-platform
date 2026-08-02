@@ -195,11 +195,11 @@ public class GetTrainingPlanCompletionFinishedStateTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -252,11 +252,11 @@ public class GetTrainingPlanCompletionFinishedStateTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = false,
             CompletedAt = null,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -427,20 +427,20 @@ public class GetTrainingPlanCompletionFinishedStateTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = _sectionAId, Order = 0, Name = "Section A",
+                    WorkoutId = _sectionAId, Order = 0, Name = "Section A",
                     Exercises = [new WorkoutExercise
                     {
                         ExerciseExternalId = _exerciseAId, ExerciseName = "Squat",
                         Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-20) }]
                     }]
                 },
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = _sectionBId, Order = 1, Name = "Section B",
+                    WorkoutId = _sectionBId, Order = 1, Name = "Section B",
                     Exercises = [new WorkoutExercise
                     {
                         ExerciseExternalId = _exerciseBId, ExerciseName = "Press",

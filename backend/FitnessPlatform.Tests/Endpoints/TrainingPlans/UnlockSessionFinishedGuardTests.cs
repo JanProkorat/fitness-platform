@@ -94,7 +94,7 @@ public class UnlockSessionFinishedGuardTests
                 SessionId = sessionId,
                 Date = SessionExecution.ToCompletionDateUtc(now),
                 Status = SessionExecutionStatus.Completed,
-                Performance = new SessionExecutionPerformance { StartedAt = now, CompletedAt = now, Sections = [] },
+                Performance = new SessionExecutionPerformance { StartedAt = now, CompletedAt = now, Workouts = [] },
                 DateCreated = now,
                 Version = 1
             });

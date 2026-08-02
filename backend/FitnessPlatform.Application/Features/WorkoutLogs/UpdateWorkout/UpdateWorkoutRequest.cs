@@ -44,12 +44,12 @@ public class UpdateWorkoutRequest
 public class UpdateWorkoutExerciseRequest
 {
     /// <summary>
-    /// The section this exercise belongs to — must match <see cref="WorkoutSection.SectionId"/>
-    /// (and by design the source <see cref="TrainingWorkout.SectionId"/>).
-    /// Null for requests from legacy clients that do not yet send section context;
-    /// in that case the exercise is stored in the first section of the log (single-section fallback).
+    /// The workout this exercise belongs to — must match <see cref="LoggedWorkout.WorkoutId"/>
+    /// (and by design the source <see cref="TrainingWorkout.WorkoutId"/>).
+    /// Null for requests from legacy clients that do not yet send workout context;
+    /// in that case the exercise is stored in the first workout of the log (single-workout fallback).
     /// </summary>
-    public Guid? SectionId { get; set; }
+    public Guid? WorkoutId { get; set; }
 
     /// <summary>
     /// Reference to the exercise document's ExternalId.

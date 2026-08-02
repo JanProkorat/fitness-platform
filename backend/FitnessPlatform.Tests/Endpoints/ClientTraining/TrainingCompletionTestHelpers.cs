@@ -354,7 +354,7 @@ public static class TrainingCompletionTestHelpers
                 Mood = log.Mood,
                 Notes = log.Notes,
                 WodResult = log.WodResult,
-                Sections = log.Sections
+                Workouts = log.Workouts
             },
             DateCreated = log.DateCreated,
             DateUpdated = log.DateUpdated,

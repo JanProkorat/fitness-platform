@@ -278,11 +278,11 @@ public class UpdateWorkoutPlannedSnapshotTests
         // Simulate the document as it exists AFTER the first PUT:
         // the snapshot fields are already populated.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = Guid.NewGuid(),
+                WorkoutId = Guid.NewGuid(),
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -361,11 +361,11 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         // Stored state: snapshot already set, actuals from first PUT.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = Guid.NewGuid(),
+                WorkoutId = Guid.NewGuid(),
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -447,11 +447,11 @@ public class UpdateWorkoutPlannedSnapshotTests
 
         // Stored state: only set 1 exists.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = Guid.NewGuid(),
+                WorkoutId = Guid.NewGuid(),
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =

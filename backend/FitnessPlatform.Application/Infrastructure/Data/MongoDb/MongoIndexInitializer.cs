@@ -95,6 +95,17 @@ public class MongoIndexInitializer : IHostedService
         // that has already run it once (idempotent $exists guard).
         await MigrateCompletedWorkoutIdsRenameAsync(cancellationToken);
 
+        // #857 step 6: MUST also run before every Create*Indexes call below. Neither
+        // WorkoutLog nor SessionExecution carries [BsonIgnoreExtraElements], so once the
+        // renamed BsonElement("workouts")/BsonElement("workoutId") are live on the C# types,
+        // a legacy on-disk document that still carries the old "sections"/"sectionId" element
+        // names is an unmapped extra element for the typed collection — the first typed read
+        // (BackfillWorkoutLogSections, called from CreateWorkoutLogIndexes; the SessionExecution
+        // dedup pass, called from CreateSessionExecutionIndexes) would throw a BSON
+        // deserialization error. This migration is a no-op on a fresh database and a no-op on
+        // any database that has already run it once (idempotent $exists guard).
+        await MigrateWorkoutSectionsToWorkoutsRenameAsync(cancellationToken);
+
         await CreateFoodIndexes(cancellationToken);
         await CreateNutritionPlanIndexes(cancellationToken);
         await CreateMealLogIndexes(cancellationToken);
@@ -249,6 +260,177 @@ public class MongoIndexInitializer : IHostedService
                 "TrainingCompletion field rename: renamed completedSectionIds -> completedWorkoutIds " +
                 "on {Count} document(s)",
                 completionsRenameResult.ModifiedCount);
+        }
+    }
+
+    // ── #857 step 6: sections/sectionId -> workouts/workoutId on WorkoutLog and ─────
+    // SessionExecutionPerformance ────────────────────────────────────────────────────
+    //
+    // Vocabulary rename (section -> workout): WorkoutLog.Sections and
+    // SessionExecutionPerformance.Sections are renamed to Workouts (BSON "sections" ->
+    // "workouts"), and the embedded WorkoutSection type (now LoggedWorkout) has its
+    // SectionId renamed to WorkoutId (BSON "sectionId" -> "workoutId").
+    //
+    // $rename CANNOT reach the nested "sectionId" field inside each element of the
+    // "sections"/"workouts" array — MongoDB's $rename operator only renames a field at a
+    // fixed path, and array elements do not have a fixed path. Top-level "sections" (a
+    // direct field on workoutLogs, and "performance.sections" — a single embedded
+    // sub-document, not an array, on sessionExecutions) COULD be $rename'd directly, but
+    // doing so would leave every array element still carrying the old "sectionId" key
+    // alongside a document that otherwise deserializes through the renamed C# property —
+    // since neither type carries [BsonIgnoreExtraElements], that stale nested key would
+    // become a permanent unmapped extra element. So this migration reads each candidate
+    // document as a raw BsonDocument (mirroring BackfillWorkoutLogSections/
+    // BackfillTrainingPlanSections below), rewrites every array element in place (removing
+    // the old "sectionId" key and adding "workoutId" with the same value), renames the
+    // container field, and writes the whole document back via ReplaceOneAsync.
+    //
+    // MUST run before ANY typed read of either collection (see the call site in
+    // StartAsync) — same BsonSerializationException risk as MigrateCompletedWorkoutIdsRenameAsync
+    // above.
+    //
+    // Idempotency: each collection's candidate filter matches only documents that still
+    // carry the OLD top-level field ("sections" / "performance.sections" respectively). On
+    // a fresh database, or a database that already ran this migration, the filter matches
+    // zero documents and the loop body never runs — the whole migration runs cleanly on
+    // every boot.
+    /// <summary>
+    /// One-time, idempotent migration (#857 step 6): rewrites the <c>sections</c> BSON
+    /// array to <c>workouts</c> on both the <c>workoutLogs</c> collection (top-level) and
+    /// the <c>sessionExecutions</c> collection (nested under <c>performance</c>), and
+    /// renames the <c>sectionId</c> element to <c>workoutId</c> within every array element.
+    /// Cannot use <c>$rename</c> alone — see the remarks above this method and the call
+    /// site in <see cref="StartAsync"/> for why this must run before any typed read of
+    /// either collection.
+    /// </summary>
+    private async Task MigrateWorkoutSectionsToWorkoutsRenameAsync(CancellationToken ct)
+    {
+        await MigrateWorkoutLogSectionsToWorkoutsAsync(ct);
+        await MigrateSessionExecutionPerformanceSectionsToWorkoutsAsync(ct);
+    }
+
+    /// <summary>
+    /// Rewrites the top-level <c>sections</c> array on every <c>workoutLogs</c> document
+    /// that still carries it: renames the container to <c>workouts</c> and renames
+    /// <c>sectionId</c> to <c>workoutId</c> within every element. See the remarks above
+    /// <see cref="MigrateWorkoutSectionsToWorkoutsRenameAsync"/> for why this cannot use
+    /// <c>$rename</c> alone.
+    /// </summary>
+    private async Task MigrateWorkoutLogSectionsToWorkoutsAsync(CancellationToken ct)
+    {
+        var rawLogs = _mongo.WorkoutLogs.Database.GetCollection<BsonDocument>(
+            _mongo.WorkoutLogs.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("sections", new BsonDocument("$exists", true));
+
+        using var cursor = await rawLogs.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedCount = 0;
+
+        foreach (var logDoc in candidates)
+        {
+            if (!logDoc.TryGetValue("sections", out var sectionsValue) || sectionsValue is not BsonArray sections)
+            {
+                continue;
+            }
+
+            RenameSectionIdWithinEachElement(sections);
+
+            logDoc["workouts"] = sections;
+            logDoc.Remove("sections");
+
+            await rawLogs.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("_id", logDoc["_id"]),
+                logDoc,
+                cancellationToken: ct);
+
+            migratedCount++;
+        }
+
+        if (migratedCount > 0)
+        {
+            _logger.LogInformation(
+                "WorkoutLog field rename: renamed sections -> workouts (and nested sectionId -> " +
+                "workoutId) on {Count} document(s)",
+                migratedCount);
+        }
+    }
+
+    /// <summary>
+    /// Rewrites the nested <c>performance.sections</c> array on every <c>sessionExecutions</c>
+    /// document that still carries it: renames the container to <c>performance.workouts</c> and
+    /// renames <c>sectionId</c> to <c>workoutId</c> within every element. See the remarks above
+    /// <see cref="MigrateWorkoutSectionsToWorkoutsRenameAsync"/> for why this cannot use
+    /// <c>$rename</c> alone.
+    /// </summary>
+    private async Task MigrateSessionExecutionPerformanceSectionsToWorkoutsAsync(CancellationToken ct)
+    {
+        var rawExecutions = _mongo.SessionExecutions.Database.GetCollection<BsonDocument>(
+            _mongo.SessionExecutions.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("performance.sections", new BsonDocument("$exists", true));
+
+        using var cursor = await rawExecutions.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedCount = 0;
+
+        foreach (var executionDoc in candidates)
+        {
+            if (!executionDoc.TryGetValue("performance", out var performanceValue) || performanceValue is not BsonDocument performance)
+            {
+                continue;
+            }
+
+            if (!performance.TryGetValue("sections", out var sectionsValue) || sectionsValue is not BsonArray sections)
+            {
+                continue;
+            }
+
+            RenameSectionIdWithinEachElement(sections);
+
+            performance["workouts"] = sections;
+            performance.Remove("sections");
+
+            await rawExecutions.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("_id", executionDoc["_id"]),
+                executionDoc,
+                cancellationToken: ct);
+
+            migratedCount++;
+        }
+
+        if (migratedCount > 0)
+        {
+            _logger.LogInformation(
+                "SessionExecution field rename: renamed performance.sections -> performance.workouts " +
+                "(and nested sectionId -> workoutId) on {Count} document(s)",
+                migratedCount);
+        }
+    }
+
+    /// <summary>
+    /// Renames the <c>sectionId</c> element to <c>workoutId</c> in place on every
+    /// <see cref="BsonDocument"/> element of <paramref name="sections"/>. Non-document
+    /// elements or elements missing <c>sectionId</c> are left untouched.
+    /// </summary>
+    private static void RenameSectionIdWithinEachElement(BsonArray sections)
+    {
+        foreach (var sectionValue in sections)
+        {
+            if (sectionValue is not BsonDocument section)
+            {
+                continue;
+            }
+
+            if (!section.TryGetValue("sectionId", out var sectionId))
+            {
+                continue;
+            }
+
+            section.Remove("sectionId");
+            section["workoutId"] = sectionId;
         }
     }
 
@@ -1196,7 +1378,7 @@ public class MongoIndexInitializer : IHostedService
                 Mood = log.Mood,
                 Notes = log.Notes,
                 WodResult = log.WodResult,
-                Sections = log.Sections
+                Workouts = log.Workouts
             },
             DateCreated = log.DateCreated,
             DateUpdated = log.DateUpdated,

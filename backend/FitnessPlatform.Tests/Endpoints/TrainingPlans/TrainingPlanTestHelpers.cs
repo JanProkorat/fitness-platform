@@ -138,7 +138,7 @@ public static class TrainingPlanTestHelpers
                         Mood = log.Mood,
                         Notes = log.Notes,
                         WodResult = log.WodResult,
-                        Sections = log.Sections
+                        Workouts = log.Workouts
                     },
                     DateCreated = log.DateCreated,
                     DateUpdated = log.DateUpdated,
@@ -188,7 +188,7 @@ public static class TrainingPlanTestHelpers
                     Mood = log.Mood,
                     Notes = log.Notes,
                     WodResult = log.WodResult,
-                    Sections = log.Sections
+                    Workouts = log.Workouts
                 },
                 DateCreated = log.DateCreated,
                 DateUpdated = log.DateUpdated,

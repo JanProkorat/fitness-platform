@@ -65,11 +65,11 @@ public class SessionExecutionMigrationTests
             CompletedDate = isCompleted ? date : null,
             Mood = 4,
             Notes = "Felt good",
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =
@@ -157,8 +157,8 @@ public class SessionExecutionMigrationTests
         execution.Date.Should().Be(date);
 
         execution.Performance.Should().NotBeNull("the merge must carry the WorkoutLog's set-by-set performance data over");
-        execution.Performance!.Sections.Should().HaveCount(1);
-        execution.Performance.Sections[0].Exercises.Single().ExerciseExternalId.Should().Be(exerciseId);
+        execution.Performance!.Workouts.Should().HaveCount(1);
+        execution.Performance.Workouts[0].Exercises.Single().ExerciseExternalId.Should().Be(exerciseId);
 
         execution.CompletedExerciseIds.Should().BeEquivalentTo(completion.CompletedExerciseIds,
             "the merge must carry the TrainingCompletion's completion flags over");
@@ -203,7 +203,7 @@ public class SessionExecutionMigrationTests
 
         execution.Should().NotBeNull();
         execution!.Performance.Should().NotBeNull("a log-only migration must still carry the performance data");
-        execution.Performance!.Sections.Should().HaveCount(1);
+        execution.Performance!.Workouts.Should().HaveCount(1);
         execution.CompletedExerciseIds.Should().BeEmpty("no TrainingCompletion existed at this key — no completion flags to carry over");
         execution.CompletedExerciseIdsBySection.Should().BeNull();
         execution.Status.Should().Be(SessionExecutionStatus.Partial, "the log is not completed and no plan/session resolved");

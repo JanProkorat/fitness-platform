@@ -182,7 +182,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted = isCompleted,
             CompletedAt = completedAt,
             CompletedDate = completedDate,
-            Sections    = [],
+            Workouts    = [],
             DateCreated = now.AddMinutes(-30)
         };
         return log;
@@ -213,7 +213,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             {
                 StartedAt = now.AddMinutes(-30),
                 CompletedAt = completedAt,
-                Sections = []
+                Workouts = []
             },
             DateCreated = now.AddMinutes(-30),
             Version = 1
@@ -394,7 +394,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted = true,
             CompletedAt = completedAt,
             CompletedDate = null, // simulates legacy document
-            Sections    = [],
+            Workouts    = [],
             DateCreated = completedAt.AddMinutes(-30),
             DateUpdated = completedAt
         };
@@ -455,7 +455,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted   = true,
             CompletedAt   = day.AddMinutes(-30),
             CompletedDate = midnight,
-            Sections      = [],
+            Workouts      = [],
             DateCreated   = day.AddMinutes(-60)
         };
         var later = new WorkoutLog
@@ -468,7 +468,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted   = true,
             CompletedAt   = day,
             CompletedDate = midnight,
-            Sections      = [],
+            Workouts      = [],
             DateCreated   = day.AddMinutes(-45)
         };
         await logsColl.InsertManyAsync([earlier, later], cancellationToken: ct);

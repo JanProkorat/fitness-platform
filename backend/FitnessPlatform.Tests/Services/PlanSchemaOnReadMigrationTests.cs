@@ -229,8 +229,8 @@ public class PlanSchemaOnReadMigrationTests
             .FirstOrDefaultAsync(ct);
 
         migrated.Should().NotBeNull();
-        migrated!.Sections.Should().HaveCount(1);
-        var hlavni = migrated.Sections[0];
+        migrated!.Workouts.Should().HaveCount(1);
+        var hlavni = migrated.Workouts[0];
         hlavni.Name.Should().Be("Hlavní");
         hlavni.Exercises.Should().HaveCount(1);
         hlavni.Exercises[0].ExerciseExternalId.Should().Be(squatId);

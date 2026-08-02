@@ -110,7 +110,7 @@ public class StartWorkoutEndpoint(
                 var versionedFilter = filter & Builders<SessionExecution>.Filter.Eq(e => e.Version, existing.Version);
                 var update = Builders<SessionExecution>.Update
                     .Set(e => e.PlanId, req.PlanId)
-                    .Set(e => e.Performance, new SessionExecutionPerformance { StartedAt = now, Sections = [] })
+                    .Set(e => e.Performance, new SessionExecutionPerformance { StartedAt = now, Workouts = [] })
                     .Set(e => e.DateUpdated, now)
                     .Set(e => e.Version, existing.Version + 1);
 
@@ -140,7 +140,7 @@ public class StartWorkoutEndpoint(
                 PlanId = req.PlanId,
                 SessionId = req.SessionId,
                 Date = date,
-                Performance = new SessionExecutionPerformance { StartedAt = now, Sections = [] },
+                Performance = new SessionExecutionPerformance { StartedAt = now, Workouts = [] },
                 DateCreated = now,
                 Version = 1
             };
@@ -174,7 +174,7 @@ public class StartWorkoutEndpoint(
             PlanId = req.PlanId,
             SessionId = req.SessionId,
             Date = SessionExecution.ToCompletionDateUtc(now),
-            Performance = new SessionExecutionPerformance { StartedAt = now, Sections = [] },
+            Performance = new SessionExecutionPerformance { StartedAt = now, Workouts = [] },
             DateCreated = now,
             Version = 1
         };

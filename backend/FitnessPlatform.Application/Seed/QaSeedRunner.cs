@@ -124,10 +124,10 @@ public static class QaSeedRunner
     public static readonly Guid QaMultiSectionSessionId = new("55555555-5555-5555-bbbb-000000000001");
 
     // Standard section — edited reps/weights logged here.
-    public static readonly Guid MultiSectionStandardSectionId = new("55555555-5555-5555-aaaa-000000000001");
+    public static readonly Guid MultiSectionStandardWorkoutId = new("55555555-5555-5555-aaaa-000000000001");
 
     // AMRAP section — left at planned values (no edits).
-    public static readonly Guid MultiSectionAmrapSectionId = new("55555555-5555-5555-aaaa-000000000002");
+    public static readonly Guid MultiSectionAmrapWorkoutId = new("55555555-5555-5555-aaaa-000000000002");
 
     // The SAME exercise appears in BOTH sections to prove section-keyed lookup
     // returns independent values per section.
@@ -137,12 +137,12 @@ public static class QaSeedRunner
     public static readonly Guid QaMultiSectionWorkoutLogId = new("55555555-5555-5555-4455-000000000001");
 
     // Section ID within the main-plan completed WorkoutLog (mirrors StandardSectionId).
-    public static readonly Guid MainPlanCompletedSectionId = new("11111111-1111-1111-4455-000000000002");
+    public static readonly Guid MainPlanCompletedWorkoutId = new("11111111-1111-1111-4455-000000000002");
 
     // Section IDs within the three past sessions.
-    public static readonly Guid PastCompletedSectionId = new("11111111-1111-1111-3333-000000000001");
-    public static readonly Guid PastSkippedSectionId   = new("11111111-1111-1111-3333-000000000002");
-    public static readonly Guid PastUntouchedSectionId = new("11111111-1111-1111-3333-000000000003");
+    public static readonly Guid PastCompletedWorkoutId = new("11111111-1111-1111-3333-000000000001");
+    public static readonly Guid PastSkippedWorkoutId   = new("11111111-1111-1111-3333-000000000002");
+    public static readonly Guid PastUntouchedWorkoutId = new("11111111-1111-1111-3333-000000000003");
 
     // Stable SectionIds — deterministic for test assertions.
     public static readonly Guid ForTimeSectionId   = new("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
@@ -830,11 +830,11 @@ public static class QaSeedRunner
             {
                 StartedAt   = completedAt.AddMinutes(-60),
                 CompletedAt = completedAt,
-                Sections =
+                Workouts =
                 [
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = MainPlanCompletedSectionId,
+                        WorkoutId = MainPlanCompletedWorkoutId,
                         Order     = 2,    // mirrors Standard section Order=2 in the plan
                         Name      = "Standard test",
                         Format    = null,
@@ -992,7 +992,7 @@ public static class QaSeedRunner
                                 [
                                     new TrainingWorkout
                                     {
-                                        WorkoutId    = PastCompletedSectionId,
+                                        WorkoutId    = PastCompletedWorkoutId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1028,7 +1028,7 @@ public static class QaSeedRunner
                                 [
                                     new TrainingWorkout
                                     {
-                                        WorkoutId    = PastSkippedSectionId,
+                                        WorkoutId    = PastSkippedWorkoutId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1073,7 +1073,7 @@ public static class QaSeedRunner
                                 [
                                     new TrainingWorkout
                                     {
-                                        WorkoutId    = PastUntouchedSectionId,
+                                        WorkoutId    = PastUntouchedWorkoutId,
                                         Order        = 0,
                                         Name         = "Hlavní",
                                         Format       = null,
@@ -1148,11 +1148,11 @@ public static class QaSeedRunner
                 {
                     StartedAt   = completedAt.AddMinutes(-45),
                     CompletedAt = completedAt,
-                    Sections    =
+                    Workouts    =
                     [
-                        new WorkoutSection
+                        new LoggedWorkout
                         {
-                            SectionId = PastCompletedSectionId,
+                            WorkoutId = PastCompletedWorkoutId,
                             Order     = 0,
                             Name      = "Hlavní",
                             Format    = null,
@@ -1222,11 +1222,11 @@ public static class QaSeedRunner
                 {
                     StartedAt   = skippedStartedAt,
                     CompletedAt = null,
-                    Sections    =
+                    Workouts    =
                     [
-                        new WorkoutSection
+                        new LoggedWorkout
                         {
-                            SectionId = PastSkippedSectionId,
+                            WorkoutId = PastSkippedWorkoutId,
                             Order     = 0,
                             Name      = "Hlavní",
                             Format    = null,
@@ -1340,7 +1340,7 @@ public static class QaSeedRunner
                                 // Section 1 — Standard: prescribed set for QA Kettlebell Swing.
                                 new TrainingWorkout
                                 {
-                                    WorkoutId    = MultiSectionStandardSectionId,
+                                    WorkoutId    = MultiSectionStandardWorkoutId,
                                     Order        = 0,
                                     Name         = "Standard work",
                                     Format       = null,
@@ -1367,7 +1367,7 @@ public static class QaSeedRunner
                                 // No prescribed sets (AMRAP format — reps accumulate per round).
                                 new TrainingWorkout
                                 {
-                                    WorkoutId    = MultiSectionAmrapSectionId,
+                                    WorkoutId    = MultiSectionAmrapWorkoutId,
                                     Order        = 1,
                                     Name         = "AMRAP 10 min",
                                     Format       = WorkoutFormat.AMRAP,
@@ -1447,12 +1447,12 @@ public static class QaSeedRunner
             {
                 StartedAt   = completedAt.AddMinutes(-40),
                 CompletedAt = completedAt,
-                Sections =
+                Workouts =
                 [
                     // Standard section — edited reps/weights on Set 1 + Set 3; Set 2 as-prescribed.
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = MultiSectionStandardSectionId,
+                        WorkoutId = MultiSectionStandardWorkoutId,
                         Order     = 0, // mirrors Standard section Order=0 in the plan
                         Name      = "Standard work",
                         Format    = null,
@@ -1500,9 +1500,9 @@ public static class QaSeedRunner
                     },
                     // AMRAP section — same exercise, logged at face value (no edits).
                     // No planned snapshot because AMRAP sections don't carry prescribed sets.
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = MultiSectionAmrapSectionId,
+                        WorkoutId = MultiSectionAmrapWorkoutId,
                         Order     = 1, // mirrors AMRAP section Order=1 in the plan
                         Name      = "AMRAP 10 min",
                         Format    = WorkoutFormat.AMRAP,

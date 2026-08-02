@@ -12,7 +12,7 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// UpdateWorkout → CompleteWorkout) or a trainer retroactively finished the session via
 /// <c>FinishSessionEndpoint</c>. A <see cref="SessionExecution"/> created purely via the
 /// lightweight Today-card checkboxes (Mark*Complete) has <c>Performance == null</c>.
-/// Reuses <see cref="WorkoutSection"/>/<see cref="WorkoutExercise"/>/<see cref="WorkoutSet"/>/
+/// Reuses <see cref="LoggedWorkout"/>/<see cref="WorkoutExercise"/>/<see cref="WorkoutSet"/>/
 /// <see cref="Documents.WodResult"/> UNCHANGED so <c>SessionExecutionDto</c> (the
 /// GetTrainingPlan wire contract) stays byte-stable.
 /// </remarks>
@@ -54,16 +54,16 @@ public class SessionExecutionPerformance
     public WodResult? WodResult { get; set; }
 
     /// <summary>
-    /// Sections in this workout. Each section contains logged exercises/sets.
+    /// Workouts in this session execution. Each workout contains logged exercises/sets.
     /// </summary>
-    [BsonElement("sections")]
-    public List<WorkoutSection> Sections { get; set; } = [];
+    [BsonElement("workouts")]
+    public List<LoggedWorkout> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat view of all exercises across all sections. Read-only convenience accessor.
-    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// Flat view of all exercises across all workouts. Read-only convenience accessor.
+    /// Not stored in MongoDB — computed from <see cref="Workouts"/>.
     /// </summary>
     [BsonIgnore]
     public IReadOnlyList<WorkoutExercise> Exercises =>
-        Sections.SelectMany(s => s.Exercises).ToList();
+        Workouts.SelectMany(w => w.Exercises).ToList();
 }
