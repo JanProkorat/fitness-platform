@@ -57,39 +57,35 @@ public class FinishSessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Workouts =
-                            [
-                                new TrainingWorkout
-                                {
-                                    WorkoutId = sectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = Guid.NewGuid(),
-                                            ExerciseName = "Bench Press",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 },
-                                                new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 100 }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = sectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Bench Press",
+                                        Order = 1,
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 },
+                                            new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 100 }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -500,17 +496,13 @@ public class FinishSessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Workouts = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,

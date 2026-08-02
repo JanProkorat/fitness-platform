@@ -56,8 +56,7 @@ public class PublishTrainingWeekEndpointTests
             WeekNumber = w.WeekNumber,
             Status = w.WeekNumber == weekNumber ? WeekStatus.Published : w.Status,
             DatePublished = w.WeekNumber == weekNumber ? DateTime.UtcNow : w.DatePublished,
-            Sessions = w.Sessions,
-            DayNotes = w.DayNotes
+            Days = w.Days
         }).ToList(),
         Version = plan.Version + 1,
         DateCreated = plan.DateCreated,
