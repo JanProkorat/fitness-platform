@@ -83,6 +83,18 @@ public static class LibrarySearchHelper
     /// sorts on calories). Pass <c>null</c> to use the default. Regardless of what is passed
     /// here, an <c>ExternalId</c> ascending tiebreaker is always appended internally — a custom
     /// sort can never drop the determinism guarantee.
+    /// <para>
+    /// <b>Never pass a sort on <c>ExternalId</c> here.</b> A Mongo sort is a single BSON document,
+    /// so it cannot carry <c>externalId</c> twice with two directions — <c>Sort.Combine</c>
+    /// collapses the pair by merging each sort into one document with later entries overwriting
+    /// earlier ones for the same key, and the tiebreaker is always the later (last-applied) entry.
+    /// Observed and pinned against a real MongoDB container in
+    /// <c>LibrarySearchHelperTests.SearchAsync_PrimarySortOnExternalId_TiebreakerWinsAndOrdersAscending</c>:
+    /// a <paramref name="primarySort"/> of <c>Descending(d =&gt; d.ExternalId)</c> is silently
+    /// executed ascending — the caller-requested direction is discarded, not honoured and not
+    /// rejected. The determinism guarantee is unaffected either way (ExternalId is still the sole
+    /// surviving sort key), but a child library must not rely on a custom direction for it.
+    /// </para>
     /// </param>
     public static async Task<(IReadOnlyList<TDoc> Items, long TotalCount)> SearchAsync<TDoc>(
         this IEndpoint endpoint,

@@ -293,6 +293,49 @@ public class LibrarySearchHelperTests : IAsyncLifetime
             lowest.ExternalId, tiedInOrder[0].ExternalId, tiedInOrder[1].ExternalId, highest.ExternalId);
     }
 
+    /// <summary>
+    /// Pins what actually happens when a caller passes a <c>primarySort</c> on
+    /// <c>ExternalId</c> — the one key <c>SearchAsync</c> appends unconditionally as its
+    /// tiebreaker. A Mongo sort is a single BSON document and cannot carry <c>externalId</c>
+    /// twice with two directions, so the driver must collapse the pair and one direction is
+    /// silently discarded. Which one survives is driver behaviour, not something the XML docs
+    /// state, so it is asserted here rather than claimed in a comment.
+    /// </summary>
+    /// <remarks>
+    /// The determinism guarantee is unaffected either way: <c>ExternalId</c> is unique, so it
+    /// remains a total order regardless of which direction wins. What this test protects is the
+    /// <i>documented</i> behaviour on <c>primarySort</c> — a child that passes a descending
+    /// <c>ExternalId</c> sort and silently gets ascending should be able to read why.
+    /// </remarks>
+    [Fact]
+    public async Task SearchAsync_PrimarySortOnExternalId_TiebreakerWinsAndOrdersAscending()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        var entries = Enumerable.Range(0, 4)
+            .Select(i => MakeEntry(callerId, $"Entry {i}"))
+            .ToList();
+
+        await _collection.InsertManyAsync(entries, cancellationToken: ct);
+
+        var ep = Factory.Create<LibrarySearchProbeEndpoint>();
+        var externalIdDescending = Builders<TestLibraryDocument>.Sort.Descending(d => d.ExternalId);
+
+        var (items, totalCount) = await ep.SearchAsync(
+            _collection, callerId, d => d.Name, search: null,
+            page: 1, pageSize: 20, extraFilter: null, ct: ct, primarySort: externalIdDescending);
+
+        totalCount.Should().Be(4);
+
+        // The caller asked for descending; the unconditionally-appended ascending tiebreaker is
+        // the later entry for the same key and wins the collapse, so the caller's direction is
+        // silently discarded. If this assertion ever flips, the XML note on `primarySort` in
+        // LibrarySearchHelper is wrong and must be corrected with it.
+        items.Select(i => i.ExternalId).Should().Equal(
+            entries.Select(e => e.ExternalId).OrderBy(id => id));
+    }
+
     [Theory]
     [InlineData(0, 20)]
     [InlineData(-1, 20)]
