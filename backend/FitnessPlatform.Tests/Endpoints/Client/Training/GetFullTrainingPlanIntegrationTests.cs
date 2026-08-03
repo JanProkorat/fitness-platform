@@ -566,6 +566,287 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.Exercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
     }
 
+    /// <summary>
+    /// Standalone-only session (#857 phase 3a — the headline feature of this refactor): a
+    /// session with zero workouts but one exercise programmed directly on the session must not
+    /// be invisible. Mirrors the shape of the QA fixture at
+    /// <c>QaSeedRunner.QaStandaloneOnlySessionId</c>.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_WithStandaloneOnlySession_ReturnsNonZeroCountsAndExercise()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Standalone", "Only", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var plankId = Guid.NewGuid();
+        var plankInstanceId = Guid.NewGuid();
+
+        var plankExercise = new Exercise
+        {
+            ExternalId = plankId,
+            Name = "Plank",
+            MuscleGroups = [MuscleGroup.Abs],
+            Equipment = ExerciseEquipment.Bodyweight,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Beginner,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Standalone-Only Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Standalone-Only Session",
+                            Order = 1,
+                            Workouts = [],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = plankInstanceId,
+                                    ExerciseExternalId = plankId,
+                                    ExerciseName = "Plank",
+                                    Order = 1,
+                                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, DurationSeconds = 60 }]
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(plankExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var session = body!.Weeks[0].Sessions[0];
+
+        session.Workouts.Should().BeEmpty("this session has no workouts at all");
+        session.TotalExerciseCount.Should().Be(1,
+            "a standalone exercise must be counted even with zero workouts — previously this was 0");
+        session.CompletedExerciseCount.Should().Be(0);
+
+        session.StandaloneExercises.Should().HaveCount(1);
+        session.StandaloneExercises[0].ExerciseId.Should().Be(plankInstanceId);
+        session.StandaloneExercises[0].ExerciseExternalId.Should().Be(plankId);
+
+        session.Exercises.Should().HaveCount(1,
+            "the flat Exercises view must also include standalone exercises — previously it only walked Workouts");
+        session.Exercises[0].ExerciseId.Should().Be(plankInstanceId);
+    }
+
+    /// <summary>
+    /// Dual placement (#857 phase 3a/3b): the same catalog exercise appears BOTH standalone on
+    /// the session AND nested inside one of that session's workouts, as two distinct
+    /// <see cref="SessionExercise.ExerciseId"/> instance values. Mirrors the shape of the QA
+    /// fixture at <c>QaSeedRunner.QaDualPlacementSessionId</c>. Both instances must be counted
+    /// and returned separately — collapsing on <c>ExerciseExternalId</c> would silently drop one.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_WithDualPlacementSession_ReturnsBothInstancesSeparately()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Dual", "Placement", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var wallBallId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var nestedInstanceId = Guid.NewGuid();
+
+        var wallBallExercise = new Exercise
+        {
+            ExternalId = wallBallId,
+            Name = "Wall Ball",
+            MuscleGroups = [MuscleGroup.Quadriceps, MuscleGroup.Shoulders],
+            Equipment = ExerciseEquipment.Kettlebell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Dual Placement Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Standalone + Nested Session",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = workoutId,
+                                    Order = 2,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = nestedInstanceId,
+                                            ExerciseExternalId = wallBallId,
+                                            ExerciseName = "Wall Ball",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                        }
+                                    ]
+                                }
+                            ],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = standaloneInstanceId,
+                                    ExerciseExternalId = wallBallId,
+                                    ExerciseName = "Wall Ball",
+                                    Order = 1,
+                                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15 }]
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(wallBallExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var session = body!.Weeks[0].Sessions[0];
+
+        session.TotalExerciseCount.Should().Be(2,
+            "the same catalog exercise placed both standalone and nested must count as TWO instances");
+
+        session.StandaloneExercises.Should().HaveCount(1);
+        session.StandaloneExercises[0].ExerciseId.Should().Be(standaloneInstanceId);
+
+        session.Workouts.Should().HaveCount(1);
+        session.Workouts[0].Exercises.Should().HaveCount(1);
+        session.Workouts[0].Exercises[0].ExerciseId.Should().Be(nestedInstanceId);
+
+        session.Exercises.Should().HaveCount(2,
+            "the flat view must include both instances — collapsing on ExerciseExternalId would drop one");
+        session.Exercises.Select(e => e.ExerciseId).Should().BeEquivalentTo([standaloneInstanceId, nestedInstanceId]);
+
+        // Shared Order sequence: standalone exercise Order=1 comes before the workout's Order=2,
+        // so the standalone instance must appear first in the flat merge.
+        session.Exercises[0].ExerciseId.Should().Be(standaloneInstanceId,
+            "standalone Exercise.Order=1 precedes the workout's Order=2 in the shared sequence");
+        session.Exercises[1].ExerciseId.Should().Be(nestedInstanceId);
+    }
+
     // ── Legacy flat-exercise schema-on-read is retired (#837) ────────────────────
     //
     // The flat-`exercises`-no-sections scenario previously covered here
@@ -1177,7 +1458,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int TotalExerciseCount,
         int? EstimatedDurationMinutes,
         List<WorkoutResponse> Workouts,
-        List<ExerciseResponse> Exercises);
+        List<ExerciseResponse> Exercises,
+        List<ExerciseResponse> StandaloneExercises);
 
     private record WorkoutResponse(
         Guid WorkoutId,

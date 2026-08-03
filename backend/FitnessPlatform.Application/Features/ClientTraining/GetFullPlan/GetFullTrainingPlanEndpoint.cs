@@ -303,6 +303,71 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         }
 
         // ── 6. Build response ─────────────────────────────────────────────────────
+
+        // Shared by a workout's nested exercises AND a session's standalone exercises (#857
+        // phase 3a) — both are SessionExercise instances with identical completion/enrichment
+        // rules, so the mapping lives in one place rather than being duplicated per call site.
+        ExerciseDto BuildExerciseDto(SessionExercise ex, Guid sessionId)
+        {
+            var muscleGroups = muscleGroupMap.TryGetValue(ex.ExerciseExternalId, out var mg)
+                ? mg
+                : [];
+
+            var setDtos = ex.Sets.Select(set =>
+            {
+                var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
+                completedSets.TryGetValue(key, out var completedAt);
+                loggedSets.TryGetValue(key, out var loggedSet);
+
+                return new SetDto
+                {
+                    SetNumber = set.SetNumber,
+                    Type = set.Type.ToString(),
+                    Reps = set.Reps,
+                    WeightKg = set.WeightKg,
+                    DurationSeconds = set.DurationSeconds,
+                    DistanceMeters = set.DistanceMeters,
+                    RestSeconds = set.RestSeconds,
+                    CompletedAt = completedAt == default ? null : completedAt,
+                    // Actual values from the workout log (null when not yet logged).
+                    ActualReps = loggedSet?.Reps,
+                    ActualWeightKg = loggedSet?.WeightKg,
+                    ActualRpe = loggedSet?.Rpe,
+                    ActualDurationSeconds = loggedSet?.DurationSeconds,
+                    ActualDistanceMeters = loggedSet?.DistanceMeters,
+                    // Snapshot-planned values (null on legacy logs → isModified stays false).
+                    PlannedReps = loggedSet?.PlannedReps,
+                    PlannedWeightKg = loggedSet?.PlannedWeightKg,
+                    PlannedRpe = loggedSet?.PlannedRpe,
+                    PlannedDurationSeconds = loggedSet?.PlannedDurationSeconds,
+                    PlannedDistanceMeters = loggedSet?.PlannedDistanceMeters,
+                    IsModified = loggedSet?.IsModified ?? false
+                };
+            }).ToList();
+
+            // An exercise is complete only when every planned set has a log entry.
+            var isCompleted = setDtos.Count > 0 && setDtos.All(s => s.CompletedAt is not null);
+            var hasModifications = setDtos.Any(s => s.IsModified);
+
+            return new ExerciseDto
+            {
+                ExerciseId = ex.ExerciseId,
+                ExerciseExternalId = ex.ExerciseExternalId,
+                ExerciseName = ex.ExerciseName,
+                Order = ex.Order,
+                Notes = ex.Notes,
+                RestSeconds = ex.RestSeconds,
+                // Surface the movement type so the client can
+                // pick the right summary template (reps /
+                // duration / distance / reps-for-time).
+                MovementType = ex.MovementType.ToString(),
+                MuscleGroups = muscleGroups,
+                IsCompleted = isCompleted,
+                HasModifications = hasModifications,
+                Sets = setDtos
+            };
+        }
+
         var weekDtos = publishedWeeks.Select(week =>
         {
             // Compute week start/end from StartDate when available.
@@ -322,76 +387,21 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 .Select(x =>
             {
                 var (dayOfWeek, session) = x;
-                // Build per-workout DTOs, ordering workouts by their Order field.
-                var workoutDtos = session.Workouts.OrderBy(workout => workout.Order).Select(workout =>
+
+                // Build per-workout DTOs, keeping each workout's own Order alongside it so the
+                // flat merge below can interleave workouts and standalone exercises correctly.
+                var workoutComponents = session.Workouts.OrderBy(workout => workout.Order).Select(workout =>
                 {
-                    var workoutExerciseDtos = workout.Exercises.Select(ex =>
-                    {
-                        var muscleGroups = muscleGroupMap.TryGetValue(ex.ExerciseExternalId, out var mg)
-                            ? mg
-                            : [];
-
-                        var setDtos = ex.Sets.Select(set =>
-                        {
-                            var key = (session.SessionId, ex.ExerciseExternalId, set.SetNumber);
-                            completedSets.TryGetValue(key, out var completedAt);
-                            loggedSets.TryGetValue(key, out var loggedSet);
-
-                            return new SetDto
-                            {
-                                SetNumber = set.SetNumber,
-                                Type = set.Type.ToString(),
-                                Reps = set.Reps,
-                                WeightKg = set.WeightKg,
-                                DurationSeconds = set.DurationSeconds,
-                                DistanceMeters = set.DistanceMeters,
-                                RestSeconds = set.RestSeconds,
-                                CompletedAt = completedAt == default ? null : completedAt,
-                                // Actual values from the workout log (null when not yet logged).
-                                ActualReps = loggedSet?.Reps,
-                                ActualWeightKg = loggedSet?.WeightKg,
-                                ActualRpe = loggedSet?.Rpe,
-                                ActualDurationSeconds = loggedSet?.DurationSeconds,
-                                ActualDistanceMeters = loggedSet?.DistanceMeters,
-                                // Snapshot-planned values (null on legacy logs → isModified stays false).
-                                PlannedReps = loggedSet?.PlannedReps,
-                                PlannedWeightKg = loggedSet?.PlannedWeightKg,
-                                PlannedRpe = loggedSet?.PlannedRpe,
-                                PlannedDurationSeconds = loggedSet?.PlannedDurationSeconds,
-                                PlannedDistanceMeters = loggedSet?.PlannedDistanceMeters,
-                                IsModified = loggedSet?.IsModified ?? false
-                            };
-                        }).ToList();
-
-                        // An exercise is complete only when every planned set has a log entry.
-                        var isCompleted = setDtos.Count > 0 && setDtos.All(s => s.CompletedAt is not null);
-                        var hasModifications = setDtos.Any(s => s.IsModified);
-
-                        return new ExerciseDto
-                        {
-                            ExerciseId = ex.ExerciseId,
-                            ExerciseExternalId = ex.ExerciseExternalId,
-                            ExerciseName = ex.ExerciseName,
-                            Order = ex.Order,
-                            Notes = ex.Notes,
-                            RestSeconds = ex.RestSeconds,
-                            // Surface the movement type so the client can
-                            // pick the right summary template (reps /
-                            // duration / distance / reps-for-time).
-                            MovementType = ex.MovementType.ToString(),
-                            MuscleGroups = muscleGroups,
-                            IsCompleted = isCompleted,
-                            HasModifications = hasModifications,
-                            Sets = setDtos
-                        };
-                    }).ToList();
+                    var workoutExerciseDtos = workout.Exercises
+                        .Select(ex => BuildExerciseDto(ex, session.SessionId))
+                        .ToList();
 
                     var workoutIsCompleted = workoutExerciseDtos.Count > 0
                         ? workoutExerciseDtos.All(e => e.IsCompleted)
                         : completedSectionIdsBySession.TryGetValue(session.SessionId, out var completedSecs)
                             && completedSecs.Contains(workout.WorkoutId);
 
-                    return new WorkoutDto
+                    var dto = new WorkoutDto
                     {
                         WorkoutId = workout.WorkoutId,
                         Order = workout.Order,
@@ -402,11 +412,32 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                         IsCompleted = workoutIsCompleted,
                         Exercises = workoutExerciseDtos
                     };
+
+                    return (workout.Order, Dto: dto);
                 }).ToList();
 
-                // Flat exercise list derived from workouts in order — backward-compat for callers
-                // that don't yet consume the Workouts field.
-                var exerciseDtos = workoutDtos.SelectMany(w => w.Exercises).ToList();
+                var workoutDtos = workoutComponents.Select(c => c.Dto).ToList();
+
+                // Standalone exercises directly on the session (#857 phase 3a) — sit alongside
+                // Workouts, sharing the same shared Order sequence (see UpdateTrainingPlanValidator's
+                // cross-list duplicate-Order check).
+                var standaloneComponents = session.StandaloneExercises
+                    .Select(ex => (ex.Order, ExerciseDto: BuildExerciseDto(ex, session.SessionId)))
+                    .ToList();
+
+                var standaloneExerciseDtos = standaloneComponents.Select(c => c.ExerciseDto).ToList();
+
+                // Flat exercise list — merges workout-nested and standalone exercises by the ONE
+                // shared Order sequence they occupy within a session. Standalone exercises are
+                // session content just like workouts, so they must appear here (and be counted in
+                // TotalExerciseCount/CompletedExerciseCount below) — a standalone-only session was
+                // previously invisible to this endpoint because this list only walked Workouts.
+                var exerciseDtos = workoutComponents
+                    .Select(c => (c.Order, Exercises: (IReadOnlyList<ExerciseDto>)c.Dto.Exercises))
+                    .Concat(standaloneComponents.Select(c => (c.Order, Exercises: (IReadOnlyList<ExerciseDto>)[c.ExerciseDto])))
+                    .OrderBy(c => c.Order)
+                    .SelectMany(c => c.Exercises)
+                    .ToList();
 
                 var completedExerciseCount = exerciseDtos.Count(e => e.IsCompleted);
                 var sessionHasModifications = exerciseDtos.Any(e => e.HasModifications);
@@ -432,6 +463,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     EstimatedDurationMinutes = null, // deferred — requires product-defined set-duration heuristic
                     Workouts = workoutDtos,
                     Exercises = exerciseDtos,
+                    StandaloneExercises = standaloneExerciseDtos,
                     LockState = sessionLockState,
                     LockHolder = sessionLockHolder,
                     HasModifications = sessionHasModifications

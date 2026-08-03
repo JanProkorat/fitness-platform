@@ -113,10 +113,21 @@ public class SessionDto
     public List<WorkoutDto> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat list of all exercises across all workouts, in workout order.
-    /// Kept for backward-compatibility with callers that don't yet read Workouts.
+    /// Flat list of every exercise in this session — standalone exercises plus every workout's
+    /// nested exercises — ordered by the ONE shared <c>Order</c> sequence workouts and standalone
+    /// exercises occupy within a session (see <c>UpdateTrainingPlanValidator</c>'s cross-list
+    /// duplicate-Order check). Kept for backward-compatibility with callers that don't yet read
+    /// <see cref="Workouts"/>/<see cref="StandaloneExercises"/> separately.
     /// </summary>
     public List<ExerciseDto> Exercises { get; set; } = [];
+
+    /// <summary>
+    /// Standalone exercises programmed directly on this session — not grouped under any
+    /// <see cref="WorkoutDto"/> (#857 phase 3a). Also included (in shared-Order position) in the
+    /// flat <see cref="Exercises"/> view above and counted in <see cref="TotalExerciseCount"/> /
+    /// <see cref="CompletedExerciseCount"/>.
+    /// </summary>
+    public List<ExerciseDto> StandaloneExercises { get; set; } = [];
 
     /// <summary>
     /// Current lock state of this session.
