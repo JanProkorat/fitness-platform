@@ -380,7 +380,12 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                             DayOfWeek = 1,
                             Name = "Two-Section Day",
                             Order = 1,
-                            Sections = new[]
+                            // Must match UpdateSessionRequest's property name: this payload is
+                            // hand-built, so the section->workout rename does not reach it
+                            // automatically. Posting the old "Sections" key binds an empty
+                            // Workouts list, which the phase-3a "a session must have at least one
+                            // workout or standalone exercise" rule then rejects with 400.
+                            Workouts = new[]
                             {
                                 new
                                 {
