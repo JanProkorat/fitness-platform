@@ -35,9 +35,9 @@ public static class SessionExecutionExtensions
             return true;
 
         // Guard: a session with nothing programmed (no workouts, no standalone exercises) is
-        // never complete. Every TrainingSession document carries a populated Workouts list (the
-        // #837 boot migration) or standalone exercises (#857 phase 3a), so zero of both signals an
-        // abnormal/corrupt session definition.
+        // never complete. A session is written with at least one workout or one standalone
+        // exercise (#857 phase 3a — enforced by UpdateTrainingPlanValidator), so zero of both
+        // signals an abnormal/corrupt session definition.
         if (session.Workouts.Count == 0 && session.StandaloneExercises.Count == 0)
             return false;
 
