@@ -1094,20 +1094,41 @@ public class MongoIndexInitializer : IHostedService
     /// <summary>
     /// Counts the individual exercise-completion entries carried by a document that has no
     /// resolvable <c>sessionId</c> — used only for the unresolved counter, since every entry in
-    /// such a document is unresolved regardless of shape. Prefers <paramref name="bySection"/>
-    /// (by-workout dictionary) when present; falls back to the flat <c>completedExerciseIds</c>
-    /// array otherwise.
+    /// such a document is unresolved regardless of shape.
     /// </summary>
+    /// <remarks>
+    /// Counts the DISTINCT catalog ids across BOTH shapes rather than preferring the by-workout
+    /// dictionary. A document can carry the dictionary AND a flat <c>completedExerciseIds</c>
+    /// holding ids the dictionary never attributed — the same mixed shape that made the
+    /// resolution pass above drop entries silently. Reading only the dictionary here understated
+    /// the unresolved total, which is the one number an operator uses to judge whether this
+    /// migration lost anything; understating it defeats that check. Distinct, because an id
+    /// present in both shapes is one unmigrated entry, not two.
+    /// </remarks>
     private static int CountLegacyCompletionEntries(BsonDocument doc, BsonDocument? bySection)
     {
+        var entries = new HashSet<Guid>();
+
         if (bySection is not null)
         {
-            return bySection.Elements.Sum(element => element.Value.AsBsonArray.Count);
+            foreach (var element in bySection.Elements)
+            {
+                foreach (var id in element.Value.AsBsonArray)
+                {
+                    entries.Add(id.AsGuid);
+                }
+            }
         }
 
-        return doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatIds
-            ? flatIds.Count
-            : 0;
+        if (doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatIds)
+        {
+            foreach (var id in flatIds)
+            {
+                entries.Add(id.AsGuid);
+            }
+        }
+
+        return entries.Count;
     }
 
     /// <summary>
