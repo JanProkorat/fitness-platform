@@ -187,10 +187,9 @@ public class GetClientPlansEndpointTests
             weekCount: 1);
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
-        plan.Weeks[0].Sessions.Add(new TrainingSession
+        plan.Weeks[0].Days.First(d => d.DayOfWeek == todayDow).Sessions.Add(new TrainingSession
         {
             SessionId = Guid.NewGuid(),
-            DayOfWeek = todayDow,
             Name = "Push Day",
             Order = 1
         });
@@ -226,10 +225,9 @@ public class GetClientPlansEndpointTests
             weekCount: 1);
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
-        plan.Weeks[0].Sessions.Add(new TrainingSession
+        plan.Weeks[0].Days.First(d => d.DayOfWeek == sessionDow).Sessions.Add(new TrainingSession
         {
             SessionId = Guid.NewGuid(),
-            DayOfWeek = sessionDow,
             Name = "Leg Day",
             Order = 1
         });

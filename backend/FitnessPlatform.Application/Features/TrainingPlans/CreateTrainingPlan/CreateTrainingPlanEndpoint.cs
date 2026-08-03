@@ -141,7 +141,11 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             {
                 WeekNumber = w,
                 Status = WeekStatus.Draft,
-                Sessions = []
+                Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                {
+                    DayOfWeek = d,
+                    Sessions = []
+                }).ToList()
             }).ToList(),
             Version = 1,
             DateCreated = now,

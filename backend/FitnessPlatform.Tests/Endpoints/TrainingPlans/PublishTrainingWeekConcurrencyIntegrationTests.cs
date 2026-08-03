@@ -70,7 +70,7 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
         Version = 1,
         DateCreated = DateTime.UtcNow.AddDays(-1),
         Weeks = Enumerable.Range(1, weekCount)
-            .Select(w => new TrainingWeek { WeekNumber = w, Status = WeekStatus.Draft, Sessions = [] })
+            .Select(w => new TrainingWeek { WeekNumber = w, Status = WeekStatus.Draft, Days = [] })
             .ToList()
     };
 

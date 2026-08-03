@@ -60,9 +60,10 @@ public interface IMongoContext
     IMongoCollection<DayLog> DayLogs { get; }
 
     /// <summary>
-    /// Section template documents (per-trainer reusable training section templates).
+    /// Reusable workout template documents (#857) — per-trainer, single reusable workouts
+    /// (formerly the "section template" concept).
     /// </summary>
-    IMongoCollection<SectionTemplate> SectionTemplates { get; }
+    IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
 
     /// <summary>
     /// Active session lock documents.
@@ -83,9 +84,10 @@ public interface IMongoContext
     IMongoCollection<TrainerNote> TrainerNotes { get; }
 
     /// <summary>
-    /// Reusable workout templates collection.
+    /// Reusable full-session template documents (#857) — whole reusable training-session
+    /// skeletons (formerly misnamed "workout templates").
     /// </summary>
-    IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
+    IMongoCollection<SessionTemplate> SessionTemplates { get; }
 
     /// <summary>
     /// Session execution documents (#841) — unifies <see cref="WorkoutLogs"/> and

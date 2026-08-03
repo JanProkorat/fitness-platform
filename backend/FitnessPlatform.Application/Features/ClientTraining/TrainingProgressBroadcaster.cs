@@ -38,14 +38,14 @@ internal static class TrainingProgressBroadcaster
     /// <param name="totalExerciseCount">Total exercises in the session.</param>
     /// <param name="logger">Logger for swallowing broadcast errors.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <param name="sectionId">
-    /// When the mutation originated from a <c>MarkSectionComplete</c> /
-    /// <c>MarkSectionIncomplete</c> call, the specific section that was mutated.
+    /// <param name="workoutId">
+    /// When the mutation originated from a <c>MarkWorkoutComplete</c> /
+    /// <c>MarkWorkoutIncomplete</c> call, the specific workout that was mutated.
     /// Null for exercise-level or whole-session mutations.
     /// </param>
-    /// <param name="sectionComplete">
-    /// Whether the section identified by <paramref name="sectionId"/> is now fully complete.
-    /// Meaningful only when <paramref name="sectionId"/> is non-null.
+    /// <param name="workoutComplete">
+    /// Whether the workout identified by <paramref name="workoutId"/> is now fully complete.
+    /// Meaningful only when <paramref name="workoutId"/> is non-null.
     /// </param>
     internal static async Task BroadcastSessionAsync(
         IRealtimeNotifier notifier,
@@ -59,8 +59,8 @@ internal static class TrainingProgressBroadcaster
         int totalExerciseCount,
         ILogger logger,
         CancellationToken ct,
-        Guid? sectionId = null,
-        bool sectionComplete = false)
+        Guid? workoutId = null,
+        bool workoutComplete = false)
     {
         var trainerId = plan.TrainerId;
         if (trainerId == Guid.Empty)
@@ -79,8 +79,8 @@ internal static class TrainingProgressBroadcaster
                 CompletedExerciseCount = completedExerciseCount,
                 TotalExerciseCount = totalExerciseCount,
                 SessionComplete = completedExerciseCount >= totalExerciseCount,
-                SectionId = sectionId,
-                SectionComplete = sectionId.HasValue && sectionComplete,
+                WorkoutId = workoutId,
+                WorkoutComplete = workoutId.HasValue && workoutComplete,
                 NewCompliancePercent = compliancePercent,
                 NewStreak = streak,
                 SessionsCompletedToday = sessionsCompleted,
@@ -232,7 +232,8 @@ internal static class TrainingProgressBroadcaster
         var dow = (int)date.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
 
-        return week.Sessions.Where(s => s.DayOfWeek == dow).OrderBy(s => s.Order).ToList();
+        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dow);
+        return day?.Sessions.OrderBy(s => s.Order).ToList() ?? [];
     }
 
     /// <summary>

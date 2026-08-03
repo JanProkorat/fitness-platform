@@ -18,9 +18,8 @@ namespace FitnessPlatform.Tests.Services;
 /// <see cref="FitnessApiFactory"/>) for the #840 clientId-standardisation boot migration:
 /// <see cref="MongoIndexInitializer.MigrateClientIdsAsync"/>.
 ///
-/// Unlike the #837 schema-on-read migration tests
-/// (<see cref="FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests"/>), this migration
-/// reads ClientProfile rows from PostgreSQL to build the PublicId→UserId map, so it needs a real
+/// Unlike the Mongo-only boot migrations elsewhere in this initializer, this migration reads
+/// ClientProfile rows from PostgreSQL to build the PublicId→UserId map, so it needs a real
 /// relational database in addition to MongoDB — hence the shared <see cref="FitnessApiFactory"/>
 /// fixture instead of an ad-hoc Mongo-only container.
 /// </summary>
@@ -172,7 +171,7 @@ public class ClientIdStandardizationMigrationTests(FitnessApiFactory factory)
                 ClientId = userId,
                 StartedAt = DateTime.UtcNow.AddMinutes(-30),
                 IsCompleted = false,
-                Sections = [],
+                Workouts = [],
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: ct);
         }

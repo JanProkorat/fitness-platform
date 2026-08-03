@@ -197,7 +197,7 @@ public class PublishTrainingWeekEndpoint(
         // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
         // for a session that had no lock would be spurious fan-out.
         var week = plan.Weeks.First(w => w.WeekNumber == req.WeekNumber);
-        var weekSessionIds = week.Sessions.Select(s => s.SessionId).ToList();
+        var weekSessionIds = week.Days.SelectMany(d => d.Sessions).Select(s => s.SessionId).ToList();
         foreach (var sessionId in weekSessionIds)
         {
             var released = await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);

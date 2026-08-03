@@ -22,7 +22,7 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 ///   be stored independently per section; edits in section A must not overwrite section B.
 /// — #469 WRITE: every exercise in a multi-exercise workout must carry its own edits;
 ///   the stored set lookup must not collapse across exercises with the same id.
-/// — Legacy path: a request without SectionId still works on single-section logs.
+/// — Legacy path: a request without WorkoutId still works on single-section logs.
 /// </summary>
 public class UpdateWorkoutSectionKeyingTests
 {
@@ -58,11 +58,11 @@ public class UpdateWorkoutSectionKeyingTests
 
         // Stored log has two sections, same exercise in each.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = standardSectionId,
+                WorkoutId = standardSectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -78,9 +78,9 @@ public class UpdateWorkoutSectionKeyingTests
                     }
                 ]
             },
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = amrapSectionId,
+                WorkoutId = amrapSectionId,
                 Order = 1,
                 Name = "AMRAP",
                 Exercises =
@@ -102,7 +102,7 @@ public class UpdateWorkoutSectionKeyingTests
         var ep = CreateEndpoint(mongo);
 
         // PUT: client edits the standard section exercise — heavier weight.
-        // AMRAP section is also included but with its own SectionId.
+        // AMRAP section is also included but with its own WorkoutId.
         var request = new UpdateWorkoutRequest
         {
             LogId = logId,
@@ -110,7 +110,7 @@ public class UpdateWorkoutSectionKeyingTests
             [
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = standardSectionId,    // standard section
+                    WorkoutId = standardSectionId,    // standard section
                     ExerciseExternalId = exerciseId,
                     ExerciseName = "Squat",
                     Sets =
@@ -127,7 +127,7 @@ public class UpdateWorkoutSectionKeyingTests
                 },
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = amrapSectionId,        // AMRAP section — unchanged
+                    WorkoutId = amrapSectionId,        // AMRAP section — unchanged
                     ExerciseExternalId = exerciseId,
                     ExerciseName = "Squat",
                     Sets =
@@ -154,11 +154,11 @@ public class UpdateWorkoutSectionKeyingTests
             Arg.Any<FilterDefinition<SessionExecution>>(),
             Arg.Is<SessionExecution>(w =>
                 // Standard section: weight was updated to 100 kg
-                w.Performance!.Sections.First(s => s.SectionId == standardSectionId)
+                w.Performance!.Workouts.First(s => s.WorkoutId == standardSectionId)
                     .Exercises[0].Sets[0].WeightKg == 100m
                 &&
                 // AMRAP section: weight remains at 60 kg (not contaminated by standard edit)
-                w.Performance!.Sections.First(s => s.SectionId == amrapSectionId)
+                w.Performance!.Workouts.First(s => s.WorkoutId == amrapSectionId)
                     .Exercises[0].Sets[0].WeightKg == 60m),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
@@ -186,11 +186,11 @@ public class UpdateWorkoutSectionKeyingTests
         var sectionId = Guid.NewGuid();
 
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises = []
@@ -207,21 +207,21 @@ public class UpdateWorkoutSectionKeyingTests
             [
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     ExerciseExternalId = exerciseA,
                     ExerciseName = "Squat",
                     Sets = [new UpdateWorkoutSetRequest { SetNumber = 1, Reps = 10, WeightKg = 100m }]
                 },
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     ExerciseExternalId = exerciseB,
                     ExerciseName = "Bench Press",
                     Sets = [new UpdateWorkoutSetRequest { SetNumber = 1, Reps = 8, WeightKg = 80m }]
                 },
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     ExerciseExternalId = exerciseC,
                     ExerciseName = "Deadlift",
                     Sets = [new UpdateWorkoutSetRequest { SetNumber = 1, Reps = 5, WeightKg = 150m }]
@@ -241,7 +241,7 @@ public class UpdateWorkoutSectionKeyingTests
             .FirstOrDefault();
 
         replaceArgs.Should().NotBeNull("ReplaceOneAsync must have been called");
-        var mainSection = replaceArgs!.Performance!.Sections.First(s => s.SectionId == sectionId);
+        var mainSection = replaceArgs!.Performance!.Workouts.First(s => s.WorkoutId == sectionId);
         mainSection.Exercises.Should().HaveCount(3);
 
         var squat = mainSection.Exercises.First(e => e.ExerciseExternalId == exerciseA);
@@ -272,11 +272,11 @@ public class UpdateWorkoutSectionKeyingTests
 
         // Stored log with planned values already frozen per section.
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = standardSectionId,
+                WorkoutId = standardSectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
@@ -299,9 +299,9 @@ public class UpdateWorkoutSectionKeyingTests
                     }
                 ]
             },
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = amrapSectionId,
+                WorkoutId = amrapSectionId,
                 Order = 1,
                 Name = "AMRAP",
                 Exercises =
@@ -337,7 +337,7 @@ public class UpdateWorkoutSectionKeyingTests
             [
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = standardSectionId,
+                    WorkoutId = standardSectionId,
                     ExerciseExternalId = exerciseId,
                     ExerciseName = "Squat",
                     Sets =
@@ -354,7 +354,7 @@ public class UpdateWorkoutSectionKeyingTests
                 },
                 new UpdateWorkoutExerciseRequest
                 {
-                    SectionId = amrapSectionId,
+                    WorkoutId = amrapSectionId,
                     ExerciseExternalId = exerciseId,
                     ExerciseName = "Squat",
                     Sets =
@@ -380,20 +380,20 @@ public class UpdateWorkoutSectionKeyingTests
             Arg.Any<FilterDefinition<SessionExecution>>(),
             Arg.Is<SessionExecution>(w =>
                 // Standard section: original planned values preserved
-                w.Performance!.Sections.First(s => s.SectionId == standardSectionId)
+                w.Performance!.Workouts.First(s => s.WorkoutId == standardSectionId)
                     .Exercises[0].Sets[0].PlannedWeightKg == 100m
                 &&
                 // AMRAP section: its own original planned values preserved (not standard's)
-                w.Performance!.Sections.First(s => s.SectionId == amrapSectionId)
+                w.Performance!.Workouts.First(s => s.WorkoutId == amrapSectionId)
                     .Exercises[0].Sets[0].PlannedWeightKg == 60m),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
 
-    // ── Legacy path: no SectionId → single-section fallback ──────────────────────
+    // ── Legacy path: no WorkoutId → single-section fallback ──────────────────────
 
     /// <summary>
-    /// A request from a legacy client (no SectionId on any exercise) must still work
+    /// A request from a legacy client (no WorkoutId on any exercise) must still work
     /// correctly against a single-section log — exercises are stored in the existing section.
     /// </summary>
     [Fact]
@@ -404,11 +404,11 @@ public class UpdateWorkoutSectionKeyingTests
         var sectionId = Guid.NewGuid();
 
         var storedLog = WorkoutLogTestHelpers.CreateLog(externalId: logId, clientId: _clientId);
-        storedLog.Performance!.Sections =
+        storedLog.Performance!.Workouts =
         [
-            new WorkoutSection
+            new LoggedWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises = []
@@ -418,7 +418,7 @@ public class UpdateWorkoutSectionKeyingTests
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [storedLog]);
         var ep = CreateEndpoint(mongo);
 
-        // No SectionId on exercise — legacy client path.
+        // No WorkoutId on exercise — legacy client path.
         var request = new UpdateWorkoutRequest
         {
             LogId = logId,
@@ -426,7 +426,7 @@ public class UpdateWorkoutSectionKeyingTests
             [
                 new UpdateWorkoutExerciseRequest
                 {
-                    // SectionId = null (default)
+                    // WorkoutId = null (default)
                     ExerciseExternalId = exerciseId,
                     ExerciseName = "Run",
                     Sets = [new UpdateWorkoutSetRequest { SetNumber = 1, DurationSeconds = 300 }]
@@ -442,10 +442,10 @@ public class UpdateWorkoutSectionKeyingTests
         await mongo.SessionExecutions.Received().ReplaceOneAsync(
             Arg.Any<FilterDefinition<SessionExecution>>(),
             Arg.Is<SessionExecution>(w =>
-                w.Performance!.Sections.Count == 1
-                && w.Performance!.Sections[0].SectionId == sectionId
-                && w.Performance!.Sections[0].Exercises.Count == 1
-                && w.Performance!.Sections[0].Exercises[0].ExerciseExternalId == exerciseId),
+                w.Performance!.Workouts.Count == 1
+                && w.Performance!.Workouts[0].WorkoutId == sectionId
+                && w.Performance!.Workouts[0].Exercises.Count == 1
+                && w.Performance!.Workouts[0].Exercises[0].ExerciseExternalId == exerciseId),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
