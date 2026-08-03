@@ -41,7 +41,8 @@ public class CompletionExerciseInstanceIdsMigrationTests
     /// </summary>
     private static BsonDocument BuildLegacySessionExecutionDoc(
         Guid externalId, Guid clientId, Guid planId, Guid sessionId, DateTime date,
-        BsonDocument completedExerciseIdsBySection, BsonDocument? completedSets = null) => new()
+        BsonDocument completedExerciseIdsBySection, BsonDocument? completedSets = null,
+        BsonArray? flatCompletedExerciseIds = null) => new()
     {
         { "_id", ObjectId.GenerateNewId() },
         { "externalId", GuidBson(externalId) },
@@ -50,7 +51,7 @@ public class CompletionExerciseInstanceIdsMigrationTests
         { "sessionId", GuidBson(sessionId) },
         { "date", date },
         { "status", "Partial" },
-        { "completedExerciseIds", new BsonArray() },
+        { "completedExerciseIds", flatCompletedExerciseIds ?? new BsonArray() },
         { "completedExerciseIdsBySection", completedExerciseIdsBySection },
         { "completedSets", completedSets ?? new BsonDocument() },
         { "dateCreated", DateTime.UtcNow.AddDays(-1) },
@@ -301,6 +302,259 @@ public class CompletionExerciseInstanceIdsMigrationTests
             .Find(Builders<TrainingCompletion>.Filter.Eq(c => c.ExternalId, completionExternalId))
             .FirstOrDefaultAsync(ct);
         migratedCompletion!.CompletedExerciseInstanceIds.Should().Equal([instanceId]);
+    }
+
+    [Fact]
+    public async Task StartAsync_MixedShapeDocument_FlatIdAbsentFromDictionary_ResolvesWithoutLoss()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("completion_instance_ids_mixed_shape_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var clientId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+        var workoutExternalId = Guid.NewGuid();
+        var workoutInstanceId = Guid.NewGuid();
+        var standaloneExternalId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var startDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            Name = "Mixed Shape Day",
+            Order = 1,
+            Workouts =
+            [
+                new TrainingWorkout
+                {
+                    WorkoutId = workoutId,
+                    Order = 0,
+                    Name = "Hlavni",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseId = workoutInstanceId,
+                            ExerciseExternalId = workoutExternalId,
+                            ExerciseName = "Squat",
+                            Order = 1
+                        }
+                    ]
+                }
+            ],
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseId = standaloneInstanceId,
+                    ExerciseExternalId = standaloneExternalId,
+                    ExerciseName = "Plank",
+                    Order = 2
+                }
+            ]
+        };
+
+        var days = Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay
+            {
+                DayOfWeek = dayOfWeek,
+                Sessions = dayOfWeek == 1 ? [session] : []
+            })
+            .ToList();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "QA mixed-shape fixture",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate.AddDays(-1),
+                    Days = days
+                }
+            ],
+            DateCreated = startDate.AddDays(-7)
+        };
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
+
+        // completedExerciseIdsBySection accounts for the WORKOUT exercise only. The retired flat
+        // completedExerciseIds field — which SessionExecutionBackfill used to attribute ids absent
+        // from the dictionary before it was deleted — ALSO carries the standalone exercise, which
+        // the dictionary never mentions. It also repeats the workout id, proving the flat pass does
+        // not re-resolve (or double-count) an id already accounted for via the dictionary.
+        var bySection = new BsonDocument
+        {
+            { workoutId.ToString(), new BsonArray { GuidBson(workoutExternalId) } }
+        };
+        var flatIds = new BsonArray { GuidBson(workoutExternalId), GuidBson(standaloneExternalId) };
+
+        var executionExternalId = Guid.NewGuid();
+        var executionDoc = BuildLegacySessionExecutionDoc(
+            executionExternalId, clientId, planId, sessionId, startDate, bySection,
+            flatCompletedExerciseIds: flatIds);
+
+        var rawExecutions = db.GetCollection<BsonDocument>("sessionExecutions");
+        await rawExecutions.InsertOneAsync(executionDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        var unresolvedCount = await initializer.MigrateCompletionExerciseInstanceIdsAsync(ct);
+
+        unresolvedCount.Should().Be(0,
+            "the workout id resolves via the dictionary and the standalone id resolves unambiguously " +
+            "via the flat pass — neither should be dropped or double-counted");
+
+        var migrated = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, executionExternalId))
+            .FirstOrDefaultAsync(ct);
+
+        migrated.Should().NotBeNull();
+        migrated!.CompletedExerciseInstanceIds.Should().Equal([workoutInstanceId, standaloneInstanceId],
+            "the standalone instance — present only in the flat completedExerciseIds field, absent " +
+            "from completedExerciseIdsBySection — must be resolved, not silently lost because the " +
+            "document also carried the by-workout dictionary");
+    }
+
+    [Fact]
+    public async Task StartAsync_MixedShapeDocument_AmbiguousFlatId_CountedUnresolvedNotDropped()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("completion_instance_ids_mixed_shape_ambiguous_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var clientId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+        var workoutExternalId = Guid.NewGuid();
+        var workoutInstanceId = Guid.NewGuid();
+        var ambiguousExternalId = Guid.NewGuid();
+        var ambiguousInstanceIdOne = Guid.NewGuid();
+        var ambiguousInstanceIdTwo = Guid.NewGuid();
+        var startDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            Name = "Mixed Shape Ambiguous Day",
+            Order = 1,
+            Workouts =
+            [
+                new TrainingWorkout
+                {
+                    WorkoutId = workoutId,
+                    Order = 0,
+                    Name = "Hlavni",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseId = workoutInstanceId,
+                            ExerciseExternalId = workoutExternalId,
+                            ExerciseName = "Squat",
+                            Order = 1
+                        }
+                    ]
+                }
+            ],
+            // Same catalog exercise appears standalone TWICE — genuinely ambiguous when resolved
+            // against the session's flat exercise view, since there is no workoutId to scope it to.
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseId = ambiguousInstanceIdOne,
+                    ExerciseExternalId = ambiguousExternalId,
+                    ExerciseName = "Plank",
+                    Order = 2
+                },
+                new SessionExercise
+                {
+                    ExerciseId = ambiguousInstanceIdTwo,
+                    ExerciseExternalId = ambiguousExternalId,
+                    ExerciseName = "Plank (variant)",
+                    Order = 3
+                }
+            ]
+        };
+
+        var days = Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay
+            {
+                DayOfWeek = dayOfWeek,
+                Sessions = dayOfWeek == 1 ? [session] : []
+            })
+            .ToList();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "QA mixed-shape ambiguous fixture",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate.AddDays(-1),
+                    Days = days
+                }
+            ],
+            DateCreated = startDate.AddDays(-7)
+        };
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
+
+        var bySection = new BsonDocument
+        {
+            { workoutId.ToString(), new BsonArray { GuidBson(workoutExternalId) } }
+        };
+        var flatIds = new BsonArray { GuidBson(workoutExternalId), GuidBson(ambiguousExternalId) };
+
+        var executionExternalId = Guid.NewGuid();
+        var executionDoc = BuildLegacySessionExecutionDoc(
+            executionExternalId, clientId, planId, sessionId, startDate, bySection,
+            flatCompletedExerciseIds: flatIds);
+
+        var rawExecutions = db.GetCollection<BsonDocument>("sessionExecutions");
+        await rawExecutions.InsertOneAsync(executionDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        var unresolvedCount = await initializer.MigrateCompletionExerciseInstanceIdsAsync(ct);
+
+        unresolvedCount.Should().Be(1,
+            "ambiguousExternalId matches two standalone instances in the flat exercise view, so it " +
+            "must be counted unresolved rather than guessed — but it must still be COUNTED, not " +
+            "silently dropped with no trace, just because the document also carried the dictionary");
+
+        var migrated = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, executionExternalId))
+            .FirstOrDefaultAsync(ct);
+
+        migrated.Should().NotBeNull();
+        migrated!.CompletedExerciseInstanceIds.Should().Equal([workoutInstanceId],
+            "the dictionary-resolved workout instance survives; neither ambiguous standalone " +
+            "instance is guessed at");
     }
 
     [Fact]

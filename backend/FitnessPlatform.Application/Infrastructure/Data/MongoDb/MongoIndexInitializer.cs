@@ -976,6 +976,14 @@ public class MongoIndexInitializer : IHostedService
             var instanceIds = new BsonArray();
             var newCompletedSets = new BsonDocument();
 
+            // A document can carry BOTH shapes at once — the now-retired SessionExecutionBackfill
+            // explicitly attributed flat ids that were absent from the dictionary, so a pre-857
+            // document can have a populated completedExerciseIdsBySection AND a flat
+            // completedExerciseIds list holding ids the dictionary never accounted for. Track every
+            // externalId already resolved via the dictionary so the flat pass below never re-resolves
+            // (or double-counts) one of them; it exists only to pick up what the dictionary missed.
+            var resolvedViaBySection = new HashSet<Guid>();
+
             if (bySection is not null)
             {
                 foreach (var element in bySection.Elements)
@@ -993,6 +1001,7 @@ public class MongoIndexInitializer : IHostedService
                     foreach (var externalIdValue in externalIds)
                     {
                         var externalId = externalIdValue.AsGuid;
+                        resolvedViaBySection.Add(externalId);
                         var exercise = workout?.Exercises.FirstOrDefault(e => e.ExerciseExternalId == externalId);
 
                         if (exercise is null)
@@ -1010,17 +1019,25 @@ public class MongoIndexInitializer : IHostedService
                     }
                 }
             }
-            else if (doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatExternalIds)
+
+            if (doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatExternalIds)
             {
-                // No by-workout dictionary at all — the flat list predates it, so there is no
-                // workoutId to resolve strictly within. Fall back to the session's flat exercise
-                // view (standalone + every workout's nested exercises) and resolve only when the
-                // catalog id is unambiguous across it; see the remarks above
-                // MigrateCompletionExerciseInstanceIdsAsync for why an ambiguous match is counted
-                // unresolved rather than guessed.
+                // Process the flat list IN ADDITION to the dictionary, never as an alternative to
+                // it — a mixed-shape document must not lose a flat id the dictionary didn't already
+                // account for. There is no workoutId to resolve strictly within here, so fall back
+                // to the session's flat exercise view (standalone + every workout's nested
+                // exercises) and resolve only when the catalog id is unambiguous across it; see the
+                // remarks above MigrateCompletionExerciseInstanceIdsAsync for why an ambiguous match
+                // is counted unresolved rather than guessed.
                 foreach (var externalIdValue in flatExternalIds)
                 {
                     var externalId = externalIdValue.AsGuid;
+
+                    if (resolvedViaBySection.Contains(externalId))
+                    {
+                        continue;
+                    }
+
                     var matches = session?.Exercises
                         .Where(e => e.ExerciseExternalId == externalId)
                         .ToList() ?? [];
