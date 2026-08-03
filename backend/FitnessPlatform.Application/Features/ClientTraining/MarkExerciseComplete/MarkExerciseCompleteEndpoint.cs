@@ -114,7 +114,7 @@ public class MarkExerciseCompleteEndpoint(
         // workout, resolved directly by ExerciseId (#857 phase 3b) rather than a
         // (WorkoutId, ExerciseExternalId) pair, so a duplicate catalog exercise within one workout
         // (or standalone vs. nested) is unambiguous.
-        var exerciseExists = session.Exercises.Any(e => e.ExerciseId == req.ExerciseId);
+        var exerciseExists = session.AllExercises.Any(e => e.ExerciseId == req.ExerciseId);
         if (!exerciseExists)
         {
             await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified session.", ct);
@@ -134,7 +134,7 @@ public class MarkExerciseCompleteEndpoint(
             // Idempotency: already complete — return success immediately.
             if (existing.CompletedExerciseInstanceIds.Contains(req.ExerciseId))
             {
-                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                 return;
             }
 
@@ -172,10 +172,10 @@ public class MarkExerciseCompleteEndpoint(
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                newInstanceIds.Count, session.Exercises.Count,
+                newInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);
 
-            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
         }
         else
         {
@@ -211,7 +211,7 @@ public class MarkExerciseCompleteEndpoint(
 
                 if (existing.CompletedExerciseInstanceIds.Contains(req.ExerciseId))
                 {
-                    await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                    await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                     return;
                 }
 
@@ -234,17 +234,17 @@ public class MarkExerciseCompleteEndpoint(
 
                 existing.CompletedExerciseInstanceIds = retryInstanceIds;
                 existing.Version = retryVersion;
-                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                 return;
             }
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                execution.CompletedExerciseInstanceIds.Count, session.Exercises.Count,
+                execution.CompletedExerciseInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);
 
-            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, execution, session.Exercises.Count), ct);
+            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, execution, session.AllExercises.Count), ct);
         }
     }
 

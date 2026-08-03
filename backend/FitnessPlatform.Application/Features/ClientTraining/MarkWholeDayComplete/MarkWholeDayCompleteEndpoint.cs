@@ -134,7 +134,7 @@ public class MarkWholeDayCompleteEndpoint(
             // across workouts or standalone-vs-nested, so no per-workout attribution map is
             // needed. Mirrors MarkSessionCompleteEndpoint so the whole-day mark and the
             // per-session mark write identical state.
-            var allInstanceIds = session.Exercises.Select(e => e.ExerciseId).ToList();
+            var allInstanceIds = session.AllExercises.Select(e => e.ExerciseId).ToList();
             var allSectionIds = session.Workouts.Select(w => w.WorkoutId).ToList();
 
             var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)

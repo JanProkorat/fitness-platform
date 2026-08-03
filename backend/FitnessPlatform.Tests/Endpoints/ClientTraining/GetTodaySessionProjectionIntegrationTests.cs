@@ -239,27 +239,28 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         hydratedSession.SessionId.Should().Be(week3SessionId,
             "phase-2 hydration must fetch week 3's session — a wrong/off-by-one positional $ match would return week 1's or week 2's instead");
         hydratedSession.Name.Should().Be("Week 3 Session (target)");
-        hydratedSession.Exercises.Should().ContainSingle(e => e.ExerciseExternalId == week3ExerciseId);
-        hydratedSession.Exercises.Should().NotContain(e => e.ExerciseExternalId == week1ExerciseId || e.ExerciseExternalId == week2ExerciseId,
+        hydratedSession.AllExercises.Should().ContainSingle(e => e.ExerciseExternalId == week3ExerciseId);
+        hydratedSession.AllExercises.Should().NotContain(e => e.ExerciseExternalId == week1ExerciseId || e.ExerciseExternalId == week2ExerciseId,
             "sibling weeks' exercise content must never leak into the hydrated response");
 
         // ── 3. Byte-equivalence: matches exactly what a naive full-fetch of the seed would produce ──
         // DayOfWeek is no longer serialized per session (the parent TrainingDay owns it, #857
         // phase 2) — "today" already implies the day, so the wire contract dropped the field.
         hydratedSession.Order.Should().Be(1);
-        hydratedSession.Exercises[0].ExerciseName.Should().Be("Exercise for Week 3 Session (target)");
+        hydratedSession.AllExercises[0].ExerciseName.Should().Be("Exercise for Week 3 Session (target)");
     }
 
     /// <summary>
-    /// Regression guard for the #857 phase 3a wire-contract break. <see cref="TrainingSession.Exercises"/>
-    /// must remain a union of the standalone exercise list and every workout's nested exercises — not
-    /// just the standalone list. Seeds a single session carrying one standalone exercise AND one
-    /// workout-nested exercise, then asserts the real HTTP response's <c>exercises</c> field contains
-    /// BOTH. This case is only constructible now that phase 3a introduced standalone exercises; before
-    /// that, every real document only ever had the nested shape (covered by the sibling test above).
+    /// Regression guard for the #857 phase 3a wire-contract break (renamed on the wire by #874).
+    /// <see cref="TrainingSession.AllExercises"/> must remain a union of the standalone exercise
+    /// list and every workout's nested exercises — not just the standalone list. Seeds a single
+    /// session carrying one standalone exercise AND one workout-nested exercise, then asserts the
+    /// real HTTP response's <c>allExercises</c> field contains BOTH. This case is only
+    /// constructible now that phase 3a introduced standalone exercises; before that, every real
+    /// document only ever had the nested shape (covered by the sibling test above).
     /// </summary>
     [Fact]
-    public async Task GetTodaySession_SessionWithStandaloneAndWorkoutExercises_ReturnsUnionInExercises()
+    public async Task GetTodaySession_SessionWithStandaloneAndWorkoutExercises_ReturnsUnionInAllExercises()
     {
         var httpClient = factory.CreateClient();
         var email = UniqueEmail();
@@ -364,13 +365,13 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         body!.Sessions.Should().ContainSingle();
 
         var hydratedSession = body.Sessions[0];
-        hydratedSession.Exercises.Should().HaveCount(2,
-            $"the wire `exercises` field must union the standalone list with every workout's nested " +
+        hydratedSession.AllExercises.Should().HaveCount(2,
+            $"the wire `allExercises` field must union the standalone list with every workout's nested " +
             $"exercises, not just the standalone list. raw: {rawBody}");
-        hydratedSession.Exercises.Should().Contain(e => e.ExerciseExternalId == standaloneExerciseId,
-            "the standalone exercise must appear in the wire `exercises` field");
-        hydratedSession.Exercises.Should().Contain(e => e.ExerciseExternalId == workoutExerciseId,
-            "the workout-nested exercise must still appear in the wire `exercises` field");
+        hydratedSession.AllExercises.Should().Contain(e => e.ExerciseExternalId == standaloneExerciseId,
+            "the standalone exercise must appear in the wire `allExercises` field");
+        hydratedSession.AllExercises.Should().Contain(e => e.ExerciseExternalId == workoutExerciseId,
+            "the workout-nested exercise must still appear in the wire `allExercises` field");
     }
 
     // ── Local response DTOs (per slice rules — not shared across features) ────────
@@ -388,7 +389,7 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         Guid SessionId,
         string Name,
         int Order,
-        List<ExerciseResponseDto> Exercises);
+        List<ExerciseResponseDto> AllExercises);
 
     private record ExerciseResponseDto(
         Guid ExerciseExternalId,

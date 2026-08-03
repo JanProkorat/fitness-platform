@@ -360,7 +360,7 @@ public class UpdateTrainingPlanEndpoint(
                                 }).ToList(),
                                 // #857 phase 3a: standalone exercises directly on the session,
                                 // sharing the same mapping as a workout's nested exercises.
-                                StandaloneExercises = rs.Exercises.Select(ToSessionExercise).ToList()
+                                StandaloneExercises = rs.StandaloneExercises.Select(ToSessionExercise).ToList()
                             }).ToList()
                         }).ToList()
                     };
@@ -469,7 +469,7 @@ public class UpdateTrainingPlanEndpoint(
         // #857 phase 3a: standalone exercises directly on the session are session content too —
         // omitting them here would let a coach stealth-edit a published, locked session via the
         // standalone list without tripping the Editing-lock/workout-finished guards above.
-        if (HasExercisesChanged(stored.StandaloneExercises, incoming.Exercises)) return true;
+        if (HasExercisesChanged(stored.StandaloneExercises, incoming.StandaloneExercises)) return true;
 
         return false;
     }
