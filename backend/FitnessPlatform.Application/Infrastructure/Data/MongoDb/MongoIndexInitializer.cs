@@ -114,6 +114,22 @@ public class MongoIndexInitializer : IHostedService
         // already run it once (idempotent $exists guard on the legacy "weeks.sessions" shape).
         await MigrateTrainingTreeRestructureAsync(cancellationToken);
 
+        // #857 phase 2b: MUST run after MigrateTrainingTreeRestructureAsync above (so every
+        // session already lives under weeks[].days[].sessions[] — the shape this migration's
+        // BSON traversal targets) and before every Create*Indexes call below and before
+        // MigrateSessionExerciseIdBackfillAsync (which only walks session["exercises"] and
+        // session["workouts"] — a session still holding the legacy "sections" key would have
+        // its nested exercises silently skipped by that backfill). Neither TrainingSession nor
+        // TrainingWorkout carries [BsonIgnoreExtraElements], so once the renamed
+        // BsonElement("workouts") is live on the C# type, a legacy session that still carries
+        // the old "sections"/"sectionId" element names is an unmapped extra element for the
+        // typed collection — the first typed read of TrainingPlan (BuildClientSessionLookupAsync,
+        // called from MigrateCompletionExerciseInstanceIdsAsync just below) would throw a BSON
+        // deserialization error, and CreateTrainingPlanIndexes would throw the same way. This
+        // migration is a no-op on a fresh database and a no-op on any database that has already
+        // run it once (idempotent $exists guard on the legacy "sections" shape).
+        await MigrateTrainingSessionSectionsToWorkoutsAsync(cancellationToken);
+
         // #857 phase 3a: backfill SessionExercise.ExerciseId (a new Guid field, not a rename)
         // on every pre-existing exercise — nested inside workouts and any standalone ones alike.
         // Unlike the migrations above, a MISSING scalar field does not throw on typed read (it
@@ -649,6 +665,160 @@ public class MongoIndexInitializer : IHostedService
         return notesByDay;
     }
 
+    // ── #857 phase 2b: sections/sectionId -> workouts/workoutId within TrainingPlan sessions ──
+    //
+    // Vocabulary rename (section -> workout), same as #857 step 6 (WorkoutLog and
+    // SessionExecutionPerformance) — but that migration never touched trainingPlans.
+    // TrainingSession.Workouts (BSON "workouts") replaces the legacy TrainingSession.Sections
+    // (BSON "sections"), and the embedded workout's SectionId is renamed to WorkoutId (BSON
+    // "sectionId" -> "workoutId"). Reuses RenameSectionIdWithinEachElement — the same nested
+    // element rewrite the step-6 migration uses, since $rename cannot reach into array elements.
+    //
+    // Target shape at the point this runs: every session already lives under
+    // weeks[].days[].sessions[] (MigrateTrainingTreeRestructureAsync above has already moved
+    // it there — see the call site in StartAsync). The flat weeks[].sessions[] path is also
+    // checked defensively in case a document somehow reaches this method without having been
+    // restructured first; it is expected to always be empty given the StartAsync ordering.
+    //
+    // MUST run before ANY typed read of TrainingPlan (see the call site in StartAsync) — same
+    // BsonSerializationException risk as the other #857 boot migrations above.
+    //
+    // Idempotency: the candidate filter matches only documents where at least one session (at
+    // either the days-nested or the flat path) still carries the OLD "sections" field. On a
+    // fresh database, or a database that already ran this migration, the filter matches zero
+    // documents and the loop body never runs.
+    /// <summary>
+    /// One-time, idempotent migration (#857 phase 2b): renames every <c>trainingPlans</c>
+    /// session's <c>sections</c> BSON array to <c>workouts</c>, and renames <c>sectionId</c> to
+    /// <c>workoutId</c> within every element. See the remarks above this method and the call
+    /// site in <see cref="StartAsync"/> for why this must run after
+    /// <see cref="MigrateTrainingTreeRestructureAsync"/> and before any typed read of the
+    /// collection.
+    /// </summary>
+    private async Task MigrateTrainingSessionSectionsToWorkoutsAsync(CancellationToken ct)
+    {
+        var rawPlans = _mongo.TrainingPlans.Database.GetCollection<BsonDocument>(
+            _mongo.TrainingPlans.CollectionNamespace.CollectionName);
+
+        var legacyFilter = Builders<BsonDocument>.Filter.Or(
+            new BsonDocument("weeks.days.sessions.sections", new BsonDocument("$exists", true)),
+            new BsonDocument("weeks.sessions.sections", new BsonDocument("$exists", true)));
+
+        using var cursor = await rawPlans.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var writes = new List<WriteModel<BsonDocument>>();
+        var migratedSessionCount = 0;
+
+        foreach (var planDoc in candidates)
+        {
+            if (!planDoc.TryGetValue("weeks", out var weeksValue) || weeksValue is not BsonArray weeks)
+            {
+                continue;
+            }
+
+            var planChanged = false;
+
+            foreach (var weekValue in weeks)
+            {
+                if (weekValue is not BsonDocument week)
+                {
+                    continue;
+                }
+
+                var weekRenamedCount = RenameSessionSectionsWithinWeek(week);
+                if (weekRenamedCount > 0)
+                {
+                    migratedSessionCount += weekRenamedCount;
+                    planChanged = true;
+                }
+            }
+
+            if (planChanged)
+            {
+                writes.Add(new ReplaceOneModel<BsonDocument>(
+                    Builders<BsonDocument>.Filter.Eq("_id", planDoc["_id"]),
+                    planDoc));
+            }
+        }
+
+        if (writes.Count > 0)
+        {
+            await rawPlans.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = false }, ct);
+
+            _logger.LogInformation(
+                "TrainingSession field rename (#857 phase 2b): renamed sections -> workouts " +
+                "(and nested sectionId -> workoutId) on {Count} session(s) across " +
+                "{PlanCount} training plan document(s)",
+                migratedSessionCount, writes.Count);
+        }
+    }
+
+    /// <summary>
+    /// Renames <c>sections</c> to <c>workouts</c> (and nested <c>sectionId</c> to
+    /// <c>workoutId</c>) on every session found within <paramref name="week"/> — both the
+    /// days-nested path (<c>days[].sessions[]</c>, the expected shape at this point in
+    /// <see cref="StartAsync"/>) and the flat path (<c>sessions[]</c>, checked defensively —
+    /// see the remarks above <see cref="MigrateTrainingSessionSectionsToWorkoutsAsync"/>).
+    /// Returns the number of sessions actually renamed.
+    /// </summary>
+    private static int RenameSessionSectionsWithinWeek(BsonDocument week)
+    {
+        var renamedCount = 0;
+
+        if (week.TryGetValue("days", out var daysValue) && daysValue is BsonArray days)
+        {
+            foreach (var dayValue in days)
+            {
+                if (dayValue is BsonDocument day)
+                {
+                    renamedCount += RenameSessionSectionsWithinArray(day);
+                }
+            }
+        }
+
+        renamedCount += RenameSessionSectionsWithinArray(week);
+
+        return renamedCount;
+    }
+
+    /// <summary>
+    /// Renames <c>sections</c> to <c>workouts</c> (and nested <c>sectionId</c> to
+    /// <c>workoutId</c>) on every session within <paramref name="parent"/>'s <c>sessions</c>
+    /// array. Sessions with no <c>sections</c> field (already migrated, or genuinely never had
+    /// any workouts) are left untouched. Returns the number of sessions renamed.
+    /// </summary>
+    private static int RenameSessionSectionsWithinArray(BsonDocument parent)
+    {
+        if (!parent.TryGetValue("sessions", out var sessionsValue) || sessionsValue is not BsonArray sessions)
+        {
+            return 0;
+        }
+
+        var renamedCount = 0;
+
+        foreach (var sessionValue in sessions)
+        {
+            if (sessionValue is not BsonDocument session)
+            {
+                continue;
+            }
+
+            if (!session.TryGetValue("sections", out var sectionsFieldValue) || sectionsFieldValue is not BsonArray sectionsArray)
+            {
+                continue;
+            }
+
+            RenameSectionIdWithinEachElement(sectionsArray);
+
+            session["workouts"] = sectionsArray;
+            session.Remove("sections");
+            renamedCount++;
+        }
+
+        return renamedCount;
+    }
+
     // ── #857 phase 3a: backfill SessionExercise.ExerciseId ───────────────────────────
     //
     // SessionExercise gains a new instance-identity field, ExerciseId — a Guid distinguishing
@@ -1136,9 +1306,11 @@ public class MongoIndexInitializer : IHostedService
     /// plans, keyed by <see cref="TrainingSession.SessionId"/>. Prefers the most-recently-updated
     /// plan's session when a client has more than one plan sharing a SessionId. Uses the TYPED
     /// <see cref="IMongoContext.TrainingPlans"/> collection — safe at this point in
-    /// <see cref="StartAsync"/> because <see cref="MigrateTrainingTreeRestructureAsync"/> and
+    /// <see cref="StartAsync"/> because <see cref="MigrateTrainingTreeRestructureAsync"/>,
+    /// <see cref="MigrateTrainingSessionSectionsToWorkoutsAsync"/>, and
     /// <see cref="MigrateSessionExerciseIdBackfillAsync"/> have already run, so every plan
-    /// document is fully in the current C# shape (days materialised, ExerciseId assigned).
+    /// document is fully in the current C# shape (days materialised, sections renamed to
+    /// workouts, ExerciseId assigned).
     /// </summary>
     private async Task<Dictionary<Guid, TrainingSession>> BuildClientSessionLookupAsync(Guid clientId, CancellationToken ct)
     {

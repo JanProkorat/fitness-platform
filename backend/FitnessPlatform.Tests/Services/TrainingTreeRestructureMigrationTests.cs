@@ -499,8 +499,13 @@ public class TrainingTreeRestructureMigrationTests
         ], ct);
 
         // ── 2. A trainingPlans document in the full old flat-sessions/dayNotes shape — no
-        // "days" array, no "exerciseId" on any exercise — with one workout-nested exercise AND
-        // one standalone exercise so the exerciseId backfill (#857 phase 3a) is exercised too. ──
+        // "days" array, no "exerciseId" on any exercise, and the session's workout block still
+        // under the legacy "sections"/"sectionId" keys (#857 phase 2b) — with one workout-nested
+        // exercise AND one standalone exercise so the exerciseId backfill (#857 phase 3a) is
+        // exercised too. Seeding "sections"/"sectionId" here (rather than the post-857
+        // "workouts"/"workoutId" keys) is deliberate: it is exactly the shape that made
+        // BuildClientSessionLookupAsync's typed TrainingPlan read throw before the #857 phase 2b
+        // migration existed — see the design-review round-2 finding this fixture closes. ──
 
         var planId = Guid.NewGuid();
         var clientId = Guid.NewGuid();
@@ -516,11 +521,11 @@ public class TrainingTreeRestructureMigrationTests
             { "name", "Push Day" },
             { "order", 1 },
             {
-                "workouts", new BsonArray
+                "sections", new BsonArray
                 {
                     new BsonDocument
                     {
-                        { "workoutId", GuidBson(workoutId) },
+                        { "sectionId", GuidBson(workoutId) },
                         { "order", 0 },
                         { "name", "Hlavni" },
                         {
@@ -718,6 +723,8 @@ public class TrainingTreeRestructureMigrationTests
         migratedSession.SessionId.Should().Be(sessionId);
 
         var migratedWorkout = migratedSession.Workouts.Should().ContainSingle().Subject;
+        migratedWorkout.WorkoutId.Should().Be(workoutId,
+            "the legacy sectionId must survive the #857 phase 2b rename to workoutId, not be regenerated");
         var migratedWorkoutExercise = migratedWorkout.Exercises.Should().ContainSingle().Subject;
         migratedWorkoutExercise.ExerciseId.Should().NotBe(Guid.Empty,
             "the exerciseId backfill must assign a fresh instance id to every pre-existing exercise");
@@ -726,6 +733,27 @@ public class TrainingTreeRestructureMigrationTests
         migratedStandaloneExercise.ExerciseId.Should().NotBe(Guid.Empty);
         migratedStandaloneExercise.ExerciseId.Should().NotBe(migratedWorkoutExercise.ExerciseId,
             "the standalone exercise and the nested workout exercise must get distinct instance ids");
+
+        // ── TrainingPlan session: sections -> workouts (and nested sectionId -> workoutId)
+        // rename actually happened on disk, not just on the typed read above (raw BSON check —
+        // the whole point of #857 phase 2b is that the OLD keys are gone, not merely unmapped). ──
+
+        var rawPlanAfterFirstBoot = await rawPlans
+            .Find(new BsonDocument("externalId", GuidBson(planId)))
+            .FirstOrDefaultAsync(ct);
+        var rawMigratedSession = rawPlanAfterFirstBoot["weeks"].AsBsonArray[0].AsBsonDocument["days"].AsBsonArray
+            .Select(d => d.AsBsonDocument)
+            .Single(d => d["dayOfWeek"].AsInt32 == 2)["sessions"].AsBsonArray[0].AsBsonDocument;
+        rawMigratedSession.Contains("sections").Should().BeFalse(
+            "the legacy sections field must be removed, not left alongside the new workouts field");
+        rawMigratedSession.Contains("workouts").Should().BeTrue();
+        var rawMigratedWorkout = rawMigratedSession["workouts"].AsBsonArray[0].AsBsonDocument;
+        rawMigratedWorkout.Contains("sectionId").Should().BeFalse();
+        rawMigratedWorkout.Contains("workoutId").Should().BeTrue();
+        rawMigratedWorkout["exercises"].AsBsonArray[0].AsBsonDocument.Contains("exerciseId").Should().BeTrue(
+            "every exercise nested under the renamed workout must carry the #857 phase 3a exerciseId backfill");
+        rawMigratedSession["exercises"].AsBsonArray[0].AsBsonDocument.Contains("exerciseId").Should().BeTrue(
+            "the standalone exercise must also carry the #857 phase 3a exerciseId backfill");
 
         // ── WorkoutLog: sections -> workouts (and nested sectionId -> workoutId) rename ─────
 
