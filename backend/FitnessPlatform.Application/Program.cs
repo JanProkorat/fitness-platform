@@ -316,6 +316,22 @@ if (testingEnabled)
 // Seed data
 if (args.Contains("--seed"))
 {
+    // Boot migrations must complete BEFORE any seeder touches Mongo (#857 finding 3): this
+    // branch `return`s before the unconditional MongoIndexInitializer.StartAsync call further
+    // down this file, so seeding a pre-#857 database would otherwise let MongoSeeder create the
+    // collection-swap's TARGET collection (e.g. sessionTemplates) without the swap ever running.
+    // On the NEXT normal boot the swap's "source exists AND target absent" precondition is then
+    // false, the swap is skipped, and the legacy data is stranded in the old collection. Calling
+    // StartAsync explicitly here is the only invocation for this process run (the branch returns
+    // before reaching the later call), so it can never double-run within one process; its swap
+    // steps are also independently idempotent (source-exists/target-absent guards), so re-running
+    // --seed against an already-migrated database is safe too.
+    using (var seedMigrationScope = app.Services.CreateScope())
+    {
+        var seedMigrationInitializer = seedMigrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+        await seedMigrationInitializer.StartAsync(CancellationToken.None);
+    }
+
     await ApplicationDbContextSeed.SeedAsync(app.Services);
     await MongoSeeder.SeedAsync(app.Services);
     return;
@@ -332,6 +348,16 @@ if (args.Contains("--seed"))
 // across reruns.
 if (args.Contains("--qa-seed"))
 {
+    // Same boot-migrations-before-seeders requirement as --seed above (#857 finding 3) — the
+    // docker-compose e2e harness boots with --qa-seed, so this path is reachable in our own
+    // tooling, not just a theoretical prod scenario. See the --seed branch's remarks for why
+    // this cannot double-run and is safe to repeat.
+    using (var qaSeedMigrationScope = app.Services.CreateScope())
+    {
+        var qaSeedMigrationInitializer = qaSeedMigrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+        await qaSeedMigrationInitializer.StartAsync(CancellationToken.None);
+    }
+
     await ApplicationDbContextSeed.SeedAsync(app.Services);
     await QaSeedRunner.SeedAsync(app.Services);
     await MongoSeeder.SeedAsync(app.Services);
