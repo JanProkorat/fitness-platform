@@ -52,6 +52,12 @@ public interface IBackgroundEmailQueue
     /// no-enumeration contract from #679 even after shutdown has begun. Items enqueued
     /// before this call are still delivered by <see cref="ReadAllAsync"/> until drained;
     /// this only closes the door on new writes.
+    ///
+    /// <para>
+    /// Idempotent (#866): the shutdown path closes the queue from two places — the worker's
+    /// <c>StopAsync</c> override and its <c>stoppingToken</c> registration, whichever runs
+    /// first — so a second call must be a no-op rather than throwing.
+    /// </para>
     /// </summary>
     void Complete();
 
