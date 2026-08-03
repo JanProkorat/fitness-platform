@@ -56,19 +56,8 @@ public static class MongoCollections
     public const string DayLogs = "dayLogs";
 
     /// <summary>
-    /// Legacy physical collection name for the retired "section template" concept (#857) —
-    /// a single reusable workout, per trainer. Superseded by <see cref="WorkoutTemplates"/>.
-    /// Referenced only by the one-time boot migration
-    /// (<c>MongoIndexInitializer.MigrateWorkoutTemplateCollectionSwapAsync</c>) that renames it
-    /// into the <see cref="WorkoutTemplates"/> collection — never use this for a live
-    /// <c>IMongoCollection</c> accessor.
-    /// </summary>
-    public const string LegacySectionTemplates = "sectionTemplates";
-
-    /// <summary>
     /// Reusable workout templates collection (#857) — a single reusable workout per trainer
-    /// (formerly the "section template" concept). Populated by the one-time boot migration
-    /// that renames the legacy <see cref="LegacySectionTemplates"/> collection into this one.
+    /// (formerly the "section template" concept).
     /// </summary>
     public const string WorkoutTemplates = "workoutTemplates";
 
@@ -90,9 +79,7 @@ public static class MongoCollections
 
     /// <summary>
     /// Reusable full-session templates collection (#857) — a whole reusable training-session
-    /// skeleton (formerly misnamed "workout templates"). Populated by the one-time boot
-    /// migration that renames the legacy physical <c>workoutTemplates</c> collection (the OLD
-    /// WorkoutTemplate type's collection, pre-#857) into this one.
+    /// skeleton (formerly misnamed "workout templates").
     /// </summary>
     public const string SessionTemplates = "sessionTemplates";
 
