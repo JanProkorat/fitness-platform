@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.GetWorkoutTemplate;
 
 /// <summary>
-/// Request for retrieving a single section template by its public identifier.
+/// Request for retrieving a single workout template by its public identifier.
 /// </summary>
 public class GetWorkoutTemplateRequest
 {

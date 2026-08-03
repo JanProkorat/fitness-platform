@@ -54,10 +54,10 @@ public static class TrainingCompletionExtensions
     /// see <see cref="IsWorkoutComplete"/> for the per-workout rule.
     /// <para>
     /// A session with nothing programmed (no workouts, no standalone exercises) is <b>never</b>
-    /// considered complete — every <see cref="TrainingSession"/> document carries a populated
-    /// <see cref="TrainingSession.Workouts"/> list (the one-time boot migration in
-    /// <c>MongoIndexInitializer</c>, #837) or standalone exercises (#857 phase 3a), so zero of
-    /// both signals an abnormal/corrupt session definition.
+    /// considered complete — a session is written with at least one
+    /// <see cref="TrainingSession.Workouts"/> entry or one standalone exercise (#857 phase 3a,
+    /// enforced by <c>UpdateTrainingPlanValidator</c>), so zero of both signals an
+    /// abnormal/corrupt session definition.
     /// </para>
     /// </summary>
     public static bool IsSessionComplete(this TrainingCompletion completion, TrainingSession session)

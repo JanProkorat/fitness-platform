@@ -9,7 +9,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.DeleteWorkoutTemplate;
 
 /// <summary>
-/// Deletes a section template owned by the calling trainer.
+/// Deletes a workout template owned by the calling trainer.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
@@ -22,8 +22,8 @@ public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Delete section template";
-            s.Description = "Permanently deletes a section template. Returns 403 if owned by another trainer.";
+            s.Summary = "Delete workout template";
+            s.Description = "Permanently deletes a workout template. Returns 403 if owned by another trainer.";
         });
     }
 
@@ -47,13 +47,13 @@ public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
 
         if (template is null)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Section template not found.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Workout template not found.");
             return;
         }
 
         if (template.OwnerTrainerId != trainerId)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Section template belongs to another trainer.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Workout template belongs to another trainer.");
             return;
         }
 

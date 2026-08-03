@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.DeleteWorkoutTemplate;
 
 /// <summary>
-/// Request for deleting a section template.
+/// Request for deleting a workout template.
 /// </summary>
 public class DeleteWorkoutTemplateRequest
 {

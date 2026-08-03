@@ -10,7 +10,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.ListWorkoutTemplates;
 
 /// <summary>
-/// Lists the calling trainer's section templates with pagination, plus the public
+/// Lists the calling trainer's workout templates with pagination, plus the public
 /// workout template library (unpaginated).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
@@ -24,8 +24,8 @@ public class ListWorkoutTemplatesEndpoint(IMongoContext mongo)
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "List section templates";
-            s.Description = "Returns the calling trainer's section templates (paginated) and the public workout template library (unpaginated).";
+            s.Summary = "List workout templates";
+            s.Description = "Returns the calling trainer's workout templates (paginated) and the public workout template library (unpaginated).";
         });
     }
 

@@ -4,7 +4,7 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTemplate;
 
 /// <summary>
-/// Request for creating a new section template.
+/// Request for creating a new workout template.
 /// </summary>
 public class CreateWorkoutTemplateRequest
 {
@@ -25,7 +25,7 @@ public class CreateWorkoutTemplateRequest
 }
 
 /// <summary>
-/// An exercise entry in a section template.
+/// An exercise entry in a workout template.
 /// </summary>
 public class CreateWorkoutTemplateExerciseRequest
 {
@@ -35,7 +35,7 @@ public class CreateWorkoutTemplateExerciseRequest
     /// <summary>Display name of the exercise (snapshot).</summary>
     public string ExerciseName { get; set; } = string.Empty;
 
-    /// <summary>Display order within the section (1-based).</summary>
+    /// <summary>Display order within the workout (1-based).</summary>
     public int Order { get; set; }
 
     /// <summary>Optional coach notes for this exercise.</summary>
@@ -47,7 +47,7 @@ public class CreateWorkoutTemplateExerciseRequest
     /// <summary>How performance for this exercise is measured. Defaults to Reps.</summary>
     public MovementType MovementType { get; set; } = MovementType.Reps;
 
-    /// <summary>Per-exercise format override. Null means inherits the section's format.</summary>
+    /// <summary>Per-exercise format override. Null means inherits the workout's format.</summary>
     public WorkoutFormat? Format { get; set; }
 
     /// <summary>Per-exercise format configuration. Null when Format is null or Standard.</summary>
@@ -58,7 +58,7 @@ public class CreateWorkoutTemplateExerciseRequest
 }
 
 /// <summary>
-/// A planned set in a section template exercise.
+/// A planned set in a workout template exercise.
 /// </summary>
 public class CreateWorkoutTemplateSetRequest
 {

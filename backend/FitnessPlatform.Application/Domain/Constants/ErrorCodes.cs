@@ -247,20 +247,20 @@ public static class ErrorCodes
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
     // ── Workout Templates ────────────────────────────────────────────
-    /// <summary>Section template not found.</summary>
+    /// <summary>Workout template not found.</summary>
     public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
 
-    /// <summary>Section template belongs to another trainer.</summary>
+    /// <summary>Workout template belongs to another trainer.</summary>
     public const string WorkoutTemplateNotOwned = "WORKOUT_TEMPLATE_NOT_OWNED";
 
-    /// <summary>Section template version mismatch (optimistic concurrency).</summary>
+    /// <summary>Workout template version mismatch (optimistic concurrency).</summary>
     public const string WorkoutTemplateVersionConflict = "WORKOUT_TEMPLATE_VERSION_CONFLICT";
 
     // ── Training Workouts ────────────────────────────────────────────
-    /// <summary>Session sections list is empty.</summary>
+    /// <summary>Session workouts list is empty.</summary>
     public const string WorkoutsRequired = "WORKOUTS_REQUIRED";
 
-    /// <summary>Duplicate Order values across sections in the same session.</summary>
+    /// <summary>Duplicate Order values across workouts in the same session.</summary>
     public const string WorkoutOrderDuplicate = "WORKOUT_ORDER_DUPLICATE";
 
     // ── Trainer Finish Session ───────────────────────────────────────

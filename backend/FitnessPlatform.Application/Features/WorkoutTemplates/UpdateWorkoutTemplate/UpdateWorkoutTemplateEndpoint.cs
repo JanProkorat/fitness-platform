@@ -10,7 +10,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTemplate;
 
 /// <summary>
-/// Full-state update of a section template. Uses optimistic concurrency via the Version field.
+/// Full-state update of a workout template. Uses optimistic concurrency via the Version field.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
@@ -23,7 +23,7 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Update section template";
+            s.Summary = "Update workout template";
             s.Description = "Replaces name, format, and default exercises. Uses optimistic concurrency via the Version field.";
         });
     }
@@ -48,14 +48,14 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
 
         if (template is null)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Section template not found.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Workout template not found.");
             return;
         }
 
         // Ownership check
         if (template.OwnerTrainerId != trainerId)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Section template belongs to another trainer.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Workout template belongs to another trainer.");
             return;
         }
 

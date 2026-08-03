@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.ListWorkoutTemplates;
 
 /// <summary>
-/// Request for listing the calling trainer's section templates.
+/// Request for listing the calling trainer's workout templates.
 /// </summary>
 public class ListWorkoutTemplatesRequest
 {

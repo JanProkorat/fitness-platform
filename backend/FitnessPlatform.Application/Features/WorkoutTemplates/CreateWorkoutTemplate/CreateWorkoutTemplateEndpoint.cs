@@ -9,7 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTemplate;
 
 /// <summary>
-/// Creates a new section template for the calling trainer.
+/// Creates a new workout template for the calling trainer.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class CreateWorkoutTemplateEndpoint(IMongoContext mongo)
@@ -22,8 +22,8 @@ public class CreateWorkoutTemplateEndpoint(IMongoContext mongo)
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Create section template";
-            s.Description = "Creates a new reusable training section template owned by the calling trainer.";
+            s.Summary = "Create workout template";
+            s.Description = "Creates a new reusable training workout template owned by the calling trainer.";
         });
     }
 

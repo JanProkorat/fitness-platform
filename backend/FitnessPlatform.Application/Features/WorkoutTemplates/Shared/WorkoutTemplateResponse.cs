@@ -3,7 +3,7 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.Shared;
 
 /// <summary>
-/// Response DTO for a single section template.
+/// Response DTO for a single workout template.
 /// </summary>
 public class WorkoutTemplateResponse
 {

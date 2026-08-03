@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTem
 public class UpdateWorkoutTemplateValidator : Validator<UpdateWorkoutTemplateRequest>
 {
     /// <summary>
-    /// Initializes validation rules for a section template update.
+    /// Initializes validation rules for a workout template update.
     /// </summary>
     public UpdateWorkoutTemplateValidator()
     {

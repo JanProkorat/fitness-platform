@@ -10,7 +10,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.GetWorkoutTemplate;
 
 /// <summary>
-/// Returns a single section template owned by the calling trainer.
+/// Returns a single workout template owned by the calling trainer.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class GetWorkoutTemplateEndpoint(IMongoContext mongo)
@@ -23,8 +23,8 @@ public class GetWorkoutTemplateEndpoint(IMongoContext mongo)
         Roles(AppRoles.Trainer);
         Summary(s =>
         {
-            s.Summary = "Get section template";
-            s.Description = "Returns a single section template. Returns 403 if the template belongs to another trainer.";
+            s.Summary = "Get workout template";
+            s.Description = "Returns a single workout template. Returns 403 if the template belongs to another trainer.";
         });
     }
 
@@ -47,13 +47,13 @@ public class GetWorkoutTemplateEndpoint(IMongoContext mongo)
 
         if (template is null)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Section template not found.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Workout template not found.");
             return;
         }
 
         if (template.OwnerTrainerId != trainerId)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Section template belongs to another trainer.");
+            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Workout template belongs to another trainer.");
             return;
         }
 

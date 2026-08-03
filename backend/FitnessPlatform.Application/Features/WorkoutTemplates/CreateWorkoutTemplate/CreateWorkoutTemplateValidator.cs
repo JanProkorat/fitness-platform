@@ -11,7 +11,7 @@ namespace FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTem
 public class CreateWorkoutTemplateValidator : Validator<CreateWorkoutTemplateRequest>
 {
     /// <summary>
-    /// Initializes validation rules for a new section template.
+    /// Initializes validation rules for a new workout template.
     /// </summary>
     public CreateWorkoutTemplateValidator()
     {

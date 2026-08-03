@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTemplat
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTemplate;
 
 /// <summary>
-/// Request for updating an existing section template.
+/// Request for updating an existing workout template.
 /// </summary>
 public class UpdateWorkoutTemplateRequest
 {
