@@ -19,7 +19,7 @@ public class GetWorkoutTemplateEndpoint(IMongoContext mongo)
     /// <inheritdoc />
     public override void Configure()
     {
-        Get("/training/section-templates/{TemplateId}");
+        Get("/training/workout-templates/{TemplateId}");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {

@@ -395,8 +395,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
         exec.Should().NotBeNull("a session entry must be present when completion data exists");
         exec!.FinishedWorkouts.Should().HaveCount(2,
             "both sections are complete so both must appear in FinishedSections");
-        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -449,8 +449,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
         exec!.IsSessionFinished.Should().BeTrue();
         exec.FinishedWorkouts.Should().HaveCount(2,
             "a completed WorkoutLog implies all sections are done");
-        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -482,8 +482,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
         exec.Should().NotBeNull();
         exec!.FinishedWorkouts.Should().HaveCount(1,
             "only the finished section must appear — not the unfinished one");
-        exec.FinishedWorkouts.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedWorkouts.Should().NotContain(s => s.SectionId == _sectionBId,
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().NotContain(s => s.WorkoutId == _sectionBId,
             "section B is not finished so it must not appear in FinishedSections");
     }
 

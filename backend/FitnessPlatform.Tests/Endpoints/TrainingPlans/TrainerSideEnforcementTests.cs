@@ -175,7 +175,7 @@ public class TrainerSideEnforcementTests
             Notes = session.Notes,
             Format = session.Format,
             FormatConfig = session.FormatConfig,
-            Sections =
+            Workouts =
             [
                 new UpdateWorkoutRequest
                 {
@@ -225,7 +225,7 @@ public class TrainerSideEnforcementTests
     {
         var req = IdenticalSessionRequest(session, sessionId);
         // Mutate reps to trigger the diff gate.
-        req.Sections[0].Exercises[0].Sets[0].Reps = 99;
+        req.Workouts[0].Exercises[0].Sets[0].Reps = 99;
         return req;
     }
 
@@ -516,7 +516,7 @@ public class TrainerSideEnforcementTests
                             DayOfWeek = 1,
                             Name = "Draft Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
                                 new UpdateWorkoutRequest
                                 {

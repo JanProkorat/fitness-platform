@@ -4,21 +4,21 @@ using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 
 /// <summary>
-/// Per-section finished state for a training session.
-/// A section is "finished" when the client has completed it via either the WorkoutLog path
-/// (session-level completion) or the TrainingCompletion path (home-checkbox / section-complete).
+/// Per-workout finished state for a training session.
+/// A workout is "finished" when the client has completed it via either the WorkoutLog path
+/// (session-level completion) or the TrainingCompletion path (home-checkbox / workout-complete).
 /// </summary>
 public class WorkoutFinishedStateDto
 {
     /// <summary>
-    /// The <see cref="TrainingWorkout.SectionId"/> this finished state belongs to.
+    /// The <see cref="TrainingWorkout.WorkoutId"/> this finished state belongs to.
     /// </summary>
-    public Guid SectionId { get; set; }
+    public Guid WorkoutId { get; set; }
 
     /// <summary>
-    /// Whether this section is finished.
-    /// True when a completed WorkoutLog exists for the session (all sections done),
-    /// or when the TrainingCompletion document shows this section as complete.
+    /// Whether this workout is finished.
+    /// True when a completed WorkoutLog exists for the session (all workouts done),
+    /// or when the TrainingCompletion document shows this workout as complete.
     /// </summary>
     public bool IsFinished { get; set; }
 }
@@ -89,21 +89,21 @@ public class SessionExecutionDto
     /// An absent key means no sets for that exercise were logged.
     /// An empty list should not occur but is treated identically to an absent key.
     /// <para>
-    /// <b>Deprecated in favour of <see cref="CompletedSetsBySectionAndExercise"/>.</b>
-    /// Retained for backward compatibility. When a multi-section log has the same exercise
-    /// in two sections, only the last-encountered section's data appears here — use the
-    /// section-aware map for reliable results.
+    /// <b>Deprecated in favour of <see cref="CompletedSetsByWorkoutAndExercise"/>.</b>
+    /// Retained for backward compatibility. When a multi-workout log has the same exercise
+    /// in two workouts, only the last-encountered workout's data appears here — use the
+    /// workout-aware map for reliable results.
     /// </para>
     /// </summary>
     public Dictionary<Guid, List<int>> CompletedSetsByExercise { get; set; } = new();
 
     /// <summary>
-    /// Section-aware completed sets map. Key = (SectionId, ExerciseExternalId) encoded as
-    /// the string <c>"{sectionId}:{exerciseId}"</c>; value = sorted list of completed set numbers.
-    /// Use this in preference to <see cref="CompletedSetsByExercise"/> when section context
-    /// is available (i.e. when the plan has multi-section sessions).
+    /// Workout-aware completed sets map. Key = (WorkoutId, ExerciseExternalId) encoded as
+    /// the string <c>"{workoutId}:{exerciseId}"</c>; value = sorted list of completed set numbers.
+    /// Use this in preference to <see cref="CompletedSetsByExercise"/> when workout context
+    /// is available (i.e. when the plan has multi-workout sessions).
     /// </summary>
-    public Dictionary<string, List<int>> CompletedSetsBySectionAndExercise { get; set; } = new();
+    public Dictionary<string, List<int>> CompletedSetsByWorkoutAndExercise { get; set; } = new();
 
     /// <summary>
     /// Per-exercise map of per-set actual values, snapshot-planned values, and isModified flags.
@@ -112,19 +112,19 @@ public class SessionExecutionDto
     /// The web layer uses this together with <see cref="CompletedSetsByExercise"/> to render
     /// the actual-vs-planned comparison and the upraveno (modified) indicator per set.
     /// <para>
-    /// <b>Deprecated in favour of <see cref="LoggedSetsBySectionAndExercise"/>.</b>
-    /// Retained for backward compatibility. When a multi-section log has the same exercise
-    /// in two sections, only the last-encountered section's data appears here.
+    /// <b>Deprecated in favour of <see cref="LoggedSetsByWorkoutAndExercise"/>.</b>
+    /// Retained for backward compatibility. When a multi-workout log has the same exercise
+    /// in two workouts, only the last-encountered workout's data appears here.
     /// </para>
     /// </summary>
     public Dictionary<Guid, List<LoggedSetDto>> LoggedSetsByExercise { get; set; } = new();
 
     /// <summary>
-    /// Section-aware logged sets map. Key = (SectionId, ExerciseExternalId) encoded as
-    /// the string <c>"{sectionId}:{exerciseId}"</c>; value = list of <see cref="LoggedSetDto"/>.
-    /// Use this in preference to <see cref="LoggedSetsByExercise"/> for multi-section sessions.
+    /// Workout-aware logged sets map. Key = (WorkoutId, ExerciseExternalId) encoded as
+    /// the string <c>"{workoutId}:{exerciseId}"</c>; value = list of <see cref="LoggedSetDto"/>.
+    /// Use this in preference to <see cref="LoggedSetsByExercise"/> for multi-workout sessions.
     /// </summary>
-    public Dictionary<string, List<LoggedSetDto>> LoggedSetsBySectionAndExercise { get; set; } = new();
+    public Dictionary<string, List<LoggedSetDto>> LoggedSetsByWorkoutAndExercise { get; set; } = new();
 
     /// <summary>
     /// True when at least one set in any exercise under this session has IsModified == true.
@@ -134,13 +134,13 @@ public class SessionExecutionDto
     public bool HasModifications { get; set; }
 
     /// <summary>
-    /// Per-section finished state for all sections in this session.
+    /// Per-workout finished state for all workouts in this session.
     /// Populated by the endpoint from both WorkoutLog and TrainingCompletion signals.
-    /// A section is finished when <see cref="IsSessionFinished"/> is true (session-level completion
-    /// implies every section is done), OR when the TrainingCompletion document records that specific
-    /// section as complete.
+    /// A workout is finished when <see cref="IsSessionFinished"/> is true (session-level completion
+    /// implies every workout is done), OR when the TrainingCompletion document records that specific
+    /// workout as complete.
     /// Empty for sessions with no completion data.
-    /// The web layer uses this to render the finished label and disable editing on completed sections
+    /// The web layer uses this to render the finished label and disable editing on completed workouts
     /// independently of the session-level finished state.
     /// </summary>
     public List<WorkoutFinishedStateDto> FinishedWorkouts { get; set; } = [];
@@ -160,20 +160,20 @@ public class TrainingPlanCompletionDto
     /// <summary>
     /// Flat list of completed exercise external IDs for this session on this date.
     /// <para>
-    /// <b>Deprecated.</b> Use <see cref="CompletedExerciseIdsBySection"/> for section-aware tracking.
+    /// <b>Deprecated.</b> Use <see cref="CompletedExerciseIdsByWorkout"/> for workout-aware tracking.
     /// Retained for backward compatibility.
     /// </para>
     /// </summary>
     public List<Guid> CompletedExerciseIds { get; set; } = [];
 
     /// <summary>
-    /// Section-aware completed exercise IDs. Key = SectionId, value = list of completed
-    /// ExerciseExternalIds within that section. Populated via read-time backfill so legacy
+    /// Workout-aware completed exercise IDs. Key = WorkoutId, value = list of completed
+    /// ExerciseExternalIds within that workout. Populated via read-time backfill so legacy
     /// completion documents are transparently migrated.
     /// </summary>
-    public Dictionary<Guid, List<Guid>> CompletedExerciseIdsBySection { get; set; } = new();
+    public Dictionary<Guid, List<Guid>> CompletedExerciseIdsByWorkout { get; set; } = new();
 
-    public List<Guid> CompletedSectionIds { get; set; } = [];
+    public List<Guid> CompletedWorkoutIds { get; set; } = [];
     public int Version { get; set; }
 }
 

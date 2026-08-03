@@ -1,7 +1,7 @@
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkWorkoutIncomplete;
 
 /// <summary>
-/// Request model for un-marking a section as complete.
+/// Request model for un-marking a workout as complete.
 /// </summary>
 public class MarkWorkoutIncompleteRequest
 {
@@ -11,9 +11,9 @@ public class MarkWorkoutIncompleteRequest
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// The section ID within the session. Bound from the route.
+    /// The workout ID within the session. Bound from the route.
     /// </summary>
-    public Guid SectionId { get; set; }
+    public Guid WorkoutId { get; set; }
 
     /// <summary>
     /// The date for which the completion should be removed (UTC date only).

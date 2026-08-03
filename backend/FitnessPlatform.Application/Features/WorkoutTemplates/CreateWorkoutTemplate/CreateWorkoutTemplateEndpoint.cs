@@ -18,7 +18,7 @@ public class CreateWorkoutTemplateEndpoint(IMongoContext mongo)
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/training/section-templates");
+        Post("/training/workout-templates");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {

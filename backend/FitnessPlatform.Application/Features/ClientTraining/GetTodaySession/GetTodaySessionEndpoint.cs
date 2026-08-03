@@ -270,7 +270,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 cancellationToken: ct);
             var executionDocs = await executionCursor.ToListAsync(ct);
 
-            // Build a lookup for sessions by sessionId so backfill can resolve section membership.
+            // Build a lookup for sessions by sessionId so backfill can resolve workout membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
             foreach (var doc in executionDocs)
@@ -290,7 +290,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 // completed instance back to its containing workout via the session definition.
                 if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var bySection = new Dictionary<Guid, List<Guid>>();
+                    var byWorkout = new Dictionary<Guid, List<Guid>>();
 
                     foreach (var workout in completionSession.Workouts)
                     {
@@ -301,13 +301,13 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
                         if (completedInWorkout.Count > 0)
                         {
-                            bySection[workout.WorkoutId] = completedInWorkout;
+                            byWorkout[workout.WorkoutId] = completedInWorkout;
                             foreach (var exId in completedInWorkout)
                                 set.Add(exId);
                         }
                     }
 
-                    response.CompletedExerciseIdsBySectionAndSession[sessionId] = bySection;
+                    response.CompletedExerciseIdsByWorkoutAndSession[sessionId] = byWorkout;
 
                     foreach (var exId in completionSession.StandaloneExercises
                         .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))

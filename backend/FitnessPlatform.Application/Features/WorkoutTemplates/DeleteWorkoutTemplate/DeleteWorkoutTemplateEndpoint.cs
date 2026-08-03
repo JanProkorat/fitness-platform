@@ -18,7 +18,7 @@ public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/training/section-templates/{TemplateId}");
+        Delete("/training/workout-templates/{TemplateId}");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {

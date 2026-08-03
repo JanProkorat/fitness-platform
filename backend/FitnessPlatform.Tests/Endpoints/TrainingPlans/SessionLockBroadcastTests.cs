@@ -176,7 +176,7 @@ public class SessionLockBroadcastTests
             DayOfWeek = dayOfWeek,
             Name = session.Name,
             Order = session.Order,
-            Sections =
+            Workouts =
             [
                 new UpdateWorkoutRequest
                 {

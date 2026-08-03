@@ -103,7 +103,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -129,7 +129,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -167,7 +167,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -193,7 +193,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = Guid.NewGuid() },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -227,7 +227,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = _sectionId, Version = 1 },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId, Version = 1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);
@@ -244,7 +244,7 @@ public class MarkWorkoutIncompleteEndpointTests
             mongo, db, _notifier, _compliance, _logger);
 
         await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, SectionId = _sectionId },
+            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);

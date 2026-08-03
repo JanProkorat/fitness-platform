@@ -260,12 +260,12 @@ public class MarkWorkoutCompleteEndpoint(
     }
 
     private static MarkWorkoutCompleteResponse BuildResponse(
-        Guid sessionId, Guid sectionId, DateTime date, SessionExecution execution, int totalExercises)
+        Guid sessionId, Guid workoutId, DateTime date, SessionExecution execution, int totalExercises)
     {
         return new MarkWorkoutCompleteResponse
         {
             SessionId = sessionId,
-            SectionId = sectionId,
+            WorkoutId = workoutId,
             Date = DateOnly.FromDateTime(date),
             CompletedExerciseCount = execution.CompletedExerciseInstanceIds.Count,
             TotalExerciseCount = totalExercises,

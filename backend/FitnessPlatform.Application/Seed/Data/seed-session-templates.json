@@ -9,7 +9,7 @@
     "estimatedDurationMinutes": 45,
     "format": "Standard",
     "formatConfig": null,
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -292,7 +292,7 @@
     "estimatedDurationMinutes": 60,
     "format": "Standard",
     "formatConfig": null,
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -626,7 +626,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -771,7 +771,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -934,7 +934,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -1097,7 +1097,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -1242,7 +1242,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -1405,7 +1405,7 @@
       "workSeconds": null,
       "restSeconds": null
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -1532,7 +1532,7 @@
       "workSeconds": 20,
       "restSeconds": 10
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,
@@ -1668,7 +1668,7 @@
       "workSeconds": 20,
       "restSeconds": 10
     },
-    "sections": [
+    "workouts": [
       {
         "name": "Warm-up",
         "order": 1,

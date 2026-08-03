@@ -20,7 +20,7 @@ public class ListWorkoutTemplatesEndpoint(IMongoContext mongo)
     /// <inheritdoc />
     public override void Configure()
     {
-        Get("/training/section-templates");
+        Get("/training/workout-templates");
         Roles(AppRoles.Trainer);
         Summary(s =>
         {

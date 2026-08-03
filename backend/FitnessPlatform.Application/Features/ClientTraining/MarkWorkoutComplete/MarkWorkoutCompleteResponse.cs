@@ -1,9 +1,9 @@
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkWorkoutComplete;
 
 /// <summary>
-/// Response for marking a section complete.
+/// Response for marking a workout complete.
 /// Returns a lightweight progress summary so the mobile client can update
-/// section progress indicators without an extra round-trip.
+/// workout progress indicators without an extra round-trip.
 /// </summary>
 public class MarkWorkoutCompleteResponse
 {
@@ -13,9 +13,9 @@ public class MarkWorkoutCompleteResponse
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// The section ID that was marked complete.
+    /// The workout ID that was marked complete.
     /// </summary>
-    public Guid SectionId { get; set; }
+    public Guid WorkoutId { get; set; }
 
     /// <summary>
     /// The date for which the completion was recorded.

@@ -15,7 +15,7 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 ///
 /// Covers issues #469 and #470 on the READ side:
 /// — #470 READ: same exercise in two plan sections — each section's execution data
-///   is independently addressable via <c>LoggedSetsBySectionAndExercise</c>.
+///   is independently addressable via <c>LoggedSetsByWorkoutAndExercise</c>.
 /// — #469 READ: all exercises in a multi-exercise section are present in the map.
 /// — Legacy: a log without SectionId (schema-on-read backfill) still renders correctly.
 /// — Historical collapsed log (multi-section log that was collapsed) renders gracefully.
@@ -224,11 +224,11 @@ public class GetTrainingPlanSectionKeyingTests
         var amrapKey = $"{amrapSectionId}:{exerciseId}";
 
         // Section-aware maps must have independent entries for each section.
-        exec.LoggedSetsBySectionAndExercise.Should().ContainKey(standardKey);
-        exec.LoggedSetsBySectionAndExercise.Should().ContainKey(amrapKey);
+        exec.LoggedSetsByWorkoutAndExercise.Should().ContainKey(standardKey);
+        exec.LoggedSetsByWorkoutAndExercise.Should().ContainKey(amrapKey);
 
-        exec.LoggedSetsBySectionAndExercise[standardKey].Single().ActualWeightKg.Should().Be(100m);
-        exec.LoggedSetsBySectionAndExercise[amrapKey].Single().ActualWeightKg.Should().Be(60m);
+        exec.LoggedSetsByWorkoutAndExercise[standardKey].Single().ActualWeightKg.Should().Be(100m);
+        exec.LoggedSetsByWorkoutAndExercise[amrapKey].Single().ActualWeightKg.Should().Be(60m);
     }
 
     /// <summary>
@@ -256,8 +256,8 @@ public class GetTrainingPlanSectionKeyingTests
         var standardKey = $"{standardSectionId}:{exerciseId}";
         var amrapKey = $"{amrapSectionId}:{exerciseId}";
 
-        exec.LoggedSetsBySectionAndExercise[standardKey].Single().IsModified.Should().BeTrue();
-        exec.LoggedSetsBySectionAndExercise[amrapKey].Single().IsModified.Should().BeFalse();
+        exec.LoggedSetsByWorkoutAndExercise[standardKey].Single().IsModified.Should().BeTrue();
+        exec.LoggedSetsByWorkoutAndExercise[amrapKey].Single().IsModified.Should().BeFalse();
 
         // HasModifications is true because at least one set (in standard) is modified.
         exec.HasModifications.Should().BeTrue();
@@ -343,17 +343,17 @@ public class GetTrainingPlanSectionKeyingTests
         var exec = response!.SessionExecutions.Single();
 
         // All three exercises must appear in the section-aware map.
-        exec.LoggedSetsBySectionAndExercise.Should().ContainKey($"{sectionId}:{exA}");
-        exec.LoggedSetsBySectionAndExercise.Should().ContainKey($"{sectionId}:{exB}");
-        exec.LoggedSetsBySectionAndExercise.Should().ContainKey($"{sectionId}:{exC}");
+        exec.LoggedSetsByWorkoutAndExercise.Should().ContainKey($"{sectionId}:{exA}");
+        exec.LoggedSetsByWorkoutAndExercise.Should().ContainKey($"{sectionId}:{exB}");
+        exec.LoggedSetsByWorkoutAndExercise.Should().ContainKey($"{sectionId}:{exC}");
 
         // Verify actual values are correct per exercise.
-        exec.LoggedSetsBySectionAndExercise[$"{sectionId}:{exA}"].Single().ActualWeightKg.Should().Be(100m);
-        exec.LoggedSetsBySectionAndExercise[$"{sectionId}:{exB}"].Single().ActualWeightKg.Should().Be(80m);
-        exec.LoggedSetsBySectionAndExercise[$"{sectionId}:{exC}"].Single().ActualWeightKg.Should().Be(60m);
+        exec.LoggedSetsByWorkoutAndExercise[$"{sectionId}:{exA}"].Single().ActualWeightKg.Should().Be(100m);
+        exec.LoggedSetsByWorkoutAndExercise[$"{sectionId}:{exB}"].Single().ActualWeightKg.Should().Be(80m);
+        exec.LoggedSetsByWorkoutAndExercise[$"{sectionId}:{exC}"].Single().ActualWeightKg.Should().Be(60m);
 
         // Exercise C has more reps than planned — IsModified must be true.
-        exec.LoggedSetsBySectionAndExercise[$"{sectionId}:{exC}"].Single().IsModified.Should().BeTrue();
+        exec.LoggedSetsByWorkoutAndExercise[$"{sectionId}:{exC}"].Single().IsModified.Should().BeTrue();
         exec.HasModifications.Should().BeTrue();
     }
 
@@ -449,7 +449,7 @@ public class GetTrainingPlanSectionKeyingTests
         response.Should().NotBeNull();
 
         var exec = response!.SessionExecutions.Single();
-        exec.LoggedSetsBySectionAndExercise.Should().HaveCount(1);
-        exec.LoggedSetsBySectionAndExercise.Values.Single().Single().ActualWeightKg.Should().Be(100m);
+        exec.LoggedSetsByWorkoutAndExercise.Should().HaveCount(1);
+        exec.LoggedSetsByWorkoutAndExercise.Values.Single().Single().ActualWeightKg.Should().Be(100m);
     }
 }

@@ -15,8 +15,8 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.ClientTraining.MarkWorkoutIncomplete;
 
 /// <summary>
-/// Removes the completion mark for a single section within a session on the specified date.
-/// Idempotent: if the section is already not marked complete, returns success without side effects.
+/// Removes the completion mark for a single workout within a session on the specified date.
+/// Idempotent: if the workout is already not marked complete, returns success without side effects.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
@@ -34,12 +34,12 @@ public class MarkWorkoutIncompleteEndpoint(
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/client/training/sessions/{SessionId}/sections/{SectionId}/complete");
+        Delete("/client/training/sessions/{SessionId}/workouts/{WorkoutId}/complete");
         Roles(AppRoles.Client);
         Summary(s =>
         {
-            s.Summary = "Un-mark a section as complete";
-            s.Description = "Removes the completion mark for a section in a training session. Idempotent.";
+            s.Summary = "Un-mark a workout as complete";
+            s.Description = "Removes the completion mark for a workout in a training session. Idempotent.";
         });
     }
 
@@ -93,11 +93,11 @@ public class MarkWorkoutIncompleteEndpoint(
             return;
         }
 
-        // Validate the section exists in the session
-        var section = session.Workouts.FirstOrDefault(s => s.WorkoutId == req.SectionId);
-        if (section is null)
+        // Validate the workout exists in the session
+        var workout = session.Workouts.FirstOrDefault(w => w.WorkoutId == req.WorkoutId);
+        if (workout is null)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The section was not found in the specified session.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingWorkoutNotFound, "The workout was not found in the specified session.", ct);
             return;
         }
 
@@ -111,14 +111,14 @@ public class MarkWorkoutIncompleteEndpoint(
         using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
         var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
-        if (existing is null || !(existing.CompletedWorkoutIds ?? []).Contains(req.SectionId))
+        if (existing is null || !(existing.CompletedWorkoutIds ?? []).Contains(req.WorkoutId))
         {
             // Idempotent: already not complete
             var completedCount = existing?.CompletedExerciseInstanceIds.Count ?? 0;
             await Send.OkAsync(new MarkWorkoutIncompleteResponse
             {
                 SessionId = req.SessionId,
-                SectionId = req.SectionId,
+                WorkoutId = req.WorkoutId,
                 Date = DateOnly.FromDateTime(targetDate),
                 CompletedExerciseCount = completedCount,
                 TotalExerciseCount = totalExercises,
@@ -135,14 +135,14 @@ public class MarkWorkoutIncompleteEndpoint(
             return;
         }
 
-        var newSectionIds = existing.CompletedWorkoutIds!.Where(id => id != req.SectionId).ToList();
+        var newWorkoutIds = existing.CompletedWorkoutIds!.Where(id => id != req.WorkoutId).ToList();
         var newVersion = existing.Version + 1;
 
         var versionedFilter = executionFilter
                               & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedWorkoutIds, newSectionIds)
+            .Set(c => c.CompletedWorkoutIds, newWorkoutIds)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 
@@ -164,7 +164,7 @@ public class MarkWorkoutIncompleteEndpoint(
         await Send.OkAsync(new MarkWorkoutIncompleteResponse
         {
             SessionId = req.SessionId,
-            SectionId = req.SectionId,
+            WorkoutId = req.WorkoutId,
             Date = DateOnly.FromDateTime(targetDate),
             CompletedExerciseCount = existing.CompletedExerciseInstanceIds.Count,
             TotalExerciseCount = totalExercises,

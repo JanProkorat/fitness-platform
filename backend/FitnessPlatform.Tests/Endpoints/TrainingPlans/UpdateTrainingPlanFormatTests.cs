@@ -79,7 +79,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -127,7 +127,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { TimeCapSeconds = 1200 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -174,7 +174,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -221,7 +221,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { WorkSeconds = 20, RestSeconds = 10, TotalRounds = 8 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -270,7 +270,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = null,
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -318,7 +318,7 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -376,7 +376,7 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -438,7 +438,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -557,7 +557,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { TotalRounds = 10 /* IntervalSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -593,7 +593,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -629,7 +629,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { RestSeconds = 10, TotalRounds = 8 /* WorkSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -665,7 +665,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 }, // must be null for Standard
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -702,7 +702,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }

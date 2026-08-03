@@ -4,8 +4,8 @@ namespace FitnessPlatform.Application.Features.WorkoutTemplates.ListWorkoutTempl
 
 /// <summary>
 /// Response DTO for a single public workout template — surfaced in the trainer's
-/// section-templates "template library" alongside their own <see cref="Shared.WorkoutTemplateResponse"/> list.
-/// Embeds full sections -> exercises -> sets so the web client can render a complete
+/// workout-templates "template library" alongside their own <see cref="Shared.WorkoutTemplateResponse"/> list.
+/// Embeds full workouts -> exercises -> sets so the web client can render a complete
 /// detail view without a second call (only ~10 seeded templates; payload size is acceptable).
 /// </summary>
 public class PublicSessionTemplateResponse

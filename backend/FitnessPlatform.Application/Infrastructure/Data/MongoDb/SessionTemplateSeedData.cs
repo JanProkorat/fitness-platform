@@ -36,23 +36,23 @@ public static class SessionTemplateSeedData
 
         foreach (var entry in entries)
         {
-            var workouts = entry.Sections.Select(section => new TrainingWorkout
+            var workouts = entry.Workouts.Select(workoutEntry => new TrainingWorkout
             {
                 WorkoutId = Guid.NewGuid(),
-                // seed-workout-templates.json authors sections with 1-based order;
+                // seed-session-templates.json authors workouts with 1-based order;
                 // TrainingWorkout.Order is documented as 0-based.
-                Order = section.Order - 1,
-                Name = section.Name,
-                Format = ParseNullableEnum<WorkoutFormat>(section.Format),
-                FormatConfig = MapWodConfig(section.FormatConfig),
-                Notes = section.Notes,
-                Exercises = section.Exercises.Select(exerciseRef =>
+                Order = workoutEntry.Order - 1,
+                Name = workoutEntry.Name,
+                Format = ParseNullableEnum<WorkoutFormat>(workoutEntry.Format),
+                FormatConfig = MapWodConfig(workoutEntry.FormatConfig),
+                Notes = workoutEntry.Notes,
+                Exercises = workoutEntry.Exercises.Select(exerciseRef =>
                 {
                     if (!exerciseEntries.TryGetValue(exerciseRef.ExerciseSlug, out var exercise))
                     {
                         throw new InvalidOperationException(
                             $"Workout template '{entry.Slug}' references unknown exercise slug " +
-                            $"'{exerciseRef.ExerciseSlug}' — seed-workout-templates.json and " +
+                            $"'{exerciseRef.ExerciseSlug}' — seed-session-templates.json and " +
                             "seed-exercises.json are out of sync.");
                     }
 
@@ -121,7 +121,7 @@ public static class SessionTemplateSeedData
 
     /// <summary>
     /// Fails fast with a clear message on a null/empty required field — the template's own
-    /// slug/names, plus every section name and exercise-slug/movement-type reference, since a
+    /// slug/names, plus every workout name and exercise-slug/movement-type reference, since a
     /// null exercise slug would otherwise silently dangle rather than throw — see #810 review
     /// finding M4.
     /// </summary>
@@ -134,29 +134,29 @@ public static class SessionTemplateSeedData
         SeedJsonLoader.RequireNonEmpty(entry.Difficulty, nameof(entry.Difficulty), ResourceFileName, index, entry.Slug);
         SeedJsonLoader.RequireNonEmpty(entry.Format, nameof(entry.Format), ResourceFileName, index, entry.Slug);
 
-        if (entry.Sections is null)
+        if (entry.Workouts is null)
         {
             throw new InvalidOperationException(
-                $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field '{nameof(entry.Sections)}' is null.");
+                $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field '{nameof(entry.Workouts)}' is null.");
         }
 
-        for (var s = 0; s < entry.Sections.Count; s++)
+        for (var w = 0; w < entry.Workouts.Count; w++)
         {
-            var section = entry.Sections[s];
+            var workout = entry.Workouts[w];
             SeedJsonLoader.RequireNonEmpty(
-                section.Name, $"{nameof(entry.Sections)}[{s}].Name", ResourceFileName, index, entry.Slug);
+                workout.Name, $"{nameof(entry.Workouts)}[{w}].Name", ResourceFileName, index, entry.Slug);
 
-            if (section.Exercises is null)
+            if (workout.Exercises is null)
             {
                 throw new InvalidOperationException(
                     $"{ResourceFileName}[{index}] (slug '{entry.Slug}'): required field " +
-                    $"'{nameof(entry.Sections)}[{s}].{nameof(section.Exercises)}' is null.");
+                    $"'{nameof(entry.Workouts)}[{w}].{nameof(workout.Exercises)}' is null.");
             }
 
-            for (var e = 0; e < section.Exercises.Count; e++)
+            for (var e = 0; e < workout.Exercises.Count; e++)
             {
-                var exerciseRef = section.Exercises[e];
-                var fieldPrefix = $"{nameof(entry.Sections)}[{s}].{nameof(section.Exercises)}[{e}]";
+                var exerciseRef = workout.Exercises[e];
+                var fieldPrefix = $"{nameof(entry.Workouts)}[{w}].{nameof(workout.Exercises)}[{e}]";
                 SeedJsonLoader.RequireNonEmpty(
                     exerciseRef.ExerciseSlug, $"{fieldPrefix}.{nameof(exerciseRef.ExerciseSlug)}", ResourceFileName, index, entry.Slug);
                 SeedJsonLoader.RequireNonEmpty(
@@ -181,7 +181,7 @@ public static class SessionTemplateSeedData
             };
 }
 
-/// <summary>A single workout template entry from <c>seed-workout-templates.json</c>.</summary>
+/// <summary>A single session template entry from <c>seed-session-templates.json</c>.</summary>
 public record SessionTemplateSeedEntry(
     string Slug,
     string NameEn,
@@ -192,7 +192,7 @@ public record SessionTemplateSeedEntry(
     int? EstimatedDurationMinutes,
     string Format,
     WodConfigSeedEntry? FormatConfig,
-    List<SessionTemplateWorkoutEntry> Sections);
+    List<SessionTemplateWorkoutEntry> Workouts);
 
 /// <summary>WOD format configuration, as authored in the JSON — mirrors <see cref="WodConfig"/>.</summary>
 public record WodConfigSeedEntry(
@@ -202,7 +202,7 @@ public record WodConfigSeedEntry(
     int? WorkSeconds,
     int? RestSeconds);
 
-/// <summary>A single section within a <see cref="SessionTemplateSeedEntry"/>.</summary>
+/// <summary>A single workout within a <see cref="SessionTemplateSeedEntry"/>.</summary>
 public record SessionTemplateWorkoutEntry(
     string Name,
     int Order,

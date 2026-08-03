@@ -7,7 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
-/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, sections, exercises, and sets.
+/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, workouts, exercises, and sets.
 /// </summary>
 public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
 {
@@ -84,33 +84,33 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 session.RuleFor(s => s.Order)
                     .GreaterThanOrEqualTo(1).WithMessage("Session Order must be >= 1.");
 
-                // Session must have at least one section or standalone exercise (#857 phase 3a:
+                // Session must have at least one workout or standalone exercise (#857 phase 3a:
                 // a session no longer strictly needs a workout — a lone finisher exercise
                 // programmed directly on the session is now a valid, complete session).
                 session.RuleFor(s => s)
-                    .Must(s => s.Sections.Count > 0 || s.Exercises.Count > 0)
-                    .WithName("Sections")
-                    .WithMessage("A session must have at least one section or standalone exercise.");
+                    .Must(s => s.Workouts.Count > 0 || s.Exercises.Count > 0)
+                    .WithName("Workouts")
+                    .WithMessage("A session must have at least one workout or standalone exercise.");
 
-                // No duplicate Order values within a session's sections
-                session.RuleFor(s => s.Sections)
-                    .Must(sections => sections.Select(sec => sec.Order).Distinct().Count() == sections.Count)
-                    .WithMessage("Duplicate Order values are not allowed within a session's sections.");
+                // No duplicate Order values within a session's workouts
+                session.RuleFor(s => s.Workouts)
+                    .Must(workouts => workouts.Select(w => w.Order).Distinct().Count() == workouts.Count)
+                    .WithMessage("Duplicate Order values are not allowed within a session's workouts.");
 
-                // #857 phase 3a: standalone exercises and workouts/sections share ONE ordering
+                // #857 phase 3a: standalone exercises and workouts share ONE ordering
                 // sequence within a session — a duplicate Order across either list (or both) is
                 // rejected with the stable TRAINING_DUPLICATE_SESSION_ORDER code.
                 session.RuleFor(s => s)
                     .Must(s =>
                     {
-                        var orders = s.Sections.Select(sec => sec.Order)
+                        var orders = s.Workouts.Select(w => w.Order)
                             .Concat(s.Exercises.Select(ex => ex.Order))
                             .ToList();
                         return orders.Distinct().Count() == orders.Count;
                     })
                     .WithErrorCode(ErrorCodes.TrainingDuplicateSessionOrder)
                     .WithName("Order")
-                    .WithMessage("Duplicate Order values are not allowed across a session's standalone exercises and sections.");
+                    .WithMessage("Duplicate Order values are not allowed across a session's standalone exercises and workouts.");
 
                 // Session-level format config invariants (optional, nullable)
                 session.RuleFor(s => s.FormatConfig)
@@ -125,29 +125,29 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
 
                 ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
 
-                session.RuleForEach(s => s.Sections).ChildRules(section =>
+                session.RuleForEach(s => s.Workouts).ChildRules(workout =>
                 {
-                    section.RuleFor(sec => sec.Name)
-                        .NotEmpty().WithMessage("Section Name must not be empty.")
+                    workout.RuleFor(w => w.Name)
+                        .NotEmpty().WithMessage("Workout Name must not be empty.")
                         .MaximumLength(200);
 
-                    section.RuleFor(sec => sec.Exercises)
-                        .Must(exercises => exercises.Count <= 30).WithMessage("A section may not have more than 30 exercises.");
+                    workout.RuleFor(w => w.Exercises)
+                        .Must(exercises => exercises.Count <= 30).WithMessage("A workout may not have more than 30 exercises.");
 
-                    // Section-level format config invariants
-                    section.RuleFor(sec => sec.FormatConfig)
+                    // Workout-level format config invariants
+                    workout.RuleFor(w => w.FormatConfig)
                         .Null()
-                        .When(sec => sec.Format == WorkoutFormat.Standard)
-                        .WithMessage("Section FormatConfig must be null for Standard format.");
+                        .When(w => w.Format == WorkoutFormat.Standard)
+                        .WithMessage("Workout FormatConfig must be null for Standard format.");
 
-                    section.RuleFor(sec => sec.FormatConfig)
+                    workout.RuleFor(w => w.FormatConfig)
                         .NotNull()
-                        .When(sec => sec.Format.HasValue && sec.Format != WorkoutFormat.Standard)
-                        .WithMessage("Section FormatConfig is required for non-Standard formats.");
+                        .When(w => w.Format.HasValue && w.Format != WorkoutFormat.Standard)
+                        .WithMessage("Workout FormatConfig is required for non-Standard formats.");
 
-                    ApplyFormatConfigRules(section, sec => sec.Format, sec => sec.FormatConfig, "Section");
+                    ApplyFormatConfigRules(workout, w => w.Format, w => w.FormatConfig, "Workout");
 
-                    section.RuleForEach(sec => sec.Exercises).ChildRules(ApplyExerciseChildRules);
+                    workout.RuleForEach(w => w.Exercises).ChildRules(ApplyExerciseChildRules);
                 });
 
                 // #857 phase 3a: standalone exercises directly on the session — same shape and
