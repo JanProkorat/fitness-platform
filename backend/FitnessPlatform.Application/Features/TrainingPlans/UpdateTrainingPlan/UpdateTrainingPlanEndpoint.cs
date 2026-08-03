@@ -342,7 +342,7 @@ public class UpdateTrainingPlanEndpoint(
                             Note = notesByDay.GetValueOrDefault(dayOfWeek),
                             Sessions = sessionsByDay.GetValueOrDefault(dayOfWeek, []).Select(rs => new TrainingSession
                             {
-                                SessionId = rs.SessionId ?? Guid.NewGuid(),
+                                SessionId = ResolveOrMintId(rs.SessionId),
                                 Name = rs.Name,
                                 Order = rs.Order,
                                 Notes = rs.Notes?.Trim(),
@@ -350,7 +350,7 @@ public class UpdateTrainingPlanEndpoint(
                                 FormatConfig = rs.FormatConfig,
                                 Workouts = rs.Workouts.Select(rWorkout => new TrainingWorkout
                                 {
-                                    WorkoutId = rWorkout.WorkoutId ?? Guid.NewGuid(),
+                                    WorkoutId = ResolveOrMintId(rWorkout.WorkoutId),
                                     Order = rWorkout.Order,
                                     Name = rWorkout.Name,
                                     Format = rWorkout.Format,
@@ -552,7 +552,7 @@ public class UpdateTrainingPlanEndpoint(
     /// </summary>
     private static SessionExercise ToSessionExercise(UpdateSessionExerciseRequest re) => new()
     {
-        ExerciseId = re.ExerciseId ?? Guid.NewGuid(),
+        ExerciseId = ResolveOrMintId(re.ExerciseId),
         ExerciseExternalId = re.ExerciseExternalId,
         ExerciseName = re.ExerciseName,
         Order = re.Order,
@@ -573,6 +573,19 @@ public class UpdateTrainingPlanEndpoint(
             RestSeconds = rset.RestSeconds
         }).ToList()
     };
+
+    /// <summary>
+    /// Resolves a client-supplied identifier for a session/workout/exercise instance, minting a
+    /// fresh one when the request omits it (null) OR supplies an all-zero
+    /// <see cref="Guid.Empty"/> — a shape templates and template-instantiated plans can produce.
+    /// Null-coalescing (<c>?? Guid.NewGuid()</c>) alone only guards the null case; a request
+    /// carrying the literal string <c>"00000000-0000-0000-0000-000000000000"</c> deserializes to
+    /// a non-null <see cref="Guid.Empty"/> and would otherwise persist as-is, permanently failing
+    /// every downstream lookup that requires a non-empty id (e.g.
+    /// <c>MarkExerciseCompleteValidator</c>'s <c>NotEmpty()</c> rule on <c>ExerciseId</c>).
+    /// </summary>
+    private static Guid ResolveOrMintId(Guid? id) =>
+        id is null || id == Guid.Empty ? Guid.NewGuid() : id.Value;
 
     /// <summary>
     /// Equality check for <see cref="WodConfig"/> nullable pairs.
