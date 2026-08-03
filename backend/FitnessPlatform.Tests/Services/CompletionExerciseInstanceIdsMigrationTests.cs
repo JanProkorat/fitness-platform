@@ -675,6 +675,71 @@ public class CompletionExerciseInstanceIdsMigrationTests
     }
 
     [Fact]
+    public async Task StartAsync_UnresolvableNoSessionIdDocument_CountsUnresolvedPerOccurrence()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("completion_instance_ids_no_session_id_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var clientId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+        var duplicatedExternalId = Guid.NewGuid();
+        var flatOnlyExternalId = Guid.NewGuid();
+        var startDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // No sessionId at all (an ad-hoc/unplanned completion) — every entry is unresolved
+        // regardless of shape (CountLegacyCompletionEntries). The by-workout dictionary carries
+        // the SAME catalog id twice (a duplicate array entry, which does happen in legacy data)
+        // and the flat list carries one id already seen via the dictionary plus one genuinely
+        // new id — proving the unresolved counter counts PER OCCURRENCE (2 dictionary entries +
+        // 1 new flat entry = 3, the overlapping flat id deduped against the dictionary exactly
+        // like the resolution path's resolvedViaBySection) rather than per DISTINCT catalog id
+        // (which would undercount to 2).
+        var bySection = new BsonDocument
+        {
+            { workoutId.ToString(), new BsonArray { GuidBson(duplicatedExternalId), GuidBson(duplicatedExternalId) } }
+        };
+
+        var executionExternalId = Guid.NewGuid();
+        var executionDoc = new BsonDocument
+        {
+            { "_id", ObjectId.GenerateNewId() },
+            { "externalId", GuidBson(executionExternalId) },
+            { "clientId", GuidBson(clientId) },
+            { "planId", GuidBson(Guid.NewGuid()) },
+            // sessionId intentionally absent — an ad-hoc/unplanned completion with no plan
+            // session to resolve against.
+            { "date", startDate },
+            { "status", "Partial" },
+            { "completedExerciseIds", new BsonArray { GuidBson(duplicatedExternalId), GuidBson(flatOnlyExternalId) } },
+            { "completedExerciseIdsBySection", bySection },
+            { "dateCreated", startDate.AddDays(-1) },
+            { "version", 1 }
+        };
+
+        var rawExecutions = db.GetCollection<BsonDocument>("sessionExecutions");
+        await rawExecutions.InsertOneAsync(executionDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        var unresolvedCount = await initializer.MigrateCompletionExerciseInstanceIdsAsync(ct);
+
+        unresolvedCount.Should().Be(3,
+            "2 occurrences of duplicatedExternalId in the dictionary plus 1 new occurrence of " +
+            "flatOnlyExternalId in the flat list — a distinct-id count would undercount to 2");
+
+        var migrated = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, executionExternalId))
+            .FirstOrDefaultAsync(ct);
+        migrated.Should().NotBeNull();
+        migrated!.CompletedExerciseInstanceIds.Should().BeEmpty(
+            "a document with no sessionId has no plan session to resolve against, so every entry is unresolved");
+    }
+
+    [Fact]
     public async Task StartAsync_SecondBoot_IsIdempotent()
     {
         var ct = TestContext.Current.CancellationToken;

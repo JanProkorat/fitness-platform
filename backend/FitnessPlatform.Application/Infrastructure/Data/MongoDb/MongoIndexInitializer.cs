@@ -1336,17 +1336,21 @@ public class MongoIndexInitializer : IHostedService
     /// such a document is unresolved regardless of shape.
     /// </summary>
     /// <remarks>
-    /// Counts the DISTINCT catalog ids across BOTH shapes rather than preferring the by-workout
-    /// dictionary. A document can carry the dictionary AND a flat <c>completedExerciseIds</c>
-    /// holding ids the dictionary never attributed — the same mixed shape that made the
-    /// resolution pass above drop entries silently. Reading only the dictionary here understated
-    /// the unresolved total, which is the one number an operator uses to judge whether this
-    /// migration lost anything; understating it defeats that check. Distinct, because an id
-    /// present in both shapes is one unmigrated entry, not two.
+    /// Counts PER OCCURRENCE across BOTH shapes — the same unit the resolution path above uses:
+    /// <see cref="ResolveCompletionExerciseInstancesAsync"/> increments <c>unresolvedCount</c>
+    /// once per array element it walks, never once per distinct catalog id, so the two counters
+    /// must agree in unit for the single summary log line to stay comparable across runs. A
+    /// document can carry the by-workout dictionary AND a flat <c>completedExerciseIds</c> list
+    /// holding ids the dictionary never attributed (the same mixed shape the resolution path
+    /// handles) — every element in the dictionary's arrays is counted, and every flat id NOT
+    /// already seen via the dictionary is counted too, mirroring the resolution path's
+    /// <c>resolvedViaBySection</c> dedup (a flat id also present in the dictionary is the same
+    /// real-world completion, counted once via the dictionary, not twice).
     /// </remarks>
     private static int CountLegacyCompletionEntries(BsonDocument doc, BsonDocument? bySection)
     {
-        var entries = new HashSet<Guid>();
+        var entryCount = 0;
+        var seenViaBySection = new HashSet<Guid>();
 
         if (bySection is not null)
         {
@@ -1354,7 +1358,8 @@ public class MongoIndexInitializer : IHostedService
             {
                 foreach (var id in element.Value.AsBsonArray)
                 {
-                    entries.Add(id.AsGuid);
+                    entryCount++;
+                    seenViaBySection.Add(id.AsGuid);
                 }
             }
         }
@@ -1363,11 +1368,16 @@ public class MongoIndexInitializer : IHostedService
         {
             foreach (var id in flatIds)
             {
-                entries.Add(id.AsGuid);
+                if (seenViaBySection.Contains(id.AsGuid))
+                {
+                    continue;
+                }
+
+                entryCount++;
             }
         }
 
-        return entries.Count;
+        return entryCount;
     }
 
     /// <summary>
