@@ -656,12 +656,15 @@ public class MongoIndexInitializer : IHostedService
 
             if (dayOfWeek is < 1 or > 7)
             {
+                // A migration must not delete user data behind a log line. Park the session on
+                // day 1 (deterministic, inspectable) rather than dropping it — the warning still
+                // flags the anomaly for follow-up, but the session survives the migration.
                 _logger.LogWarning(
                     "Training tree restructure (#857): session {SessionId} has an invalid " +
-                    "dayOfWeek ({DayOfWeek}) and was dropped during migration",
+                    "dayOfWeek ({DayOfWeek}) and was parked on day 1 during migration",
                     session.TryGetValue("sessionId", out var sessionId) ? sessionId : BsonNull.Value,
                     dayOfWeek);
-                continue;
+                dayOfWeek = 1;
             }
 
             if (!sessionsByDay.TryGetValue(dayOfWeek, out var daySessions))

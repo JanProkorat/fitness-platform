@@ -239,6 +239,101 @@ public class TrainingTreeRestructureMigrationTests
     }
 
     [Fact]
+    public async Task StartAsync_SessionWithInvalidOrMissingDayOfWeek_IsParkedOnDayOneNotDropped()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("training_tree_invalid_dayofweek_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var rawPlans = db.GetCollection<BsonDocument>("trainingPlans");
+
+        var planId = Guid.NewGuid();
+        var sessionMissingDayOfWeekId = Guid.NewGuid();
+        var sessionZeroDayOfWeekId = Guid.NewGuid();
+        var sessionOutOfRangeDayOfWeekId = Guid.NewGuid();
+
+        // A migration must not delete user data behind a log line. dayOfWeek absent, dayOfWeek
+        // == 0, and an out-of-range dayOfWeek must all survive the restructure — parked on day 1
+        // (deterministic, inspectable), never dropped.
+        var legacyWeekDoc = new BsonDocument
+        {
+            { "weekNumber", 1 },
+            { "status", "Published" },
+            { "datePublished", DateTime.UtcNow },
+            {
+                "sessions", new BsonArray
+                {
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionMissingDayOfWeekId) },
+                        // dayOfWeek intentionally absent.
+                        { "name", "No DayOfWeek Session" },
+                        { "order", 1 },
+                        { "workouts", new BsonArray() }
+                    },
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionZeroDayOfWeekId) },
+                        { "dayOfWeek", 0 },
+                        { "name", "Zero DayOfWeek Session" },
+                        { "order", 2 },
+                        { "workouts", new BsonArray() }
+                    },
+                    new BsonDocument
+                    {
+                        { "sessionId", GuidBson(sessionOutOfRangeDayOfWeekId) },
+                        { "dayOfWeek", 9 },
+                        { "name", "Out Of Range DayOfWeek Session" },
+                        { "order", 3 },
+                        { "workouts", new BsonArray() }
+                    }
+                }
+            }
+        };
+
+        var legacyPlanDoc = new BsonDocument
+        {
+            { "_id", ObjectId.GenerateNewId() },
+            { "externalId", GuidBson(planId) },
+            { "clientId", GuidBson(Guid.NewGuid()) },
+            { "trainerId", GuidBson(Guid.NewGuid()) },
+            { "name", "QA invalid dayOfWeek fixture" },
+            { "status", "Active" },
+            { "weeks", new BsonArray { legacyWeekDoc } },
+            { "version", 1 },
+            { "dateCreated", DateTime.UtcNow.AddDays(-1) }
+        };
+
+        await rawPlans.InsertOneAsync(legacyPlanDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+        await initializer.StartAsync(ct);
+
+        var migrated = await mongo.TrainingPlans
+            .Find(Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planId))
+            .FirstOrDefaultAsync(ct);
+
+        migrated.Should().NotBeNull();
+        var week = migrated!.Weeks.Should().ContainSingle().Subject;
+        week.Days.Should().HaveCount(7);
+
+        var monday = week.Days.Single(d => d.DayOfWeek == 1);
+        monday.Sessions.Should().HaveCount(3,
+            "all three sessions with an absent, zero, or out-of-range dayOfWeek must be parked " +
+            "on day 1, not dropped");
+        monday.Sessions.Select(s => s.SessionId).Should().BeEquivalentTo(
+        [
+            sessionMissingDayOfWeekId,
+            sessionZeroDayOfWeekId,
+            sessionOutOfRangeDayOfWeekId
+        ]);
+    }
+
+    [Fact]
     public async Task StartAsync_SecondBootAfterDaysRestructure_IsIdempotent_NoOpOnAlreadyMigratedDocument()
     {
         var ct = TestContext.Current.CancellationToken;
