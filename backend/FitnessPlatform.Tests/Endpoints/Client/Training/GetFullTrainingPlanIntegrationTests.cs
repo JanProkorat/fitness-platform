@@ -1425,6 +1425,157 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         nonEmptyWorkout.IsCompleted.Should().BeFalse("no TrainingCompletion exists — non-empty section must be false");
     }
 
+    /// <summary>
+    /// Pins the documented key format for <see cref="SessionExecution.CompletedSets"/> (#857
+    /// finding 2): entries are keyed by <see cref="SessionExercise.ExerciseExternalId"/> (the
+    /// catalog id), NOT the per-instance <see cref="SessionExercise.ExerciseId"/> — matching
+    /// <c>GetFullTrainingPlanEndpoint</c>'s reader, since the field's sole populator
+    /// (<c>MongoIndexInitializer.ApplyCompletionFlags</c>) has no plan/session context to resolve
+    /// instance ids. A key equal to the instance id must NOT match.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_WithCompletedSetsKeyedByExerciseExternalId_MarksMatchingSetComplete()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "CompletedSets", "Key", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var rowId = Guid.NewGuid();
+        var rowInstanceId = Guid.NewGuid();
+
+        var rowExercise = new Exercise
+        {
+            ExternalId = rowId,
+            Name = "Row",
+            MuscleGroups = [MuscleGroup.Back],
+            Equipment = ExerciseEquipment.Barbell,
+            Category = ExerciseCategory.Strength,
+            Difficulty = ExerciseDifficulty.Intermediate,
+            IsActive = true,
+            Source = "system",
+            DateCreated = DateTime.UtcNow
+        };
+
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "CompletedSets Key Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Pull Day",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = Guid.NewGuid(),
+                                    Order = 0,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = rowInstanceId,
+                                            ExerciseExternalId = rowId,
+                                            ExerciseName = "Row",
+                                            Order = 1,
+                                            Sets =
+                                            [
+                                                new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 10 },
+                                                new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 10 }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        // Keyed by the CATALOG id (ExerciseExternalId), matching how CompletedSets is documented
+        // and read — deliberately NOT rowInstanceId (SessionExercise.ExerciseId).
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = planId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
+            Status = SessionExecutionStatus.Partial,
+            CompletedSets = new Dictionary<string, List<int>> { [rowId.ToString()] = [1] },
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.Exercises.InsertOneAsync(rowExercise, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var body = await response.Content.ReadFromJsonAsync<FullPlanResponse>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        var exercise = body!.Weeks[0].Sessions[0].Exercises[0];
+        exercise.ExerciseId.Should().Be(rowInstanceId);
+
+        var completedSet = exercise.Sets.First(s => s.SetNumber == 1);
+        completedSet.CompletedAt.Should().NotBeNull(
+            "the ExerciseExternalId key must match the exercise via its catalog id, not its instance id");
+
+        var pendingSet = exercise.Sets.First(s => s.SetNumber == 2);
+        pendingSet.CompletedAt.Should().BeNull("set 2 was not listed in CompletedSets");
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record FullPlanResponse(

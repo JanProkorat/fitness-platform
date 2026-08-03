@@ -1023,6 +1023,15 @@ public class MongoIndexInitializer : IHostedService
     /// already carries <see cref="TrainingCompletion.CompletedExerciseInstanceIds"/> directly, so
     /// this needs no plan/session access of its own.
     /// </summary>
+    /// <remarks>
+    /// <b>#857 finding 2 — <see cref="SessionExecution.CompletedSets"/> keying.</b> This method has
+    /// no <c>TrainingPlan</c>/session in scope, so it cannot resolve
+    /// <see cref="TrainingCompletion.CompletedSets"/>' catalog-id keys onto the per-instance
+    /// <see cref="SessionExercise.ExerciseId"/> the way <see cref="SessionExecution.CompletedExerciseInstanceIds"/>
+    /// is instance-keyed. The copy below is deliberately a straight pass-through — see
+    /// <see cref="SessionExecution.CompletedSets"/>'s remarks for why this is documented as a
+    /// known, harmless divergence rather than "fixed" here.
+    /// </remarks>
     private static void ApplyCompletionFlags(SessionExecution execution, TrainingCompletion completion)
     {
         execution.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;

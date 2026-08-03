@@ -86,10 +86,14 @@ public class TrainingCompletion
     public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
-    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseId"/>
-    /// (serialized as a lowercase Guid string) — rekeyed from the pre-#857-phase-3b
-    /// <see cref="SessionExercise.ExerciseExternalId"/> keying for the same reason as
-    /// <see cref="CompletedExerciseInstanceIds"/>.
+    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseExternalId"/>
+    /// (serialized as a lowercase Guid string) — <b>NOT</b> rekeyed onto the per-instance
+    /// <see cref="SessionExercise.ExerciseId"/> the way <see cref="CompletedExerciseInstanceIds"/>
+    /// was. This document type is frozen/read-only (see class remarks) with no live write path,
+    /// so no migration step exists (or ever ran) to resolve a catalog id against a specific plan
+    /// session's instance ids here — see
+    /// <see cref="SessionExecution.CompletedSets"/> for the full explanation and the matching
+    /// reader in <c>GetFullTrainingPlanEndpoint</c>, which keys its lookup the same way.
     /// Each entry is the set of 1-based set numbers that were completed.
     /// Only populated when the client uses set-level tracking; absence means the
     /// exercise was marked complete at the exercise level only.

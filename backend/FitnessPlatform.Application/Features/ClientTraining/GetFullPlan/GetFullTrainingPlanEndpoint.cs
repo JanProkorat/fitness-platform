@@ -258,16 +258,23 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             }
 
             // Partially-completed exercises: mark only the listed set numbers.
+            //
+            // Deliberately keyed by ExerciseExternalId (catalog id), NOT the per-instance
+            // SessionExercise.ExerciseId — matching exLookup above (#857 finding 2). See
+            // SessionExecution.CompletedSets' remarks for why this is a documented, harmless
+            // divergence rather than an instance-keyed lookup: the field has no live write path,
+            // and its sole populator (MongoIndexInitializer.ApplyCompletionFlags) has no plan
+            // context to resolve instance ids.
             if (execution.CompletedSets is not null)
             {
-                foreach (var (exIdString, setNumbers) in execution.CompletedSets)
+                foreach (var (externalIdString, setNumbers) in execution.CompletedSets)
                 {
-                    if (!Guid.TryParse(exIdString, out var exId)) continue;
-                    if (!exLookup.ContainsKey(exId)) continue;
+                    if (!Guid.TryParse(externalIdString, out var exerciseExternalId)) continue;
+                    if (!exLookup.ContainsKey(exerciseExternalId)) continue;
 
                     foreach (var setNumber in setNumbers)
                     {
-                        var key = (sessionId, exId, setNumber);
+                        var key = (sessionId, exerciseExternalId, setNumber);
                         if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
                             completedSets[key] = stampedAt;
                     }
