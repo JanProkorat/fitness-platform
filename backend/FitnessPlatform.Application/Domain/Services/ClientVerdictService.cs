@@ -187,7 +187,7 @@ public class ClientVerdictService(
             .OrderBy(w => w.WeekNumber)
             .FirstOrDefault();
 
-        int prescribed = publishedWeek?.Sessions.Count ?? 0;
+        int prescribed = publishedWeek?.Days.Sum(d => d.Sessions.Count) ?? 0;
 
         // Actual sessions this ISO week (Monday–Sunday).
         var today = DateTime.UtcNow.Date;

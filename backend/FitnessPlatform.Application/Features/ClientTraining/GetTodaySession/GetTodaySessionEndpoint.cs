@@ -215,10 +215,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         var todayDow = (int)DateTime.UtcNow.DayOfWeek;
         todayDow = todayDow == 0 ? 7 : todayDow; // Convert Sunday from 0 to 7
 
-        var todaySessions = currentWeek.Sessions
-            .Where(s => s.DayOfWeek == todayDow)
+        var todayDay = currentWeek.Days.FirstOrDefault(d => d.DayOfWeek == todayDow);
+        var todaySessions = todayDay?.Sessions
             .OrderBy(s => s.Order)
-            .ToList();
+            .ToList() ?? [];
 
 #pragma warning disable CS0618 // Session is intentionally set for backwards compatibility
         response.Sessions = todaySessions;
@@ -270,7 +270,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 cancellationToken: ct);
             var executionDocs = await executionCursor.ToListAsync(ct);
 
-            // Build a lookup for sessions by sessionId so backfill can resolve section membership.
+            // Build a lookup for sessions by sessionId so backfill can resolve workout membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
             foreach (var doc in executionDocs)
@@ -281,22 +281,40 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                     completedBySession[sessionId] = set = [];
 
                 response.VersionBySession[sessionId] = doc.Version;
-                response.CompletedSectionIdsBySession[sessionId] =
-                    (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
+                response.CompletedWorkoutIdsBySession[sessionId] =
+                    (doc.CompletedWorkoutIds ?? new List<Guid>()).ToList();
 
-                // Populate the per-session completed-exercise set from the section-aware
-                // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
-                // field is kept only as a derived mirror (see SessionExecution.cs) and is
-                // no longer consulted here.
+                // Populate the per-session completed-exercise set from the flat
+                // CompletedExerciseInstanceIds list (#857 phase 3b) — reconstruct the
+                // wire-compatible (ExerciseExternalId-keyed) by-workout shape by mapping each
+                // completed instance back to its containing workout via the session definition.
                 if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(
-                        doc, completionSession);
-                    response.CompletedExerciseIdsBySectionAndSession[sessionId] =
-                        effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                    var byWorkout = new Dictionary<Guid, List<Guid>>();
 
-                    foreach (var exId in effective.Values.SelectMany(ids => ids))
+                    foreach (var workout in completionSession.Workouts)
+                    {
+                        var completedInWorkout = workout.Exercises
+                            .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                            .Select(e => e.ExerciseExternalId)
+                            .ToList();
+
+                        if (completedInWorkout.Count > 0)
+                        {
+                            byWorkout[workout.WorkoutId] = completedInWorkout;
+                            foreach (var exId in completedInWorkout)
+                                set.Add(exId);
+                        }
+                    }
+
+                    response.CompletedExerciseIdsByWorkoutAndSession[sessionId] = byWorkout;
+
+                    foreach (var exId in completionSession.StandaloneExercises
+                        .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                        .Select(e => e.ExerciseExternalId))
+                    {
                         set.Add(exId);
+                    }
                 }
             }
 

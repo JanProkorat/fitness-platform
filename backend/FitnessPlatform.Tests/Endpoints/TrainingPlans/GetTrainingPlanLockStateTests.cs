@@ -44,17 +44,13 @@ public class GetTrainingPlanLockStateTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            Name = "Push Day",
-                            DayOfWeek = 1,
-                            Order = 1,
-                            Sections = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,

@@ -25,11 +25,11 @@ public class MongoContext : IMongoContext
         TrainingCompletions = database.GetCollection<TrainingCompletion>(MongoCollections.TrainingCompletions);
         PersonalRecords = database.GetCollection<PersonalRecord>(MongoCollections.PersonalRecords);
         DayLogs = database.GetCollection<DayLog>(MongoCollections.DayLogs);
-        SectionTemplates = database.GetCollection<SectionTemplate>(MongoCollections.SectionTemplates);
+        WorkoutTemplates = database.GetCollection<WorkoutTemplate>(MongoCollections.WorkoutTemplates);
         SessionLocks = database.GetCollection<SessionLock>(MongoCollections.SessionLocks);
         SessionLogs = database.GetCollection<SessionLog>(MongoCollections.SessionLogs);
         TrainerNotes = database.GetCollection<TrainerNote>(MongoCollections.TrainerNotes);
-        WorkoutTemplates = database.GetCollection<WorkoutTemplate>(MongoCollections.WorkoutTemplates);
+        SessionTemplates = database.GetCollection<SessionTemplate>(MongoCollections.SessionTemplates);
         SessionExecutions = database.GetCollection<SessionExecution>(MongoCollections.SessionExecutions);
         NutritionPlanTemplates = database.GetCollection<NutritionPlanTemplate>(MongoCollections.NutritionPlanTemplates);
     }
@@ -65,7 +65,7 @@ public class MongoContext : IMongoContext
     public IMongoCollection<DayLog> DayLogs { get; }
 
     /// <inheritdoc />
-    public IMongoCollection<SectionTemplate> SectionTemplates { get; }
+    public IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
 
     /// <inheritdoc />
     public IMongoCollection<SessionLock> SessionLocks { get; }
@@ -77,7 +77,7 @@ public class MongoContext : IMongoContext
     public IMongoCollection<TrainerNote> TrainerNotes { get; }
 
     /// <inheritdoc />
-    public IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
+    public IMongoCollection<SessionTemplate> SessionTemplates { get; }
 
     /// <inheritdoc />
     public IMongoCollection<SessionExecution> SessionExecutions { get; }

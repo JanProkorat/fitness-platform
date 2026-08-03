@@ -88,35 +88,52 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // Build a session lookup for read-time backfill of legacy completions.
         // Keys are SessionId; sessions are already backfilled by FromDocument().
         var sessionLookup = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .ToDictionary(s => s.SessionId);
 
+        // #857 phase 3b: SessionExecution.CompletedExerciseInstanceIds is a flat list of
+        // SessionExercise.ExerciseId instance values. Reconstruct the wire-compatible
+        // (ExerciseExternalId-keyed) shape by mapping each completed instance back to its
+        // catalog external id and containing workout via the session definition — preserves
+        // the exact pre-#857-phase-3b response contract with no client-visible change.
         response.Completions = executions
             .Where(e => e.SessionId.HasValue)
             .Select(c =>
             {
-                Dictionary<Guid, List<Guid>> bySection;
-                if (sessionLookup.TryGetValue(c.SessionId!.Value, out var session))
+                sessionLookup.TryGetValue(c.SessionId!.Value, out var session);
+
+                var completedExternalIds = new List<Guid>();
+                var byWorkout = new Dictionary<Guid, List<Guid>>();
+
+                if (session is not null)
                 {
-                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(c, session);
-                    bySection = effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
-                }
-                else
-                {
-                    // Session no longer in plan — return whatever is in the dict, or empty.
-                    // Keys are stored as lowercase Guid strings; parse back to Guid, skipping malformed entries.
-                    bySection = c.CompletedExerciseIdsBySection?
-                        .Where(kvp => Guid.TryParse(kvp.Key, out _))
-                        .ToDictionary(kvp => Guid.Parse(kvp.Key), kvp => kvp.Value.ToList()) ?? new();
+                    foreach (var workout in session.Workouts)
+                    {
+                        var completedInWorkout = workout.Exercises
+                            .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                            .Select(e => e.ExerciseExternalId)
+                            .ToList();
+
+                        if (completedInWorkout.Count > 0)
+                        {
+                            byWorkout[workout.WorkoutId] = completedInWorkout;
+                            completedExternalIds.AddRange(completedInWorkout);
+                        }
+                    }
+
+                    completedExternalIds.AddRange(session.StandaloneExercises
+                        .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                        .Select(e => e.ExerciseExternalId));
                 }
 
                 return new TrainingPlanCompletionDto
                 {
                     Date = DateOnly.FromDateTime(c.Date),
                     SessionId = c.SessionId!.Value,
-                    CompletedExerciseIds = c.CompletedExerciseIds,
-                    CompletedExerciseIdsBySection = bySection,
-                    CompletedSectionIds = c.CompletedSectionIds ?? [],
+                    CompletedExerciseIds = completedExternalIds.Distinct().ToList(),
+                    CompletedExerciseIdsByWorkout = byWorkout,
+                    CompletedWorkoutIds = c.CompletedWorkoutIds ?? [],
                     Version = c.Version
                 };
             })
@@ -156,21 +173,21 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                     // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
                     //
                     // We populate both the legacy flat maps (keyed by ExerciseExternalId alone)
-                    // and the new section-aware maps (keyed by "{sectionId}:{exerciseId}").
+                    // and the new workout-aware maps (keyed by "{workoutId}:{exerciseId}").
                     // The flat maps are kept for backward compatibility but are unreliable when
-                    // the same exercise appears in two sections — in that case the last-encountered
-                    // section wins in the flat map. The section-aware maps are authoritative.
+                    // the same exercise appears in two workouts — in that case the last-encountered
+                    // workout wins in the flat map. The workout-aware maps are authoritative.
                     var completedSetsByExercise = new Dictionary<Guid, List<int>>();
-                    var completedSetsBySectionAndExercise = new Dictionary<string, List<int>>();
+                    var completedSetsByWorkoutAndExercise = new Dictionary<string, List<int>>();
                     var loggedSetsByExercise = new Dictionary<Guid, List<LoggedSetDto>>();
-                    var loggedSetsBySectionAndExercise = new Dictionary<string, List<LoggedSetDto>>();
+                    var loggedSetsByWorkoutAndExercise = new Dictionary<string, List<LoggedSetDto>>();
                     var sessionHasModifications = false;
 
-                    foreach (var section in log.Performance!.Sections)
+                    foreach (var workout in log.Performance!.Workouts)
                     {
-                        foreach (var ex in section.Exercises)
+                        foreach (var ex in workout.Exercises)
                         {
-                            var sectionKey = $"{section.SectionId}:{ex.ExerciseExternalId}";
+                            var workoutKey = $"{workout.WorkoutId}:{ex.ExerciseExternalId}";
 
                             var completedSetNumbers = ex.Sets
                                 .Where(s => s.CompletedAt.HasValue)
@@ -180,10 +197,10 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
                             if (completedSetNumbers.Count > 0)
                             {
-                                // Flat map (last-write-wins for same exercise across sections).
+                                // Flat map (last-write-wins for same exercise across workouts).
                                 completedSetsByExercise[ex.ExerciseExternalId] = completedSetNumbers;
-                                // Section-aware map.
-                                completedSetsBySectionAndExercise[sectionKey] = completedSetNumbers;
+                                // Workout-aware map.
+                                completedSetsByWorkoutAndExercise[workoutKey] = completedSetNumbers;
                             }
 
                             // Build value-bearing LoggedSetDto list for every set in this exercise.
@@ -205,10 +222,10 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
                             if (loggedSetDtos.Count > 0)
                             {
-                                // Flat map (last-write-wins for same exercise across sections).
+                                // Flat map (last-write-wins for same exercise across workouts).
                                 loggedSetsByExercise[ex.ExerciseExternalId] = loggedSetDtos;
-                                // Section-aware map.
-                                loggedSetsBySectionAndExercise[sectionKey] = loggedSetDtos;
+                                // Workout-aware map.
+                                loggedSetsByWorkoutAndExercise[workoutKey] = loggedSetDtos;
                             }
 
                             if (loggedSetDtos.Any(s => s.IsModified))
@@ -221,9 +238,9 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                         SessionId = log.SessionId!.Value,
                         IsSessionFinished = log.Status == SessionExecutionStatus.Completed,
                         CompletedSetsByExercise = completedSetsByExercise,
-                        CompletedSetsBySectionAndExercise = completedSetsBySectionAndExercise,
+                        CompletedSetsByWorkoutAndExercise = completedSetsByWorkoutAndExercise,
                         LoggedSetsByExercise = loggedSetsByExercise,
-                        LoggedSetsBySectionAndExercise = loggedSetsBySectionAndExercise,
+                        LoggedSetsByWorkoutAndExercise = loggedSetsByWorkoutAndExercise,
                         HasModifications = sessionHasModifications
                     };
                 })
@@ -284,11 +301,11 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
             }
         }
 
-        // ── 3b. Per-section finished state fold-in ───────────────────────────────
-        // For each session that has execution data, project per-section finished state into
-        // FinishedSections. This feeds the web trainer portal so it can render a "Finished"
-        // label per section and gate the edit-lock unlock affordance at section granularity
-        // (issue #465). IsSectionComplete() already folds in both signals (finished Performance,
+        // ── 3b. Per-workout finished state fold-in ───────────────────────────────
+        // For each session that has execution data, project per-workout finished state into
+        // FinishedWorkouts. This feeds the web trainer portal so it can render a "Finished"
+        // label per workout and gate the edit-lock unlock affordance at workout granularity
+        // (issue #465). IsWorkoutComplete() already folds in both signals (finished Performance,
         // checkbox completion flags) since #841 merged them onto one document.
         if (completions.Count > 0 || response.SessionExecutions.Any(e => e.IsSessionFinished))
         {
@@ -301,7 +318,7 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
             foreach (var (sessionId, session) in sessionLookup)
             {
-                if (session.Sections.Count == 0) continue;
+                if (session.Workouts.Count == 0) continue;
 
                 var hasFinishedLog = executionIndex.TryGetValue(sessionId, out var exec) && exec.IsSessionFinished;
                 bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
@@ -309,31 +326,31 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
                 // Skip this session if there is nothing to project.
                 if (!hasFinishedLog && bestCompletion is null) continue;
 
-                var finishedSections = session.Sections
-                    .Select(sec => new SectionFinishedStateDto
+                var finishedWorkouts = session.Workouts
+                    .Select(workout => new WorkoutFinishedStateDto
                     {
-                        SectionId = sec.SectionId,
-                        IsFinished = bestCompletion.IsSectionComplete(session, sec)
+                        WorkoutId = workout.WorkoutId,
+                        IsFinished = bestCompletion.IsWorkoutComplete(session, workout)
                     })
                     .Where(dto => dto.IsFinished)
                     .ToList();
 
-                if (finishedSections.Count > 0)
+                if (finishedWorkouts.Count > 0)
                 {
                     if (exec is not null)
                     {
-                        exec.FinishedSections = finishedSections;
+                        exec.FinishedWorkouts = finishedWorkouts;
                     }
                     else
                     {
                         // No execution entry yet (partial completion with no Performance) —
-                        // add a synthetic entry so FinishedSections is visible to the web layer.
+                        // add a synthetic entry so FinishedWorkouts is visible to the web layer.
                         response.SessionExecutions.Add(new SessionExecutionDto
                         {
                             SessionId = sessionId,
                             IsSessionFinished = false,
                             CompletedSetsByExercise = new Dictionary<Guid, List<int>>(),
-                            FinishedSections = finishedSections
+                            FinishedWorkouts = finishedWorkouts
                         });
                     }
                 }
@@ -344,7 +361,8 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
         var allSessionIds = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .Select(s => s.SessionId)
             .ToList();
 

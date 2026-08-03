@@ -76,7 +76,7 @@ public class MarkExerciseCompleteBroadcastTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -104,7 +104,7 @@ public class MarkExerciseCompleteBroadcastTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await _notifier.Received(1).NotifyAsync(
@@ -138,7 +138,7 @@ public class MarkExerciseCompleteBroadcastTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await _notifier.Received(1).NotifyAsync(
@@ -163,7 +163,7 @@ public class MarkExerciseCompleteBroadcastTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         // Must be sent to trainer, not the client
@@ -190,11 +190,7 @@ public class MarkExerciseCompleteBroadcastTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 1);
 
         var plan = CreateActivePlan();
         var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
@@ -209,7 +205,7 @@ public class MarkExerciseCompleteBroadcastTests
 
         // exercise1 is already complete — idempotent no-op
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -243,7 +239,7 @@ public class MarkExerciseCompleteBroadcastTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -289,8 +285,7 @@ public class MarkExerciseCompleteBroadcastTests
             new MarkExerciseCompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -325,7 +320,7 @@ public class MarkExerciseCompleteBroadcastTests
 
         // Should NOT throw; the broadcast exception is swallowed
         var act = async () => await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await act.Should().NotThrowAsync();

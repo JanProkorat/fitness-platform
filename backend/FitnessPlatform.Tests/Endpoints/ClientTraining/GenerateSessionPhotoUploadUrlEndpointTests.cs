@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.GenerateSessionPhotoUp
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -59,18 +60,14 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions = addSession
-                        ?
-                        [
-                            new TrainingSession
-                            {
-                                SessionId = sid,
-                                DayOfWeek = 1,
-                                Name = "Push Day",
-                                Order = 1,
-                                Sections = []
-                            }
-                        ]
+                    Days = addSession
+                        ? TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                        {
+                            SessionId = sid,
+                            Name = "Push Day",
+                            Order = 1,
+                            Workouts = []
+                        }))
                         : []
                 }
             ]

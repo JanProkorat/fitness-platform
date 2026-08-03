@@ -243,11 +243,11 @@ public class PersonalRecordDetectionTests(FitnessApiFactory factory)
             IsCompleted = true,
             CompletedAt = DateTime.UtcNow.AddDays(-1).AddHours(1),
             DateCreated = DateTime.UtcNow.AddDays(-1),
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =

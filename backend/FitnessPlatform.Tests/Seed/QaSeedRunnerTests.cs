@@ -453,9 +453,9 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "SessionExecution.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id");
         completedLog.Performance.Should().NotBeNull("completed log has live-workout performance data");
-        completedLog.Performance!.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
-        completedLog.Performance.Sections[0].Exercises.Should().HaveCount(2);
-        completedLog.Performance.Sections[0].Exercises.Should().AllSatisfy(e =>
+        completedLog.Performance!.Workouts.Should().HaveCount(1, "log mirrors the single workout in the session");
+        completedLog.Performance.Workouts[0].Exercises.Should().HaveCount(2);
+        completedLog.Performance.Workouts[0].Exercises.Should().AllSatisfy(e =>
             e.Sets.Should().NotBeEmpty("completed log has sets on every exercise"));
 
         // SKIPPED session — SessionExecution with Status=Partial.
@@ -598,8 +598,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         plan.Should().NotBeNull("main training plan must be seeded");
 
-        var session = plan!.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaSessionId);
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.StandardSectionId);
+        var session = plan!.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaSessionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.StandardSectionId);
 
         standardSection.Exercises.Should().HaveCount(2, "Standard section has two exercises");
 
@@ -618,6 +618,134 @@ public class QaSeedRunnerTests : IAsyncLifetime
             s.Reps.Should().Be(5, "prescribed 5 reps");
             s.WeightKg.Should().Be(100m, "prescribed 100 kg");
         });
+    }
+
+    /// <summary>
+    /// Regression guard for the QA-findings bug on #857: every seeded <see cref="SessionExercise"/>
+    /// across every training plan must carry a non-empty <see cref="SessionExercise.ExerciseId"/>.
+    /// Before the fix, all 13 seeded instances persisted <c>Guid.Empty</c>, which
+    /// <c>MarkExerciseCompleteValidator</c> rejects — making per-exercise completion unreachable
+    /// on the QA fixture, and every exercise in a session shared one empty instance id (the exact
+    /// ambiguity the instance id exists to remove).
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_AllPlans_EverySessionExerciseHasNonEmptyExerciseId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planIds = new[]
+        {
+            QaSeedRunner.QaTrainingPlanExternalId,
+            QaSeedRunner.QaPastTrainingPlanExternalId,
+            QaSeedRunner.QaMultiSectionPlanExternalId,
+        };
+
+        foreach (var planId in planIds)
+        {
+            var plan = await mongo.TrainingPlans
+                .Find(p => p.ExternalId == planId)
+                .FirstOrDefaultAsync(ct);
+
+            plan.Should().NotBeNull($"plan {planId} must be seeded");
+
+            var allExercises = plan!.Weeks
+                .SelectMany(w => w.Days)
+                .SelectMany(d => d.Sessions)
+                .SelectMany(s => s.Exercises)
+                .ToList();
+
+            allExercises.Should().NotBeEmpty($"plan {planId} must seed at least one exercise");
+            allExercises.Should().OnlyContain(e => e.ExerciseId != Guid.Empty,
+                $"every SessionExercise in plan {planId} must carry a non-empty instance ExerciseId — " +
+                "a Guid.Empty instance id is rejected by MarkExerciseCompleteValidator and makes per-exercise " +
+                "completion unreachable on this fixture");
+
+            var instanceIds = allExercises.Select(e => e.ExerciseId).ToList();
+            instanceIds.Should().OnlyHaveUniqueItems(
+                $"every exercise instance in plan {planId} must have a distinct ExerciseId, even when two " +
+                "instances share the same catalog ExerciseExternalId");
+        }
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session with ONLY standalone
+    /// exercises (no workouts at all) — one of the two new tree shapes the training-plan
+    /// restructure makes possible, which the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneOnlySession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaStandaloneOnlySessionId);
+
+        session.Workouts.Should().BeEmpty("this session must carry ONLY standalone exercises");
+        session.StandaloneExercises.Should().ContainSingle();
+        var exercise = session.StandaloneExercises[0];
+        exercise.ExerciseId.Should().Be(QaSeedRunner.QaStandaloneOnlyInstanceId);
+        exercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaStandaloneOnlyExerciseId);
+        session.Exercises.Should().ContainSingle(
+            "the computed flat Exercises view must still surface the standalone-only exercise");
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session where the SAME
+    /// catalog exercise appears BOTH standalone on the session AND nested inside one of that
+    /// session's workouts, with distinct instance ExerciseId values — the pairing standalone
+    /// exercises newly make reachable that the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneAndNestedDuplicateExerciseSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaDualPlacementSessionId);
+
+        session.StandaloneExercises.Should().ContainSingle();
+        var standaloneExercise = session.StandaloneExercises[0];
+        standaloneExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementStandaloneInstanceId);
+        standaloneExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        var workout = session.Workouts.Single(w => w.WorkoutId == QaSeedRunner.QaDualPlacementWorkoutId);
+        var nestedExercise = workout.Exercises.Should().ContainSingle().Subject;
+        nestedExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementNestedInstanceId);
+        nestedExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        standaloneExercise.ExerciseId.Should().NotBe(nestedExercise.ExerciseId,
+            "the two occurrences of the same catalog exercise must have distinct instance ids");
+        session.Exercises.Should().HaveCount(2,
+            "the computed flat Exercises view must union the standalone exercise with the nested one");
     }
 
     /// <summary>
@@ -655,8 +783,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
         log.Performance.Should().NotBeNull("completed log has live-workout performance data");
         log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
 
-        log.Performance.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
-        var section = log.Performance.Sections[0];
+        log.Performance.Workouts.Should().HaveCount(1, "one workout mirrors the Standard section");
+        var section = log.Performance.Workouts[0];
         section.Exercises.Should().HaveCount(2);
 
         // ── Exercise 1: QA Squat ───────────────────────────────────────────────
@@ -746,16 +874,16 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.ClientId.Should().Be(QaSeedRunner.Client2UserId,
             "TrainingPlan.ClientId must be Client2UserId (ApplicationUser.Id, #840)");
 
-        var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
-        session.Sections.Should().HaveCount(2, "session has Standard + AMRAP sections");
+        var session = plan.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
+        session.Workouts.Should().HaveCount(2, "session has Standard + AMRAP sections");
 
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         standardSection.Format.Should().BeNull("Standard section has null format");
         standardSection.Exercises.Should().HaveCount(1);
         standardSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
         standardSection.Exercises[0].Sets.Should().HaveCount(3, "Standard section has 3 prescribed sets");
 
-        var amrapSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        var amrapSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         amrapSection.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         amrapSection.Exercises.Should().HaveCount(1);
         amrapSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
@@ -775,10 +903,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "SessionExecution.ClientId must be ApplicationUser.Id (Client2UserId)");
         log.Performance.Should().NotBeNull("completed log has live-workout performance data");
         log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
-        log.Performance.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
+        log.Performance.Workouts.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
 
-        // Standard section in the log — SectionId must match the plan section.
-        var logStandard = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        // Standard section in the log — WorkoutId must match the plan section.
+        var logStandard = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         logStandard.Exercises.Should().HaveCount(1);
         var logStandardExercise = logStandard.Exercises[0];
         logStandardExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
@@ -806,13 +934,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         set3.WeightKg.Should().Be(28m);
         set3.IsModified.Should().BeTrue("Set 3 actual != planned → MODIFIED");
 
-        // AMRAP section in the log — SectionId must match the plan AMRAP section.
-        var logAmrap = log.Performance.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        // AMRAP section in the log — WorkoutId must match the plan AMRAP section.
+        var logAmrap = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         logAmrap.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         logAmrap.Exercises.Should().HaveCount(1);
         var logAmrapExercise = logAmrap.Exercises[0];
         logAmrapExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
-            "AMRAP section references the SAME exercise but is keyed by a different SectionId");
+            "AMRAP section references the SAME exercise but is keyed by a different WorkoutId");
         logAmrapExercise.Sets.Should().HaveCount(1);
 
         var amrapSet = logAmrapExercise.Sets[0];

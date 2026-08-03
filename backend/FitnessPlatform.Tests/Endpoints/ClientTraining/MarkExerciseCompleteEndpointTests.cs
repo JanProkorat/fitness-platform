@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComplete;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -70,7 +71,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -79,10 +80,8 @@ public class MarkExerciseCompleteEndpointTests
             Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
-                c.CompletedExerciseIds.Contains(_exercise1) &&
-                c.CompletedExerciseIds.Count == 1 &&
-                c.CompletedExerciseIdsBySection != null &&
-                c.CompletedExerciseIdsBySection[_sectionId.ToString()].Contains(_exercise1)),
+                c.CompletedExerciseInstanceIds.Contains(_exercise1) &&
+                c.CompletedExerciseInstanceIds.Count == 1),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -95,11 +94,7 @@ public class MarkExerciseCompleteEndpointTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 1);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -119,7 +114,7 @@ public class MarkExerciseCompleteEndpointTests
 
         // Mark exercise1 complete again (already complete — idempotent)
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -156,7 +151,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         // No active plan found for wrongClientId → 404
@@ -200,8 +195,7 @@ public class MarkExerciseCompleteEndpointTests
             new MarkExerciseCompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -240,8 +234,7 @@ public class MarkExerciseCompleteEndpointTests
             new MarkExerciseCompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 1
             },
             TestContext.Current.CancellationToken);
@@ -267,7 +260,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = Guid.NewGuid(), ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -284,7 +277,7 @@ public class MarkExerciseCompleteEndpointTests
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
@@ -307,9 +300,9 @@ public class MarkExerciseCompleteEndpointTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
-        // Use a valid sessionId but an unknown sectionId
+        // Use a valid sessionId but an unknown exercise instance id
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = Guid.NewGuid() },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -318,10 +311,11 @@ public class MarkExerciseCompleteEndpointTests
     [Fact]
     public async Task HandleAsync_SameExerciseInTwoSections_MarkInOneSection_OnlyAffectsThatSection()
     {
-        // The core bug scenario: same catalog exercise in two sections.
-        // Marking in section1 must not affect section2's completion state.
+        // The core bug scenario: same catalog exercise in two workouts. Marking one occurrence
+        // (by its distinct instance ExerciseId) must not affect the other occurrence's completion
+        // state, even though both share the same catalog ExerciseExternalId.
         var sharedExerciseId = Guid.NewGuid();
-        var (plan, section1Id, section2Id) =
+        var (plan, _, _, workout1ExerciseId, workout2ExerciseId) =
             TrainingCompletionTestHelpers.CreateActivePlanWithDuplicateExerciseAcrossSections(
                 _clientId, _sessionId, sharedExerciseId);
 
@@ -333,25 +327,23 @@ public class MarkExerciseCompleteEndpointTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
-        // Mark complete in section1 only
+        // Mark complete the section1 occurrence only
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = sharedExerciseId,
-                SectionId = section1Id
+                ExerciseId = workout1ExerciseId
             },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // The inserted document must record completion only in section1, NOT section2.
+        // The inserted document must record completion only for the section1 instance, NOT the
+        // section2 instance — even though both instances share the same catalog exercise.
         await completionCollection.Received(1).InsertOneAsync(
             Arg.Is<SessionExecution>(c =>
-                c.CompletedExerciseIdsBySection != null &&
-                c.CompletedExerciseIdsBySection.ContainsKey(section1Id.ToString()) &&
-                c.CompletedExerciseIdsBySection[section1Id.ToString()].Contains(sharedExerciseId) &&
-                !c.CompletedExerciseIdsBySection.ContainsKey(section2Id.ToString())),
+                c.CompletedExerciseInstanceIds.Contains(workout1ExerciseId) &&
+                !c.CompletedExerciseInstanceIds.Contains(workout2ExerciseId)),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -359,18 +351,15 @@ public class MarkExerciseCompleteEndpointTests
     [Fact]
     public async Task HandleAsync_LegacyFlatCompletion_IsIdempotentWhenSectionMatches()
     {
-        // A legacy completion document with only CompletedExerciseIds (no CompletedExerciseIdsBySection).
-        // When the backfill attributes the exercise to the same sectionId, re-marking it returns 200
-        // without an additional update (idempotent via the section dict which was populated by backfill
-        // at read time, but NOT present in the document itself — so idempotency depends on the flat list).
-        // This test verifies the "existing doc with only flat ids" path doesn't crash and returns 200.
+        // A completion document with the flat CompletedExerciseInstanceIds list already containing
+        // this exercise instance. Re-marking it must short-circuit via the idempotency check and
+        // return 200 without an additional update.
         var legacyCompletion = TrainingCompletionTestHelpers.CreateCompletion(
             clientId: _clientId,
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 1,
-            completedExerciseIdsBySection: null); // legacy: no section dict
+            version: 1);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -388,47 +377,32 @@ public class MarkExerciseCompleteEndpointTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
-        // Mark exercise1 complete in sectionId. Since the doc has no section dict, the idempotency
-        // check on the section dict won't short-circuit — it will proceed to update and populate the dict.
+        // Mark exercise1 complete again — already present in CompletedExerciseInstanceIds, so the
+        // idempotency check short-circuits before any update.
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
     }
 
     /// <summary>
-    /// Regression test for BSON serialization bug:
-    /// "When using DictionaryRepresentation.Document key values must serialize as strings."
-    ///
-    /// The bug fired on UpdateOneAsync (the update-existing-doc path) when
-    /// <see cref="TrainingCompletion.CompletedExerciseIdsBySection"/> was typed
-    /// <c>Dictionary&lt;Guid, List&lt;Guid&gt;&gt;</c>.  MongoDB's default
-    /// <c>DictionaryRepresentation.Document</c> requires string document keys;
-    /// Guid keys caused a <c>BsonSerializationException</c>.
-    ///
-    /// The fix converts keys to <c>string</c> in the document layer and uses
-    /// <c>req.SectionId.ToString()</c> at every write site.  This test locks the fix by:
-    ///   - arranging an existing document whose section dict is already populated
-    ///     (the string-key shape now stored by MongoDB),
-    ///   - acting by marking a SECOND exercise in the same section (triggers UpdateOneAsync),
-    ///   - asserting 200 OK (no BSON exception) and that UpdateOneAsync was called with the
-    ///     updated definition.
+    /// Regression test locking the update-existing-doc path (<c>UpdateOneAsync</c>) for the flat
+    /// <see cref="SessionExecution.CompletedExerciseInstanceIds"/> list: arranges an existing
+    /// document with one exercise instance already complete, marks a SECOND exercise instance
+    /// complete (triggers <c>UpdateOneAsync</c> rather than <c>InsertOneAsync</c>), and asserts
+    /// 200 OK plus the expected call shape.
     /// </summary>
     [Fact]
     public async Task HandleAsync_SecondMarkInExistingDoc_PersistsViaUpdateOneAsync_DoesNotThrowBsonSerializationError()
     {
-        // Arrange: doc already exists, exercise1 is complete in sectionId (string-keyed shape).
+        // Arrange: doc already exists, exercise1 is complete.
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
             clientId: _clientId,
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 1);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -446,9 +420,9 @@ public class MarkExerciseCompleteEndpointTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
 
-        // Act: mark exercise2 complete in the same section — triggers the UpdateOneAsync path.
+        // Act: mark exercise2 complete — triggers the UpdateOneAsync path.
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise2 },
             TestContext.Current.CancellationToken);
 
         // Assert: 200 OK — no BsonSerializationException.
@@ -505,35 +479,32 @@ public class MarkExerciseCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = olderPlanStart,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = olderSessionId,
-                            DayOfWeek = 1,
-                            Name = "Older Session",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = olderSectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = olderExerciseId,
-                                            ExerciseName = "Old Ex",
-                                            Order = 1,
-                                            Sets = []
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = olderSessionId,
+                        Name = "Older Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = olderSectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = olderExerciseId,
+                                        ExerciseExternalId = olderExerciseId,
+                                        ExerciseName = "Old Ex",
+                                        Order = 1,
+                                        Sets = []
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -570,8 +541,7 @@ public class MarkExerciseCompleteEndpointTests
             new MarkExerciseCompleteRequest
             {
                 SessionId = olderSessionId,
-                ExerciseExternalId = olderExerciseId,
-                SectionId = olderSectionId,
+                ExerciseId = olderExerciseId,
                 CompletedOn = backdatedDate
             },
             TestContext.Current.CancellationToken);
@@ -588,7 +558,7 @@ public class MarkExerciseCompleteEndpointTests
                 c.ClientId == _clientId &&
                 c.SessionId == olderSessionId &&
                 c.Date == backdatedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) &&
-                c.CompletedExerciseIds.Contains(olderExerciseId)),
+                c.CompletedExerciseInstanceIds.Contains(olderExerciseId)),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

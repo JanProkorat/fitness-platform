@@ -59,36 +59,32 @@ public class SessionLockBroadcastTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Bench Press",
-                                            Order = 1,
-                                            MovementType = MovementType.Reps,
-                                            Sets = [new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 }]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = Guid.NewGuid(),
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Bench Press",
+                                        Order = 1,
+                                        MovementType = MovementType.Reps,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -169,22 +165,22 @@ public class SessionLockBroadcastTests
         return svc;
     }
 
-    private static UpdateSessionRequest ChangedSessionRequest(TrainingSession session, Guid sessionId)
+    private static UpdateSessionRequest ChangedSessionRequest(int dayOfWeek, TrainingSession session, Guid sessionId)
     {
-        var section = session.Sections[0];
+        var section = session.Workouts[0];
         var exercise = section.Exercises[0];
         var set = exercise.Sets[0];
         return new UpdateSessionRequest
         {
             SessionId = sessionId,
-            DayOfWeek = session.DayOfWeek,
+            DayOfWeek = dayOfWeek,
             Name = session.Name,
             Order = session.Order,
-            Sections =
+            Workouts =
             [
-                new UpdateSectionRequest
+                new UpdateWorkoutRequest
                 {
-                    SectionId = section.SectionId,
+                    WorkoutId = section.WorkoutId,
                     Order = section.Order,
                     Name = section.Name,
                     Exercises =
@@ -396,7 +392,7 @@ public class SessionLockBroadcastTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(1, plan.Weeks[0].Days.First(d => d.DayOfWeek == 1).Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -460,7 +456,7 @@ public class SessionLockBroadcastTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(1, plan.Weeks[0].Days.First(d => d.DayOfWeek == 1).Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,

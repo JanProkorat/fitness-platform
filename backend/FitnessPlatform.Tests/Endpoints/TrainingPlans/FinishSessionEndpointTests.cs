@@ -57,39 +57,35 @@ public class FinishSessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = sectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = Guid.NewGuid(),
-                                            ExerciseName = "Bench Press",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 },
-                                                new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 100 }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = sectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Bench Press",
+                                        Order = 1,
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 100 },
+                                            new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 100 }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -108,7 +104,7 @@ public class FinishSessionEndpointTests
             SessionId = sessionId,
             Date = SessionExecution.ToCompletionDateUtc(started),
             Status = SessionExecutionStatus.Partial,
-            Performance = new SessionExecutionPerformance { StartedAt = started, Sections = [] },
+            Performance = new SessionExecutionPerformance { StartedAt = started, Workouts = [] },
             DateCreated = started,
             Version = 1
         };
@@ -126,7 +122,7 @@ public class FinishSessionEndpointTests
             SessionId = sessionId,
             Date = SessionExecution.ToCompletionDateUtc(completedAt),
             Status = SessionExecutionStatus.Completed,
-            Performance = new SessionExecutionPerformance { StartedAt = started, CompletedAt = completedAt, Sections = [] },
+            Performance = new SessionExecutionPerformance { StartedAt = started, CompletedAt = completedAt, Workouts = [] },
             DateCreated = started,
             Version = 1
         };
@@ -212,17 +208,17 @@ public class FinishSessionEndpointTests
                 l.SessionId == sessionId &&
                 l.ClientId == plan.ClientId &&
                 l.Status == SessionExecutionStatus.Partial &&
-                l.Performance!.Sections.Count > 0),
+                l.Performance!.Workouts.Count > 0),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
 
-        // Section structure must be preserved (not flat list).
+        // Workout structure must be preserved (not flat list).
         await completionService.Received(1).CompleteAsync(
             Arg.Is<SessionExecution>(l =>
                 l.PlanId == plan.ExternalId &&
                 l.SessionId == sessionId &&
-                l.Performance!.Sections.Count > 0 &&
-                l.Performance!.Sections[0].Exercises.Count > 0),
+                l.Performance!.Workouts.Count > 0 &&
+                l.Performance!.Workouts[0].Exercises.Count > 0),
             Arg.Any<DateTime>(),
             Arg.Any<CancellationToken>());
     }
@@ -256,7 +252,7 @@ public class FinishSessionEndpointTests
             TestContext.Current.CancellationToken);
 
         capturedLog.Should().NotBeNull();
-        var sets = capturedLog!.Performance!.Sections[0].Exercises[0].Sets;
+        var sets = capturedLog!.Performance!.Workouts[0].Exercises[0].Sets;
         sets.Should().HaveCount(2);
         sets[0].SetNumber.Should().Be(1);
         sets[0].Reps.Should().Be(10);
@@ -500,17 +496,13 @@ public class FinishSessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = 1,
-                            Name = "Push Day",
-                            Order = 1,
-                            Sections = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,
@@ -659,7 +651,7 @@ public class FinishSessionEndpointTests
                 e.ClientId == plan.ClientId &&
                 e.SessionId == sessionId &&
                 e.Status == SessionExecutionStatus.Completed &&
-                e.CompletedSectionIds != null && e.CompletedSectionIds.Count > 0),
+                e.CompletedWorkoutIds != null && e.CompletedWorkoutIds.Count > 0),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }

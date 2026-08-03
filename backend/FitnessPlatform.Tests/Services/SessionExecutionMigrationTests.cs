@@ -15,9 +15,9 @@ namespace FitnessPlatform.Tests.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container (mirroring
-/// <see cref="PlanSchemaOnReadMigrationTests"/>, reusing its <see cref="MigrationTestMongoContext"/>)
-/// rather than the shared <see cref="FitnessPlatform.Tests.Infrastructure.FitnessApiFactory"/> used
+/// Uses a dedicated, per-test <see cref="MongoDbBuilder"/> container, reusing the shared
+/// <see cref="MigrationTestMongoContext"/>, rather than the shared
+/// <see cref="FitnessPlatform.Tests.Infrastructure.FitnessApiFactory"/> used
 /// by <see cref="ClientIdStandardizationMigrationTests"/>. Unlike the #840 clientId-standardisation
 /// migration (which only rewrites the key field on documents already matched by a caller-supplied
 /// PublicId→UserId map), <c>MigrateSessionExecutionsAsync</c> unconditionally scans EVERY
@@ -65,11 +65,11 @@ public class SessionExecutionMigrationTests
             CompletedDate = isCompleted ? date : null,
             Mood = 4,
             Notes = "Felt good",
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =
@@ -99,15 +99,13 @@ public class SessionExecutionMigrationTests
 
     private static TrainingCompletion BuildCompletion(Guid clientId, Guid sessionId, DateTime date, Guid exerciseId)
     {
-        var sectionKey = Guid.NewGuid().ToString();
         return new TrainingCompletion
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
             SessionId = sessionId,
             Date = date,
-            CompletedExerciseIds = [exerciseId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>> { [sectionKey] = [exerciseId] },
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = date.AddHours(6),
             DateUpdated = date.AddHours(6)
@@ -157,12 +155,11 @@ public class SessionExecutionMigrationTests
         execution.Date.Should().Be(date);
 
         execution.Performance.Should().NotBeNull("the merge must carry the WorkoutLog's set-by-set performance data over");
-        execution.Performance!.Sections.Should().HaveCount(1);
-        execution.Performance.Sections[0].Exercises.Single().ExerciseExternalId.Should().Be(exerciseId);
+        execution.Performance!.Workouts.Should().HaveCount(1);
+        execution.Performance.Workouts[0].Exercises.Single().ExerciseExternalId.Should().Be(exerciseId);
 
-        execution.CompletedExerciseIds.Should().BeEquivalentTo(completion.CompletedExerciseIds,
+        execution.CompletedExerciseInstanceIds.Should().BeEquivalentTo(completion.CompletedExerciseInstanceIds,
             "the merge must carry the TrainingCompletion's completion flags over");
-        execution.CompletedExerciseIdsBySection.Should().BeEquivalentTo(completion.CompletedExerciseIdsBySection);
 
         execution.Status.Should().Be(SessionExecutionStatus.Completed,
             "log.IsCompleted=true means the finished live workout implies the session is done");
@@ -203,9 +200,8 @@ public class SessionExecutionMigrationTests
 
         execution.Should().NotBeNull();
         execution!.Performance.Should().NotBeNull("a log-only migration must still carry the performance data");
-        execution.Performance!.Sections.Should().HaveCount(1);
-        execution.CompletedExerciseIds.Should().BeEmpty("no TrainingCompletion existed at this key — no completion flags to carry over");
-        execution.CompletedExerciseIdsBySection.Should().BeNull();
+        execution.Performance!.Workouts.Should().HaveCount(1);
+        execution.CompletedExerciseInstanceIds.Should().BeEmpty("no TrainingCompletion existed at this key — no completion flags to carry over");
         execution.Status.Should().Be(SessionExecutionStatus.Partial, "the log is not completed and no plan/session resolved");
     }
 
@@ -247,8 +243,7 @@ public class SessionExecutionMigrationTests
         // completion's own ExternalId.
         execution!.ExternalId.Should().NotBe(completion.ExternalId);
         execution.Performance.Should().BeNull("no WorkoutLog existed at this key — there is no performance data to carry over");
-        execution.CompletedExerciseIds.Should().BeEquivalentTo(completion.CompletedExerciseIds);
-        execution.CompletedExerciseIdsBySection.Should().BeEquivalentTo(completion.CompletedExerciseIdsBySection);
+        execution.CompletedExerciseInstanceIds.Should().BeEquivalentTo(completion.CompletedExerciseInstanceIds);
         execution.Status.Should().Be(SessionExecutionStatus.Partial, "no plan/session resolved to evaluate full completeness");
     }
 
@@ -284,7 +279,7 @@ public class SessionExecutionMigrationTests
 
         // Second run — a fresh initializer instance, mirroring a re-run of the CLI command.
         // Capture the returned tuple via closure while still asserting via the idiomatic
-        // NotThrowAsync (matches ClientIdStandardizationMigrationTests / PlanSchemaOnReadMigrationTests).
+        // NotThrowAsync (matches the sibling boot-migration tests in this folder).
         (long Merged, long LogOnly, long CompletionOnly, long AdHoc, long Skipped) secondRun = default;
         var initializer2 = CreateInitializer(mongo);
         var act = async () => { secondRun = await initializer2.MigrateSessionExecutionsAsync(ct); };
@@ -328,7 +323,7 @@ public class SessionExecutionMigrationTests
             SessionId = sessionAId,
             Date = dateA,
             Status = SessionExecutionStatus.Completed,
-            CompletedExerciseIds = [Guid.NewGuid()],
+            CompletedExerciseInstanceIds = [Guid.NewGuid()],
             DateCreated = dateA.AddDays(-1),
             Version = 1
         };
