@@ -302,6 +302,11 @@ public class SessionLockStateTests
                                 [
                                     new SessionExercise
                                     {
+                                        // Completion keys on the instance id, so it must be set
+                                        // explicitly here — this fixture builds the session inline
+                                        // rather than through TrainingCompletionTestHelpers, and an
+                                        // unset ExerciseId defaults to Guid.Empty and matches nothing.
+                                        ExerciseId = exerciseId,
                                         ExerciseExternalId = exerciseId,
                                         ExerciseName = "Squat",
                                         Order = 1,
@@ -370,8 +375,8 @@ public class SessionLockStateTests
             NullLogger<MarkExerciseCompleteEndpoint>.Instance);
 
         // Completion now keys on the SessionExercise instance id alone — the parent workout is
-        // no longer part of the key. The fixture builder assigns ExerciseId == ExerciseExternalId,
-        // so `exerciseId` addresses the same exercise this test always meant.
+        // no longer part of the key. This fixture sets ExerciseId == ExerciseExternalId on the
+        // seeded exercise above, so `exerciseId` addresses the one this test always meant.
         var req = new MarkExerciseCompleteRequest
         {
             SessionId = _sessionId,

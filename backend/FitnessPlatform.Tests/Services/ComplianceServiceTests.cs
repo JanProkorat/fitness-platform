@@ -524,14 +524,14 @@ public class ComplianceServiceTests
                             SessionId = sessionId1,
                             Name = "Session A",
                             Order = 1,
-                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         }),
                         (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId2,
                             Name = "Session B",
                             Order = 2,
-                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
                         }))
                 }
             ]

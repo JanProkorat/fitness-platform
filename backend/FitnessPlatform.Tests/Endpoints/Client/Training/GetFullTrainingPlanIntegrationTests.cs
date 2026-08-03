@@ -773,6 +773,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = ex1Id,
                                             ExerciseExternalId = ex1Id,
                                             ExerciseName = "Squat",
                                             Order = 1,
@@ -780,6 +781,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId = ex2Id,
                                             ExerciseExternalId = ex2Id,
                                             ExerciseName = "Deadlift",
                                             Order = 2,
@@ -795,6 +797,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
         // Mark both exercises complete via SessionExecution (post-#841 unification of the
         // standalone TrainingCompletion document — checkbox flags live on it directly).
+        // Completion is keyed on the per-instance SessionExercise.ExerciseId, so this fixture
+        // deliberately sets ExerciseId == ExerciseExternalId on the seeded exercises above.
         var completion = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
@@ -929,6 +933,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = ex1Id,
                                             ExerciseExternalId = ex1Id,
                                             ExerciseName = "Pull-up",
                                             Order = 1,
@@ -936,6 +941,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId = ex2Id,
                                             ExerciseExternalId = ex2Id,
                                             ExerciseName = "Row",
                                             Order = 2,

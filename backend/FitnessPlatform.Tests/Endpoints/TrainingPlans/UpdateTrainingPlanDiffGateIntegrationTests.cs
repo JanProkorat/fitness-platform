@@ -280,6 +280,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WorkoutId = sectionAId, Order = 0, Name = "Section A",
                     Exercises = [new SessionExercise
                     {
+                        ExerciseId = exerciseAId,
                         ExerciseExternalId = exerciseAId, ExerciseName = "Squat", Order = 1,   // must match BuildTwoSectionUpdateBody
                         MovementType = MovementType.Reps,
                         Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
@@ -290,6 +291,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WorkoutId = sectionBId, Order = 1, Name = "Section B",
                     Exercises = [new SessionExercise
                     {
+                        ExerciseId = exerciseBId,
                         ExerciseExternalId = exerciseBId, ExerciseName = "Press", Order = 1,   // must match BuildTwoSectionUpdateBody
                         MovementType = MovementType.Reps,
                         Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 80 }]
@@ -333,8 +335,9 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             Date = DateTime.UtcNow.Date,
             Status = SessionExecutionStatus.Partial,
             // The per-workout attribution dictionary is gone; completion is a flat list of
-            // SessionExercise instance ids. The fixture builder assigns
-            // ExerciseId == ExerciseExternalId, so exerciseAId still addresses the same exercise.
+            // SessionExercise instance ids. This fixture builds its sessions inline (not via
+            // TrainingPlanTestHelpers), so it sets ExerciseId == ExerciseExternalId on the
+            // seeded exercises above — that is what makes exerciseAId address the same exercise.
             CompletedExerciseInstanceIds = [exerciseAId],
             Version = 1,
             DateCreated = DateTime.UtcNow
