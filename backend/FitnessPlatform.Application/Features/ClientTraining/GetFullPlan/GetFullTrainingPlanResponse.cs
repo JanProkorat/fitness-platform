@@ -187,7 +187,16 @@ public class WorkoutDto
 /// </summary>
 public class ExerciseDto
 {
-    /// <summary>Reference to the exercise document's ExternalId.</summary>
+    /// <summary>
+    /// Instance identifier for this specific exercise entry within its session — the id the
+    /// client-facing mark-complete/incomplete routes require (#857 phase 3b). Distinguishes two
+    /// occurrences of the same catalog exercise (<see cref="ExerciseExternalId"/>) programmed
+    /// twice in one workout, or once standalone and once nested in a workout of the same
+    /// session. Mirrors <see cref="FitnessPlatform.Application.Domain.Documents.SessionExercise.ExerciseId"/>.
+    /// </summary>
+    public Guid ExerciseId { get; set; }
+
+    /// <summary>Reference to the exercise document's ExternalId — used for exercise metadata lookups.</summary>
     public Guid ExerciseExternalId { get; set; }
 
     /// <summary>Snapshot exercise name.</summary>

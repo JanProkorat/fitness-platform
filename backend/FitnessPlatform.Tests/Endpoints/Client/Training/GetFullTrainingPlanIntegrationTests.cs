@@ -60,6 +60,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         // ── 3. Seed Exercise docs ─────────────────────────────────────────────────
         var squatId = Guid.NewGuid();
         var benchId = Guid.NewGuid();
+        // Distinct per-instance ids (#857 phase 3b) — deliberately different from the catalog
+        // ExternalId above so the response's ExerciseId/ExerciseExternalId assertions below
+        // cannot pass by coincidence.
+        var squatInstanceId = Guid.NewGuid();
+        var benchInstanceId = Guid.NewGuid();
 
         var squatExercise = new Exercise
         {
@@ -128,6 +133,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = squatInstanceId,
                                             ExerciseExternalId = squatId,
                                             ExerciseName = "Squat",
                                             Order = 1,
@@ -160,6 +166,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = benchInstanceId,
                                             ExerciseExternalId = benchId,
                                             ExerciseName = "Bench Press",
                                             Order = 1,
@@ -280,6 +287,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
         sessionA.Exercises.Should().HaveCount(1);
         var squatDto = sessionA.Exercises[0];
+        squatDto.ExerciseId.Should().Be(squatInstanceId,
+            "the response must expose the per-instance id the mark-complete/incomplete routes require (#857 phase 3b)");
         squatDto.ExerciseExternalId.Should().Be(squatId);
         squatDto.IsCompleted.Should().BeFalse("only 2 of 3 sets are done");
         squatDto.MuscleGroups.Should().Contain(MuscleGroup.Quadriceps);
@@ -299,6 +308,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
         sessionB.Exercises.Should().HaveCount(1);
         var benchDto = sessionB.Exercises[0];
+        benchDto.ExerciseId.Should().Be(benchInstanceId,
+            "the response must expose the per-instance id the mark-complete/incomplete routes require (#857 phase 3b)");
         benchDto.ExerciseExternalId.Should().Be(benchId);
         benchDto.IsCompleted.Should().BeFalse();
         benchDto.MuscleGroups.Should().Contain(MuscleGroup.Chest);
@@ -1186,6 +1197,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int? RestSeconds);
 
     private record ExerciseResponse(
+        Guid ExerciseId,
         Guid ExerciseExternalId,
         string ExerciseName,
         int Order,

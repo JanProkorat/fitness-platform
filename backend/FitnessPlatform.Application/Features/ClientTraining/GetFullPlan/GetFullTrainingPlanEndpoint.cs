@@ -369,6 +369,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
                         return new ExerciseDto
                         {
+                            ExerciseId = ex.ExerciseId,
                             ExerciseExternalId = ex.ExerciseExternalId,
                             ExerciseName = ex.ExerciseName,
                             Order = ex.Order,
