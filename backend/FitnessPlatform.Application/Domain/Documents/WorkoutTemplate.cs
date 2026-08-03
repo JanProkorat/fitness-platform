@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// MongoDB root aggregate for a reusable training section template.
+/// MongoDB root aggregate for a reusable training workout template.
 /// Belongs to a specific trainer; not shared across tenants.
 /// </summary>
 public class WorkoutTemplate
@@ -43,7 +43,7 @@ public class WorkoutTemplate
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Default workout format for sections created from this template.
+    /// Default workout format for workouts created from this template.
     /// Null means no format override (Standard / inherits from session).
     /// </summary>
     [BsonElement("defaultFormat")]

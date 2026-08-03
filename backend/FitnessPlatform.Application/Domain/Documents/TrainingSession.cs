@@ -54,10 +54,10 @@ public class TrainingSession
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Workouts in this session. Each workout contains its own exercises.
-    /// The legacy flat <c>exercises</c> field (pre-workouts documents) was retired by the
-    /// one-time boot migration in <c>MongoIndexInitializer</c> (#837) — every document now
-    /// carries this field populated, so no read-time backfill is required or performed.
+    /// Workouts in this session. Each workout contains its own exercises. Every document is
+    /// created directly in this shape — there is no production data predating the workouts
+    /// model, so no migration or read-time backfill from a legacy flat <c>exercises</c> field
+    /// exists or is needed.
     /// </summary>
     [BsonElement("workouts")]
     public List<TrainingWorkout> Workouts { get; set; } = [];
