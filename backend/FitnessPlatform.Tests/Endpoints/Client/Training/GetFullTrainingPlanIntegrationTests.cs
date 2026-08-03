@@ -636,7 +636,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
         // Post-#841 the standalone TrainingCompletion document was unified into
         // SessionExecution — the lightweight Today-card checkbox flags (CompletedWorkoutIds,
-        // CompletedExerciseIds, CompletedSets) now live directly on it (Performance stays null).
+        // CompletedExerciseInstanceIds, CompletedSets) now live directly on it (Performance stays null).
         var completion = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
@@ -645,7 +645,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = [],
+            CompletedExerciseInstanceIds = [],
             CompletedWorkoutIds = [emptySectionId],
             DateCreated = DateTime.UtcNow,
             Version = 1
@@ -803,7 +803,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
             Status = SessionExecutionStatus.Completed,
-            CompletedExerciseIds = [ex1Id, ex2Id],
+            CompletedExerciseInstanceIds = [ex1Id, ex2Id],
             DateCreated = DateTime.UtcNow,
             Version = 1
         };
@@ -958,7 +958,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
             SessionId = sessionId,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = [ex1Id],
+            CompletedExerciseInstanceIds = [ex1Id],
             DateCreated = DateTime.UtcNow,
             Version = 1
         };

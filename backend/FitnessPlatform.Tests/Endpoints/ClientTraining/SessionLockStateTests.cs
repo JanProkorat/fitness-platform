@@ -369,11 +369,13 @@ public class SessionLockStateTests
             mongo, db, notifier, compliance, lockService, DefaultLockOptions(),
             NullLogger<MarkExerciseCompleteEndpoint>.Instance);
 
+        // Completion now keys on the SessionExercise instance id alone — the parent workout is
+        // no longer part of the key. The fixture builder assigns ExerciseId == ExerciseExternalId,
+        // so `exerciseId` addresses the same exercise this test always meant.
         var req = new MarkExerciseCompleteRequest
         {
             SessionId = _sessionId,
-            WorkoutId = sectionId,
-            ExerciseExternalId = exerciseId
+            ExerciseId = exerciseId
         };
 
         // Act

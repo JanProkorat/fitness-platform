@@ -332,11 +332,10 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             SessionId = sessionId,
             Date = DateTime.UtcNow.Date,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = [exerciseAId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionAId.ToString()] = [exerciseAId]
-            },
+            // The per-workout attribution dictionary is gone; completion is a flat list of
+            // SessionExercise instance ids. The fixture builder assigns
+            // ExerciseId == ExerciseExternalId, so exerciseAId still addresses the same exercise.
+            CompletedExerciseInstanceIds = [exerciseAId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };

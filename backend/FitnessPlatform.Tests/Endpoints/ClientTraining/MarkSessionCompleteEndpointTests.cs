@@ -73,9 +73,9 @@ public class MarkSessionCompleteEndpointTests
             Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
-                c.CompletedExerciseIds.Count == 2 &&
-                c.CompletedExerciseIds.Contains(_exercise1) &&
-                c.CompletedExerciseIds.Contains(_exercise2)),
+                c.CompletedExerciseInstanceIds.Count == 2 &&
+                c.CompletedExerciseInstanceIds.Contains(_exercise1) &&
+                c.CompletedExerciseInstanceIds.Contains(_exercise2)),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
