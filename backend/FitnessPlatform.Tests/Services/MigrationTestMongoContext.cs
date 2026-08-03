@@ -29,9 +29,9 @@ internal sealed class MigrationTestMongoContext : IMongoContext
     public IMongoCollection<Recipe> Recipes => _db.GetCollection<Recipe>("recipes");
     public IMongoCollection<PersonalRecord> PersonalRecords => _db.GetCollection<PersonalRecord>("personalRecords");
     public IMongoCollection<DayLog> DayLogs => _db.GetCollection<DayLog>("dayLogs");
-    public IMongoCollection<WorkoutTemplate> WorkoutTemplates => _db.GetCollection<WorkoutTemplate>("sectionTemplates");
+    public IMongoCollection<WorkoutTemplate> WorkoutTemplates => _db.GetCollection<WorkoutTemplate>("workoutTemplates");
     public IMongoCollection<SessionLock> SessionLocks => _db.GetCollection<SessionLock>("sessionLocks");
     public IMongoCollection<SessionLog> SessionLogs => _db.GetCollection<SessionLog>("sessionLogs");
     public IMongoCollection<TrainerNote> TrainerNotes => _db.GetCollection<TrainerNote>("trainer_notes");
-    public IMongoCollection<SessionTemplate> SessionTemplates => _db.GetCollection<SessionTemplate>("workoutTemplates");
+    public IMongoCollection<SessionTemplate> SessionTemplates => _db.GetCollection<SessionTemplate>("sessionTemplates");
 }
