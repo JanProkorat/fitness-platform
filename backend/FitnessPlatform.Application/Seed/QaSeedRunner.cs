@@ -26,11 +26,15 @@ namespace FitnessPlatform.Application.Seed;
 ///   (ProfessionalRole=Nutritionist) to the QA client is seeded as part of the
 ///   #720 nutritionist-owned questionnaire fixture (Rich seed path only).
 /// - A TrainingPlan (dddddddd-...) is seeded for the QA client with a Published week
-///   containing one session with four sections:
-///   Section 1 — ForTime + 0 exercises (the #258 bug shape).
-///   Section 2 — AMRAP + 2 synthetic exercises (non-regression).
-///   Section 3 — Standard (null format) + 2 synthetic exercises (non-regression).
-///   Section 4 — Tabata (20s/10s × 8) + 1 synthetic exercise (#327 iOS QA fixture).
+///   containing (Monday) one session with four workouts:
+///   Workout 1 — ForTime + 0 exercises (the #258 bug shape).
+///   Workout 2 — AMRAP + 2 synthetic exercises (non-regression).
+///   Workout 3 — Standard (null format) + 2 synthetic exercises (non-regression).
+///   Workout 4 — Tabata (20s/10s × 8) + 1 synthetic exercise (#327 iOS QA fixture).
+///   Plus (#857 phase 3a/3b), on Tuesday, a session with ONLY standalone exercises
+///   (no workouts), and on Wednesday, a session where the same catalog exercise
+///   appears BOTH standalone AND nested inside one of the session's workouts, each
+///   with a distinct ExerciseId instance value.
 /// </summary>
 public static class QaSeedRunner
 {
@@ -173,6 +177,49 @@ public static class QaSeedRunner
     public static readonly Guid PastRomanianDeadliftExerciseId = new("11111111-1111-1111-4444-000000000004");
     public static readonly Guid PastPulldownExerciseId         = new("11111111-1111-1111-4444-000000000005");
     public static readonly Guid PastSeatedRowExerciseId        = new("11111111-1111-1111-4444-000000000006");
+
+    // -------------------------------------------------------------------------
+    // #857 phase 3b — SessionExercise.ExerciseId instance ids for every exercise
+    // seeded above. Distinct per occurrence so per-exercise completion
+    // (MarkExerciseComplete/-Incomplete) is reachable on this fixture: before
+    // this every seeded SessionExercise left ExerciseId at its Guid.Empty
+    // default, which MarkExerciseCompleteValidator rejects (NotEmpty), and
+    // every exercise in a session shared one empty instance id — the exact
+    // ambiguity the instance id exists to remove.
+    // -------------------------------------------------------------------------
+    public static readonly Guid AmrapExercise1InstanceId    = new("00000000-0000-0001-cccc-000000000001");
+    public static readonly Guid AmrapExercise2InstanceId    = new("00000000-0000-0001-cccc-000000000002");
+    public static readonly Guid StandardExercise1InstanceId = new("00000000-0000-0001-dddd-000000000001");
+    public static readonly Guid StandardExercise2InstanceId = new("00000000-0000-0001-dddd-000000000002");
+    public static readonly Guid TabataExercise1InstanceId   = new("00000000-0000-0001-eeee-000000000006");
+
+    public static readonly Guid PastBenchPressInstanceId       = new("11111111-1111-1111-5555-000000000001");
+    public static readonly Guid PastOverheadPressInstanceId    = new("11111111-1111-1111-5555-000000000002");
+    public static readonly Guid PastBackSquatInstanceId        = new("11111111-1111-1111-5555-000000000003");
+    public static readonly Guid PastRomanianDeadliftInstanceId = new("11111111-1111-1111-5555-000000000004");
+    public static readonly Guid PastPulldownInstanceId         = new("11111111-1111-1111-5555-000000000005");
+    public static readonly Guid PastSeatedRowInstanceId        = new("11111111-1111-1111-5555-000000000006");
+
+    // #474 multi-section fixture — same catalog exercise (SharedExerciseId), two distinct
+    // instance ids, one per section, proving section-independent completion tracking.
+    public static readonly Guid MultiSectionStandardInstanceId = new("55555555-5555-5555-cccc-000000000002");
+    public static readonly Guid MultiSectionAmrapInstanceId    = new("55555555-5555-5555-cccc-000000000003");
+
+    // -------------------------------------------------------------------------
+    // #857 QA fixture — two new session shapes the training-plan tree restructure
+    // makes possible: a session with ONLY standalone exercises (no workouts), and
+    // a session where the same catalog exercise appears BOTH standalone AND nested
+    // inside one of that session's workouts (distinct ExerciseId instance values).
+    // -------------------------------------------------------------------------
+    public static readonly Guid QaStandaloneOnlySessionId  = new("00000000-0000-0000-bbbb-000000000002");
+    public static readonly Guid QaStandaloneOnlyExerciseId = new("00000000-0000-0000-cccc-000000000003"); // catalog: QA Plank
+    public static readonly Guid QaStandaloneOnlyInstanceId = new("00000000-0000-0001-cccc-000000000003");
+
+    public static readonly Guid QaDualPlacementSessionId            = new("00000000-0000-0000-bbbb-000000000003");
+    public static readonly Guid QaDualPlacementWorkoutId             = new("00000000-0000-0000-aaaa-000000000003");
+    public static readonly Guid QaDualPlacementExerciseId            = new("00000000-0000-0000-cccc-000000000004"); // catalog: QA Wall Ball
+    public static readonly Guid QaDualPlacementStandaloneInstanceId  = new("00000000-0000-0001-cccc-000000000004");
+    public static readonly Guid QaDualPlacementNestedInstanceId      = new("00000000-0000-0001-cccc-000000000005");
 
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
@@ -617,7 +664,9 @@ public static class QaSeedRunner
                     Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
                     {
                         DayOfWeek = dayOfWeek,
-                        Sessions = dayOfWeek != 1 ? [] :
+                        Sessions = dayOfWeek switch
+                        {
+                            1 =>
                         [
                             new TrainingSession
                             {
@@ -648,6 +697,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = AmrapExercise1InstanceId,
                                             ExerciseExternalId = AmrapExercise1Id,
                                             ExerciseName       = "QA Pull-up",
                                             Order              = 1,
@@ -655,6 +705,7 @@ public static class QaSeedRunner
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId         = AmrapExercise2InstanceId,
                                             ExerciseExternalId = AmrapExercise2Id,
                                             ExerciseName       = "QA Box Jump",
                                             Order              = 2,
@@ -676,6 +727,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = StandardExercise1InstanceId,
                                             ExerciseExternalId = StandardExercise1Id,
                                             ExerciseName       = "QA Squat",
                                             Order              = 1,
@@ -689,6 +741,7 @@ public static class QaSeedRunner
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId         = StandardExercise2InstanceId,
                                             ExerciseExternalId = StandardExercise2Id,
                                             ExerciseName       = "QA Deadlift",
                                             Order              = 2,
@@ -719,6 +772,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = TabataExercise1InstanceId,
                                             ExerciseExternalId = TabataExercise1Id,
                                             ExerciseName       = "QA Burpee",
                                             Order              = 1,
@@ -728,7 +782,79 @@ public static class QaSeedRunner
                                 },
                             ],
                             },
-                        ]
+                        ],
+                            // #857 QA fixture — a session with ONLY standalone exercises (no
+                            // workouts at all), exercising the tree restructure's new
+                            // "session with only standalone exercises" shape.
+                            2 =>
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = QaStandaloneOnlySessionId,
+                                Name      = "QA Standalone-Only Session",
+                                Order     = 1,
+                                Workouts  = [],
+                                StandaloneExercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId         = QaStandaloneOnlyInstanceId,
+                                        ExerciseExternalId = QaStandaloneOnlyExerciseId,
+                                        ExerciseName       = "QA Plank",
+                                        Order              = 1,
+                                        MovementType       = MovementType.Reps,
+                                    },
+                                ],
+                            },
+                        ],
+                            // #857 QA fixture — the SAME catalog exercise appears BOTH standalone
+                            // on the session AND nested inside one of the session's workouts, with
+                            // distinct ExerciseId instance values. Unreachable pre-#857; exercises
+                            // completion-path coverage for exactly this pairing.
+                            3 =>
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = QaDualPlacementSessionId,
+                                Name      = "QA Standalone + Nested Session",
+                                Order     = 1,
+                                Workouts  =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId    = QaDualPlacementWorkoutId,
+                                        Order        = 0,
+                                        Name         = "Main workout",
+                                        Format       = null,
+                                        FormatConfig = null,
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId         = QaDualPlacementNestedInstanceId,
+                                                ExerciseExternalId = QaDualPlacementExerciseId,
+                                                ExerciseName       = "QA Wall Ball",
+                                                Order              = 1,
+                                                MovementType       = MovementType.Reps,
+                                            },
+                                        ],
+                                    },
+                                ],
+                                StandaloneExercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId         = QaDualPlacementStandaloneInstanceId,
+                                        ExerciseExternalId = QaDualPlacementExerciseId,
+                                        ExerciseName       = "QA Wall Ball",
+                                        Order              = 1,
+                                        MovementType       = MovementType.Reps,
+                                    },
+                                ],
+                            },
+                        ],
+                            _ => [],
+                        }
                     }).ToList(),
                 },
             ],
@@ -793,6 +919,9 @@ public static class QaSeedRunner
             Build(PastRomanianDeadliftExerciseId, "QA Romanian Deadlift", MuscleGroup.Hamstrings, ExerciseEquipment.Barbell),
             Build(PastPulldownExerciseId, "QA Pull-down", MuscleGroup.Back, ExerciseEquipment.Machine),
             Build(PastSeatedRowExerciseId, "QA Seated Row", MuscleGroup.Back, ExerciseEquipment.Machine),
+            // #857 QA fixture — standalone-only and standalone+nested session shapes.
+            Build(QaStandaloneOnlyExerciseId, "QA Plank", MuscleGroup.Abs, ExerciseEquipment.Bodyweight),
+            Build(QaDualPlacementExerciseId, "QA Wall Ball", MuscleGroup.FullBody, ExerciseEquipment.None),
         };
 
         await mongo.Exercises.InsertManyAsync(exercises);
@@ -989,6 +1118,7 @@ public static class QaSeedRunner
                         [
                             new SessionExercise
                             {
+                                ExerciseId         = PastBenchPressInstanceId,
                                 ExerciseExternalId = PastBenchPressExerciseId,
                                 ExerciseName       = "QA Bench Press",
                                 Order              = 1,
@@ -996,6 +1126,7 @@ public static class QaSeedRunner
                             },
                             new SessionExercise
                             {
+                                ExerciseId         = PastOverheadPressInstanceId,
                                 ExerciseExternalId = PastOverheadPressExerciseId,
                                 ExerciseName       = "QA Overhead Press",
                                 Order              = 2,
@@ -1025,6 +1156,7 @@ public static class QaSeedRunner
                         [
                             new SessionExercise
                             {
+                                ExerciseId         = PastBackSquatInstanceId,
                                 ExerciseExternalId = PastBackSquatExerciseId,
                                 ExerciseName       = "QA Back Squat",
                                 Order              = 1,
@@ -1032,6 +1164,7 @@ public static class QaSeedRunner
                             },
                             new SessionExercise
                             {
+                                ExerciseId         = PastRomanianDeadliftInstanceId,
                                 ExerciseExternalId = PastRomanianDeadliftExerciseId,
                                 ExerciseName       = "QA Romanian Deadlift",
                                 Order              = 2,
@@ -1061,6 +1194,7 @@ public static class QaSeedRunner
                         [
                             new SessionExercise
                             {
+                                ExerciseId         = PastPulldownInstanceId,
                                 ExerciseExternalId = PastPulldownExerciseId,
                                 ExerciseName       = "QA Pull-down",
                                 Order              = 1,
@@ -1068,6 +1202,7 @@ public static class QaSeedRunner
                             },
                             new SessionExercise
                             {
+                                ExerciseId         = PastSeatedRowInstanceId,
                                 ExerciseExternalId = PastSeatedRowExerciseId,
                                 ExerciseName       = "QA Seated Row",
                                 Order              = 2,
@@ -1371,6 +1506,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = MultiSectionStandardInstanceId,
                                             ExerciseExternalId = SharedExerciseId,
                                             ExerciseName       = "QA Kettlebell Swing",
                                             Order              = 1,
@@ -1398,6 +1534,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = MultiSectionAmrapInstanceId,
                                             ExerciseExternalId = SharedExerciseId,
                                             ExerciseName       = "QA Kettlebell Swing",
                                             Order              = 1,

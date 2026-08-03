@@ -621,6 +621,134 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// Regression guard for the QA-findings bug on #857: every seeded <see cref="SessionExercise"/>
+    /// across every training plan must carry a non-empty <see cref="SessionExercise.ExerciseId"/>.
+    /// Before the fix, all 13 seeded instances persisted <c>Guid.Empty</c>, which
+    /// <c>MarkExerciseCompleteValidator</c> rejects — making per-exercise completion unreachable
+    /// on the QA fixture, and every exercise in a session shared one empty instance id (the exact
+    /// ambiguity the instance id exists to remove).
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_AllPlans_EverySessionExerciseHasNonEmptyExerciseId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planIds = new[]
+        {
+            QaSeedRunner.QaTrainingPlanExternalId,
+            QaSeedRunner.QaPastTrainingPlanExternalId,
+            QaSeedRunner.QaMultiSectionPlanExternalId,
+        };
+
+        foreach (var planId in planIds)
+        {
+            var plan = await mongo.TrainingPlans
+                .Find(p => p.ExternalId == planId)
+                .FirstOrDefaultAsync(ct);
+
+            plan.Should().NotBeNull($"plan {planId} must be seeded");
+
+            var allExercises = plan!.Weeks
+                .SelectMany(w => w.Days)
+                .SelectMany(d => d.Sessions)
+                .SelectMany(s => s.Exercises)
+                .ToList();
+
+            allExercises.Should().NotBeEmpty($"plan {planId} must seed at least one exercise");
+            allExercises.Should().OnlyContain(e => e.ExerciseId != Guid.Empty,
+                $"every SessionExercise in plan {planId} must carry a non-empty instance ExerciseId — " +
+                "a Guid.Empty instance id is rejected by MarkExerciseCompleteValidator and makes per-exercise " +
+                "completion unreachable on this fixture");
+
+            var instanceIds = allExercises.Select(e => e.ExerciseId).ToList();
+            instanceIds.Should().OnlyHaveUniqueItems(
+                $"every exercise instance in plan {planId} must have a distinct ExerciseId, even when two " +
+                "instances share the same catalog ExerciseExternalId");
+        }
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session with ONLY standalone
+    /// exercises (no workouts at all) — one of the two new tree shapes the training-plan
+    /// restructure makes possible, which the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneOnlySession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaStandaloneOnlySessionId);
+
+        session.Workouts.Should().BeEmpty("this session must carry ONLY standalone exercises");
+        session.StandaloneExercises.Should().ContainSingle();
+        var exercise = session.StandaloneExercises[0];
+        exercise.ExerciseId.Should().Be(QaSeedRunner.QaStandaloneOnlyInstanceId);
+        exercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaStandaloneOnlyExerciseId);
+        session.Exercises.Should().ContainSingle(
+            "the computed flat Exercises view must still surface the standalone-only exercise");
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session where the SAME
+    /// catalog exercise appears BOTH standalone on the session AND nested inside one of that
+    /// session's workouts, with distinct instance ExerciseId values — the pairing standalone
+    /// exercises newly make reachable that the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneAndNestedDuplicateExerciseSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaDualPlacementSessionId);
+
+        session.StandaloneExercises.Should().ContainSingle();
+        var standaloneExercise = session.StandaloneExercises[0];
+        standaloneExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementStandaloneInstanceId);
+        standaloneExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        var workout = session.Workouts.Single(w => w.WorkoutId == QaSeedRunner.QaDualPlacementWorkoutId);
+        var nestedExercise = workout.Exercises.Should().ContainSingle().Subject;
+        nestedExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementNestedInstanceId);
+        nestedExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        standaloneExercise.ExerciseId.Should().NotBe(nestedExercise.ExerciseId,
+            "the two occurrences of the same catalog exercise must have distinct instance ids");
+        session.Exercises.Should().HaveCount(2,
+            "the computed flat Exercises view must union the standalone exercise with the nested one");
+    }
+
+    /// <summary>
     /// The completed SessionExecution seeded for the main QA plan must exercise all four
     /// planned-vs-actual set cases in a single session:
     ///
