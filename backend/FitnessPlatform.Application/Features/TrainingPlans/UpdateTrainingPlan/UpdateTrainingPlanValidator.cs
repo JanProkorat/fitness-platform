@@ -89,12 +89,14 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 // programmed directly on the session is now a valid, complete session).
                 session.RuleFor(s => s)
                     .Must(s => s.Workouts.Count > 0 || s.Exercises.Count > 0)
+                    .WithErrorCode(ErrorCodes.WorkoutsRequired)
                     .WithName("Workouts")
                     .WithMessage("A session must have at least one workout or standalone exercise.");
 
                 // No duplicate Order values within a session's workouts
                 session.RuleFor(s => s.Workouts)
                     .Must(workouts => workouts.Select(w => w.Order).Distinct().Count() == workouts.Count)
+                    .WithErrorCode(ErrorCodes.WorkoutOrderDuplicate)
                     .WithMessage("Duplicate Order values are not allowed within a session's workouts.");
 
                 // #857 phase 3a: standalone exercises and workouts share ONE ordering

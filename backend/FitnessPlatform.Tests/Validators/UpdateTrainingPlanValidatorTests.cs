@@ -104,4 +104,128 @@ public class UpdateTrainingPlanValidatorTests
         result.Errors.Should().NotContain(error => error.ErrorCode == ErrorCodes.TrainingDuplicateSessionOrder);
         result.IsValid.Should().BeTrue();
     }
+
+    /// <summary>
+    /// Builds an otherwise-valid request with a single session carrying no workouts and no
+    /// standalone exercises — used to exercise the at-least-one-workout-or-exercise rule.
+    /// </summary>
+    private static UpdateTrainingPlanRequest BuildRequestWithEmptySession() => new()
+    {
+        PlanId = Guid.NewGuid(),
+        Name = "Test Plan",
+        Version = 1,
+        Weeks =
+        [
+            new UpdateTrainingWeekRequest
+            {
+                WeekNumber = 1,
+                Sessions =
+                [
+                    new UpdateSessionRequest
+                    {
+                        SessionId = Guid.NewGuid(),
+                        DayOfWeek = 1,
+                        Name = "Rest Day",
+                        Order = 1,
+                        Workouts = [],
+                        Exercises = []
+                    }
+                ]
+            }
+        ]
+    };
+
+    [Fact]
+    public void Validate_SessionWithNoWorkoutsAndNoExercises_FailsWithWorkoutsRequiredCode()
+    {
+        var result = _validator.TestValidate(BuildRequestWithEmptySession());
+
+        result.Errors.Should().Contain(error =>
+            error.ErrorCode == ErrorCodes.WorkoutsRequired &&
+            error.ErrorMessage == "A session must have at least one workout or standalone exercise.");
+    }
+
+    /// <summary>
+    /// Builds an otherwise-valid request with a single session carrying two workouts, whose
+    /// <c>Order</c> values are controlled independently — used to exercise the within-workouts
+    /// duplicate-order rule (distinct from the cross-shape <see cref="ErrorCodes.TrainingDuplicateSessionOrder"/>
+    /// rule covered above).
+    /// </summary>
+    private static UpdateTrainingPlanRequest BuildRequestWithTwoWorkouts(int firstWorkoutOrder, int secondWorkoutOrder) => new()
+    {
+        PlanId = Guid.NewGuid(),
+        Name = "Test Plan",
+        Version = 1,
+        Weeks =
+        [
+            new UpdateTrainingWeekRequest
+            {
+                WeekNumber = 1,
+                Sessions =
+                [
+                    new UpdateSessionRequest
+                    {
+                        SessionId = Guid.NewGuid(),
+                        DayOfWeek = 1,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new UpdateWorkoutRequest
+                            {
+                                WorkoutId = Guid.NewGuid(),
+                                Order = firstWorkoutOrder,
+                                Name = "Main",
+                                Exercises =
+                                [
+                                    new UpdateSessionExerciseRequest
+                                    {
+                                        ExerciseId = Guid.NewGuid(),
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Push-up",
+                                        Order = 1
+                                    }
+                                ]
+                            },
+                            new UpdateWorkoutRequest
+                            {
+                                WorkoutId = Guid.NewGuid(),
+                                Order = secondWorkoutOrder,
+                                Name = "Accessory",
+                                Exercises =
+                                [
+                                    new UpdateSessionExerciseRequest
+                                    {
+                                        ExerciseId = Guid.NewGuid(),
+                                        ExerciseExternalId = Guid.NewGuid(),
+                                        ExerciseName = "Dip",
+                                        Order = 1
+                                    }
+                                ]
+                            }
+                        ],
+                        Exercises = []
+                    }
+                ]
+            }
+        ]
+    };
+
+    [Fact]
+    public void Validate_DuplicateOrderWithinSessionWorkouts_FailsWithWorkoutOrderDuplicateCode()
+    {
+        var result = _validator.TestValidate(BuildRequestWithTwoWorkouts(firstWorkoutOrder: 0, secondWorkoutOrder: 0));
+
+        result.Errors.Should().Contain(error =>
+            error.ErrorCode == ErrorCodes.WorkoutOrderDuplicate &&
+            error.ErrorMessage == "Duplicate Order values are not allowed within a session's workouts.");
+    }
+
+    [Fact]
+    public void Validate_DistinctOrderWithinSessionWorkouts_Passes()
+    {
+        var result = _validator.TestValidate(BuildRequestWithTwoWorkouts(firstWorkoutOrder: 0, secondWorkoutOrder: 1));
+
+        result.Errors.Should().NotContain(error => error.ErrorCode == ErrorCodes.WorkoutOrderDuplicate);
+    }
 }
