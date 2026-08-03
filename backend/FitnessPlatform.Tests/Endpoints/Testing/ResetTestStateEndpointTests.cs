@@ -337,9 +337,12 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "week must be Published for GET /client/plans to return the plan");
         week.DatePublished.Should().NotBeNull(because: "published week must have a DatePublished timestamp");
 
+        // Select by SessionId rather than taking the first of the list: the fixture also seeds a
+        // standalone-only session and a standalone-plus-nested duplicate session (#857 phase 3a),
+        // and this test is about the four workout formats on the main QA session only. Asserting a
+        // session COUNT here would make every future fixture addition break an unrelated test.
         var sessions = week.Days.SelectMany(d => d.Sessions).ToList();
-        sessions.Should().HaveCount(1);
-        var session = sessions[0];
+        var session = sessions.Should().ContainSingle(s => s.SessionId == QaSeedRunner.QaSessionId).Subject;
 
         session.Workouts.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
 
