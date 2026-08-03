@@ -846,12 +846,27 @@ public class MongoIndexInitializer : IHostedService
     // also run AFTER MigrateSessionExerciseIdBackfillAsync, since resolution depends on every
     // SessionExercise already carrying its ExerciseId.
     //
-    // Idempotency: the candidate filter matches only documents that still carry the OLD
-    // "completedExerciseIdsBySection" element. On a fresh database, or a database that already
-    // ran this migration, the filter matches zero documents and the loop body never runs.
+    // Idempotency: the candidate filter matches any document that still carries EITHER retired
+    // element — "completedExerciseIdsBySection" (the by-workout dictionary) OR
+    // "completedExerciseIds" (the older, flat list that predates the dictionary and can appear
+    // alone). On a fresh database, or a database that already ran this migration, the filter
+    // matches zero documents and the loop body never runs.
+    //
+    // Flat-only documents (completedExerciseIds present, completedExerciseIdsBySection absent):
+    // this shape predates the by-workout dictionary, so it carries no workoutId attribution at
+    // all — unlike the bySection path, there is no named workout to resolve strictly within. The
+    // best available correlation is the session's flat exercise view
+    // (TrainingSession.Exercises — standalone + every workout's nested exercises), which is
+    // exactly the ambiguity SessionExercise.ExerciseId (#857 phase 3a) exists to remove: if a
+    // catalog ExerciseExternalId appears in more than one place in the session (nested twice,
+    // or once standalone and once nested), resolving against the flat view cannot tell which one
+    // was actually completed. So a flat-field id resolves ONLY when it matches exactly one
+    // SessionExercise across the whole session; any other id count (zero — exercise no longer
+    // in the plan; two-or-more — genuinely ambiguous) is counted unresolved rather than guessed.
     /// <summary>
     /// One-time, idempotent migration (#857 phase 3b): resolves the retired
-    /// <c>completedExerciseIdsBySection</c> dictionary on every <c>sessionExecutions</c> and
+    /// <c>completedExerciseIdsBySection</c> dictionary (and the older, dictionary-less flat
+    /// <c>completedExerciseIds</c> list it predates) on every <c>sessionExecutions</c> and
     /// <c>trainingCompletions</c> document into the flat <c>completedExerciseInstanceIds</c> list,
     /// rekeys <c>completedSets</c> from <see cref="SessionExercise.ExerciseExternalId"/> to
     /// <see cref="SessionExercise.ExerciseId"/>, and drops the two retired fields. See the remarks
@@ -893,10 +908,12 @@ public class MongoIndexInitializer : IHostedService
     }
 
     /// <summary>
-    /// Resolves the legacy <c>completedExerciseIdsBySection</c> shape on every candidate document
-    /// in <paramref name="rawCollection"/> — see the remarks above
-    /// <see cref="MigrateCompletionExerciseInstanceIdsAsync"/> for the full algorithm. Returns the
-    /// number of individual (workoutId, exerciseExternalId) entries that could not be resolved.
+    /// Resolves the legacy <c>completedExerciseIdsBySection</c> shape — and the older,
+    /// dictionary-less flat <c>completedExerciseIds</c> shape it predates — on every candidate
+    /// document in <paramref name="rawCollection"/>. See the remarks above
+    /// <see cref="MigrateCompletionExerciseInstanceIdsAsync"/> for the full algorithm, including
+    /// why a flat-only document can only resolve unambiguous ids. Returns the number of
+    /// individual exercise-completion entries that could not be resolved.
     /// </summary>
     private async Task<int> ResolveCompletionExerciseInstancesAsync(
         IMongoCollection<BsonDocument> rawCollection,
@@ -904,7 +921,9 @@ public class MongoIndexInitializer : IHostedService
         Dictionary<Guid, Dictionary<Guid, TrainingSession>> sessionCacheByClient,
         CancellationToken ct)
     {
-        var legacyFilter = new BsonDocument("completedExerciseIdsBySection", new BsonDocument("$exists", true));
+        var legacyFilter = Builders<BsonDocument>.Filter.Or(
+            Builders<BsonDocument>.Filter.Exists("completedExerciseIdsBySection"),
+            Builders<BsonDocument>.Filter.Exists("completedExerciseIds"));
 
         using var cursor = await rawCollection.FindAsync(legacyFilter, cancellationToken: ct);
         var candidates = await cursor.ToListAsync(ct);
@@ -921,13 +940,16 @@ public class MongoIndexInitializer : IHostedService
         foreach (var doc in candidates)
         {
             var clientId = doc["clientId"].AsGuid;
-            var bySection = doc["completedExerciseIdsBySection"].AsBsonDocument;
+            var bySection = doc.TryGetValue("completedExerciseIdsBySection", out var bySectionValue)
+                && bySectionValue is BsonDocument bySectionDoc
+                    ? bySectionDoc
+                    : null;
 
             // No sessionId (ad-hoc/unplanned doc) — there is no plan session to resolve
             // against, so every entry in this document is unresolved.
             if (!doc.TryGetValue("sessionId", out var sessionIdValue) || sessionIdValue.IsBsonNull)
             {
-                unresolvedCount += bySection.Elements.Sum(element => element.Value.AsBsonArray.Count);
+                unresolvedCount += CountLegacyCompletionEntries(doc, bySection);
                 doc["completedExerciseInstanceIds"] = new BsonArray();
                 doc.Remove("completedExerciseIdsBySection");
                 doc.Remove("completedExerciseIds");
@@ -954,28 +976,62 @@ public class MongoIndexInitializer : IHostedService
             var instanceIds = new BsonArray();
             var newCompletedSets = new BsonDocument();
 
-            foreach (var element in bySection.Elements)
+            if (bySection is not null)
             {
-                var externalIds = element.Value.AsBsonArray;
+                foreach (var element in bySection.Elements)
+                {
+                    var externalIds = element.Value.AsBsonArray;
 
-                // Resolve strictly within the NAMED workout — never the session's flat exercise
-                // view — so a catalog exercise duplicated both standalone and nested resolves to
-                // the workout-scoped instance that was actually marked complete.
-                var workout = session is not null && Guid.TryParse(element.Name, out var workoutId)
-                    ? session.Workouts.FirstOrDefault(w => w.WorkoutId == workoutId)
-                    : null;
+                    // Resolve strictly within the NAMED workout — never the session's flat
+                    // exercise view — so a catalog exercise duplicated both standalone and
+                    // nested resolves to the workout-scoped instance that was actually marked
+                    // complete.
+                    var workout = session is not null && Guid.TryParse(element.Name, out var workoutId)
+                        ? session.Workouts.FirstOrDefault(w => w.WorkoutId == workoutId)
+                        : null;
 
-                foreach (var externalIdValue in externalIds)
+                    foreach (var externalIdValue in externalIds)
+                    {
+                        var externalId = externalIdValue.AsGuid;
+                        var exercise = workout?.Exercises.FirstOrDefault(e => e.ExerciseExternalId == externalId);
+
+                        if (exercise is null)
+                        {
+                            unresolvedCount++;
+                            continue;
+                        }
+
+                        instanceIds.Add(new BsonBinaryData(exercise.ExerciseId, GuidRepresentation.Standard));
+
+                        if (completedSets is not null && completedSets.TryGetValue(externalId.ToString(), out var setNumbers))
+                        {
+                            newCompletedSets[exercise.ExerciseId.ToString()] = setNumbers;
+                        }
+                    }
+                }
+            }
+            else if (doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatExternalIds)
+            {
+                // No by-workout dictionary at all — the flat list predates it, so there is no
+                // workoutId to resolve strictly within. Fall back to the session's flat exercise
+                // view (standalone + every workout's nested exercises) and resolve only when the
+                // catalog id is unambiguous across it; see the remarks above
+                // MigrateCompletionExerciseInstanceIdsAsync for why an ambiguous match is counted
+                // unresolved rather than guessed.
+                foreach (var externalIdValue in flatExternalIds)
                 {
                     var externalId = externalIdValue.AsGuid;
-                    var exercise = workout?.Exercises.FirstOrDefault(e => e.ExerciseExternalId == externalId);
+                    var matches = session?.Exercises
+                        .Where(e => e.ExerciseExternalId == externalId)
+                        .ToList() ?? [];
 
-                    if (exercise is null)
+                    if (matches.Count != 1)
                     {
                         unresolvedCount++;
                         continue;
                     }
 
+                    var exercise = matches[0];
                     instanceIds.Add(new BsonBinaryData(exercise.ExerciseId, GuidRepresentation.Standard));
 
                     if (completedSets is not null && completedSets.TryGetValue(externalId.ToString(), out var setNumbers))
@@ -1016,6 +1072,25 @@ public class MongoIndexInitializer : IHostedService
         }
 
         return unresolvedCount;
+    }
+
+    /// <summary>
+    /// Counts the individual exercise-completion entries carried by a document that has no
+    /// resolvable <c>sessionId</c> — used only for the unresolved counter, since every entry in
+    /// such a document is unresolved regardless of shape. Prefers <paramref name="bySection"/>
+    /// (by-workout dictionary) when present; falls back to the flat <c>completedExerciseIds</c>
+    /// array otherwise.
+    /// </summary>
+    private static int CountLegacyCompletionEntries(BsonDocument doc, BsonDocument? bySection)
+    {
+        if (bySection is not null)
+        {
+            return bySection.Elements.Sum(element => element.Value.AsBsonArray.Count);
+        }
+
+        return doc.TryGetValue("completedExerciseIds", out var flatValue) && flatValue is BsonArray flatIds
+            ? flatIds.Count
+            : 0;
     }
 
     /// <summary>

@@ -77,6 +77,31 @@ public class CompletionExerciseInstanceIdsMigrationTests
     };
 
     /// <summary>
+    /// Builds a raw, pre-#857-phase-3b <c>sessionExecutions</c> document carrying ONLY the older,
+    /// dictionary-less flat <c>completedExerciseIds</c> field — no
+    /// <c>completedExerciseIdsBySection</c> at all. This is the shape that predates the
+    /// by-workout dictionary and that the original candidate filter (matching solely on
+    /// <c>completedExerciseIdsBySection</c> existence) missed entirely, leaving
+    /// <c>completedExerciseIds</c> on the document as an unmapped extra element for the next
+    /// typed read to throw on.
+    /// </summary>
+    private static BsonDocument BuildFlatOnlyLegacySessionExecutionDoc(
+        Guid externalId, Guid clientId, Guid planId, Guid sessionId, DateTime date,
+        BsonArray completedExerciseIds) => new()
+    {
+        { "_id", ObjectId.GenerateNewId() },
+        { "externalId", GuidBson(externalId) },
+        { "clientId", GuidBson(clientId) },
+        { "planId", GuidBson(planId) },
+        { "sessionId", GuidBson(sessionId) },
+        { "date", date },
+        { "status", "Partial" },
+        { "completedExerciseIds", completedExerciseIds },
+        { "dateCreated", DateTime.UtcNow.AddDays(-1) },
+        { "version", 1 }
+    };
+
+    /// <summary>
     /// Builds a training plan (already in the current #857-phase-3a shape — days materialised,
     /// ExerciseId assigned) with a single week/day/session containing one workout and,
     /// optionally, one standalone exercise sharing the same catalog external id as the workout's
@@ -330,6 +355,69 @@ public class CompletionExerciseInstanceIdsMigrationTests
             .FirstOrDefaultAsync(ct);
         migrated!.CompletedExerciseInstanceIds.Should().Equal([realInstanceId],
             "the resolvable entry still migrates even though its sibling in the same section is unresolvable");
+    }
+
+    [Fact]
+    public async Task StartAsync_FlatFieldOnlyNoBySectionDictionary_ResolvesAndReadsBackWithoutThrowing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
+        await mongoContainer.StartAsync(ct);
+
+        var client = new MongoClient(mongoContainer.GetConnectionString());
+        var db = client.GetDatabase("completion_instance_ids_flat_only_test");
+        var mongo = new MigrationTestMongoContext(db);
+
+        var clientId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+        var externalId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        var startDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var plan = BuildPlan(planId, clientId, sessionId, workoutId, instanceId, externalId, null, startDate);
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
+
+        // Carries ONLY the older, dictionary-less flat field — no completedExerciseIdsBySection
+        // at all. This is the exact production shape the original candidate filter (matching
+        // solely on completedExerciseIdsBySection existence) missed, leaving completedExerciseIds
+        // behind as an unmapped extra element that threw BsonSerializationException on the next
+        // typed read.
+        var executionExternalId = Guid.NewGuid();
+        var executionDoc = BuildFlatOnlyLegacySessionExecutionDoc(
+            executionExternalId, clientId, planId, sessionId, startDate, new BsonArray { GuidBson(externalId) });
+
+        var rawExecutions = db.GetCollection<BsonDocument>("sessionExecutions");
+        await rawExecutions.InsertOneAsync(executionDoc, cancellationToken: ct);
+
+        var initializer = new MongoIndexInitializer(mongo, NullLogger<MongoIndexInitializer>.Instance);
+
+        // A genuine BsonSerializationException on the missed field would fail this await (or the
+        // typed read below) directly.
+        var unresolvedCount = await initializer.MigrateCompletionExerciseInstanceIdsAsync(ct);
+
+        unresolvedCount.Should().Be(0,
+            "externalId appears exactly once in the plan's session, so it is unambiguous and must resolve");
+
+        var rawAfter = await rawExecutions
+            .Find(new BsonDocument("externalId", GuidBson(executionExternalId)))
+            .FirstOrDefaultAsync(ct);
+        rawAfter.Contains("completedExerciseIds").Should().BeFalse(
+            "the retired flat field must be dropped even when it was never accompanied by " +
+            "completedExerciseIdsBySection");
+        rawAfter.Contains("completedExerciseIdsBySection").Should().BeFalse();
+        rawAfter.Contains("completedExerciseInstanceIds").Should().BeTrue();
+
+        // The typed read is the real regression check: pre-fix, this document was never migrated
+        // (the candidate filter didn't match it), so completedExerciseIds survived as an unmapped
+        // extra element and this Find/FirstOrDefaultAsync threw BsonSerializationException.
+        var migrated = await mongo.SessionExecutions
+            .Find(Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, executionExternalId))
+            .FirstOrDefaultAsync(ct);
+
+        migrated.Should().NotBeNull();
+        migrated!.CompletedExerciseInstanceIds.Should().Equal([instanceId]);
     }
 
     [Fact]
