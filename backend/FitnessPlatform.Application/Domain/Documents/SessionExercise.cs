@@ -14,9 +14,9 @@ public class SessionExercise
     /// two occurrences of the same catalog exercise (<see cref="ExerciseExternalId"/>)
     /// programmed twice in one workout, or once standalone and once nested in a workout of the
     /// same session. Mirrors <see cref="TrainingWorkout.WorkoutId"/> and
-    /// <see cref="PlanMeal.MealId"/>. Pre-existing documents are backfilled with a fresh,
-    /// distinct value per exercise by the one-time boot migration in
-    /// <c>MongoIndexInitializer</c> (#857 phase 3a).
+    /// <see cref="PlanMeal.MealId"/>. Assigned a fresh, distinct value per exercise when the
+    /// plan is created or updated (#857 phase 3a) — there is no production data to backfill, so
+    /// no boot migration is required.
     /// </summary>
     [BsonElement("exerciseId")]
     public Guid ExerciseId { get; set; }

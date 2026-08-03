@@ -668,7 +668,7 @@ public class MongoIndexInitializer : IHostedService
     /// partial-unique ClientId+SessionId+Date). <c>internal</c> rather than <c>private</c>
     /// solely so <c>SessionExecutionMigrationTests</c> can create these indexes directly in
     /// a dedicated per-test container without needing to call the full <see cref="StartAsync"/>
-    /// (which also runs the other unrelated collection migrations) — see
+    /// (which also creates every other collection's indexes) — see
     /// <c>InternalsVisibleTo("FitnessPlatform.Tests")</c> elsewhere in this assembly.
     /// </summary>
     internal async Task CreateSessionExecutionIndexes(CancellationToken ct)
