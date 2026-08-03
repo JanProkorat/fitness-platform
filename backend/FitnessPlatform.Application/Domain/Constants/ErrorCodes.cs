@@ -158,8 +158,8 @@ public static class ErrorCodes
     /// <summary>The exercise was not found in the specified session.</summary>
     public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
 
-    /// <summary>The section was not found in the specified session.</summary>
-    public const string TrainingWorkoutNotFound = "TRAINING_SECTION_NOT_FOUND";
+    /// <summary>The workout was not found in the specified session.</summary>
+    public const string TrainingWorkoutNotFound = "TRAINING_WORKOUT_NOT_FOUND";
 
     /// <summary>
     /// A session's standalone exercises and workouts share one ordering sequence; two entries
