@@ -111,7 +111,8 @@ public class WorkoutCompletionService(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == execution.SessionId!.Value);
 
         if (session is null)
@@ -122,14 +123,13 @@ public class WorkoutCompletionService(
             return;
         }
 
-        var allExerciseIds = session.Exercises.Select(e => e.ExerciseExternalId).ToList();
-        var allSectionIds = session.Sections.Select(s => s.SectionId).ToList();
-        var completedBySection = session.Sections.ToDictionary(
-            s => s.SectionId.ToString(),
-            s => s.Exercises.Select(e => e.ExerciseExternalId).ToList());
+        // #857 phase 3b: complete every exercise INSTANCE (ExerciseId) directly — the flat
+        // CompletedExerciseInstanceIds list already disambiguates duplicate catalog exercises
+        // across workouts or standalone-vs-nested, so no per-workout attribution map is needed.
+        var allInstanceIds = session.Exercises.Select(e => e.ExerciseId).ToList();
+        var allSectionIds = session.Workouts.Select(s => s.WorkoutId).ToList();
 
-        execution.CompletedExerciseIds = allExerciseIds;
-        execution.CompletedExerciseIdsBySection = completedBySection;
-        execution.CompletedSectionIds = allSectionIds;
+        execution.CompletedExerciseInstanceIds = allInstanceIds;
+        execution.CompletedWorkoutIds = allSectionIds;
     }
 }

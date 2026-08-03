@@ -39,12 +39,11 @@ public class GetTrainingPlanSessionExecutionTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1, // Monday
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Name = "Main",
                     Order = 0,
                     Exercises =
@@ -79,7 +78,7 @@ public class GetTrainingPlanSessionExecutionTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,
@@ -101,11 +100,11 @@ public class GetTrainingPlanSessionExecutionTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = isCompleted,
             CompletedAt = isCompleted ? _now : null,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =

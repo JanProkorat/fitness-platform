@@ -83,7 +83,8 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -136,9 +137,8 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedExerciseIds, new List<Guid>())
-            .Set(c => c.CompletedExerciseIdsBySection, new Dictionary<string, List<Guid>>())
-            .Set(c => c.CompletedSectionIds, new List<Guid>())
+            .Set(c => c.CompletedExerciseInstanceIds, new List<Guid>())
+            .Set(c => c.CompletedWorkoutIds, new List<Guid>())
             .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);

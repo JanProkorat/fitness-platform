@@ -81,26 +81,33 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = secId,
-                                Order = 0,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = secId,
+                                        Order = 0,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseId = id,
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
@@ -112,14 +119,19 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates an active <see cref="TrainingPlan"/> where the target session has two sections,
-    /// each containing the same catalog exercise. This is the canonical "same exercise in two sections"
-    /// scenario that caused the original cross-section checkbox bug.
+    /// Creates an active <see cref="TrainingPlan"/> where the target session has two workouts,
+    /// each containing the same catalog exercise (same <see cref="SessionExercise.ExerciseExternalId"/>)
+    /// but a distinct <see cref="SessionExercise.ExerciseExternalId"/> instance identity per occurrence
+    /// (#857 phase 3b). This is the canonical "same exercise in two workouts" scenario that caused the
+    /// original cross-section checkbox bug.
     /// </summary>
     /// <returns>
-    ///   The plan plus the two section IDs. The <paramref name="exerciseId"/> appears in both sections.
+    ///   The plan, the two workout IDs, and the distinct per-instance ExerciseId for each occurrence —
+    ///   <paramref name="exerciseId"/> (the shared catalog external id) appears in both workouts, but
+    ///   <c>Workout1ExerciseId</c>/<c>Workout2ExerciseId</c> are the disambiguating instance ids callers
+    ///   must use to mark ONE occurrence complete without affecting the other.
     /// </returns>
-    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id)
+    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id, Guid Workout1ExerciseId, Guid Workout2ExerciseId)
         CreateActivePlanWithDuplicateExerciseAcrossSections(
             Guid clientId,
             Guid sessionId,
@@ -127,6 +139,8 @@ public static class TrainingCompletionTestHelpers
     {
         var section1Id = Guid.NewGuid();
         var section2Id = Guid.NewGuid();
+        var workout1ExerciseId = Guid.NewGuid();
+        var workout2ExerciseId = Guid.NewGuid();
         var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
@@ -144,43 +158,51 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = section1Id,
-                                Order = 0,
-                                Name = "Section A",
-                                Exercises =
-                                [
-                                    new SessionExercise
-                                    {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
-                                        Order = 1,
-                                        Sets = []
-                                    }
-                                ]
-                            },
-                            new TrainingSection
-                            {
-                                SectionId = section2Id,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Section B",
-                                Exercises =
+                                Workouts =
                                 [
-                                    new SessionExercise
+                                    new TrainingWorkout
                                     {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
+                                        WorkoutId = section1Id,
+                                        Order = 0,
+                                        Name = "Section A",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = workout1ExerciseId,
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = section2Id,
                                         Order = 1,
-                                        Sets = []
+                                        Name = "Section B",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = workout2ExerciseId,
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -192,7 +214,7 @@ public static class TrainingCompletionTestHelpers
             DateCreated = start
         };
 
-        return (plan, section1Id, section2Id);
+        return (plan, section1Id, section2Id, workout1ExerciseId, workout2ExerciseId);
     }
 
     /// <summary>
@@ -207,8 +229,7 @@ public static class TrainingCompletionTestHelpers
         DateTime date,
         IReadOnlyList<Guid>? completedExerciseIds = null,
         IReadOnlyList<Guid>? completedSectionIds = null,
-        int version = 1,
-        Dictionary<string, List<Guid>>? completedExerciseIdsBySection = null)
+        int version = 1)
     {
         return new SessionExecution
         {
@@ -217,9 +238,8 @@ public static class TrainingCompletionTestHelpers
             Date = date.Date,
             SessionId = sessionId,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
-            CompletedSectionIds = completedSectionIds?.ToList(),
-            CompletedExerciseIdsBySection = completedExerciseIdsBySection,
+            CompletedExerciseInstanceIds = completedExerciseIds?.ToList() ?? [],
+            CompletedWorkoutIds = completedSectionIds?.ToList(),
             DateCreated = DateTime.UtcNow,
             Version = version
         };
@@ -256,33 +276,40 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = forTimeSectionId,
-                                Order = 0,
-                                Name = "ForTime",
-                                Exercises = [] // exercise-free section
-                            },
-                            new TrainingSection
-                            {
-                                SectionId = standardSectionId,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = forTimeSectionId,
+                                        Order = 0,
+                                        Name = "ForTime",
+                                        Exercises = [] // exercise-free section
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = standardSectionId,
+                                        Order = 1,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseId = id,
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
@@ -354,7 +381,7 @@ public static class TrainingCompletionTestHelpers
                 Mood = log.Mood,
                 Notes = log.Notes,
                 WodResult = log.WodResult,
-                Sections = log.Sections
+                Workouts = log.Workouts
             },
             DateCreated = log.DateCreated,
             DateUpdated = log.DateUpdated,

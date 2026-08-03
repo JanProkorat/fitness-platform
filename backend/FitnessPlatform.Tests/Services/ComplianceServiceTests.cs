@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Endpoints.ClientTraining;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -289,6 +290,86 @@ public class ComplianceServiceTests
     }
 
     [Fact]
+    public async Task CalculateComplianceAsync_StandaloneOnlySession_CountsTowardCompliance()
+    {
+        // Arrange — a session programmed with ONLY standalone exercises (no workouts at all).
+        // #857 phase 3a made this a valid, completable session shape (mirrors
+        // SessionExecutionExtensions.IsSessionComplete's guard); IsSessionCompleteForDateAsync must
+        // not treat "no workouts" as "nothing programmed" the way a workouts-only guard would.
+        var sessionId = Guid.NewGuid();
+        var standaloneExerciseId = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayIsoDayOfWeek = (int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek;
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            Name = "Standalone Day",
+            Order = 1,
+            Workouts = [],
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseId = standaloneExerciseId,
+                    ExerciseExternalId = standaloneExerciseId,
+                    ExerciseName = "Plank",
+                    Order = 1
+                }
+            ]
+        };
+
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Standalone-Only Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = weekStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = weekStart,
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                    {
+                        DayOfWeek = d,
+                        Sessions = d == todayIsoDayOfWeek ? [session] : []
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = weekStart
+        };
+
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: today,
+            completedExerciseIds: [standaloneExerciseId]);
+
+        var mongo = CreateMongo(
+            trainingPlan: trainingPlan,
+            completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        // Act
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        // Assert — the standalone-only session must count as both planned AND completed
+        result.TrainingsPlanned.Should().BeGreaterThan(0);
+        result.TrainingsCompleted.Should().Be(result.TrainingsPlanned,
+            "a session programmed with only standalone exercises, fully checked off, must count as " +
+            "complete — a workouts-only guard would wrongly exclude it from compliance forever");
+        result.TrainingCompliancePercent.Should().Be(100m);
+    }
+
+    [Fact]
     public async Task CalculateComplianceAsync_NutritionAndTraining_CombinesWeightedPercent()
     {
         // Arrange — client has both plans for today
@@ -517,25 +598,21 @@ public class ComplianceServiceTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = weekStart,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId1,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session A",
                             Order = 1,
-                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        },
-                        new TrainingSession
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                        }),
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId2,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session B",
                             Order = 2,
-                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        }
-                    ]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                        }))
                 }
             ]
         };

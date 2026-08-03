@@ -88,37 +88,58 @@ public class SessionExecution
     public SessionExecutionStatus Status { get; set; } = SessionExecutionStatus.Partial;
 
     /// <summary>
-    /// List of exercise external IDs that have been marked complete for this session on this date.
+    /// Flat list of completed <see cref="SessionExercise.ExerciseId"/> instance values for this
+    /// session on this date — both standalone exercises and exercises nested inside a workout.
     /// <para>
-    /// <b>Deprecated.</b> New writes populate <see cref="CompletedExerciseIdsBySection"/> instead.
-    /// This flat list is kept for back-compat reads of historical data; it is mirrored from the new
-    /// dict so that legacy readers continue to work.
+    /// Replaces the pre-#857-phase-3b <c>completedExerciseIdsBySection</c> dictionary (keyed by
+    /// <see cref="TrainingWorkout.WorkoutId"/>, valued with catalog
+    /// <see cref="SessionExercise.ExerciseExternalId"/>s), which could not distinguish two
+    /// occurrences of the same catalog exercise within one workout or between a standalone
+    /// occurrence and a nested one. <see cref="SessionExercise.ExerciseId"/> already disambiguates
+    /// every instance, so no per-workout grouping is needed any more — a flat set membership check
+    /// (<c>CompletedExerciseInstanceIds.Contains(exercise.ExerciseId)</c>) is sufficient and correct.
     /// </para>
     /// </summary>
-    [BsonElement("completedExerciseIds")]
-    public List<Guid> CompletedExerciseIds { get; set; } = [];
+    [BsonElement("completedExerciseInstanceIds")]
+    public List<Guid> CompletedExerciseInstanceIds { get; set; } = [];
 
     /// <summary>
-    /// Per-section completed exercise IDs. Key = <see cref="TrainingSection.SectionId"/> serialized
-    /// as a lowercase string, value = list of <see cref="SessionExercise.ExerciseExternalId"/>
-    /// values completed within that specific section instance.
+    /// Workout IDs (matching <see cref="TrainingWorkout.WorkoutId"/>) that the client has marked
+    /// complete on this date. Used for workouts that don't track at the exercise level.
     /// </summary>
-    [BsonElement("completedExerciseIdsBySection")]
+    [BsonElement("completedWorkoutIds")]
     [BsonIgnoreIfNull]
-    public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
+    public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
-    /// Section IDs (matching <see cref="TrainingSection.SectionId"/>) that the client has marked
-    /// complete on this date. Used for sections that don't track at the exercise level.
+    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseExternalId"/>
+    /// (serialized as a lowercase Guid string) — deliberately <b>NOT</b> rekeyed onto the
+    /// per-instance <see cref="SessionExercise.ExerciseId"/> the way
+    /// <see cref="CompletedExerciseInstanceIds"/> and <see cref="CompletedWorkoutIds"/> are.
     /// </summary>
-    [BsonElement("completedSectionIds")]
-    [BsonIgnoreIfNull]
-    public List<Guid>? CompletedSectionIds { get; set; }
-
-    /// <summary>
-    /// Optional per-set completion data, keyed by exerciseExternalId.
-    /// Each entry is the set of 1-based set numbers that were completed.
-    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Known divergence (#857 finding 2).</b> Resolving a catalog id to the correct
+    /// per-instance <see cref="SessionExercise.ExerciseId"/> requires the parent plan's session
+    /// definition. <c>MongoIndexInitializer.ApplyCompletionFlags</c> — the only
+    /// site that ever populates this field, and only for the deprecated one-shot
+    /// <c>--migrate-session-executions</c> CLI path — is a pure copy from
+    /// <see cref="TrainingCompletion.CompletedSets"/> with no such plan/session access, so it
+    /// cannot perform that resolution. The reader in <c>GetFullTrainingPlanEndpoint</c> is written
+    /// to match this reality: it looks the key up against a lookup keyed by
+    /// <see cref="SessionExercise.ExerciseExternalId"/>, not <see cref="SessionExercise.ExerciseId"/>.
+    /// </para>
+    /// <para>
+    /// This means two placements of the same catalog exercise within one session (standalone AND
+    /// nested, or nested twice) share set-completion state under this field — the exact ambiguity
+    /// the per-instance id exists to remove elsewhere. In practice this is a latent gap rather
+    /// than an active bug: <see cref="TrainingCompletion"/> is frozen/read-only with no live write
+    /// path (see its class remarks), so no current endpoint ever populates this dictionary for a
+    /// standalone-plus-nested session. If set-level completion tracking is revived on a live write
+    /// path, that path must key on <see cref="SessionExercise.ExerciseId"/> directly (bypassing
+    /// this legacy field/migration entirely) rather than perpetuating the catalog-id keying here.
+    /// </para>
+    /// </remarks>
     [BsonElement("completedSets")]
     [BsonIgnoreIfNull]
     public Dictionary<string, List<int>>? CompletedSets { get; set; }

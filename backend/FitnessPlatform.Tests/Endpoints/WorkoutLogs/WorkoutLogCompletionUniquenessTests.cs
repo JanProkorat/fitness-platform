@@ -182,7 +182,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted = isCompleted,
             CompletedAt = completedAt,
             CompletedDate = completedDate,
-            Sections    = [],
+            Workouts    = [],
             DateCreated = now.AddMinutes(-30)
         };
         return log;
@@ -213,7 +213,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             {
                 StartedAt = now.AddMinutes(-30),
                 CompletedAt = completedAt,
-                Sections = []
+                Workouts = []
             },
             DateCreated = now.AddMinutes(-30),
             Version = 1
@@ -394,7 +394,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted = true,
             CompletedAt = completedAt,
             CompletedDate = null, // simulates legacy document
-            Sections    = [],
+            Workouts    = [],
             DateCreated = completedAt.AddMinutes(-30),
             DateUpdated = completedAt
         };
@@ -455,7 +455,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted   = true,
             CompletedAt   = day.AddMinutes(-30),
             CompletedDate = midnight,
-            Sections      = [],
+            Workouts      = [],
             DateCreated   = day.AddMinutes(-60)
         };
         var later = new WorkoutLog
@@ -468,7 +468,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
             IsCompleted   = true,
             CompletedAt   = day,
             CompletedDate = midnight,
-            Sections      = [],
+            Workouts      = [],
             DateCreated   = day.AddMinutes(-45)
         };
         await logsColl.InsertManyAsync([earlier, later], cancellationToken: ct);
@@ -563,9 +563,9 @@ internal sealed class BackfillTestMongoContext : IMongoContext
     public IMongoCollection<SessionExecution> SessionExecutions => _db.GetCollection<SessionExecution>("sessionExecutions");
     public IMongoCollection<PersonalRecord> PersonalRecords => _db.GetCollection<PersonalRecord>("personalRecords");
     public IMongoCollection<DayLog> DayLogs               => _db.GetCollection<DayLog>("dayLogs");
-    public IMongoCollection<SectionTemplate> SectionTemplates => _db.GetCollection<SectionTemplate>("sectionTemplates");
+    public IMongoCollection<WorkoutTemplate> WorkoutTemplates => _db.GetCollection<WorkoutTemplate>("workoutTemplates");
     public IMongoCollection<SessionLock> SessionLocks         => _db.GetCollection<SessionLock>("sessionLocks");
     public IMongoCollection<SessionLog> SessionLogs           => _db.GetCollection<SessionLog>("sessionLogs");
     public IMongoCollection<TrainerNote> TrainerNotes         => _db.GetCollection<TrainerNote>("trainer_notes");
-    public IMongoCollection<WorkoutTemplate> WorkoutTemplates => _db.GetCollection<WorkoutTemplate>("workoutTemplates");
+    public IMongoCollection<SessionTemplate> SessionTemplates => _db.GetCollection<SessionTemplate>("sessionTemplates");
 }

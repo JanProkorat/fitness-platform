@@ -21,12 +21,11 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 /// published SessionId does not appear in the incoming map) must be rejected with 409
 /// <c>session_locked</c> unless the trainer holds an Editing lock for that session.
 ///
-/// Gap #5a (legacy-doc no false-positive) was retired by #837 — the one-time boot
-/// migration in <c>MongoIndexInitializer</c> backfills every embedded TrainingSession
-/// to the sections shape, so there is no longer a legacy-doc-vs-section-request
-/// comparison for the diff-gate to false-positive on. See
-/// <c>FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests</c> for the
-/// migration's own coverage.
+/// Gap #5a (legacy-doc no false-positive) was retired by #837: a stored session
+/// reaching this endpoint is always sections/workouts-populated, so there is no
+/// longer a legacy-doc-vs-section-request comparison for the diff-gate to
+/// false-positive on. See the comment above <c>SeedTwoSectionPlanWithCompletedLogAsync</c>
+/// below for the current state of that retirement.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factory)
@@ -55,14 +54,13 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Modern Day",
             Order = 1,
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = sectionId,
+                    WorkoutId = sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -100,7 +98,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
@@ -115,12 +113,12 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
     // ── gap #5a: legacy-doc backfill no false-positive — RETIRED (#837) ──────────
     //
     // The legacy flat-exercise diff-gate scenario previously covered here is retired:
-    // the one-time boot migration in MongoIndexInitializer backfills every embedded
-    // TrainingSession to the sections shape, so a stored session at this layer is
-    // always sections-populated — there is no longer a legacy-doc-vs-section-request
-    // comparison for the diff-gate to false-positive on. See
-    // FitnessPlatform.Tests.Services.PlanSchemaOnReadMigrationTests for the migration's
-    // legacy-doc → migrated-shape / read-equivalence / idempotency coverage.
+    // a stored session reaching this endpoint is always sections/workouts-populated,
+    // so there is no longer a legacy-doc-vs-section-request comparison for the diff-gate
+    // to false-positive on. (#857 subsequently deleted the boot-time backfill that used
+    // to synthesize the modern shape from legacy flat `exercises` docs — see
+    // MongoIndexInitializer and its TrainingTreeRestructureMigrationTests absence-test
+    // coverage — legacy documents are simply left untouched now, not migrated on read.)
 
     // ── Section-finished guard helpers ──────────────────────────────────────────
 
@@ -141,14 +139,13 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Two-Section Day",
             Order = 1,
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = sectionAId,
+                    WorkoutId = sectionAId,
                     Order = 0,
                     Name = "Section A",
                     Exercises =
@@ -163,9 +160,9 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                         }
                     ]
                 },
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = sectionBId,
+                    WorkoutId = sectionBId,
                     Order = 1,
                     Name = "Section B",
                     Exercises =
@@ -202,7 +199,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
@@ -223,20 +220,20 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             {
                 StartedAt = startedAt,
                 CompletedAt = DateTime.UtcNow.AddMinutes(-30),
-                Sections =
+                Workouts =
                 [
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = sectionAId, Order = 0, Name = "Section A",
+                        WorkoutId = sectionAId, Order = 0, Name = "Section A",
                         Exercises = [new WorkoutExercise
                         {
                             ExerciseExternalId = exerciseAId, ExerciseName = "Squat",
                             Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, CompletedAt = DateTime.UtcNow.AddMinutes(-50) }]
                         }]
                     },
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = sectionBId, Order = 1, Name = "Section B",
+                        WorkoutId = sectionBId, Order = 1, Name = "Section B",
                         Exercises = [new WorkoutExercise
                         {
                             ExerciseExternalId = exerciseBId, ExerciseName = "Press",
@@ -274,26 +271,27 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var session = new TrainingSession
         {
             SessionId = sessionId,
-            DayOfWeek = 1,
             Name = "Two-Section Day",   // must match BuildTwoSectionUpdateBody
             Order = 1,
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = sectionAId, Order = 0, Name = "Section A",
+                    WorkoutId = sectionAId, Order = 0, Name = "Section A",
                     Exercises = [new SessionExercise
                     {
+                        ExerciseId = exerciseAId,
                         ExerciseExternalId = exerciseAId, ExerciseName = "Squat", Order = 1,   // must match BuildTwoSectionUpdateBody
                         MovementType = MovementType.Reps,
                         Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 5, WeightKg = 100 }]
                     }]
                 },
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = sectionBId, Order = 1, Name = "Section B",
+                    WorkoutId = sectionBId, Order = 1, Name = "Section B",
                     Exercises = [new SessionExercise
                     {
+                        ExerciseId = exerciseBId,
                         ExerciseExternalId = exerciseBId, ExerciseName = "Press", Order = 1,   // must match BuildTwoSectionUpdateBody
                         MovementType = MovementType.Reps,
                         Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 8, WeightKg = 80 }]
@@ -321,7 +319,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-7),
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ]
         };
@@ -336,11 +334,11 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             SessionId = sessionId,
             Date = DateTime.UtcNow.Date,
             Status = SessionExecutionStatus.Partial,
-            CompletedExerciseIds = [exerciseAId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionAId.ToString()] = [exerciseAId]
-            },
+            // The per-workout attribution dictionary is gone; completion is a flat list of
+            // SessionExercise instance ids. This fixture builds its sessions inline (not via
+            // TrainingPlanTestHelpers), so it sets ExerciseId == ExerciseExternalId on the
+            // seeded exercises above — that is what makes exerciseAId address the same exercise.
+            CompletedExerciseInstanceIds = [exerciseAId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -382,11 +380,16 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                             DayOfWeek = 1,
                             Name = "Two-Section Day",
                             Order = 1,
-                            Sections = new[]
+                            // Must match UpdateSessionRequest's property name: this payload is
+                            // hand-built, so the section->workout rename does not reach it
+                            // automatically. Posting the old "Sections" key binds an empty
+                            // Workouts list, which the phase-3a "a session must have at least one
+                            // workout or standalone exercise" rule then rejects with 400.
+                            Workouts = new[]
                             {
                                 new
                                 {
-                                    SectionId = sectionAId.ToString(),
+                                    WorkoutId = sectionAId.ToString(),
                                     Order = 0,
                                     Name = "Section A",
                                     Exercises = new[]
@@ -407,7 +410,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
                                 },
                                 new
                                 {
-                                    SectionId = sectionBId.ToString(),
+                                    WorkoutId = sectionBId.ToString(),
                                     Order = 1,
                                     Name = "Section B",
                                     Exercises = new[]
@@ -540,7 +543,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
 
     /// <summary>
     /// When the session has a completed WorkoutLog (Signal 1) and the trainer holds an Editing
-    /// lock, attempting to change any section's content must be rejected with 409 SECTION_ALREADY_COMPLETED.
+    /// lock, attempting to change any section's content must be rejected with 409 WORKOUT_ALREADY_COMPLETED.
     /// </summary>
     [Fact]
     public async Task UpdatePlan_FinishedSectionContent_WorkoutLogSignal_Returns409SectionAlreadyCompleted()
@@ -582,20 +585,20 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             body,
             TestContext.Current.CancellationToken);
 
-        // ── 6. Assert 409 SECTION_ALREADY_COMPLETED ───────────────────────────────
+        // ── 6. Assert 409 WORKOUT_ALREADY_COMPLETED ───────────────────────────────
         var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(
             HttpStatusCode.Conflict,
             $"editing a finished section (WorkoutLog signal) must be rejected 409. Body: {responseBody}");
         responseBody.Should().Contain(
-            "SECTION_ALREADY_COMPLETED",
-            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
+            "WORKOUT_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be WORKOUT_ALREADY_COMPLETED");
     }
 
     /// <summary>
     /// MIXED-STATE: a session where section A is finished (TrainingCompletion Signal 2) and
     /// section B is NOT finished. Editing section B must return 200; editing section A must
-    /// return 409 SECTION_ALREADY_COMPLETED.
+    /// return 409 WORKOUT_ALREADY_COMPLETED.
     /// </summary>
     [Fact]
     public async Task UpdatePlan_MixedState_FinishedAndUnfinishedSections_TrainingCompletionSignal()
@@ -666,7 +669,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             HttpStatusCode.Conflict,
             $"editing the finished section A must return 409. Body: {responseBodyA}");
         responseBodyA.Should().Contain(
-            "SECTION_ALREADY_COMPLETED",
-            "the RFC 7807 errorCode must be SECTION_ALREADY_COMPLETED");
+            "WORKOUT_ALREADY_COMPLETED",
+            "the RFC 7807 errorCode must be WORKOUT_ALREADY_COMPLETED");
     }
 }

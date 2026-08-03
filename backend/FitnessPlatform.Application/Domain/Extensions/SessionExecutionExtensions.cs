@@ -1,6 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.ClientTraining;
 
 namespace FitnessPlatform.Application.Domain.Extensions;
 
@@ -8,17 +7,25 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// Extension methods for <see cref="SessionExecution"/> session-level completeness checks.
 /// Mirrors the retired <c>TrainingCompletionExtensions</c>, with one simplification: since a
 /// finished live workout (formerly a separate <c>WorkoutLog.IsCompleted</c> signal) and the
-/// checkbox completion flags now live on the SAME document, "is this session/section done" no
+/// checkbox completion flags now live on the SAME document, "is this session/workout done" no
 /// longer needs an externally-supplied <c>hasCompletedWorkoutLog</c> boolean — it's read straight
 /// off <see cref="SessionExecution.Status"/>.
 /// </summary>
+/// <remarks>
+/// #857 phase 3b: <see cref="SessionExecution.CompletedExerciseInstanceIds"/> holds
+/// <see cref="SessionExercise.ExerciseId"/> instance values, which already disambiguate two
+/// occurrences of the same catalog exercise (in one workout, across workouts, or standalone vs.
+/// nested) — so a flat membership check is sufficient and correct. This removes the need for the
+/// retired per-workout "effective" backfill map that the pre-#857-phase-3b
+/// <c>CompletedExerciseIdsBySection</c> dictionary required.
+/// </remarks>
 public static class SessionExecutionExtensions
 {
     /// <summary>
     /// Returns <c>true</c> when the session is fully done: either <see cref="SessionExecution.Status"/>
     /// is already <see cref="SessionExecutionStatus.Completed"/> (a finished live workout implies every
-    /// section is done), or every section in <paramref name="session"/> is individually complete per
-    /// the checkbox flags (see <see cref="IsSectionComplete"/>).
+    /// workout is done), or every workout and standalone exercise in <paramref name="session"/> is
+    /// individually complete per the checkbox flags (see <see cref="IsWorkoutComplete"/>).
     /// </summary>
     /// <param name="execution">The execution document to test. Must not be null.</param>
     /// <param name="session">The session definition. Must not be null.</param>
@@ -27,54 +34,53 @@ public static class SessionExecutionExtensions
         if (execution.Status == SessionExecutionStatus.Completed)
             return true;
 
-        // Guard: a session with no sections is never complete. Every TrainingSession document
-        // carries a populated Sections list (the #837 boot migration), so zero sections signals
-        // an abnormal/corrupt session definition.
-        if (session.Sections.Count == 0)
+        // Guard: a session with nothing programmed (no workouts, no standalone exercises) is
+        // never complete. A session is written with at least one workout or one standalone
+        // exercise (#857 phase 3a — enforced by UpdateTrainingPlanValidator), so zero of both
+        // signals an abnormal/corrupt session definition.
+        if (session.Workouts.Count == 0 && session.StandaloneExercises.Count == 0)
             return false;
 
-        var effectiveBySection =
-            SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(execution, session);
+        var completedInstanceIds = execution.CompletedExerciseInstanceIds;
 
-        return session.Sections.All(sec =>
-            sec.Exercises.Count > 0
-                ? effectiveBySection.TryGetValue(sec.SectionId, out var completedInSection)
-                  && sec.Exercises.All(e => completedInSection.Contains(e.ExerciseExternalId))
-                : (execution.CompletedSectionIds ?? []).Contains(sec.SectionId));
+        var workoutsComplete = session.Workouts.All(workout =>
+            workout.Exercises.Count > 0
+                ? workout.Exercises.All(e => completedInstanceIds.Contains(e.ExerciseId))
+                : (execution.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId));
+
+        var standaloneComplete = session.StandaloneExercises.All(e => completedInstanceIds.Contains(e.ExerciseId));
+
+        return workoutsComplete && standaloneComplete;
     }
 
     /// <summary>
-    /// Returns <c>true</c> when the specified section within the session is done:
+    /// Returns <c>true</c> when the specified workout within the session is done:
     /// <list type="bullet">
     ///   <item><description>Signal 1 — <paramref name="execution"/>.Status is
     ///     <see cref="SessionExecutionStatus.Completed"/> (session-level completion implies every
-    ///     section is done).</description></item>
-    ///   <item><description>Signal 2 — the checkbox flags record this specific section as complete
-    ///     (exercise-free sections via <see cref="SessionExecution.CompletedSectionIds"/>;
-    ///     exercise-bearing sections via
-    ///     <see cref="SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection"/>).</description></item>
+    ///     workout is done).</description></item>
+    ///   <item><description>Signal 2 — the checkbox flags record this specific workout as complete
+    ///     (exercise-free workouts via <see cref="SessionExecution.CompletedWorkoutIds"/>;
+    ///     exercise-bearing workouts via a direct
+    ///     <see cref="SessionExecution.CompletedExerciseInstanceIds"/> membership check).</description></item>
     /// </list>
     /// </summary>
-    public static bool IsSectionComplete(
+    public static bool IsWorkoutComplete(
         this SessionExecution? execution,
         TrainingSession session,
-        TrainingSection section)
+        TrainingWorkout workout)
     {
         if (execution is null) return false;
 
-        // Signal 1: session-level completion implies all sections are done.
+        // Signal 1: session-level completion implies all workouts are done.
         if (execution.Status == SessionExecutionStatus.Completed) return true;
 
-        // Exercise-free sections: completed via CompletedSectionIds.
-        if (section.Exercises.Count == 0)
-            return (execution.CompletedSectionIds ?? []).Contains(section.SectionId);
+        // Exercise-free workouts: completed via CompletedWorkoutIds.
+        if (workout.Exercises.Count == 0)
+            return (execution.CompletedWorkoutIds ?? []).Contains(workout.WorkoutId);
 
-        // Exercise-bearing sections: use section-aware effective map to prevent
-        // cross-section false positives when the same exercise appears in two sections.
-        var effectiveBySection =
-            SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(execution, session);
-
-        return effectiveBySection.TryGetValue(section.SectionId, out var completedInSection)
-               && section.Exercises.All(e => completedInSection.Contains(e.ExerciseExternalId));
+        // Exercise-bearing workouts: every exercise instance in this specific workout must be
+        // present in the flat completed-instance list.
+        return workout.Exercises.All(e => execution.CompletedExerciseInstanceIds.Contains(e.ExerciseId));
     }
 }

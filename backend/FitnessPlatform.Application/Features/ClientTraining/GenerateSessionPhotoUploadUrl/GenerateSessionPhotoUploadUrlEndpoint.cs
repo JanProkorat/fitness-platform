@@ -84,7 +84,8 @@ public class GenerateSessionPhotoUploadUrlEndpoint(
 
         // Verify the SessionId belongs to the active plan
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)

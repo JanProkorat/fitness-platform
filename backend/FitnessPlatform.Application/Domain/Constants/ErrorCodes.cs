@@ -158,8 +158,14 @@ public static class ErrorCodes
     /// <summary>The exercise was not found in the specified session.</summary>
     public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
 
-    /// <summary>The section was not found in the specified session.</summary>
-    public const string TrainingSectionNotFound = "TRAINING_SECTION_NOT_FOUND";
+    /// <summary>The workout was not found in the specified session.</summary>
+    public const string TrainingWorkoutNotFound = "TRAINING_WORKOUT_NOT_FOUND";
+
+    /// <summary>
+    /// A session's standalone exercises and workouts share one ordering sequence; two entries
+    /// (in either list, or across both) claimed the same Order value.
+    /// </summary>
+    public const string TrainingDuplicateSessionOrder = "TRAINING_DUPLICATE_SESSION_ORDER";
 
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
@@ -240,22 +246,22 @@ public static class ErrorCodes
     /// <summary>The caller is not the owning professional for this photo diary request (role-gate rejection).</summary>
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
-    // ── Section Templates ────────────────────────────────────────────
-    /// <summary>Section template not found.</summary>
-    public const string SectionTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
+    // ── Workout Templates ────────────────────────────────────────────
+    /// <summary>Workout template not found.</summary>
+    public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
 
-    /// <summary>Section template belongs to another trainer.</summary>
-    public const string SectionTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
+    /// <summary>Workout template belongs to another trainer.</summary>
+    public const string WorkoutTemplateNotOwned = "WORKOUT_TEMPLATE_NOT_OWNED";
 
-    /// <summary>Section template version mismatch (optimistic concurrency).</summary>
-    public const string SectionTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
+    /// <summary>Workout template version mismatch (optimistic concurrency).</summary>
+    public const string WorkoutTemplateVersionConflict = "WORKOUT_TEMPLATE_VERSION_CONFLICT";
 
-    // ── Training Sections ────────────────────────────────────────────
-    /// <summary>Session sections list is empty.</summary>
-    public const string SectionsRequired = "SECTIONS_REQUIRED";
+    // ── Training Workouts ────────────────────────────────────────────
+    /// <summary>Session workouts list is empty.</summary>
+    public const string WorkoutsRequired = "WORKOUTS_REQUIRED";
 
-    /// <summary>Duplicate Order values across sections in the same session.</summary>
-    public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
+    /// <summary>Duplicate Order values across workouts in the same session.</summary>
+    public const string WorkoutOrderDuplicate = "WORKOUT_ORDER_DUPLICATE";
 
     // ── Trainer Finish Session ───────────────────────────────────────
     /// <summary>The session is currently locked by another party (live or editing lock conflict).</summary>
@@ -268,7 +274,7 @@ public static class ErrorCodes
     /// Attempt to edit a training plan section whose content has already been completed
     /// by the client (via a finished WorkoutLog or a TrainingCompletion record).
     /// </summary>
-    public const string SectionAlreadyCompleted = "SECTION_ALREADY_COMPLETED";
+    public const string WorkoutAlreadyCompleted = "WORKOUT_ALREADY_COMPLETED";
 
     /// <summary>completedAt is in the future; backdating to the future is not allowed.</summary>
     public const string CompletedAtInFuture = "COMPLETED_AT_IN_FUTURE";

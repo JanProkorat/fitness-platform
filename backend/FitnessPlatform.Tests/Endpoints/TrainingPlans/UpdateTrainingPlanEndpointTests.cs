@@ -74,6 +74,91 @@ public class UpdateTrainingPlanEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_AllZeroIds_MintsFreshIdsInsteadOfPersistingEmptyGuids()
+    {
+        // Root cause (#857 finding 3): `ExerciseId = re.ExerciseId ?? Guid.NewGuid()` (and the
+        // equivalent for SessionId/WorkoutId) only guards the null case. A request carrying the
+        // literal all-zero Guid "00000000-0000-0000-0000-000000000000" deserializes to a non-null
+        // Guid.Empty, which null-coalescing lets through unchanged — exactly the shape a template
+        // (or a template-instantiated plan, #862) serves. A persisted Guid.Empty id becomes
+        // permanently unreachable via MarkExerciseComplete (NotEmpty validator on ExerciseId).
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 1);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var ep = CreateEndpoint(mongo);
+
+        var request = new UpdateTrainingPlanRequest
+        {
+            PlanId = planId,
+            Name = "Plan From Template",
+            Version = 1,
+            Weeks =
+            [
+                new UpdateTrainingWeekRequest
+                {
+                    WeekNumber = 1,
+                    Sessions =
+                    [
+                        new UpdateSessionRequest
+                        {
+                            SessionId = Guid.Empty,
+                            DayOfWeek = 1,
+                            Name = "Push Day",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new UpdateWorkoutRequest
+                                {
+                                    WorkoutId = Guid.Empty,
+                                    Order = 1,
+                                    Name = "Main",
+                                    Exercises =
+                                    [
+                                        new UpdateSessionExerciseRequest
+                                        {
+                                            ExerciseId = Guid.Empty,
+                                            ExerciseExternalId = Guid.NewGuid(),
+                                            ExerciseName = "Bench Press",
+                                            Order = 1
+                                        }
+                                    ]
+                                }
+                            ],
+                            Exercises =
+                            [
+                                new UpdateSessionExerciseRequest
+                                {
+                                    ExerciseId = Guid.Empty,
+                                    ExerciseExternalId = Guid.NewGuid(),
+                                    ExerciseName = "Plank",
+                                    Order = 2
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Is<TrainingPlan>(p =>
+                p.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).All(session =>
+                    session.SessionId != Guid.Empty
+                    && session.Workouts.All(workout =>
+                        workout.WorkoutId != Guid.Empty
+                        && workout.Exercises.All(ex => ex.ExerciseId != Guid.Empty))
+                    && session.StandaloneExercises.All(ex => ex.ExerciseId != Guid.Empty))),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task HandleAsync_VersionConflict_Returns409()
     {
         var planId = Guid.NewGuid();
