@@ -213,6 +213,22 @@ public class MongoIndexInitializer : IHostedService
         // Step 1: workoutTemplates -> sessionTemplates
         await RenameCollectionIfNeededAsync(database, MongoCollections.WorkoutTemplates, MongoCollections.SessionTemplates, ct);
 
+        // Step 1b: renameCollection is metadata-only — it never rewrites document contents.
+        // The pre-857 physical "workoutTemplates" documents (the misnamed WorkoutTemplate type,
+        // a whole session skeleton) carried [BsonElement("sections")] with nested "sectionId";
+        // the current SessionTemplate type they now live under maps [BsonElement("workouts")].
+        // Without this rewrite, an unmigrated document is an unmapped extra element on the first
+        // typed SessionTemplate read (e.g. ListWorkoutTemplatesEndpoint) and throws
+        // BsonSerializationException. Must run before any typed read of the collection — same
+        // ordering requirement as every other #857 boot migration.
+        //
+        // The OTHER half of the swap (step 2 below, sectionTemplates -> workoutTemplates) needs
+        // NO equivalent rewrite: the pre-857 SectionTemplate type's field names (externalId,
+        // ownerTrainerId, name, notes, defaultFormat, defaultFormatConfig, defaultExercises,
+        // createdAt, updatedAt, version) are IDENTICAL to the current WorkoutTemplate type — a
+        // pure collection-identity swap with no BSON shape change.
+        await MigrateSessionTemplateSectionsToWorkoutsAsync(ct);
+
         // Step 2: sectionTemplates -> workoutTemplates
         await RenameCollectionIfNeededAsync(database, MongoCollections.LegacySectionTemplates, MongoCollections.WorkoutTemplates, ct);
 
@@ -222,6 +238,56 @@ public class MongoIndexInitializer : IHostedService
         await TryDropIndexAsync(_mongo.SessionTemplates.Indexes, "idx_workouttemplate_ownerId", ct);
         await TryDropIndexAsync(_mongo.WorkoutTemplates.Indexes, "idx_sectiontemplate_externalId", ct);
         await TryDropIndexAsync(_mongo.WorkoutTemplates.Indexes, "idx_sectiontemplate_ownerTrainerId", ct);
+    }
+
+    /// <summary>
+    /// Rewrites the top-level <c>sections</c> array on every physical <c>sessionTemplates</c>
+    /// document that still carries it (i.e. the pre-857 <c>workoutTemplates</c> documents just
+    /// swapped in by step 1): renames the container to <c>workouts</c> and renames
+    /// <c>sectionId</c> to <c>workoutId</c> within every element, reusing
+    /// <see cref="RenameSectionIdWithinEachElement"/>. See the remarks above
+    /// <see cref="MigrateWorkoutTemplateCollectionSwapAsync"/> for why a collection rename alone
+    /// is not enough and why this must run before any typed read of the collection.
+    /// </summary>
+    private async Task MigrateSessionTemplateSectionsToWorkoutsAsync(CancellationToken ct)
+    {
+        var rawTemplates = _mongo.SessionTemplates.Database.GetCollection<BsonDocument>(
+            _mongo.SessionTemplates.CollectionNamespace.CollectionName);
+
+        var legacyFilter = new BsonDocument("sections", new BsonDocument("$exists", true));
+
+        using var cursor = await rawTemplates.FindAsync(legacyFilter, cancellationToken: ct);
+        var candidates = await cursor.ToListAsync(ct);
+
+        var migratedCount = 0;
+
+        foreach (var templateDoc in candidates)
+        {
+            if (!templateDoc.TryGetValue("sections", out var sectionsValue) || sectionsValue is not BsonArray sections)
+            {
+                continue;
+            }
+
+            RenameSectionIdWithinEachElement(sections);
+
+            templateDoc["workouts"] = sections;
+            templateDoc.Remove("sections");
+
+            await rawTemplates.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("_id", templateDoc["_id"]),
+                templateDoc,
+                cancellationToken: ct);
+
+            migratedCount++;
+        }
+
+        if (migratedCount > 0)
+        {
+            _logger.LogInformation(
+                "SessionTemplate field rename: renamed sections -> workouts (and nested sectionId -> " +
+                "workoutId) on {Count} document(s)",
+                migratedCount);
+        }
     }
 
     /// <summary>

@@ -454,6 +454,14 @@ public class TrainingTreeRestructureMigrationTests
         var oldWorkoutTemplateExternalId = Guid.NewGuid(); // -> becomes a SessionTemplate
         var oldSectionTemplateExternalId = Guid.NewGuid(); // -> becomes a WorkoutTemplate
 
+        // The template's legacy "sections"/"sectionId" shape must be POPULATED here (not an
+        // empty/absent array) — an empty array never exercises the unmapped-extra-element
+        // BsonSerializationException the #857 template rewrite exists to prevent; only a
+        // document that still carries a real "sections" element at the point of the first typed
+        // SessionTemplate read proves the rewrite actually ran.
+        var oldWorkoutTemplateWorkoutId = Guid.NewGuid();
+        var oldWorkoutTemplateExerciseExternalId = Guid.NewGuid();
+
         var rawOldWorkoutTemplates = db.GetCollection<BsonDocument>("workoutTemplates");
         await rawOldWorkoutTemplates.InsertOneAsync(new BsonDocument
         {
@@ -461,6 +469,29 @@ public class TrainingTreeRestructureMigrationTests
             { "externalId", GuidBson(oldWorkoutTemplateExternalId) },
             { "ownerId", GuidBson(Guid.NewGuid()) },
             { "name", "Full Body A" },
+            {
+                "sections", new BsonArray
+                {
+                    new BsonDocument
+                    {
+                        { "sectionId", GuidBson(oldWorkoutTemplateWorkoutId) },
+                        { "order", 0 },
+                        { "name", "Hlavni" },
+                        {
+                            "exercises", new BsonArray
+                            {
+                                new BsonDocument
+                                {
+                                    { "exerciseExternalId", GuidBson(oldWorkoutTemplateExerciseExternalId) },
+                                    { "exerciseName", "Squat" },
+                                    { "order", 1 },
+                                    { "sets", new BsonArray() }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             { "dateCreated", DateTime.UtcNow.AddDays(-30) },
             { "version", 1 }
         }, cancellationToken: ct);
@@ -680,6 +711,27 @@ public class TrainingTreeRestructureMigrationTests
             "the ex-workoutTemplates document must be readable as a SessionTemplate after the swap");
         migratedSessionTemplate!.Name.Should().Be("Full Body A");
 
+        // Typed read-back proper: the legacy "sections" array must have been rewritten to
+        // "workouts" (and nested "sectionId" to "workoutId") — a raw BSON check alone would not
+        // catch a rewrite that ran but produced the wrong shape; only a successful typed
+        // deserialization plus correct values proves the rewrite closed the
+        // BsonSerializationException hazard for real template data.
+        var migratedTemplateWorkout = migratedSessionTemplate.Workouts.Should().ContainSingle().Subject;
+        migratedTemplateWorkout.WorkoutId.Should().Be(oldWorkoutTemplateWorkoutId,
+            "the legacy sectionId must survive the rename to workoutId, not be regenerated");
+        migratedTemplateWorkout.Exercises.Should().ContainSingle()
+            .Which.ExerciseExternalId.Should().Be(oldWorkoutTemplateExerciseExternalId);
+
+        var rawSessionTemplateAfterFirstBoot = await db.GetCollection<BsonDocument>("sessionTemplates")
+            .Find(new BsonDocument("externalId", GuidBson(oldWorkoutTemplateExternalId)))
+            .FirstOrDefaultAsync(ct);
+        rawSessionTemplateAfterFirstBoot.Contains("sections").Should().BeFalse(
+            "the legacy sections field must be removed, not left alongside the new workouts field");
+        rawSessionTemplateAfterFirstBoot.Contains("workouts").Should().BeTrue();
+        var rawMigratedTemplateWorkout = rawSessionTemplateAfterFirstBoot["workouts"].AsBsonArray[0].AsBsonDocument;
+        rawMigratedTemplateWorkout.Contains("sectionId").Should().BeFalse();
+        rawMigratedTemplateWorkout.Contains("workoutId").Should().BeTrue();
+
         var migratedWorkoutTemplate = await mongo.WorkoutTemplates
             .Find(Builders<WorkoutTemplate>.Filter.Eq(t => t.ExternalId, oldSectionTemplateExternalId))
             .FirstOrDefaultAsync(ct);
@@ -813,5 +865,11 @@ public class TrainingTreeRestructureMigrationTests
             .FirstOrDefaultAsync(ct);
         rawCompletionAfterSecondBoot!.Equals(rawCompletionAfterFirstBoot).Should().BeTrue(
             "a second boot must not rewrite an already-migrated trainingCompletions document");
+
+        var rawSessionTemplateAfterSecondBoot = await db.GetCollection<BsonDocument>("sessionTemplates")
+            .Find(new BsonDocument("externalId", GuidBson(oldWorkoutTemplateExternalId)))
+            .FirstOrDefaultAsync(ct);
+        rawSessionTemplateAfterSecondBoot!.Equals(rawSessionTemplateAfterFirstBoot).Should().BeTrue(
+            "a second boot must not rewrite an already-migrated sessionTemplates document");
     }
 }
