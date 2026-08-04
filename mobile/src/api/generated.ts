@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:56152";
+        this.baseUrl = baseUrl ?? "https://localhost:53452";
 
     }
 
@@ -15971,7 +15971,7 @@ Workouts inherit this when their own Format is null. */
     /** Session-level format configuration. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
     /** Ordered workouts in this session. Each workout contains its own exercises. */
-    workouts?: UpdateWorkoutRequest2[];
+    workouts?: UpdateTrainingWorkoutRequest[];
     /** Standalone exercises directly on this session — not grouped under any workout.
 Shares one ordering sequence with Workouts: a duplicate Order/
 Order across the two lists is rejected (#857 phase 3a). */
@@ -15979,7 +15979,7 @@ Order across the two lists is rejected (#857 phase 3a). */
 }
 
 /** Represents a training workout submitted in a full-state session update. */
-export interface UpdateWorkoutRequest2 {
+export interface UpdateTrainingWorkoutRequest {
     /** Optional existing workout identifier. New GUID generated if null. */
     workoutId?: string | undefined;
     /** Display order within the session (0-based). */
@@ -20065,11 +20065,11 @@ export interface GetComplianceScoreRequest {
 /** Response containing the client's plans. */
 export interface GetClientPlansResponse {
     /** Plan summaries. */
-    items?: ClientPlanItem2[];
+    items?: ClientOwnPlanItem[];
 }
 
-/** Lightweight plan summary for the client's plan list. */
-export interface ClientPlanItem2 {
+/** Lightweight plan summary for the client's own plan list. Distinct from the trainer-facing ClientPlanItem in Features/Trainers/ListClientPlans — the two DTOs previously shared a name, which made NSwag's generated client's type-name assignment dependent on document processing order. */
+export interface ClientOwnPlanItem {
     /** Plan public identifier. */
     planId?: string;
     /** Display name. */

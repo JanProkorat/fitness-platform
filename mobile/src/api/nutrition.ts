@@ -19,7 +19,7 @@ import type {
   FullPlanWeek,
   GetFullPlanResponse,
   GetClientPlansResponse,
-  ClientPlanItem,
+  ClientOwnPlanItem,
   DayPhotoInput,
   DayPhotoDto,
   GetTodayDayLogResponse,
@@ -47,7 +47,7 @@ export type {
   FullPlanWeek,
   GetFullPlanResponse,
   GetClientPlansResponse,
-  ClientPlanItem,
+  ClientOwnPlanItem,
   DayPhotoInput,
   DayPhotoDto,
   GetTodayDayLogResponse,
@@ -104,9 +104,9 @@ export type FullPlanResponse = GetFullPlanResponse & FullPlanResponseWithSupplem
 export type ClientPlansResponse = GetClientPlansResponse;
 
 /**
- * @deprecated Use `ClientPlanItem` from generated. Kept as alias for backward compatibility.
+ * @deprecated Use `ClientOwnPlanItem` from generated. Kept as alias for backward compatibility.
  */
-export type ClientPlanSummary = ClientPlanItem;
+export type ClientPlanSummary = ClientOwnPlanItem;
 
 /**
  * PlanStatus string union — used as a query parameter for getClientPlans.
