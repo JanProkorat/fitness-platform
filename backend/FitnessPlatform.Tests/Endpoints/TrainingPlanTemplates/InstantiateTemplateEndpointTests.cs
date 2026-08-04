@@ -119,6 +119,11 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
             SessionId = Guid.NewGuid(),
             Name = "Push Day",
             Order = 1,
+            // Non-Standard format at session level, with a populated WodConfig — pins that
+            // instantiate copies formats and format configs verbatim (#862 review MINOR: no
+            // prior test exercised a non-Standard format).
+            Format = WorkoutFormat.EMOM,
+            FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
             Workouts =
             [
                 new TrainingWorkout
@@ -203,6 +208,14 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
             "cloning must copy StandaloneExercises only, never the computed AllExercises view");
         planSessions.Should().OnlyContain(s => s.Workouts.Count == 1 && s.Workouts[0].Exercises.Count == 1,
             "the workout's own nested exercise must be cloned once, independently of the standalone list");
+
+        // The non-Standard format and its WodConfig copy through verbatim alongside the fresh
+        // ids asserted above.
+        planSessions.Should().OnlyContain(s => s.Format == WorkoutFormat.EMOM,
+            "session Format copies through from the template");
+        planSessions.Should().OnlyContain(s =>
+            s.FormatConfig != null && s.FormatConfig.IntervalSeconds == 60 && s.FormatConfig.TotalRounds == 10,
+            "session FormatConfig copies through from the template verbatim");
     }
 
     [Fact]

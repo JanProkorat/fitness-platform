@@ -96,6 +96,11 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
                                     SessionId = sourceSessionId,
                                     Name = "Push Day",
                                     Order = 1,
+                                    // Non-Standard format at session level, with a populated WodConfig —
+                                    // pins that from-plan copies formats and format configs verbatim
+                                    // (#862 review MINOR: no prior test exercised a non-Standard format).
+                                    Format = WorkoutFormat.EMOM,
+                                    FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
                                     Workouts =
                                     [
                                         new TrainingWorkout
@@ -140,6 +145,13 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
             sourceWorkoutId, "from-plan mints a fresh WorkoutId as defence in depth");
         session.Workouts[0].Exercises.Should().ContainSingle().Which.ExerciseId.Should().NotBe(
             sourceWorkoutExerciseId, "from-plan mints a fresh ExerciseId as defence in depth");
+
+        // The non-Standard format and its WodConfig copy through verbatim alongside the id
+        // remapping above.
+        session.Format.Should().Be(WorkoutFormat.EMOM, "session Format copies through from the plan");
+        session.FormatConfig.Should().NotBeNull();
+        session.FormatConfig!.IntervalSeconds.Should().Be(60);
+        session.FormatConfig!.TotalRounds.Should().Be(10);
 
         // The cloning ban: exactly one standalone exercise survives — never inflated by the
         // workout's nested exercise via the computed AllExercises view.
