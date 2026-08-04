@@ -239,7 +239,13 @@ public class ExerciseDto
     /// </summary>
     public List<MuscleGroup> MuscleGroups { get; set; } = [];
 
-    /// <summary>True when every planned set has a completed workout log entry.</summary>
+    /// <summary>
+    /// True when this specific exercise instance (<see cref="ExerciseId"/>) was marked complete
+    /// directly (checkbox/instance-keyed completion), OR every planned set has a completed
+    /// workout log entry. The instance-keyed check is what lets a set-less exercise ever report
+    /// complete, and what lets two placements of the same catalog exercise
+    /// (<see cref="ExerciseExternalId"/>) in one session be completed independently (#877).
+    /// </summary>
     public bool IsCompleted { get; set; }
 
     /// <summary>
