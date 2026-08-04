@@ -73,6 +73,46 @@ public class CreateTrainingPlanTemplateValidatorTests
         Weeks = [week]
     };
 
+    /// <summary>
+    /// Builds a week carrying exactly <paramref name="sessionCount"/> minimal-but-valid sessions
+    /// (each satisfying the "at least one workout or standalone exercise" rule), spread across as
+    /// many days as needed (max 7 sessions per day, max 7 days) so the week-level aggregate cap is
+    /// exercised independently of any single day's count.
+    /// </summary>
+    private static TemplateWeekRequest BuildWeekWithSessionCount(int sessionCount)
+    {
+        List<TemplateDayRequest> days = [];
+        var remaining = sessionCount;
+        var dayOfWeek = 1;
+
+        while (remaining > 0)
+        {
+            var sessionsOnDay = Math.Min(remaining, 7);
+            days.Add(new TemplateDayRequest
+            {
+                DayOfWeek = dayOfWeek,
+                Sessions = Enumerable.Range(1, sessionsOnDay).Select(order => new TemplateSessionRequest
+                {
+                    Name = $"Session {dayOfWeek}-{order}",
+                    Order = order,
+                    StandaloneExercises =
+                    [
+                        new TemplateSessionExerciseRequest
+                        {
+                            ExerciseExternalId = Guid.NewGuid(),
+                            ExerciseName = "Filler",
+                            Order = 1
+                        }
+                    ]
+                }).ToList()
+            });
+            remaining -= sessionsOnDay;
+            dayOfWeek++;
+        }
+
+        return new TemplateWeekRequest { WeekNumber = 1, Days = days };
+    }
+
     [Fact]
     public void Validate_SessionEmomWithValidWodConfig_Passes()
     {
@@ -126,6 +166,29 @@ public class CreateTrainingPlanTemplateValidatorTests
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error => error.ErrorCode == ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void Validate_FifteenSessionsAcrossWeek_FailsWithOutOfRangeCode()
+    {
+        // 7 + 7 + 1, across 3 days — no single day exceeds the old per-day cap of 14, only the
+        // week-level aggregate (#862 review MAJOR) catches this.
+        var week = BuildWeekWithSessionCount(15);
+
+        var result = _validator.TestValidate(BuildRequest(week));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(error => error.ErrorCode == ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void Validate_FourteenSessionsAcrossWeek_Passes()
+    {
+        var week = BuildWeekWithSessionCount(14);
+
+        var result = _validator.TestValidate(BuildRequest(week));
+
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]

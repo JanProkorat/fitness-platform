@@ -29,15 +29,20 @@ internal static class TemplateWeekRuleSet
         week.RuleFor(w => w.Days)
             .Must(days => days.Count <= 7).WithErrorCode(ErrorCodes.OutOfRange)
             .Must(days => days.Select(d => d.DayOfWeek).Distinct().Count() == days.Count)
-                .WithErrorCode(ErrorCodes.OutOfRange);
+                .WithErrorCode(ErrorCodes.OutOfRange)
+            // Week-level aggregate, mirroring UpdateTrainingPlanValidator's flat
+            // `week.Sessions.Count <= 14` cap. The per-day cap this replaced (14 sessions on a
+            // single day, up to 7 days) allowed up to 98 sessions in one template week — a
+            // template could clone a week the plan's own PUT would then reject as over the
+            // 14-per-week limit, locking the coach out of saving further edits. Summing across
+            // Days subsumes the old per-day cap (no single day can exceed 14 once the week total
+            // is capped at 14), so it isn't kept separately.
+            .Must(days => days.Sum(d => d.Sessions.Count) <= 14).WithErrorCode(ErrorCodes.OutOfRange);
 
         week.RuleForEach(w => w.Days).ChildRules(day =>
         {
             day.RuleFor(d => d.DayOfWeek)
                 .InclusiveBetween(1, 7).WithErrorCode(ErrorCodes.OutOfRange);
-
-            day.RuleFor(d => d.Sessions)
-                .Must(sessions => sessions.Count <= 14).WithErrorCode(ErrorCodes.OutOfRange);
 
             day.RuleForEach(d => d.Sessions).ChildRules(session =>
             {
