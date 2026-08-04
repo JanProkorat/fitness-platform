@@ -83,6 +83,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateSessionExecutionIndexes(cancellationToken);
         await CreateMealTemplateIndexes(cancellationToken);
         await CreateNutritionPlanTemplateIndexes(cancellationToken);
+        await CreateTrainingPlanTemplateIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -669,6 +670,35 @@ public class MongoIndexInitializer : IHostedService
         var searchIndex = new CreateIndexModel<NutritionPlanTemplate>(
             Builders<NutritionPlanTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
             new CreateIndexOptions { Name = "idx_nutritionplantemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, searchIndex], ct);
+    }
+
+    // ── #862: TrainingPlanTemplate sharing-library indexes ─────────────────────────
+    //
+    // Per ILibraryDocument's remarks, every sharing-library collection must carry a unique
+    // externalId index (the sole lookup key LibraryDenialExtensions' loaders depend on for
+    // correctness — a duplicate would make the ownership/visibility guard judge the wrong
+    // document) plus the LibrarySearchHelper default-sort index.
+    /// <summary>
+    /// Creates the TrainingPlanTemplate indexes: ExternalId (unique) — the correctness
+    /// requirement (the sole lookup key for
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> /
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/>), and
+    /// <c>{ dateCreated: -1, externalId: 1 }</c> matches
+    /// <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>'s sort.
+    /// </summary>
+    private async Task CreateTrainingPlanTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.TrainingPlanTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<TrainingPlanTemplate>(
+            Builders<TrainingPlanTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingplantemplate_externalId", Unique = true });
+
+        var searchIndex = new CreateIndexModel<TrainingPlanTemplate>(
+            Builders<TrainingPlanTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingplantemplate_dateCreated_externalId" });
 
         await indexes.CreateManyAsync([externalIdIndex, searchIndex], ct);
     }

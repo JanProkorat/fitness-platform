@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;

@@ -33,6 +33,7 @@ public class MongoContext : IMongoContext
         SessionExecutions = database.GetCollection<SessionExecution>(MongoCollections.SessionExecutions);
         MealTemplates = database.GetCollection<MealTemplate>(MongoCollections.MealTemplates);
         NutritionPlanTemplates = database.GetCollection<NutritionPlanTemplate>(MongoCollections.NutritionPlanTemplates);
+        TrainingPlanTemplates = database.GetCollection<TrainingPlanTemplate>(MongoCollections.TrainingPlanTemplates);
     }
 
     /// <inheritdoc />
@@ -88,4 +89,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<TrainingPlanTemplate> TrainingPlanTemplates { get; }
 }
