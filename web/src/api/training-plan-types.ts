@@ -51,6 +51,16 @@ export interface ExerciseSet {
 
 /** An exercise within a training session (denormalized snapshot). */
 export interface SessionExercise {
+  /**
+   * Instance identifier for this specific exercise entry within its session —
+   * distinguishes two occurrences of the same catalog exercise
+   * (`exerciseExternalId`) programmed twice, or once standalone and once
+   * nested in a workout of the same session. Always present on read.
+   * Must be round-tripped on save via `UpdateSessionExerciseRequest.exerciseId`
+   * — omitting it re-mints the instance id server-side and orphans any
+   * exercise-level completion state keyed by it.
+   */
+  exerciseId: string;
   exerciseExternalId: string;
   exerciseName: string;
   order: number;
@@ -66,31 +76,33 @@ export interface SessionExercise {
 }
 
 /**
- * An ordered section within a training session (e.g. "Warm-up", "Hlavní").
- * The editor always works with sections — legacy plans without sections are
- * wrapped in a single synthetic "Hlavní" section on load.
+ * An ordered workout within a training session (e.g. "Warm-up", "Hlavní") —
+ * a block of exercises. A session can hold multiple workouts, each with its
+ * own exercises.
  */
-export interface TrainingSection {
-  /** Stable client-side identifier; reused across saves. New sections get crypto.randomUUID(). */
-  sectionId: string;
+export interface TrainingWorkout {
+  /** Stable client-side identifier; reused across saves. New workouts get crypto.randomUUID(). */
+  workoutId: string;
   /** Display order within the session (0-based). */
   order: number;
   /** Display name (e.g. "Hlavní", "Rozcvička"). */
   name: string;
-  /** Section-level workout format. Defaults to Standard. */
-  format: WorkoutFormat;
-  /** Format config. Null when format is Standard. */
+  /** Workout-level format. Null means inherit the session-level format. */
+  format?: WorkoutFormat | null;
+  /** Format config. Null when format is null or Standard. */
   formatConfig?: WodConfig | null;
-  /** Optional coach notes for this section. */
+  /** Optional coach notes for this workout. */
   notes?: string | null;
-  /** Exercises in this section. */
+  /** Exercises in this workout. */
   exercises: SessionExercise[];
 }
 
-/** A training session within a week. */
+/**
+ * A training session within a day. The parent `TrainingDay` owns the
+ * day-of-week — a session no longer carries its own.
+ */
 export interface TrainingSession {
   sessionId: string;
-  dayOfWeek: number;
   name: string;
   order: number;
   notes?: string | null;
@@ -98,17 +110,34 @@ export interface TrainingSession {
   format: WorkoutFormat;
   /** Session-level format config. */
   formatConfig?: WodConfig | null;
+  /** Workouts in this session. Each workout contains its own exercises. */
+  workouts: TrainingWorkout[];
   /**
-   * Sections in this session. The editor always works with sections.
-   * Legacy plans (flat exercises, no sections) are wrapped on load.
+   * Standalone exercises directly on this session — not grouped under any
+   * workout (e.g. a single finisher movement). Persisted, read/write.
    */
-  sections: TrainingSection[];
+  standaloneExercises: SessionExercise[];
   /**
-   * Flat view of exercises across all sections — present on API response
-   * objects only (computed, not stored). The store does not use this field;
-   * it reads from sections instead.
+   * Flat, computed, READ-ONLY view of every exercise in this session —
+   * `standaloneExercises` plus every workout's nested exercises. Present on
+   * API response objects only. MUST NEVER be sent back as
+   * `standaloneExercises` on save — doing so persists every nested workout
+   * exercise a second time and compounds on every subsequent save.
    */
-  exercises: SessionExercise[];
+  allExercises: SessionExercise[];
+}
+
+/**
+ * A single day within a training week (1 = Monday … 7 = Sunday). Every week
+ * materializes all 7 days — a rest day is a day with zero sessions.
+ */
+export interface TrainingDay {
+  /** Day of the week (1 = Monday, 7 = Sunday). */
+  dayOfWeek: number;
+  /** Training sessions scheduled for this day. */
+  sessions: TrainingSession[];
+  /** Optional coach note for this day. */
+  note?: string | null;
 }
 
 /** A week within the training plan. */
@@ -116,8 +145,8 @@ export interface TrainingWeek {
   weekNumber: number;
   status: 'Draft' | 'Published';
   datePublished?: string | null;
-  sessions: TrainingSession[];
-  dayNotes?: Record<number, string> | null;
+  /** Days in this week. Always 7 entries (Monday through Sunday). */
+  days: TrainingDay[];
 }
 
 /**
@@ -130,22 +159,22 @@ export interface TrainingPlanCompletion {
   date: string;
   sessionId: string;
   /**
-   * @deprecated Use `completedExerciseIdsBySection` instead. Kept for one
-   * release while the backend emits both fields. When `completedExerciseIdsBySection`
+   * @deprecated Use `completedExerciseIdsByWorkout` instead. Kept for one
+   * release while the backend emits both fields. When `completedExerciseIdsByWorkout`
    * is present, this flat list is ignored by lock derivation.
    */
   completedExerciseIds: string[];
   /**
-   * Per-section completion map: key = sectionId, value = exerciseExternalIds
-   * completed within that section. Prefer this over the deprecated flat
+   * Per-workout completion map: key = workoutId, value = exerciseExternalIds
+   * completed within that workout. Prefer this over the deprecated flat
    * `completedExerciseIds` field.
    */
-  completedExerciseIdsBySection?: Record<string, string[]>;
+  completedExerciseIdsByWorkout?: Record<string, string[]>;
   /**
-   * Section IDs the client has marked done at the section level (used for
-   * sections without exercises, e.g. ForTime "Running" workouts).
+   * Workout IDs the client has marked done at the workout level (used for
+   * workouts without exercises, e.g. ForTime "Running" workouts).
    */
-  completedSectionIds: string[];
+  completedWorkoutIds: string[];
   version: number;
 }
 
@@ -195,25 +224,25 @@ export interface LoggedSetDto {
 }
 
 /**
- * Per-section finished state as reported by the backend on the SessionExecutionDto.
- * A section is finished when either:
+ * Per-workout finished state as reported by the backend on the SessionExecutionDto.
+ * A workout is finished when either:
  *   - The session-level WorkoutLog is completed (IsSessionFinished = true), OR
- *   - The TrainingCompletion document records this specific section as finished
- *     (MarkSectionComplete path — section-grain completion without a full log).
+ *   - The TrainingCompletion document records this specific workout as finished
+ *     (MarkWorkoutComplete path — workout-grain completion without a full log).
  *
- * The web layer uses this to render the per-section "finished" label and disable
- * editing on sections that the client has completed, independently of the session-
+ * The web layer uses this to render the per-workout "finished" label and disable
+ * editing on workouts that the client has completed, independently of the session-
  * level IsSessionFinished flag.
  *
- * Hand-written (not from generated.ts) — mirrors the C# SectionFinishedStateDto.
+ * Hand-written (not from generated.ts) — mirrors the C# WorkoutFinishedStateDto.
  */
-export interface SectionFinishedStateDto {
-  /** The sectionId this finished state belongs to. Matches TrainingSection.sectionId. */
-  sectionId: string;
+export interface WorkoutFinishedStateDto {
+  /** The workoutId this finished state belongs to. Matches TrainingWorkout.workoutId. */
+  workoutId: string;
   /**
-   * Whether this section is finished.
-   * True when IsSessionFinished is true (session-level completion implies every section
-   * is done), OR when the TrainingCompletion document shows this section as complete.
+   * Whether this workout is finished.
+   * True when IsSessionFinished is true (session-level completion implies every workout
+   * is done), OR when the TrainingCompletion document shows this workout as complete.
    */
   isFinished: boolean;
 }
@@ -233,53 +262,53 @@ export interface SessionExecutionDto {
   /** True when the client finalised the workout log (WorkoutLog.IsCompleted). */
   isSessionFinished: boolean;
   /**
-   * @deprecated Use `completedSetsBySectionAndExercise` for section-aware lookup.
+   * @deprecated Use `completedSetsByWorkoutAndExercise` for workout-aware lookup.
    *
    * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
    * Value = sorted list of 1-based set numbers that were stamped as complete.
    * An absent key means no sets for that exercise were logged.
    *
-   * When the same exercise appears in multiple sections, this map reflects only the
-   * last-section-wins entry (legacy flattened view). Prefer `completedSetsBySectionAndExercise`.
+   * When the same exercise appears in multiple workouts, this map reflects only the
+   * last-workout-wins entry (legacy flattened view). Prefer `completedSetsByWorkoutAndExercise`.
    */
   completedSetsByExercise: Record<string, number[]>;
   /**
-   * @deprecated Use `loggedSetsBySectionAndExercise` for section-aware lookup.
+   * @deprecated Use `loggedSetsByWorkoutAndExercise` for workout-aware lookup.
    *
    * Key = exerciseExternalId (matches SessionExercise.exerciseExternalId).
    * Value = list of LoggedSetDto (one per logged set), carrying actual values,
    * snapshot-planned values, and the isModified flag.
    * An absent key means no sets for that exercise were logged.
    *
-   * When the same exercise appears in multiple sections, this map reflects only the
-   * last-section-wins entry. Prefer `loggedSetsBySectionAndExercise`.
+   * When the same exercise appears in multiple workouts, this map reflects only the
+   * last-workout-wins entry. Prefer `loggedSetsByWorkoutAndExercise`.
    */
   loggedSetsByExercise: Record<string, LoggedSetDto[]>;
   /**
-   * Section-aware completed sets map.
-   * Key = "{sectionId}:{exerciseExternalId}" composite string.
+   * Workout-aware completed sets map.
+   * Key = "{workoutId}:{exerciseExternalId}" composite string.
    * Value = sorted list of 1-based set numbers that were stamped as complete.
    *
-   * An absent key means no sets for that exercise in that section were logged.
-   * Use this in preference to `completedSetsByExercise` to avoid cross-section collisions
-   * (e.g. the same exercise appearing in both a Standard and an AMRAP section).
+   * An absent key means no sets for that exercise in that workout were logged.
+   * Use this in preference to `completedSetsByExercise` to avoid cross-workout collisions
+   * (e.g. the same exercise appearing in both a Standard and an AMRAP workout).
    *
    * Absent on responses from backends that pre-date this field — fall back to
    * `completedSetsByExercise` when the map is missing or the composite key is absent.
    */
-  completedSetsBySectionAndExercise?: Record<string, number[]>;
+  completedSetsByWorkoutAndExercise?: Record<string, number[]>;
   /**
-   * Section-aware logged sets map.
-   * Key = "{sectionId}:{exerciseExternalId}" composite string.
+   * Workout-aware logged sets map.
+   * Key = "{workoutId}:{exerciseExternalId}" composite string.
    * Value = list of LoggedSetDto (one per logged set).
    *
-   * An absent key means no sets for that exercise in that section were logged.
-   * Use this in preference to `loggedSetsByExercise` to avoid cross-section collisions.
+   * An absent key means no sets for that exercise in that workout were logged.
+   * Use this in preference to `loggedSetsByExercise` to avoid cross-workout collisions.
    *
    * Absent on responses from backends that pre-date this field — fall back to
    * `loggedSetsByExercise` when the map is missing or the composite key is absent.
    */
-  loggedSetsBySectionAndExercise?: Record<string, LoggedSetDto[]>;
+  loggedSetsByWorkoutAndExercise?: Record<string, LoggedSetDto[]>;
   /**
    * True when at least one set in any exercise under this session has isModified === true.
    * The web layer uses this to show the "upraveno" badge at the session-header level.
@@ -287,17 +316,17 @@ export interface SessionExecutionDto {
    */
   hasModifications: boolean;
   /**
-   * Per-section finished state for all sections in this session.
+   * Per-workout finished state for all workouts in this session.
    * Populated by the endpoint from both WorkoutLog and TrainingCompletion signals.
-   * A section is finished when IsSessionFinished is true (session-level completion
-   * implies every section is done), OR when the TrainingCompletion document records
-   * that specific section as complete via the MarkSectionComplete path.
+   * A workout is finished when IsSessionFinished is true (session-level completion
+   * implies every workout is done), OR when the TrainingCompletion document records
+   * that specific workout as complete via the MarkWorkoutComplete path.
    * Empty array (or absent) for sessions with no completion data.
    *
-   * The web layer uses this to render the per-section "finished" label and disable
-   * editing on completed sections independently of the session-level finished state.
+   * The web layer uses this to render the per-workout "finished" label and disable
+   * editing on completed workouts independently of the session-level finished state.
    */
-  finishedSections?: SectionFinishedStateDto[];
+  finishedWorkouts?: WorkoutFinishedStateDto[];
 }
 
 /**
@@ -403,28 +432,33 @@ export interface UpdateTrainingPlanRequest {
   startDate?: string | null;
 }
 
-/** Week data within a full-state plan update. */
+/**
+ * Week data within a full-state plan update. Stays FLAT on the wire — unlike
+ * the nested read shape (`TrainingWeek.days[].sessions[]`), the write DTO
+ * keeps `sessions` at the week level and rebuilds day notes into a map keyed
+ * by day-of-week (1..7).
+ */
 export interface UpdateTrainingWeekRequest {
   weekNumber: number;
   sessions: UpdateSessionRequest[];
   dayNotes?: Record<number, string> | null;
 }
 
-/** Section data within a session update. */
-export interface UpdateSectionRequest {
-  /** Stable section identifier. Pass the existing ID to preserve identity across saves. */
-  sectionId?: string | null;
+/** Workout data within a session update. */
+export interface UpdateWorkoutRequest {
+  /** Stable workout identifier. Pass the existing ID to preserve identity across saves. New GUID generated if null. */
+  workoutId?: string | null;
   /** Display order within the session (0-based). */
   order: number;
-  /** Display name of the section (e.g. "Hlavní", "Warm-up"). */
+  /** Display name of the workout (e.g. "Hlavní", "Warm-up"). */
   name: string;
-  /** Workout format for this section. Null means inherit the session-level format. */
+  /** Workout format. Null means inherit the session-level format. */
   format?: WorkoutFormat | null;
   /** Format configuration. Null when format is null or Standard. */
   formatConfig?: WodConfig | null;
-  /** Optional coach note for this workout/section. */
+  /** Optional coach note for this workout. */
   notes?: string | null;
-  /** Exercises belonging to this section. */
+  /** Exercises belonging to this workout. */
   exercises: UpdateSessionExerciseRequest[];
 }
 
@@ -437,12 +471,24 @@ export interface UpdateSessionRequest {
   notes?: string | null;
   format: WorkoutFormat;
   formatConfig?: WodConfig | null;
-  /** Ordered sections in this session. Must be non-empty. */
-  sections: UpdateSectionRequest[];
+  /** Ordered workouts in this session. Each workout contains its own exercises. */
+  workouts: UpdateWorkoutRequest[];
+  /**
+   * Standalone exercises directly on this session — not grouped under any
+   * workout. Shares one ordering sequence with `workouts`.
+   */
+  standaloneExercises: UpdateSessionExerciseRequest[];
 }
 
 /** Exercise data within a session update. */
 export interface UpdateSessionExerciseRequest {
+  /**
+   * Optional existing instance identifier for this exercise entry. New GUID
+   * generated server-side if null/omitted — always send the value read from
+   * `SessionExercise.exerciseId` to preserve identity (and any exercise-level
+   * completion state keyed by it) across saves.
+   */
+  exerciseId?: string | null;
   exerciseExternalId: string;
   exerciseName: string;
   order: number;
