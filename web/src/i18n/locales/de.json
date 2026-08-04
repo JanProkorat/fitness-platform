@@ -1394,7 +1394,7 @@
       "library": {
         "title": "Vorlagenbibliothek",
         "subtitle": "Öffentliche Workout-Vorlagen, die Sie als Ausgangspunkt verwenden können.",
-        "colSections": "Abschnitte",
+        "colWorkouts": "Trainings",
         "durationMinutes": "{{count}} Min.",
         "viewDetails": "Details anzeigen",
         "formatConfigLabel": "Format",

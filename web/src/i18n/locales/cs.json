@@ -1414,7 +1414,7 @@
       "library": {
         "title": "Knihovna workoutů",
         "subtitle": "Veřejné vzorové workouty, které můžete použít jako výchozí bod.",
-        "colSections": "Sekce",
+        "colWorkouts": "Tréninky",
         "durationMinutes": "{{count}} min",
         "viewDetails": "Zobrazit detail",
         "formatConfigLabel": "Formát",

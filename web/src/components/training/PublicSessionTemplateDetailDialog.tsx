@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type {
-  PublicWorkoutTemplateResponse,
-  TrainingSection as GenTrainingSection,
+  PublicSessionTemplateResponse,
+  TrainingWorkout as GenTrainingWorkout,
   SessionExercise as GenSessionExercise,
 } from '@/api/generated';
 import type { WorkoutFormat as WorkoutFormatType, WodConfig, MovementType as MovementTypeType } from '@/api/training-plan-types';
@@ -14,13 +14,13 @@ import {
   resolveLocalizedTemplateName,
 } from '@/lib/training-plan-format';
 
-interface PublicWorkoutTemplateDetailDialogProps {
+interface PublicSessionTemplateDetailDialogProps {
   open: boolean;
-  template: PublicWorkoutTemplateResponse | null;
+  template: PublicSessionTemplateResponse | null;
   onClose: () => void;
 }
 
-/** Small colored pill showing a section/session-level workout format. */
+/** Small colored pill showing a workout/session-level workout format. */
 function FormatBadge({ format }: { format: WorkoutFormatType }) {
   const { t } = useTranslation();
   return (
@@ -34,9 +34,9 @@ function FormatBadge({ format }: { format: WorkoutFormatType }) {
 }
 
 /**
- * Read-only summary of a section's format config (e.g. "Cap 20 min",
+ * Read-only summary of a workout's format config (e.g. "Cap 20 min",
  * "60 s × 10 rounds", "20 s / 10 s × 8 rounds"). Returns null for Standard
- * sections or when the estimated duration can't be derived.
+ * workouts or when the estimated duration can't be derived.
  */
 function useFormatConfigSummary(format: WorkoutFormatType, cfg: WodConfig | null | undefined): string | null {
   const { t } = useTranslation();
@@ -121,27 +121,27 @@ function ExerciseRow({ exercise, isWod }: { exercise: GenSessionExercise; isWod:
   );
 }
 
-function SectionBlock({ section }: { section: GenTrainingSection }) {
+function WorkoutBlock({ workout }: { workout: GenTrainingWorkout }) {
   const { t } = useTranslation();
-  const format = ((section.format ?? 'Standard') as WorkoutFormatType);
+  const format = ((workout.format ?? 'Standard') as WorkoutFormatType);
   const isWod = format !== 'Standard';
-  const configSummary = useFormatConfigSummary(format, section.formatConfig);
+  const configSummary = useFormatConfigSummary(format, workout.formatConfig);
 
   return (
     <div className="rounded-md border border-border-md overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-bg2">
-        <span className="flex-1 truncate text-[13px] font-semibold text-text">{section.name}</span>
+        <span className="flex-1 truncate text-[13px] font-semibold text-text">{workout.name}</span>
         {format !== 'Standard' && <FormatBadge format={format} />}
         {configSummary && <span className="text-[11px] text-text3 shrink-0">{configSummary}</span>}
       </div>
-      {section.notes && (
-        <div className="px-3 pt-2 text-[12px] italic text-text3">{section.notes}</div>
+      {workout.notes && (
+        <div className="px-3 pt-2 text-[12px] italic text-text3">{workout.notes}</div>
       )}
       <div className="flex flex-col gap-2 p-2.5">
-        {(section.exercises ?? []).length === 0 ? (
+        {(workout.exercises ?? []).length === 0 ? (
           <p className="text-[12px] text-text3">{t('training.template.noExercisesHint')}</p>
         ) : (
-          (section.exercises ?? []).map((ex, idx) => (
+          (workout.exercises ?? []).map((ex, idx) => (
             <ExerciseRow key={`${ex.exerciseExternalId}-${idx}`} exercise={ex} isWod={isWod} />
           ))
         )}
@@ -151,23 +151,23 @@ function SectionBlock({ section }: { section: GenTrainingSection }) {
 }
 
 /**
- * Read-only detail dialog for a public workout template — renders the full
- * sections -> exercises -> sets hierarchy embedded in the list response
+ * Read-only detail dialog for a public session template — renders the full
+ * workouts -> exercises -> sets hierarchy embedded in the list response
  * (no second call). Used from the "Template library" section on the
  * section-templates page.
  */
-export function PublicWorkoutTemplateDetailDialog({
+export function PublicSessionTemplateDetailDialog({
   open,
   template,
   onClose,
-}: PublicWorkoutTemplateDetailDialogProps) {
+}: PublicSessionTemplateDetailDialogProps) {
   const { t, i18n } = useTranslation();
 
   if (!template) return null;
 
   const format = ((template.format ?? 'Standard') as WorkoutFormatType);
   const displayName = resolveLocalizedTemplateName(template.name ?? '', template.localizedNames, i18n.language);
-  const sections = template.sections ?? [];
+  const workouts = template.workouts ?? [];
 
   return (
     <Dialog open={open} onClose={onClose} title={displayName} maxWidth={640}>
@@ -192,11 +192,11 @@ export function PublicWorkoutTemplateDetailDialog({
         )}
 
         <div className="flex flex-col gap-3">
-          {sections
+          {workouts
             .slice()
             .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-            .map((section, idx) => (
-              <SectionBlock key={section.sectionId ?? idx} section={section} />
+            .map((workout, idx) => (
+              <WorkoutBlock key={workout.workoutId ?? idx} workout={workout} />
             ))}
         </div>
       </div>

@@ -64,7 +64,7 @@ export function WeekOverviewGrid({
                   </div>
                 )}
                 {sessions.map((session) => {
-                  const sections = [...session.sections].sort((a, b) => a.order - b.order);
+                  const sections = [...session.workouts].sort((a, b) => a.order - b.order);
                   return (
                     <div
                       key={session.sessionId}
@@ -91,7 +91,7 @@ export function WeekOverviewGrid({
                             }
                             return (
                               <div
-                                key={section.sectionId}
+                                key={section.workoutId}
                                 className="rounded-sm bg-bg2 px-1.5 py-1"
                               >
                                 {/* Row 1: format chip + name (takes full remaining width) */}
