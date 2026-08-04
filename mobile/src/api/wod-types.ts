@@ -54,11 +54,15 @@ export interface WodSessionExercise {
  * Extended UpdateWorkoutExerciseRequest that includes WodResult and the
  * generated UpdateWorkoutSetRequest (which now carries planned fields natively).
  *
- * `sectionId` is hand-maintained here pending the next regen (#469).
- * The backend's UpdateWorkoutExerciseRequest gained a nullable SectionId (Guid)
- * in #469 so the write path can key logged exercises by (SectionId, ExerciseExternalId)
- * instead of ExerciseExternalId alone. A future regen will emit this field natively
- * from generated.ts — mirror the comment style in this file when it lands.
+ * `sectionId` is hand-maintained here pending its own regen fold-in (#469).
+ * NOTE (#872): the generated `UpdateWorkoutExerciseRequest` now natively
+ * carries `workoutId` — see generated.ts. `sectionId` here is the pre-#857
+ * name for the same concept (which workout/section a logged exercise
+ * belongs to) and is intentionally left as-is: the live-log write path
+ * (`mobile/src/api/workouts.ts` and its `sectionId`→`workoutId` wiring in
+ * the training-session screen) is explicitly out of #872's scope and stays
+ * catalog-keyed. Fold this into the native `workoutId` field on a future,
+ * dedicated pass through the live-log path.
  */
 export interface UpdateWodExerciseRequest {
   exerciseExternalId?: string;
@@ -67,9 +71,10 @@ export interface UpdateWodExerciseRequest {
   /** WOD outcome for this exercise (when exercise has a format override). */
   wodResult?: WodResult | null;
   /**
-   * The section (workout) this exercise belongs to — matches TrainingSection.sectionId.
-   * Optional: absent for legacy single-section logs (backend treats missing as the
-   * legacy flat-exercise behaviour). Added in #469; fold into generated.ts on next regen.
+   * The workout this exercise belongs to — matches TrainingWorkout.workoutId.
+   * Optional: absent for legacy single-workout logs (backend treats missing
+   * as the legacy flat-exercise behaviour). Added in #469; fold into
+   * generated.ts's native `workoutId` on a future live-log pass.
    */
   sectionId?: string;
 }
