@@ -633,6 +633,14 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([sessionIdIndex, ttlIndex, clientIdIndex, planIdIndex], ct);
     }
 
+    /// <summary>
+    /// Creates the SessionTemplate indexes: ExternalId (unique, the sole lookup key
+    /// <c>LibraryDenialExtensions</c>' loaders depend on for correctness), OwnerId (per-trainer
+    /// list queries, mirrors <c>WorkoutTemplate</c>'s ownerTrainerId), and
+    /// DateCreated+ExternalId (the <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>
+    /// default sort, mandated by <see cref="ILibraryDocument"/> — see #859's
+    /// <c>idx_mealtemplate_dateCreated_externalId</c> precedent).
+    /// </summary>
     private async Task CreateSessionTemplateIndexes(CancellationToken ct)
     {
         var indexes = _mongo.SessionTemplates.Indexes;
@@ -647,7 +655,13 @@ public class MongoIndexInitializer : IHostedService
             Builders<SessionTemplate>.IndexKeys.Ascending(t => t.OwnerId),
             new CreateIndexOptions { Name = "idx_sessiontemplate_ownerId" });
 
-        await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+        // Matches LibrarySearchHelper's default sort — mandated by ILibraryDocument for every
+        // sharing-library collection so paged search doesn't collection-scan.
+        var dateCreatedIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, ownerIndex, dateCreatedIndex], ct);
     }
 
     /// <summary>

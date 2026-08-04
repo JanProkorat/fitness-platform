@@ -104,7 +104,7 @@ public static class SessionTemplateSeedData
                 Format = Enum.Parse<WorkoutFormat>(entry.Format),
                 FormatConfig = MapWodConfig(entry.FormatConfig),
                 Workouts = workouts,
-                Visibility = WorkoutTemplateVisibility.Public,
+                Visibility = LibraryVisibility.Public,
                 Version = 1,
                 DateCreated = now,
             });
