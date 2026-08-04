@@ -376,6 +376,192 @@ public class NutritionPlanTemplateEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    // ── create with a genuinely populated week tree (#861 review — BLOCKING) ─
+
+    [Fact]
+    public async Task CreateTemplate_WithPopulatedWeekTree_PersistsFullShape()
+    {
+        var (owner, _) = await RegisterAsync("Nutritionist", "owner-create-populated");
+
+        var mealId = Guid.NewGuid();
+        var foodExternalId = Guid.NewGuid();
+
+        var response = await owner.PostAsJsonAsync("/nutrition/plan-templates", new
+        {
+            Name = "Populated Template",
+            Weeks = new[]
+            {
+                new
+                {
+                    WeekNumber = 1,
+                    Days = new[]
+                    {
+                        new
+                        {
+                            DayOfWeek = 1,
+                            Meals = new[]
+                            {
+                                new
+                                {
+                                    MealId = mealId,
+                                    Kind = "Breakfast",
+                                    Order = 1,
+                                    Foods = new[]
+                                    {
+                                        new
+                                        {
+                                            FoodExternalId = foodExternalId,
+                                            FoodName = "Oats",
+                                            AmountGrams = 80m
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await response.Content.ReadFromJsonAsync<TemplateSummaryDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+
+        var persisted = await FetchTemplateAsync(body!.TemplateId);
+        persisted.Should().NotBeNull();
+        persisted!.Weeks.Should().ContainSingle().Which.WeekNumber.Should().Be(1);
+
+        var day = persisted.Weeks[0].Days.Should().ContainSingle().Subject;
+        day.DayOfWeek.Should().Be(1);
+
+        var meal = day.Meals.Should().ContainSingle().Subject;
+        meal.MealId.Should().Be(mealId);
+        meal.Kind.Should().Be(MealKind.Breakfast);
+        meal.Order.Should().Be(1);
+
+        var food = meal.Foods.Should().ContainSingle().Subject;
+        food.FoodExternalId.Should().Be(foodExternalId);
+        food.FoodName.Should().Be("Oats");
+        food.AmountGrams.Should().Be(80m);
+    }
+
+    [Fact]
+    public async Task CreateTemplate_DayOfWeekOutOfRange_Returns400()
+    {
+        var (owner, _) = await RegisterAsync("Nutritionist", "owner-create-dow-invalid");
+
+        var response = await owner.PostAsJsonAsync("/nutrition/plan-templates", new
+        {
+            Name = "Invalid Day",
+            Weeks = new[]
+            {
+                new
+                {
+                    WeekNumber = 1,
+                    Days = new[] { new { DayOfWeek = 99, Meals = Array.Empty<object>() } }
+                }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.Should().Contain("OUT_OF_RANGE");
+    }
+
+    [Fact]
+    public async Task CreateTemplate_DuplicateDayOfWeekWithinWeek_Returns400()
+    {
+        var (owner, _) = await RegisterAsync("Nutritionist", "owner-create-dow-dup");
+
+        var response = await owner.PostAsJsonAsync("/nutrition/plan-templates", new
+        {
+            Name = "Duplicate Day",
+            Weeks = new[]
+            {
+                new
+                {
+                    WeekNumber = 1,
+                    Days = new[]
+                    {
+                        new { DayOfWeek = 1, Meals = Array.Empty<object>() },
+                        new { DayOfWeek = 1, Meals = Array.Empty<object>() }
+                    }
+                }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.Should().Contain("OUT_OF_RANGE");
+    }
+
+    [Fact]
+    public async Task CreateTemplate_DuplicateWeekNumber_Returns400()
+    {
+        var (owner, _) = await RegisterAsync("Nutritionist", "owner-create-week-dup");
+
+        var response = await owner.PostAsJsonAsync("/nutrition/plan-templates", new
+        {
+            Name = "Duplicate Week",
+            Weeks = new[]
+            {
+                new { WeekNumber = 1, Days = Array.Empty<object>() },
+                new { WeekNumber = 1, Days = Array.Empty<object>() }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.Should().Contain("OUT_OF_RANGE");
+    }
+
+    [Fact]
+    public async Task CreateTemplate_AmountGramsNotPositive_Returns400()
+    {
+        var (owner, _) = await RegisterAsync("Nutritionist", "owner-create-amount-invalid");
+
+        var response = await owner.PostAsJsonAsync("/nutrition/plan-templates", new
+        {
+            Name = "Invalid Amount",
+            Weeks = new[]
+            {
+                new
+                {
+                    WeekNumber = 1,
+                    Days = new[]
+                    {
+                        new
+                        {
+                            DayOfWeek = 1,
+                            Meals = new[]
+                            {
+                                new
+                                {
+                                    Kind = "Breakfast",
+                                    Order = 1,
+                                    Foods = new[]
+                                    {
+                                        new
+                                        {
+                                            FoodExternalId = Guid.NewGuid(),
+                                            FoodName = "Oats",
+                                            AmountGrams = 0m
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.Should().Contain("OUT_OF_RANGE");
+    }
+
     private sealed class TemplateSummaryDto
     {
         public Guid TemplateId { get; set; }
