@@ -5,7 +5,7 @@ import {
   listSectionTemplates,
   deleteSectionTemplate,
 } from '@/api/sectionTemplates';
-import type { WorkoutTemplateResponse, PublicSessionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat as WorkoutFormatType, WodConfig } from '@/api/training-plan-types';
 import { FORMAT_LABEL_KEYS, FORMAT_BG_COLORS, FORMAT_COLORS } from '@/constants/training';
 import { useApiMutation } from '@/hooks/useApiMutation';
@@ -17,8 +17,6 @@ import { Button, SearchInput } from '@/components/ui';
 import { Pagination, ListView, CardGrid, Card, CardBody, CardPropRow, DatabaseTable } from '@/components/data';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
 import { WorkoutDialog } from '@/components/training/WorkoutDialog';
-import { PublicSessionTemplateCard } from '@/components/training/PublicSessionTemplateCard';
-import { PublicSessionTemplateDetailDialog } from '@/components/training/PublicSessionTemplateDetailDialog';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -50,23 +48,18 @@ export default function SectionTemplatesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplateResponse | null>(null);
 
-  const [libraryTemplate, setLibraryTemplate] = useState<PublicSessionTemplateResponse | null>(null);
-
   const debouncedSearch = useDebouncedValue(search, 300, () => setPage(1));
 
-  // Single query loads all templates (backend cap: 200) plus the public
-  // session template library (unpaginated). Filters + pagination on the
-  // trainer's own templates are applied client-side — same visual UX as
-  // ExercisesPage but no backend search/filter calls per keystroke.
-  // Query key shared with TrainingPlanPage's own workout-templates query
-  // (see that page's ['workout-templates'] key) so a create/update/delete
-  // here cascades an invalidation there too, and vice versa.
+  // Single query loads all templates (backend cap: 200). Filters +
+  // pagination are applied client-side — same visual UX as ExercisesPage
+  // but no backend search/filter calls per keystroke. Query key shared
+  // with TrainingPlanPage's own workout-templates query (see that page's
+  // ['workout-templates'] key) so a create/update/delete here cascades an
+  // invalidation there too, and vice versa.
   const { data, isLoading } = useQuery({
     queryKey: ['workout-templates'],
     queryFn: () => listSectionTemplates(),
   });
-
-  const publicSessionTemplates = data?.publicSessionTemplates ?? [];
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['workout-templates'] });
@@ -82,7 +75,7 @@ export default function SectionTemplatesPage() {
 
   // Filter → paginate
   const { totalCount, totalPages, pageItems } = useMemo(() => {
-    const all = data?.ownTemplates ?? [];
+    const all = data ?? [];
     const q = debouncedSearch.trim().toLowerCase();
     const filtered = all.filter((tpl) => {
       if (q && !(tpl.name ?? '').toLowerCase().includes(q)) return false;
@@ -350,30 +343,6 @@ export default function SectionTemplatesPage() {
             <Pagination page={page} totalPages={totalPages} totalCount={totalCount} onPageChange={setPage} className="mt-3" />
           </>
         )}
-
-        {/* Template library — public workout templates, read-only, always
-            rendered as cards regardless of the own-templates view toggle.
-            Hidden entirely when the library is empty (own templates keep
-            their existing empty-state pattern above, untouched). */}
-        {!isLoading && publicSessionTemplates.length > 0 && (
-          <div className="mt-6">
-            <div className="mb-2">
-              <h2 className="text-[13px] font-semibold text-text">
-                {t('training.template.library.title')}
-              </h2>
-              <p className="text-xs text-text3">{t('training.template.library.subtitle')}</p>
-            </div>
-            <CardGrid>
-              {publicSessionTemplates.map((tpl) => (
-                <PublicSessionTemplateCard
-                  key={tpl.externalId}
-                  template={tpl}
-                  onClick={() => setLibraryTemplate(tpl)}
-                />
-              ))}
-            </CardGrid>
-          </div>
-        )}
         </div>
       </div>
 
@@ -401,13 +370,6 @@ export default function SectionTemplatesPage() {
             ? t('training.template.deleteConfirmMessage', { name: confirmDelete.target.name })
             : undefined
         }
-      />
-
-      {/* Public workout template detail — read-only, full sections/exercises/sets */}
-      <PublicSessionTemplateDetailDialog
-        open={!!libraryTemplate}
-        template={libraryTemplate}
-        onClose={() => setLibraryTemplate(null)}
       />
     </div>
   );

@@ -4,40 +4,23 @@ import type {
   CreateWorkoutTemplateRequest,
   UpdateWorkoutTemplateRequest,
   ListWorkoutTemplatesResponse,
-  PublicSessionTemplateResponse,
 } from '@/api/generated';
 
 export type {
   WorkoutTemplateResponse,
   CreateWorkoutTemplateRequest,
   UpdateWorkoutTemplateRequest,
-  PublicSessionTemplateResponse,
 };
 
-/** Result of {@link listSectionTemplates} — the trainer's own templates plus the public library. */
-export interface SectionTemplatesListResult {
-  /** The calling trainer's own workout templates (unchanged shape/semantics). */
-  ownTemplates: WorkoutTemplateResponse[];
-  /**
-   * Public session templates available to all trainers, embedded in full.
-   * A session template templates a whole session (it embeds `workouts[]`),
-   * distinct from the trainer's own `WorkoutTemplateResponse` (one workout).
-   */
-  publicSessionTemplates: PublicSessionTemplateResponse[];
-}
-
 /**
- * List workout templates for the authenticated trainer, plus the public
- * session template library. Backend caps pageSize at 200.
+ * List workout templates for the authenticated trainer. Backend caps
+ * pageSize at 200.
  */
-export async function listSectionTemplates(): Promise<SectionTemplatesListResult> {
+export async function listSectionTemplates(): Promise<WorkoutTemplateResponse[]> {
   const { data } = await api.get<ListWorkoutTemplatesResponse>('/training/workout-templates', {
     params: { page: 1, pageSize: 200 },
   });
-  return {
-    ownTemplates: data.ownTemplates ?? [],
-    publicSessionTemplates: data.publicSessionTemplates ?? [],
-  };
+  return data.ownTemplates ?? [];
 }
 
 /** Get a single workout template by ID. */

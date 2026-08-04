@@ -208,7 +208,7 @@ export default function TrainingPlanPage() {
     queryFn: () => listSectionTemplates(),
     staleTime: 60_000,
   });
-  const sectionTemplates = templatesData?.ownTemplates ?? [];
+  const sectionTemplates = templatesData ?? [];
 
   // ── Load plan on mount ──
   useEffect(() => {
