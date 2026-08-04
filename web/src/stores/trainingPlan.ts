@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   TrainingPlanDetail,
   RawTrainingPlanDetail,
+  RawTrainingWorkout,
   TrainingWorkout,
   TrainingSession,
   SessionExercise,
@@ -276,7 +277,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     });
 
     const normalizeWorkout = (
-      w: TrainingWorkout,
+      w: RawTrainingWorkout,
       sessionFormat: WorkoutFormat,
       idx: number,
     ): TrainingWorkout => ({

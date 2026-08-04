@@ -76,19 +76,17 @@ export interface SessionExercise {
 }
 
 /**
- * An ordered workout within a training session (e.g. "Warm-up", "Hlavní") —
- * a block of exercises. A session can hold multiple workouts, each with its
- * own exercises.
+ * A workout's non-format fields, shared by both the raw wire shape (format
+ * nullable — inherits the session's) and the resolved internal/store shape
+ * (format always a concrete value, resolved by `setPlan`'s hydration).
  */
-export interface TrainingWorkout {
+export interface TrainingWorkoutFields {
   /** Stable client-side identifier; reused across saves. New workouts get crypto.randomUUID(). */
   workoutId: string;
   /** Display order within the session (0-based). */
   order: number;
   /** Display name (e.g. "Hlavní", "Rozcvička"). */
   name: string;
-  /** Workout-level format. Null means inherit the session-level format. */
-  format?: WorkoutFormat | null;
   /** Format config. Null when format is null or Standard. */
   formatConfig?: WodConfig | null;
   /** Optional coach notes for this workout. */
@@ -98,21 +96,38 @@ export interface TrainingWorkout {
 }
 
 /**
- * A training session's workout/exercise fields, shared by both the raw wire
- * shape (nested under a day) and the flattened internal/store shape (see
+ * A workout exactly as the backend serves it, nested under a
+ * `RawTrainingSession`. `format` is nullable — null means "inherit the
+ * session-level format".
+ */
+export interface RawTrainingWorkout extends TrainingWorkoutFields {
+  format?: WorkoutFormat | null;
+}
+
+/**
+ * An ordered workout within a training session (e.g. "Warm-up", "Hlavní") —
+ * a block of exercises, as used throughout the store and UI. `format` is
+ * always resolved to a concrete value by `setPlan`'s hydration (falling back
+ * to the session's format when the wire value was null) — every mutation
+ * that creates or updates a workout locally assigns a concrete `WorkoutFormat`
+ * too, so this type never carries the wire's nullable variant.
+ */
+export interface TrainingWorkout extends TrainingWorkoutFields {
+  format: WorkoutFormat;
+}
+
+/**
+ * A training session's non-format fields, shared by both the raw wire shape
+ * (nested under a day) and the flattened internal/store shape (see
  * `TrainingSession` below).
  */
-export interface TrainingSessionWorkoutFields {
+export interface TrainingSessionFields {
   sessionId: string;
   name: string;
   order: number;
   notes?: string | null;
-  /** Session-level workout format (kept as inheritable default). */
-  format: WorkoutFormat;
   /** Session-level format config. */
   formatConfig?: WodConfig | null;
-  /** Workouts in this session. Each workout contains its own exercises. */
-  workouts: TrainingWorkout[];
   /**
    * Standalone exercises directly on this session — not grouped under any
    * workout (e.g. a single finisher movement). Persisted, read/write.
@@ -131,10 +146,16 @@ export interface TrainingSessionWorkoutFields {
 /**
  * A training session exactly as the backend serves it — nested under a
  * `RawTrainingDay`, no `dayOfWeek` of its own (the parent day owns it).
- * Consumed only at the API boundary (`training-plans.ts` return types) and
- * flattened into `TrainingSession` by `trainingPlan.ts`'s `setPlan`.
+ * `format` is nullable — kept as an inheritable default for workouts whose
+ * own format is null. Consumed only at the API boundary (`training-plans.ts`
+ * return types) and flattened into `TrainingSession` by `trainingPlan.ts`'s
+ * `setPlan`.
  */
-export type RawTrainingSession = TrainingSessionWorkoutFields;
+export interface RawTrainingSession extends TrainingSessionFields {
+  format?: WorkoutFormat | null;
+  /** Workouts in this session. Each workout contains its own exercises. */
+  workouts: RawTrainingWorkout[];
+}
 
 /**
  * A single day within a training week (1 = Monday … 7 = Sunday) exactly as
@@ -163,13 +184,18 @@ export interface RawTrainingWeek {
  * A training session as used throughout the store and UI — flattened back
  * out of the wire's per-day nesting, with `dayOfWeek` restored directly on
  * the session (mirrors the shape this app's editor has always worked with).
- * Built by `trainingPlan.ts`'s `setPlan` from a `RawTrainingSession` plus its
- * parent `RawTrainingDay.dayOfWeek`; the flat internal shape is intentional —
- * only the GET-hydration edge needs to unnest the wire's `days[]`, the write
- * edge (`UpdateTrainingWeekRequest`) is already flat.
+ * `format` is always resolved to a concrete value (never the wire's nullable
+ * variant), same rationale as `TrainingWorkout.format`. Built by
+ * `trainingPlan.ts`'s `setPlan` from a `RawTrainingSession` plus its parent
+ * `RawTrainingDay.dayOfWeek`; the flat internal shape is intentional — only
+ * the GET-hydration edge needs to unnest the wire's `days[]`, the write edge
+ * (`UpdateTrainingWeekRequest`) is already flat.
  */
-export interface TrainingSession extends TrainingSessionWorkoutFields {
+export interface TrainingSession extends TrainingSessionFields {
   dayOfWeek: number;
+  format: WorkoutFormat;
+  /** Workouts in this session. Each workout contains its own exercises. */
+  workouts: TrainingWorkout[];
 }
 
 /**
