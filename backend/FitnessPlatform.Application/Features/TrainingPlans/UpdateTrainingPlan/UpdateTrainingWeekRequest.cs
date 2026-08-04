@@ -68,11 +68,11 @@ public class UpdateSessionRequest
     /// <summary>
     /// Ordered workouts in this session. Each workout contains its own exercises.
     /// </summary>
-    public List<UpdateWorkoutRequest> Workouts { get; set; } = [];
+    public List<UpdateTrainingWorkoutRequest> Workouts { get; set; } = [];
 
     /// <summary>
     /// Standalone exercises directly on this session — not grouped under any workout.
-    /// Shares one ordering sequence with <see cref="Workouts"/>: a duplicate <see cref="UpdateWorkoutRequest.Order"/>/
+    /// Shares one ordering sequence with <see cref="Workouts"/>: a duplicate <see cref="UpdateTrainingWorkoutRequest.Order"/>/
     /// <see cref="UpdateSessionExerciseRequest.Order"/> across the two lists is rejected (#857 phase 3a).
     /// </summary>
     public List<UpdateSessionExerciseRequest> StandaloneExercises { get; set; } = [];
@@ -81,7 +81,7 @@ public class UpdateSessionRequest
 /// <summary>
 /// Represents a training workout submitted in a full-state session update.
 /// </summary>
-public class UpdateWorkoutRequest
+public class UpdateTrainingWorkoutRequest
 {
     /// <summary>
     /// Optional existing workout identifier. New GUID generated if null.

@@ -178,7 +178,7 @@ public class SessionLockBroadcastTests
             Order = session.Order,
             Workouts =
             [
-                new UpdateWorkoutRequest
+                new UpdateTrainingWorkoutRequest
                 {
                     WorkoutId = section.WorkoutId,
                     Order = section.Order,
