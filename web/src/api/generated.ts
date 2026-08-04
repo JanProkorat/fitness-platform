@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:55666";
+        this.baseUrl = baseUrl ?? "https://localhost:56840";
 
     }
 
@@ -7037,6 +7037,562 @@ export class ApiClient {
     }
 
     /**
+     * Full-state update of a nutrition plan template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateDetailDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<NutritionPlanTemplateDetailDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NutritionPlanTemplateDetailDto>(null as any);
+    }
+
+    /**
+     * Get nutrition plan template detail
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    getTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateDetailDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<NutritionPlanTemplateDetailDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NutritionPlanTemplateDetailDto>(null as any);
+    }
+
+    /**
+     * Search nutrition plan templates
+     * @param page Page number (1-based).
+     * @param pageSize Number of items per page.
+     * @param search (optional) Optional case-insensitive substring match against the template name.
+     * @param goal (optional) Optional filter by primary fitness goal.
+     * @param dietaryStyle (optional) Optional filter by dietary style.
+     * @param weekCount (optional) Optional filter by exact week count.
+     * @return Success
+     */
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (goal !== undefined && goal !== null)
+            url_ += "goal=" + encodeURIComponent("" + goal) + "&";
+        if (dietaryStyle !== undefined && dietaryStyle !== null)
+            url_ += "dietaryStyle=" + encodeURIComponent("" + dietaryStyle) + "&";
+        if (weekCount !== undefined && weekCount !== null)
+            url_ += "weekCount=" + encodeURIComponent("" + weekCount) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SearchTemplatesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SearchTemplatesResponse>(null as any);
+    }
+
+    /**
+     * Create a nutrition plan template
+     * @return Success
+     */
+    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateTemplateEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
+    }
+
+    /**
+     * Instantiate a nutrition plan template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(instantiateTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInstantiateTemplateEndpoint(_response);
+        });
+    }
+
+    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<InstantiateTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<InstantiateTemplateResponse>(null as any);
+    }
+
+    /**
+     * Delete a nutrition plan template
+     * @return No Content
+     */
+    deleteTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Save a nutrition plan as a template
+     * @return Success
+     */
+    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createTemplateFromPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateTemplateFromPlanEndpoint(_response);
+        });
+    }
+
+    protected processCreateTemplateFromPlanEndpoint(response: AxiosResponse): Promise<NutritionPlanTemplateSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<NutritionPlanTemplateSummaryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<NutritionPlanTemplateSummaryDto>(null as any);
+    }
+
+    /**
+     * Copy a nutrition plan template
+     * @return No Content
+     */
+    copyTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/nutrition/plan-templates/{TemplateId}/copy";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCopyTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Full-state update of a nutrition plan
      * @param planId The plan's public identifier (route parameter).
      * @return Success
@@ -8188,6 +8744,484 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Update meal template
+     * @param templateId Public identifier of the meal template to update.
+     * @return Meal template updated
+     */
+    updateMealTemplateEndpoint(templateId: string, updateMealTemplateRequest: UpdateMealTemplateRequest, signal?: AbortSignal): Promise<MealTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateMealTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateMealTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateMealTemplateEndpoint(response: AxiosResponse): Promise<MealTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MealTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Readable but owned by another nutritionist", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MealTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Get meal template
+     * @param templateId Public identifier of the meal template.
+     * @return Meal template detail
+     */
+    getMealTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<MealTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMealTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetMealTemplateEndpoint(response: AxiosResponse): Promise<MealTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MealTemplateDetailResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MealTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Delete meal template
+     * @param templateId Public identifier of the meal template to delete.
+     * @return Meal template deleted
+     */
+    deleteMealTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteMealTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteMealTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Readable but owned by another nutritionist", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Search meal templates
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param search (optional) Optional search term to filter templates by name.
+     * @return Paged meal template results
+     */
+    searchMealTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, signal?: AbortSignal): Promise<SearchMealTemplatesResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchMealTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processSearchMealTemplatesEndpoint(response: AxiosResponse): Promise<SearchMealTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SearchMealTemplatesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SearchMealTemplatesResponse>(null as any);
+    }
+
+    /**
+     * Create meal template
+     * @return Success
+     */
+    createMealTemplateEndpoint(createMealTemplateRequest: CreateMealTemplateRequest, signal?: AbortSignal): Promise<MealTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createMealTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateMealTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateMealTemplateEndpoint(response: AxiosResponse): Promise<MealTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MealTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MealTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Save meal template from plan
+     * @return Success
+     */
+    saveMealTemplateFromPlanEndpoint(saveMealTemplateFromPlanRequest: SaveMealTemplateFromPlanRequest, signal?: AbortSignal): Promise<MealTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates/from-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveMealTemplateFromPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveMealTemplateFromPlanEndpoint(_response);
+        });
+    }
+
+    protected processSaveMealTemplateFromPlanEndpoint(response: AxiosResponse): Promise<MealTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MealTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MealTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Copy meal template
+     * @param templateId Public identifier of the source meal template to copy.
+     * @return Success
+     */
+    copyMealTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<MealTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/nutrition/meal-templates/{templateId}/copy";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyMealTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCopyMealTemplateEndpoint(response: AxiosResponse): Promise<MealTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<MealTemplateDetailResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MealTemplateDetailResponse>(null as any);
     }
 
     /**
@@ -16477,46 +17511,44 @@ Must be a valid PhotoDiaryMode value. */
     mode?: PhotoDiaryMode;
 }
 
-/** Detailed nutrition plan response including all weeks, days, meals, and foods. */
-export interface GetPlanResponse {
-    /** Plan's public identifier. */
-    planId?: string;
-    /** The client's ClientProfile.PublicId — the client-facing identifier consumed by
-web/mobile to build routes like /trainer/clients/{clientId}/.... NOT the
-internal Mongo storage key (ApplicationUser.Id since #840) — see
-FromDocument. */
-    clientId?: string;
-    /** Nutritionist's public user identifier. */
-    nutritionistId?: string;
-    /** Display name of the plan. */
+/** Full nutrition-plan-template detail including all weeks, days, meals, foods, recipes, and supplements. Used by the detail GET and by PUT's response. */
+export interface NutritionPlanTemplateDetailDto {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** The nutritionist who owns this template. */
+    ownerId?: string;
+    /** Display name. */
     name?: string;
-    /** Current plan status as string (Draft, Active, Archived). */
-    status?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Dietary style this template targets. */
+    dietaryStyle?: DietaryStyle | undefined;
     /** Global daily nutrition targets. */
     globalSettings?: GlobalNutritionSettings | undefined;
-    /** All weeks in the plan with their days, meals, and foods. */
-    weeks?: PlanWeek[];
+    /** Supplement recommendations carried by this template. */
+    supplements?: TemplateSupplementDto[];
+    /** All weeks in the template with their days, meals, foods, and recipes. */
+    weeks?: TemplateWeek[];
+    /** Number of weeks, server-computed from Weeks. */
+    weekCount?: number;
+    /** Who can read this entry besides its owner. */
+    visibility?: LibraryVisibility;
     /** Optimistic concurrency version. */
     version?: number;
-    /** When the plan was created. */
+    /** When the template was created. */
     dateCreated?: string;
-    /** When the plan was last updated. */
+    /** When the template was last updated. */
     dateUpdated?: string | undefined;
-    /** The Monday when Week 1 begins, if set. */
-    startDate?: string | undefined;
-    /** When this plan was marked as completed, if applicable. */
-    dateCompleted?: string | undefined;
-    /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
-Null if no questionnaire is linked to this plan. */
-    questionnaireResponseId?: string | undefined;
-    /** Per-meal eaten state for all MealLog documents associated with this plan.
-One entry per (MealId, LogDate) pair that has a log record; meals without a log entry
-are absent (equivalent to not-touched / no badge).
-Populated by the endpoint after loading the plan. Ownership is guaranteed by the
-plan ownership gate above the MealLog query — filtering by PlanId is safe. */
-    mealLogs?: MealLogDto[];
-    /** Supplement recommendations attached to this plan. */
-    supplements?: SupplementDto[];
+}
+
+/** Dietary style or eating pattern preference. */
+export enum DietaryStyle {
+    Standard = "Standard",
+    Vegetarian = "Vegetarian",
+    Vegan = "Vegan",
+    GlutenFree = "GlutenFree",
 }
 
 /** Global daily nutrition targets for a plan. */
@@ -16533,15 +17565,25 @@ export interface GlobalNutritionSettings {
     fiberGrams?: number | undefined;
 }
 
-/** A single week within a nutrition plan. */
-export interface PlanWeek {
-    /** Week number within the plan (1-based). */
+/** A single supplement entry in a nutrition-plan-template response DTO. */
+export interface TemplateSupplementDto {
+    /** Stable public identifier for the supplement. */
+    externalId?: string;
+    /** Name of the supplement. */
+    name?: string;
+    /** Optional dosage instruction. */
+    dose?: string | undefined;
+    /** Optional additional notes. */
+    notes?: string | undefined;
+}
+
+/** A single week within a NutritionPlanTemplate. Slim compared to PlanWeek — carries no Status/DatePublished, which are meaningless outside a client plan. */
+export interface TemplateWeek {
+    /** Week number within the template (1-based). */
     weekNumber?: number;
-    /** Publish status of this week (Draft or Published). */
-    status?: WeekStatus;
-    /** When this week was published (status changed to Published). */
-    datePublished?: string | undefined;
-    /** Days in this week. */
+    /** Days in this week. Reuses PlanDay unchanged — everything below the week
+level (PlanDay, PlanMeal, MealFood,
+MealRecipe) is a straight clone between a template and a client plan. */
     days?: PlanDay[];
 }
 
@@ -16602,6 +17644,285 @@ export interface MealRecipe {
     note?: string | undefined;
     /** Distinct food categories from the recipe's ingredients (snapshot). */
     foodCategories?: string[] | undefined;
+}
+
+/** Controls who can read a sharing-library entry (meal, session, nutrition-plan, or training-plan template) besides its owner. Every consuming document stores this as a string via [BsonRepresentation(BsonType.String)] on the property, so a seeded or legacy value keeps deserializing correctly regardless of this enum's numeric order. */
+export enum LibraryVisibility {
+    Private = "Private",
+    Public = "Public",
+}
+
+/** Request for a full-state update of a nutrition plan template: replaces name, description, goal/dietary style, settings, week tree, and supplements. */
+export interface UpdateTemplateRequest {
+    /** Updated display name. */
+    name: string;
+    /** Updated free-text description. */
+    description?: string | undefined;
+    /** Updated primary fitness goal. */
+    goal?: PrimaryGoal | undefined;
+    /** Updated dietary style. */
+    dietaryStyle?: DietaryStyle | undefined;
+    /** Updated global daily nutrition targets. */
+    globalSettings?: GlobalNutritionSettings | undefined;
+    /** Full week structure to persist. Replaces all existing weeks, days, meals, foods, and
+recipes. */
+    weeks: TemplateWeekRequest[];
+    /** Full supplement list to persist. Replaces all existing supplements. */
+    supplements?: TemplateSupplementRequest[];
+    /** Expected version for optimistic concurrency control. */
+    version?: number;
+}
+
+/** Represents a single week submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateWeekRequest {
+    /** Week number within the template (1-based). */
+    weekNumber?: number;
+    /** Days in this week. */
+    days?: TemplateDayRequest[];
+}
+
+/** Represents a single day submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateDayRequest {
+    /** Day of week (1 = Monday … 7 = Sunday). */
+    dayOfWeek?: number;
+    /** Optional note for this day. */
+    note?: string | undefined;
+    /** Meals planned for this day. */
+    meals?: TemplateMealRequest[];
+}
+
+/** Represents a single meal submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateMealRequest {
+    /** Optional existing meal identifier. When provided the meal retains its identity;
+when null a new Guid is generated. */
+    mealId?: string | undefined;
+    /** Kind of meal (Breakfast, Lunch, Dinner, etc.). */
+    kind?: MealKind;
+    /** Display order within the day (1-based). */
+    order?: number;
+    /** Suggested time for the meal (e.g. "08:00"). */
+    time?: string | undefined;
+    /** Optional note for this meal. */
+    note?: string | undefined;
+    /** Foods included in this meal. */
+    foods?: TemplateMealFoodRequest[];
+    /** Recipes included in this meal. */
+    recipes?: TemplateMealRecipeRequest[];
+}
+
+/** Represents a single food entry submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateMealFoodRequest {
+    /** External (public) identifier of the food item. */
+    foodExternalId?: string;
+    /** Display name of the food (snapshot at time of planning). */
+    foodName?: string;
+    /** Czech name. */
+    foodNameCs?: string | undefined;
+    /** English name. */
+    foodNameEn?: string | undefined;
+    /** German name. */
+    foodNameDe?: string | undefined;
+    /** Food category snapshot. */
+    foodCategory?: string | undefined;
+    /** Nutrient values per 100 grams for this food. */
+    nutrientValuePer100Grams?: NutrientValue;
+    /** Amount in grams to include in this meal. */
+    amountGrams?: number;
+    /** Optional note for this food in the template. */
+    note?: string | undefined;
+}
+
+/** Represents a single recipe entry submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateMealRecipeRequest {
+    /** Recipe identifier. */
+    recipeId?: string;
+    /** Display name of the recipe. */
+    recipeName?: string;
+    /** Nutrient values per one serving. */
+    nutrientValuePerServing?: NutrientValue;
+    /** Number of servings. */
+    servings?: number;
+    /** Optional note. */
+    note?: string | undefined;
+    /** Distinct food categories from the recipe's ingredients (snapshot). */
+    foodCategories?: string[] | undefined;
+}
+
+/** Represents a single supplement entry submitted when creating or full-state updating a nutrition plan template. */
+export interface TemplateSupplementRequest {
+    /** Stable public identifier for this supplement. Clients generate this on creation and send
+it back unchanged on subsequent updates. When empty, the endpoint generates a new
+Guid. */
+    externalId?: string | undefined;
+    /** Name of the supplement (e.g. "Vitamin D3"). Required. */
+    name?: string;
+    /** Optional dosage instruction in free text (e.g. "1 capsule with breakfast"). */
+    dose?: string | undefined;
+    /** Optional additional notes. */
+    notes?: string | undefined;
+}
+
+/** Paginated response containing a list of nutrition plan template summaries. */
+export interface SearchTemplatesResponse {
+    /** List of template summaries for the current page. */
+    templates?: NutritionPlanTemplateSummaryDto[];
+    /** Total number of templates matching the filter. */
+    totalCount?: number;
+    /** Current page number. */
+    page?: number;
+    /** Number of items per page. */
+    pageSize?: number;
+}
+
+/** Lightweight nutrition-plan-template summary — used for search results and as the response of endpoints that create or clone a template without needing the full week tree back. */
+export interface NutritionPlanTemplateSummaryDto {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** The nutritionist who owns this template. */
+    ownerId?: string;
+    /** Display name. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Dietary style this template targets. */
+    dietaryStyle?: DietaryStyle | undefined;
+    /** Number of weeks, server-computed from the template's week tree. */
+    weekCount?: number;
+    /** Who can read this entry besides its owner. */
+    visibility?: LibraryVisibility;
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When the template was created. */
+    dateCreated?: string;
+    /** When the template was last updated. */
+    dateUpdated?: string | undefined;
+}
+
+/** Request to search nutrition plan templates with optional filters and pagination. */
+export interface SearchTemplatesRequest {
+}
+
+/** Response describing the new client plan created by instantiating a template. */
+export interface InstantiateTemplateResponse {
+    /** The newly created plan's public identifier. */
+    planId?: string;
+    /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
+    clientId?: string;
+    /** Display name of the new plan. */
+    name?: string;
+    /** Status of the new plan — always Draft immediately after instantiation. */
+    status?: string;
+    /** When the new plan was created. */
+    dateCreated?: string;
+}
+
+/** Request to instantiate a nutrition plan template into a new Draft client plan. */
+export interface InstantiateTemplateRequest {
+    /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
+the internal ApplicationUser.Id storage key. */
+    clientId: string;
+    /** Display name for the new plan. */
+    name: string;
+    /** Optional start date. Must be a Monday and not in the past. */
+    startDate?: string | undefined;
+}
+
+/** Request to fetch a single nutrition plan template's full detail. */
+export interface GetTemplateRequest {
+}
+
+/** Request to save an existing nutrition plan as a new template. */
+export interface CreateTemplateFromPlanRequest {
+    /** The source plan's public identifier (NutritionPlan.ExternalId — NOT the client's
+ClientProfile.PublicId). */
+    planId: string;
+    /** Display name for the new template. */
+    name: string;
+    /** Optional free-text description for the new template. */
+    description?: string | undefined;
+    /** Who can read the new template besides the caller. Defaults to Private. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request to create a new nutrition plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
+export interface CreateTemplateRequest {
+    /** Display name of the template. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Optional primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional dietary style this template targets. */
+    dietaryStyle?: DietaryStyle | undefined;
+    /** Optional global daily nutrition targets. */
+    globalSettings?: GlobalNutritionSettings | undefined;
+    /** Supplement recommendations to carry on the template. */
+    supplements?: TemplateSupplementRequest[];
+    /** A materialisation instruction for the empty-weeks path: creates this many weeks, each
+with all 7 days and no meals. Mutually exclusive with Weeks. Never persisted
+as supplied — WeekCount is always server-computed from
+the resulting week tree. */
+    weekCount?: number | undefined;
+    /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
+    weeks?: TemplateWeekRequest[] | undefined;
+    /** Who can read this entry besides the caller. Defaults to Private. */
+    visibility?: LibraryVisibility;
+}
+
+/** Detailed nutrition plan response including all weeks, days, meals, and foods. */
+export interface GetPlanResponse {
+    /** Plan's public identifier. */
+    planId?: string;
+    /** The client's ClientProfile.PublicId — the client-facing identifier consumed by
+web/mobile to build routes like /trainer/clients/{clientId}/.... NOT the
+internal Mongo storage key (ApplicationUser.Id since #840) — see
+FromDocument. */
+    clientId?: string;
+    /** Nutritionist's public user identifier. */
+    nutritionistId?: string;
+    /** Display name of the plan. */
+    name?: string;
+    /** Current plan status as string (Draft, Active, Archived). */
+    status?: string;
+    /** Global daily nutrition targets. */
+    globalSettings?: GlobalNutritionSettings | undefined;
+    /** All weeks in the plan with their days, meals, and foods. */
+    weeks?: PlanWeek[];
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When the plan was created. */
+    dateCreated?: string;
+    /** When the plan was last updated. */
+    dateUpdated?: string | undefined;
+    /** The Monday when Week 1 begins, if set. */
+    startDate?: string | undefined;
+    /** When this plan was marked as completed, if applicable. */
+    dateCompleted?: string | undefined;
+    /** Linked questionnaire response (cross-DB reference to PostgreSQL QuestionnaireResponse.PublicId).
+Null if no questionnaire is linked to this plan. */
+    questionnaireResponseId?: string | undefined;
+    /** Per-meal eaten state for all MealLog documents associated with this plan.
+One entry per (MealId, LogDate) pair that has a log record; meals without a log entry
+are absent (equivalent to not-touched / no badge).
+Populated by the endpoint after loading the plan. Ownership is guaranteed by the
+plan ownership gate above the MealLog query — filtering by PlanId is safe. */
+    mealLogs?: MealLogDto[];
+    /** Supplement recommendations attached to this plan. */
+    supplements?: SupplementDto[];
+}
+
+/** A single week within a nutrition plan. */
+export interface PlanWeek {
+    /** Week number within the plan (1-based). */
+    weekNumber?: number;
+    /** Publish status of this week (Draft or Published). */
+    status?: WeekStatus;
+    /** When this week was published (status changed to Published). */
+    datePublished?: string | undefined;
+    /** Days in this week. */
+    days?: PlanDay[];
 }
 
 /** Per-meal eaten state derived from a MealLog document. Lets the web layer render eaten/not-touched indicators and lock editing affordances on meals the client has already confirmed as eaten. */
@@ -16961,6 +18282,142 @@ export interface GetConversationContextRequest {
 }
 
 export interface ArchiveConversationRequest {
+}
+
+/** Full meal template detail returned by get, create, update, copy, and from-plan endpoints. */
+export interface MealTemplateDetailResponse {
+    /** Public identifier of the meal template. */
+    templateId?: string;
+    /** Display name of the saved meal. */
+    name?: string;
+    /** Optional description. */
+    description?: string | undefined;
+    /** Optional hint for which meal slot this template suits — not a constraint. */
+    kind?: MealKind | undefined;
+    /** Foods in this meal — the same snapshot shape used inside a nutrition plan, so this
+response can be dropped directly into an UpdatePlan request's meal. */
+    foods?: MealFood[];
+    /** Recipes in this meal — the same snapshot shape used inside a nutrition plan. */
+    recipes?: MealRecipe[];
+    /** Server-computed total macronutrients across Foods and Recipes. */
+    totalNutrients?: NutrientTotals;
+    /** Who can read this template besides its owner. */
+    visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the nutritionist who owns this template. */
+    isOwnedByCurrentUser?: boolean;
+    /** When the template was created. */
+    dateCreated?: string;
+    /** When the template was last updated. */
+    dateUpdated?: string | undefined;
+    /** Optimistic concurrency version, required on PUT requests. */
+    version?: number;
+}
+
+/** Request model for updating an existing meal template. */
+export interface UpdateMealTemplateRequest {
+    /** Updated display name. */
+    name: string;
+    /** Updated description. */
+    description?: string | undefined;
+    /** Updated meal-slot hint — not a constraint. */
+    kind?: MealKind | undefined;
+    /** Updated foods — the existing MealFood snapshot shape, verbatim. */
+    foods?: MealFood[];
+    /** Updated recipes — the existing MealRecipe snapshot shape, verbatim. */
+    recipes?: MealRecipe[];
+    /** Updated visibility. */
+    visibility?: LibraryVisibility;
+    /** The version the caller last read. Used for optimistic-concurrency CAS; a stale value
+returns 409. */
+    version?: number;
+}
+
+/** Paginated response for meal template search results. */
+export interface SearchMealTemplatesResponse {
+    /** List of matching meal templates. */
+    templates?: MealTemplateSummaryDto[];
+    /** Total number of matching templates. */
+    totalCount?: number;
+    /** Current page number. */
+    page?: number;
+    /** Number of items per page. */
+    pageSize?: number;
+}
+
+/** Lightweight meal template summary for search/list views. */
+export interface MealTemplateSummaryDto {
+    /** Public identifier of the meal template. */
+    templateId?: string;
+    /** Display name of the saved meal. */
+    name?: string;
+    /** Optional description. */
+    description?: string | undefined;
+    /** Optional hint for which meal slot this template suits — not a constraint. */
+    kind?: MealKind | undefined;
+    /** Number of foods in this template. */
+    foodCount?: number;
+    /** Number of recipes in this template. */
+    recipeCount?: number;
+    /** Server-computed total macronutrients. */
+    totalNutrients?: NutrientTotals;
+    /** Who can read this template besides its owner. */
+    visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the nutritionist who owns this template. */
+    isOwnedByCurrentUser?: boolean;
+    /** When the template was created. */
+    dateCreated?: string;
+}
+
+/** Request model for searching meal templates. */
+export interface SearchMealTemplatesRequest {
+}
+
+/** Request model for saving a meal template from an existing nutrition plan meal. */
+export interface SaveMealTemplateFromPlanRequest {
+    /** The source nutrition plan's public identifier (NutritionPlan.ExternalId) — not
+the client id. */
+    planId: string;
+    /** The week number (1-based) within the plan that contains the source meal. */
+    weekNumber?: number;
+    /** The day of week (1 = Monday … 7 = Sunday) within the week that contains the source meal. */
+    dayOfWeek?: number;
+    /** Identifier of the source PlanMeal within the addressed day. */
+    mealId: string;
+    /** Display name for the new template. */
+    name: string;
+    /** Optional description for the new template. */
+    description?: string | undefined;
+    /** Who can read the new template besides the caller. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request model for retrieving a single meal template. */
+export interface GetMealTemplateRequest {
+}
+
+/** Request model for deleting a meal template. */
+export interface DeleteMealTemplateRequest {
+}
+
+/** Request model for creating a new meal template. */
+export interface CreateMealTemplateRequest {
+    /** Display name of the saved meal. */
+    name: string;
+    /** Optional description. */
+    description?: string | undefined;
+    /** Optional hint for which meal slot this template suits — not a constraint. */
+    kind?: MealKind | undefined;
+    /** Foods to include — the existing MealFood snapshot shape, verbatim. */
+    foods?: MealFood[];
+    /** Recipes to include — the existing MealRecipe snapshot shape, verbatim. */
+    recipes?: MealRecipe[];
+    /** Who can read this template besides the caller. Defaults to
+Private when omitted. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request model for copying a readable meal template to the caller's own library. */
+export interface CopyMealTemplateRequest {
 }
 
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
@@ -17678,6 +19135,36 @@ Empty when no live-training progress has been logged for today. */
 True when any set under any exercise in the session has IsModified == true in the latest log.
 Missing entries are treated as false (no modifications / no log). */
     hasModificationsBySession?: { [key: string]: boolean; };
+    /** Per-session completed exercise INSTANCE ids for today, keyed by SessionId. Values are
+raw ExerciseId values — unlike
+CompletedExerciseIdsBySession and
+CompletedExerciseIdsByWorkoutAndSession (both keyed on the catalog
+ExerciseExternalId), this field lets a client address
+completion for one specific placement of an exercise when the same catalog exercise
+appears twice in one session (standalone AND nested, or nested twice) (#877).
+Union of two sources — read this before consuming the field. The value set is
+the union of:
+Every id in the session's CompletedExerciseInstanceIds,
+carried verbatim — these already identify a single placement.
+Performance-derived completion, fanned out to every sibling instance sharing the
+same catalog id. WorkoutExercise (the live-training-assistant side of
+Performance) carries only ExerciseExternalId
+— it has NO instance id, so a fully-logged exercise from a live workout cannot be
+attributed to one specific placement. Rather than silently omitting it (which would make
+this field strictly LESS complete than the catalog-keyed fields it supersedes, and a
+session finished through the live-training assistant would render with no ticks at all),
+every ExerciseId in the session whose
+ExerciseExternalId matches a fully-logged Performance
+exercise is added here too. Concretely: if a session holds catalog exercise X both
+standalone and nested in a workout, and the client fully logs X via the live-training
+assistant, BOTH instance ids appear in this field — the write path cannot distinguish
+which placement was actually performed, so both are reported complete rather than
+neither.
+Empty dictionary when no active plan exists or no session has any completed exercise for
+today. Additive alongside CompletedExerciseIdsBySession and
+CompletedExerciseIdsByWorkoutAndSession, which keep their existing
+catalog-keyed semantics unchanged. */
+    completedExerciseInstanceIdsBySession?: { [key: string]: string[]; };
 }
 
 /** A photo attached to a session diary entry, as returned in PhotosBySession. */
@@ -17837,7 +19324,11 @@ explicit value. */
     /** Target muscle groups fetched from the Exercise document.
 Empty list when the exercise no longer exists in the database. */
     muscleGroups?: MuscleGroup[];
-    /** True when every planned set has a completed workout log entry. */
+    /** True when this specific exercise instance (ExerciseId) was marked complete
+directly (checkbox/instance-keyed completion), OR every planned set has a completed
+workout log entry. The instance-keyed check is what lets a set-less exercise ever report
+complete, and what lets two placements of the same catalog exercise
+(ExerciseExternalId) in one session be completed independently (#877). */
     isCompleted?: boolean;
     /** True when at least one set under this exercise has IsModified == true.
 Always false when no workout log exists for this exercise. */
@@ -18574,11 +20065,11 @@ export interface GetComplianceScoreRequest {
 /** Response containing the client's plans. */
 export interface GetClientPlansResponse {
     /** Plan summaries. */
-    items?: ClientPlanItem2[];
+    items?: ClientOwnPlanItem[];
 }
 
-/** Lightweight plan summary for the client's plan list. */
-export interface ClientPlanItem2 {
+/** Lightweight plan summary for the client's own plan list. Distinct from the trainer-facing ClientPlanItem in Features/Trainers/ListClientPlans — the two DTOs previously shared a name, which made NSwag's generated client's type-name assignment dependent on document processing order. */
+export interface ClientOwnPlanItem {
     /** Plan public identifier. */
     planId?: string;
     /** Display name. */

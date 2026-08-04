@@ -108,7 +108,7 @@ public class UpdateTrainingPlanEndpointTests
                             Order = 1,
                             Workouts =
                             [
-                                new UpdateWorkoutRequest
+                                new UpdateTrainingWorkoutRequest
                                 {
                                     WorkoutId = Guid.Empty,
                                     Order = 1,

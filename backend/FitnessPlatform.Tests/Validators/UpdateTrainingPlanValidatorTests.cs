@@ -50,7 +50,7 @@ public class UpdateTrainingPlanValidatorTests
                         Order = 1,
                         Workouts =
                         [
-                            new UpdateWorkoutRequest
+                            new UpdateTrainingWorkoutRequest
                             {
                                 WorkoutId = Guid.NewGuid(),
                                 Order = workoutOrder,
@@ -171,7 +171,7 @@ public class UpdateTrainingPlanValidatorTests
                         Order = 1,
                         Workouts =
                         [
-                            new UpdateWorkoutRequest
+                            new UpdateTrainingWorkoutRequest
                             {
                                 WorkoutId = Guid.NewGuid(),
                                 Order = firstWorkoutOrder,
@@ -187,7 +187,7 @@ public class UpdateTrainingPlanValidatorTests
                                     }
                                 ]
                             },
-                            new UpdateWorkoutRequest
+                            new UpdateTrainingWorkoutRequest
                             {
                                 WorkoutId = Guid.NewGuid(),
                                 Order = secondWorkoutOrder,
