@@ -35,4 +35,5 @@ internal sealed class MigrationTestMongoContext : IMongoContext
     public IMongoCollection<TrainerNote> TrainerNotes => _db.GetCollection<TrainerNote>("trainer_notes");
     public IMongoCollection<SessionTemplate> SessionTemplates => _db.GetCollection<SessionTemplate>("sessionTemplates");
     public IMongoCollection<MealTemplate> MealTemplates => _db.GetCollection<MealTemplate>("mealTemplates");
+    public IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates => _db.GetCollection<NutritionPlanTemplate>("nutritionPlanTemplates");
 }

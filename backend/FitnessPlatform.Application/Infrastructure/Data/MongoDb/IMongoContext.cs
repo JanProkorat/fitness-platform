@@ -102,4 +102,9 @@ public interface IMongoContext
     /// meals (foods + recipes) shareable across nutrition plans.
     /// </summary>
     IMongoCollection<MealTemplate> MealTemplates { get; }
+
+    /// <summary>
+    /// Reusable nutrition plan templates collection (#856 sharing-library model, #861).
+    /// </summary>
+    IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates { get; }
 }

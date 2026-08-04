@@ -82,6 +82,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateSessionTemplateIndexes(cancellationToken);
         await CreateSessionExecutionIndexes(cancellationToken);
         await CreateMealTemplateIndexes(cancellationToken);
+        await CreateNutritionPlanTemplateIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -646,6 +647,30 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_sessiontemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    /// <summary>
+    /// Required indexes for the nutrition-plan-template sharing library (#856/#861) — see
+    /// <see cref="ILibraryDocument"/>'s remarks: <c>{ externalId: 1 }</c> unique is a
+    /// correctness requirement (the sole lookup key for
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> /
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/>), and
+    /// <c>{ dateCreated: -1, externalId: 1 }</c> matches
+    /// <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>'s sort.
+    /// </summary>
+    private async Task CreateNutritionPlanTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.NutritionPlanTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<NutritionPlanTemplate>(
+            Builders<NutritionPlanTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_nutritionplantemplate_externalId", Unique = true });
+
+        var searchIndex = new CreateIndexModel<NutritionPlanTemplate>(
+            Builders<NutritionPlanTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_nutritionplantemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, searchIndex], ct);
     }
 
     // ── #859: MealTemplate sharing-library indexes ────────────────────────────────
