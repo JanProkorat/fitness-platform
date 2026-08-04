@@ -18,11 +18,29 @@
  *
  * MMKV instance: mmkv.liveSession (separate instance, mirroring todayStore).
  *
- * Persistence versioning (#240):
+ * Persistence versioning (#240, #872):
  *   Version 2 — re-keyed wodResults from Record<exerciseExternalId | sectionId, WodResult>.
  *   The old format used a special sentinel key ("session-level WOD key") that has been
  *   replaced by the actual sectionId. Any persisted v1 state with that sentinel key is
  *   migrated by dropping the legacy entry (the runner re-derives from the current section).
+ *
+ *   Version 3 (#872) — the training-session read shape moved from
+ *   sections/exercises to workouts/standaloneExercises. `wodResults`' section-
+ *   level half of its key space changes MEANING, not just name: a `sectionId`
+ *   from before this migration is a value from a retired document shape and
+ *   cannot be resolved to the new `workoutId` space (a fresh, distinct id
+ *   assigned when the plan was created/updated under the new shape — see
+ *   TrainingWorkout, no 1:1 carry-over from the old sectionId). The
+ *   exerciseExternalId half of the key space (per-exercise WOD format
+ *   overrides, still catalog-keyed by design — see the live-log carve-out
+ *   note below) is unaffected in MEANING, but since a single wodResults map
+ *   mixes both halves under one key space with no version-time way to tell
+ *   which entries are which, v2→v3 drops the whole map rather than
+ *   attempting a partial, lossy remap. All other persisted maps
+ *   (`completedSets`, `skippedSets`, `skippedExercises`, `formOverrides`)
+ *   keep their exerciseExternalId keying unchanged — they feed the live-log
+ *   write path (`UpdateWodExerciseRequest`/`workouts.ts`), which stays
+ *   catalog-keyed by design and is out of #872's scope.
  */
 
 import { create } from 'zustand'
@@ -30,7 +48,7 @@ import { createMMKV } from 'react-native-mmkv'
 import type { WodResult } from '@/api/wod-types'
 
 const MMKV_KEY = 'session'
-const PERSIST_VERSION = 2
+const PERSIST_VERSION = 3
 const mmkv = createMMKV({ id: 'mmkv.liveSession' })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,8 +83,11 @@ export interface LiveSessionState {
   currentExerciseIdx: number
   currentSetIdx: number
   /**
-   * Active section index within the current session's sections array.
-   * Null when the session has no sections (flat legacy plan).
+   * Active index within the current session's ordered items list (the
+   * interleave of TrainingWorkout blocks and standalone-exercise wrappers,
+   * merged by their shared `order` sequence — see
+   * `trainingCardFormat.getOrderedSessionItems`). Null when the session has
+   * no items.
    */
   currentSectionIdx: number | null
   /** exerciseExternalId → sorted array of completed set indices. */
@@ -225,6 +246,15 @@ const INITIAL_STATE: LiveSessionState = {
  * v1 → v2: Drop any wodResults key that is the old session-level sentinel.
  *   The sentinel was a single fixed string used as a top-level WOD key.
  *   It is no longer valid — section-level WODs are now keyed by sectionId.
+ *
+ * v2 → v3 (#872): Drop `wodResults` entirely. Its keys meant either a
+ *   (retired) sectionId or a catalog exerciseExternalId; the current shape
+ *   needs a workoutId or a per-instance exerciseId instead, and neither can
+ *   be derived from the old key without the plan tree in hand at migration
+ *   time. An in-flight live session that had recorded WOD rounds loses that
+ *   round-tracking on this one migration (the runner re-derives from the
+ *   current position going forward); every other persisted field is
+ *   unaffected and carries over untouched.
  */
 function migrateState(raw: LiveSessionState): LiveSessionState {
   const version = raw._version ?? 1
@@ -233,17 +263,29 @@ function migrateState(raw: LiveSessionState): LiveSessionState {
     return raw
   }
 
-  // v1 → v2: drop the old session-level sentinel key from wodResults.
-  // The key was a 13-char string starting with "__" (implementation detail
-  // of the previous schema). We identify it by the double-underscore prefix
-  // to avoid hard-coding the exact value in this file.
-  const migratedWodResults: Record<string, WodResult> = {}
-  for (const [key, value] of Object.entries(raw.wodResults ?? {})) {
-    if (key.startsWith('__')) {
-      // Legacy sentinel — drop it. The section runner will produce a fresh result.
-      continue
+  let migratedWodResults: Record<string, WodResult> = raw.wodResults ?? {}
+
+  if (version < 2) {
+    // v1 → v2: drop the old session-level sentinel key from wodResults.
+    // The key was a 13-char string starting with "__" (implementation detail
+    // of the previous schema). We identify it by the double-underscore prefix
+    // to avoid hard-coding the exact value in this file.
+    const afterV2: Record<string, WodResult> = {}
+    for (const [key, value] of Object.entries(migratedWodResults)) {
+      if (key.startsWith('__')) {
+        // Legacy sentinel — drop it. The section runner will produce a fresh result.
+        continue
+      }
+      afterV2[key] = value
     }
-    migratedWodResults[key] = value
+    migratedWodResults = afterV2
+  }
+
+  if (version < 3) {
+    // v2 → v3: the sectionId half of wodResults' key space is a value from
+    // a retired document shape with no 1:1 mapping to the new workoutId
+    // space — drop the whole map rather than attempt a partial remap.
+    migratedWodResults = {}
   }
 
   return {

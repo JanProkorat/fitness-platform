@@ -49,7 +49,7 @@ import type {
   SessionExercise,
   ExerciseSet,
   MuscleGroup,
-  TrainingSection,
+  TrainingWorkout,
   WorkoutFormat,
   WodConfig,
   MovementType,
@@ -101,13 +101,14 @@ import type { ExerciseSummaryInput } from '@/components/training/liveTrainingHel
 type WodAwareExercise = SessionExercise
 
 /**
- * The generated TrainingSession type now includes sections and WOD fields.
+ * The generated TrainingSession type now exposes `workouts` +
+ * `standaloneExercises` instead of a flat `sections`/`exercises` shape.
  */
 interface WodAwareSession {
   sessionId?: string
   name?: string
-  exercises?: SessionExercise[]
-  sections?: TrainingSection[]
+  workouts?: TrainingWorkout[]
+  standaloneExercises?: SessionExercise[]
   format?: WorkoutFormat | null
   formatConfig?: WodConfig | null
 }
@@ -115,29 +116,57 @@ interface WodAwareSession {
 // ─── Section helpers ──────────────────────────────────────────────────────────
 
 /**
- * Returns effective sections for a session.
- * Falls back to a single default section wrapping flat exercises for legacy plans.
- * The section name is resolved via t() so en/de users don't see hardcoded Czech.
+ * A single renderable "section" band in the live-training runner — either a
+ * real multi-exercise `TrainingWorkout` or a synthetic single-exercise
+ * wrapper built from a standalone session exercise. Kept as a local
+ * duck-typed shape (rather than importing `trainingCardFormat.SessionListItem`
+ * directly) so every existing `.sectionId` / `.exercises` / `.format` read
+ * throughout this screen's live-runner logic keeps working unchanged — only
+ * the construction site (`getEffectiveSections` below) changes.
+ */
+interface TrainingSectionLike {
+  sectionId?: string
+  order?: number
+  name?: string
+  format?: WorkoutFormat | null
+  formatConfig?: WodConfig | null
+  notes?: string | null
+  exercises?: SessionExercise[]
+}
+
+/**
+ * Returns the ordered list of session "sections" — real workouts and
+ * standalone exercises interleaved by their shared `order` sequence,
+ * mirroring `trainingCardFormat.getOrderedSessionItems`. Merges
+ * `session.workouts` and `session.standaloneExercises` ONLY: a nested
+ * exercise's own `order` is scoped inside its workout and must never enter
+ * this merge (the QA fixture seeds a nested exercise and a standalone
+ * exercise with the same order value — merging the nested one in would
+ * double-render it). There is no legacy flat-exercise fallback any more —
+ * every session document is created directly in the workouts shape.
  */
 function getEffectiveSections(
   session: WodAwareSession,
-  t: (key: string) => string,
-): TrainingSection[] {
-  if (session.sections && session.sections.length > 0) {
-    return session.sections
-  }
-  const exercises = session.exercises ?? []
-  if (exercises.length === 0) return []
-  return [
-    {
-      sectionId: 'default',
-      order: 0,
-      name: t('training.section.defaultName'),
-      format: undefined,
-      formatConfig: undefined,
-      exercises,
-    },
-  ]
+): TrainingSectionLike[] {
+  const workoutItems: TrainingSectionLike[] = (session.workouts ?? []).map((w) => ({
+    sectionId: w.workoutId,
+    order: w.order ?? 0,
+    name: w.name,
+    format: w.format,
+    formatConfig: w.formatConfig,
+    notes: w.notes,
+    exercises: w.exercises ?? [],
+  }))
+  const standaloneItems: TrainingSectionLike[] = (session.standaloneExercises ?? []).map((ex) => ({
+    sectionId: ex.exerciseId,
+    order: ex.order ?? 0,
+    name: ex.exerciseName,
+    format: ex.format,
+    formatConfig: ex.formatConfig,
+    notes: ex.notes,
+    exercises: [ex],
+  }))
+  return [...workoutItems, ...standaloneItems].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
 /**
@@ -145,7 +174,7 @@ function getEffectiveSections(
  * Section format inherits from session format when not explicitly set.
  */
 function resolveSection(
-  section: TrainingSection,
+  section: TrainingSectionLike,
   sessionFormat: WorkoutFormat | null,
   sessionFormatConfig: WodConfig | null,
 ): { format: WorkoutFormat | null; formatConfig: WodConfig | null; exercises: SessionExercise[] } {
@@ -1095,7 +1124,7 @@ const roadmapStyles = StyleSheet.create({
 
 interface PreStartProps {
   sessionName: string
-  sections: TrainingSection[]
+  sections: TrainingSectionLike[]
   exerciseMuscleGroups: Record<string, MuscleGroup[]>
   onStart: () => void
 }
@@ -2068,7 +2097,7 @@ export default function WorkoutLogScreen() {
 
   // ── Session exercises (from API) ──
   const [exercises, setExercises] = useState<SessionExercise[]>([])
-  const [sections, setSections] = useState<TrainingSection[]>([])
+  const [sections, setSections] = useState<TrainingSectionLike[]>([])
   const [exerciseMuscleGroups, setExerciseMuscleGroups] = useState<
     Record<string, MuscleGroup[]>
   >({})
@@ -2211,18 +2240,22 @@ export default function WorkoutLogScreen() {
           (sessionId && sessionList.find((s) => s.sessionId === sessionId)) ||
           sessionList[0]
         if (!rawSession) return
-        // Cast to WOD-aware type (sections + format fields)
+        // Cast to WOD-aware type (workouts/standaloneExercises + format fields)
         const session = rawSession as unknown as WodAwareSession
         setSessionDisplayName(session.name ?? '')
-        setExercises(session.exercises ?? [])
         setExerciseMuscleGroups(resp.exerciseMuscleGroups ?? {})
         // Capture session-level WOD format
         const fmt = session.format ?? null
         setSessionFormat(fmt)
         setSessionFormatConfig(session.formatConfig ?? null)
-        // Load sections (falls back to single default section for flat plans)
-        const effectiveSections = getEffectiveSections(session, t)
+        // Load sections — the ordered interleave of workouts + standalone
+        // exercises (merged by their shared `order` sequence). `exercises`
+        // (the flat state consumed elsewhere on this screen) is derived from
+        // this same ordered list, not from allExercises directly, so its
+        // order matches what the user sees rendered.
+        const effectiveSections = getEffectiveSections(session)
         setSections(effectiveSections)
+        setExercises(effectiveSections.flatMap((sec) => sec.exercises ?? []))
         // (showWodHero removed in #338 — overlay was a duplicate of inline render sites)
 
         // Restore the section-finished interstitial if the user backgrounded
