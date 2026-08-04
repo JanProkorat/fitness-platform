@@ -98,6 +98,12 @@ public interface IMongoContext
     IMongoCollection<SessionExecution> SessionExecutions { get; }
 
     /// <summary>
+    /// Reusable meal template documents (#859 sharing library) — nutritionist-owned saved
+    /// meals (foods + recipes) shareable across nutrition plans.
+    /// </summary>
+    IMongoCollection<MealTemplate> MealTemplates { get; }
+
+    /// <summary>
     /// Reusable nutrition plan templates collection (#856 sharing-library model, #861).
     /// </summary>
     IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates { get; }

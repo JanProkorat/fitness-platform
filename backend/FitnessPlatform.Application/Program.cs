@@ -193,6 +193,10 @@ builder.Services.AddSingleton<PresenceTracker>();
 // Macro Calculator
 builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculatorService>();
 
+// System clock — see rules/csharp-style.md#timeprovider. Not previously registered because no
+// endpoint injected it yet; the meal-template feature (#859) is the first consumer.
+builder.Services.AddSingleton(TimeProvider.System);
+
 // Nutrition Auth Helper (cross-DB link verification)
 builder.Services.AddScoped<NutritionAuthHelper>();
 builder.Services.AddScoped<ProfessionalAuthHelper>();
