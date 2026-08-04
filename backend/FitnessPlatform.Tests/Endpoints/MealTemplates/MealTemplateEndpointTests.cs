@@ -6,7 +6,6 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.MealTemplates.CopyMealTemplate;
-using FitnessPlatform.Application.Features.MealTemplates.CreateMealTemplate;
 using FitnessPlatform.Application.Features.MealTemplates.DeleteMealTemplate;
 using FitnessPlatform.Application.Features.MealTemplates.GetMealTemplate;
 using FitnessPlatform.Application.Features.MealTemplates.SaveMealTemplateFromPlan;
@@ -216,39 +215,11 @@ public class MealTemplateEndpointTests : IAsyncLifetime
     }
 
     // ── CreateMealTemplate — server-computed totals ───────────────────────────
-
-    [Fact]
-    public async Task CreateMealTemplate_ValidRequest_RecomputesTotalsServerSide()
-    {
-        var nutritionistId = Guid.NewGuid();
-        var foods = new List<MealFood>
-        {
-            new()
-            {
-                FoodExternalId = Guid.NewGuid(),
-                FoodName = "Chicken",
-                NutrientValuePer100Grams = new NutrientValue { Kcal = 165, Protein = 31, Carbs = 0, Fat = 3.6m },
-                AmountGrams = 200
-            }
-        };
-
-        var ep = CreateEndpoint<CreateMealTemplateEndpoint>(
-            nutritionistId, _mongoContext, _macroCalculator, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new CreateMealTemplateRequest { Name = "Chicken Bowl", Foods = foods },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-        ep.Response.TotalNutrients.Kcal.Should().Be(330m);
-        ep.Response.TotalNutrients.Protein.Should().Be(62m);
-
-        var persisted = await FindByExternalIdAsync(ep.Response.TemplateId);
-        persisted.Should().NotBeNull();
-        persisted!.OwnerId.Should().Be(nutritionistId);
-        persisted.Visibility.Should().Be(LibraryVisibility.Private);
-        persisted.Version.Should().Be(1);
-    }
+    //
+    // CreateMealTemplate_ValidRequest_RecomputesTotalsServerSide moved to
+    // CreateMealTemplateEndpointTests.cs — the endpoint's success path calls
+    // Send.CreatedAtAsync, which needs a real LinkGenerator (see that file's
+    // header for the precedent).
 
     // ── UpdateMealTemplate — ownership + Version CAS ──────────────────────────
 
@@ -385,42 +356,12 @@ public class MealTemplateEndpointTests : IAsyncLifetime
     }
 
     // ── CopyMealTemplate — read-guarded WRITE ─────────────────────────────────
-
-    [Fact]
-    public async Task CopyMealTemplate_OtherOwnersPublic_Succeeds_NotForbidden()
-    {
-        // The property the AC pins: copy is read-guarded, not write-guarded — another owner's
-        // Public template must remain copyable. Wiring the write guard here would wrongly 403.
-        var ownerId = Guid.NewGuid();
-        var callerId = Guid.NewGuid();
-        var source = await InsertTemplateAsync(ownerId, LibraryVisibility.Public, "Shared Bowl");
-
-        var ep = CreateEndpoint<CopyMealTemplateEndpoint>(callerId, _mongoContext, TimeProvider.System);
-        await ep.HandleAsync(new CopyMealTemplateRequest { TemplateId = source.ExternalId }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-        ep.Response.TemplateId.Should().NotBe(source.ExternalId);
-
-        var copy = await FindByExternalIdAsync(ep.Response.TemplateId);
-        copy.Should().NotBeNull();
-        copy!.OwnerId.Should().Be(callerId);
-        copy.Visibility.Should().Be(LibraryVisibility.Private);
-
-        var untouchedSource = await FindByExternalIdAsync(source.ExternalId);
-        untouchedSource!.OwnerId.Should().Be(ownerId);
-    }
-
-    [Fact]
-    public async Task CopyMealTemplate_OwnPrivate_Succeeds()
-    {
-        var ownerId = Guid.NewGuid();
-        var source = await InsertTemplateAsync(ownerId, LibraryVisibility.Private);
-
-        var ep = CreateEndpoint<CopyMealTemplateEndpoint>(ownerId, _mongoContext, TimeProvider.System);
-        await ep.HandleAsync(new CopyMealTemplateRequest { TemplateId = source.ExternalId }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-    }
+    //
+    // CopyMealTemplate_OtherOwnersPublic_Succeeds_NotForbidden and
+    // CopyMealTemplate_OwnPrivate_Succeeds moved to CopyMealTemplateEndpointTests.cs —
+    // both exercise the endpoint's success path, which calls Send.CreatedAtAsync
+    // and needs a real LinkGenerator. CopyMealTemplate_OtherOwnersPrivate_Returns404
+    // stays here: it returns before reaching Send.CreatedAtAsync.
 
     [Fact]
     public async Task CopyMealTemplate_OtherOwnersPrivate_Returns404()
@@ -476,35 +417,9 @@ public class MealTemplateEndpointTests : IAsyncLifetime
         return (plan, meal);
     }
 
-    [Fact]
-    public async Task SaveMealTemplateFromPlan_ValidRequest_CopiesFoodsAndInheritsKind()
-    {
-        var nutritionistId = Guid.NewGuid();
-        var (plan, meal) = await InsertPlanWithMealAsync(nutritionistId);
-
-        var ep = CreateEndpoint<SaveMealTemplateFromPlanEndpoint>(
-            nutritionistId, _mongoContext, _macroCalculator, TimeProvider.System);
-
-        await ep.HandleAsync(new SaveMealTemplateFromPlanRequest
-        {
-            PlanId = plan.ExternalId,
-            WeekNumber = 1,
-            DayOfWeek = 1,
-            MealId = meal.MealId,
-            Name = "From Plan Meal",
-            Visibility = LibraryVisibility.Private
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-        ep.Response.Kind.Should().Be(MealKind.Lunch);
-        ep.Response.Foods.Should().HaveCount(1);
-        ep.Response.Foods[0].FoodExternalId.Should().Be(meal.Foods[0].FoodExternalId);
-
-        // Same underlying foods/recipes must report identical totals whether inside the plan
-        // (via RecalculateTotals) or the new template (#859 single-summation AC).
-        var expectedTotals = _macroCalculator.CalculateMealTotals(meal.Foods, meal.Recipes);
-        ep.Response.TotalNutrients.Kcal.Should().Be(expectedTotals.Kcal);
-    }
+    // SaveMealTemplateFromPlan_ValidRequest_CopiesFoodsAndInheritsKind moved to
+    // SaveMealTemplateFromPlanEndpointTests.cs — the endpoint's success path calls
+    // Send.CreatedAtAsync, which needs a real LinkGenerator.
 
     [Fact]
     public async Task SaveMealTemplateFromPlan_PlanNotOwnedByCaller_Returns404()
