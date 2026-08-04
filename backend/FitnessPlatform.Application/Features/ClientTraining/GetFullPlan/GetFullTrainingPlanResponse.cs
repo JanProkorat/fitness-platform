@@ -106,25 +106,25 @@ public class SessionDto
     public int? EstimatedDurationMinutes { get; set; }
 
     /// <summary>
-    /// Workouts in this session, ordered by their Order field.
-    /// Schema-on-read: legacy documents with only flat exercises are backfilled into a single
-    /// "Hlavní" workout before this response is built.
+    /// Workouts in this session, ordered by their Order field. Every document is built directly
+    /// from <see cref="Workouts"/> and <see cref="StandaloneExercises"/> — there is no legacy
+    /// flat-exercises shape and no read-time backfill (#857).
     /// </summary>
     public List<WorkoutDto> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat list of every exercise in this session — standalone exercises plus every workout's
-    /// nested exercises — ordered by the ONE shared <c>Order</c> sequence workouts and standalone
-    /// exercises occupy within a session (see <c>UpdateTrainingPlanValidator</c>'s cross-list
-    /// duplicate-Order check). Kept for backward-compatibility with callers that don't yet read
-    /// <see cref="Workouts"/>/<see cref="StandaloneExercises"/> separately.
+    /// Read-only flat union of every exercise in this session — standalone exercises plus every
+    /// workout's nested exercises — ordered by the ONE shared <c>Order</c> sequence workouts and
+    /// standalone exercises occupy within a session (see <c>UpdateTrainingPlanValidator</c>'s
+    /// cross-list duplicate-Order check). Computed on read only; there is no corresponding member
+    /// on the write side, so this field is ignored (not rejected) if present in a PUT body (#874).
     /// </summary>
-    public List<ExerciseDto> Exercises { get; set; } = [];
+    public List<ExerciseDto> AllExercises { get; set; } = [];
 
     /// <summary>
     /// Standalone exercises programmed directly on this session — not grouped under any
     /// <see cref="WorkoutDto"/> (#857 phase 3a). Also included (in shared-Order position) in the
-    /// flat <see cref="Exercises"/> view above and counted in <see cref="TotalExerciseCount"/> /
+    /// flat <see cref="AllExercises"/> view above and counted in <see cref="TotalExerciseCount"/> /
     /// <see cref="CompletedExerciseCount"/>.
     /// </summary>
     public List<ExerciseDto> StandaloneExercises { get; set; } = [];

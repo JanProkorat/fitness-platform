@@ -88,7 +88,7 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 // a session no longer strictly needs a workout — a lone finisher exercise
                 // programmed directly on the session is now a valid, complete session).
                 session.RuleFor(s => s)
-                    .Must(s => s.Workouts.Count > 0 || s.Exercises.Count > 0)
+                    .Must(s => s.Workouts.Count > 0 || s.StandaloneExercises.Count > 0)
                     .WithErrorCode(ErrorCodes.WorkoutsRequired)
                     .WithName("Workouts")
                     .WithMessage("A session must have at least one workout or standalone exercise.");
@@ -106,7 +106,7 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                     .Must(s =>
                     {
                         var orders = s.Workouts.Select(w => w.Order)
-                            .Concat(s.Exercises.Select(ex => ex.Order))
+                            .Concat(s.StandaloneExercises.Select(ex => ex.Order))
                             .ToList();
                         return orders.Distinct().Count() == orders.Count;
                     })
@@ -155,10 +155,10 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 // #857 phase 3a: standalone exercises directly on the session — same shape and
                 // limits as a section's nested exercises, extracted into ApplyExerciseChildRules
                 // to avoid duplicating the whole exercise+set rule tree.
-                session.RuleFor(s => s.Exercises)
+                session.RuleFor(s => s.StandaloneExercises)
                     .Must(exercises => exercises.Count <= 30).WithMessage("A session may not have more than 30 standalone exercises.");
 
-                session.RuleForEach(s => s.Exercises).ChildRules(ApplyExerciseChildRules);
+                session.RuleForEach(s => s.StandaloneExercises).ChildRules(ApplyExerciseChildRules);
             });
         });
     }

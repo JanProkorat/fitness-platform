@@ -345,7 +345,7 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Exercises[0].MovementType == MovementType.Time),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].MovementType == MovementType.Time),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -405,8 +405,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Exercises[0].Format == WorkoutFormat.AMRAP &&
-                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Exercises[0].FormatConfig!.TimeCapSeconds == 300),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].Format == WorkoutFormat.AMRAP &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].FormatConfig!.TimeCapSeconds == 300),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -467,8 +467,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Exercises[0].Format == null &&
-                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Exercises[0].FormatConfig == null),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].Format == null &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].FormatConfig == null),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
