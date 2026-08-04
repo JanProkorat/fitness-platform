@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TrainingSection, WorkoutFormat, MovementType, SessionExecutionDto } from '@/api/training-plan-types';
+import type { TrainingWorkout, WorkoutFormat, MovementType, SessionExecutionDto } from '@/api/training-plan-types';
 import type { MuscleGroup } from '@/api/exercise-types';
 import { ExerciseSearch } from '@/components/training/ExerciseSearch';
 import { ExerciseCardHeader } from '@/components/training/ExerciseCardHeader';
@@ -33,7 +33,7 @@ const FORMAT_BAR_CLASSES: Record<WorkoutFormat, string> = {
 
 
 interface SectionCardCallbacks {
-  onUpdate: (patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
+  onUpdate: (patch: Partial<Pick<TrainingWorkout, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
   onRemove: () => void;
   onDuplicate: () => void;
   onAddExercise: (exercise: { exerciseExternalId: string; exerciseName: string }) => void;
@@ -52,7 +52,7 @@ interface SectionCardCallbacks {
 }
 
 interface SectionCardProps extends SectionCardCallbacks {
-  section: TrainingSection;
+  section: TrainingWorkout;
   weekLabel?: string;
   /** Controlled collapse state — owned by the page so it survives cross-session moves. */
   isExpanded: boolean;
@@ -63,7 +63,7 @@ interface SectionCardProps extends SectionCardCallbacks {
   isSectionLocked?: boolean;
   /**
    * True when the backend reports this specific section as finished by the client
-   * (via SessionExecutionDto.finishedSections). Triggers the per-section "finished"
+   * (via SessionExecutionDto.finishedWorkouts). Triggers the per-section "finished"
    * label in the header, distinct from the session-level badge. Subset of isSectionLocked
    * in practice — a finished section is always locked, but the badge is rendered here
    * independently so it shows even when the whole session is not yet finished.
@@ -352,38 +352,38 @@ export function SectionCard({
 
               // Derive completion state for this exercise (additive, display-only).
               // sessionExecution is pre-filtered to this session by the parent.
-              // Pass section.sectionId so that the section-aware map is used when
-              // the backend has emitted completedSetsBySectionAndExercise — this
-              // prevents exercises shared across sections (e.g. same exercise in
-              // Standard + AMRAP) from showing cross-section completion data (#470).
+              // Pass section.workoutId so that the workout-aware map is used when
+              // the backend has emitted completedSetsByWorkoutAndExercise — this
+              // prevents exercises shared across workouts (e.g. same exercise in
+              // Standard + AMRAP) from showing cross-workout completion data (#470).
               const { state: exCompletionState, counts: exCounts } =
                 deriveExerciseCompletionState(
                   sessionExecution ? [sessionExecution] : undefined,
                   sessionExecution?.sessionId ?? '',
                   ex.exerciseExternalId,
                   ex.sets.length,
-                  section.sectionId,
+                  section.workoutId,
                 );
 
               // Derive modification state: true when any logged set under this
               // exercise has isModified === true. Backend has no per-exercise flag —
               // we derive client-side mirroring deriveExerciseCompletionState.
-              // Pass section.sectionId for section-aware lookup (same isolation fix).
+              // Pass section.workoutId for workout-aware lookup (same isolation fix).
               const exHasModifications = deriveExerciseModificationState(
                 sessionExecution,
                 ex.exerciseExternalId,
-                section.sectionId,
+                section.workoutId,
               );
 
               // Logged sets for this exercise, keyed by 1-based setNumber.
-              // Prefer the section-aware map when available (fixes #469 / #470):
-              // the same exercise in two sections gets independent logged-set lists.
+              // Prefer the workout-aware map when available (fixes #469 / #470):
+              // the same exercise in two workouts gets independent logged-set lists.
               const resolvedLoggedSets = (() => {
                 if (
-                  sessionExecution?.loggedSetsBySectionAndExercise
+                  sessionExecution?.loggedSetsByWorkoutAndExercise
                 ) {
-                  const key = `${section.sectionId}:${ex.exerciseExternalId}`;
-                  const sectionSets = sessionExecution.loggedSetsBySectionAndExercise[key];
+                  const key = `${section.workoutId}:${ex.exerciseExternalId}`;
+                  const sectionSets = sessionExecution.loggedSetsByWorkoutAndExercise[key];
                   if (sectionSets !== undefined) return sectionSets;
                 }
                 return sessionExecution?.loggedSetsByExercise[ex.exerciseExternalId];
@@ -526,7 +526,7 @@ export function SectionCard({
                                         sessionExecution.sessionId,
                                         ex.exerciseExternalId,
                                         s.setNumber,
-                                        section.sectionId,
+                                        section.workoutId,
                                       )
                                     : undefined
                                 }
