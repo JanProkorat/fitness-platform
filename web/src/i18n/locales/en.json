@@ -1395,7 +1395,7 @@
       "library": {
         "title": "Template library",
         "subtitle": "Public workout templates you can use as a starting point.",
-        "colSections": "Sections",
+        "colWorkouts": "Workouts",
         "durationMinutes": "{{count}} min",
         "viewDetails": "View details",
         "formatConfigLabel": "Format",

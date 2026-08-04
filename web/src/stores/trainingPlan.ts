@@ -16,7 +16,7 @@ import type {
   WodConfig,
   SessionLockStateDto,
 } from '@/api/training-plan-types';
-import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import { updateTrainingPlan, publishTrainingWeek, getTrainingPlan } from '@/api/training-plans';
 import { showApiError, showSuccess, getRfc7807ErrorCode } from '@/lib/api-errors';
 import { currentWeekNumber } from '@/lib/training-plan-dates';
@@ -75,7 +75,7 @@ interface TrainingPlanState {
     sectionId: string,
     toIdx: number,
   ) => void;
-  addSectionFromTemplate: (weekNumber: number, sessionId: string, template: SectionTemplateResponse) => void;
+  addSectionFromTemplate: (weekNumber: number, sessionId: string, template: WorkoutTemplateResponse) => void;
 
   // Exercise mutations (now scoped to section)
   addExerciseToSection: (weekNumber: number, sessionId: string, sectionId: string, exercise: { exerciseExternalId: string; exerciseName: string }) => void;

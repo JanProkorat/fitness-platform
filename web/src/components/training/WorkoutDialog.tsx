@@ -5,10 +5,10 @@ import {
   updateSectionTemplate,
   getSectionTemplate,
 } from '@/api/sectionTemplates';
-import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import type {
-  CreateSectionTemplateExerciseRequest,
-  CreateSectionTemplateSetRequest,
+  CreateWorkoutTemplateExerciseRequest,
+  CreateWorkoutTemplateSetRequest,
   WorkoutFormat as GenWorkoutFormat,
   WodConfig as GenWodConfig,
 } from '@/api/generated';
@@ -56,7 +56,7 @@ const emptySet = (): ExerciseSet => ({ reps: '', weightKg: '', restSeconds: '' }
 
 export interface WorkoutDialogProps {
   open: boolean;
-  template?: SectionTemplateResponse | null;
+  template?: WorkoutTemplateResponse | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -92,7 +92,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
     setExFocused(false);
   }, []);
 
-  const populateFromTemplate = useCallback((tpl: SectionTemplateResponse) => {
+  const populateFromTemplate = useCallback((tpl: WorkoutTemplateResponse) => {
     setName(tpl.name ?? '');
     setNotes(tpl.notes ?? '');
     const fmt = ((tpl.defaultFormat ?? 'Standard') as WorkoutFormat);
@@ -201,7 +201,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
     if (!name.trim()) return;
     if (format !== 'Standard' && !formatConfig) return;
     setSaving(true);
-    const payloadExercises: CreateSectionTemplateExerciseRequest[] = exercises.map((row, idx) => {
+    const payloadExercises: CreateWorkoutTemplateExerciseRequest[] = exercises.map((row, idx) => {
       const setsToEmit = format === 'Standard' ? row.sets : row.sets.slice(0, 1);
       const trimmedExNotes = row.notes.trim();
       return {
@@ -211,7 +211,7 @@ export function WorkoutDialog({ open, template, onClose, onSaved }: WorkoutDialo
         notes: trimmedExNotes === '' ? undefined : trimmedExNotes,
         movementType: GenMovementType.Reps,
         sets: setsToEmit.map(
-          (s, i): CreateSectionTemplateSetRequest => ({
+          (s, i): CreateWorkoutTemplateSetRequest => ({
             setNumber: i + 1,
             type: GenSetType.Normal,
             reps: s.reps === '' ? undefined : s.reps,

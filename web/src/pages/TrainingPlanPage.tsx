@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession, linkTrainingQuestionnaire } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
-import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
 import type { WorkoutFormat as GenWorkoutFormat, MovementType as GenMovementType, SetType as GenSetType, WodConfig as GenWodConfig } from '@/api/generated';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
@@ -98,7 +98,7 @@ export default function TrainingPlanPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
     sessionId: string;
-    template: SectionTemplateResponse;
+    template: WorkoutTemplateResponse;
   } | null>(null);
   const [saveAsTemplateTarget, setSaveAsTemplateTarget] = useState<{
     sessionId: string;
@@ -459,7 +459,7 @@ export default function TrainingPlanPage() {
   };
 
   // Apply-template client-side splice: replaces exercises + format of the target session.
-  const applyTemplateToSession = (sessionId: string, template: SectionTemplateResponse) => {
+  const applyTemplateToSession = (sessionId: string, template: WorkoutTemplateResponse) => {
     const store = useTrainingPlanStore.getState();
     if (!store.plan) return;
     useTrainingPlanStore.setState({
@@ -475,7 +475,7 @@ export default function TrainingPlanPage() {
                     ? s
                     : {
                         ...s,
-                        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast
+                        // Generated WorkoutTemplateResponse.defaultFormat is string | undefined; safe cast
                         // because the backend only emits WorkoutFormat enum values.
                         format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
                         formatConfig: template.defaultFormatConfig ?? null,
@@ -523,7 +523,7 @@ export default function TrainingPlanPage() {
     setIsSavingTemplate(true);
     try {
       // The local training-plan-types use null for absent values; the generated
-      // CreateSectionTemplateRequest uses undefined. Bridge the gap with null-to-undefined coercion.
+      // CreateWorkoutTemplateRequest uses undefined. Bridge the gap with null-to-undefined coercion.
       const toGenWodConfig = (cfg: { timeCapSeconds?: number | null; intervalSeconds?: number | null; totalRounds?: number | null; workSeconds?: number | null; restSeconds?: number | null } | null | undefined): GenWodConfig | undefined => {
         if (!cfg) return undefined;
         return {
