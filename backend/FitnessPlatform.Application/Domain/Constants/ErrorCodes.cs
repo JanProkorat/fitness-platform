@@ -293,6 +293,9 @@ public static class ErrorCodes
     /// <summary>Value is out of allowed range.</summary>
     public const string OutOfRange = "OUT_OF_RANGE";
 
+    /// <summary>Two or more fields were supplied together when exactly one (or none) is allowed.</summary>
+    public const string MutuallyExclusiveFields = "MUTUALLY_EXCLUSIVE_FIELDS";
+
     /// <summary>DeadlineOffsetHours is not one of the allowed values (24, 48, 72, 120, 168).</summary>
     public const string InvalidDeadlineOffsetHours = "INVALID_DEADLINE_OFFSET_HOURS";
 

@@ -30,7 +30,7 @@ public class CreateTemplateValidator : Validator<CreateTemplateRequest>
 
         RuleFor(x => x)
             .Must(x => !(x.WeekCount.HasValue && x.Weeks is { Count: > 0 }))
-            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithErrorCode(ErrorCodes.MutuallyExclusiveFields)
             .WithMessage("weekCount and weeks are mutually exclusive.");
 
         RuleFor(x => x.WeekCount)
