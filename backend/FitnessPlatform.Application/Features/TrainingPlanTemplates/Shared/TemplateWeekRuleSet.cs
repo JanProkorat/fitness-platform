@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
@@ -9,7 +10,11 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 /// sessions, workouts, standalone exercises, and sets. Mirrors
 /// <c>UpdateTrainingPlanValidator</c>'s structure — same content tree, same
 /// duplicate-<c>Order</c>-across-workouts-and-standalone-exercises hazard
-/// (<see cref="ErrorCodes.TrainingDuplicateSessionOrder"/>).
+/// (<see cref="ErrorCodes.TrainingDuplicateSessionOrder"/>), and — at all three format-bearing
+/// levels (session, workout, exercise) — the same inner <c>WodConfig</c> invariants via
+/// <see cref="UpdateTrainingPlanValidator.ApplyFormatConfigRules{T}"/>. A template that skipped
+/// these would let <c>instantiate</c> clone an invalid <c>WodConfig</c> verbatim into a real
+/// plan the plan's own write path would otherwise reject.
 /// </summary>
 internal static class TemplateWeekRuleSet
 {
@@ -75,6 +80,8 @@ internal static class TemplateWeekRuleSet
                     .When(s => s.Format.HasValue && s.Format != WorkoutFormat.Standard)
                     .WithErrorCode(ErrorCodes.OutOfRange);
 
+                UpdateTrainingPlanValidator.ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
+
                 session.RuleFor(s => s.Workouts)
                     .Must(workouts => workouts.Count <= 14).WithErrorCode(ErrorCodes.OutOfRange);
 
@@ -96,6 +103,8 @@ internal static class TemplateWeekRuleSet
                         .NotNull()
                         .When(w => w.Format.HasValue && w.Format != WorkoutFormat.Standard)
                         .WithErrorCode(ErrorCodes.OutOfRange);
+
+                    UpdateTrainingPlanValidator.ApplyFormatConfigRules(workout, w => w.Format, w => w.FormatConfig, "Workout");
 
                     workout.RuleForEach(w => w.Exercises).ChildRules(ApplyExerciseChildRules);
                 });
@@ -137,6 +146,8 @@ internal static class TemplateWeekRuleSet
             .NotNull()
             .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
             .WithErrorCode(ErrorCodes.OutOfRange);
+
+        UpdateTrainingPlanValidator.ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
 
         exercise.RuleFor(e => e.Sets)
             .Must(sets => sets.Count <= 20).WithErrorCode(ErrorCodes.OutOfRange);
