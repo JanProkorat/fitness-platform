@@ -44,6 +44,7 @@ import { PlanBanner } from '@/components/today/PlanBanner'
 import { ResumeTrainingBanner } from '@/components/training/ResumeTrainingBanner'
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { deriveSessionCtaState, computeLockedSessionIds, type SessionCtaState } from '@/components/training/trainingCardHelpers'
+import { getOrderedSessionItems } from '@/components/training/trainingCardFormat'
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -456,9 +457,14 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const liveExIdx = liveSessionStore.currentExerciseIdx
   const liveSetIdx = liveSessionStore.currentSetIdx
 
-  // Use the first session's exercises for the resume banner name.
+  // Use the first session's exercises for the resume banner name. Exercises
+  // are flattened from the same ordered workout+standalone interleave the
+  // live training screen itself iterates over, so `liveExIdx` (an index into
+  // that screen's flat exercise sequence) resolves to the same exercise here.
   const liveExerciseName = useMemo(() => {
-    const exercises = todaySessions[0]?.exercises ?? []
+    const firstSession = todaySessions[0]
+    if (!firstSession) return ''
+    const exercises = getOrderedSessionItems(firstSession).flatMap((item) => item.exercises)
     return exercises[liveExIdx]?.exerciseName ?? ''
   }, [todaySessions, liveExIdx])
 

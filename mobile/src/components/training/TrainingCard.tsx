@@ -11,7 +11,7 @@ import {
 import type { TrainingSession, MuscleGroup, SessionPhotoDto } from '@/api/training'
 import type { LoggedSetDto } from '@/api/wod-types'
 import type { SessionCtaState } from './trainingCardHelpers'
-import { getEffectiveSections } from './trainingCardFormat'
+import { getOrderedSessionItems } from './trainingCardFormat'
 import { TrainingCardHero } from './TrainingCardHero'
 import { SessionSectionList } from './SessionSectionList'
 
@@ -21,44 +21,40 @@ interface TrainingCardProps {
   /** All sessions scheduled for today, ordered by `order`. */
   sessions: TrainingSession[]
   /**
-   * Per-session, per-section completed-exercise IDs.
-   * Outer key = sessionId, inner key = sectionId, value = set of exerciseExternalIds.
-   * Derived from `completedExerciseIdsBySectionAndSession` in the optimistic cache.
-   * Each section's set is independent so the same catalog exercise in two sections
-   * of one session is tracked separately (fixes cross-section bleed).
+   * Flat set of completed exercise INSTANCE ids per session, keyed by
+   * sessionId. Derived from `completedExerciseInstanceIdsBySession` in the
+   * optimistic cache. Because every placement of an exercise — nested in a
+   * workout, or standalone — carries its own distinct instance id, one flat
+   * set per session is sufficient: two placements of the same catalog
+   * exercise can never cross-satisfy each other's completion check.
    */
-  completedIdsBySectionAndSession: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>
+  completedExerciseInstanceIdsBySession: ReadonlyMap<string, ReadonlySet<string>>
   /**
-   * Session-level union of all section completion sets, keyed by sessionId.
-   * Used only for aggregate counters and CTA-state derivation where a
-   * section-scoped set is not needed.
-   */
-  completedIdsBySession: Record<string, ReadonlySet<string>>
-  /**
-   * Per-session completed-section IDs, keyed by sessionId. Sections live here
+   * Per-session completed-workout IDs, keyed by sessionId. Workouts live here
    * when they don't track at the exercise level (e.g. ForTime "Running"
    * workouts that have no exercises).
    */
-  completedSectionIdsBySession?: Record<string, ReadonlySet<string>>
+  completedWorkoutIdsBySession?: Record<string, ReadonlySet<string>>
   /**
    * Per-session "is the whole session complete" flags, keyed by sessionId.
    */
   sessionCompleteMap: Record<string, boolean>
-  /** Called when the user taps a per-exercise checkbox. */
-  onToggleExercise?: (sessionId: string, sectionId: string, exerciseExternalId: string) => void
+  /** Called when the user taps a per-exercise checkbox. `exerciseId` is the
+   * per-instance id (NOT the catalog exerciseExternalId). */
+  onToggleExercise?: (sessionId: string, exerciseId: string) => void
   /**
-   * Called when the section-complete checkbox is tapped on a section that
-   * has trackable exercises. Receives the sectionId, the full array of exercise
+   * Called when the workout-complete checkbox is tapped on a workout that
+   * has trackable exercises. Receives the full array of exercise instance
    * IDs that need to flip, and the target completion state.
    * Using this instead of firing N separate `onToggleExercise` calls avoids a
    * race where parallel mutations all read the same stale version token from cache.
    */
-  onToggleExercises?: (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => void
+  onToggleExercises?: (sessionId: string, exerciseIds: string[], complete: boolean) => void
   /**
-   * Called when the section-complete checkbox is tapped on a section
+   * Called when the workout-complete checkbox is tapped on a workout
    * that has no trackable exercises (typically ForTime).
    */
-  onToggleSection?: (sessionId: string, sectionId: string) => void
+  onToggleWorkout?: (sessionId: string, workoutId: string) => void
   /** Called when the user taps a session-level checkbox. */
   onToggleSession?: (sessionId: string) => void
   /**
@@ -150,13 +146,12 @@ interface TrainingCardProps {
 export function TrainingCard({
   planName,
   sessions,
-  completedIdsBySectionAndSession,
-  completedIdsBySession,
-  completedSectionIdsBySession = {},
+  completedExerciseInstanceIdsBySession,
+  completedWorkoutIdsBySession = {},
   sessionCompleteMap,
   onToggleExercise,
   onToggleExercises,
-  onToggleSection,
+  onToggleWorkout,
   onToggleSession,
   sessionCtaStateBySession,
   onSessionCta,
@@ -195,30 +190,30 @@ export function TrainingCard({
       <View style={[styles.body, { backgroundColor: colors.bg2 }]}>
         {sessions.map((session, idx) => {
           const sessionId = session.sessionId ?? `session-${idx}`
-          // Session-union set used only for CTA state and aggregate counts.
-          const completedIds = completedIdsBySession[sessionId] ?? new Set<string>()
-          // Per-section map for this session — passed to SessionSectionList for
-          // per-exercise display so cross-section bleed is impossible.
-          const sessionSectionCompletionMap =
-            completedIdsBySectionAndSession.get(sessionId) ?? new Map<string, ReadonlySet<string>>()
+          // Flat per-session instance-id completion set — passed straight
+          // through to SessionSectionList; no per-workout indirection needed
+          // since instance ids are already unique per placement.
+          const completedInstanceIds =
+            completedExerciseInstanceIdsBySession.get(sessionId) ?? new Set<string>()
           const isComplete = sessionCompleteMap[sessionId] ?? false
 
-          // Session summary mirrors the trainer-portal logic: workouts (= sections)
-          // count, total timed duration, and untimed count when there's a mix.
+          // Session summary mirrors the trainer-portal logic: workouts (+
+          // standalone exercises, each rendered as its own band) count, total
+          // timed duration, and untimed count when there's a mix.
           // See `web/src/pages/TrainingPlanPage.tsx` for the source of this formula.
-          const sectionsForSummary = getEffectiveSections(session, t)
-          const sectionDurations = sectionsForSummary.map((sec) =>
-            estimatedSectionDurationSeconds(sec.format, sec.formatConfig),
+          const itemsForSummary = getOrderedSessionItems(session)
+          const itemDurations = itemsForSummary.map((item) =>
+            estimatedSectionDurationSeconds(item.format, item.formatConfig),
           )
-          const timedSeconds = sectionDurations.reduce<number>(
+          const timedSeconds = itemDurations.reduce<number>(
             (sum, d) => sum + (d ?? 0),
             0,
           )
-          const untimedCount = sectionDurations.filter(
+          const untimedCount = itemDurations.filter(
             (d) => d == null || d === 0,
           ).length
           const summaryParts: string[] = [
-            t('training.workoutCount', { count: sectionsForSummary.length }),
+            t('training.workoutCount', { count: itemsForSummary.length }),
           ]
           if (timedSeconds > 0) summaryParts.push(formatDurationCompact(timedSeconds))
           if (timedSeconds > 0 && untimedCount > 0) {
@@ -261,9 +256,6 @@ export function TrainingCard({
             </Pressable>
           ) : undefined
 
-          // Derive sections (falls back to single default section for legacy flat plans)
-          const sections = getEffectiveSections(session, t)
-
           return (
             <SessionSectionList
               key={sessionId}
@@ -273,10 +265,8 @@ export function TrainingCard({
               isSessionComplete={isComplete}
               name={session.name ?? ''}
               summaryText={sessionSummary}
-              completedIds={completedIds}
-              sectionCompletionMap={sessionSectionCompletionMap}
-              completedSectionIds={completedSectionIdsBySession[sessionId] ?? new Set<string>()}
-              sections={sections}
+              completedExerciseInstanceIds={completedInstanceIds}
+              completedWorkoutIds={completedWorkoutIdsBySession[sessionId] ?? new Set<string>()}
               sessionCheckbox={sessionCheckbox}
               showCta={showCta}
               ctaState={ctaState}
@@ -288,7 +278,7 @@ export function TrainingCard({
               sessionLockState={lockStateBySession[session.sessionId ?? ''] ?? 'Stable'}
               onToggleExercise={onToggleExercise}
               onToggleExercises={onToggleExercises}
-              onToggleSection={onToggleSection}
+              onToggleWorkout={onToggleWorkout}
               onSessionCta={onSessionCta}
               onSessionPhotoPress={
                 onSessionPhotoPress && session.sessionId

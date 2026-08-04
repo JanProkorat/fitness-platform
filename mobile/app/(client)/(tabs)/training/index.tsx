@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/hooks/useTheme';
 import { hrefParams } from '@/lib/navigation';
 import { getTodaySession } from '@/api/training';
+import { getOrderedSessionItems } from '@/components/training/trainingCardFormat';
 
 export default function TrainingIndexScreen() {
   const { t } = useTranslation();
@@ -17,6 +18,16 @@ export default function TrainingIndexScreen() {
     queryKey: ['today-training'],
     queryFn: getTodaySession,
   });
+
+  // Flattened, order-correct exercise list — the ordered interleave of
+  // workouts + standalone exercises (merged by their shared `order`
+  // sequence), with each workout's own exercises in place. Never read
+  // `allExercises` directly for a render list: it concatenates standalone
+  // exercises first and is not order-sorted.
+  const sessionExercises = useMemo(
+    () => (data?.session ? getOrderedSessionItems(data.session).flatMap((item) => item.exercises) : []),
+    [data?.session],
+  );
 
   return (
     <ScrollView
@@ -33,7 +44,7 @@ export default function TrainingIndexScreen() {
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{data.session.name}</Text>
             <Text style={styles.cardMeta}>
-              {(data.session.exercises ?? []).length} {t('training.exercises')} · {(data.session.exercises ?? []).reduce((sum, e) => sum + (e.sets?.length ?? 0), 0)} {t('training.sets')}
+              {sessionExercises.length} {t('training.exercises')} · {sessionExercises.reduce((sum, e) => sum + (e.sets?.length ?? 0), 0)} {t('training.sets')}
             </Text>
             {data.currentWeek != null && data.totalWeeks != null && (
               <Text style={styles.weekBadge}>
@@ -42,8 +53,8 @@ export default function TrainingIndexScreen() {
             )}
           </View>
 
-          {(data.session.exercises ?? []).map((exercise, idx) => (
-            <View key={idx} style={styles.exerciseRow}>
+          {sessionExercises.map((exercise, idx) => (
+            <View key={exercise.exerciseId ?? idx} style={styles.exerciseRow}>
               <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
               <Text style={styles.exerciseSets}>
                 {(exercise.sets ?? []).length} × {exercise.sets?.[0]?.reps ?? '—'}
