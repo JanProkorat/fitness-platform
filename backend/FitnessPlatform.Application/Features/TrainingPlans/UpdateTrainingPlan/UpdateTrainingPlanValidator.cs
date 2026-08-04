@@ -218,7 +218,19 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
         });
     }
 
-    private static void ApplyFormatConfigRules<T>(
+    /// <summary>
+    /// Validates the inner <see cref="WodConfig"/> fields required by a non-Standard
+    /// <see cref="WorkoutFormat"/> (EMOM's <c>IntervalSeconds</c>/<c>TotalRounds</c>, AMRAP/ForTime's
+    /// <c>TimeCapSeconds</c>, Tabata's <c>WorkSeconds</c>/<c>RestSeconds</c>/<c>TotalRounds</c>).
+    /// Promoted to <c>internal</c> so <c>TemplateWeekRuleSet</c> (training plan templates, #862)
+    /// can apply the identical invariants at template-create time — a template that skips these
+    /// checks can later be cloned verbatim by <c>instantiate</c> into a real
+    /// <see cref="TrainingPlan"/> with no revalidation, persisting a plan this
+    /// same validator would reject on its own write path. A follow-up (#892) tracks moving this
+    /// helper into a proper <c>Shared/</c> location alongside the other cross-feature validation
+    /// rules in this file.
+    /// </summary>
+    internal static void ApplyFormatConfigRules<T>(
         AbstractValidator<T> validator,
         Func<T, WorkoutFormat?> formatSelector,
         Func<T, WodConfig?> configSelector,
@@ -235,36 +247,42 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.IntervalSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("IntervalSeconds")
             .WithMessage($"{prefix} EMOM requires IntervalSeconds > 0.");
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.TotalRounds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("TotalRounds")
             .WithMessage($"{prefix} EMOM requires TotalRounds > 0.");
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.TimeCapSeconds is > 0)
             .When(x => (formatSelector(x) == WorkoutFormat.AMRAP || formatSelector(x) == WorkoutFormat.ForTime) && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("TimeCapSeconds")
             .WithMessage($"{prefix} AMRAP and ForTime require TimeCapSeconds > 0.");
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.WorkSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("WorkSeconds")
             .WithMessage($"{prefix} Tabata requires WorkSeconds > 0.");
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.RestSeconds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("RestSeconds")
             .WithMessage($"{prefix} Tabata requires RestSeconds > 0.");
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.TotalRounds is > 0)
             .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
+            .WithErrorCode(ErrorCodes.OutOfRange)
             .WithName("TotalRounds")
             .WithMessage($"{prefix} Tabata requires TotalRounds > 0.");
     }

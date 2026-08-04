@@ -107,4 +107,9 @@ public interface IMongoContext
     /// Reusable nutrition plan templates collection (#856 sharing-library model, #861).
     /// </summary>
     IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates { get; }
+
+    /// <summary>
+    /// Reusable training plan templates collection (#856 sharing-library model, #862).
+    /// </summary>
+    IMongoCollection<TrainingPlanTemplate> TrainingPlanTemplates { get; }
 }
