@@ -35,7 +35,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Instantiate
 /// <param name="authHelper">Validates trainer-client relationship.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class InstantiateTemplateEndpoint(
+public class InstantiateTrainingPlanTemplateEndpoint(
     IMongoContext mongo,
     ProfessionalAuthHelper authHelper,
     IApplicationDbContext db,

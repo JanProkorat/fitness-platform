@@ -15,7 +15,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.DeleteTempl
 /// indistinguishable from a genuinely missing template.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class DeleteTemplateEndpoint(IMongoContext mongo) : EndpointWithoutRequest
+public class DeleteTrainingPlanTemplateEndpoint(IMongoContext mongo) : EndpointWithoutRequest
 {
     /// <inheritdoc />
     public override void Configure()

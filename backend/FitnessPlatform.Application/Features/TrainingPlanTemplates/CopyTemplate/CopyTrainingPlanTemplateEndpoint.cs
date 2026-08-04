@@ -17,7 +17,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CopyTemplat
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
+public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest
 {
     /// <inheritdoc />
     public override void Configure()

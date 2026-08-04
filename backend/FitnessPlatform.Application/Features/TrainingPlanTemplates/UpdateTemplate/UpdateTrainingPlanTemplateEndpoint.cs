@@ -16,7 +16,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.UpdateTempl
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard guard, TimeProvider timeProvider)
+public class UpdateTrainingPlanTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard guard, TimeProvider timeProvider)
     : Endpoint<UpdateTemplateRequest, TrainingPlanTemplateDetailDto>
 {
     /// <inheritdoc />

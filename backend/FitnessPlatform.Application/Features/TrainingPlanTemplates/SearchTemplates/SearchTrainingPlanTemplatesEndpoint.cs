@@ -15,7 +15,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.SearchTempl
 /// already validates <c>page</c>/<c>pageSize</c>/search-term length internally.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class SearchTemplatesEndpoint(IMongoContext mongo)
+public class SearchTrainingPlanTemplatesEndpoint(IMongoContext mongo)
     : Endpoint<SearchTemplatesRequest, SearchTemplatesResponse>
 {
     /// <inheritdoc />

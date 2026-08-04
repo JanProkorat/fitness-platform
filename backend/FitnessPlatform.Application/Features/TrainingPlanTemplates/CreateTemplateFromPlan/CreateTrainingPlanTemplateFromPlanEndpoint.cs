@@ -18,7 +18,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class CreateTemplateFromPlanEndpoint(IMongoContext mongo, TimeProvider timeProvider)
+public class CreateTrainingPlanTemplateFromPlanEndpoint(IMongoContext mongo, TimeProvider timeProvider)
     : Endpoint<CreateTemplateFromPlanRequest, TrainingPlanTemplateSummaryDto>
 {
     /// <inheritdoc />

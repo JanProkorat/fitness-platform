@@ -12,7 +12,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.GetTemplate
 /// visibility, or any trainer's <c>Public</c> entry.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetTemplateEndpoint(IMongoContext mongo)
+public class GetTrainingPlanTemplateEndpoint(IMongoContext mongo)
     : Endpoint<GetTemplateRequest, TrainingPlanTemplateDetailDto>
 {
     /// <inheritdoc />
