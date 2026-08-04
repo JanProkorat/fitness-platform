@@ -224,6 +224,17 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 g => g.Key,
                 g => g.SelectMany(e => e.CompletedWorkoutIds ?? new List<Guid>()).ToHashSet());
 
+        // Per-instance completion lookup (#877): CompletedExerciseInstanceIds already holds raw
+        // SessionExercise.ExerciseId values, so no resolution against the plan tree is needed —
+        // unlike completedSets/loggedSets above (which stay catalog-keyed, see their remarks),
+        // this lookup drives BuildExerciseDto's instance-resolved IsCompleted below.
+        var completedInstanceIdsBySession = executions
+            .Where(e => e.SessionId.HasValue)
+            .GroupBy(e => e.SessionId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => g.SelectMany(e => e.CompletedExerciseInstanceIds).ToHashSet());
+
         foreach (var execution in executions.Where(e => e.SessionId.HasValue))
         {
             var sessionId = execution.SessionId!.Value;
@@ -352,8 +363,14 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 };
             }).ToList();
 
-            // An exercise is complete only when every planned set has a log entry.
-            var isCompleted = setDtos.Count > 0 && setDtos.All(s => s.CompletedAt is not null);
+            // An exercise is complete when EITHER this specific instance was marked complete
+            // directly (checkbox/instance-keyed completion — the only path a set-less exercise
+            // can ever satisfy, since it has no sets for the all-sets-completed check below), OR
+            // every planned set has a log entry (#877 — previously the set-based check alone,
+            // which meant a set-less checkbox-completed exercise could never report complete).
+            var instanceCompleted = completedInstanceIdsBySession.TryGetValue(sessionId, out var completedInstanceIds)
+                && completedInstanceIds.Contains(ex.ExerciseId);
+            var isCompleted = instanceCompleted || (setDtos.Count > 0 && setDtos.All(s => s.CompletedAt is not null));
             var hasModifications = setDtos.Any(s => s.IsModified);
 
             return new ExerciseDto

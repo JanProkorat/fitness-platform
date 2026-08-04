@@ -1576,6 +1576,289 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         pendingSet.CompletedAt.Should().BeNull("set 2 was not listed in CompletedSets");
     }
 
+    // ── #877: instance-resolved IsCompleted ──────────────────────────────────────
+
+    /// <summary>
+    /// #877 (set-less exercise gap): builds a dual-placement session — one catalog exercise both
+    /// standalone and nested in a workout — where BOTH placements have ZERO prescribed sets,
+    /// mirroring the QA fixture's shape (<c>QaSeedRunner.QaDualPlacementSessionId</c>). Before
+    /// #877, <c>isCompleted</c> required <c>setDtos.Count &gt; 0</c>, so a set-less
+    /// checkbox-completed exercise could never report complete — this test would have failed
+    /// (both instances always false) under that logic. Only the standalone instance is
+    /// checkbox-completed here; the nested instance must stay incomplete.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_DualPlacementSetlessExercise_OnlyStandaloneCheckboxCompleted_OnlyThatInstanceReportsCompleted()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Setless", "Dual", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var catalogExerciseId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var nestedInstanceId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Setless Dual Placement Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Setless Standalone + Nested Session",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = workoutId,
+                                    Order = 2,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = nestedInstanceId,
+                                            ExerciseExternalId = catalogExerciseId,
+                                            ExerciseName = "Plank",
+                                            Order = 1,
+                                            Sets = []
+                                        }
+                                    ]
+                                }
+                            ],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = standaloneInstanceId,
+                                    ExerciseExternalId = catalogExerciseId,
+                                    ExerciseName = "Plank",
+                                    Order = 1,
+                                    Sets = []
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = planId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [standaloneInstanceId],
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<FullPlanResponse>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        var session = body!.Weeks[0].Sessions[0];
+
+        var standaloneExercise = session.StandaloneExercises.Single(e => e.ExerciseId == standaloneInstanceId);
+        standaloneExercise.Sets.Should().BeEmpty("this placement has zero prescribed sets");
+        standaloneExercise.IsCompleted.Should().BeTrue(
+            $"the standalone instance was checkbox-completed and must report complete even with zero sets. raw: {rawBody}");
+
+        var nestedExercise = session.Workouts.Single().Exercises.Single(e => e.ExerciseId == nestedInstanceId);
+        nestedExercise.Sets.Should().BeEmpty("this placement also has zero prescribed sets");
+        nestedExercise.IsCompleted.Should().BeFalse(
+            "only the standalone instance was checkbox-completed — the nested instance sharing the same catalog id must stay incomplete");
+    }
+
+    /// <summary>
+    /// #877: same set-less dual-placement shape as above, but BOTH instances are
+    /// checkbox-completed. Both must report complete.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_DualPlacementSetlessExercise_BothInstancesCheckboxCompleted_BothReportCompleted()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Setless", "Dual", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var catalogExerciseId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var nestedInstanceId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Setless Dual Placement Plan (both complete)",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Setless Standalone + Nested Session",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = workoutId,
+                                    Order = 2,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = nestedInstanceId,
+                                            ExerciseExternalId = catalogExerciseId,
+                                            ExerciseName = "Plank",
+                                            Order = 1,
+                                            Sets = []
+                                        }
+                                    ]
+                                }
+                            ],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = standaloneInstanceId,
+                                    ExerciseExternalId = catalogExerciseId,
+                                    ExerciseName = "Plank",
+                                    Order = 1,
+                                    Sets = []
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = planId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
+            Status = SessionExecutionStatus.Completed,
+            CompletedExerciseInstanceIds = [standaloneInstanceId, nestedInstanceId],
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync(
+            $"/client/training/plans/{planId}",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<FullPlanResponse>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        var session = body!.Weeks[0].Sessions[0];
+
+        session.StandaloneExercises.Single(e => e.ExerciseId == standaloneInstanceId).IsCompleted.Should().BeTrue(
+            $"both instances were checkbox-completed. raw: {rawBody}");
+        session.Workouts.Single().Exercises.Single(e => e.ExerciseId == nestedInstanceId).IsCompleted.Should().BeTrue(
+            $"both instances were checkbox-completed. raw: {rawBody}");
+        session.CompletedExerciseCount.Should().Be(2, "both instances counted as separately completed");
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record FullPlanResponse(

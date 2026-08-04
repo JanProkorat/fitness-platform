@@ -259,6 +259,11 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             // Per-session accumulator so entries from both signals (checkbox flags, Performance) union cleanly.
             var completedBySession = new Dictionary<Guid, HashSet<Guid>>();
 
+            // Per-session accumulator for the NEW per-instance completion field (#877) — keyed by
+            // the raw SessionExercise.ExerciseId (instance id), NOT ExerciseExternalId. See the
+            // union rule documented on GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession.
+            var completedInstancesBySession = new Dictionary<Guid, HashSet<Guid>>();
+
             // 1. Checkbox completion flags — one doc per (clientId, date, sessionId).
             var executionFilter =
                 Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
@@ -283,6 +288,21 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 response.VersionBySession[sessionId] = doc.Version;
                 response.CompletedWorkoutIdsBySession[sessionId] =
                     (doc.CompletedWorkoutIds ?? new List<Guid>()).ToList();
+
+                // Source 1 of the per-instance field (#877): CompletedExerciseInstanceIds already
+                // holds instance ids verbatim — carry them straight through, no resolution needed.
+                if (doc.CompletedExerciseInstanceIds.Count > 0)
+                {
+                    if (!completedInstancesBySession.TryGetValue(sessionId, out var instanceSet))
+                    {
+                        completedInstancesBySession[sessionId] = instanceSet = [];
+                    }
+
+                    foreach (var instanceId in doc.CompletedExerciseInstanceIds)
+                    {
+                        instanceSet.Add(instanceId);
+                    }
+                }
 
                 // Populate the per-session completed-exercise set from the flat
                 // CompletedExerciseInstanceIds list (#857 phase 3b) — reconstruct the
@@ -341,7 +361,28 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 {
                     if (ex.Sets.Count == 0) continue;
                     if (ex.Sets.All(s => s.CompletedAt is not null))
+                    {
                         set.Add(ex.ExerciseExternalId);
+
+                        // Source 2 of the per-instance field (#877): Performance carries no
+                        // instance id (see WorkoutExercise), so a fully-logged catalog exercise
+                        // fans out to EVERY SessionExercise instance in this session sharing that
+                        // catalog id — documented on GetTodaySessionResponse's XML docs above.
+                        if (sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession))
+                        {
+                            if (!completedInstancesBySession.TryGetValue(log.SessionId.Value, out var instanceSet))
+                            {
+                                completedInstancesBySession[log.SessionId.Value] = instanceSet = [];
+                            }
+
+                            foreach (var matchingInstanceId in performanceSession.AllExercises
+                                         .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
+                                         .Select(sessionExercise => sessionExercise.ExerciseId))
+                            {
+                                instanceSet.Add(matchingInstanceId);
+                            }
+                        }
+                    }
 
                     var completedSetNumbers = ex.Sets
                         .Where(s => s.CompletedAt is not null)
@@ -382,6 +423,9 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
             foreach (var (sessionId, set) in completedBySession)
                 response.CompletedExerciseIdsBySession[sessionId] = set.ToList();
+
+            foreach (var (sessionId, instanceSet) in completedInstancesBySession)
+                response.CompletedExerciseInstanceIdsBySession[sessionId] = instanceSet.ToList();
 
             // ── Batch-fetch lock state for today's sessions ───────────────────────
             // Single Mongo round-trip for all sessions (not one per session).
