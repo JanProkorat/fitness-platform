@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemplate;
@@ -56,53 +57,6 @@ public class UpdateTemplateValidator : Validator<UpdateTemplateRequest>
             .Must(weeks => weeks.Select(w => w.WeekNumber).Distinct().Count() == weeks.Count)
                 .WithErrorCode(ErrorCodes.OutOfRange);
 
-        RuleForEach(x => x.Weeks).ChildRules(week =>
-        {
-            week.RuleFor(w => w.WeekNumber)
-                .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);
-
-            week.RuleFor(w => w.Days)
-                .Must(days => days.Select(d => d.DayOfWeek).Distinct().Count() == days.Count)
-                    .WithErrorCode(ErrorCodes.OutOfRange);
-
-            week.RuleForEach(w => w.Days).ChildRules(day =>
-            {
-                day.RuleFor(d => d.DayOfWeek)
-                    .InclusiveBetween(1, 7).WithErrorCode(ErrorCodes.OutOfRange);
-
-                day.RuleFor(d => d.Meals)
-                    .Must(meals => meals.Count <= 20).WithErrorCode(ErrorCodes.OutOfRange)
-                    .Must(meals =>
-                    {
-                        var withId = meals.Where(m => m.MealId.HasValue).Select(m => m.MealId!.Value).ToList();
-                        return withId.Distinct().Count() == withId.Count;
-                    }).WithErrorCode(ErrorCodes.OutOfRange)
-                    .WithMessage("Duplicate MealId values are not allowed within a day.");
-
-                day.RuleForEach(d => d.Meals).ChildRules(meal =>
-                {
-                    meal.RuleFor(m => m.Kind).IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
-
-                    meal.RuleFor(m => m.Order)
-                        .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);
-
-                    meal.RuleFor(m => m.Foods)
-                        .Must(foods => foods.Count <= 50).WithErrorCode(ErrorCodes.OutOfRange);
-
-                    meal.RuleForEach(m => m.Foods).ChildRules(food =>
-                    {
-                        food.RuleFor(f => f.FoodExternalId)
-                            .NotEmpty().WithErrorCode(ErrorCodes.Required);
-
-                        food.RuleFor(f => f.FoodName)
-                            .NotEmpty().WithErrorCode(ErrorCodes.Required);
-
-                        food.RuleFor(f => f.AmountGrams)
-                            .GreaterThan(0).WithErrorCode(ErrorCodes.OutOfRange)
-                            .LessThanOrEqualTo(10000).WithErrorCode(ErrorCodes.OutOfRange);
-                    });
-                });
-            });
-        });
+        RuleForEach(x => x.Weeks).ChildRules(TemplateWeekRuleSet.Configure);
     }
 }

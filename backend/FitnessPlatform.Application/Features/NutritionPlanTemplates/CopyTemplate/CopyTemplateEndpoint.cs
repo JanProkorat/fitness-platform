@@ -53,6 +53,8 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             return;
         }
 
+        var clonedWeeks = TemplateContentCloner.CloneWeeksAsTemplate(source.Weeks);
+
         var copy = new NutritionPlanTemplate
         {
             ExternalId = Guid.NewGuid(),
@@ -63,8 +65,8 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
             DietaryStyle = source.DietaryStyle,
             GlobalSettings = source.GlobalSettings,
             Supplements = TemplateContentCloner.CloneSupplements(source.Supplements, mintFreshExternalIds: false),
-            Weeks = TemplateContentCloner.CloneWeeksAsTemplate(source.Weeks),
-            WeekCount = source.WeekCount,
+            Weeks = clonedWeeks,
+            WeekCount = clonedWeeks.Count,
             Visibility = LibraryVisibility.Private,
             Version = 1,
             DateCreated = timeProvider.GetUtcNow().UtcDateTime

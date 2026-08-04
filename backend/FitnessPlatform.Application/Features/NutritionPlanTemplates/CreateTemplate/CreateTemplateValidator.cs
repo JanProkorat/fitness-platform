@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemplate;
@@ -38,24 +39,13 @@ public class CreateTemplateValidator : Validator<CreateTemplateRequest>
 
         RuleFor(x => x.Weeks)
             .Must(weeks => weeks!.Count <= 52).WithErrorCode(ErrorCodes.OutOfRange)
-            .WithMessage("A template may not exceed 52 weeks.")
+                .WithMessage("A template may not exceed 52 weeks.")
+            .Must(weeks => weeks!.Select(w => w.WeekNumber).Distinct().Count() == weeks!.Count)
+                .WithErrorCode(ErrorCodes.OutOfRange)
             .When(x => x.Weeks is { Count: > 0 });
 
         RuleForEach(x => x.Weeks!)
-            .ChildRules(week =>
-            {
-                week.RuleForEach(w => w.Days).ChildRules(day =>
-                {
-                    day.RuleFor(d => d.Meals)
-                        .Must(meals =>
-                        {
-                            var withId = meals.Where(m => m.MealId.HasValue).Select(m => m.MealId!.Value).ToList();
-                            return withId.Distinct().Count() == withId.Count;
-                        })
-                        .WithErrorCode(ErrorCodes.OutOfRange)
-                        .WithMessage("Duplicate MealId values are not allowed within a day.");
-                });
-            })
+            .ChildRules(TemplateWeekRuleSet.Configure)
             .When(x => x.Weeks is { Count: > 0 });
 
         RuleFor(x => x.Goal)
