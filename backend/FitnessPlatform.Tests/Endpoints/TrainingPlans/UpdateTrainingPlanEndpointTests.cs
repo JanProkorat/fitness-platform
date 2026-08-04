@@ -125,7 +125,7 @@ public class UpdateTrainingPlanEndpointTests
                                     ]
                                 }
                             ],
-                            Exercises =
+                            StandaloneExercises =
                             [
                                 new UpdateSessionExerciseRequest
                                 {

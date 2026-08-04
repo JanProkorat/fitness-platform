@@ -229,7 +229,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         // ── Batch-fetch Exercise docs for muscle-group enrichment ─────────────
         var exerciseIds = todaySessions
-            .SelectMany(s => s.Exercises)
+            .SelectMany(s => s.AllExercises)
             .Select(e => e.ExerciseExternalId)
             .Distinct()
             .ToList();
@@ -421,7 +421,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 if (!response.CompletedSetsBySessionExercise.TryGetValue(session.SessionId, out var sessionSetsMap))
                     response.CompletedSetsBySessionExercise[session.SessionId] = sessionSetsMap = new Dictionary<Guid, List<int>>();
 
-                foreach (var plannedEx in session.Exercises)
+                foreach (var plannedEx in session.AllExercises)
                 {
                     if (!completedExIds.Contains(plannedEx.ExerciseExternalId))
                         continue;

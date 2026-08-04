@@ -90,7 +90,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         var exerciseIds = plan.Weeks
             .SelectMany(w => w.Days)
             .SelectMany(d => d.Sessions)
-            .SelectMany(s => s.Exercises)
+            .SelectMany(s => s.AllExercises)
             .Select(e => e.ExerciseExternalId)
             .Distinct()
             .ToList();
@@ -207,7 +207,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             .SelectMany(d => d.Sessions)
             .ToDictionary(
                 s => s.SessionId,
-                s => s.Exercises
+                s => s.AllExercises
                     .GroupBy(e => e.ExerciseExternalId)
                     .ToDictionary(g => g.Key, g => g.First()));
 
@@ -238,7 +238,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             // back to catalog ExerciseExternalId via the session definition, since exLookup
             // (below) is keyed by ExerciseExternalId.
             var effectiveIds = sessionLookup.TryGetValue(sessionId, out var execSession)
-                ? execSession.Exercises
+                ? execSession.AllExercises
                     .Where(e => execution.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
                     .Select(e => e.ExerciseExternalId)
                     .ToHashSet()
@@ -469,7 +469,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     TotalExerciseCount = exerciseDtos.Count,
                     EstimatedDurationMinutes = null, // deferred — requires product-defined set-duration heuristic
                     Workouts = workoutDtos,
-                    Exercises = exerciseDtos,
+                    AllExercises = exerciseDtos,
                     StandaloneExercises = standaloneExerciseDtos,
                     LockState = sessionLockState,
                     LockHolder = sessionLockHolder,

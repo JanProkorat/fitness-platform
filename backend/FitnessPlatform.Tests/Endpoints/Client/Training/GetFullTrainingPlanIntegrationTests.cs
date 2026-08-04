@@ -285,8 +285,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         sessionA.CompletedExerciseCount.Should().Be(0,
             "only 2 of 3 sets are logged, so the exercise is not fully complete");
 
-        sessionA.Exercises.Should().HaveCount(1);
-        var squatDto = sessionA.Exercises[0];
+        sessionA.AllExercises.Should().HaveCount(1);
+        var squatDto = sessionA.AllExercises[0];
         squatDto.ExerciseId.Should().Be(squatInstanceId,
             "the response must expose the per-instance id the mark-complete/incomplete routes require (#857 phase 3b)");
         squatDto.ExerciseExternalId.Should().Be(squatId);
@@ -306,8 +306,8 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         sessionB.TotalExerciseCount.Should().Be(1);
         sessionB.CompletedExerciseCount.Should().Be(0);
 
-        sessionB.Exercises.Should().HaveCount(1);
-        var benchDto = sessionB.Exercises[0];
+        sessionB.AllExercises.Should().HaveCount(1);
+        var benchDto = sessionB.AllExercises[0];
         benchDto.ExerciseId.Should().Be(benchInstanceId,
             "the response must expose the per-instance id the mark-complete/incomplete routes require (#857 phase 3b)");
         benchDto.ExerciseExternalId.Should().Be(benchId);
@@ -560,10 +560,10 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         main.Exercises.Should().HaveCount(1);
         main.Exercises[0].ExerciseExternalId.Should().Be(benchId);
 
-        // ── Backward-compat flat list equals workouts concatenated in order ────────
-        session.Exercises.Should().HaveCount(2, "total exercises across both workouts");
-        session.Exercises[0].ExerciseExternalId.Should().Be(squatId, "Warm-up exercise comes first (Order=0)");
-        session.Exercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
+        // ── Read-only flat union equals workouts concatenated in order ─────────────
+        session.AllExercises.Should().HaveCount(2, "total exercises across both workouts");
+        session.AllExercises[0].ExerciseExternalId.Should().Be(squatId, "Warm-up exercise comes first (Order=0)");
+        session.AllExercises[1].ExerciseExternalId.Should().Be(benchId, "Hlavní exercise comes second (Order=1)");
     }
 
     /// <summary>
@@ -687,9 +687,9 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.StandaloneExercises[0].ExerciseId.Should().Be(plankInstanceId);
         session.StandaloneExercises[0].ExerciseExternalId.Should().Be(plankId);
 
-        session.Exercises.Should().HaveCount(1,
-            "the flat Exercises view must also include standalone exercises — previously it only walked Workouts");
-        session.Exercises[0].ExerciseId.Should().Be(plankInstanceId);
+        session.AllExercises.Should().HaveCount(1,
+            "the flat AllExercises view must also include standalone exercises — previously it only walked Workouts");
+        session.AllExercises[0].ExerciseId.Should().Be(plankInstanceId);
     }
 
     /// <summary>
@@ -836,15 +836,15 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.Workouts[0].Exercises.Should().HaveCount(1);
         session.Workouts[0].Exercises[0].ExerciseId.Should().Be(nestedInstanceId);
 
-        session.Exercises.Should().HaveCount(2,
+        session.AllExercises.Should().HaveCount(2,
             "the flat view must include both instances — collapsing on ExerciseExternalId would drop one");
-        session.Exercises.Select(e => e.ExerciseId).Should().BeEquivalentTo([standaloneInstanceId, nestedInstanceId]);
+        session.AllExercises.Select(e => e.ExerciseId).Should().BeEquivalentTo([standaloneInstanceId, nestedInstanceId]);
 
         // Shared Order sequence: standalone exercise Order=1 comes before the workout's Order=2,
         // so the standalone instance must appear first in the flat merge.
-        session.Exercises[0].ExerciseId.Should().Be(standaloneInstanceId,
+        session.AllExercises[0].ExerciseId.Should().Be(standaloneInstanceId,
             "standalone Exercise.Order=1 precedes the workout's Order=2 in the shared sequence");
-        session.Exercises[1].ExerciseId.Should().Be(nestedInstanceId);
+        session.AllExercises[1].ExerciseId.Should().Be(nestedInstanceId);
     }
 
     // ── Legacy flat-exercise schema-on-read is retired (#837) ────────────────────
@@ -1565,7 +1565,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        var exercise = body!.Weeks[0].Sessions[0].Exercises[0];
+        var exercise = body!.Weeks[0].Sessions[0].AllExercises[0];
         exercise.ExerciseId.Should().Be(rowInstanceId);
 
         var completedSet = exercise.Sets.First(s => s.SetNumber == 1);
@@ -1609,7 +1609,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         int TotalExerciseCount,
         int? EstimatedDurationMinutes,
         List<WorkoutResponse> Workouts,
-        List<ExerciseResponse> Exercises,
+        List<ExerciseResponse> AllExercises,
         List<ExerciseResponse> StandaloneExercises);
 
     private record WorkoutResponse(

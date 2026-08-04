@@ -72,15 +72,13 @@ public class TrainingSession
     /// lists is rejected by <c>UpdateTrainingPlanValidator</c>.
     /// </summary>
     /// <remarks>
-    /// Named <c>StandaloneExercises</c> in C# — not <c>Exercises</c> — to avoid colliding with
-    /// the existing computed <see cref="Exercises"/> flat-view convenience below (used
-    /// pervasively by completion-tracking endpoints for "every exercise in this session"). The
-    /// BSON element name is <c>exercises</c>, matching the issue's storage-shape naming and
-    /// <see cref="PlanMeal"/>'s field-naming convention. The JSON property name is deliberately
-    /// distinct (<c>standaloneExercises</c>) — the wire field <c>exercises</c> is owned by the
-    /// computed <see cref="Exercises"/> flat view below, preserving the pre-existing read
-    /// contract that every session's exercises (standalone + nested in workouts) come back under
-    /// that one field.
+    /// Named <c>StandaloneExercises</c> in C# and on the wire — not <c>Exercises</c> — to avoid
+    /// colliding with the computed <see cref="AllExercises"/> flat-view convenience below. The
+    /// BSON element name stays <c>exercises</c>, matching the issue's storage-shape naming and
+    /// <see cref="PlanMeal"/>'s field-naming convention; the BSON element name is independent of
+    /// the wire (JSON) name and is not part of this contract (#874). On the wire, <c>exercises</c>
+    /// is retired from the session shape entirely: this list is <c>standaloneExercises</c> in both
+    /// directions, and the flat union below is <c>allExercises</c>, read-only.
     /// </remarks>
     [BsonElement("exercises")]
     [JsonPropertyName("standaloneExercises")]
@@ -89,12 +87,12 @@ public class TrainingSession
     /// <summary>
     /// Flat view of every exercise in this session — the standalone <see cref="StandaloneExercises"/>
     /// plus every workout's nested exercises. Computed, never persisted (<see cref="BsonIgnoreAttribute"/>).
-    /// This is the wire field <c>exercises</c> read by completion-tracking endpoints and by
-    /// web/mobile clients — preserving the pre-#857 contract where <c>exercises</c> meant "every
-    /// exercise in this session", not just the standalone ones.
+    /// Read-only on the wire as <c>allExercises</c> — a client MUST NOT round-trip this field back on
+    /// write; <c>UpdateSessionRequest</c> has no member for it, so it is structurally ignored, not
+    /// rejected, if present in a PUT body (#874).
     /// </summary>
     [BsonIgnore]
-    [JsonPropertyName("exercises")]
-    public IReadOnlyList<SessionExercise> Exercises =>
+    [JsonPropertyName("allExercises")]
+    public IReadOnlyList<SessionExercise> AllExercises =>
         StandaloneExercises.Concat(Workouts.SelectMany(w => w.Exercises)).ToList();
 }

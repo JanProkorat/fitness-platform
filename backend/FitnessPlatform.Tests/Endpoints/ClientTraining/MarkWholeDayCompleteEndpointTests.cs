@@ -572,7 +572,7 @@ public class MarkWholeDayCompleteEndpointTests
     /// list must contain BOTH instance ids. Before #857 phase 3b, a per-section attribution map
     /// keyed on the shared catalog id could lose one section's copy; the flat instance-id list is
     /// structurally immune to that loss because every occurrence is enumerated independently via
-    /// <see cref="TrainingSession.Exercises"/>.
+    /// <see cref="TrainingSession.AllExercises"/>.
     /// </summary>
     [Fact]
     public async Task HandleAsync_ExerciseSharedAcrossSections_WritesSharedExerciseToEverySection()

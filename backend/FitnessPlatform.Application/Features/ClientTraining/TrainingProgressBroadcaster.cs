@@ -266,7 +266,7 @@ internal static class TrainingProgressBroadcaster
         var count = 0;
         foreach (var session in plannedSessions)
         {
-            if (session.Exercises.Count == 0)
+            if (session.AllExercises.Count == 0)
                 continue;
 
             // Uses the shared section-aware SessionExecutionExtensions.IsSessionComplete

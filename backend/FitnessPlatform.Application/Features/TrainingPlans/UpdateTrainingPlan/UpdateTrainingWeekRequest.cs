@@ -75,7 +75,7 @@ public class UpdateSessionRequest
     /// Shares one ordering sequence with <see cref="Workouts"/>: a duplicate <see cref="UpdateWorkoutRequest.Order"/>/
     /// <see cref="UpdateSessionExerciseRequest.Order"/> across the two lists is rejected (#857 phase 3a).
     /// </summary>
-    public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];
+    public List<UpdateSessionExerciseRequest> StandaloneExercises { get; set; } = [];
 }
 
 /// <summary>
