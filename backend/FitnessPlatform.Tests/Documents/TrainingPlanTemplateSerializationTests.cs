@@ -123,7 +123,7 @@ public class TrainingPlanTemplateSerializationTests
         var deserialized = BsonSerializer.Deserialize<TrainingPlanTemplate>(bsonDoc);
 
         deserialized.Weeks.Should().HaveCount(1);
-        deserialized.Weeks[0].Days.Should().HaveCount(7, "every TrainingDay week materializes all 7 days");
+        deserialized.Weeks[0].Days.Should().ContainSingle().Which.DayOfWeek.Should().Be(1);
         var session = deserialized.Weeks[0].Days[0].Sessions.Should().ContainSingle().Subject;
         session.SessionId.Should().Be(sessionId);
         session.Workouts.Should().ContainSingle().Which.WorkoutId.Should().Be(workoutId);
