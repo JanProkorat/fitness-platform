@@ -81,6 +81,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateSessionLockIndexes(cancellationToken);
         await CreateSessionTemplateIndexes(cancellationToken);
         await CreateSessionExecutionIndexes(cancellationToken);
+        await CreateMealTemplateIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -645,6 +646,40 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_sessiontemplate_ownerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+    }
+
+    // ── #859: MealTemplate sharing-library indexes ────────────────────────────────
+    //
+    // Per ILibraryDocument's remarks, every sharing-library collection must carry a unique
+    // externalId index (the sole lookup key LibraryDenialExtensions' loaders depend on for
+    // correctness — a duplicate would make the ownership/visibility guard judge the wrong
+    // document) plus the LibrarySearchHelper default-sort index. The meal library's default sort
+    // is calories descending (design §5.1), not DateCreated, so it also carries the
+    // totalNutrients.kcal index the flagship search needs to avoid a collection scan; the
+    // dateCreated index is retained anyway per the interface's blanket per-library mandate.
+    /// <summary>
+    /// Creates the MealTemplate indexes: ExternalId (unique), DateCreated+ExternalId (the
+    /// <c>LibrarySearchHelper</c> default sort, mandated by <see cref="ILibraryDocument"/>
+    /// even though this library's search does not use it as its primary sort), and
+    /// TotalNutrients.Kcal+ExternalId (this library's actual default sort).
+    /// </summary>
+    private async Task CreateMealTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.MealTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_externalId", Unique = true });
+
+        var dateCreatedIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_dateCreated_externalId" });
+
+        var kcalIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Descending(t => t.TotalNutrients.Kcal).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_kcal_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, dateCreatedIndex, kcalIndex], ct);
     }
 
     // ── #841: SessionExecution — unified WorkoutLog + TrainingCompletion indexes ─────
