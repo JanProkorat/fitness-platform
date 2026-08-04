@@ -46,7 +46,7 @@ internal static class TemplateRequestMapper
     private static TrainingSession ToSession(TemplateSessionRequest session) => new()
     {
         SessionId = ResolveOrMintId(session.SessionId),
-        Name = session.Name,
+        Name = session.Name.Trim(),
         Order = session.Order,
         Notes = session.Notes?.Trim(),
         Format = session.Format,
@@ -59,7 +59,7 @@ internal static class TemplateRequestMapper
     {
         WorkoutId = ResolveOrMintId(workout.WorkoutId),
         Order = workout.Order,
-        Name = workout.Name,
+        Name = workout.Name.Trim(),
         Format = workout.Format,
         FormatConfig = workout.FormatConfig,
         Notes = workout.Notes?.Trim(),
@@ -70,7 +70,7 @@ internal static class TemplateRequestMapper
     {
         ExerciseId = ResolveOrMintId(exercise.ExerciseId),
         ExerciseExternalId = exercise.ExerciseExternalId,
-        ExerciseName = exercise.ExerciseName,
+        ExerciseName = exercise.ExerciseName.Trim(),
         Order = exercise.Order,
         Notes = exercise.Notes?.Trim(),
         RestSeconds = exercise.RestSeconds,
