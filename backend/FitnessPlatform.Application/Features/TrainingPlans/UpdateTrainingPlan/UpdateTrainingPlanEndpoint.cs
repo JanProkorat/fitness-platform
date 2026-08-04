@@ -532,7 +532,7 @@ public class UpdateTrainingPlanEndpoint(
     /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
     /// and their sets (by positional order within the workout).
     /// </summary>
-    private static bool HasWorkoutContentChanged(TrainingWorkout stored, UpdateWorkoutRequest incoming)
+    private static bool HasWorkoutContentChanged(TrainingWorkout stored, UpdateTrainingWorkoutRequest incoming)
     {
         if (stored.Order != incoming.Order) return true;
         if (stored.Name != incoming.Name) return true;

@@ -177,7 +177,7 @@ public class TrainerSideEnforcementTests
             FormatConfig = session.FormatConfig,
             Workouts =
             [
-                new UpdateWorkoutRequest
+                new UpdateTrainingWorkoutRequest
                 {
                     WorkoutId = section.WorkoutId,
                     Order = section.Order,
@@ -518,7 +518,7 @@ public class TrainerSideEnforcementTests
                             Order = 1,
                             Workouts =
                             [
-                                new UpdateWorkoutRequest
+                                new UpdateTrainingWorkoutRequest
                                 {
                                     Order = 0,
                                     Name = "Hlavní",
