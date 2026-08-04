@@ -111,7 +111,7 @@ public class MarkSessionCompleteEndpoint(
         // #857 phase 3b: complete every exercise INSTANCE (ExerciseId) directly — the flat
         // CompletedExerciseInstanceIds list already disambiguates duplicate catalog exercises
         // across workouts or standalone-vs-nested, so no per-workout attribution map is needed.
-        var allInstanceIds = session.Exercises.Select(e => e.ExerciseId).ToList();
+        var allInstanceIds = session.AllExercises.Select(e => e.ExerciseId).ToList();
         var allSectionIds = session.Workouts.Select(w => w.WorkoutId).ToList();
 
         // Load or create the execution document

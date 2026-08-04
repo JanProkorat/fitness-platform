@@ -95,7 +95,7 @@ public class MarkExerciseIncompleteEndpoint(
 
         // Validate the exercise instance exists in the session (standalone or nested), resolved
         // directly by ExerciseId (#857 phase 3b).
-        var exerciseExists = session.Exercises.Any(e => e.ExerciseId == req.ExerciseId);
+        var exerciseExists = session.AllExercises.Any(e => e.ExerciseId == req.ExerciseId);
         if (!exerciseExists)
         {
             await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified session.", ct);
@@ -122,8 +122,8 @@ public class MarkExerciseIncompleteEndpoint(
                 SessionId = req.SessionId,
                 Date = DateOnly.FromDateTime(targetDate),
                 CompletedExerciseCount = completedCount,
-                TotalExerciseCount = session.Exercises.Count,
-                SessionComplete = completedCount >= session.Exercises.Count,
+                TotalExerciseCount = session.AllExercises.Count,
+                SessionComplete = completedCount >= session.AllExercises.Count,
                 Version = existing?.Version ?? 1
             }, ct);
             return;
@@ -144,7 +144,7 @@ public class MarkExerciseIncompleteEndpoint(
         // cross-collection sync into a separate WorkoutLog.
         if (existing.Performance is not null)
         {
-            var exercise = session.Exercises.FirstOrDefault(e => e.ExerciseId == req.ExerciseId);
+            var exercise = session.AllExercises.FirstOrDefault(e => e.ExerciseId == req.ExerciseId);
             var exerciseEntry = exercise is not null
                 ? existing.Performance.Exercises.FirstOrDefault(e => e.ExerciseExternalId == exercise.ExerciseExternalId)
                 : null;
@@ -179,7 +179,7 @@ public class MarkExerciseIncompleteEndpoint(
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            newInstanceIds.Count, session.Exercises.Count,
+            newInstanceIds.Count, session.AllExercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkExerciseIncompleteResponse
@@ -187,8 +187,8 @@ public class MarkExerciseIncompleteEndpoint(
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
             CompletedExerciseCount = newInstanceIds.Count,
-            TotalExerciseCount = session.Exercises.Count,
-            SessionComplete = newInstanceIds.Count >= session.Exercises.Count,
+            TotalExerciseCount = session.AllExercises.Count,
+            SessionComplete = newInstanceIds.Count >= session.AllExercises.Count,
             Version = newVersion
         }, ct);
     }

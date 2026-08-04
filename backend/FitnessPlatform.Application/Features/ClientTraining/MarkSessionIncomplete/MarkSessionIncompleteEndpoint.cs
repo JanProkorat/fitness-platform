@@ -108,7 +108,7 @@ public class MarkSessionIncompleteEndpoint(
                 SessionId = req.SessionId,
                 Date = DateOnly.FromDateTime(targetDate),
                 CompletedExerciseCount = 0,
-                TotalExerciseCount = session.Exercises.Count,
+                TotalExerciseCount = session.AllExercises.Count,
                 Version = 1
             }, ct);
             return;
@@ -155,7 +155,7 @@ public class MarkSessionIncompleteEndpoint(
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            0, session.Exercises.Count,
+            0, session.AllExercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkSessionIncompleteResponse
@@ -163,7 +163,7 @@ public class MarkSessionIncompleteEndpoint(
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
             CompletedExerciseCount = 0,
-            TotalExerciseCount = session.Exercises.Count,
+            TotalExerciseCount = session.AllExercises.Count,
             Version = newVersion
         }, ct);
     }

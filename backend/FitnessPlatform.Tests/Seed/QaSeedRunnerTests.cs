@@ -656,7 +656,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
             var allExercises = plan!.Weeks
                 .SelectMany(w => w.Days)
                 .SelectMany(d => d.Sessions)
-                .SelectMany(s => s.Exercises)
+                .SelectMany(s => s.AllExercises)
                 .ToList();
 
             allExercises.Should().NotBeEmpty($"plan {planId} must seed at least one exercise");
@@ -702,8 +702,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
         var exercise = session.StandaloneExercises[0];
         exercise.ExerciseId.Should().Be(QaSeedRunner.QaStandaloneOnlyInstanceId);
         exercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaStandaloneOnlyExerciseId);
-        session.Exercises.Should().ContainSingle(
-            "the computed flat Exercises view must still surface the standalone-only exercise");
+        session.AllExercises.Should().ContainSingle(
+            "the computed flat AllExercises view must still surface the standalone-only exercise");
     }
 
     /// <summary>
@@ -744,8 +744,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         standaloneExercise.ExerciseId.Should().NotBe(nestedExercise.ExerciseId,
             "the two occurrences of the same catalog exercise must have distinct instance ids");
-        session.Exercises.Should().HaveCount(2,
-            "the computed flat Exercises view must union the standalone exercise with the nested one");
+        session.AllExercises.Should().HaveCount(2,
+            "the computed flat AllExercises view must union the standalone exercise with the nested one");
     }
 
     /// <summary>

@@ -67,7 +67,7 @@ public class UpdateTrainingPlanValidatorTests
                                 ]
                             }
                         ],
-                        Exercises =
+                        StandaloneExercises =
                         [
                             new UpdateSessionExerciseRequest
                             {
@@ -128,7 +128,7 @@ public class UpdateTrainingPlanValidatorTests
                         Name = "Rest Day",
                         Order = 1,
                         Workouts = [],
-                        Exercises = []
+                        StandaloneExercises = []
                     }
                 ]
             }
@@ -204,7 +204,7 @@ public class UpdateTrainingPlanValidatorTests
                                 ]
                             }
                         ],
-                        Exercises = []
+                        StandaloneExercises = []
                     }
                 ]
             }

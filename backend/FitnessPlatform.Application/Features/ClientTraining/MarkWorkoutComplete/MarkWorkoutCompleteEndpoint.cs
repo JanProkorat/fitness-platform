@@ -119,7 +119,7 @@ public class MarkWorkoutCompleteEndpoint(
             return;
         }
 
-        var totalExercises = session.Exercises.Count;
+        var totalExercises = session.AllExercises.Count;
 
         // Load or create the execution document for (clientId, date, sessionId)
         var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
