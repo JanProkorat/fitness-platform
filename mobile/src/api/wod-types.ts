@@ -54,15 +54,14 @@ export interface WodSessionExercise {
  * Extended UpdateWorkoutExerciseRequest that includes WodResult and the
  * generated UpdateWorkoutSetRequest (which now carries planned fields natively).
  *
- * `sectionId` is hand-maintained here pending its own regen fold-in (#469).
- * NOTE (#872): the generated `UpdateWorkoutExerciseRequest` now natively
- * carries `workoutId` — see generated.ts. `sectionId` here is the pre-#857
- * name for the same concept (which workout/section a logged exercise
- * belongs to) and is intentionally left as-is: the live-log write path
- * (`mobile/src/api/workouts.ts` and its `sectionId`→`workoutId` wiring in
- * the training-session screen) is explicitly out of #872's scope and stays
- * catalog-keyed. Fold this into the native `workoutId` field on a future,
- * dedicated pass through the live-log path.
+ * `workoutId` mirrors the generated `UpdateWorkoutExerciseRequest.workoutId`
+ * (see generated.ts) — this hand-maintained interface exists only to add
+ * `wodResult`, which the generated shape doesn't carry. #872 previously left
+ * this field named `sectionId` (the pre-#857 name for the same "which
+ * workout does this logged exercise belong to" concept), which silently
+ * diverged from the generated contract and caused every live-logged exercise
+ * to be mis-attributed to the log's first workout. Fixed by aligning the
+ * field name with the generated contract.
  */
 export interface UpdateWodExerciseRequest {
   exerciseExternalId?: string;
@@ -73,10 +72,9 @@ export interface UpdateWodExerciseRequest {
   /**
    * The workout this exercise belongs to — matches TrainingWorkout.workoutId.
    * Optional: absent for legacy single-workout logs (backend treats missing
-   * as the legacy flat-exercise behaviour). Added in #469; fold into
-   * generated.ts's native `workoutId` on a future live-log pass.
+   * as the legacy flat-exercise behaviour).
    */
-  sectionId?: string;
+  workoutId?: string;
 }
 
 /**

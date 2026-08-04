@@ -2478,10 +2478,11 @@ export default function WorkoutLogScreen() {
         exerciseName: ex.exerciseName ?? '',
         sets,
         wodResult: exWodResult ?? undefined,
-        // Section keying (#469): tell the backend which workout/section this
-        // exercise belongs to so edits don't leak across sections when the
-        // same exercise appears in both (e.g. Standard + AMRAP in one session).
-        sectionId: sectionIdForRequest,
+        // Workout keying (#469, renamed to match the backend/generated field
+        // in #872): tell the backend which workout this exercise belongs to
+        // so edits don't leak across workouts when the same exercise appears
+        // in more than one (e.g. Standard + AMRAP in one session).
+        workoutId: sectionIdForRequest,
       }
     })
     // Section-level WOD result: use the current (or first) section's sectionId as the key.
