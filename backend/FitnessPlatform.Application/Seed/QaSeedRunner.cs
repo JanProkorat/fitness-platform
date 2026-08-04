@@ -639,6 +639,24 @@ public static class QaSeedRunner
 
         var now = DateTime.UtcNow;
 
+        // #898 — anchor StartDate to the Monday of the current (seed-time) week so
+        // PlanWindowResolver.ResolveCurrentPlan's [StartDate, StartDate + weeks*7) window
+        // covers today. Same anchoring idiom as EnsurePastTrainingPlanAsync's lastMonday,
+        // minus the -28 day offset (this plan's window is the CURRENT week, not a past one).
+        //
+        // This plan cannot rely on ResolveCurrentPlan's legacy single-plan fallback (an
+        // unranged plan is only auto-selected when it is the client's ONLY same-type plan):
+        // EnsurePastTrainingPlanAsync seeds a second, ranged TrainingPlan for the same
+        // client, so the moment both exist this plan MUST carry its own StartDate to ever
+        // be selected — do not "fix" a resolver miss here by deleting the past-plan fixture.
+        //
+        // A 1-week plan means a 7-day window: this anchor is only valid for 7 days after
+        // seeding. POST /test/reset drops the Mongo collections and re-seeds (re-anchoring
+        // to the new current Monday), so exposure is limited to a harness left running for
+        // more than a week without a reset.
+        var daysUntilMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
+        var startDate = now.Date.AddDays(-daysUntilMonday);
+
         var plan = new TrainingPlan
         {
             ExternalId      = QaTrainingPlanExternalId,
@@ -651,6 +669,7 @@ public static class QaSeedRunner
             TrainerId       = TrainerUserId,
             Name            = "QA Test Plan — ForTime fixture",
             Status          = TrainingPlanStatus.Active,
+            StartDate       = startDate,
             DateCreated     = now,
             DatePublished   = now,
             Version         = 1,
