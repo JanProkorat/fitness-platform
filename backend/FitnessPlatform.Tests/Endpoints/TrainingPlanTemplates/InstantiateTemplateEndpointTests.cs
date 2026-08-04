@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.ClientTraining;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -205,7 +206,7 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Instantiate_SameTemplateForDifferentClients_ProducesIndependentPlansWithDistinctSessionIds()
+    public async Task Instantiate_SameTemplateForDifferentClients_ProducesIndependentPlansWithDisjointIds()
     {
         var (trainer, trainerId) = await RegisterTrainerAsync("independent");
         var (clientAPublicId, clientAProfileId, _) = await RegisterClientAsync("independent-a");
@@ -235,14 +236,87 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
         var planA = await FetchPlanAsync(bodyA!.PlanId);
         var planB = await FetchPlanAsync(bodyB!.PlanId);
 
-        var sessionIdsA = planA.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).Select(s => s.SessionId).ToHashSet();
-        var sessionIdsB = planB.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).Select(s => s.SessionId).ToHashSet();
+        var sessionsA = planA.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).ToList();
+        var sessionsB = planB.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).ToList();
 
+        // Completion state keys on SessionId/WorkoutId/ExerciseId (#857 rekeyed exercise
+        // completion onto the per-instance SessionExercise.ExerciseId) — a shared id in any of
+        // these three families would let a checkbox toggle on one client's plan silently flip
+        // the equivalent checkbox on another client's plan. Assert full-set disjointness for all
+        // three, not a single spot-checked id or a bare count comparison.
+        var sessionIdsA = sessionsA.Select(s => s.SessionId).ToHashSet();
+        var sessionIdsB = sessionsB.Select(s => s.SessionId).ToHashSet();
         sessionIdsA.Should().NotIntersectWith(sessionIdsB, "two independent instantiations must never share a SessionId");
 
-        // Completing (mutating) one client's plan session must never touch the other's — proven
-        // structurally here by the disjoint id sets above, which is what SessionExecution/
-        // SessionLock join on.
+        var workoutIdsA = sessionsA.SelectMany(s => s.Workouts).Select(w => w.WorkoutId).ToHashSet();
+        var workoutIdsB = sessionsB.SelectMany(s => s.Workouts).Select(w => w.WorkoutId).ToHashSet();
+        workoutIdsA.Should().NotIntersectWith(workoutIdsB, "two independent instantiations must never share a WorkoutId");
+
+        var exerciseIdsA = sessionsA.SelectMany(s => s.AllExercises).Select(e => e.ExerciseId).ToHashSet();
+        var exerciseIdsB = sessionsB.SelectMany(s => s.AllExercises).Select(e => e.ExerciseId).ToHashSet();
+        exerciseIdsA.Should().NotIntersectWith(exerciseIdsB,
+            "two independent instantiations must never share an ExerciseId — exercise completion (#857) keys on this id, so a collision would bleed completion state across clients");
+    }
+
+    /// <summary>
+    /// Completes the disjoint-ids proof above with a live-write check: recording a completion
+    /// against an exercise instance in client A's instantiated plan must create no
+    /// <see cref="SessionExecution"/> record — and therefore no completion state at all — for
+    /// client B's independently instantiated copy of the same template.
+    /// </summary>
+    [Fact]
+    public async Task Instantiate_SameTemplateForDifferentClients_CompletingExerciseInFirstPlanLeavesSecondPlanUntouched()
+    {
+        var (trainer, trainerId) = await RegisterTrainerAsync("isolation");
+        var (clientAPublicId, clientAProfileId, clientAUserId) = await RegisterClientAsync("isolation-a");
+        var (clientBPublicId, clientBProfileId, clientBUserId) = await RegisterClientAsync("isolation-b");
+        var professionalProfileId = await GetProfessionalProfileIdAsync(trainerId);
+        await LinkAsync(professionalProfileId, clientAProfileId);
+        await LinkAsync(professionalProfileId, clientBProfileId);
+
+        var template = BuildTemplateWithSessionContent(trainerId);
+        await SeedTemplateAsync(template);
+
+        var responseA = await trainer.PostAsJsonAsync(
+            $"/training/plan-templates/{template.ExternalId}/instantiate",
+            new { ClientId = clientAPublicId, Name = "Plan A" });
+        var responseB = await trainer.PostAsJsonAsync(
+            $"/training/plan-templates/{template.ExternalId}/instantiate",
+            new { ClientId = clientBPublicId, Name = "Plan B" });
+
+        var bodyA = await responseA.Content.ReadFromJsonAsync<InstantiateResponseDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        var bodyB = await responseB.Content.ReadFromJsonAsync<InstantiateResponseDto>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        var planA = await FetchPlanAsync(bodyA!.PlanId);
+        var planB = await FetchPlanAsync(bodyB!.PlanId);
+        planB.Should().NotBeNull();
+
+        var sessionA = planA.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).First();
+        var exerciseInstanceA = sessionA.AllExercises.First();
+
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: clientAUserId,
+            sessionId: sessionA.SessionId,
+            date: DateTime.UtcNow.Date,
+            completedExerciseIds: [exerciseInstanceA.ExerciseId]);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.SessionExecutions.InsertOneAsync(
+                completion, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyMongo = verifyScope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var clientBHasAnyExecution = await verifyMongo.SessionExecutions
+            .Find(x => x.ClientId == clientBUserId)
+            .AnyAsync(TestContext.Current.CancellationToken);
+
+        clientBHasAnyExecution.Should().BeFalse(
+            "completing an exercise in client A's instantiated plan must never create or affect a SessionExecution for client B's independent copy of the same template");
     }
 
     // ── coach-client link ─────────────────────────────────────────────────────
