@@ -1390,16 +1390,7 @@
       "deleteError": "Workout konnte nicht gelöscht werden.",
       "deleteConfirmTitle": "Workout löschen",
       "deleteConfirmMessage": "Möchten Sie das Workout «{{name}}» wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "versionConflict": "Workout wurde anderswo geändert, wird neu geladen.",
-      "library": {
-        "title": "Vorlagenbibliothek",
-        "subtitle": "Öffentliche Workout-Vorlagen, die Sie als Ausgangspunkt verwenden können.",
-        "colWorkouts": "Trainings",
-        "durationMinutes": "{{count}} Min.",
-        "viewDetails": "Details anzeigen",
-        "formatConfigLabel": "Format",
-        "descriptionLabel": "Beschreibung"
-      }
+      "versionConflict": "Workout wurde anderswo geändert, wird neu geladen."
     },
     "completionState": {
       "setCompleted": "Abgeschlossen",
