@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession, linkTrainingQuestionnaire } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
-import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
 import type { WorkoutFormat as GenWorkoutFormat, MovementType as GenMovementType, SetType as GenSetType, WodConfig as GenWodConfig } from '@/api/generated';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
@@ -98,7 +98,7 @@ export default function TrainingPlanPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
     sessionId: string;
-    template: SectionTemplateResponse;
+    template: WorkoutTemplateResponse;
   } | null>(null);
   const [saveAsTemplateTarget, setSaveAsTemplateTarget] = useState<{
     sessionId: string;
@@ -173,7 +173,7 @@ export default function TrainingPlanPage() {
     const ids = new Set<string>();
     for (const w of plan.weeks) {
       for (const s of w.sessions) {
-        for (const e of s.exercises) {
+        for (const e of s.allExercises) {
           ids.add(e.exerciseExternalId);
         }
       }
@@ -202,9 +202,9 @@ export default function TrainingPlanPage() {
   const exerciseDetailsMap = exerciseDetailsData?.muscleMap;
   const exerciseFullMap = exerciseDetailsData?.fullMap;
 
-  // ── Load section templates for the apply-template affordance ──
+  // ── Load workout templates for the apply-template affordance ──
   const { data: templatesData } = useQuery({
-    queryKey: ['section-templates'],
+    queryKey: ['workout-templates'],
     queryFn: () => listSectionTemplates(),
     staleTime: 60_000,
   });
@@ -459,7 +459,7 @@ export default function TrainingPlanPage() {
   };
 
   // Apply-template client-side splice: replaces exercises + format of the target session.
-  const applyTemplateToSession = (sessionId: string, template: SectionTemplateResponse) => {
+  const applyTemplateToSession = (sessionId: string, template: WorkoutTemplateResponse) => {
     const store = useTrainingPlanStore.getState();
     if (!store.plan) return;
     useTrainingPlanStore.setState({
@@ -475,14 +475,15 @@ export default function TrainingPlanPage() {
                     ? s
                     : {
                         ...s,
-                        // Generated SectionTemplateResponse.defaultFormat is string | undefined; safe cast
+                        // Generated WorkoutTemplateResponse.defaultFormat is string | undefined; safe cast
                         // because the backend only emits WorkoutFormat enum values.
                         format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
                         formatConfig: template.defaultFormatConfig ?? null,
                         // Map generated SessionExercise (all fields optional per NSwag) to the local
                         // SessionExercise shape (required fields). Backend guarantees well-formed data
                         // for stored template exercises, so fallbacks here are defensive only.
-                        exercises: (template.defaultExercises ?? []).map((ex) => ({
+                        allExercises: (template.defaultExercises ?? []).map((ex) => ({
+                          exerciseId: crypto.randomUUID(),
                           exerciseExternalId: ex.exerciseExternalId ?? '',
                           exerciseName: ex.exerciseName ?? '',
                           order: ex.order ?? 1,
@@ -517,12 +518,12 @@ export default function TrainingPlanPage() {
     const session = plan.weeks
       .find((w) => w.weekNumber === selectedWeek)
       ?.sessions.find((s) => s.sessionId === saveAsTemplateTarget.sessionId);
-    const section = session?.sections.find((sec) => sec.sectionId === saveAsTemplateTarget.sectionId);
+    const section = session?.workouts.find((sec) => sec.workoutId === saveAsTemplateTarget.sectionId);
     if (!section) return;
     setIsSavingTemplate(true);
     try {
       // The local training-plan-types use null for absent values; the generated
-      // CreateSectionTemplateRequest uses undefined. Bridge the gap with null-to-undefined coercion.
+      // CreateWorkoutTemplateRequest uses undefined. Bridge the gap with null-to-undefined coercion.
       const toGenWodConfig = (cfg: { timeCapSeconds?: number | null; intervalSeconds?: number | null; totalRounds?: number | null; workSeconds?: number | null; restSeconds?: number | null } | null | undefined): GenWodConfig | undefined => {
         if (!cfg) return undefined;
         return {
@@ -558,12 +559,12 @@ export default function TrainingPlanPage() {
           })),
         })),
       });
-      // This page's own SectionTemplateSearch reads ['section-templates']
+      // This page's own SectionTemplateSearch reads ['workout-templates']
       // (see templatesData query above) — without this invalidation the
       // newly-saved template doesn't show up in the search results until an
       // unrelated refetch happens. Mirrors SectionTemplatesPage's own
       // post-create invalidation (#620).
-      queryClient.invalidateQueries({ queryKey: ['section-templates'] });
+      queryClient.invalidateQueries({ queryKey: ['workout-templates'] });
       showSuccess(t('training.section.savedAsTemplate'));
       setSaveAsTemplateTarget(null);
     } catch (err) {
@@ -645,7 +646,7 @@ export default function TrainingPlanPage() {
       // Tabata / Standard block. The earlier exercise count was too
       // granular and didn't match the "N workouts" header the user sees
       // elsewhere (e.g. "6 workoutů · 68 min").
-      const workoutCount = sessions.reduce((sum, s) => sum + (s.sections?.length ?? 0), 0);
+      const workoutCount = sessions.reduce((sum, s) => sum + (s.workouts?.length ?? 0), 0);
       let dateLabel: string | null = null;
       if (wkStart) {
         const d = new Date(wkStart);
@@ -1205,8 +1206,8 @@ export default function TrainingPlanPage() {
                     </span>
                     <span className="text-xs text-text3 tabular-nums inline-flex items-center gap-1.5 flex-wrap">
                       {(() => {
-                        const total = session.sections.length;
-                        const durations = session.sections.map((sec) =>
+                        const total = session.workouts.length;
+                        const durations = session.workouts.map((sec) =>
                           estimatedSectionDurationSeconds(sec.format, sec.formatConfig),
                         );
                         const timedSeconds = durations.reduce<number>((sum, d) => sum + (d ?? 0), 0);
@@ -1221,13 +1222,15 @@ export default function TrainingPlanPage() {
                       {(() => {
                         // Session-level completion badge — derive from execution data.
                         // sessionExec is already resolved above in the outer scope.
-                        const allExercises = session.sections.flatMap((sec) =>
-                          sec.exercises.map((ex) => ({ ...ex, sectionId: sec.sectionId })),
+                        // Named distinctly from the wire's read-only `allExercises`
+                        // field to avoid the two meanings blurring together.
+                        const sessionCompletionExercises = session.workouts.flatMap((sec) =>
+                          sec.exercises.map((ex) => ({ ...ex, workoutId: sec.workoutId })),
                         );
                         const { state, counts } = deriveSessionCompletionState(
                           sessionExec ? [sessionExec] : undefined,
                           session.sessionId,
-                          allExercises,
+                          sessionCompletionExercises,
                         );
                         if (state === 'none' || state === 'in-progress') return null;
                         return (
@@ -1361,7 +1364,7 @@ export default function TrainingPlanPage() {
                           sessionId: crypto.randomUUID(),
                           name: `${session.name} (kopie)`,
                           order: daySessions.length + 1,
-                          exercises: session.exercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })),
+                          allExercises: session.allExercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })),
                         };
                         const store = useTrainingPlanStore.getState();
                         if (!store.plan) return;
@@ -1451,7 +1454,7 @@ export default function TrainingPlanPage() {
                           e.preventDefault();
                           try {
                             const data = JSON.parse(e.dataTransfer.getData('application/section-json'));
-                            if (data.type !== 'section' || !data.sectionId) return;
+                            if (data.type !== 'section' || !data.workoutId) return;
 
                             // Compute target index from mouse Y over section children.
                             const sectionEls = Array.from(
@@ -1468,7 +1471,7 @@ export default function TrainingPlanPage() {
 
                             if (data.sessionId === session.sessionId) {
                               // Same-session reorder
-                              const fromIdx = session.sections.findIndex((s) => s.sectionId === data.sectionId);
+                              const fromIdx = session.workouts.findIndex((s) => s.workoutId === data.workoutId);
                               if (fromIdx < 0) return;
                               const toIdx = targetIndex > fromIdx ? targetIndex - 1 : targetIndex;
                               if (toIdx === fromIdx) return;
@@ -1479,18 +1482,18 @@ export default function TrainingPlanPage() {
                                 selectedWeek,
                                 data.sessionId,
                                 session.sessionId,
-                                data.sectionId,
+                                data.workoutId,
                                 targetIndex,
                               );
                             }
                           } catch { /* ignore malformed payloads */ }
                         }}
                       >
-                        {session.sections.map((section) => (
+                        {session.workouts.map((section) => (
                           <SectionDragWrapper
-                            key={section.sectionId}
+                            key={section.workoutId}
                             sessionId={session.sessionId}
-                            sectionId={section.sectionId}
+                            workoutId={section.workoutId}
                             // Drag-out + drop-over are both rejected when
                             // the host session is read-only (finished
                             // session OR past day) — reordering historical
@@ -1499,45 +1502,45 @@ export default function TrainingPlanPage() {
                           >
                           <SectionCard
                             section={section}
-                            isExpanded={!collapsedSections.has(section.sectionId)}
-                            onToggleExpanded={() => toggleSection(section.sectionId)}
-                            hasError={invalidIds.has(section.sectionId)}
+                            isExpanded={!collapsedSections.has(section.workoutId)}
+                            onToggleExpanded={() => toggleSection(section.workoutId)}
+                            hasError={invalidIds.has(section.workoutId)}
                             isSectionLocked={
-                              // A section's inputs are read-only when any of:
-                              //   - the section itself is finished by the client
+                              // A workout's inputs are read-only when any of:
+                              //   - the workout itself is finished by the client
                               //   - the whole session is client-locked (every
-                              //     section finished by the client)
+                              //     workout finished by the client)
                               //   - the session is a past completed session
                               //     (client formally finished the workout log)
                               //   - the session has an edit lock (Stable or Live)
-                              //   - the backend reports this section as finished
-                              //     via SessionExecutionDto.finishedSections (new
-                              //     per-section completion path from #465)
+                              //   - the backend reports this workout as finished
+                              //     via SessionExecutionDto.finishedWorkouts (new
+                              //     per-workout completion path from #465)
                               // NOTE: isSelectedDayInPast alone no longer locks —
                               // past skipped / untouched sessions are editable.
-                              planLocks.sectionIds.has(section.sectionId) ||
+                              planLocks.sectionIds.has(section.workoutId) ||
                               isClientLockedSession ||
                               isPastCompletedSession ||
                               isEditLocked ||
-                              // Section-grain finished signal from the backend (#465):
-                              // true when MarkSectionComplete was called for this section
+                              // Workout-grain finished signal from the backend (#465):
+                              // true when MarkWorkoutComplete was called for this workout
                               // OR when the whole session WorkoutLog is completed.
-                              (sessionExec?.finishedSections?.some(
-                                (fs) => fs.sectionId === section.sectionId && fs.isFinished,
+                              (sessionExec?.finishedWorkouts?.some(
+                                (fs) => fs.workoutId === section.workoutId && fs.isFinished,
                               ) ?? false)
                             }
                             isSectionFinishedByClient={
-                              // Show the per-section finished badge when the backend
-                              // reports this section as completed. This is the
-                              // per-section analogue of sessionExec?.isSessionFinished
-                              // (session grain), scoped to the individual section.
+                              // Show the per-workout finished badge when the backend
+                              // reports this workout as completed. This is the
+                              // per-workout analogue of sessionExec?.isSessionFinished
+                              // (session grain), scoped to the individual workout.
                               // We only show the badge when the session itself is NOT
                               // fully finished — when the whole session is finished,
                               // the session-level badge on the session header already
                               // covers it, and showing both would be redundant.
                               !sessionExec?.isSessionFinished &&
-                              (sessionExec?.finishedSections?.some(
-                                (fs) => fs.sectionId === section.sectionId && fs.isFinished,
+                              (sessionExec?.finishedWorkouts?.some(
+                                (fs) => fs.workoutId === section.workoutId && fs.isFinished,
                               ) ?? false)
                             }
                             lockedExerciseIds={new Set(
@@ -1546,7 +1549,7 @@ export default function TrainingPlanPage() {
                                   planLocks.exerciseKeys.has(
                                     exerciseLockKey(
                                       session.sessionId,
-                                      section.sectionId,
+                                      section.workoutId,
                                       ex.exerciseExternalId,
                                     ),
                                   ),
@@ -1557,45 +1560,45 @@ export default function TrainingPlanPage() {
                             exerciseFullMap={exerciseFullMap}
                             sessionExecution={sessionExec}
                             onUpdate={(patch) =>
-                              updateSection(selectedWeek, session.sessionId, section.sectionId, patch)
+                              updateSection(selectedWeek, session.sessionId, section.workoutId, patch)
                             }
                             onRemove={() =>
-                              removeSection(selectedWeek, session.sessionId, section.sectionId)
+                              removeSection(selectedWeek, session.sessionId, section.workoutId)
                             }
                             onDuplicate={() =>
-                              duplicateSection(selectedWeek, session.sessionId, section.sectionId)
+                              duplicateSection(selectedWeek, session.sessionId, section.workoutId)
                             }
                             onAddExercise={(exercise) =>
-                              addExerciseToSection(selectedWeek, session.sessionId, section.sectionId, exercise)
+                              addExerciseToSection(selectedWeek, session.sessionId, section.workoutId, exercise)
                             }
                             onRemoveExercise={(exIdx) =>
-                              removeExerciseFromSection(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                              removeExerciseFromSection(selectedWeek, session.sessionId, section.workoutId, exIdx)
                             }
                             onDuplicateExercise={(exIdx) =>
-                              duplicateExerciseInSection(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                              duplicateExerciseInSection(selectedWeek, session.sessionId, section.workoutId, exIdx)
                             }
                             onAddSet={(exIdx) =>
-                              addSet(selectedWeek, session.sessionId, section.sectionId, exIdx)
+                              addSet(selectedWeek, session.sessionId, section.workoutId, exIdx)
                             }
                             onDuplicateSet={(exIdx, sIdx) =>
-                              duplicateSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
+                              duplicateSet(selectedWeek, session.sessionId, section.workoutId, exIdx, sIdx)
                             }
                             onRemoveSet={(exIdx, sIdx) =>
-                              removeSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx)
+                              removeSet(selectedWeek, session.sessionId, section.workoutId, exIdx, sIdx)
                             }
                             onUpdateSet={(exIdx, sIdx, updates) =>
-                              updateSet(selectedWeek, session.sessionId, section.sectionId, exIdx, sIdx, updates)
+                              updateSet(selectedWeek, session.sessionId, section.workoutId, exIdx, sIdx, updates)
                             }
                             onUpdateExerciseNotes={(exIdx, notes) =>
-                              updateExerciseNotes(selectedWeek, session.sessionId, section.sectionId, exIdx, notes)
+                              updateExerciseNotes(selectedWeek, session.sessionId, section.workoutId, exIdx, notes)
                             }
                             onUpdateExerciseMovementType={(exIdx, mt) =>
-                              updateExerciseMovementType(selectedWeek, session.sessionId, section.sectionId, exIdx, mt)
+                              updateExerciseMovementType(selectedWeek, session.sessionId, section.workoutId, exIdx, mt)
                             }
                             onSaveAsTemplate={() =>
                               setSaveAsTemplateTarget({
                                 sessionId: session.sessionId,
-                                sectionId: section.sectionId,
+                                sectionId: section.workoutId,
                                 sectionName: section.name || t('training.section.defaultName'),
                               })
                             }

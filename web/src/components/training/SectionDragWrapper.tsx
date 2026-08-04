@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 interface SectionDragWrapperProps {
   sessionId: string;
-  sectionId: string;
+  workoutId: string;
   children: React.ReactNode;
   /** When true, drag-out and drop-over are both rejected — the section
    *  can't be reordered out of, and another section can't be dropped in
@@ -21,7 +21,7 @@ interface SectionDragWrapperProps {
  * shows a top-border indicator when another section is being dragged over it.
  */
 export function SectionDragWrapper({
-  sessionId, sectionId, children, disabled,
+  sessionId, workoutId, children, disabled,
 }: SectionDragWrapperProps) {
   const [over, setOver] = useState(false);
 
@@ -31,7 +31,7 @@ export function SectionDragWrapper({
       onDragStart={disabled ? undefined : (e) => {
         e.dataTransfer.setData(
           'application/section-json',
-          JSON.stringify({ type: 'section', sessionId, sectionId }),
+          JSON.stringify({ type: 'section', sessionId, workoutId }),
         );
         e.dataTransfer.effectAllowed = 'move';
         // Stop the parent SessionDragWrapper from also seeing this dragstart.
@@ -61,7 +61,7 @@ export function SectionDragWrapper({
       }}
       onDragLeave={() => setOver(false)}
       onDrop={() => setOver(false)}
-      data-section-id={sectionId}
+      data-section-id={workoutId}
       style={{
         borderTop: over ? '2px solid var(--accent)' : '2px solid transparent',
         transition: 'border-color 0.1s',

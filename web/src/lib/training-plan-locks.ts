@@ -5,17 +5,17 @@ import type { TrainingPlanDetail } from '@/api/training-plan-types';
  * marked as completed. Trainers must not edit these — past results would
  * be invalidated.
  *
- *   exerciseKeys — `${sessionId}:${sectionId}:${exerciseExternalId}` for each
- *                  completed exercise, scoped to the specific section within
- *                  the session. Using the section dimension prevents a false
+ *   exerciseKeys — `${sessionId}:${workoutId}:${exerciseExternalId}` for each
+ *                  completed exercise, scoped to the specific workout within
+ *                  the session. Using the workout dimension prevents a false
  *                  lock when the same catalog exercise appears in multiple
- *                  sections of the same session.
- *   sectionIds   — sections that are "complete" — either every exercise in
+ *                  workouts of the same session.
+ *   sectionIds   — workouts that are "complete" — either every exercise in
  *                  them is locked, OR they have no exercises and the client
- *                  marked the section itself complete (ForTime "Running"
+ *                  marked the workout itself complete (ForTime "Running"
  *                  style workouts).
- *   sessionIds   — sessions whose every section is in `sectionIds` AND that
- *                  have at least one section.
+ *   sessionIds   — sessions whose every workout is in `sectionIds` AND that
+ *                  have at least one workout.
  *
  * The keys are stable for a given plan + completions snapshot, so memoizing
  * on `plan` in components is enough.
@@ -35,22 +35,22 @@ const EMPTY_LOCKS: PlanLocks = {
 /**
  * Build the composite key used to look up whether a specific exercise
  * instance (identified by its catalog `exerciseExternalId`) within a
- * specific section of a specific session is locked.
+ * specific workout of a specific session is locked.
  *
- * Scoping to `sectionId` is the fix for the duplicate-exercise bug: two
- * sections can reference the same catalog exercise; only the one the client
+ * Scoping to `workoutId` is the fix for the duplicate-exercise bug: two
+ * workouts can reference the same catalog exercise; only the one the client
  * actually completed should lock.
  */
 export function exerciseLockKey(
   sessionId: string,
-  sectionId: string,
+  workoutId: string,
   exerciseExternalId: string,
 ): string {
-  return `${sessionId}:${sectionId}:${exerciseExternalId}`;
+  return `${sessionId}:${workoutId}:${exerciseExternalId}`;
 }
 
-export function sectionLockKey(sessionId: string, sectionId: string): string {
-  return `${sessionId}:${sectionId}`;
+export function sectionLockKey(sessionId: string, workoutId: string): string {
+  return `${sessionId}:${workoutId}`;
 }
 
 export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
@@ -61,33 +61,33 @@ export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
   const sectionCompletionKeys = new Set<string>();
 
   for (const c of plan.completions) {
-    if (c.completedExerciseIdsBySection) {
-      // New shape: section-scoped completion map. Each entry provides the
-      // sectionId as the key and the list of completed exerciseExternalIds as
+    if (c.completedExerciseIdsByWorkout) {
+      // New shape: workout-scoped completion map. Each entry provides the
+      // workoutId as the key and the list of completed exerciseExternalIds as
       // the value — this is the precise instance we need to lock.
-      for (const [sectionId, exIds] of Object.entries(c.completedExerciseIdsBySection)) {
+      for (const [workoutId, exIds] of Object.entries(c.completedExerciseIdsByWorkout)) {
         for (const exId of exIds) {
-          exerciseKeys.add(exerciseLockKey(c.sessionId, sectionId, exId));
+          exerciseKeys.add(exerciseLockKey(c.sessionId, workoutId, exId));
         }
       }
     } else {
       // Transitional fallback for legacy backends that only emit the flat list.
-      // We do not know which section each exercise belongs to, so we must lock
-      // across ALL sections in this session — reproducing the old (buggy) flat
+      // We do not know which workout each exercise belongs to, so we must lock
+      // across ALL workouts in this session — reproducing the old (buggy) flat
       // behaviour. This path only triggers against old backend versions.
       //
-      // To build section-scoped keys we need the section data from the plan.
+      // To build workout-scoped keys we need the workout data from the plan.
       // Find the sessions across all weeks and fan out the flat IDs into each
-      // section that contains the exercise.
+      // workout that contains the exercise.
       for (const week of plan.weeks) {
         for (const session of week.sessions) {
           if (session.sessionId !== c.sessionId) continue;
-          for (const section of session.sections) {
+          for (const section of session.workouts) {
             for (const exId of c.completedExerciseIds) {
-              // Only add a key if the exercise actually exists in this section,
-              // so we don't fabricate locks for sections that don't contain it.
+              // Only add a key if the exercise actually exists in this workout,
+              // so we don't fabricate locks for workouts that don't contain it.
               if (section.exercises.some((ex) => ex.exerciseExternalId === exId)) {
-                exerciseKeys.add(exerciseLockKey(c.sessionId, section.sectionId, exId));
+                exerciseKeys.add(exerciseLockKey(c.sessionId, section.workoutId, exId));
               }
             }
           }
@@ -95,8 +95,8 @@ export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
       }
     }
 
-    for (const secId of c.completedSectionIds ?? []) {
-      sectionCompletionKeys.add(sectionLockKey(c.sessionId, secId));
+    for (const workoutId of c.completedWorkoutIds ?? []) {
+      sectionCompletionKeys.add(sectionLockKey(c.sessionId, workoutId));
     }
   }
 
@@ -104,24 +104,24 @@ export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
   const sessionIds = new Set<string>();
   for (const week of plan.weeks) {
     for (const session of week.sessions) {
-      if (session.sections.length === 0) continue;
+      if (session.workouts.length === 0) continue;
       let allSectionsLocked = true;
-      for (const section of session.sections) {
+      for (const section of session.workouts) {
         let sectionLocked: boolean;
         if (section.exercises.length === 0) {
-          // ForTime-style empty section: lock when section itself was marked done.
+          // ForTime-style empty workout: lock when the workout itself was marked done.
           sectionLocked = sectionCompletionKeys.has(
-            sectionLockKey(session.sessionId, section.sectionId),
+            sectionLockKey(session.sessionId, section.workoutId),
           );
         } else {
           sectionLocked = section.exercises.every((ex) =>
             exerciseKeys.has(
-              exerciseLockKey(session.sessionId, section.sectionId, ex.exerciseExternalId),
+              exerciseLockKey(session.sessionId, section.workoutId, ex.exerciseExternalId),
             ),
           );
         }
         if (sectionLocked) {
-          sectionIds.add(section.sectionId);
+          sectionIds.add(section.workoutId);
         } else {
           allSectionsLocked = false;
         }

@@ -1,22 +1,22 @@
 import { useTranslation } from 'react-i18next';
-import type { PublicWorkoutTemplateResponse } from '@/api/generated';
+import type { PublicSessionTemplateResponse } from '@/api/generated';
 import type { WorkoutFormat as WorkoutFormatType } from '@/api/training-plan-types';
 import { Card, CardBody, CardPropRow } from '@/components/data';
 import { FORMAT_LABEL_KEYS, FORMAT_BG_COLORS, FORMAT_COLORS } from '@/constants/training';
 import { resolveLocalizedTemplateName } from '@/lib/training-plan-format';
 
-interface PublicWorkoutTemplateCardProps {
-  template: PublicWorkoutTemplateResponse;
+interface PublicSessionTemplateCardProps {
+  template: PublicSessionTemplateResponse;
   onClick: () => void;
 }
 
 /**
- * Card tile for a single public workout template in the read-only
+ * Card tile for a single public session template in the read-only
  * "Template library" section on the section-templates page. Mirrors the
  * visual language of the trainer's own-template cards (cover + format
  * chip + name overlay) so the two card families read as one system.
  */
-export function PublicWorkoutTemplateCard({ template, onClick }: PublicWorkoutTemplateCardProps) {
+export function PublicSessionTemplateCard({ template, onClick }: PublicSessionTemplateCardProps) {
   const { t, i18n } = useTranslation();
 
   const fmt = ((template.format ?? 'Standard') as WorkoutFormatType);
@@ -25,9 +25,9 @@ export function PublicWorkoutTemplateCard({ template, onClick }: PublicWorkoutTe
     template.localizedNames,
     i18n.language,
   );
-  const sections = template.sections ?? [];
-  const sectionCount = sections.length;
-  const exerciseCount = sections.reduce((sum, s) => sum + (s.exercises?.length ?? 0), 0);
+  const workouts = template.workouts ?? [];
+  const workoutCount = workouts.length;
+  const exerciseCount = workouts.reduce((sum, w) => sum + (w.exercises?.length ?? 0), 0);
   const durationMinutes = template.estimatedDurationMinutes;
 
   return (
@@ -59,8 +59,8 @@ export function PublicWorkoutTemplateCard({ template, onClick }: PublicWorkoutTe
         <CardPropRow label={t('training.template.colExercises')}>
           {exerciseCount}
         </CardPropRow>
-        <CardPropRow label={t('training.template.library.colSections')}>
-          {sectionCount}
+        <CardPropRow label={t('training.template.library.colWorkouts')}>
+          {workoutCount}
         </CardPropRow>
         <CardPropRow label={t('training.template.colDuration')}>
           {durationMinutes ? t('training.template.library.durationMinutes', { count: durationMinutes }) : '—'}
