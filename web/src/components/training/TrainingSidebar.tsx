@@ -53,18 +53,19 @@ const MUSCLE_GROUP_KEYS: Record<MuscleGroup, string> = {
 export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
   const { t, i18n } = useTranslation();
 
-  // Collect all sections (workouts) and exercises across every session on
-  // the day so we can summarise the day rather than just one session.
-  const allSections = useMemo(
-    () => sessions.flatMap((s) => s.sections ?? []),
+  // Collect all workouts and exercises across every session on the day so
+  // we can summarise the day rather than just one session. `allExercises`
+  // is the backend-computed union of a session's standalone exercises plus
+  // every workout's nested exercises — using it directly (rather than
+  // re-flattening `workouts` by hand) also picks up standalone exercises
+  // that live outside any workout block.
+  const allWorkouts = useMemo(
+    () => sessions.flatMap((s) => s.workouts ?? []),
     [sessions],
   );
   const allExercises = useMemo(
-    () =>
-      allSections.length > 0
-        ? allSections.flatMap((sec) => sec.exercises ?? [])
-        : sessions.flatMap((s) => s.exercises),
-    [allSections, sessions],
+    () => sessions.flatMap((s) => s.allExercises ?? []),
+    [sessions],
   );
 
   // Day-level stats — sessions / workouts / exercises / sets / volume /
@@ -83,19 +84,19 @@ export function TrainingSidebar({ sessions }: TrainingSidebarProps) {
       }
     }
     let totalDurationSeconds = 0;
-    for (const sec of allSections) {
+    for (const sec of allWorkouts) {
       const d = estimatedSectionDurationSeconds(sec.format, sec.formatConfig);
       if (d != null) totalDurationSeconds += d;
     }
     return {
       sessionCount: sessions.length,
-      workoutCount: allSections.length,
+      workoutCount: allWorkouts.length,
       exerciseCount: allExercises.length,
       totalSets,
       totalVolume,
       totalDurationSeconds,
     };
-  }, [sessions, allSections, allExercises]);
+  }, [sessions, allWorkouts, allExercises]);
 
   // Fetch muscle groups for unique exercise IDs
   const uniqueExerciseIds = useMemo(

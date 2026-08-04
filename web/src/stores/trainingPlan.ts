@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import type {
   TrainingPlanDetail,
-  TrainingSection,
+  RawTrainingPlanDetail,
+  TrainingWorkout,
   TrainingSession,
   SessionExercise,
   ExerciseSet,
   UpdateTrainingPlanRequest,
-  UpdateSectionRequest,
+  UpdateWorkoutRequest,
+  UpdateSessionExerciseRequest,
   WorkoutFormat,
   MovementType,
   SetType,
@@ -48,7 +50,7 @@ interface TrainingPlanState {
     lockHolder: SessionLockStateDto['lockHolder'],
   ) => void;
 
-  setPlan: (plan: TrainingPlanDetail) => void;
+  setPlan: (plan: RawTrainingPlanDetail) => void;
   setSelectedWeek: (week: number) => void;
   revert: () => void;
 
@@ -63,7 +65,7 @@ interface TrainingPlanState {
   addSection: (weekNumber: number, sessionId: string, format?: WorkoutFormat) => void;
   removeSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
   duplicateSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
-  updateSection: (weekNumber: number, sessionId: string, sectionId: string, patch: Partial<Pick<TrainingSection, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
+  updateSection: (weekNumber: number, sessionId: string, sectionId: string, patch: Partial<Pick<TrainingWorkout, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
   reorderSections: (weekNumber: number, sessionId: string, fromIdx: number, toIdx: number) => void;
   moveSectionToSession: (
     weekNumber: number,
@@ -155,19 +157,35 @@ function updateSession(
   };
 }
 
-/** Patch a specific section within a session; also recomputes the flat exercises view. */
+/**
+ * Recompute a session's read-only `allExercises` view — standalone exercises
+ * plus every workout's nested exercises — mirroring what the backend
+ * computes server-side. Called after every local mutation that changes
+ * `workouts` or `standaloneExercises` so the two never drift apart.
+ */
+function recomputeAllExercises(session: TrainingSession): TrainingSession {
+  return {
+    ...session,
+    allExercises: [
+      ...session.standaloneExercises,
+      ...session.workouts.flatMap((w) => w.exercises),
+    ],
+  };
+}
+
+/** Patch a specific workout within a session; also recomputes the flat exercises view. */
 function patchSection(
   plan: TrainingPlanDetail,
   weekNumber: number,
   sessionId: string,
   sectionId: string,
-  updater: (section: TrainingSection) => TrainingSection,
+  updater: (section: TrainingWorkout) => TrainingWorkout,
 ): TrainingPlanDetail {
   return updateSession(plan, weekNumber, sessionId, (s) => {
-    const sections = s.sections.map((sec) =>
-      sec.sectionId === sectionId ? updater(sec) : sec,
+    const workouts = s.workouts.map((sec) =>
+      sec.workoutId === sectionId ? updater(sec) : sec,
     );
-    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+    return recomputeAllExercises({ ...s, workouts });
   });
 }
 
@@ -199,6 +217,7 @@ function pruneSectionExercisesIfNonStandard(
 function makeNewExercise(exercise: { exerciseExternalId: string; exerciseName: string }, order: number): SessionExercise {
   return {
     ...exercise,
+    exerciseId: crypto.randomUUID(),
     order,
     movementType: 'Reps' as const,
     format: null,
@@ -232,9 +251,12 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   clearSessionLockedError: () => set({ sessionLockedError: null }),
 
   setPlan: (rawPlan) => {
-    // Normalize exercises helper — fills in defaults for pre-sections legacy exercises.
+    // Normalize exercises helper — fills in defensive defaults; the backend
+    // always emits well-formed data for this shape (#857 phase 3a — no
+    // production data predates it), so fallbacks here are defensive only.
     const normalizeExercise = (e: SessionExercise): SessionExercise => ({
       ...e,
+      exerciseId: e.exerciseId ?? crypto.randomUUID(),
       exerciseExternalId: e.exerciseExternalId ?? '',
       exerciseName: e.exerciseName ?? '',
       order: e.order ?? 1,
@@ -253,66 +275,61 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       })),
     });
 
+    const normalizeWorkout = (
+      w: TrainingWorkout,
+      sessionFormat: WorkoutFormat,
+      idx: number,
+    ): TrainingWorkout => ({
+      workoutId: w.workoutId ?? crypto.randomUUID(),
+      order: w.order ?? idx,
+      name: w.name ?? 'Sekce',
+      format: (w.format ?? sessionFormat) as WorkoutFormat,
+      formatConfig: w.formatConfig ?? null,
+      notes: w.notes ?? null,
+      exercises: (w.exercises ?? []).map(normalizeExercise),
+    });
+
+    // Flatten the wire's per-day nesting (weeks[].days[].sessions[]) back
+    // into the flat sessions[]+dayOfWeek shape this app's store/UI has
+    // always worked with — day-of-week now lives on the parent
+    // `RawTrainingDay`, and a day note is `day.note` (collected into the
+    // week-level `dayNotes` map the write side already expects).
     const plan: TrainingPlanDetail = {
       ...rawPlan,
-      weeks: rawPlan.weeks.map((w) => ({
-        ...w,
-        sessions: w.sessions.map((s) => {
-          const sessionFormat = (s.format ?? 'Standard') as WorkoutFormat;
-
-          // If the API returned sections, use them directly.
-          const rawSections = (s as TrainingSession & { sections?: unknown[] }).sections;
-          // Cast through unknown to avoid TS complaints — generated type has sections?: TrainingSection[]
-          const apiSections = rawSections as Array<{
-            sectionId?: string;
-            order?: number;
-            name?: string;
-            format?: WorkoutFormat;
-            formatConfig?: WodConfig | null;
-            notes?: string | null;
-            exercises?: SessionExercise[];
-          }> | undefined;
-
-          let sections: TrainingSection[];
-
-          if (apiSections && apiSections.length > 0) {
-            // Post-#244 response: map API sections directly.
-            sections = apiSections.map((sec, idx) => ({
-              sectionId: sec.sectionId ?? crypto.randomUUID(),
-              order: sec.order ?? idx,
-              name: sec.name ?? 'Sekce',
-              format: (sec.format ?? sessionFormat) as WorkoutFormat,
-              formatConfig: sec.formatConfig ?? null,
-              notes: sec.notes ?? null,
-              exercises: (sec.exercises ?? []).map(normalizeExercise),
-            }));
-          } else {
-            // Legacy flat exercises — synthesize one default section.
-            const flatExercises = (s.exercises ?? []).map(normalizeExercise);
-            sections = [
-              {
-                sectionId: crypto.randomUUID(),
-                order: 0,
-                name: 'Hlavní',
+      weeks: rawPlan.weeks.map((w) => {
+        const sessions: TrainingSession[] = [];
+        const dayNotes: Record<number, string> = {};
+        for (const day of w.days ?? []) {
+          if (day.note) {
+            dayNotes[day.dayOfWeek] = day.note;
+          }
+          for (const s of day.sessions ?? []) {
+            const sessionFormat = (s.format ?? 'Standard') as WorkoutFormat;
+            const workouts = (s.workouts ?? []).map((sec, idx) =>
+              normalizeWorkout(sec, sessionFormat, idx),
+            );
+            const standaloneExercises = (s.standaloneExercises ?? []).map(normalizeExercise);
+            sessions.push(
+              recomputeAllExercises({
+                ...s,
+                dayOfWeek: day.dayOfWeek,
                 format: sessionFormat,
                 formatConfig: s.formatConfig ?? null,
-                notes: null,
-                exercises: flatExercises,
-              },
-            ];
+                workouts,
+                standaloneExercises,
+                allExercises: [],
+              }),
+            );
           }
-
-          return {
-            ...s,
-            format: sessionFormat,
-            formatConfig: s.formatConfig ?? null,
-            sections,
-            // Keep a flat exercises view derived from all sections for the header
-            // exercise count. This is recomputed each time sections change.
-            exercises: sections.flatMap((sec) => sec.exercises),
-          };
-        }),
-      })),
+        }
+        return {
+          weekNumber: w.weekNumber,
+          status: w.status,
+          datePublished: w.datePublished,
+          sessions,
+          dayNotes: Object.keys(dayNotes).length > 0 ? dayNotes : null,
+        };
+      }),
     };
     // Default the selected week to whichever week contains today, falling back
     // to week 1 when the plan has no startDate or is wholly in the future / past.
@@ -348,8 +365,8 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   addSession: (weekNumber, dayOfWeek, name) => {
     const { plan } = get();
     if (!plan) return;
-    const defaultSection: TrainingSection = {
-      sectionId: crypto.randomUUID(),
+    const defaultSection: TrainingWorkout = {
+      workoutId: crypto.randomUUID(),
       order: 0,
       name: '',
       format: 'Standard',
@@ -364,8 +381,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       order: 1,
       format: 'Standard',
       formatConfig: null,
-      sections: [defaultSection],
-      exercises: [],
+      workouts: [defaultSection],
+      standaloneExercises: [],
+      allExercises: [],
     };
     set({
       plan: {
@@ -446,17 +464,16 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!plan) return;
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const newSection: TrainingSection = {
-          sectionId: crypto.randomUUID(),
-          order: s.sections.length,
+        const newSection: TrainingWorkout = {
+          workoutId: crypto.randomUUID(),
+          order: s.workouts.length,
           name: '',
           format,
           formatConfig: null,
           notes: null,
           exercises: [],
         };
-        const sections = [...s.sections, newSection];
-        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+        return recomputeAllExercises({ ...s, workouts: [...s.workouts, newSection] });
       }),
       isDirty: true,
     });
@@ -467,10 +484,10 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!plan) return;
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const sections = s.sections
-          .filter((sec) => sec.sectionId !== sectionId)
+        const workouts = s.workouts
+          .filter((sec) => sec.workoutId !== sectionId)
           .map((sec, i) => ({ ...sec, order: i }));
-        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+        return recomputeAllExercises({ ...s, workouts });
       }),
       isDirty: true,
     });
@@ -481,23 +498,24 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!plan) return;
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const sourceIdx = s.sections.findIndex((sec) => sec.sectionId === sectionId);
+        const sourceIdx = s.workouts.findIndex((sec) => sec.workoutId === sectionId);
         if (sourceIdx === -1) return s;
-        const source = s.sections[sourceIdx];
-        const clone: TrainingSection = {
+        const source = s.workouts[sourceIdx];
+        const clone: TrainingWorkout = {
           ...source,
-          sectionId: crypto.randomUUID(),
+          workoutId: crypto.randomUUID(),
           exercises: source.exercises.map((ex) => ({
             ...ex,
+            exerciseId: crypto.randomUUID(),
             sets: ex.sets.map((st) => ({ ...st })),
           })),
         };
-        const sections = [
-          ...s.sections.slice(0, sourceIdx + 1),
+        const workouts = [
+          ...s.workouts.slice(0, sourceIdx + 1),
           clone,
-          ...s.sections.slice(sourceIdx + 1),
+          ...s.workouts.slice(sourceIdx + 1),
         ].map((sec, i) => ({ ...sec, order: i }));
-        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+        return recomputeAllExercises({ ...s, workouts });
       }),
       isDirty: true,
     });
@@ -525,11 +543,11 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!plan) return;
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const sections = [...s.sections];
-        const [moved] = sections.splice(fromIdx, 1);
-        sections.splice(toIdx, 0, moved);
-        const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
-        return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
+        const workouts = [...s.workouts];
+        const [moved] = workouts.splice(fromIdx, 1);
+        workouts.splice(toIdx, 0, moved);
+        const reordered = workouts.map((sec, i) => ({ ...sec, order: i }));
+        return recomputeAllExercises({ ...s, workouts: reordered });
       }),
       isDirty: true,
     });
@@ -545,7 +563,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!week) return;
     const fromSession = week.sessions.find((s) => s.sessionId === fromSessionId);
     if (!fromSession) return;
-    const moved = fromSession.sections.find((sec) => sec.sectionId === sectionId);
+    const moved = fromSession.workouts.find((sec) => sec.workoutId === sectionId);
     if (!moved) return;
 
     set({
@@ -557,17 +575,17 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             ...w,
             sessions: w.sessions.map((s) => {
               if (s.sessionId === fromSessionId) {
-                const sections = s.sections
-                  .filter((sec) => sec.sectionId !== sectionId)
+                const workouts = s.workouts
+                  .filter((sec) => sec.workoutId !== sectionId)
                   .map((sec, i) => ({ ...sec, order: i }));
-                return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+                return recomputeAllExercises({ ...s, workouts });
               }
               if (s.sessionId === toSessionId) {
-                const sections = [...s.sections];
-                const insertAt = Math.max(0, Math.min(toIdx, sections.length));
-                sections.splice(insertAt, 0, moved);
-                const reordered = sections.map((sec, i) => ({ ...sec, order: i }));
-                return { ...s, sections: reordered, exercises: reordered.flatMap((sec) => sec.exercises) };
+                const workouts = [...s.workouts];
+                const insertAt = Math.max(0, Math.min(toIdx, workouts.length));
+                workouts.splice(insertAt, 0, moved);
+                const reordered = workouts.map((sec, i) => ({ ...sec, order: i }));
+                return recomputeAllExercises({ ...s, workouts: reordered });
               }
               return s;
             }),
@@ -583,14 +601,15 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     if (!plan) return;
     set({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
-        const newSection: TrainingSection = {
-          sectionId: crypto.randomUUID(),
-          order: s.sections.length,
+        const newSection: TrainingWorkout = {
+          workoutId: crypto.randomUUID(),
+          order: s.workouts.length,
           name: template.name ?? '',
           format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
           formatConfig: template.defaultFormatConfig ?? null,
           notes: null,
           exercises: (template.defaultExercises ?? []).map((ex, idx) => ({
+            exerciseId: crypto.randomUUID(),
             exerciseExternalId: ex.exerciseExternalId ?? '',
             exerciseName: ex.exerciseName ?? '',
             order: ex.order ?? idx + 1,
@@ -611,8 +630,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             })),
           })),
         };
-        const sections = [...s.sections, newSection];
-        return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+        return recomputeAllExercises({ ...s, workouts: [...s.workouts, newSection] });
       }),
       isDirty: true,
     });
@@ -651,7 +669,10 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       plan: patchSection(plan, weekNumber, sessionId, sectionId, (sec) => {
         const original = sec.exercises[exerciseIndex];
         if (!original) return sec;
-        const copy = structuredClone(original);
+        // A duplicate is a distinct exercise instance — give it a fresh
+        // exerciseId so it doesn't share completion-state lookups with the
+        // original once saved.
+        const copy = { ...structuredClone(original), exerciseId: crypto.randomUUID() };
         const exercises = [...sec.exercises];
         exercises.splice(exerciseIndex + 1, 0, copy);
         return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
@@ -665,7 +686,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const { plan } = get();
     if (!plan) return;
     const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
-    const firstSectionId = session?.sections[0]?.sectionId;
+    const firstSectionId = session?.workouts[0]?.workoutId;
     if (!firstSectionId) return;
     get().addExerciseToSection(weekNumber, sessionId, firstSectionId, exercise);
   },
@@ -673,13 +694,13 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
   removeExercise: (weekNumber, sessionId, exerciseIndex) => {
     const { plan } = get();
     if (!plan) return;
-    // exerciseIndex is a flat index across all sections; find the owning section.
+    // exerciseIndex is a flat index across all workouts; find the owning workout.
     const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
     if (!session) return;
     let remaining = exerciseIndex;
-    for (const sec of session.sections) {
+    for (const sec of session.workouts) {
       if (remaining < sec.exercises.length) {
-        get().removeExerciseFromSection(weekNumber, sessionId, sec.sectionId, remaining);
+        get().removeExerciseFromSection(weekNumber, sessionId, sec.workoutId, remaining);
         return;
       }
       remaining -= sec.exercises.length;
@@ -692,9 +713,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const session = plan.weeks.find((w) => w.weekNumber === weekNumber)?.sessions.find((s) => s.sessionId === sessionId);
     if (!session) return;
     let remaining = exerciseIndex;
-    for (const sec of session.sections) {
+    for (const sec of session.workouts) {
       if (remaining < sec.exercises.length) {
-        get().duplicateExerciseInSection(weekNumber, sessionId, sec.sectionId, remaining);
+        get().duplicateExerciseInSection(weekNumber, sessionId, sec.workoutId, remaining);
         return;
       }
       remaining -= sec.exercises.length;
@@ -709,7 +730,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     const fromSession = week.sessions.find((s) => s.sessionId === fromSessionId);
     if (!fromSession) return;
     // fromIndex is a flat index across the session's exercises view.
-    const exercise = fromSession.exercises[fromIndex];
+    const exercise = fromSession.allExercises[fromIndex];
     if (!exercise) return;
 
     set({
@@ -721,9 +742,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 ...w,
                 sessions: w.sessions.map((s) => {
                   if (s.sessionId === fromSessionId) {
-                    // Remove from the owning section (find by flat index).
+                    // Remove from the owning workout (find by flat index).
                     let remaining = fromIndex;
-                    const sections = s.sections.map((sec) => {
+                    const workouts = s.workouts.map((sec) => {
                       if (remaining < sec.exercises.length) {
                         const exercises = sec.exercises.filter((_, i) => i !== remaining);
                         remaining = -1; // mark as found
@@ -732,19 +753,19 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                       if (remaining >= 0) remaining -= sec.exercises.length;
                       return sec;
                     });
-                    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+                    return recomputeAllExercises({ ...s, workouts });
                   }
                   if (s.sessionId === toSessionId) {
-                    // Append to first section of target session.
-                    const firstSection = s.sections[0];
+                    // Append to first workout of target session.
+                    const firstSection = s.workouts[0];
                     if (!firstSection) return s;
-                    const sections = s.sections.map((sec) => {
-                      if (sec.sectionId !== firstSection.sectionId) return sec;
+                    const workouts = s.workouts.map((sec) => {
+                      if (sec.workoutId !== firstSection.workoutId) return sec;
                       const exercises = [...sec.exercises];
                       exercises.splice(toIndex, 0, { ...exercise });
                       return { ...sec, exercises: exercises.map((e, i) => ({ ...e, order: i + 1 })) };
                     });
-                    return { ...s, sections, exercises: sections.flatMap((sec) => sec.exercises) };
+                    return recomputeAllExercises({ ...s, workouts });
                   }
                   return s;
                 }),
@@ -1112,9 +1133,9 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             i18n.t('training.validation.sessionMissingName', { week: w.weekNumber }),
           );
         }
-        for (const sec of s.sections) {
+        for (const sec of s.workouts) {
           if (!sec.name?.trim()) {
-            invalidIds.add(sec.sectionId);
+            invalidIds.add(sec.workoutId);
             issues.push(
               i18n.t('training.validation.workoutMissingName', {
                 session: s.name?.trim() || i18n.t('training.untitledSession'),
@@ -1123,7 +1144,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
           }
           // ForTime sections legitimately have no exercises (the workout IS the time cap).
           if (sec.format !== 'ForTime' && sec.exercises.length === 0) {
-            invalidIds.add(sec.sectionId);
+            invalidIds.add(sec.workoutId);
             issues.push(
               i18n.t('training.validation.workoutNoExercises', {
                 workout: sec.name?.trim() || i18n.t('training.untitledWorkout'),
@@ -1139,7 +1160,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             const workoutLabel = sec.name?.trim() || i18n.t('training.untitledWorkout');
             const exerciseLabel = ex.exerciseName || i18n.t('training.unnamedExercise');
             if (ex.sets.length === 0) {
-              invalidIds.add(sec.sectionId);
+              invalidIds.add(sec.workoutId);
               issues.push(
                 i18n.t('training.validation.exerciseNoSets', {
                   workout: workoutLabel,
@@ -1153,7 +1174,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 (st) => st.reps != null && st.restSeconds != null,
               );
               if (!allFilled) {
-                invalidIds.add(sec.sectionId);
+                invalidIds.add(sec.workoutId);
                 issues.push(
                   i18n.t('training.validation.exerciseSetMissing', {
                     workout: workoutLabel,
@@ -1184,7 +1205,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
                 missing = firstSet.reps == null;
               }
               if (missing) {
-                invalidIds.add(sec.sectionId);
+                invalidIds.add(sec.workoutId);
                 issues.push(
                   i18n.t(missingKey, {
                     workout: workoutLabel,
@@ -1210,6 +1231,33 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
     }
     set({ invalidIds: new Set(), isSaving: true });
     try {
+      // Round-trip exerciseId — UpdateSessionExerciseRequest.ExerciseId is
+      // Guid?, documented "new GUID generated if null"; omitting it re-mints
+      // every instance id server-side and orphans the client's exercise-level
+      // completion state keyed by the old id.
+      const toUpdateExercise = (e: SessionExercise): UpdateSessionExerciseRequest => ({
+        exerciseId: e.exerciseId,
+        exerciseExternalId: e.exerciseExternalId,
+        exerciseName: e.exerciseName,
+        order: e.order,
+        notes: e.notes,
+        restSeconds: e.restSeconds,
+        movementType: e.movementType,
+        // Per-exercise format override is removed from the editor; always null on save.
+        format: null,
+        formatConfig: null,
+        sets: e.sets.map((st) => ({
+          setNumber: st.setNumber,
+          type: st.type,
+          reps: st.reps,
+          weightKg: st.weightKg,
+          durationSeconds: st.durationSeconds,
+          rpe: st.rpe,
+          distanceMeters: st.distanceMeters,
+          restSeconds: st.restSeconds,
+        })),
+      });
+
       const request: UpdateTrainingPlanRequest = {
         name: plan.name,
         description: plan.description,
@@ -1226,36 +1274,24 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
             notes: s.notes,
             format: s.format,
             formatConfig: s.formatConfig,
-            // Emit real sections — each with its stable sectionId.
-            sections: s.sections.map((sec): UpdateSectionRequest => ({
-              sectionId: sec.sectionId,
+            // Emit real workouts — each with its stable workoutId.
+            workouts: s.workouts.map((sec): UpdateWorkoutRequest => ({
+              workoutId: sec.workoutId,
               order: sec.order,
               name: sec.name,
               format: sec.format,
               formatConfig: sec.formatConfig,
               notes: sec.notes,
-              exercises: sec.exercises.map((e) => ({
-                exerciseExternalId: e.exerciseExternalId,
-                exerciseName: e.exerciseName,
-                order: e.order,
-                notes: e.notes,
-                restSeconds: e.restSeconds,
-                movementType: e.movementType,
-                // Per-exercise format override is removed from the editor; always null on save.
-                format: null,
-                formatConfig: null,
-                sets: e.sets.map((st) => ({
-                  setNumber: st.setNumber,
-                  type: st.type,
-                  reps: st.reps,
-                  weightKg: st.weightKg,
-                  durationSeconds: st.durationSeconds,
-                  rpe: st.rpe,
-                  distanceMeters: st.distanceMeters,
-                  restSeconds: st.restSeconds,
-                })),
-              })),
+              exercises: sec.exercises.map(toUpdateExercise),
             })),
+            // `standaloneExercises` is round-tripped verbatim — the editor
+            // has no affordance to create loose exercises, but any that
+            // arrived on load (e.g. from the mobile client) must not be
+            // dropped or duplicated into `workouts`. NEVER derived from
+            // `allExercises` — that computed union already includes every
+            // workout's nested exercises, and sending it back here would
+            // persist them a second time, compounding on every save.
+            standaloneExercises: s.standaloneExercises.map(toUpdateExercise),
           })),
         })),
       };

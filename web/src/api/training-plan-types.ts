@@ -98,10 +98,11 @@ export interface TrainingWorkout {
 }
 
 /**
- * A training session within a day. The parent `TrainingDay` owns the
- * day-of-week — a session no longer carries its own.
+ * A training session's workout/exercise fields, shared by both the raw wire
+ * shape (nested under a day) and the flattened internal/store shape (see
+ * `TrainingSession` below).
  */
-export interface TrainingSession {
+export interface TrainingSessionWorkoutFields {
   sessionId: string;
   name: string;
   order: number;
@@ -128,25 +129,61 @@ export interface TrainingSession {
 }
 
 /**
- * A single day within a training week (1 = Monday … 7 = Sunday). Every week
- * materializes all 7 days — a rest day is a day with zero sessions.
+ * A training session exactly as the backend serves it — nested under a
+ * `RawTrainingDay`, no `dayOfWeek` of its own (the parent day owns it).
+ * Consumed only at the API boundary (`training-plans.ts` return types) and
+ * flattened into `TrainingSession` by `trainingPlan.ts`'s `setPlan`.
  */
-export interface TrainingDay {
+export type RawTrainingSession = TrainingSessionWorkoutFields;
+
+/**
+ * A single day within a training week (1 = Monday … 7 = Sunday) exactly as
+ * the backend serves it. Every week materializes all 7 days — a rest day is
+ * a day with zero sessions.
+ */
+export interface RawTrainingDay {
   /** Day of the week (1 = Monday, 7 = Sunday). */
   dayOfWeek: number;
   /** Training sessions scheduled for this day. */
-  sessions: TrainingSession[];
+  sessions: RawTrainingSession[];
   /** Optional coach note for this day. */
   note?: string | null;
 }
 
-/** A week within the training plan. */
-export interface TrainingWeek {
+/** A week within the training plan, exactly as the backend serves it. */
+export interface RawTrainingWeek {
   weekNumber: number;
   status: 'Draft' | 'Published';
   datePublished?: string | null;
   /** Days in this week. Always 7 entries (Monday through Sunday). */
-  days: TrainingDay[];
+  days: RawTrainingDay[];
+}
+
+/**
+ * A training session as used throughout the store and UI — flattened back
+ * out of the wire's per-day nesting, with `dayOfWeek` restored directly on
+ * the session (mirrors the shape this app's editor has always worked with).
+ * Built by `trainingPlan.ts`'s `setPlan` from a `RawTrainingSession` plus its
+ * parent `RawTrainingDay.dayOfWeek`; the flat internal shape is intentional —
+ * only the GET-hydration edge needs to unnest the wire's `days[]`, the write
+ * edge (`UpdateTrainingWeekRequest`) is already flat.
+ */
+export interface TrainingSession extends TrainingSessionWorkoutFields {
+  dayOfWeek: number;
+}
+
+/**
+ * A week within the training plan as used throughout the store and UI —
+ * flat `sessions[]` (not nested under days) plus a `dayNotes` map keyed by
+ * day-of-week, matching the shape of `UpdateTrainingWeekRequest` almost
+ * 1:1 so `save()` barely needs to transform it.
+ */
+export interface TrainingWeek {
+  weekNumber: number;
+  status: 'Draft' | 'Published';
+  datePublished?: string | null;
+  sessions: TrainingSession[];
+  dayNotes?: Record<number, string> | null;
 }
 
 /**
@@ -357,15 +394,18 @@ export interface SessionLockStateDto {
   lockHolder: 'Coach' | 'Client' | null;
 }
 
-/** Full training plan detail. */
-export interface TrainingPlanDetail {
+/**
+ * Fields shared by the raw wire training-plan response and the flattened
+ * internal/store shape — everything except `weeks`, whose element shape
+ * differs (nested `days[]` on the wire vs. flat `sessions[]` internally).
+ */
+export interface TrainingPlanDetailFields {
   planId: string;
   clientId: string;
   trainerId: string;
   name: string;
   description?: string | null;
   status: 'Draft' | 'Active' | 'Completed' | 'Archived';
-  weeks: TrainingWeek[];
   /** Per-(date,session) completion records — one entry per (date, sessionId). */
   completions?: TrainingPlanCompletion[];
   /**
@@ -387,6 +427,26 @@ export interface TrainingPlanDetail {
   startDate?: string | null;
   dateCompleted?: string | null;
   questionnaireResponseId?: string | null;
+}
+
+/**
+ * Full training plan detail exactly as the backend serves it — `weeks[]`
+ * nests sessions under days. Returned by the `training-plans.ts` API
+ * functions; `trainingPlan.ts`'s `setPlan` is the only place that should
+ * consume this directly, flattening it into `TrainingPlanDetail`.
+ */
+export interface RawTrainingPlanDetail extends TrainingPlanDetailFields {
+  weeks: RawTrainingWeek[];
+}
+
+/**
+ * Full training plan detail as used throughout the store and UI — `weeks[]`
+ * stays flat (see `TrainingWeek`). This is the shape every training
+ * component (`TrainingPlanPage`, `TrainingSidebar`, `SectionCard`, etc.)
+ * consumes; it is NOT the literal wire shape (see `RawTrainingPlanDetail`).
+ */
+export interface TrainingPlanDetail extends TrainingPlanDetailFields {
+  weeks: TrainingWeek[];
 }
 
 /** Training plan summary for list views. */
