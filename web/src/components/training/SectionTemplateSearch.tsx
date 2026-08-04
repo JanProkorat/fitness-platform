@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import type { SectionTemplateResponse } from '@/api/sectionTemplates';
+import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
 import type { WorkoutFormat, WodConfig } from '@/api/training-plan-types';
 import { FORMAT_LABEL_KEYS, FORMAT_BG_COLORS, FORMAT_COLORS } from '@/constants/training';
 import { estimatedSectionDurationSeconds, formatDurationCompact } from '@/lib/training-plan-format';
 
 export interface SectionTemplateSearchProps {
-  templates: SectionTemplateResponse[];
-  onSelect: (template: SectionTemplateResponse) => void;
+  templates: WorkoutTemplateResponse[];
+  onSelect: (template: WorkoutTemplateResponse) => void;
   placeholder?: string;
 }
 
@@ -74,7 +74,7 @@ export function SectionTemplateSearch({
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [isOpen]);
 
-  function handleSelect(template: SectionTemplateResponse) {
+  function handleSelect(template: WorkoutTemplateResponse) {
     onSelect(template);
     setQuery('');
     setIsOpen(false);

@@ -15,7 +15,7 @@
  *   2. All 10 seeded public templates render as cards (name from cs locale,
  *      the harness UI default language).
  *   3. A card exposes format/difficulty metadata and a detail affordance.
- *   4. Opening a card's detail shows the template's sections with exercises
+ *   4. Opening a card's detail shows the template's workouts with exercises
  *      and set prescriptions.
  *   5. The own-templates area keeps functioning alongside the library (page
  *      renders without error state whether or not own templates exist).
@@ -36,7 +36,7 @@ const SEEDED_TEMPLATE_NAMES_CS = [
   'Tabata pro celé tělo',
 ];
 
-test('template library — renders 10 public templates, detail shows sections and sets', async ({ page }) => {
+test('template library — renders 10 public templates, detail shows workouts and sets', async ({ page }) => {
   // Land on the dashboard first: a direct deep-link goto() races the
   // auth-store's restoreSession() and gets bounced back to /dashboard.
   await page.goto('/dashboard');
@@ -62,15 +62,15 @@ test('template library — renders 10 public templates, detail shows sections an
   // aggregates the card content (name, format, difficulty, counts).
   const firstCard = page.getByRole('button', { name: /Základy pro celé tělo/ });
   await expect(firstCard).toContainText('Obtížnost');
-  await expect(firstCard).toContainText('Sekce');
+  await expect(firstCard).toContainText('Tréninky');
   await firstCard.click();
 
   // The shared ui/Dialog is a portal without role="dialog" (pre-existing
   // a11y gap) — anchor on its h2 title instead.
   const dialogTitle = page.getByRole('heading', { level: 2, name: 'Základy pro celé tělo' });
   await expect(dialogTitle).toBeVisible();
-  // Section names from the seed data for this template render inside the
-  // detail (Standard template, 2 sections: Warm-up + Main strength).
+  // Workout names from the seed data for this template render inside the
+  // detail (Standard template, 2 workouts: Warm-up + Main strength).
   await expect(page.getByText('Warm-up').first()).toBeVisible();
   await expect(page.getByText('Main strength').first()).toBeVisible();
 
