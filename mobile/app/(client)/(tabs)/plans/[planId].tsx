@@ -39,8 +39,11 @@ import {
 import {
   getFullTrainingPlan,
   type GetFullTrainingPlanResponse,
-  type SectionDto,
+  type SessionDto,
+  type WorkoutDto,
+  type ExerciseDto,
   type WorkoutFormat,
+  type WodConfig,
   type MuscleGroup,
   type LoggedSetDto,
 } from '@/api/training'
@@ -865,6 +868,69 @@ function todayDayOfWeek(): number {
   return d === 0 ? 7 : d
 }
 
+/**
+ * One renderable block within a plan-detail session: either a real
+ * multi-exercise `WorkoutDto`, or a synthetic single-exercise wrapper built
+ * from a standalone session exercise. Mirrors
+ * `trainingCardFormat.SessionListItem`, but over the `GetFullTrainingPlan`
+ * DTOs (`WorkoutDto`/`ExerciseDto`) rather than the today-endpoint's
+ * `TrainingWorkout`/`SessionExercise` — the two response shapes are
+ * structurally distinct types even though they represent the same concept.
+ */
+interface PlanSessionItem {
+  isStandalone: boolean
+  itemId: string | undefined
+  order: number
+  name: string | undefined
+  format: string | undefined
+  formatConfig: WodConfig | undefined
+  notes?: string | undefined
+  /** Server-computed completion — undefined only for a standalone item whose
+   * source exercise carries no isCompleted flag, which does not occur in
+   * practice (ExerciseDto.isCompleted is always populated). */
+  isCompleted: boolean | undefined
+  exercises: ExerciseDto[]
+}
+
+/**
+ * Builds the ordered list of session components for the plan-detail (read-only)
+ * screen — real workouts and standalone exercises interleaved by their shared
+ * `order` sequence. Merges `session.workouts` and `session.standaloneExercises`
+ * ONLY, mirroring `trainingCardFormat.getOrderedSessionItems`: a nested
+ * exercise's own `order` is scoped inside its workout and must never enter
+ * this merge, and `session.allExercises` is never read directly here because
+ * it concatenates standalone exercises first and is not `order`-sorted.
+ */
+function getOrderedPlanSessionItems(session: SessionDto): PlanSessionItem[] {
+  const workoutItems: PlanSessionItem[] = (session.workouts ?? []).map((workout) => ({
+    isStandalone: false,
+    itemId: workout.workoutId,
+    order: workout.order ?? 0,
+    name: workout.name,
+    format: workout.format,
+    formatConfig: workout.formatConfig,
+    notes: workout.notes,
+    isCompleted: workout.isCompleted,
+    exercises: workout.exercises ?? [],
+  }))
+
+  const standaloneItems: PlanSessionItem[] = (session.standaloneExercises ?? []).map(
+    (exercise) => ({
+      isStandalone: true,
+      itemId: exercise.exerciseId,
+      order: exercise.order ?? 0,
+      name: exercise.exerciseName,
+      format: undefined,
+      formatConfig: undefined,
+      notes: exercise.notes,
+      isCompleted: exercise.isCompleted,
+      exercises: [exercise],
+    }),
+  )
+
+  return [...workoutItems, ...standaloneItems].sort((a, b) => a.order - b.order)
+}
+
 function TrainingPlanDetail({
   plan,
   initialWeek,
@@ -952,10 +1018,10 @@ function TrainingPlanDetail({
   const dayBodyParts = useMemo((): BodyPartEntry[] => {
     const map = new Map<MuscleGroup, { done: number; total: number }>()
     for (const session of currentDaySessions) {
-      // Prefer section-grouped exercises; fall back to flat list for legacy data.
-      const allExercises = (session.sections ?? []).length > 0
-        ? (session.sections ?? []).flatMap((sec) => sec.exercises ?? [])
-        : (session.exercises ?? [])
+      // Flat computed union of every exercise in the session (standalone +
+      // every workout's nested exercises). Order doesn't matter here — this
+      // is a muscle-group tally, not an ordered render.
+      const allExercises = session.allExercises ?? []
       for (const ex of allExercises) {
         for (const mg of (ex.muscleGroups ?? [])) {
           const prev = map.get(mg) ?? { done: 0, total: 0 }
@@ -1362,24 +1428,12 @@ function TrainingPlanDetail({
                     expandedSessionsMap[sessionKey] ?? allSessionIds
                   const isSessionExpanded = expandedSessions.has(session.sessionId ?? '')
 
-                  // Resolve ordered sections. Fall back to a synthetic single section
-                  // from flat exercises for any legacy data that slips through.
-                  const sections: SectionDto[] =
-                    (session.sections ?? []).length > 0
-                      ? [...(session.sections ?? [])].sort(
-                          (a, b) => (a.order ?? 0) - (b.order ?? 0),
-                        )
-                      : (session.exercises ?? []).length > 0
-                        ? [{
-                            sectionId: session.sessionId ?? '',
-                            order: 0,
-                            name: t('training.section.defaultName'),
-                            format: undefined,
-                            exercises: [...(session.exercises ?? [])].sort(
-                              (a, b) => (a.order ?? 0) - (b.order ?? 0),
-                            ),
-                          }]
-                        : []
+                  // Resolve the ordered session items — real workouts and
+                  // standalone exercises interleaved by their shared `order`
+                  // sequence. See getOrderedPlanSessionItems for the merge
+                  // rules (workouts + standaloneExercises only; never
+                  // allExercises, which is standalone-first and not order-sorted).
+                  const sections: PlanSessionItem[] = getOrderedPlanSessionItems(session)
 
                   // Session summary: workout count + total timed duration + untimed count.
                   // Mirrors TrainingCard.tsx lines ~340-358 (Today screen pattern).
@@ -1402,10 +1456,9 @@ function TrainingPlanDetail({
                   }
 
                   // Read-only session completion indicator for headerRight.
-                  // A session is complete IFF every section (workout) within it
-                  // is complete. Empty-exercise sections are flagged complete by
-                  // the backend via TrainingCompletion.CompletedSectionIds
-                  // (#260 fix).
+                  // A session is complete IFF every item (workout or standalone
+                  // exercise) within it is complete — both carry a
+                  // server-computed isCompleted flag.
                   const isSessionComplete =
                     sections.length > 0 &&
                     sections.every((sec) => sec.isCompleted === true)
@@ -1442,7 +1495,7 @@ function TrainingPlanDetail({
                     >
                       {/* Section-grouped exercise cards (read-only) */}
                       {sections.map((section, sectionIdx) => {
-                        const sectionKey = section.sectionId ?? `section-${sectionIdx}`
+                        const sectionKey = section.itemId ?? `section-${sectionIdx}`
                         const sectionExercises = (section.exercises ?? [])
                           .slice()
                           .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))

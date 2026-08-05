@@ -8,46 +8,32 @@ import type { TrainingSession } from '@/api/training'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Build a session whose exercises live inside a single section.
- * This mirrors the dominant real-world shape after WithBackfilledSections
- * runs on the server.
+ * Build a session with a single workout holding the given instance-keyed
+ * exercises. Mirrors the dominant real-world shape of a single-workout session.
  */
 function makeSession(
-  exerciseExternalIds: Array<string | undefined>,
-  sectionId = 'sec-1',
+  exerciseIds: Array<string | undefined>,
+  workoutId = 'w-1',
 ): TrainingSession {
   return {
     sessionId: 'sess-1',
     name: 'Push Day',
-    sections: [
+    workouts: [
       {
-        sectionId,
+        workoutId,
         name: 'Hlavní',
-        exercises: exerciseExternalIds.map((id, i) => ({
-          exerciseExternalId: id,
+        exercises: exerciseIds.map((id, i) => ({
+          exerciseId: id,
+          exerciseExternalId: `ext-${i + 1}`,
           exerciseName: `Exercise ${i + 1}`,
           sets: [{ setNumber: 1, reps: 10 }],
         })),
       },
     ],
-    // exercises is the flat convenience view — kept in sync for legacy callers
-    exercises: exerciseExternalIds.map((id, i) => ({
-      exerciseExternalId: id,
-      exerciseName: `Exercise ${i + 1}`,
-      sets: [{ setNumber: 1, reps: 10 }],
-    })),
+    standaloneExercises: [],
   }
 }
 
-/** Build a per-section completed-ids map for a single section. */
-function sectionMap(
-  sectionId: string,
-  ids: ReadonlySet<string>,
-): ReadonlyMap<string, ReadonlySet<string>> {
-  return new Map([[sectionId, ids]])
-}
-
-const EMPTY_MAP = new Map<string, ReadonlySet<string>>()
 const EMPTY_SET = new Set<string>()
 
 // ─── deriveSessionCtaState ────────────────────────────────────────────────────
@@ -55,255 +41,242 @@ const EMPTY_SET = new Set<string>()
 describe('deriveSessionCtaState', () => {
   describe('not-started', () => {
     it('returns not-started when no exercises are completed', () => {
-      const session = makeSession(['ex-1', 'ex-2', 'ex-3'])
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
+      const session = makeSession(['inst-1', 'inst-2', 'inst-3'])
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('not-started')
     })
 
-    it('returns not-started when completedIds has ids from a different section', () => {
-      const session = makeSession(['ex-1', 'ex-2'])
-      // Ids belong to 'other-section', not 'sec-1' — should not satisfy sec-1
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('other-section', new Set(['ex-1', 'ex-2'])),
-        EMPTY_SET,
-      )
+    it('returns not-started when completedIds has ids from a different instance', () => {
+      const session = makeSession(['inst-1', 'inst-2'])
+      const result = deriveSessionCtaState(session, new Set(['inst-other-1', 'inst-other-2']), EMPTY_SET)
       expect(result).toBe('not-started')
     })
   })
 
   describe('in-progress', () => {
     it('returns in-progress when some but not all exercises are completed', () => {
-      const session = makeSession(['ex-1', 'ex-2', 'ex-3'])
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-1'])),
-        EMPTY_SET,
-      )
+      const session = makeSession(['inst-1', 'inst-2', 'inst-3'])
+      const result = deriveSessionCtaState(session, new Set(['inst-1']), EMPTY_SET)
       expect(result).toBe('in-progress')
     })
 
     it('returns in-progress when all but one exercise is completed', () => {
-      const session = makeSession(['ex-1', 'ex-2', 'ex-3'])
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-1', 'ex-2'])),
-        EMPTY_SET,
-      )
+      const session = makeSession(['inst-1', 'inst-2', 'inst-3'])
+      const result = deriveSessionCtaState(session, new Set(['inst-1', 'inst-2']), EMPTY_SET)
       expect(result).toBe('in-progress')
     })
   })
 
   describe('finished', () => {
     it('returns finished when all exercises are completed', () => {
-      const session = makeSession(['ex-1', 'ex-2', 'ex-3'])
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-1', 'ex-2', 'ex-3'])),
-        EMPTY_SET,
-      )
+      const session = makeSession(['inst-1', 'inst-2', 'inst-3'])
+      const result = deriveSessionCtaState(session, new Set(['inst-1', 'inst-2', 'inst-3']), EMPTY_SET)
       expect(result).toBe('finished')
     })
 
-    it('returns finished for a session with no sections and no exercises', () => {
-      const session: TrainingSession = { sessionId: 'sess-empty', name: 'Empty', sections: [], exercises: [] }
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
+    it('returns finished for a session with no workouts and no standalone exercises', () => {
+      const session: TrainingSession = { sessionId: 'sess-empty', name: 'Empty', workouts: [], standaloneExercises: [] }
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('finished')
     })
 
-    it('returns finished when sections and exercises arrays are undefined', () => {
+    it('returns finished when workouts and standaloneExercises are undefined', () => {
       const session: TrainingSession = { sessionId: 'sess-undef', name: 'Undefined' }
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('finished')
     })
 
     it('returns finished when completedIds is a superset of trackable ids', () => {
-      const session = makeSession(['ex-1', 'ex-2'])
-      // Extra ids beyond this session — still finished
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-1', 'ex-2', 'ex-extra'])),
-        EMPTY_SET,
-      )
+      const session = makeSession(['inst-1', 'inst-2'])
+      const result = deriveSessionCtaState(session, new Set(['inst-1', 'inst-2', 'inst-extra']), EMPTY_SET)
       expect(result).toBe('finished')
     })
   })
 
-  describe('exercises without exerciseExternalId', () => {
+  describe('exercises without exerciseId', () => {
     it('ignores exercises with undefined id and counts only trackable ones', () => {
-      // 2 trackable, 1 un-trackable — completing the 2 trackable means finished
-      const session = makeSession(['ex-1', undefined, 'ex-3'])
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-1', 'ex-3'])),
-        EMPTY_SET,
-      )
+      const session = makeSession(['inst-1', undefined, 'inst-3'])
+      const result = deriveSessionCtaState(session, new Set(['inst-1', 'inst-3']), EMPTY_SET)
       expect(result).toBe('finished')
     })
 
-    it('returns not-started when all exercises have undefined ids and no section is marked complete', () => {
+    it('returns not-started when all exercises have undefined ids and no workout is marked complete', () => {
       const session = makeSession([undefined, undefined])
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
-      // All un-trackable, section not in completedSectionIds → not-started
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('not-started')
     })
 
-    it('returns finished when all exercises have undefined ids and the section is marked complete', () => {
-      const session = makeSession([undefined, undefined])
-      const result = deriveSessionCtaState(session, EMPTY_MAP, new Set(['sec-1']))
+    it('returns finished when all exercises have undefined ids and the workout is marked complete', () => {
+      const session = makeSession([undefined, undefined], 'w-1')
+      const result = deriveSessionCtaState(session, EMPTY_SET, new Set(['w-1']))
       expect(result).toBe('finished')
     })
 
     it('returns not-started when un-trackable exercises are mixed with un-completed trackable ones', () => {
-      const session = makeSession([undefined, 'ex-2'])
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
+      const session = makeSession([undefined, 'inst-2'])
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('not-started')
     })
 
     it('returns in-progress when some trackable exercises are complete alongside un-trackable', () => {
-      const session = makeSession([undefined, 'ex-2', 'ex-3'])
-      const result = deriveSessionCtaState(
-        session,
-        sectionMap('sec-1', new Set(['ex-2'])),
-        EMPTY_SET,
-      )
+      const session = makeSession([undefined, 'inst-2', 'inst-3'])
+      const result = deriveSessionCtaState(session, new Set(['inst-2']), EMPTY_SET)
       expect(result).toBe('in-progress')
     })
   })
 
-  describe('cross-section isolation (the regression)', () => {
+  describe('cross-placement isolation (the regression this migration must preserve)', () => {
     /**
-     * Regression test for the bug described in the fix spec:
-     * W1 and W3 both contain catalog exercise "push-up" (same exerciseExternalId).
-     * Marking it done in W1 must NOT satisfy W3's completion check.
+     * W1 and W3 both contain catalog exercise "push-up" (same exerciseExternalId)
+     * but as two DIFFERENT instances (different exerciseId). Marking the W1
+     * instance done must NOT satisfy the W3 instance's completion check —
+     * this is now guaranteed structurally by instance ids being distinct,
+     * rather than by a per-workout Map keyed on the catalog id.
      */
-    it('does not count an exercise in W3 as done because it was marked in W1', () => {
+    it('does not count the W3 instance as done because the W1 instance was marked', () => {
       const session: TrainingSession = {
         sessionId: 'sess-1',
         name: 'Multi-Workout',
-        sections: [
+        workouts: [
           {
-            sectionId: 'w1',
+            workoutId: 'w1',
             name: 'W1',
             exercises: [
-              { exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] },
-              { exerciseExternalId: 'squat', exerciseName: 'Squat', sets: [] },
+              { exerciseId: 'w1-push-up', exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] },
+              { exerciseId: 'w1-squat', exerciseExternalId: 'squat', exerciseName: 'Squat', sets: [] },
             ],
           },
           {
-            sectionId: 'w2',
+            workoutId: 'w2',
             name: 'W2',
             exercises: [
-              { exerciseExternalId: 'row', exerciseName: 'Row', sets: [] },
-              { exerciseExternalId: 'deadlift', exerciseName: 'Deadlift', sets: [] },
+              { exerciseId: 'w2-row', exerciseExternalId: 'row', exerciseName: 'Row', sets: [] },
+              { exerciseId: 'w2-deadlift', exerciseExternalId: 'deadlift', exerciseName: 'Deadlift', sets: [] },
             ],
           },
           {
-            sectionId: 'w3',
+            workoutId: 'w3',
             name: 'W3',
             exercises: [
-              { exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] },
-              { exerciseExternalId: 'burpee', exerciseName: 'Burpee', sets: [] },
-              // ex-3 is NOT marked complete
-              { exerciseExternalId: 'lunge', exerciseName: 'Lunge', sets: [] },
+              { exerciseId: 'w3-push-up', exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] },
+              { exerciseId: 'w3-burpee', exerciseExternalId: 'burpee', exerciseName: 'Burpee', sets: [] },
+              // w3-lunge is NOT marked complete
+              { exerciseId: 'w3-lunge', exerciseExternalId: 'lunge', exerciseName: 'Lunge', sets: [] },
             ],
           },
         ],
+        standaloneExercises: [],
       }
 
-      // W1 fully done, W2 fully done, W3: 2 of 3 done (lunge missing)
-      const map: ReadonlyMap<string, ReadonlySet<string>> = new Map([
-        ['w1', new Set(['push-up', 'squat'])],
-        ['w2', new Set(['row', 'deadlift'])],
-        ['w3', new Set(['push-up', 'burpee'])], // lunge NOT in set
+      // W1 fully done, W2 fully done, W3: 2 of 3 instances done (w3-lunge missing)
+      const completed = new Set([
+        'w1-push-up', 'w1-squat',
+        'w2-row', 'w2-deadlift',
+        'w3-push-up', 'w3-burpee',
       ])
 
-      const result = deriveSessionCtaState(session, map, EMPTY_SET)
-      // Should be in-progress, not finished — W3.lunge is still pending
+      const result = deriveSessionCtaState(session, completed, EMPTY_SET)
       expect(result).toBe('in-progress')
-    })
-
-    it('returns finished only when every section is fully done', () => {
-      const session: TrainingSession = {
-        sessionId: 'sess-1',
-        name: 'Multi-Workout',
-        sections: [
-          {
-            sectionId: 'w1',
-            name: 'W1',
-            exercises: [{ exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] }],
-          },
-          {
-            sectionId: 'w3',
-            name: 'W3',
-            exercises: [
-              { exerciseExternalId: 'push-up', exerciseName: 'Push Up', sets: [] },
-              { exerciseExternalId: 'lunge', exerciseName: 'Lunge', sets: [] },
-            ],
-          },
-        ],
-      }
-
-      const map: ReadonlyMap<string, ReadonlySet<string>> = new Map([
-        ['w1', new Set(['push-up'])],
-        ['w3', new Set(['push-up', 'lunge'])],
-      ])
-
-      const result = deriveSessionCtaState(session, map, EMPTY_SET)
-      expect(result).toBe('finished')
     })
   })
 
-  describe('sections without trackable exercises (ForTime/Running)', () => {
-    it('counts a no-exercise section as done when sectionId is in completedSectionIds', () => {
+  describe('workouts without trackable exercises (ForTime/Running)', () => {
+    it('counts a no-exercise workout as done when workoutId is in completedWorkoutIds', () => {
       const session: TrainingSession = {
         sessionId: 'sess-1',
         name: 'ForTime Day',
-        sections: [
-          { sectionId: 'run-sec', name: 'Running', exercises: [] },
-        ],
+        workouts: [{ workoutId: 'run-workout', name: 'Running', exercises: [] }],
+        standaloneExercises: [],
       }
 
-      const result = deriveSessionCtaState(session, EMPTY_MAP, new Set(['run-sec']))
+      const result = deriveSessionCtaState(session, EMPTY_SET, new Set(['run-workout']))
       expect(result).toBe('finished')
     })
 
-    it('returns not-started for a no-exercise section when sectionId is not in completedSectionIds', () => {
+    it('returns not-started for a no-exercise workout when workoutId is not in completedWorkoutIds', () => {
       const session: TrainingSession = {
         sessionId: 'sess-1',
         name: 'ForTime Day',
-        sections: [
-          { sectionId: 'run-sec', name: 'Running', exercises: [] },
-        ],
+        workouts: [{ workoutId: 'run-workout', name: 'Running', exercises: [] }],
+        standaloneExercises: [],
       }
 
-      const result = deriveSessionCtaState(session, EMPTY_MAP, EMPTY_SET)
+      const result = deriveSessionCtaState(session, EMPTY_SET, EMPTY_SET)
       expect(result).toBe('not-started')
     })
 
-    it('returns in-progress when one section is complete and another has partial exercises done', () => {
+    it('returns in-progress when one workout is complete and another has partial exercises done', () => {
       const session: TrainingSession = {
         sessionId: 'sess-1',
         name: 'Mixed',
-        sections: [
-          { sectionId: 'run-sec', name: 'Running', exercises: [] },
+        workouts: [
+          { workoutId: 'run-workout', name: 'Running', exercises: [] },
           {
-            sectionId: 'lift-sec',
+            workoutId: 'lift-workout',
             name: 'Lifting',
             exercises: [
-              { exerciseExternalId: 'deadlift', exerciseName: 'Deadlift', sets: [] },
-              { exerciseExternalId: 'squat', exerciseName: 'Squat', sets: [] },
+              { exerciseId: 'lift-deadlift', exerciseExternalId: 'deadlift', exerciseName: 'Deadlift', sets: [] },
+              { exerciseId: 'lift-squat', exerciseExternalId: 'squat', exerciseName: 'Squat', sets: [] },
             ],
           },
         ],
+        standaloneExercises: [],
       }
 
-      // Running section done, only 1 of 2 lifting exercises done
-      const result = deriveSessionCtaState(
+      // Running workout done, only 1 of 2 lifting exercise instances done
+      const result = deriveSessionCtaState(session, new Set(['lift-deadlift']), new Set(['run-workout']))
+      expect(result).toBe('in-progress')
+    })
+  })
+
+  describe('standalone exercises', () => {
+    it('counts standalone exercises alongside nested workout exercises', () => {
+      const session: TrainingSession = {
+        sessionId: 'sess-1',
+        name: 'Push Day + finisher',
+        workouts: [
+          {
+            workoutId: 'w1',
+            name: 'Hlavní',
+            exercises: [{ exerciseId: 'w1-bench', exerciseExternalId: 'bench', exerciseName: 'Bench', sets: [] }],
+          },
+        ],
+        standaloneExercises: [
+          { exerciseId: 'standalone-plank', exerciseExternalId: 'plank', exerciseName: 'Plank', sets: [] },
+        ],
+      }
+
+      const inProgress = deriveSessionCtaState(session, new Set(['w1-bench']), EMPTY_SET)
+      expect(inProgress).toBe('in-progress')
+
+      const finished = deriveSessionCtaState(
         session,
-        sectionMap('lift-sec', new Set(['deadlift'])),
-        new Set(['run-sec']),
+        new Set(['w1-bench', 'standalone-plank']),
+        EMPTY_SET,
       )
+      expect(finished).toBe('finished')
+    })
+
+    it('completing a standalone instance does not complete a nested instance of the same catalog exercise', () => {
+      // Dual-placement fixture: same catalog exercise nested AND standalone in one session.
+      const session: TrainingSession = {
+        sessionId: 'sess-1',
+        name: 'Dual placement',
+        workouts: [
+          {
+            workoutId: 'w1',
+            name: 'Hlavní',
+            exercises: [
+              { exerciseId: 'nested-wall-ball', exerciseExternalId: 'wall-ball', exerciseName: 'Wall Ball', sets: [] },
+            ],
+          },
+        ],
+        standaloneExercises: [
+          { exerciseId: 'standalone-wall-ball', exerciseExternalId: 'wall-ball', exerciseName: 'Wall Ball', sets: [] },
+        ],
+      }
+
+      const result = deriveSessionCtaState(session, new Set(['standalone-wall-ball']), EMPTY_SET)
       expect(result).toBe('in-progress')
     })
   })
@@ -316,8 +289,8 @@ describe('computeLockedSessionIds', () => {
     return {
       sessionId: id,
       name: `Session ${id}`,
-      sections: [],
-      exercises: [],
+      workouts: [],
+      standaloneExercises: [],
     }
   }
 
@@ -360,7 +333,7 @@ describe('computeLockedSessionIds', () => {
   it('filters out sessions with null sessionId cleanly', () => {
     const sessionsWithNull: TrainingSession[] = [
       makeSessionWithId('s1'),
-      { sessionId: undefined, name: 'No-id session', sections: [], exercises: [] },
+      { sessionId: undefined, name: 'No-id session', workouts: [], standaloneExercises: [] },
       makeSessionWithId('s3'),
     ]
     const result = computeLockedSessionIds(sessionsWithNull, true, 's1')

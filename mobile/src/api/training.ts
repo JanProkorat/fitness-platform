@@ -8,13 +8,13 @@ import {
 import type {
   ExerciseSet,
   SessionExercise,
-  TrainingSection as GeneratedTrainingSection,
+  TrainingWorkout,
   TrainingSession,
   GetTodaySessionResponse,
   GetFullTrainingPlanResponse,
   WeekDto,
   SessionDto,
-  SectionDto,
+  WorkoutDto,
   ExerciseDto,
   SetDto,
   WodConfig,
@@ -27,30 +27,19 @@ export { SetType, MuscleGroup, WorkoutFormat, MovementType };
 export type {
   ExerciseSet,
   SessionExercise,
+  TrainingWorkout,
   TrainingSession,
   GetTodaySessionResponse,
   GetFullTrainingPlanResponse,
   WeekDto,
   SessionDto,
-  SectionDto,
+  WorkoutDto,
   ExerciseDto,
   SetDto,
   WodConfig,
   SessionPhotoDto,
   GenerateSessionPhotoUploadUrlResponse,
 };
-
-/**
- * Augmented TrainingSection — widens the generated `notes` field to accept
- * `null` (the backend serialises null when no note is set; NSwag emits
- * `string | undefined` which rejects null at compile time).
- * Uses Omit to re-declare `notes` rather than `extends` so TypeScript does
- * not reject the `null` widening with TS2430.
- */
-export type TrainingSection = Omit<GeneratedTrainingSection, 'notes'> & {
-  /** Optional coach notes for this workout/section. */
-  notes?: string | null;
-}
 
 // Re-export WOD types from wod-types (UpdateWodExerciseRequest and UpdateWorkoutWodRequest
 // are still hand-maintained; WodResult, WodConfig, LoggedSetDto are re-exported

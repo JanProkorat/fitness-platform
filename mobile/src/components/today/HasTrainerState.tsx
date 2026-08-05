@@ -44,6 +44,7 @@ import { PlanBanner } from '@/components/today/PlanBanner'
 import { ResumeTrainingBanner } from '@/components/training/ResumeTrainingBanner'
 import { useLiveSessionStore } from '@/stores/liveSessionStore'
 import { deriveSessionCtaState, computeLockedSessionIds, type SessionCtaState } from '@/components/training/trainingCardHelpers'
+import { getOrderedSessionItems } from '@/components/training/trainingCardFormat'
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -275,13 +276,11 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
 
   // ── Client-side completion state (multi-session) ──────────────────────────
   const {
-    completedIdsBySectionAndSession,
-    completedIdsBySession,
-    completedSectionIdsBySession,
+    completedExerciseInstanceIdsBySession,
+    completedWorkoutIdsBySession,
     sessionCompleteMap,
-    completedIdsForSection,
-    completedIdsFor,
-    completedSectionIdsFor,
+    completedInstanceIdsFor,
+    completedWorkoutIdsFor,
     aggregateDone,
     aggregateTotal,
   } = useCompletionState(trainingQuery.data)
@@ -289,13 +288,13 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const {
     handleToggleExercise,
     handleToggleExercises,
-    handleToggleSection,
+    handleToggleWorkout,
     handleToggleSession,
     handleMarkAllTrainingDone,
     isMarkAllTrainingLoading,
   } = useTodayTrainingActions({
-    completedIdsForSection,
-    completedSectionIdsFor,
+    completedInstanceIdsFor,
+    completedWorkoutIdsFor,
     sessionCompleteMap,
     todaySessions,
   })
@@ -343,14 +342,13 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     const result: Record<string, SessionCtaState> = {}
     for (const session of todaySessions) {
       if (!session.sessionId) continue
-      // Per-section completion map for this session (sectionId → completed exId set).
-      // Using the section-keyed map rather than the flat union prevents a catalog
-      // exercise that appears in both W1 and W3 from satisfying W3's completion
-      // check just because the user marked it in W1.
-      const sectionMap =
-        completedIdsBySectionAndSession.get(session.sessionId) ??
-        new Map<string, ReadonlySet<string>>()
-      const sectionIds = completedSectionIdsFor(session.sessionId)
+      // Flat per-session instance-id completion set. Because every placement
+      // of an exercise (nested in a workout, or standalone) has its own
+      // distinct instance id, this alone is sufficient to keep a catalog
+      // exercise appearing in both W1 and W3 from satisfying W3's completion
+      // check just because the user marked the W1 instance.
+      const instanceIds = completedInstanceIdsFor(session.sessionId)
+      const workoutIds = completedWorkoutIdsFor(session.sessionId)
       // When a live session is in-flight for this session (sets done but no
       // full exercise ticked yet), bump not-started → in-progress so the CTA
       // reads "Continue training" rather than "Start training".
@@ -358,13 +356,13 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
         hasActiveSession && session.sessionId === liveSessionId
       result[session.sessionId] = deriveSessionCtaState(
         session,
-        sectionMap,
-        sectionIds,
+        instanceIds,
+        workoutIds,
         isLiveForThisSession,
       )
     }
     return result
-  }, [todaySessions, completedIdsBySectionAndSession, completedSectionIdsFor, hasActiveSession, liveSessionId])
+  }, [todaySessions, completedInstanceIdsFor, completedWorkoutIdsFor, hasActiveSession, liveSessionId])
 
   // ── Locked sibling session IDs ────────────────────────────────────────────
   // When a live session is running, every OTHER session for today shows a
@@ -456,9 +454,14 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
   const liveExIdx = liveSessionStore.currentExerciseIdx
   const liveSetIdx = liveSessionStore.currentSetIdx
 
-  // Use the first session's exercises for the resume banner name.
+  // Use the first session's exercises for the resume banner name. Exercises
+  // are flattened from the same ordered workout+standalone interleave the
+  // live training screen itself iterates over, so `liveExIdx` (an index into
+  // that screen's flat exercise sequence) resolves to the same exercise here.
   const liveExerciseName = useMemo(() => {
-    const exercises = todaySessions[0]?.exercises ?? []
+    const firstSession = todaySessions[0]
+    if (!firstSession) return ''
+    const exercises = getOrderedSessionItems(firstSession).flatMap((item) => item.exercises)
     return exercises[liveExIdx]?.exerciseName ?? ''
   }, [todaySessions, liveExIdx])
 
@@ -601,13 +604,12 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
             <TrainingCard
               planName={trainingPlanSubtitle || t('today.trainingPlan')}
               sessions={todaySessions}
-              completedIdsBySectionAndSession={completedIdsBySectionAndSession}
-              completedIdsBySession={completedIdsBySession}
-              completedSectionIdsBySession={completedSectionIdsBySession}
+              completedExerciseInstanceIdsBySession={completedExerciseInstanceIdsBySession}
+              completedWorkoutIdsBySession={completedWorkoutIdsBySession}
               sessionCompleteMap={sessionCompleteMap}
               onToggleExercise={handleToggleExercise}
               onToggleExercises={handleToggleExercises}
-              onToggleSection={handleToggleSection}
+              onToggleWorkout={handleToggleWorkout}
               onToggleSession={handleToggleSession}
               sessionCtaStateBySession={sessionCtaStateBySession}
               onSessionCta={handleSessionCta}

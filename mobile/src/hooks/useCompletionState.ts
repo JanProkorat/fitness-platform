@@ -1,148 +1,79 @@
 import { useMemo } from 'react'
 import type { TodayTrainingResponse } from '@/api/training'
+import { getOrderedSessionItems } from '@/components/training/trainingCardFormat'
+import { deriveSessionCtaState } from '@/components/training/trainingCardHelpers'
 
 /**
  * Reads multi-session completion state from the server-sourced fields on
  * `TodayTrainingResponse`.
  *
- * Primary source: `completedExerciseIdsBySectionAndSession` (new per-section
- * field). Each exercise instance is keyed by (sessionId, sectionId) so the
- * same catalog exercise referenced in two different sections of one session
- * is tracked independently.
+ * Source: `completedExerciseInstanceIdsBySession` — a flat, per-session set
+ * of completed exercise INSTANCE ids (`SessionExercise.exerciseId`), added by
+ * #877. Because every placement of an exercise in a session (nested in a
+ * workout, or standalone) carries its own distinct instance id, a single flat
+ * set per session is sufficient: no per-workout indirection is needed to keep
+ * two placements of the same catalog exercise independent, and — unlike the
+ * previous catalog-keyed `completedExerciseIdsByWorkoutAndSession` — this
+ * field can represent standalone-exercise completion at all.
  *
- * Fallback (transitional): if the new field is absent (should not happen
- * after deploy, but guards against mid-deploy or cached API responses), the
- * old flat `completedExerciseIdsBySession` is used — every section within a
- * session sees the same flat set. This replicates the pre-fix "buggy but
- * not broken" behaviour and is clearly marked as transitional.
- *
- * Mutations write back to `completedExerciseIdsBySectionAndSession` via
- * `setQueryData`, so optimistic updates also work correctly.
+ * This replaces the former nested `Map<sessionId, Map<sectionId, Set<catalogId>>>`
+ * model and its transitional fallback outright. There is no equivalent
+ * fallback here: `completedExerciseIdsBySession` /
+ * `completedExerciseIdsByWorkoutAndSession` remain catalog-keyed by design
+ * (kept for the web portal) and are not re-keyed into instance-id semantics.
  */
 export function useCompletionState(trigger: TodayTrainingResponse | undefined) {
-  const sessions = trigger?.sessions ?? []
+  const sessions = useMemo(() => trigger?.sessions ?? [], [trigger])
 
-  // ── Per-section completion map ─────────────────────────────────────────────
-  // Shape: Map<sessionId, Map<sectionId, Set<exerciseExternalId>>>
-  const completedIdsBySectionAndSession = useMemo<
-    ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>
+  // ── Flat per-session completed exercise INSTANCE ids ───────────────────────
+  const completedExerciseInstanceIdsBySession = useMemo<
+    ReadonlyMap<string, ReadonlySet<string>>
   >(() => {
-    const outer = new Map<string, Map<string, Set<string>>>()
-
-    if (trigger?.completedExerciseIdsBySectionAndSession) {
-      // Primary path: use the new per-section field.
-      for (const [sessionId, sectionMap] of Object.entries(
-        trigger.completedExerciseIdsBySectionAndSession,
-      )) {
-        const inner = new Map<string, Set<string>>()
-        for (const [sectionId, ids] of Object.entries(sectionMap)) {
-          inner.set(sectionId, new Set(ids))
-        }
-        outer.set(sessionId, inner)
-      }
-    } else if (trigger?.completedExerciseIdsBySession) {
-      // TRANSITIONAL FALLBACK: new field absent → flatten the legacy per-session
-      // array across every section in that session. All sections see the same set.
-      // Produces the same cross-section bleed the bug report describes, but
-      // nothing crashes. Remove this branch once the new field is fully rolled out.
-      for (const [sessionId, ids] of Object.entries(
-        trigger.completedExerciseIdsBySession,
-      )) {
-        const idSet = new Set(ids)
-        const session = (trigger.sessions ?? []).find((s) => s.sessionId === sessionId)
-        const inner = new Map<string, Set<string>>()
-        for (const section of session?.sections ?? []) {
-          if (section.sectionId) {
-            inner.set(section.sectionId, idSet)
-          }
-        }
-        // Synthetic "default" section key used by the TrainingCard fallback.
-        if (inner.size === 0) {
-          inner.set('default', idSet)
-        }
-        outer.set(sessionId, inner)
-      }
-    }
-
-    return outer as ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>>
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trigger])
-
-  // ── Legacy flat completedIdsBySession ─────────────────────────────────────
-  // Kept for back-compat callers that need a session-level aggregate
-  // (e.g. `deriveSessionCtaState`, aggregate counters). Its value is now the
-  // UNION of all per-section sets within the session — derived, not consumed
-  // directly from the API response. Do NOT use for per-exercise display logic;
-  // use `completedIdsForSection` for that.
-  const completedIdsBySession = useMemo<Record<string, ReadonlySet<string>>>(() => {
-    const result: Record<string, ReadonlySet<string>> = {}
-    for (const [sessionId, sectionMap] of completedIdsBySectionAndSession) {
-      const union = new Set<string>()
-      for (const ids of sectionMap.values()) {
-        for (const id of ids) union.add(id)
-      }
-      result[sessionId] = union
+    const result = new Map<string, ReadonlySet<string>>()
+    for (const [sessionId, ids] of Object.entries(
+      trigger?.completedExerciseInstanceIdsBySession ?? {},
+    )) {
+      result.set(sessionId, new Set(ids))
     }
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completedIdsBySectionAndSession])
+  }, [trigger])
 
-  const completedSectionIdsBySession = useMemo<Record<string, ReadonlySet<string>>>(() => {
-    if (!trigger?.completedSectionIdsBySession) return {}
+  // ── Per-session completed WORKOUT ids ──────────────────────────────────────
+  // Used for workouts that don't track at the exercise level (e.g. ForTime
+  // "Running"). Rename-only from the wire field `completedWorkoutIdsBySession`
+  // — WorkoutId is already a per-session instance id, not a catalog id.
+  const completedWorkoutIdsBySession = useMemo<Record<string, ReadonlySet<string>>>(() => {
     const result: Record<string, ReadonlySet<string>> = {}
-    for (const [sessionId, ids] of Object.entries(trigger.completedSectionIdsBySession)) {
+    for (const [sessionId, ids] of Object.entries(
+      trigger?.completedWorkoutIdsBySession ?? {},
+    )) {
       result[sessionId] = new Set(ids)
     }
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger])
 
-  // A session counts as fully complete when every section in it is "done":
-  //   - sections with exercises → all trackable exercises in that section are
-  //     in `completedIdsForSection(sessionId, sectionId)`, OR
-  //   - sections without exercises (e.g. ForTime "Running") → sectionId is in
-  //     completedSectionIds.
-  // Mirrors the backend ComplianceService rule.
+  // A session counts as fully complete when `deriveSessionCtaState` (the
+  // single source of truth for this classification, shared with the CTA
+  // footer) resolves to 'finished'.
   const sessionCompleteMap = useMemo<Record<string, boolean>>(() => {
     const result: Record<string, boolean> = {}
     for (const s of sessions) {
       if (!s.sessionId) continue
-      const sectionMap = completedIdsBySectionAndSession.get(s.sessionId)
-      const completedSecSet = completedSectionIdsBySession[s.sessionId] ?? new Set<string>()
-      const sections = s.sections ?? []
-      if (sections.length === 0) {
-        result[s.sessionId] = false
-        continue
-      }
-      result[s.sessionId] = sections.every((sec) => {
-        const trackable = (sec.exercises ?? []).filter((e) => e.exerciseExternalId != null)
-        if (trackable.length > 0) {
-          // Use the per-section set for this section so the same catalog exercise
-          // in another section doesn't satisfy this section's requirement.
-          const sectionCompletedIds =
-            sec.sectionId != null ? (sectionMap?.get(sec.sectionId) ?? new Set<string>()) : new Set<string>()
-          return trackable.every((e) => sectionCompletedIds.has(e.exerciseExternalId!))
-        }
-        return sec.sectionId != null && completedSecSet.has(sec.sectionId)
-      })
+      const instanceIds = completedExerciseInstanceIdsBySession.get(s.sessionId) ?? new Set<string>()
+      const workoutIds = completedWorkoutIdsBySession[s.sessionId] ?? new Set<string>()
+      result[s.sessionId] = deriveSessionCtaState(s, instanceIds, workoutIds) === 'finished'
     }
     return result
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completedIdsBySectionAndSession, completedSectionIdsBySession, sessions])
+  }, [sessions, completedExerciseInstanceIdsBySession, completedWorkoutIdsBySession])
 
-  /** Returns the completed-exercise ID set for a specific (session, section) pair. */
-  function completedIdsForSection(sessionId: string, sectionId: string): ReadonlySet<string> {
-    return completedIdsBySectionAndSession.get(sessionId)?.get(sectionId) ?? new Set<string>()
+  /** Returns the completed exercise INSTANCE id set for a single session. */
+  function completedInstanceIdsFor(sessionId: string): ReadonlySet<string> {
+    return completedExerciseInstanceIdsBySession.get(sessionId) ?? new Set<string>()
   }
 
-  /** Returns the union of completed-exercise IDs across all sections in a session. */
-  function completedIdsFor(sessionId: string): ReadonlySet<string> {
-    return completedIdsBySession[sessionId] ?? new Set<string>()
-  }
-
-  /** Returns the completed-section ID set for a single session. */
-  function completedSectionIdsFor(sessionId: string): ReadonlySet<string> {
-    return completedSectionIdsBySession[sessionId] ?? new Set<string>()
+  /** Returns the completed-workout ID set for a single session. */
+  function completedWorkoutIdsFor(sessionId: string): ReadonlySet<string> {
+    return completedWorkoutIdsBySession[sessionId] ?? new Set<string>()
   }
 
   /** Returns whether the whole session is marked complete. */
@@ -151,35 +82,30 @@ export function useCompletionState(trigger: TodayTrainingResponse | undefined) {
   }
 
   // Aggregate totals across all sessions (used by hero ring + StatCard chip).
-  // Uses the session-union set — accurate aggregate even with per-section keying.
   const aggregateDone = useMemo<number>(() => {
     let count = 0
     for (const s of sessions) {
       if (!s.sessionId) continue
-      const ids = completedIdsBySession[s.sessionId] ?? new Set<string>()
-      count += ids.size
+      count += (completedExerciseInstanceIdsBySession.get(s.sessionId) ?? new Set<string>()).size
     }
     return count
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completedIdsBySession, sessions])
+  }, [sessions, completedExerciseInstanceIdsBySession])
 
   const aggregateTotal = useMemo<number>(() => {
     let count = 0
     for (const s of sessions) {
-      count += (s.exercises ?? []).filter((e) => e.exerciseExternalId != null).length
+      const exercises = getOrderedSessionItems(s).flatMap((item) => item.exercises)
+      count += exercises.filter((e) => e.exerciseId != null).length
     }
     return count
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions])
 
   return {
-    completedIdsBySectionAndSession,
-    completedIdsBySession,
-    completedSectionIdsBySession,
+    completedExerciseInstanceIdsBySession,
+    completedWorkoutIdsBySession,
     sessionCompleteMap,
-    completedIdsForSection,
-    completedIdsFor,
-    completedSectionIdsFor,
+    completedInstanceIdsFor,
+    completedWorkoutIdsFor,
     isSessionComplete,
     aggregateDone,
     aggregateTotal,
