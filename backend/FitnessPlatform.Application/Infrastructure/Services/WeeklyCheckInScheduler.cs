@@ -122,15 +122,13 @@ public class WeeklyCheckInScheduler(
             await Task.Delay(delay, stoppingToken);
         }
 
-        // Seed cursor from DB so a cold start doesn't re-fire the last interval window.
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            _lastTickAt = await SeedCursorAsync(db, UtcNow(), stoppingToken);
-        }
-
-        _cursorInitialized = true;
-
+        // The cursor is seeded inside TickAsync on its first call, which keeps the seed
+        // read under the same guard as the rest of the tick. Seeding out here instead
+        // would leave a DB call between the alignment delay and the loop with nothing
+        // catching it: the resulting exception escapes ExecuteAsync, faults its Task,
+        // and HostOptions.BackgroundServiceExceptionBehavior (StopHost by default) takes
+        // the whole process down. A dropped table, a failover, a connection reset, or a
+        // migration deploying against a running app all reach that same call.
         using var timer = new PeriodicTimer(interval);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -140,12 +138,12 @@ public class WeeklyCheckInScheduler(
 
             try
             {
-                using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                await ProcessTickAsync(db, scope.ServiceProvider, tickNow, stoppingToken);
+                await TickAsync(tickNow, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // If the seed itself failed, _cursorInitialized stays false and the next
+                // tick retries it rather than running with an unseeded cursor.
                 logger.LogError(ex, "WeeklyCheckInScheduler: unhandled error on tick at {TickNow:u}.", tickNow);
             }
 
