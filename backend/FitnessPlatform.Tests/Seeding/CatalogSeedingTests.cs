@@ -341,7 +341,7 @@ public class CatalogSeedingTests : IAsyncLifetime
         templates.Should().AllSatisfy(t =>
         {
             t.OwnerId.Should().Be(SystemUsers.AdminId);
-            t.Visibility.Should().Be(WorkoutTemplateVisibility.Public);
+            t.Visibility.Should().Be(LibraryVisibility.Public);
             t.Version.Should().Be(1);
             t.Workouts.Should().NotBeEmpty($"template '{t.Name}' must have sections");
 

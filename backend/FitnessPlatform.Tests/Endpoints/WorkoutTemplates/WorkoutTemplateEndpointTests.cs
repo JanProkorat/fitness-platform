@@ -14,8 +14,6 @@ using FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTemplat
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.AspNetCore.Http;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -31,88 +29,16 @@ public class WorkoutTemplateEndpointTests
 
     // ── Helper factories ────────────────────────────────────────────────────
 
-    private IMongoContext CreateMockMongo(
-        List<WorkoutTemplate>? templates = null,
-        List<SessionTemplate>? workoutTemplates = null)
+    private IMongoContext CreateMockMongo(List<WorkoutTemplate>? templates = null)
     {
         templates ??= [];
-        // Configure each collection FULLY before wiring it into the context — NSubstitute cannot
+        // Configure the collection FULLY before wiring it into the context — NSubstitute cannot
         // track lastCall state across nested substitute setup (see also RecipeTestHelpers).
         var collection = CreateMockCollection(templates);
-        var workoutCollection = CreateMockSessionTemplateCollection(workoutTemplates ?? []);
 
         var mongo = Substitute.For<IMongoContext>();
         mongo.WorkoutTemplates.Returns(collection);
-        mongo.SessionTemplates.Returns(workoutCollection);
         return mongo;
-    }
-
-    /// <summary>
-    /// Mocks the SessionTemplates collection so FindAsync actually evaluates the caller's
-    /// FilterDefinition against each candidate document (rather than returning the whole list
-    /// unconditionally) — this is what lets a test genuinely prove the endpoint's
-    /// Visibility==Public filter excludes private templates, not just assume it.
-    /// </summary>
-    private static IMongoCollection<SessionTemplate> CreateMockSessionTemplateCollection(
-        List<SessionTemplate> templates)
-    {
-        var collection = Substitute.For<IMongoCollection<SessionTemplate>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<SessionTemplate>>(),
-                Arg.Any<FindOptions<SessionTemplate, SessionTemplate>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(callInfo =>
-            {
-                var filter = callInfo.ArgAt<FilterDefinition<SessionTemplate>>(0);
-                var registry = BsonSerializer.SerializerRegistry;
-                var serializer = registry.GetSerializer<SessionTemplate>();
-                var renderedFilter = filter.Render(new RenderArgs<SessionTemplate>(serializer, registry));
-
-                var matched = templates
-                    .Where(t => MatchesFilter(t.ToBsonDocument(), renderedFilter))
-                    .ToList();
-                return CreateSessionTemplateCursor(matched);
-            });
-
-        return collection;
-    }
-
-    /// <summary>
-    /// Minimal top-level equality matcher for rendered simple Eq filters (sufficient for the
-    /// Visibility==Public filter used by ListWorkoutTemplatesEndpoint).
-    /// </summary>
-    private static bool MatchesFilter(BsonDocument document, BsonDocument renderedFilter)
-    {
-        foreach (var element in renderedFilter.Elements)
-        {
-            if (!document.TryGetValue(element.Name, out var actual) || actual != element.Value)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static IAsyncCursor<SessionTemplate> CreateSessionTemplateCursor(List<SessionTemplate> items)
-    {
-        var cursor = Substitute.For<IAsyncCursor<SessionTemplate>>();
-        var moved = false;
-        cursor.Current.Returns(items);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return items.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return items.Count > 0;
-        });
-        return cursor;
     }
 
     private static IMongoCollection<WorkoutTemplate> CreateMockCollection(
@@ -183,52 +109,6 @@ public class WorkoutTemplateEndpointTests
         CreatedAt = DateTime.UtcNow.AddDays(-1),
         UpdatedAt = DateTime.UtcNow.AddDays(-1),
         Version = version
-    };
-
-    private static SessionTemplate MakeSessionTemplate(
-        WorkoutTemplateVisibility visibility = WorkoutTemplateVisibility.Public,
-        string name = "Public WOD",
-        Guid? ownerId = null) => new()
-    {
-        ExternalId = Guid.NewGuid(),
-        OwnerId = ownerId ?? Guid.NewGuid(),
-        Name = name,
-        Description = "A sample public workout template",
-        Difficulty = ExerciseDifficulty.Intermediate,
-        EstimatedDurationMinutes = 45,
-        Format = WorkoutFormat.Standard,
-        Visibility = visibility,
-        Workouts =
-        [
-            new TrainingWorkout
-            {
-                WorkoutId = Guid.NewGuid(),
-                Order = 0,
-                Name = "Main",
-                Exercises =
-                [
-                    new SessionExercise
-                    {
-                        ExerciseExternalId = Guid.NewGuid(),
-                        ExerciseName = "Back Squat",
-                        Order = 1,
-                        RestSeconds = 90,
-                        MovementType = MovementType.Reps,
-                        Sets =
-                        [
-                            new ExerciseSet
-                            {
-                                SetNumber = 1,
-                                Type = SetType.Normal,
-                                Reps = 5,
-                                WeightKg = 60,
-                                RestSeconds = 90
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
     };
 
     private Action<DefaultHttpContext> TrainerAuth() =>
@@ -375,73 +255,6 @@ public class WorkoutTemplateEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.OwnTemplates.Should().HaveCount(2);
         ep.Response.OwnTemplates.Select(r => r.Name).Should().Contain(["Block A", "Block B"]);
-        ep.Response.PublicSessionTemplates.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task List_TrainerWithZeroOwnTemplates_StillReturnsPublicLibrary()
-    {
-        var publicTemplate = MakeSessionTemplate(name: "AMRAP Blast");
-        var mongo = CreateMockMongo(templates: [], workoutTemplates: [publicTemplate]);
-        var ep = CreateListEndpoint(mongo);
-
-        var req = new ListWorkoutTemplatesRequest { Page = 1, PageSize = 20 };
-        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-        ep.Response.OwnTemplates.Should().BeEmpty();
-        ep.Response.PublicSessionTemplates.Should().ContainSingle(t => t.Name == "AMRAP Blast");
-    }
-
-    [Fact]
-    public async Task List_ExcludesPrivateSessionTemplates()
-    {
-        var publicTemplate = MakeSessionTemplate(visibility: WorkoutTemplateVisibility.Public, name: "Public One");
-        var privateTemplate = MakeSessionTemplate(visibility: WorkoutTemplateVisibility.Private, name: "Someone's Private Template");
-        var mongo = CreateMockMongo(templates: [], workoutTemplates: [publicTemplate, privateTemplate]);
-        var ep = CreateListEndpoint(mongo);
-
-        var req = new ListWorkoutTemplatesRequest { Page = 1, PageSize = 20 };
-        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-        ep.Response.PublicSessionTemplates.Should().ContainSingle();
-        ep.Response.PublicSessionTemplates[0].Name.Should().Be("Public One");
-        ep.Response.PublicSessionTemplates.Select(t => t.Name).Should().NotContain("Someone's Private Template");
-    }
-
-    [Fact]
-    public async Task List_PublicSessionTemplate_EmbedsFullSectionsExercisesAndSets()
-    {
-        var publicTemplate = MakeSessionTemplate(name: "Full Body");
-        var mongo = CreateMockMongo(templates: [], workoutTemplates: [publicTemplate]);
-        var ep = CreateListEndpoint(mongo);
-
-        var req = new ListWorkoutTemplatesRequest { Page = 1, PageSize = 20 };
-        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
-
-        var response = ep.Response.PublicSessionTemplates.Should().ContainSingle().Subject;
-        response.ExternalId.Should().Be(publicTemplate.ExternalId);
-        response.Description.Should().Be(publicTemplate.Description);
-        response.Difficulty.Should().Be(publicTemplate.Difficulty.ToString());
-        response.EstimatedDurationMinutes.Should().Be(publicTemplate.EstimatedDurationMinutes);
-        response.Format.Should().Be(publicTemplate.Format.ToString());
-
-        response.Workouts.Should().ContainSingle();
-        var section = response.Workouts[0];
-        section.Name.Should().Be("Main");
-        section.Exercises.Should().ContainSingle();
-        var exercise = section.Exercises[0];
-        exercise.ExerciseName.Should().Be("Back Squat");
-        exercise.RestSeconds.Should().Be(90);
-        exercise.MovementType.Should().Be(MovementType.Reps);
-        exercise.Sets.Should().ContainSingle();
-        var set = exercise.Sets[0];
-        set.SetNumber.Should().Be(1);
-        set.Type.Should().Be(SetType.Normal);
-        set.Reps.Should().Be(5);
-        set.WeightKg.Should().Be(60);
-        set.RestSeconds.Should().Be(90);
     }
 
     [Fact]

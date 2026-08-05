@@ -2,7 +2,6 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.WorkoutTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -10,8 +9,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.ListWorkoutTemplates;
 
 /// <summary>
-/// Lists the calling trainer's workout templates with pagination, plus the public
-/// workout template library (unpaginated).
+/// Lists the calling trainer's workout templates with pagination.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class ListWorkoutTemplatesEndpoint(IMongoContext mongo)
@@ -25,7 +23,7 @@ public class ListWorkoutTemplatesEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "List workout templates";
-            s.Description = "Returns the calling trainer's workout templates (paginated) and the public workout template library (unpaginated).";
+            s.Description = "Returns the calling trainer's workout templates, paginated. Session templates (formerly piggybacked here) have their own paginated search endpoint under /training/session-templates.";
         });
     }
 
@@ -59,14 +57,9 @@ public class ListWorkoutTemplatesEndpoint(IMongoContext mongo)
 
         var templates = await cursor.ToListAsync(ct);
 
-        var publicFilter = Builders<SessionTemplate>.Filter.Eq(t => t.Visibility, WorkoutTemplateVisibility.Public);
-        using var publicCursor = await mongo.SessionTemplates.FindAsync(publicFilter, cancellationToken: ct);
-        var publicTemplates = await publicCursor.ToListAsync(ct);
-
         var response = new ListWorkoutTemplatesResponse
         {
-            OwnTemplates = templates.Select(WorkoutTemplateResponse.FromDocument).ToList(),
-            PublicSessionTemplates = publicTemplates.Select(PublicSessionTemplateResponse.FromDocument).ToList()
+            OwnTemplates = templates.Select(WorkoutTemplateResponse.FromDocument).ToList()
         };
 
         await Send.OkAsync(response, ct);

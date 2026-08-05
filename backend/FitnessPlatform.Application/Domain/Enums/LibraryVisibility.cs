@@ -16,18 +16,16 @@ namespace FitnessPlatform.Application.Domain.Enums;
 /// mistake to "fix" into consistency with the other three later.
 /// </para>
 /// <para>
-/// <b>Flag for #860 (post-#857 terms):</b> #857 renames the pre-existing
-/// <c>WorkoutTemplate</c> document to <c>SessionTemplate</c> and mints a distinct, new
-/// <c>WorkoutTemplate</c> document with no visibility field of its own — that new document is
-/// unrelated to this flag. It is <c>SessionTemplate.Visibility</c> (the renamed type) that
-/// stays typed <c>WorkoutTemplateVisibility</c> with a <c>= WorkoutTemplateVisibility.Public</c>
-/// initializer after the rename. If #860 retypes <c>SessionTemplate.Visibility</c> to this
-/// <see cref="LibraryVisibility"/> and drops the explicit initializer to match the pattern
-/// documents here use, the default for newly created documents silently flips from Public to
-/// Private — because <see cref="Private"/> is this enum's CLR default, not
-/// <c>WorkoutTemplateVisibility</c>'s. That flip may be exactly what the new sharing model
-/// wants, but it changes existing behavior and must be called out explicitly in whichever PR
-/// performs the retype, not discovered later as a regression.
+/// <b>#860 (post-#857 terms):</b> #857 renamed the pre-existing <c>WorkoutTemplate</c> document
+/// to <c>SessionTemplate</c> and minted a distinct, new <c>WorkoutTemplate</c> document with no
+/// visibility field of its own — that new document is unrelated to this note. #860 retyped
+/// <c>SessionTemplate.Visibility</c> from the now-deleted <c>WorkoutTemplateVisibility</c> to
+/// this <see cref="LibraryVisibility"/> and dropped the explicit
+/// <c>= WorkoutTemplateVisibility.Public</c> initializer to match the pattern documents here
+/// use. That flip means a newly created <c>SessionTemplate</c> now defaults to Private —
+/// <see cref="Private"/> is this enum's CLR default — rather than the previous Public default;
+/// the already-seeded catalog documents store <c>"Public"</c> explicitly, so they are
+/// unaffected by the retype.
 /// </para>
 /// </remarks>
 public enum LibraryVisibility
