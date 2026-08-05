@@ -16681,8 +16681,6 @@ export interface AddRoleRequest {
 export interface TrainingPlanTemplateDetailDto {
     /** Template's public identifier. */
     templateId?: string;
-    /** The trainer who owns this template. */
-    ownerId?: string;
     /** Display name. */
     name?: string;
     /** Optional free-text description. */
@@ -16697,6 +16695,8 @@ export interface TrainingPlanTemplateDetailDto {
     weekCount?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the trainer who owns this template. */
+    isOwnedByCurrentUser?: boolean;
     /** Optimistic concurrency version. */
     version?: number;
     /** When the template was created. */
@@ -16938,8 +16938,6 @@ export interface SearchTemplatesResponse {
 export interface TrainingPlanTemplateSummaryDto {
     /** Template's public identifier. */
     templateId?: string;
-    /** The trainer who owns this template. */
-    ownerId?: string;
     /** Display name. */
     name?: string;
     /** Optional free-text description. */
@@ -16952,6 +16950,8 @@ export interface TrainingPlanTemplateSummaryDto {
     weekCount?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the trainer who owns this template. */
+    isOwnedByCurrentUser?: boolean;
     /** Optimistic concurrency version. */
     version?: number;
     /** When the template was created. */
@@ -18983,8 +18983,6 @@ Must be a valid PhotoDiaryMode value. */
 export interface NutritionPlanTemplateDetailDto {
     /** Template's public identifier. */
     templateId?: string;
-    /** The nutritionist who owns this template. */
-    ownerId?: string;
     /** Display name. */
     name?: string;
     /** Optional free-text description. */
@@ -19003,6 +19001,8 @@ export interface NutritionPlanTemplateDetailDto {
     weekCount?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the nutritionist who owns this template. */
+    isOwnedByCurrentUser?: boolean;
     /** Optimistic concurrency version. */
     version?: number;
     /** When the template was created. */
@@ -19240,8 +19240,6 @@ export interface SearchTemplatesResponse2 {
 export interface NutritionPlanTemplateSummaryDto {
     /** Template's public identifier. */
     templateId?: string;
-    /** The nutritionist who owns this template. */
-    ownerId?: string;
     /** Display name. */
     name?: string;
     /** Optional free-text description. */
@@ -19254,6 +19252,8 @@ export interface NutritionPlanTemplateSummaryDto {
     weekCount?: number;
     /** Who can read this entry besides its owner. */
     visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the nutritionist who owns this template. */
+    isOwnedByCurrentUser?: boolean;
     /** Optimistic concurrency version. */
     version?: number;
     /** When the template was created. */
