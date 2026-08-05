@@ -94,7 +94,7 @@ public class SessionTemplateRoundTripTests
     /// <summary>
     /// The mapping a real client (web/mobile) performs after a GET: the response's
     /// <see cref="TrainingWorkout"/>/<see cref="SessionExercise"/> shapes map field-for-field onto
-    /// <see cref="UpdateWorkoutRequest"/>/<see cref="UpdateSessionExerciseRequest"/>.
+    /// <see cref="UpdateTrainingWorkoutRequest"/>/<see cref="UpdateSessionExerciseRequest"/>.
     /// </summary>
     private static UpdateSessionRequest MapToUpdateSessionRequest(SessionTemplateDetailResponse template) => new()
     {
@@ -103,7 +103,7 @@ public class SessionTemplateRoundTripTests
         Name = template.Name,
         Order = 1,
         Format = null,
-        Workouts = template.Workouts.Select(w => new UpdateWorkoutRequest
+        Workouts = template.Workouts.Select(w => new UpdateTrainingWorkoutRequest
         {
             WorkoutId = w.WorkoutId,
             Order = w.Order,
