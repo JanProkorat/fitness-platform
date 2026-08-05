@@ -65,7 +65,8 @@ public class FinishSessionEndpoint(
 
         // 2. Locate the session within the plan.
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -192,14 +193,14 @@ public class FinishSessionEndpoint(
     /// </summary>
     private static SessionExecutionPerformance BuildPerformanceFromTemplate(TrainingSession session, DateTime completedAt)
     {
-        var workoutSections = session.Sections
-            .Select(section => new WorkoutSection
+        var loggedWorkouts = session.Workouts
+            .Select(workout => new LoggedWorkout
             {
-                SectionId = section.SectionId,
-                Order = section.Order,
-                Name = section.Name,
-                Format = section.Format,
-                Exercises = section.Exercises
+                WorkoutId = workout.WorkoutId,
+                Order = workout.Order,
+                Name = workout.Name,
+                Format = workout.Format,
+                Exercises = workout.Exercises
                     .Select(se => new WorkoutExercise
                     {
                         ExerciseExternalId = se.ExerciseExternalId,
@@ -235,7 +236,7 @@ public class FinishSessionEndpoint(
         return new SessionExecutionPerformance
         {
             StartedAt = completedAt,
-            Sections = workoutSections
+            Workouts = loggedWorkouts
         };
     }
 }

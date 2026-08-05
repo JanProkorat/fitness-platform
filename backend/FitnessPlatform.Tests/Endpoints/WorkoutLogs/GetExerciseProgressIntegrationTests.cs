@@ -136,11 +136,11 @@ public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
                 {
                     StartedAt = startedAt,
                     CompletedAt = startedAt.AddHours(1),
-                    Sections =
+                    Workouts =
                     [
-                        new WorkoutSection
+                        new LoggedWorkout
                         {
-                            SectionId = Guid.NewGuid(),
+                            WorkoutId = Guid.NewGuid(),
                             Name = "Main",
                             Exercises =
                             [
@@ -212,11 +212,11 @@ public class GetExerciseProgressIntegrationTests(FitnessApiFactory factory)
                 {
                     StartedAt = startedAt,
                     CompletedAt = startedAt.AddHours(1),
-                    Sections =
+                    Workouts =
                     [
-                        new WorkoutSection
+                        new LoggedWorkout
                         {
-                            SectionId = Guid.NewGuid(),
+                            WorkoutId = Guid.NewGuid(),
                             Name = "Main",
                             Exercises =
                             [

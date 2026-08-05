@@ -3,7 +3,6 @@ name: qa-tester
 description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, curls the compose harness on `:5101`, launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
 tools: Bash, Read, Grep, Glob, Write, ToolSearch
-maxTurns: 80
 color: green
 mcpServers: plugin_playwright_playwright, xcodebuildmcp, a11y-accessibility
 ---

@@ -32,12 +32,11 @@ public class GetTrainingPlanLoggedSetsTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Name = "Main",
                     Order = 0,
                     Exercises =
@@ -71,7 +70,7 @@ public class GetTrainingPlanLoggedSetsTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,
@@ -90,11 +89,11 @@ public class GetTrainingPlanLoggedSetsTests
             StartedAt = _now.AddMinutes(-30),
             IsCompleted = true,
             CompletedAt = _now,
-            Sections =
+            Workouts =
             [
-                new WorkoutSection
+                new LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Main",
                     Exercises =

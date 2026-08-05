@@ -69,7 +69,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 trainingStatus = ts;
         }
 
-        var items = new List<ClientPlanItem>();
+        var items = new List<ClientOwnPlanItem>();
 
         // ── Nutrition plans ──
         {
@@ -108,7 +108,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     plan.DateCreated,
                     now);
 
-                items.Add(new ClientPlanItem
+                items.Add(new ClientOwnPlanItem
                 {
                     PlanId = plan.ExternalId,
                     PlanName = plan.Name,
@@ -173,10 +173,10 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
                         currentWeek = publishedWeeks.Last();
 
-                    hasTodaySession = currentWeek.Sessions.Any(s => s.DayOfWeek == todayDow);
+                    hasTodaySession = currentWeek.Days.Any(d => d.DayOfWeek == todayDow && d.Sessions.Count > 0);
                 }
 
-                items.Add(new ClientPlanItem
+                items.Add(new ClientOwnPlanItem
                 {
                     PlanId = plan.ExternalId,
                     PlanName = plan.Name,

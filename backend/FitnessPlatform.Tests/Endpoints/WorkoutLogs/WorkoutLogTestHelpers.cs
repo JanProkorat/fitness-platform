@@ -48,7 +48,7 @@ public static class WorkoutLogTestHelpers
             {
                 StartedAt = started,
                 CompletedAt = isCompleted ? started : null,
-                Sections = []
+                Workouts = []
             },
             DateCreated = DateTime.UtcNow
         };

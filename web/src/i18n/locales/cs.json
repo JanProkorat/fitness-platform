@@ -1410,16 +1410,7 @@
       "deleteError": "Nepodařilo se smazat workout.",
       "deleteConfirmTitle": "Smazat workout",
       "deleteConfirmMessage": "Opravdu chcete smazat workout «{{name}}»? Tuto akci nelze vrátit.",
-      "versionConflict": "Workout byl změněn jinde, načítám znovu.",
-      "library": {
-        "title": "Knihovna workoutů",
-        "subtitle": "Veřejné vzorové workouty, které můžete použít jako výchozí bod.",
-        "colSections": "Sekce",
-        "durationMinutes": "{{count}} min",
-        "viewDetails": "Zobrazit detail",
-        "formatConfigLabel": "Formát",
-        "descriptionLabel": "Popis"
-      }
+      "versionConflict": "Workout byl změněn jinde, načítám znovu."
     },
     "completionState": {
       "setCompleted": "Dokončeno",

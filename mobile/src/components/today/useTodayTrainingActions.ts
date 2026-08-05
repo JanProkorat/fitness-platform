@@ -3,19 +3,18 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   markExerciseComplete,
   markExerciseIncomplete,
-  markSectionComplete,
-  markSectionIncomplete,
+  markWorkoutComplete,
+  markWorkoutIncomplete,
   markSessionComplete,
   markSessionIncomplete,
   markWholeDayComplete,
   type MarkExerciseCompleteResponse,
   type MarkExerciseIncompleteResponse,
-  type MarkSectionCompleteResponse,
-  type MarkSectionIncompleteResponse,
   type MarkSessionCompleteResponse,
   type MarkSessionIncompleteResponse,
 } from '@/api/trainingCompletion'
 import type { TodayTrainingResponse, TrainingSession } from '@/api/training'
+import { getOrderedSessionItems } from '@/components/training/trainingCardFormat'
 
 // ─── applyExerciseProgressToCache ────────────────────────────────────────────
 // Standalone helper (not a method) so it can be called from mutation onSuccess
@@ -25,18 +24,9 @@ import type { TodayTrainingResponse, TrainingSession } from '@/api/training'
  * Apply a server completion response to the TanStack Query cache.
  *
  * Optimistic state (written in onMutate) is always the source of truth for
- * `completedExerciseIdsBySectionAndSession`. This function only updates
+ * `completedExerciseInstanceIdsBySession`. This function only updates
  * `versionBySession` from the response so subsequent requests use the correct
  * optimistic-concurrency token.
- *
- * The previous session-source branch that re-derived per-section completion
- * from `completedExerciseCount >= totalExerciseCount` was removed because the
- * backend counts unique catalog ids for `completedExerciseCount` but
- * `totalExerciseCount` is `Sections.SelectMany(s => s.Exercises).Count` —
- * including duplicates when the same catalog exercise appears in multiple
- * sections. This made `isSessionComplete` evaluate to false even after a
- * successful session mark, causing the for-loop to overwrite all sections with
- * empty arrays, undoing the correct optimistic state.
  */
 function applyExerciseProgressToCache(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -62,81 +52,89 @@ function applyExerciseProgressToCache(
   })
 }
 
+/**
+ * Flattens a session's ordered items (workouts + standalone exercises,
+ * interleaved by `order`) into its exercise list. Used wherever this hook
+ * needs "every exercise in the session" without caring about render order.
+ */
+function allSessionExercises(session: TrainingSession) {
+  return getOrderedSessionItems(session).flatMap((item) => item.exercises)
+}
+
 interface UseTodayTrainingActionsArgs {
-  completedIdsForSection: (sessionId: string, sectionId: string) => ReadonlySet<string>
-  completedSectionIdsFor: (sessionId: string) => ReadonlySet<string>
+  completedInstanceIdsFor: (sessionId: string) => ReadonlySet<string>
+  completedWorkoutIdsFor: (sessionId: string) => ReadonlySet<string>
   sessionCompleteMap: Record<string, boolean>
   todaySessions: TrainingSession[]
 }
 
 /**
- * Wraps the training-completion mutation surface (single exercise, section,
- * whole session, and mark-all-day) for `HasTrainerState`. Moved verbatim out
- * of the component (#728, PR 4/4) — every onMutate/onError/onSuccess and the
- * version-token discipline is unchanged.
+ * Wraps the training-completion mutation surface (single exercise, workout,
+ * whole session, and mark-all-day) for `HasTrainerState`.
+ *
+ * Every exercise-level operation addresses the per-instance `exerciseId`
+ * (`SessionExercise.exerciseId`), not the catalog `exerciseExternalId` — the
+ * mark-complete/incomplete routes resolve against the session's instance ids,
+ * which is what lets two placements of the same catalog exercise in one
+ * session (nested + standalone, or nested twice) be completed independently.
+ * `completedSetsBySessionExercise` remains catalog-keyed by design (shared
+ * wire semantics with the web portal) and is populated by catalog id even
+ * though the completion signal itself is instance-keyed.
  */
 export function useTodayTrainingActions({
-  completedIdsForSection,
-  completedSectionIdsFor,
+  completedInstanceIdsFor,
+  completedWorkoutIdsFor,
   sessionCompleteMap,
   todaySessions,
 }: UseTodayTrainingActionsArgs) {
   const queryClient = useQueryClient()
 
-  // ── Mutation: toggle a single exercise complete/incomplete ─────────────────
+  // ── Mutation: toggle a single exercise instance complete/incomplete ───────
   const toggleExerciseMutation = useMutation({
     mutationFn: async ({
       sessionId,
-      sectionId,
-      exerciseExternalId,
+      exerciseId,
       complete,
     }: {
       sessionId: string
-      sectionId: string
-      exerciseExternalId: string
+      exerciseId: string
       complete: boolean
     }) => {
       const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       const version = (cache?.versionBySession ?? {})[sessionId]
-      const req = { version, sectionId }
+      const req = { version }
       if (complete) {
-        return markExerciseComplete(sessionId, exerciseExternalId, req)
+        return markExerciseComplete(sessionId, exerciseId, req)
       } else {
-        return markExerciseIncomplete(sessionId, exerciseExternalId, req)
+        return markExerciseIncomplete(sessionId, exerciseId, req)
       }
     },
-    onMutate: async ({ sessionId, sectionId, exerciseExternalId, complete }) => {
+    onMutate: async ({ sessionId, exerciseId, complete }) => {
       await queryClient.cancelQueries({ queryKey: ['today-training'] })
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       if (previous) {
-        // Write to completedExerciseIdsBySectionAndSession so the per-section
-        // set for this exact section is updated. Other sections' sets are
-        // untouched — fixes the cross-section bleed bug.
-        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
-        const prevSessionSections: Record<string, string[]> = {
-          ...(prevBySectionAndSession[sessionId] ?? {}),
-        }
-        const prevSectionIds: string[] = prevSessionSections[sectionId] ?? []
-        const nextIdsSet = new Set(prevSectionIds)
+        const prevInstanceIdsBySession = previous.completedExerciseInstanceIdsBySession ?? {}
+        const nextIdsSet = new Set(prevInstanceIdsBySession[sessionId] ?? [])
         if (complete) {
-          nextIdsSet.add(exerciseExternalId)
+          nextIdsSet.add(exerciseId)
         } else {
-          nextIdsSet.delete(exerciseExternalId)
+          nextIdsSet.delete(exerciseId)
         }
-        prevSessionSections[sectionId] = Array.from(nextIdsSet)
 
         // NOTE: do NOT bump versionBySession here. `mutationFn` reads the
         // version from the cache after `onMutate` runs and sends it as the
         // optimistic-concurrency token; bumping it would send the wrong
         // value and cause a 409 on the server.
         //
-        // When marking an exercise complete, write the planned set numbers so
-        // the per-set ✓ column fills immediately. The subsequent refetch
-        // reconciles with the backend's derivation.
-        // When unmarking, clear that exercise's set-level entries so the
-        // per-set ✓ column clears immediately (no visible flicker).
+        // When marking an exercise complete, write the planned set numbers
+        // (keyed by the CATALOG id — completedSetsBySessionExercise stays
+        // catalog-keyed by design) so the per-set ✓ column fills
+        // immediately. The subsequent refetch reconciles with the backend's
+        // derivation. When unmarking, clear that exercise's set-level
+        // entries so the per-set ✓ column clears immediately (no flicker).
         const session = (previous.sessions ?? []).find((s) => s.sessionId === sessionId)
-        const plannedEx = session?.exercises?.find((e) => e.exerciseExternalId === exerciseExternalId)
+        const plannedEx = session ? allSessionExercises(session).find((e) => e.exerciseId === exerciseId) : undefined
+        const catalogId = plannedEx?.exerciseExternalId
         const plannedSetNumbers = (plannedEx?.sets ?? [])
           .map((s) => s.setNumber)
           .filter((n): n is number => n != null)
@@ -144,20 +142,21 @@ export function useTodayTrainingActions({
         const prevSessionSetsMap: Record<string, number[]> =
           previous.completedSetsBySessionExercise?.[sessionId] ?? {}
         // Only write the set-numbers entry when there are actual planned sets.
-        // An empty array would produce `[exerciseExternalId]: []` in the cache —
-        // cosmetically harmless but semantically wrong (backend returns no sets).
-        const nextSetsForSession: Record<string, number[]> = complete
-          ? {
-              ...prevSessionSetsMap,
-              ...(plannedSetNumbers.length > 0 ? { [exerciseExternalId]: plannedSetNumbers } : {}),
-            }
-          : (({ [exerciseExternalId]: _omitted, ...rest }) => rest)(prevSessionSetsMap)
+        const nextSetsForSession: Record<string, number[]> =
+          complete && catalogId
+            ? {
+                ...prevSessionSetsMap,
+                ...(plannedSetNumbers.length > 0 ? { [catalogId]: plannedSetNumbers } : {}),
+              }
+            : catalogId
+              ? (({ [catalogId]: _omitted, ...rest }) => rest)(prevSessionSetsMap)
+              : prevSessionSetsMap
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySectionAndSession: {
-            ...prevBySectionAndSession,
-            [sessionId]: prevSessionSections,
+          completedExerciseInstanceIdsBySession: {
+            ...prevInstanceIdsBySession,
+            [sessionId]: Array.from(nextIdsSet),
           },
           completedSetsBySessionExercise: {
             ...(previous.completedSetsBySessionExercise ?? {}),
@@ -179,40 +178,40 @@ export function useTodayTrainingActions({
     },
   })
 
-  // ── Mutation: toggle a single section complete/incomplete ─────────────────
-  // Used for sections that don't track at the exercise level (typically
+  // ── Mutation: toggle a single workout complete/incomplete ─────────────────
+  // Used for workouts that don't track at the exercise level (typically
   // ForTime workouts that are just a name + time cap, e.g. "Running").
-  const toggleSectionMutation = useMutation({
+  const toggleWorkoutMutation = useMutation({
     mutationFn: async ({
       sessionId,
-      sectionId,
+      workoutId,
       complete,
     }: {
       sessionId: string
-      sectionId: string
+      workoutId: string
       complete: boolean
     }) => {
       const cache = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       const version = (cache?.versionBySession ?? {})[sessionId]
       const req = { version }
       if (complete) {
-        return markSectionComplete(sessionId, sectionId, req)
+        return markWorkoutComplete(sessionId, workoutId, req)
       } else {
-        return markSectionIncomplete(sessionId, sectionId, req)
+        return markWorkoutIncomplete(sessionId, workoutId, req)
       }
     },
-    onMutate: async ({ sessionId, sectionId, complete }) => {
+    onMutate: async ({ sessionId, workoutId, complete }) => {
       await queryClient.cancelQueries({ queryKey: ['today-training'] })
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       if (previous) {
-        const prevIds: string[] = (previous.completedSectionIdsBySession ?? {})[sessionId] ?? []
+        const prevIds: string[] = (previous.completedWorkoutIdsBySession ?? {})[sessionId] ?? []
         const nextIdsSet = new Set(prevIds)
-        if (complete) nextIdsSet.add(sectionId)
-        else nextIdsSet.delete(sectionId)
+        if (complete) nextIdsSet.add(workoutId)
+        else nextIdsSet.delete(workoutId)
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedSectionIdsBySession: {
-            ...(previous.completedSectionIdsBySession ?? {}),
+          completedWorkoutIdsBySession: {
+            ...(previous.completedWorkoutIdsBySession ?? {}),
             [sessionId]: Array.from(nextIdsSet),
           },
         })
@@ -250,42 +249,29 @@ export function useTodayTrainingActions({
         // NOTE: do NOT bump versionBySession here (see toggleExerciseMutation
         // for the full rationale).
         //
-        // When marking a session complete, write per-section id lists into
-        // completedExerciseIdsBySectionAndSession so the per-section sets
-        // reflect the full section exercise ids immediately.
-        // When unmarking, clear every section's list for this session.
-        // Also build planned-sets sub-map for the per-set ✓ column.
-        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
-        const nextSessionSections: Record<string, string[]> = {}
+        // When marking a session complete, write every trackable instance id
+        // in the session into completedExerciseInstanceIdsBySession, and
+        // every real workout id into completedWorkoutIdsBySession (covers
+        // exercise-free WOD workouts like ForTime "Beh"). When unmarking,
+        // clear both for this session. Also build the catalog-keyed
+        // planned-sets sub-map for the per-set ✓ column.
+        const exercises = session ? allSessionExercises(session) : []
+        const trackableInstanceIds = exercises
+          .map((e) => e.exerciseId)
+          .filter((id): id is string => id != null)
+        const allWorkoutIds: string[] = (session?.workouts ?? [])
+          .map((w) => w.workoutId)
+          .filter((id): id is string => id != null)
+
         const plannedSetsByEx: Record<string, number[]> = {}
-        // Section-id list for the "all sections of this session are done"
-        // optimistic update — required because workouts with NO trackable
-        // exercises (e.g. ForTime "Beh") are marked complete via
-        // `completedSectionIdsBySession`, not the per-exercise map. The
-        // session-complete API response doesn't return this field, so
-        // populating it here is the only thing that makes the exercise-
-        // free workout flip to "done" before the next refetch.
-        const allSectionIds: string[] = []
-
-        for (const sec of session?.sections ?? []) {
-          if (!sec.sectionId) continue
-          const trackableIds = (sec.exercises ?? [])
-            .map((e) => e.exerciseExternalId)
-            .filter((id): id is string => id != null)
-          nextSessionSections[sec.sectionId] = complete ? trackableIds : []
-          allSectionIds.push(sec.sectionId)
-        }
-
-        // Flat planned-sets map (keyed by exId) for the per-set column.
-        // Falls back to session.exercises when sections aren't available.
-        for (const ex of session?.exercises ?? []) {
-          const exId = ex.exerciseExternalId
-          if (!exId) continue
+        for (const ex of exercises) {
+          const catalogId = ex.exerciseExternalId
+          if (!catalogId) continue
           const nums = (ex.sets ?? [])
             .map((s) => s.setNumber)
             .filter((n): n is number => n != null)
             .sort((a, b) => a - b)
-          if (nums.length > 0) plannedSetsByEx[exId] = nums
+          if (nums.length > 0) plannedSetsByEx[catalogId] = nums
         }
 
         const nextSetsForSession: Record<string, Record<string, number[]>> = complete
@@ -300,16 +286,13 @@ export function useTodayTrainingActions({
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySectionAndSession: {
-            ...prevBySectionAndSession,
-            [sessionId]: nextSessionSections,
+          completedExerciseInstanceIdsBySession: {
+            ...(previous.completedExerciseInstanceIdsBySession ?? {}),
+            [sessionId]: complete ? trackableInstanceIds : [],
           },
-          completedSectionIdsBySession: {
-            ...(previous.completedSectionIdsBySession ?? {}),
-            // Mark every section in the session as complete (covers
-            // exercise-free WOD sections like ForTime). On uncomplete,
-            // clear the list so those sections flip back to "not done".
-            [sessionId]: complete ? allSectionIds : [],
+          completedWorkoutIdsBySession: {
+            ...(previous.completedWorkoutIdsBySession ?? {}),
+            [sessionId]: complete ? allWorkoutIds : [],
           },
           completedSetsBySessionExercise: nextSetsForSession,
         })
@@ -329,32 +312,30 @@ export function useTodayTrainingActions({
   })
 
   const handleToggleExercise = useCallback(
-    (sessionId: string, sectionId: string, exerciseExternalId: string) => {
-      const ids = completedIdsForSection(sessionId, sectionId)
-      const complete = !ids.has(exerciseExternalId)
-      toggleExerciseMutation.mutate({ sessionId, sectionId, exerciseExternalId, complete })
+    (sessionId: string, exerciseId: string) => {
+      const ids = completedInstanceIdsFor(sessionId)
+      const complete = !ids.has(exerciseId)
+      toggleExerciseMutation.mutate({ sessionId, exerciseId, complete })
     },
-    [toggleExerciseMutation, completedIdsForSection],
+    [toggleExerciseMutation, completedInstanceIdsFor],
   )
 
   /**
-   * Batch handler for section/workout-complete toggles.
+   * Batch handler for workout-complete toggles (marking every exercise in a
+   * workout at once).
    *
-   * Unlike the sequential-mutateAsync loop it replaces, this applies ONE
-   * combined optimistic setQueryData upfront so ALL exercise checkboxes flip
-   * at the same instant (no sequential "wave"). HTTP requests are then issued
-   * one at a time in the background, each reading the latest version token
-   * from the cache after the previous response has updated it, preserving the
+   * Unlike a sequential-mutateAsync loop, this applies ONE combined
+   * optimistic setQueryData upfront so ALL exercise checkboxes flip at the
+   * same instant (no sequential "wave"). HTTP requests are then issued one
+   * at a time in the background, each reading the latest version token from
+   * the cache after the previous response has updated it, preserving the
    * server's optimistic-concurrency invariant.
    *
-   * single-exercise toggles (individual exercise row taps) still go through
+   * Single-exercise toggles (individual exercise row taps) still go through
    * toggleExerciseMutation — this handler is only for batch operations.
-   *
-   * `sectionId` is now required so each HTTP request carries the correct section
-   * context, preventing cross-section bleed on the backend.
    */
   const handleToggleExercises = useCallback(
-    async (sessionId: string, sectionId: string, exerciseIds: string[], complete: boolean) => {
+    async (sessionId: string, exerciseIds: string[], complete: boolean) => {
       // ── Step 1: cancel in-flight queries and snapshot the cache ──────────
       await queryClient.cancelQueries({ queryKey: ['today-training'] })
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
@@ -362,51 +343,50 @@ export function useTodayTrainingActions({
       // ── Step 2: apply ONE combined optimistic update ──────────────────────
       if (previous) {
         const session = (previous.sessions ?? []).find((s) => s.sessionId === sessionId)
+        const exercises = session ? allSessionExercises(session) : []
 
-        // Write to completedExerciseIdsBySectionAndSession[sessionId][sectionId].
-        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
-        const prevSessionSections: Record<string, string[]> = {
-          ...(prevBySectionAndSession[sessionId] ?? {}),
-        }
-        const prevSectionIds: string[] = prevSessionSections[sectionId] ?? []
-        const nextIdsSet = new Set(prevSectionIds)
+        const prevInstanceIdsBySession = previous.completedExerciseInstanceIdsBySession ?? {}
+        const nextIdsSet = new Set(prevInstanceIdsBySession[sessionId] ?? [])
 
-        // Build a per-exercise planned-sets map for every id in the batch,
-        // mirroring the per-exercise logic in toggleExerciseMutation.onMutate
-        // but applied to the whole batch at once.
+        // Build a per-exercise planned-sets map (keyed by CATALOG id) for
+        // every id in the batch, mirroring the per-exercise logic in
+        // toggleExerciseMutation.onMutate but applied to the whole batch.
         const prevSessionSetsMap: Record<string, number[]> =
           (previous.completedSetsBySessionExercise ?? {})[sessionId] ?? {}
         let nextSetsForSession: Record<string, number[]> = { ...prevSessionSetsMap }
 
-        for (const exId of exerciseIds) {
+        for (const exerciseId of exerciseIds) {
           if (complete) {
-            nextIdsSet.add(exId)
+            nextIdsSet.add(exerciseId)
             // Write planned set numbers so per-set ✓ column fills immediately.
-            const plannedEx = session?.exercises?.find((e) => e.exerciseExternalId === exId)
+            const plannedEx = exercises.find((e) => e.exerciseId === exerciseId)
+            const catalogId = plannedEx?.exerciseExternalId
             const plannedSetNumbers = (plannedEx?.sets ?? [])
               .map((s) => s.setNumber)
               .filter((n): n is number => n != null)
               .sort((a, b) => a - b)
-            if (plannedSetNumbers.length > 0) {
-              nextSetsForSession[exId] = plannedSetNumbers
+            if (catalogId && plannedSetNumbers.length > 0) {
+              nextSetsForSession[catalogId] = plannedSetNumbers
             }
           } else {
-            nextIdsSet.delete(exId)
+            nextIdsSet.delete(exerciseId)
             // Remove set-level entry so per-set ✓ column clears immediately.
-            const { [exId]: _omitted, ...rest } = nextSetsForSession
-            nextSetsForSession = rest
+            const plannedEx = exercises.find((e) => e.exerciseId === exerciseId)
+            const catalogId = plannedEx?.exerciseExternalId
+            if (catalogId) {
+              const { [catalogId]: _omitted, ...rest } = nextSetsForSession
+              nextSetsForSession = rest
+            }
           }
         }
-
-        prevSessionSections[sectionId] = Array.from(nextIdsSet)
 
         // NOTE: do NOT bump versionBySession here — the server response is
         // what advances the version token (same rationale as toggleExerciseMutation).
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySectionAndSession: {
-            ...prevBySectionAndSession,
-            [sessionId]: prevSessionSections,
+          completedExerciseInstanceIdsBySession: {
+            ...prevInstanceIdsBySession,
+            [sessionId]: Array.from(nextIdsSet),
           },
           completedSetsBySessionExercise: {
             ...(previous.completedSetsBySessionExercise ?? {}),
@@ -421,13 +401,13 @@ export function useTodayTrainingActions({
       // correct token and avoids 409s.
       const cache = () => queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
 
-      for (const exId of exerciseIds) {
+      for (const exerciseId of exerciseIds) {
         try {
           const version = (cache()?.versionBySession ?? {})[sessionId]
-          const req = { version, sectionId }
+          const req = { version }
           const response = complete
-            ? await markExerciseComplete(sessionId, exId, req)
-            : await markExerciseIncomplete(sessionId, exId, req)
+            ? await markExerciseComplete(sessionId, exerciseId, req)
+            : await markExerciseIncomplete(sessionId, exerciseId, req)
 
           // ── Step 5: apply server response to cache after each success ────
           // Same as toggleExerciseMutation.onSuccess — updates versionBySession
@@ -449,13 +429,13 @@ export function useTodayTrainingActions({
     [queryClient],
   )
 
-  const handleToggleSection = useCallback(
-    (sessionId: string, sectionId: string) => {
-      const ids = completedSectionIdsFor(sessionId)
-      const complete = !ids.has(sectionId)
-      toggleSectionMutation.mutate({ sessionId, sectionId, complete })
+  const handleToggleWorkout = useCallback(
+    (sessionId: string, workoutId: string) => {
+      const ids = completedWorkoutIdsFor(sessionId)
+      const complete = !ids.has(workoutId)
+      toggleWorkoutMutation.mutate({ sessionId, workoutId, complete })
     },
-    [toggleSectionMutation, completedSectionIdsFor],
+    [toggleWorkoutMutation, completedWorkoutIdsFor],
   )
 
   const handleToggleSession = useCallback(
@@ -473,16 +453,14 @@ export function useTodayTrainingActions({
       await queryClient.cancelQueries({ queryKey: ['today-training'] })
       const previous = queryClient.getQueryData<TodayTrainingResponse>(['today-training'])
       if (previous) {
-        const prevBySectionAndSession = previous.completedExerciseIdsBySectionAndSession ?? {}
-        const nextBySectionAndSession: Record<string, Record<string, string[]>> = {
-          ...prevBySectionAndSession,
+        const nextInstanceIdsBySession: Record<string, string[]> = {
+          ...(previous.completedExerciseInstanceIdsBySession ?? {}),
         }
         const nextSetsBySessionExercise: Record<string, Record<string, number[]>> = {
           ...(previous.completedSetsBySessionExercise ?? {}),
         }
-
-        const nextCompletedSectionIdsBySession: Record<string, string[]> = {
-          ...(previous.completedSectionIdsBySession ?? {}),
+        const nextCompletedWorkoutIdsBySession: Record<string, string[]> = {
+          ...(previous.completedWorkoutIdsBySession ?? {}),
         }
 
         for (const session of previous.sessions ?? []) {
@@ -491,44 +469,38 @@ export function useTodayTrainingActions({
           // Skip sessions that are already complete — no-op, same as toggleSession.
           if (sessionCompleteMap[sessionId]) continue
 
-          const nextSessionSections: Record<string, string[]> = {}
-          const plannedSetsByEx: Record<string, number[]> = {}
-
-          // Collect all section IDs for this session so empty-exercise sections
-          // immediately reflect as complete in the optimistic cache (#259 fix).
-          const allSectionIds: string[] = (session.sections ?? [])
-            .map((sec) => sec.sectionId)
+          const exercises = allSessionExercises(session)
+          const trackableInstanceIds = exercises
+            .map((e) => e.exerciseId)
             .filter((id): id is string => id != null)
 
-          for (const sec of session.sections ?? []) {
-            if (!sec.sectionId) continue
-            const trackableIds = (sec.exercises ?? [])
-              .map((e) => e.exerciseExternalId)
-              .filter((id): id is string => id != null)
-            nextSessionSections[sec.sectionId] = trackableIds
-          }
+          // Collect all real workout IDs for this session so empty-exercise
+          // workouts immediately reflect as complete in the optimistic cache.
+          const allWorkoutIds: string[] = (session.workouts ?? [])
+            .map((w) => w.workoutId)
+            .filter((id): id is string => id != null)
 
-          // Build planned-sets map from flat exercises list for the per-set ✓ column.
-          for (const ex of session.exercises ?? []) {
-            const exId = ex.exerciseExternalId
-            if (!exId) continue
+          const plannedSetsByEx: Record<string, number[]> = {}
+          for (const ex of exercises) {
+            const catalogId = ex.exerciseExternalId
+            if (!catalogId) continue
             const nums = (ex.sets ?? [])
               .map((s) => s.setNumber)
               .filter((n): n is number => n != null)
               .sort((a, b) => a - b)
-            if (nums.length > 0) plannedSetsByEx[exId] = nums
+            if (nums.length > 0) plannedSetsByEx[catalogId] = nums
           }
 
-          nextBySectionAndSession[sessionId] = nextSessionSections
+          nextInstanceIdsBySession[sessionId] = trackableInstanceIds
           nextSetsBySessionExercise[sessionId] = plannedSetsByEx
-          nextCompletedSectionIdsBySession[sessionId] = allSectionIds
+          nextCompletedWorkoutIdsBySession[sessionId] = allWorkoutIds
         }
 
         queryClient.setQueryData<TodayTrainingResponse>(['today-training'], {
           ...previous,
-          completedExerciseIdsBySectionAndSession: nextBySectionAndSession,
+          completedExerciseInstanceIdsBySession: nextInstanceIdsBySession,
           completedSetsBySessionExercise: nextSetsBySessionExercise,
-          completedSectionIdsBySession: nextCompletedSectionIdsBySession,
+          completedWorkoutIdsBySession: nextCompletedWorkoutIdsBySession,
         })
       }
       return { previous }
@@ -576,7 +548,7 @@ export function useTodayTrainingActions({
   return {
     handleToggleExercise,
     handleToggleExercises,
-    handleToggleSection,
+    handleToggleWorkout,
     handleToggleSession,
     handleMarkAllTrainingDone,
     isMarkAllTrainingLoading: markAllTrainingDoneMutation.isPending,

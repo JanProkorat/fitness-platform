@@ -56,7 +56,7 @@ public class UpdateSessionRequest
 
     /// <summary>
     /// Session-level workout format. Null means no format override at session level.
-    /// Sections inherit this when their own Format is null.
+    /// Workouts inherit this when their own Format is null.
     /// </summary>
     public WorkoutFormat? Format { get; set; }
 
@@ -66,20 +66,27 @@ public class UpdateSessionRequest
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Ordered sections in this session. Each section contains its own exercises.
+    /// Ordered workouts in this session. Each workout contains its own exercises.
     /// </summary>
-    public List<UpdateSectionRequest> Sections { get; set; } = [];
+    public List<UpdateTrainingWorkoutRequest> Workouts { get; set; } = [];
+
+    /// <summary>
+    /// Standalone exercises directly on this session — not grouped under any workout.
+    /// Shares one ordering sequence with <see cref="Workouts"/>: a duplicate <see cref="UpdateTrainingWorkoutRequest.Order"/>/
+    /// <see cref="UpdateSessionExerciseRequest.Order"/> across the two lists is rejected (#857 phase 3a).
+    /// </summary>
+    public List<UpdateSessionExerciseRequest> StandaloneExercises { get; set; } = [];
 }
 
 /// <summary>
-/// Represents a training section submitted in a full-state session update.
+/// Represents a training workout submitted in a full-state session update.
 /// </summary>
-public class UpdateSectionRequest
+public class UpdateTrainingWorkoutRequest
 {
     /// <summary>
-    /// Optional existing section identifier. New GUID generated if null.
+    /// Optional existing workout identifier. New GUID generated if null.
     /// </summary>
-    public Guid? SectionId { get; set; }
+    public Guid? WorkoutId { get; set; }
 
     /// <summary>
     /// Display order within the session (0-based).
@@ -87,36 +94,42 @@ public class UpdateSectionRequest
     public int Order { get; set; }
 
     /// <summary>
-    /// Display name of the section (e.g. "Hlavní", "Warm-up").
+    /// Display name of the workout (e.g. "Hlavní", "Warm-up").
     /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Workout format for this section. Null means section inherits the session-level format.
+    /// Workout format for this workout. Null means workout inherits the session-level format.
     /// </summary>
     public WorkoutFormat? Format { get; set; }
 
     /// <summary>
-    /// Format configuration. Required for non-Standard, non-null section formats; must be null for Standard.
+    /// Format configuration. Required for non-Standard, non-null workout formats; must be null for Standard.
     /// </summary>
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Optional coach note for this workout/section.
+    /// Optional coach note for this workout.
     /// </summary>
     public string? Notes { get; set; }
 
     /// <summary>
-    /// Exercises in this section.
+    /// Exercises in this workout.
     /// </summary>
     public List<UpdateSessionExerciseRequest> Exercises { get; set; } = [];
 }
 
 /// <summary>
-/// Represents an exercise entry in a training section update.
+/// Represents an exercise entry in a training workout update.
 /// </summary>
 public class UpdateSessionExerciseRequest
 {
+    /// <summary>
+    /// Optional existing instance identifier for this exercise entry. New GUID generated if null.
+    /// Distinguishes two occurrences of the same catalog exercise within one session (#857 phase 3a).
+    /// </summary>
+    public Guid? ExerciseId { get; set; }
+
     /// <summary>
     /// External (public) identifier of the exercise.
     /// </summary>
@@ -128,7 +141,7 @@ public class UpdateSessionExerciseRequest
     public string ExerciseName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Display order within the section (1-based).
+    /// Display order within the workout (1-based).
     /// </summary>
     public int Order { get; set; }
 
@@ -148,7 +161,7 @@ public class UpdateSessionExerciseRequest
     public MovementType MovementType { get; set; } = MovementType.Reps;
 
     /// <summary>
-    /// Per-exercise format override. Null means the exercise inherits the section's format.
+    /// Per-exercise format override. Null means the exercise inherits the workout's format.
     /// </summary>
     public WorkoutFormat? Format { get; set; }
 

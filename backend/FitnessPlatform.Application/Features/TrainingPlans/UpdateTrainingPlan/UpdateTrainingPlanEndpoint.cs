@@ -140,15 +140,17 @@ public class UpdateTrainingPlanEndpoint(
                 //   3. Auto-release Editing locks only after ModifiedCount > 0 (post-guard, below).
                 //
                 // Key change-detection on stable SessionId; do NOT diff on freshly-assigned
-                // SectionId Guids (they are minted at map time and are not stable).
+                // WorkoutId Guids (they are minted at map time and are not stable).
                 //
                 // Draft weeks are never gated.
 
-                // Build a map of stored published sessions keyed by SessionId.
+                // Build a map of stored published sessions keyed by SessionId. Captures the
+                // owning day's DayOfWeek alongside the session — TrainingSession itself no
+                // longer carries DayOfWeek (the parent TrainingDay owns it, #857 phase 2).
                 var storedPublishedSessions = plan.Weeks
                     .Where(w => w.Status == WeekStatus.Published)
-                    .SelectMany(w => w.Sessions)
-                    .ToDictionary(s => s.SessionId);
+                    .SelectMany(w => w.Days.SelectMany(d => d.Sessions.Select(s => (DayOfWeek: d.DayOfWeek, Session: s))))
+                    .ToDictionary(x => x.Session.SessionId, x => x);
 
                 // Pre-flight: every session in a published week must carry a non-null SessionId.
                 // A null SessionId in a published week would create a new session while silently
@@ -183,7 +185,7 @@ public class UpdateTrainingPlanEndpoint(
                 // Identify which stored published sessions have content changes OR have been removed/replaced.
                 // A stored published session that is absent from the incoming map is treated the same as a
                 // changed session — removing or replacing a published session requires an Editing lock (M1).
-                foreach (var (sessionId, storedSession) in storedPublishedSessions)
+                foreach (var (sessionId, stored) in storedPublishedSessions)
                 {
                     if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                     {
@@ -193,7 +195,7 @@ public class UpdateTrainingPlanEndpoint(
                         continue;
                     }
 
-                    if (HasContentChanged(storedSession, incomingSession))
+                    if (HasContentChanged(stored.DayOfWeek, stored.Session, incomingSession))
                         changedSessionIds.Add(sessionId);
                 }
 
@@ -224,11 +226,11 @@ public class UpdateTrainingPlanEndpoint(
                         return false;
                     }
 
-                    // ── Section-finished guard (issue #465) ───────────────────────────────
-                    // For each locked session, check whether any changed section has already been
+                    // ── Workout-finished guard (issue #465) ───────────────────────────────
+                    // For each locked session, check whether any changed workout has already been
                     // completed by the client. #841: both signals (finished live workout, home-
                     // checkbox completion) now live on the SAME SessionExecution document — one
-                    // query covers both. If any changed section is finished → 409 SECTION_ALREADY_COMPLETED.
+                    // query covers both. If any changed workout is finished → 409 WORKOUT_ALREADY_COMPLETED.
                     //
                     // Only runs for sessions that have an Editing lock (editingLocksBySession).
                     // Sessions without a lock have already been rejected above.
@@ -250,10 +252,10 @@ public class UpdateTrainingPlanEndpoint(
                             .ToDictionary(g => g.Key!.Value,
                                 g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
 
-                        // Check each locked session for section-level completions.
+                        // Check each locked session for workout-level completions.
                         foreach (var sessionId in lockedChangedSessionIds)
                         {
-                            if (!storedPublishedSessions.TryGetValue(sessionId, out var storedSession))
+                            if (!storedPublishedSessions.TryGetValue(sessionId, out var stored))
                                 continue;
                             if (!incomingPublishedSessions.TryGetValue(sessionId, out var incomingSession))
                                 continue;
@@ -263,43 +265,43 @@ public class UpdateTrainingPlanEndpoint(
                             // Skip sessions with no completion data (nothing to guard).
                             if (bestExecution is null) continue;
 
-                            // Build a lookup of incoming sections by SectionId (only those with a non-null SectionId).
-                            var incomingSectionsBySectionId = incomingSession.Sections
-                                .Where(rs => rs.SectionId.HasValue)
-                                .ToDictionary(rs => rs.SectionId!.Value);
+                            // Build a lookup of incoming workouts by WorkoutId (only those with a non-null WorkoutId).
+                            var incomingWorkoutsByWorkoutId = incomingSession.Workouts
+                                .Where(rw => rw.WorkoutId.HasValue)
+                                .ToDictionary(rw => rw.WorkoutId!.Value);
 
-                            foreach (var storedSection in storedSession.Sections)
+                            foreach (var storedWorkout in stored.Session.Workouts)
                             {
-                                // Determine whether this section's content has changed.
-                                bool sectionChanged;
-                                if (!incomingSectionsBySectionId.TryGetValue(storedSection.SectionId, out var incomingSectionValue))
+                                // Determine whether this workout's content has changed.
+                                bool workoutChanged;
+                                if (!incomingWorkoutsByWorkoutId.TryGetValue(storedWorkout.WorkoutId, out var incomingWorkoutValue))
                                 {
-                                    // Section removed from incoming request — counts as changed.
-                                    sectionChanged = true;
+                                    // Workout removed from incoming request — counts as changed.
+                                    workoutChanged = true;
                                 }
                                 else
                                 {
-                                    sectionChanged = HasSectionContentChanged(storedSection, incomingSectionValue);
+                                    workoutChanged = HasWorkoutContentChanged(storedWorkout, incomingWorkoutValue);
                                 }
 
-                                if (!sectionChanged) continue;
+                                if (!workoutChanged) continue;
 
-                                // Section content changed — check if it's already completed.
-                                var sectionIsCompleted = bestExecution.IsSectionComplete(storedSession, storedSection);
+                                // Workout content changed — check if it's already completed.
+                                var workoutIsCompleted = bestExecution.IsWorkoutComplete(stored.Session, storedWorkout);
 
-                                if (sectionIsCompleted)
+                                if (workoutIsCompleted)
                                 {
                                     await this.SendProblemAsync(
                                         409,
-                                        ErrorCodes.SectionAlreadyCompleted,
-                                        $"Section {storedSection.SectionId} in session {sessionId} has already been completed by the client and cannot be edited.",
+                                        ErrorCodes.WorkoutAlreadyCompleted,
+                                        $"Workout {storedWorkout.WorkoutId} in session {sessionId} has already been completed by the client and cannot be edited.",
                                         mutateCt);
                                     return false;
                                 }
                             }
                         }
                     }
-                    // ── End section-finished guard ────────────────────────────────────────
+                    // ── End workout-finished guard ────────────────────────────────────────
                 }
                 // ── End diff-gate ─────────────────────────────────────────────────────
 
@@ -317,52 +319,48 @@ public class UpdateTrainingPlanEndpoint(
                 plan.Weeks = req.Weeks.Select(rw =>
                 {
                     var existing = existingWeeks.GetValueOrDefault(rw.WeekNumber);
+
+                    // Request wire shape stays flat (each session carries its own DayOfWeek,
+                    // plus a separate DayNotes map) — regroup into 7 materialised TrainingDay
+                    // entries at write time, mirroring TrainingDay's read shape (#857 phase 2).
+                    var sessionsByDay = rw.Sessions.GroupBy(rs => rs.DayOfWeek)
+                        .ToDictionary(g => g.Key, g => g.ToList());
+
+                    var notesByDay = rw.DayNotes?
+                        .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value.Trim())
+                        ?? [];
+
                     return new TrainingWeek
                     {
                         WeekNumber = rw.WeekNumber,
                         Status = existing?.Status ?? WeekStatus.Draft,
                         DatePublished = existing?.DatePublished,
-                        DayNotes = rw.DayNotes?.Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
-                            .ToDictionary(kv => kv.Key, kv => kv.Value.Trim()),
-                        Sessions = rw.Sessions.Select(rs => new TrainingSession
+                        Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
                         {
-                            SessionId = rs.SessionId ?? Guid.NewGuid(),
-                            DayOfWeek = rs.DayOfWeek,
-                            Name = rs.Name,
-                            Order = rs.Order,
-                            Notes = rs.Notes?.Trim(),
-                            Format = rs.Format,
-                            FormatConfig = rs.FormatConfig,
-                            Sections = rs.Sections.Select(rsec => new TrainingSection
+                            DayOfWeek = dayOfWeek,
+                            Note = notesByDay.GetValueOrDefault(dayOfWeek),
+                            Sessions = sessionsByDay.GetValueOrDefault(dayOfWeek, []).Select(rs => new TrainingSession
                             {
-                                SectionId = rsec.SectionId ?? Guid.NewGuid(),
-                                Order = rsec.Order,
-                                Name = rsec.Name,
-                                Format = rsec.Format,
-                                FormatConfig = rsec.FormatConfig,
-                                Notes = rsec.Notes?.Trim(),
-                                Exercises = rsec.Exercises.Select(re => new SessionExercise
+                                SessionId = ResolveOrMintId(rs.SessionId),
+                                Name = rs.Name,
+                                Order = rs.Order,
+                                Notes = rs.Notes?.Trim(),
+                                Format = rs.Format,
+                                FormatConfig = rs.FormatConfig,
+                                Workouts = rs.Workouts.Select(rWorkout => new TrainingWorkout
                                 {
-                                    ExerciseExternalId = re.ExerciseExternalId,
-                                    ExerciseName = re.ExerciseName,
-                                    Order = re.Order,
-                                    Notes = re.Notes?.Trim(),
-                                    RestSeconds = re.RestSeconds,
-                                    MovementType = re.MovementType,
-                                    Format = re.Format,
-                                    FormatConfig = re.FormatConfig,
-                                    Sets = re.Sets.Select(rset => new ExerciseSet
-                                    {
-                                        SetNumber = rset.SetNumber,
-                                        Type = rset.Type,
-                                        Reps = rset.Reps,
-                                        WeightKg = rset.WeightKg,
-                                        DurationSeconds = rset.DurationSeconds,
-                                        Rpe = rset.Rpe,
-                                        DistanceMeters = rset.DistanceMeters,
-                                        RestSeconds = rset.RestSeconds
-                                    }).ToList()
-                                }).ToList()
+                                    WorkoutId = ResolveOrMintId(rWorkout.WorkoutId),
+                                    Order = rWorkout.Order,
+                                    Name = rWorkout.Name,
+                                    Format = rWorkout.Format,
+                                    FormatConfig = rWorkout.FormatConfig,
+                                    Notes = rWorkout.Notes?.Trim(),
+                                    Exercises = rWorkout.Exercises.Select(ToSessionExercise).ToList()
+                                }).ToList(),
+                                // #857 phase 3a: standalone exercises directly on the session,
+                                // sharing the same mapping as a workout's nested exercises.
+                                StandaloneExercises = rs.StandaloneExercises.Select(ToSessionExercise).ToList()
                             }).ToList()
                         }).ToList()
                     };
@@ -395,7 +393,7 @@ public class UpdateTrainingPlanEndpoint(
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
                 // Response already written directly inside the mutate delegate
-                // (SessionLocked / SectionAlreadyCompleted 409s).
+                // (SessionLocked / WorkoutAlreadyCompleted 409s).
                 return;
         }
 
@@ -431,31 +429,33 @@ public class UpdateTrainingPlanEndpoint(
 
     /// <summary>
     /// Computes a normalized content projection for a stored session and an incoming request
-    /// session (both already backfilled to section view) and returns true if the content differs.
-    /// Keys on section order/name/format/notes and exercise content; does NOT key on SectionId Guids
-    /// (they are freshly-assigned at map time and are not stable identifiers).
+    /// session (both already backfilled to workout view) and returns true if the content differs.
+    /// Keys on workout order/name/format/notes and exercise content; does NOT key on WorkoutId Guids
+    /// (they are freshly-assigned at map time and are not stable identifiers). <paramref name="storedDayOfWeek"/>
+    /// is the owning <see cref="TrainingDay.DayOfWeek"/> — <see cref="TrainingSession"/> itself no longer
+    /// carries a DayOfWeek (#857 phase 2), so the caller supplies it from the day the session was found under.
     /// </summary>
-    private static bool HasContentChanged(TrainingSession stored, UpdateSessionRequest incoming)
+    private static bool HasContentChanged(int storedDayOfWeek, TrainingSession stored, UpdateSessionRequest incoming)
     {
         // Compare session-level content fields.
-        if (stored.DayOfWeek != incoming.DayOfWeek) return true;
+        if (storedDayOfWeek != incoming.DayOfWeek) return true;
         if (stored.Name != incoming.Name) return true;
         if (stored.Order != incoming.Order) return true;
         if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
         if (stored.Format != incoming.Format) return true;
         if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
 
-        // Compare sections by structural content (order, name, format, notes, exercises).
-        // Do NOT compare SectionId — incoming sections may have newly-assigned Guids.
-        var storedSections = stored.Sections.OrderBy(s => s.Order).ToList();
-        var incomingSections = incoming.Sections.OrderBy(s => s.Order).ToList();
+        // Compare workouts by structural content (order, name, format, notes, exercises).
+        // Do NOT compare WorkoutId — incoming workouts may have newly-assigned Guids.
+        var storedWorkouts = stored.Workouts.OrderBy(s => s.Order).ToList();
+        var incomingWorkouts = incoming.Workouts.OrderBy(s => s.Order).ToList();
 
-        if (storedSections.Count != incomingSections.Count) return true;
+        if (storedWorkouts.Count != incomingWorkouts.Count) return true;
 
-        for (var i = 0; i < storedSections.Count; i++)
+        for (var i = 0; i < storedWorkouts.Count; i++)
         {
-            var ss = storedSections[i];
-            var rs = incomingSections[i];
+            var ss = storedWorkouts[i];
+            var rs = incomingWorkouts[i];
 
             if (ss.Order != rs.Order) return true;
             if (ss.Name != rs.Name) return true;
@@ -463,68 +463,27 @@ public class UpdateTrainingPlanEndpoint(
             if (ss.Notes?.Trim() != rs.Notes?.Trim()) return true;
             if (!FormatConfigEqual(ss.FormatConfig, rs.FormatConfig)) return true;
 
-            // Compare exercises within this section.
-            var storedExercises = ss.Exercises.OrderBy(e => e.Order).ToList();
-            var incomingExercises = rs.Exercises.OrderBy(e => e.Order).ToList();
-
-            if (storedExercises.Count != incomingExercises.Count) return true;
-
-            for (var j = 0; j < storedExercises.Count; j++)
-            {
-                var se = storedExercises[j];
-                var re = incomingExercises[j];
-
-                if (se.ExerciseExternalId != re.ExerciseExternalId) return true;
-                if (se.ExerciseName != re.ExerciseName) return true;
-                if (se.Order != re.Order) return true;
-                if (se.Notes?.Trim() != re.Notes?.Trim()) return true;
-                if (se.RestSeconds != re.RestSeconds) return true;
-                if (se.MovementType != re.MovementType) return true;
-                if (se.Format != re.Format) return true;
-                if (!FormatConfigEqual(se.FormatConfig, re.FormatConfig)) return true;
-
-                // Compare sets.
-                var storedSets = se.Sets.OrderBy(s => s.SetNumber).ToList();
-                var incomingSets = re.Sets.OrderBy(s => s.SetNumber).ToList();
-
-                if (storedSets.Count != incomingSets.Count) return true;
-
-                for (var k = 0; k < storedSets.Count; k++)
-                {
-                    var storedSet = storedSets[k];
-                    var incomingSet = incomingSets[k];
-
-                    if (storedSet.SetNumber != incomingSet.SetNumber) return true;
-                    if (storedSet.Type != incomingSet.Type) return true;
-                    if (storedSet.Reps != incomingSet.Reps) return true;
-                    if (storedSet.WeightKg != incomingSet.WeightKg) return true;
-                    if (storedSet.DurationSeconds != incomingSet.DurationSeconds) return true;
-                    if (storedSet.Rpe != incomingSet.Rpe) return true;
-                    if (storedSet.DistanceMeters != incomingSet.DistanceMeters) return true;
-                    if (storedSet.RestSeconds != incomingSet.RestSeconds) return true;
-                }
-            }
+            if (HasExercisesChanged(ss.Exercises, rs.Exercises)) return true;
         }
+
+        // #857 phase 3a: standalone exercises directly on the session are session content too —
+        // omitting them here would let a coach stealth-edit a published, locked session via the
+        // standalone list without tripping the Editing-lock/workout-finished guards above.
+        if (HasExercisesChanged(stored.StandaloneExercises, incoming.StandaloneExercises)) return true;
 
         return false;
     }
 
     /// <summary>
-    /// Returns true when the content of a single stored section differs from the incoming
-    /// update request section. Keyed on <see cref="TrainingSection.SectionId"/> (caller's
-    /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
-    /// and their sets (by positional order within the section).
+    /// Returns true when a stored list of <see cref="SessionExercise"/> differs in content from an
+    /// incoming list of <see cref="UpdateSessionExerciseRequest"/> — shared by workout-nested
+    /// exercises and session-level standalone exercises (#857 phase 3a). Compares by positional
+    /// order (Order field), not ExerciseId — incoming exercises may have newly-assigned Guids.
     /// </summary>
-    private static bool HasSectionContentChanged(TrainingSection stored, UpdateSectionRequest incoming)
+    private static bool HasExercisesChanged(List<SessionExercise> stored, List<UpdateSessionExerciseRequest> incoming)
     {
-        if (stored.Order != incoming.Order) return true;
-        if (stored.Name != incoming.Name) return true;
-        if (stored.Format != incoming.Format) return true;
-        if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
-        if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
-
-        var storedExercises = stored.Exercises.OrderBy(e => e.Order).ToList();
-        var incomingExercises = incoming.Exercises.OrderBy(e => e.Order).ToList();
+        var storedExercises = stored.OrderBy(e => e.Order).ToList();
+        var incomingExercises = incoming.OrderBy(e => e.Order).ToList();
 
         if (storedExercises.Count != incomingExercises.Count) return true;
 
@@ -542,6 +501,7 @@ public class UpdateTrainingPlanEndpoint(
             if (se.Format != re.Format) return true;
             if (!FormatConfigEqual(se.FormatConfig, re.FormatConfig)) return true;
 
+            // Compare sets.
             var storedSets = se.Sets.OrderBy(s => s.SetNumber).ToList();
             var incomingSets = re.Sets.OrderBy(s => s.SetNumber).ToList();
 
@@ -565,6 +525,67 @@ public class UpdateTrainingPlanEndpoint(
 
         return false;
     }
+
+    /// <summary>
+    /// Returns true when the content of a single stored workout differs from the incoming
+    /// update request workout. Keyed on <see cref="TrainingWorkout.WorkoutId"/> (caller's
+    /// responsibility). Compares Order, Name, Format, Notes, FormatConfig, and all exercises
+    /// and their sets (by positional order within the workout).
+    /// </summary>
+    private static bool HasWorkoutContentChanged(TrainingWorkout stored, UpdateTrainingWorkoutRequest incoming)
+    {
+        if (stored.Order != incoming.Order) return true;
+        if (stored.Name != incoming.Name) return true;
+        if (stored.Format != incoming.Format) return true;
+        if (stored.Notes?.Trim() != incoming.Notes?.Trim()) return true;
+        if (!FormatConfigEqual(stored.FormatConfig, incoming.FormatConfig)) return true;
+
+        return HasExercisesChanged(stored.Exercises, incoming.Exercises);
+    }
+
+    /// <summary>
+    /// Maps an <see cref="UpdateSessionExerciseRequest"/> to a <see cref="SessionExercise"/> —
+    /// shared by both a workout's nested exercises and a session's standalone exercises (#857
+    /// phase 3a). Preserves an existing <see cref="UpdateSessionExerciseRequest.ExerciseId"/> or
+    /// mints a fresh one, mirroring how <see cref="TrainingWorkout.WorkoutId"/> and
+    /// <see cref="TrainingSession.SessionId"/> are resolved above.
+    /// </summary>
+    private static SessionExercise ToSessionExercise(UpdateSessionExerciseRequest re) => new()
+    {
+        ExerciseId = ResolveOrMintId(re.ExerciseId),
+        ExerciseExternalId = re.ExerciseExternalId,
+        ExerciseName = re.ExerciseName,
+        Order = re.Order,
+        Notes = re.Notes?.Trim(),
+        RestSeconds = re.RestSeconds,
+        MovementType = re.MovementType,
+        Format = re.Format,
+        FormatConfig = re.FormatConfig,
+        Sets = re.Sets.Select(rset => new ExerciseSet
+        {
+            SetNumber = rset.SetNumber,
+            Type = rset.Type,
+            Reps = rset.Reps,
+            WeightKg = rset.WeightKg,
+            DurationSeconds = rset.DurationSeconds,
+            Rpe = rset.Rpe,
+            DistanceMeters = rset.DistanceMeters,
+            RestSeconds = rset.RestSeconds
+        }).ToList()
+    };
+
+    /// <summary>
+    /// Resolves a client-supplied identifier for a session/workout/exercise instance, minting a
+    /// fresh one when the request omits it (null) OR supplies an all-zero
+    /// <see cref="Guid.Empty"/> — a shape templates and template-instantiated plans can produce.
+    /// Null-coalescing (<c>?? Guid.NewGuid()</c>) alone only guards the null case; a request
+    /// carrying the literal string <c>"00000000-0000-0000-0000-000000000000"</c> deserializes to
+    /// a non-null <see cref="Guid.Empty"/> and would otherwise persist as-is, permanently failing
+    /// every downstream lookup that requires a non-empty id (e.g.
+    /// <c>MarkExerciseCompleteValidator</c>'s <c>NotEmpty()</c> rule on <c>ExerciseId</c>).
+    /// </summary>
+    private static Guid ResolveOrMintId(Guid? id) =>
+        id is null || id == Guid.Empty ? Guid.NewGuid() : id.Value;
 
     /// <summary>
     /// Equality check for <see cref="WodConfig"/> nullable pairs.

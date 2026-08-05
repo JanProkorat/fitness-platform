@@ -215,10 +215,10 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
         var todayDow = (int)DateTime.UtcNow.DayOfWeek;
         todayDow = todayDow == 0 ? 7 : todayDow; // Convert Sunday from 0 to 7
 
-        var todaySessions = currentWeek.Sessions
-            .Where(s => s.DayOfWeek == todayDow)
+        var todayDay = currentWeek.Days.FirstOrDefault(d => d.DayOfWeek == todayDow);
+        var todaySessions = todayDay?.Sessions
             .OrderBy(s => s.Order)
-            .ToList();
+            .ToList() ?? [];
 
 #pragma warning disable CS0618 // Session is intentionally set for backwards compatibility
         response.Sessions = todaySessions;
@@ -229,7 +229,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         // ── Batch-fetch Exercise docs for muscle-group enrichment ─────────────
         var exerciseIds = todaySessions
-            .SelectMany(s => s.Exercises)
+            .SelectMany(s => s.AllExercises)
             .Select(e => e.ExerciseExternalId)
             .Distinct()
             .ToList();
@@ -259,6 +259,11 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             // Per-session accumulator so entries from both signals (checkbox flags, Performance) union cleanly.
             var completedBySession = new Dictionary<Guid, HashSet<Guid>>();
 
+            // Per-session accumulator for the NEW per-instance completion field (#877) — keyed by
+            // the raw SessionExercise.ExerciseId (instance id), NOT ExerciseExternalId. See the
+            // union rule documented on GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession.
+            var completedInstancesBySession = new Dictionary<Guid, HashSet<Guid>>();
+
             // 1. Checkbox completion flags — one doc per (clientId, date, sessionId).
             var executionFilter =
                 Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
@@ -270,7 +275,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 cancellationToken: ct);
             var executionDocs = await executionCursor.ToListAsync(ct);
 
-            // Build a lookup for sessions by sessionId so backfill can resolve section membership.
+            // Build a lookup for sessions by sessionId so backfill can resolve workout membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
             foreach (var doc in executionDocs)
@@ -281,22 +286,55 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                     completedBySession[sessionId] = set = [];
 
                 response.VersionBySession[sessionId] = doc.Version;
-                response.CompletedSectionIdsBySession[sessionId] =
-                    (doc.CompletedSectionIds ?? new List<Guid>()).ToList();
+                response.CompletedWorkoutIdsBySession[sessionId] =
+                    (doc.CompletedWorkoutIds ?? new List<Guid>()).ToList();
 
-                // Populate the per-session completed-exercise set from the section-aware
-                // CompletedExerciseIdsBySection map — the retired flat CompletedExerciseIds
-                // field is kept only as a derived mirror (see SessionExecution.cs) and is
-                // no longer consulted here.
+                // Source 1 of the per-instance field (#877): CompletedExerciseInstanceIds already
+                // holds instance ids verbatim — carry them straight through, no resolution needed.
+                if (doc.CompletedExerciseInstanceIds.Count > 0)
+                {
+                    if (!completedInstancesBySession.TryGetValue(sessionId, out var instanceSet))
+                    {
+                        completedInstancesBySession[sessionId] = instanceSet = [];
+                    }
+
+                    foreach (var instanceId in doc.CompletedExerciseInstanceIds)
+                    {
+                        instanceSet.Add(instanceId);
+                    }
+                }
+
+                // Populate the per-session completed-exercise set from the flat
+                // CompletedExerciseInstanceIds list (#857 phase 3b) — reconstruct the
+                // wire-compatible (ExerciseExternalId-keyed) by-workout shape by mapping each
+                // completed instance back to its containing workout via the session definition.
                 if (sessionLookup.TryGetValue(sessionId, out var completionSession))
                 {
-                    var effective = SessionExecutionBackfill.GetEffectiveCompletedExerciseIdsBySection(
-                        doc, completionSession);
-                    response.CompletedExerciseIdsBySectionAndSession[sessionId] =
-                        effective.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToList());
+                    var byWorkout = new Dictionary<Guid, List<Guid>>();
 
-                    foreach (var exId in effective.Values.SelectMany(ids => ids))
+                    foreach (var workout in completionSession.Workouts)
+                    {
+                        var completedInWorkout = workout.Exercises
+                            .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                            .Select(e => e.ExerciseExternalId)
+                            .ToList();
+
+                        if (completedInWorkout.Count > 0)
+                        {
+                            byWorkout[workout.WorkoutId] = completedInWorkout;
+                            foreach (var exId in completedInWorkout)
+                                set.Add(exId);
+                        }
+                    }
+
+                    response.CompletedExerciseIdsByWorkoutAndSession[sessionId] = byWorkout;
+
+                    foreach (var exId in completionSession.StandaloneExercises
+                        .Where(e => doc.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
+                        .Select(e => e.ExerciseExternalId))
+                    {
                         set.Add(exId);
+                    }
                 }
             }
 
@@ -323,7 +361,28 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 {
                     if (ex.Sets.Count == 0) continue;
                     if (ex.Sets.All(s => s.CompletedAt is not null))
+                    {
                         set.Add(ex.ExerciseExternalId);
+
+                        // Source 2 of the per-instance field (#877): Performance carries no
+                        // instance id (see WorkoutExercise), so a fully-logged catalog exercise
+                        // fans out to EVERY SessionExercise instance in this session sharing that
+                        // catalog id — documented on GetTodaySessionResponse's XML docs above.
+                        if (sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession))
+                        {
+                            if (!completedInstancesBySession.TryGetValue(log.SessionId.Value, out var instanceSet))
+                            {
+                                completedInstancesBySession[log.SessionId.Value] = instanceSet = [];
+                            }
+
+                            foreach (var matchingInstanceId in performanceSession.AllExercises
+                                         .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
+                                         .Select(sessionExercise => sessionExercise.ExerciseId))
+                            {
+                                instanceSet.Add(matchingInstanceId);
+                            }
+                        }
+                    }
 
                     var completedSetNumbers = ex.Sets
                         .Where(s => s.CompletedAt is not null)
@@ -365,6 +424,9 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             foreach (var (sessionId, set) in completedBySession)
                 response.CompletedExerciseIdsBySession[sessionId] = set.ToList();
 
+            foreach (var (sessionId, instanceSet) in completedInstancesBySession)
+                response.CompletedExerciseInstanceIdsBySession[sessionId] = instanceSet.ToList();
+
             // ── Batch-fetch lock state for today's sessions ───────────────────────
             // Single Mongo round-trip for all sessions (not one per session).
             var lockDocs = await lockService.GetStateAsync(todaySessionIds, ct);
@@ -403,7 +465,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 if (!response.CompletedSetsBySessionExercise.TryGetValue(session.SessionId, out var sessionSetsMap))
                     response.CompletedSetsBySessionExercise[session.SessionId] = sessionSetsMap = new Dictionary<Guid, List<int>>();
 
-                foreach (var plannedEx in session.Exercises)
+                foreach (var plannedEx in session.AllExercises)
                 {
                     if (!completedExIds.Contains(plannedEx.ExerciseExternalId))
                         continue;

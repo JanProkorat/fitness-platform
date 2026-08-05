@@ -83,7 +83,8 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -107,7 +108,7 @@ public class MarkSessionIncompleteEndpoint(
                 SessionId = req.SessionId,
                 Date = DateOnly.FromDateTime(targetDate),
                 CompletedExerciseCount = 0,
-                TotalExerciseCount = session.Exercises.Count,
+                TotalExerciseCount = session.AllExercises.Count,
                 Version = 1
             }, ct);
             return;
@@ -136,9 +137,8 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var update = Builders<SessionExecution>.Update
-            .Set(c => c.CompletedExerciseIds, new List<Guid>())
-            .Set(c => c.CompletedExerciseIdsBySection, new Dictionary<string, List<Guid>>())
-            .Set(c => c.CompletedSectionIds, new List<Guid>())
+            .Set(c => c.CompletedExerciseInstanceIds, new List<Guid>())
+            .Set(c => c.CompletedWorkoutIds, new List<Guid>())
             .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
@@ -155,7 +155,7 @@ public class MarkSessionIncompleteEndpoint(
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            0, session.Exercises.Count,
+            0, session.AllExercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkSessionIncompleteResponse
@@ -163,7 +163,7 @@ public class MarkSessionIncompleteEndpoint(
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
             CompletedExerciseCount = 0,
-            TotalExerciseCount = session.Exercises.Count,
+            TotalExerciseCount = session.AllExercises.Count,
             Version = newVersion
         }, ct);
     }

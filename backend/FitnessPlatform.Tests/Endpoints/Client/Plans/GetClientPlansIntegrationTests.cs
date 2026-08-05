@@ -75,7 +75,7 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Draft, // <── no published week
-                    Sessions = []
+                    Days = []
                 }
             ]
         };
@@ -96,7 +96,7 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = DateTime.UtcNow.AddDays(-1),
-                    Sessions = []
+                    Days = []
                 }
             ]
         };

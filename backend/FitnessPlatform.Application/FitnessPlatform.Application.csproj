@@ -42,7 +42,7 @@
     <EmbeddedResource Include="Seed/Data/seed-foods.json" />
     <EmbeddedResource Include="Seed/Data/seed-recipes.json" />
     <EmbeddedResource Include="Seed/Data/seed-exercises.json" />
-    <EmbeddedResource Include="Seed/Data/seed-workout-templates.json" />
+    <EmbeddedResource Include="Seed/Data/seed-session-templates.json" />
   </ItemGroup>
 
 </Project>

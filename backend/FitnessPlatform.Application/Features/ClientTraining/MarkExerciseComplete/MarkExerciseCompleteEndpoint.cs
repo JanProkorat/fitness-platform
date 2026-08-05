@@ -42,7 +42,7 @@ public class MarkExerciseCompleteEndpoint(
     /// <inheritdoc />
     public override void Configure()
     {
-        Post("/client/training/sessions/{SessionId}/exercises/{ExerciseExternalId}/complete");
+        Post("/client/training/sessions/{SessionId}/exercises/{ExerciseId}/complete");
         Roles(AppRoles.Client);
         Summary(s =>
         {
@@ -92,7 +92,8 @@ public class MarkExerciseCompleteEndpoint(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -109,19 +110,14 @@ public class MarkExerciseCompleteEndpoint(
         await lockService.RefreshAsync(req.SessionId, LockType.Live,
             TimeSpan.FromHours(lockOptions.Value.LiveTtlHours), ct);
 
-        // Validate section exists within the session.
-        var section = session.Sections.FirstOrDefault(s => s.SectionId == req.SectionId);
-        if (section is null)
-        {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingSectionNotFound, "The section was not found in the specified session.", ct);
-            return;
-        }
-
-        // Validate the exercise exists within that specific section.
-        var exerciseExists = section.Exercises.Any(e => e.ExerciseExternalId == req.ExerciseExternalId);
+        // Validate the exercise instance exists in the session — standalone or nested in any
+        // workout, resolved directly by ExerciseId (#857 phase 3b) rather than a
+        // (WorkoutId, ExerciseExternalId) pair, so a duplicate catalog exercise within one workout
+        // (or standalone vs. nested) is unambiguous.
+        var exerciseExists = session.AllExercises.Any(e => e.ExerciseId == req.ExerciseId);
         if (!exerciseExists)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified section.", ct);
+            await this.SendProblemAsync(404, ErrorCodes.TrainingExerciseNotFound, "The exercise was not found in the specified session.", ct);
             return;
         }
 
@@ -135,11 +131,10 @@ public class MarkExerciseCompleteEndpoint(
 
         if (existing is not null)
         {
-            // Idempotency: already complete in this section — return success immediately.
-            var sectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
-            if (sectionList is not null && sectionList.Contains(req.ExerciseExternalId))
+            // Idempotency: already complete — return success immediately.
+            if (existing.CompletedExerciseInstanceIds.Contains(req.ExerciseId))
             {
-                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                 return;
             }
 
@@ -151,26 +146,14 @@ public class MarkExerciseCompleteEndpoint(
                 return;
             }
 
-            // ── Section-aware dict ────────────────────────────────────────────
-            existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-            if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var secList))
-                existing.CompletedExerciseIdsBySection[req.SectionId.ToString()] = secList = [];
-            if (!secList.Contains(req.ExerciseExternalId))
-                secList.Add(req.ExerciseExternalId);
-
-            // ── Mirror into legacy flat list (idempotent add) ─────────────────
-            var newIds = existing.CompletedExerciseIds.Contains(req.ExerciseExternalId)
-                ? existing.CompletedExerciseIds
-                : new List<Guid>(existing.CompletedExerciseIds) { req.ExerciseExternalId };
-
+            var newInstanceIds = new List<Guid>(existing.CompletedExerciseInstanceIds) { req.ExerciseId };
             var newVersion = existing.Version + 1;
 
             var versionedFilter = executionFilter
                                   & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
             var update = Builders<SessionExecution>.Update
-                .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
-                .Set(c => c.CompletedExerciseIds, newIds)
+                .Set(c => c.CompletedExerciseInstanceIds, newInstanceIds)
                 .Set(c => c.DateUpdated, DateTime.UtcNow)
                 .Set(c => c.Version, newVersion);
 
@@ -183,16 +166,16 @@ public class MarkExerciseCompleteEndpoint(
                 return;
             }
 
-            existing.CompletedExerciseIds = newIds;
+            existing.CompletedExerciseInstanceIds = newInstanceIds;
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                newIds.Count, session.Exercises.Count,
+                newInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);
 
-            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
         }
         else
         {
@@ -204,11 +187,7 @@ public class MarkExerciseCompleteEndpoint(
                 PlanId = plan.ExternalId,
                 Date = targetDate,
                 SessionId = req.SessionId,
-                CompletedExerciseIds = [req.ExerciseExternalId],
-                CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-                {
-                    [req.SectionId.ToString()] = [req.ExerciseExternalId]
-                },
+                CompletedExerciseInstanceIds = [req.ExerciseId],
                 DateCreated = DateTime.UtcNow,
                 Version = 1
             };
@@ -230,29 +209,18 @@ public class MarkExerciseCompleteEndpoint(
                     throw;
                 }
 
-                var retrySectionList = existing.CompletedExerciseIdsBySection?.GetValueOrDefault(req.SectionId.ToString());
-                if (retrySectionList is not null && retrySectionList.Contains(req.ExerciseExternalId))
+                if (existing.CompletedExerciseInstanceIds.Contains(req.ExerciseId))
                 {
-                    await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                    await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                     return;
                 }
 
-                existing.CompletedExerciseIdsBySection ??= new Dictionary<string, List<Guid>>();
-                if (!existing.CompletedExerciseIdsBySection.TryGetValue(req.SectionId.ToString(), out var retrySecList))
-                    existing.CompletedExerciseIdsBySection[req.SectionId.ToString()] = retrySecList = [];
-                if (!retrySecList.Contains(req.ExerciseExternalId))
-                    retrySecList.Add(req.ExerciseExternalId);
-
-                var retryIds = existing.CompletedExerciseIds.Contains(req.ExerciseExternalId)
-                    ? existing.CompletedExerciseIds
-                    : new List<Guid>(existing.CompletedExerciseIds) { req.ExerciseExternalId };
-
+                var retryInstanceIds = new List<Guid>(existing.CompletedExerciseInstanceIds) { req.ExerciseId };
                 var retryVersion = existing.Version + 1;
                 var retryVersionedFilter = executionFilter
                     & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
                 var retryUpdate = Builders<SessionExecution>.Update
-                    .Set(c => c.CompletedExerciseIdsBySection, existing.CompletedExerciseIdsBySection)
-                    .Set(c => c.CompletedExerciseIds, retryIds)
+                    .Set(c => c.CompletedExerciseInstanceIds, retryInstanceIds)
                     .Set(c => c.DateUpdated, DateTime.UtcNow)
                     .Set(c => c.Version, retryVersion);
                 var retryResult = await mongo.SessionExecutions.UpdateOneAsync(retryVersionedFilter, retryUpdate, cancellationToken: ct);
@@ -264,26 +232,26 @@ public class MarkExerciseCompleteEndpoint(
                     return;
                 }
 
-                existing.CompletedExerciseIds = retryIds;
+                existing.CompletedExerciseInstanceIds = retryInstanceIds;
                 existing.Version = retryVersion;
-                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.Exercises.Count), ct);
+                await Send.OkAsync(BuildResponse(req.SessionId, targetDate, existing, session.AllExercises.Count), ct);
                 return;
             }
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
                 notifier, compliance, mongo, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
-                execution.CompletedExerciseIds.Count, session.Exercises.Count,
+                execution.CompletedExerciseInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);
 
-            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, execution, session.Exercises.Count), ct);
+            await Send.OkAsync(BuildResponse(req.SessionId, targetDate, execution, session.AllExercises.Count), ct);
         }
     }
 
     private static MarkExerciseCompleteResponse BuildResponse(
         Guid sessionId, DateTime date, SessionExecution execution, int totalExercises)
     {
-        var completed = execution.CompletedExerciseIds.Count;
+        var completed = execution.CompletedExerciseInstanceIds.Count;
         return new MarkExerciseCompleteResponse
         {
             SessionId = sessionId,

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using FitnessPlatform.Application.Domain.Enums;
@@ -5,7 +6,9 @@ using FitnessPlatform.Application.Domain.Enums;
 namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
-/// A single training session within a week (e.g. "Push Day", "Leg Day").
+/// A single training session within a <see cref="TrainingDay"/> (e.g. "Push Day", "Leg Day").
+/// The parent day owns the day-of-week; a session no longer carries its own — see
+/// <see cref="TrainingDay.DayOfWeek"/>.
 /// </summary>
 public class TrainingSession
 {
@@ -14,12 +17,6 @@ public class TrainingSession
     /// </summary>
     [BsonElement("sessionId")]
     public Guid SessionId { get; set; }
-
-    /// <summary>
-    /// Day of the week (1 = Monday, 7 = Sunday).
-    /// </summary>
-    [BsonElement("dayOfWeek")]
-    public int DayOfWeek { get; set; }
 
     /// <summary>
     /// Display name (e.g. "Push Day", "Upper Body").
@@ -42,7 +39,7 @@ public class TrainingSession
 
     /// <summary>
     /// Session-level workout format. Kept nullable for one release as an inheritable default —
-    /// sections inherit when their own Format is null. Null means Standard.
+    /// workouts inherit when their own Format is null. Null means Standard.
     /// </summary>
     [BsonElement("format")]
     [BsonIgnoreIfNull]
@@ -57,19 +54,45 @@ public class TrainingSession
     public WodConfig? FormatConfig { get; set; }
 
     /// <summary>
-    /// Sections in this session. Each section contains its own exercises.
-    /// The legacy flat <c>exercises</c> field (pre-sections documents) was retired by the
-    /// one-time boot migration in <c>MongoIndexInitializer</c> (#837) — every document now
-    /// carries this field populated, so no read-time backfill is required or performed.
+    /// Workouts in this session. Each workout contains its own exercises. Every document is
+    /// created directly in this shape — there is no production data predating the workouts
+    /// model, so no migration or read-time backfill from a legacy flat <c>exercises</c> field
+    /// exists or is needed.
     /// </summary>
-    [BsonElement("sections")]
-    public List<TrainingSection> Sections { get; set; } = [];
+    [BsonElement("workouts")]
+    public List<TrainingWorkout> Workouts { get; set; } = [];
 
     /// <summary>
-    /// Flat view of all exercises across all sections. Read-only convenience accessor.
-    /// Not stored in MongoDB — computed from <see cref="Sections"/>.
+    /// Standalone exercises directly on this session — not grouped under any
+    /// <see cref="TrainingWorkout"/> (e.g. a single finisher movement that doesn't warrant its
+    /// own workout block). Sits alongside <see cref="Workouts"/>, mirroring how
+    /// <see cref="PlanMeal.Foods"/> and <see cref="PlanMeal.Recipes"/> sit side by side (#857
+    /// phase 3a). Shares one ordering sequence with <see cref="Workouts"/> — a duplicate
+    /// <see cref="TrainingWorkout.Order"/>/<see cref="SessionExercise.Order"/> across the two
+    /// lists is rejected by <c>UpdateTrainingPlanValidator</c>.
+    /// </summary>
+    /// <remarks>
+    /// Named <c>StandaloneExercises</c> in C# and on the wire — not <c>Exercises</c> — to avoid
+    /// colliding with the computed <see cref="AllExercises"/> flat-view convenience below. The
+    /// BSON element name stays <c>exercises</c>, matching the issue's storage-shape naming and
+    /// <see cref="PlanMeal"/>'s field-naming convention; the BSON element name is independent of
+    /// the wire (JSON) name and is not part of this contract (#874). On the wire, <c>exercises</c>
+    /// is retired from the session shape entirely: this list is <c>standaloneExercises</c> in both
+    /// directions, and the flat union below is <c>allExercises</c>, read-only.
+    /// </remarks>
+    [BsonElement("exercises")]
+    [JsonPropertyName("standaloneExercises")]
+    public List<SessionExercise> StandaloneExercises { get; set; } = [];
+
+    /// <summary>
+    /// Flat view of every exercise in this session — the standalone <see cref="StandaloneExercises"/>
+    /// plus every workout's nested exercises. Computed, never persisted (<see cref="BsonIgnoreAttribute"/>).
+    /// Read-only on the wire as <c>allExercises</c> — a client MUST NOT round-trip this field back on
+    /// write; <c>UpdateSessionRequest</c> has no member for it, so it is structurally ignored, not
+    /// rejected, if present in a PUT body (#874).
     /// </summary>
     [BsonIgnore]
-    public IReadOnlyList<SessionExercise> Exercises =>
-        Sections.SelectMany(s => s.Exercises).ToList();
+    [JsonPropertyName("allExercises")]
+    public IReadOnlyList<SessionExercise> AllExercises =>
+        StandaloneExercises.Concat(Workouts.SelectMany(w => w.Exercises)).ToList();
 }

@@ -63,31 +63,31 @@ public class GetTodaySessionResponse
     /// TrainingCompletion documents for today. Empty dictionary when no session
     /// has any completed exercise for today (or when no active plan exists).
     /// <para>
-    /// <b>Deprecated.</b> Use <see cref="CompletedExerciseIdsBySectionAndSession"/> for
-    /// section-aware completion tracking. This field is retained for backward compatibility
+    /// <b>Deprecated.</b> Use <see cref="CompletedExerciseIdsByWorkoutAndSession"/> for
+    /// workout-aware completion tracking. This field is retained for backward compatibility
     /// with mobile and web clients that have not yet migrated to the new field.
     /// </para>
     /// </summary>
     public Dictionary<Guid, List<Guid>> CompletedExerciseIdsBySession { get; set; } = new();
 
     /// <summary>
-    /// Section-aware completed exercise IDs for today.
-    /// Outer key = SessionId, inner key = SectionId, value = list of completed ExerciseExternalIds
-    /// within that section.
+    /// Workout-aware completed exercise IDs for today.
+    /// Outer key = SessionId, inner key = WorkoutId, value = list of completed ExerciseExternalIds
+    /// within that workout.
     /// Sourced from TrainingCompletion documents with read-time backfill for legacy data.
     /// Empty dictionary when no exercises have been completed for today.
     /// </summary>
-    public Dictionary<Guid, Dictionary<Guid, List<Guid>>> CompletedExerciseIdsBySectionAndSession { get; set; } = new();
+    public Dictionary<Guid, Dictionary<Guid, List<Guid>>> CompletedExerciseIdsByWorkoutAndSession { get; set; } = new();
 
     /// <summary>
-    /// Per-session completed section IDs, keyed by SessionId. Sourced from
+    /// Per-session completed workout IDs, keyed by SessionId. Sourced from
     /// TrainingCompletion documents for today. Empty dictionary when no
-    /// section has been section-completed for today (or no active plan exists).
-    /// Sections appear here when the client tapped a section-level checkbox
+    /// workout has been workout-completed for today (or no active plan exists).
+    /// Workouts appear here when the client tapped a workout-level checkbox
     /// (e.g. on a ForTime "Running" workout that has no exercises) or when
-    /// MarkSessionComplete fanned out section IDs.
+    /// MarkSessionComplete fanned out workout IDs.
     /// </summary>
-    public Dictionary<Guid, List<Guid>> CompletedSectionIdsBySession { get; set; } = new();
+    public Dictionary<Guid, List<Guid>> CompletedWorkoutIdsBySession { get; set; } = new();
 
     /// <summary>
     /// Per-session optimistic-concurrency version numbers for today, keyed by SessionId.
@@ -157,6 +157,45 @@ public class GetTodaySessionResponse
     /// Missing entries are treated as false (no modifications / no log).
     /// </summary>
     public Dictionary<Guid, bool> HasModificationsBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session completed exercise INSTANCE ids for today, keyed by SessionId. Values are
+    /// raw <see cref="SessionExercise.ExerciseId"/> values — unlike
+    /// <see cref="CompletedExerciseIdsBySession"/> and
+    /// <see cref="CompletedExerciseIdsByWorkoutAndSession"/> (both keyed on the catalog
+    /// <see cref="SessionExercise.ExerciseExternalId"/>), this field lets a client address
+    /// completion for one specific placement of an exercise when the same catalog exercise
+    /// appears twice in one session (standalone AND nested, or nested twice) (#877).
+    /// <para>
+    /// <b>Union of two sources — read this before consuming the field.</b> The value set is
+    /// the union of:
+    /// </para>
+    /// <list type="number">
+    /// <item>Every id in the session's <see cref="SessionExecution.CompletedExerciseInstanceIds"/>,
+    /// carried verbatim — these already identify a single placement.</item>
+    /// <item><b>Performance-derived completion, fanned out to every sibling instance sharing the
+    /// same catalog id.</b> <see cref="WorkoutExercise"/> (the live-training-assistant side of
+    /// <see cref="SessionExecution.Performance"/>) carries only <see cref="WorkoutExercise.ExerciseExternalId"/>
+    /// — it has NO instance id, so a fully-logged exercise from a live workout cannot be
+    /// attributed to one specific placement. Rather than silently omitting it (which would make
+    /// this field strictly LESS complete than the catalog-keyed fields it supersedes, and a
+    /// session finished through the live-training assistant would render with no ticks at all),
+    /// every <see cref="SessionExercise.ExerciseId"/> in the session whose
+    /// <see cref="SessionExercise.ExerciseExternalId"/> matches a fully-logged Performance
+    /// exercise is added here too. Concretely: if a session holds catalog exercise X both
+    /// standalone and nested in a workout, and the client fully logs X via the live-training
+    /// assistant, BOTH instance ids appear in this field — the write path cannot distinguish
+    /// which placement was actually performed, so both are reported complete rather than
+    /// neither.</item>
+    /// </list>
+    /// <para>
+    /// Empty dictionary when no active plan exists or no session has any completed exercise for
+    /// today. Additive alongside <see cref="CompletedExerciseIdsBySession"/> and
+    /// <see cref="CompletedExerciseIdsByWorkoutAndSession"/>, which keep their existing
+    /// catalog-keyed semantics unchanged.
+    /// </para>
+    /// </summary>
+    public Dictionary<Guid, List<Guid>> CompletedExerciseInstanceIdsBySession { get; set; } = new();
 }
 
 /// <summary>

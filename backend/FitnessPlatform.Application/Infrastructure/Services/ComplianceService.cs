@@ -330,8 +330,14 @@ public class ComplianceService : IComplianceService
     private async Task<bool> IsSessionCompleteForDateAsync(
         Guid clientId, TrainingSession session, DateTime date, CancellationToken ct)
     {
-        if (session.Sections.Count == 0)
+        // Guard: a session with nothing programmed (no workouts, no standalone exercises) is never
+        // complete. Mirrors the SessionExecutionExtensions.IsSessionComplete guard (#857 phase 3a)
+        // — a workouts-only guard would wrongly return false for a session programmed with only
+        // standalone exercises, permanently excluding it from compliance/streak counts.
+        if (session.Workouts.Count == 0 && session.StandaloneExercises.Count == 0)
+        {
             return false;
+        }
 
         var dateUtc = date.Date == date ? date : date.Date;
 
@@ -388,7 +394,8 @@ public class ComplianceService : IComplianceService
         var dow = (int)target.DayOfWeek;
         dow = dow == 0 ? 7 : dow;
 
-        return week.Sessions.Where(s => s.DayOfWeek == dow).ToList();
+        var day = week.Days.FirstOrDefault(d => d.DayOfWeek == dow);
+        return day?.Sessions ?? [];
     }
 
     /// <summary>

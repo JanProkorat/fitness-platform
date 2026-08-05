@@ -61,51 +61,39 @@ public class TrainingCompletion
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// List of exercise external IDs that have been marked complete for this session on this date.
+    /// Flat list of completed <see cref="SessionExercise.ExerciseId"/> instance values for this
+    /// session on this date — both standalone exercises and exercises nested inside a workout.
     /// <para>
-    /// <b>Deprecated.</b> New writes populate <see cref="CompletedExerciseIdsBySection"/> instead.
-    /// This flat list is kept for back-compat reads of historical data; it is mirrored from the new
-    /// dict so that legacy readers continue to work. Use
-    /// <c>TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection</c> for a
-    /// merged, section-aware view.
+    /// Replaces the pre-#857-phase-3b <c>completedExerciseIdsBySection</c> dictionary (keyed by
+    /// <see cref="TrainingWorkout.WorkoutId"/>, valued with catalog
+    /// <see cref="SessionExercise.ExerciseExternalId"/>s), which could not distinguish two
+    /// occurrences of the same catalog exercise within one workout or between a standalone
+    /// occurrence and a nested one. See <see cref="SessionExecution.CompletedExerciseInstanceIds"/>
+    /// for the live-model twin of this field.
     /// </para>
     /// </summary>
-    [BsonElement("completedExerciseIds")]
-    public List<Guid> CompletedExerciseIds { get; set; } = [];
+    [BsonElement("completedExerciseInstanceIds")]
+    public List<Guid> CompletedExerciseInstanceIds { get; set; } = [];
 
     /// <summary>
-    /// Per-section completed exercise IDs. Key = <see cref="TrainingSection.SectionId"/> serialized
-    /// as a lowercase string (e.g. "3f2504e0-4f89-11d3-9a0c-0305e82c3301"), value = list of
-    /// <see cref="SessionExercise.ExerciseExternalId"/> values completed within that specific section instance.
-    /// <para>
-    /// String keys are used because MongoDB's default <c>DictionaryRepresentation.Document</c> requires
-    /// document-key values to be strings; <c>Guid</c> keys cause a <c>BsonSerializationException</c>
-    /// on <c>UpdateOneAsync</c>. Callers that need <c>Guid</c> keys use
-    /// <c>Guid.Parse(key)</c> when reading. See <c>TrainingCompletionBackfill</c>.
-    /// </para>
-    /// <para>
-    /// This is the authoritative field for section-aware completion tracking. Populated by new writes.
-    /// When absent (legacy documents) <c>TrainingCompletionBackfill.GetEffectiveCompletedExerciseIdsBySection</c>
-    /// attributes each id in <see cref="CompletedExerciseIds"/> to the first section in the session
-    /// that contains it.
-    /// </para>
-    /// </summary>
-    [BsonElement("completedExerciseIdsBySection")]
-    [BsonIgnoreIfNull]
-    public Dictionary<string, List<Guid>>? CompletedExerciseIdsBySection { get; set; }
-
-    /// <summary>
-    /// Section IDs (matching <see cref="TrainingSection.SectionId"/>) that the
-    /// client has marked complete on this date. Used for sections that don't
+    /// Workout IDs (matching <see cref="TrainingWorkout.WorkoutId"/>) that the
+    /// client has marked complete on this date. Used for workouts that don't
     /// track at the exercise level — ForTime workouts that are just a name +
     /// time cap, e.g. "Running".
     /// </summary>
-    [BsonElement("completedSectionIds")]
+    [BsonElement("completedWorkoutIds")]
     [BsonIgnoreIfNull]
-    public List<Guid>? CompletedSectionIds { get; set; }
+    public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
-    /// Optional per-set completion data, keyed by exerciseExternalId.
+    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseExternalId"/>
+    /// (serialized as a lowercase Guid string) — <b>NOT</b> rekeyed onto the per-instance
+    /// <see cref="SessionExercise.ExerciseId"/> the way <see cref="CompletedExerciseInstanceIds"/>
+    /// was. This document type is frozen/read-only (see class remarks) with no live write path,
+    /// so no migration step exists (or ever ran) to resolve a catalog id against a specific plan
+    /// session's instance ids here — see
+    /// <see cref="SessionExecution.CompletedSets"/> for the full explanation and the matching
+    /// reader in <c>GetFullTrainingPlanEndpoint</c>, which keys its lookup the same way.
     /// Each entry is the set of 1-based set numbers that were completed.
     /// Only populated when the client uses set-level tracking; absence means the
     /// exercise was marked complete at the exercise level only.

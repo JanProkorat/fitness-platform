@@ -6,13 +6,16 @@ namespace FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
 public class GetClientPlansResponse
 {
     /// <summary>Plan summaries.</summary>
-    public List<ClientPlanItem> Items { get; set; } = [];
+    public List<ClientOwnPlanItem> Items { get; set; } = [];
 }
 
 /// <summary>
-/// Lightweight plan summary for the client's plan list.
+/// Lightweight plan summary for the client's own plan list. Distinct from
+/// the trainer-facing ClientPlanItem in Features/Trainers/ListClientPlans —
+/// the two DTOs previously shared a name, which made NSwag's generated
+/// client's type-name assignment dependent on document processing order.
 /// </summary>
-public class ClientPlanItem
+public class ClientOwnPlanItem
 {
     /// <summary>Plan public identifier.</summary>
     public Guid PlanId { get; set; }

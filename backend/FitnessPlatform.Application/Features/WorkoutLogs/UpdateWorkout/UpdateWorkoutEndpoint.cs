@@ -72,59 +72,59 @@ public class UpdateWorkoutEndpoint(
         var performance = log.Performance!;
 
         // ── Snapshot previously-completed sets BEFORE we overwrite them ──────────
-        // Key: (sectionId, exerciseExternalId, setNumber) → true if already completed.
+        // Key: (workoutId, exerciseExternalId, setNumber) → true if already completed.
         // Used downstream to determine which sets are *newly* completed this call.
-        var previouslyCompleted = performance.Sections
-            .SelectMany(sec => sec.Exercises
+        var previouslyCompleted = performance.Workouts
+            .SelectMany(workout => workout.Exercises
                 .SelectMany(e => e.Sets
                     .Where(s => s.CompletedAt.HasValue)
-                    .Select(s => (sec.SectionId, e.ExerciseExternalId, s.SetNumber))))
+                    .Select(s => (workout.WorkoutId, e.ExerciseExternalId, s.SetNumber))))
             .ToHashSet();
 
         // ── Build snapshot lookup from the existing stored sets ──────────────────
-        // Key: (SectionId, ExerciseExternalId, SetNumber) → stored WorkoutSet.
+        // Key: (WorkoutId, ExerciseExternalId, SetNumber) → stored WorkoutSet.
         // Used below to freeze Planned* fields on re-PUT: once a Planned* field has
         // a non-null value in the database it is immutable; later requests cannot
         // overwrite it even if they supply different planned values.
         //
-        // Keying includes SectionId so that the same exercise repeated in two
-        // different sections (e.g. standard + AMRAP) gets independent snapshots.
-        var storedSetLookup = performance.Sections
-            .SelectMany(sec => sec.Exercises
-                .SelectMany(e => e.Sets.Select(s => (sec.SectionId, e.ExerciseExternalId, s))))
+        // Keying includes WorkoutId so that the same exercise repeated in two
+        // different workouts (e.g. standard + AMRAP) gets independent snapshots.
+        var storedSetLookup = performance.Workouts
+            .SelectMany(workout => workout.Exercises
+                .SelectMany(e => e.Sets.Select(s => (workout.WorkoutId, e.ExerciseExternalId, s))))
             .ToDictionary(
-                x => (x.SectionId, x.ExerciseExternalId, x.s.SetNumber),
+                x => (x.WorkoutId, x.ExerciseExternalId, x.s.SetNumber),
                 x => x.s);
 
-        // ── Determine whether all request exercises carry SectionId ───────────────
-        // Legacy clients (no SectionId) → single-section fallback for backward compat.
-        var allHaveSectionId = req.Exercises.Count > 0
-                               && req.Exercises.All(e => e.SectionId.HasValue);
+        // ── Determine whether all request exercises carry WorkoutId ───────────────
+        // Legacy clients (no WorkoutId) → single-workout fallback for backward compat.
+        var allHaveWorkoutId = req.Exercises.Count > 0
+                               && req.Exercises.All(e => e.WorkoutId.HasValue);
 
         performance.Mood = req.Mood;
         performance.Notes = req.Notes?.Trim();
         performance.WodResult = req.WodResult;
 
-        if (allHaveSectionId)
+        if (allHaveWorkoutId)
         {
-            // ── Section-aware path: exercises are routed to their designated section ──
-            // Each exercise in the request carries the SectionId it belongs to.
-            // We update or create sections as needed, preserving sections that the
-            // request does not mention (empty sections remain in the document).
+            // ── Workout-aware path: exercises are routed to their designated workout ──
+            // Each exercise in the request carries the WorkoutId it belongs to.
+            // We update or create workouts as needed, preserving workouts that the
+            // request does not mention (empty workouts remain in the document).
             //
-            // Group request exercises by SectionId.
-            var exercisesBySectionId = req.Exercises
-                .GroupBy(e => e.SectionId!.Value)
+            // Group request exercises by WorkoutId.
+            var exercisesByWorkoutId = req.Exercises
+                .GroupBy(e => e.WorkoutId!.Value)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Walk existing sections and update their exercise lists.
-            // Sections in the stored log that are not in the request remain untouched.
-            foreach (var section in performance.Sections)
+            // Walk existing workouts and update their exercise lists.
+            // Workouts in the stored log that are not in the request remain untouched.
+            foreach (var workout in performance.Workouts)
             {
-                if (!exercisesBySectionId.TryGetValue(section.SectionId, out var sectionExercises))
+                if (!exercisesByWorkoutId.TryGetValue(workout.WorkoutId, out var workoutExercises))
                     continue;
 
-                section.Exercises = sectionExercises.Select(re => new WorkoutExercise
+                workout.Exercises = workoutExercises.Select(re => new WorkoutExercise
                 {
                     ExerciseExternalId = re.ExerciseExternalId,
                     ExerciseName = re.ExerciseName,
@@ -132,7 +132,7 @@ public class UpdateWorkoutEndpoint(
                     Sets = re.Sets.Select(rs =>
                     {
                         storedSetLookup.TryGetValue(
-                            (section.SectionId, re.ExerciseExternalId, rs.SetNumber), out var stored);
+                            (workout.WorkoutId, re.ExerciseExternalId, rs.SetNumber), out var stored);
 
                         return new WorkoutSet
                         {
@@ -153,21 +153,21 @@ public class UpdateWorkoutEndpoint(
                 }).ToList();
             }
 
-            // Handle exercises for sections that don't exist yet in the stored log
-            // (can happen on first write if the document was just created with no sections).
-            var existingSectionIds = performance.Sections.Select(s => s.SectionId).ToHashSet();
-            foreach (var (sectionId, sectionExercises) in exercisesBySectionId)
+            // Handle exercises for workouts that don't exist yet in the stored log
+            // (can happen on first write if the document was just created with no workouts).
+            var existingWorkoutIds = performance.Workouts.Select(w => w.WorkoutId).ToHashSet();
+            foreach (var (workoutId, workoutExercises) in exercisesByWorkoutId)
             {
-                if (existingSectionIds.Contains(sectionId))
+                if (existingWorkoutIds.Contains(workoutId))
                     continue;
 
-                // New section for this log — add it at the end.
-                performance.Sections.Add(new WorkoutSection
+                // New workout for this log — add it at the end.
+                performance.Workouts.Add(new LoggedWorkout
                 {
-                    SectionId = sectionId,
-                    Order = performance.Sections.Count,
+                    WorkoutId = workoutId,
+                    Order = performance.Workouts.Count,
                     Name = "Hlavní",
-                    Exercises = sectionExercises.Select(re => new WorkoutExercise
+                    Exercises = workoutExercises.Select(re => new WorkoutExercise
                     {
                         ExerciseExternalId = re.ExerciseExternalId,
                         ExerciseName = re.ExerciseName,
@@ -193,13 +193,13 @@ public class UpdateWorkoutEndpoint(
         }
         else
         {
-            // ── Legacy / single-section path (no SectionId in request) ─────────────
-            // All exercises are placed into a single default section.
-            // This preserves backward compatibility with clients that do not send SectionId.
-            // For multi-section logs that already exist, all request exercises collapse
-            // into the first section — this is the existing behaviour for legacy clients.
-            var fallbackSectionId = performance.Sections.Count > 0
-                ? performance.Sections[0].SectionId
+            // ── Legacy / single-workout path (no WorkoutId in request) ─────────────
+            // All exercises are placed into a single default workout.
+            // This preserves backward compatibility with clients that do not send WorkoutId.
+            // For multi-workout logs that already exist, all request exercises collapse
+            // into the first workout — this is the existing behaviour for legacy clients.
+            var fallbackWorkoutId = performance.Workouts.Count > 0
+                ? performance.Workouts[0].WorkoutId
                 : Guid.NewGuid();
 
             var exercises = req.Exercises.Select(re => new WorkoutExercise
@@ -209,11 +209,11 @@ public class UpdateWorkoutEndpoint(
                 WodResult = re.WodResult,
                 Sets = re.Sets.Select(rs =>
                 {
-                    // For the legacy path, try the stored section's SectionId first,
-                    // then fall back to any section that has this exercise+set pair
-                    // (handles the rare case of a section-keyed lookup on a legacy client call).
+                    // For the legacy path, try the stored workout's WorkoutId first,
+                    // then fall back to any workout that has this exercise+set pair
+                    // (handles the rare case of a workout-keyed lookup on a legacy client call).
                     storedSetLookup.TryGetValue(
-                        (fallbackSectionId, re.ExerciseExternalId, rs.SetNumber), out var stored);
+                        (fallbackWorkoutId, re.ExerciseExternalId, rs.SetNumber), out var stored);
 
                     return new WorkoutSet
                     {
@@ -233,17 +233,17 @@ public class UpdateWorkoutEndpoint(
                 }).ToList()
             }).ToList();
 
-            if (performance.Sections.Count == 1)
+            if (performance.Workouts.Count == 1)
             {
-                performance.Sections[0].Exercises = exercises;
+                performance.Workouts[0].Exercises = exercises;
             }
             else
             {
-                performance.Sections =
+                performance.Workouts =
                 [
-                    new WorkoutSection
+                    new LoggedWorkout
                     {
-                        SectionId = fallbackSectionId,
+                        WorkoutId = fallbackWorkoutId,
                         Order = 0,
                         Name = "Hlavní",
                         Exercises = exercises
@@ -295,21 +295,21 @@ public class UpdateWorkoutEndpoint(
     private async Task<bool> DetectAndPersistPRsAsync(
         SessionExecution log,
         Guid clientId,
-        HashSet<(Guid SectionId, Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
+        HashSet<(Guid WorkoutId, Guid ExerciseExternalId, int SetNumber)> previouslyCompleted,
         IRealtimeNotifier realtimeNotifier,
         CancellationToken ct)
     {
         // Collect newly-completed sets (CompletedAt moved null → non-null),
         // only for sets with both weight and reps recorded (required for comparison).
-        // Key lookup uses (SectionId, ExerciseExternalId, SetNumber) to match the updated snapshot.
-        var newlyCompletedByExercise = log.Performance!.Sections
-            .SelectMany(sec => sec.Exercises
+        // Key lookup uses (WorkoutId, ExerciseExternalId, SetNumber) to match the updated snapshot.
+        var newlyCompletedByExercise = log.Performance!.Workouts
+            .SelectMany(workout => workout.Exercises
                 .SelectMany(e => e.Sets
                     .Where(s =>
                         s.CompletedAt.HasValue &&
                         s.WeightKg.HasValue &&
                         s.Reps.HasValue &&
-                        !previouslyCompleted.Contains((sec.SectionId, e.ExerciseExternalId, s.SetNumber)))
+                        !previouslyCompleted.Contains((workout.WorkoutId, e.ExerciseExternalId, s.SetNumber)))
                     .Select(s => (Exercise: e, Set: s))))
             .GroupBy(x => x.Exercise.ExerciseExternalId)
             .ToList();
@@ -318,7 +318,7 @@ public class UpdateWorkoutEndpoint(
             return false;
 
         // ── Historical logs for prior-max lookups — fetched ONCE per request ───────
-        // Exercises now live inside sections, so ElemMatch on a flat exercises field is not
+        // Exercises now live inside workouts, so ElemMatch on a flat exercises field is not
         // available. Filter by clientId + completed + carries Performance + not-this-log;
         // exercise lookup is done in-memory per exercise group below. This query does not vary
         // by exercise, so it is hoisted above the per-exercise loop (see #661).

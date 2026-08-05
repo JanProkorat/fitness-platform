@@ -56,9 +56,10 @@ public static class MongoCollections
     public const string DayLogs = "dayLogs";
 
     /// <summary>
-    /// Section template documents (per-trainer reusable training section templates).
+    /// Reusable workout templates collection (#857) — a single reusable workout per trainer
+    /// (formerly the "section template" concept).
     /// </summary>
-    public const string SectionTemplates = "sectionTemplates";
+    public const string WorkoutTemplates = "workoutTemplates";
 
     /// <summary>
     /// Active session lock documents (Editing or Live state; absence = Stable).
@@ -77,13 +78,29 @@ public static class MongoCollections
     public const string TrainerNotes = "trainer_notes";
 
     /// <summary>
-    /// Reusable workout templates collection.
+    /// Reusable full-session templates collection (#857) — a whole reusable training-session
+    /// skeleton (formerly misnamed "workout templates").
     /// </summary>
-    public const string WorkoutTemplates = "workoutTemplates";
+    public const string SessionTemplates = "sessionTemplates";
 
     /// <summary>
     /// Session execution documents (#841) — unifies the legacy <see cref="WorkoutLogs"/> and
     /// <see cref="TrainingCompletions"/> collections into one per-(client, session, date) record.
     /// </summary>
     public const string SessionExecutions = "sessionExecutions";
+
+    /// <summary>
+    /// Reusable meal templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string MealTemplates = "mealTemplates";
+
+    /// <summary>
+    /// Reusable nutrition plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string NutritionPlanTemplates = "nutritionPlanTemplates";
+
+    /// <summary>
+    /// Reusable training plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string TrainingPlanTemplates = "trainingPlanTemplates";
 }
