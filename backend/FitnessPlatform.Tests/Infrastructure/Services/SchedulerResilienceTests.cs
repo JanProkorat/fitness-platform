@@ -20,16 +20,27 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// <c>ExecuteAsync</c> task, and <c>HostOptions.BackgroundServiceExceptionBehavior</c>
 /// (<c>StopHost</c> by default) then terminates the whole process.
 ///
-/// These tests pin the seed as the throwing call, so that a future refactor which moves it
-/// back outside the guard fails here rather than in CI as an unexplained
-/// <c>ECONNREFUSED</c> from a dead API.
+/// What these tests assert, stated precisely because the distinction matters: that a missing
+/// table surfaces out of <c>TickAsync</c> as <c>42P01</c>, i.e. that there IS an exception for
+/// the loop's guard to absorb. They do not all isolate the seed as the throwing call.
+///
+/// For <see cref="PhotoDiaryReminderScheduler"/> the seed is genuinely isolated: with the
+/// table present but empty, <c>ProcessTickAsync</c> finds no candidates and returns early, so
+/// only a throwing seed can fail that test.
+///
+/// For <see cref="WeeklyCheckInScheduler"/> it is not. <c>ProcessTickAsync</c> opens with
+/// <c>SweepExpiredAsync</c>, which resolves only <see cref="IApplicationDbContext"/> — present
+/// in this minimal graph — and runs <c>ExecuteUpdateAsync</c> against the same dropped table.
+/// So the drop is fatal at two points, and hoisting the seed back out of the guard would not
+/// fail that test on its own. The dedicated test below documents the sweep as that second
+/// call, so neither is mistaken for the only one.
 ///
 /// Scope note, stated deliberately: nothing in this suite runs these schedulers as hosted
 /// services, and per #726 nothing should — a faulting scheduler combined with
 /// <c>StopHost</c> cascades across xUnit collections, which is why
 /// <c>RemoveBackgroundHostedServices()</c> strips them from every test factory. So no test
 /// here asserts end-to-end that "the host did not stop". What is asserted is the property
-/// that decides it: whether the seed's exception can escape the guard.
+/// that decides it: whether a DB exception can reach <c>ExecuteAsync</c>'s caller unguarded.
 ///
 /// Uses a dedicated container and a minimal DI graph rather than the shared
 /// <c>FitnessApiFactory</c> on purpose — dropping <c>weekly_check_ins</c> inside the shared
@@ -62,10 +73,10 @@ public class SchedulerResilienceTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Builds a DI graph carrying only the database, which is all the cursor seed needs.
-    /// The seed runs before <c>ProcessTickAsync</c>, so the services that the fuller tick
-    /// would resolve are deliberately absent — if the seed ever stopped throwing here, the
-    /// test would fail on a missing service rather than silently passing.
+    /// Builds a DI graph carrying only the database. That is all either the cursor seed or
+    /// <c>SweepExpiredAsync</c> needs, and it is deliberately too thin for the rest of a tick
+    /// — anything reaching the notification or realtime services fails loudly on a missing
+    /// registration rather than quietly doing real work against the test container.
     /// </summary>
     private IServiceScopeFactory BuildScopeFactory()
     {
@@ -87,8 +98,13 @@ public class SchedulerResilienceTests : IAsyncLifetime
         await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// Named for what it actually pins: a missing table surfaces out of <c>TickAsync</c> as
+    /// <c>42P01</c>, so the loop's guard has something to absorb. It does NOT isolate the
+    /// seed — see the companion test below and this class's remarks.
+    /// </summary>
     [Fact]
-    public async Task WeeklyCheckInScheduler_TickWithMissingTable_ThrowsFromTheSeedSoTheGuardMustCatchIt()
+    public async Task WeeklyCheckInScheduler_TickWithMissingTable_Surfaces42P01ForTheGuardToAbsorb()
     {
         await DropTableAsync("weekly_check_ins");
 
@@ -105,9 +121,45 @@ public class SchedulerResilienceTests : IAsyncLifetime
         // ExecuteAsync and stop the host; it now happens inside the loop's try/catch.
         (await tick.Should().ThrowAsync<PostgresException>())
             .Which.SqlState.Should().Be("42P01",
-                "the cursor seed reads weekly_check_ins, so a dropped table must surface as undefined_table");
+                "a dropped weekly_check_ins must surface as undefined_table for the guard to catch");
     }
 
+    /// <summary>
+    /// <c>SweepExpiredAsync</c> is a SECOND unguarded-if-hoisted DB call: it is the first
+    /// statement of <c>ProcessTickAsync</c> and reads the same table as the seed. Skipping the
+    /// seed via <see cref="WeeklyCheckInScheduler.SetLastTickAt"/> (which marks the cursor
+    /// initialised without touching the database) isolates it, so the sweep is on record as a
+    /// call that would also become fatal if anyone moved it outside the tick guard.
+    /// </summary>
+    [Fact]
+    public async Task WeeklyCheckInScheduler_SweepWithMissingTable_ThrowsEvenWhenTheSeedIsSkipped()
+    {
+        await DropTableAsync("weekly_check_ins");
+
+        var scheduler = new WeeklyCheckInScheduler(
+            BuildScopeFactory(),
+            NullLogger<WeeklyCheckInScheduler>.Instance,
+            EmptyConfiguration());
+
+        // Marks the cursor initialised, so TickAsync skips SeedCursorAsync entirely and the
+        // only remaining reader of weekly_check_ins is the sweep.
+        scheduler.SetLastTickAt(new DateTime(2026, 8, 5, 11, 55, 0, DateTimeKind.Utc));
+
+        var tick = async () => await scheduler.TickAsync(
+            new DateTime(2026, 8, 5, 12, 0, 0, DateTimeKind.Utc),
+            TestContext.Current.CancellationToken);
+
+        (await tick.Should().ThrowAsync<PostgresException>())
+            .Which.SqlState.Should().Be("42P01",
+                "the expiry sweep reads weekly_check_ins too, so it is fatal if hoisted out of the guard");
+    }
+
+    /// <summary>
+    /// Here the seed IS isolated: with <c>photo_diary_reminder_logs</c> gone but
+    /// <c>photo_diary_requests</c> present and empty, <c>ProcessTickAsync</c> finds no
+    /// candidates and returns before resolving any further service — so only a throwing seed
+    /// can satisfy this assertion.
+    /// </summary>
     [Fact]
     public async Task PhotoDiaryReminderScheduler_TickWithMissingTable_ThrowsFromTheSeedSoTheGuardMustCatchIt()
     {
