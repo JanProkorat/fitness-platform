@@ -20,7 +20,7 @@ export class ApiClient {
 
         this.instance = instance || axios.create();
 
-        this.baseUrl = baseUrl ?? "https://localhost:56840";
+        this.baseUrl = baseUrl ?? "https://localhost:5001";
 
     }
 
@@ -2198,6 +2198,562 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<AddRoleResponse>(null as any);
+    }
+
+    /**
+     * Full-state update of a training plan template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    updateTrainingPlanTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateDetailDto> {
+        let url_ = this.baseUrl + "/training/plan-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<TrainingPlanTemplateDetailDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TrainingPlanTemplateDetailDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TrainingPlanTemplateDetailDto>(null as any);
+    }
+
+    /**
+     * Get training plan template detail
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    getTrainingPlanTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<TrainingPlanTemplateDetailDto> {
+        let url_ = this.baseUrl + "/training/plan-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<TrainingPlanTemplateDetailDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TrainingPlanTemplateDetailDto>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TrainingPlanTemplateDetailDto>(null as any);
+    }
+
+    /**
+     * Search training plan templates
+     * @param page Page number (1-based).
+     * @param pageSize Number of items per page.
+     * @param search (optional) Optional case-insensitive substring match against the template name.
+     * @param goal (optional) Optional filter by primary fitness goal.
+     * @param difficulty (optional) Optional filter by difficulty level.
+     * @param weekCount (optional) Optional filter by exact week count.
+     * @return Success
+     */
+    searchTrainingPlanTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, difficulty?: ExerciseDifficulty | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
+        let url_ = this.baseUrl + "/training/plan-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (goal !== undefined && goal !== null)
+            url_ += "goal=" + encodeURIComponent("" + goal) + "&";
+        if (difficulty !== undefined && difficulty !== null)
+            url_ += "difficulty=" + encodeURIComponent("" + difficulty) + "&";
+        if (weekCount !== undefined && weekCount !== null)
+            url_ += "weekCount=" + encodeURIComponent("" + weekCount) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchTrainingPlanTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processSearchTrainingPlanTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SearchTemplatesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SearchTemplatesResponse>(null as any);
+    }
+
+    /**
+     * Create a training plan template
+     * @return Success
+     */
+    createTrainingPlanTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/training/plan-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<TrainingPlanTemplateSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TrainingPlanTemplateSummaryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TrainingPlanTemplateSummaryDto>(null as any);
+    }
+
+    /**
+     * Instantiate a training plan template
+     * @param templateId The template's public identifier (route parameter).
+     * @return Success
+     */
+    instantiateTrainingPlanTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
+        let url_ = this.baseUrl + "/training/plan-templates/{templateId}/instantiate";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(instantiateTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processInstantiateTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processInstantiateTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<InstantiateTemplateResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<InstantiateTemplateResponse>(null as any);
+    }
+
+    /**
+     * Delete a training plan template
+     * @return No Content
+     */
+    deleteTrainingPlanTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/plan-templates/{TemplateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Save a training plan as a template
+     * @return Success
+     */
+    createTrainingPlanTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
+        let url_ = this.baseUrl + "/training/plan-templates/from-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createTemplateFromPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateTrainingPlanTemplateFromPlanEndpoint(_response);
+        });
+    }
+
+    protected processCreateTrainingPlanTemplateFromPlanEndpoint(response: AxiosResponse): Promise<TrainingPlanTemplateSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<TrainingPlanTemplateSummaryDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<TrainingPlanTemplateSummaryDto>(null as any);
+    }
+
+    /**
+     * Copy a training plan template
+     * @return No Content
+     */
+    copyTrainingPlanTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/plan-templates/{TemplateId}/copy";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopyTrainingPlanTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCopyTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -4674,6 +5230,490 @@ export class ApiClient {
     }
 
     /**
+     * Update session template
+     * @param templateId Public identifier of the session template to update.
+     * @return Session template updated
+     */
+    updateSessionTemplateEndpoint(templateId: string, updateSessionTemplateRequest: UpdateSessionTemplateRequest, signal?: AbortSignal): Promise<SessionTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/training/session-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateSessionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateSessionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processUpdateSessionTemplateEndpoint(response: AxiosResponse): Promise<SessionTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SessionTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Readable but owned by another trainer", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Get session template
+     * @param templateId Public identifier of the session template.
+     * @return Session template detail
+     */
+    getSessionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<SessionTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/training/session-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSessionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processGetSessionTemplateEndpoint(response: AxiosResponse): Promise<SessionTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SessionTemplateDetailResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Delete session template
+     * @param templateId Public identifier of the session template to delete.
+     * @return Session template deleted
+     */
+    deleteSessionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/training/session-templates/{templateId}";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteSessionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processDeleteSessionTemplateEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Readable but owned by another trainer", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Search session templates
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param search (optional) Optional search term to filter templates by name.
+     * @param difficulty (optional) Optional difficulty filter.
+     * @param maxEstimatedDurationMinutes (optional) Optional maximum estimated duration in minutes (inclusive).
+     * @return Paged session template results
+     */
+    searchSessionTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, difficulty?: ExerciseDifficulty | null | undefined, maxEstimatedDurationMinutes?: number | null | undefined, signal?: AbortSignal): Promise<SearchSessionTemplatesResponse> {
+        let url_ = this.baseUrl + "/training/session-templates?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (difficulty !== undefined && difficulty !== null)
+            url_ += "difficulty=" + encodeURIComponent("" + difficulty) + "&";
+        if (maxEstimatedDurationMinutes !== undefined && maxEstimatedDurationMinutes !== null)
+            url_ += "maxEstimatedDurationMinutes=" + encodeURIComponent("" + maxEstimatedDurationMinutes) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSearchSessionTemplatesEndpoint(_response);
+        });
+    }
+
+    protected processSearchSessionTemplatesEndpoint(response: AxiosResponse): Promise<SearchSessionTemplatesResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SearchSessionTemplatesResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SearchSessionTemplatesResponse>(null as any);
+    }
+
+    /**
+     * Create session template
+     * @return Success
+     */
+    createSessionTemplateEndpoint(createSessionTemplateRequest: CreateSessionTemplateRequest, signal?: AbortSignal): Promise<SessionTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/training/session-templates";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createSessionTemplateRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateSessionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCreateSessionTemplateEndpoint(response: AxiosResponse): Promise<SessionTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SessionTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Save session template from plan
+     * @return Success
+     */
+    saveSessionTemplateFromPlanEndpoint(saveSessionTemplateFromPlanRequest: SaveSessionTemplateFromPlanRequest, signal?: AbortSignal): Promise<SessionTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/training/session-templates/from-plan";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(saveSessionTemplateFromPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSaveSessionTemplateFromPlanEndpoint(_response);
+        });
+    }
+
+    protected processSaveSessionTemplateFromPlanEndpoint(response: AxiosResponse): Promise<SessionTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SessionTemplateDetailResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Copy session template
+     * @param templateId Public identifier of the source session template to copy.
+     * @return Success
+     */
+    copySessionTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<SessionTemplateDetailResponse> {
+        let url_ = this.baseUrl + "/training/session-templates/{templateId}/copy";
+        if (templateId === undefined || templateId === null)
+            throw new globalThis.Error("The parameter 'templateId' must be defined.");
+        url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCopySessionTemplateEndpoint(_response);
+        });
+    }
+
+    protected processCopySessionTemplateEndpoint(response: AxiosResponse): Promise<SessionTemplateDetailResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SessionTemplateDetailResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
      * Generate recipe image upload URL
      * @param recipeId The recipe's public identifier (from route).
      * @param slot Image slot: main (overwrites) or gallery (appends, max 6).
@@ -7041,7 +8081,7 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
+    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
@@ -7185,7 +8225,7 @@ export class ApiClient {
      * @param weekCount (optional) Optional filter by exact week count.
      * @return Success
      */
-    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse2> {
         let url_ = this.baseUrl + "/nutrition/plan-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -7225,7 +8265,7 @@ export class ApiClient {
         });
     }
 
-    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
+    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse2> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -7240,7 +8280,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SearchTemplatesResponse>(result200);
+            return Promise.resolve<SearchTemplatesResponse2>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -7254,14 +8294,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SearchTemplatesResponse>(null as any);
+        return Promise.resolve<SearchTemplatesResponse2>(null as any);
     }
 
     /**
      * Create a nutrition plan template
      * @return Success
      */
-    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -7333,7 +8373,7 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
+    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest2, signal?: AbortSignal): Promise<InstantiateTemplateResponse2> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
@@ -7364,7 +8404,7 @@ export class ApiClient {
         });
     }
 
-    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
+    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse2> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -7379,7 +8419,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateTemplateResponse>(result200);
+            return Promise.resolve<InstantiateTemplateResponse2>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -7400,7 +8440,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<InstantiateTemplateResponse>(null as any);
+        return Promise.resolve<InstantiateTemplateResponse2>(null as any);
     }
 
     /**
@@ -7466,7 +8506,7 @@ export class ApiClient {
      * Save a nutrition plan as a template
      * @return Success
      */
-    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -14938,63 +15978,10 @@ export interface ProblemDetails_Error {
     severity?: string | undefined;
 }
 
-/** Response wrapper for listing workout templates: the calling trainer's own templates (paginated) plus the public workout template library (unpaginated — currently 10 seeded templates, embedded in full). */
+/** Response wrapper for listing workout templates: the calling trainer's own templates, paginated. Session templates now have their own paginated search endpoint under /training/session-templates — see SearchSessionTemplatesEndpoint. */
 export interface ListWorkoutTemplatesResponse {
     /** The calling trainer's own workout templates, paginated (unchanged shape/semantics). */
     ownTemplates?: WorkoutTemplateResponse[];
-    /** Public workout templates available to all trainers, returned in full. */
-    publicSessionTemplates?: PublicSessionTemplateResponse[];
-}
-
-/** Response DTO for a single public workout template — surfaced in the trainer's workout-templates "template library" alongside their own WorkoutTemplateResponse list. Embeds full workouts -> exercises -> sets so the web client can render a complete detail view without a second call (only ~10 seeded templates; payload size is acceptable). */
-export interface PublicSessionTemplateResponse {
-    /** Template's public identifier. */
-    externalId?: string;
-    /** Display name of the template. */
-    name?: string;
-    /** Localized template names (en, cs, de), when available. */
-    localizedNames?: LocalizedNames | undefined;
-    /** Optional description of the template. */
-    description?: string | undefined;
-    /** Difficulty level of the template. */
-    difficulty?: string;
-    /** Estimated total duration of the session in minutes. */
-    estimatedDurationMinutes?: number | undefined;
-    /** Session-level workout format / scoring methodology. */
-    format?: string;
-    /** Format configuration for the session. Null when Format is Standard. */
-    formatConfig?: WodConfig | undefined;
-    /** Ordered workouts making up the template, each with its exercises and set prescriptions. */
-    workouts?: TrainingWorkout[];
-}
-
-/** Stores food names in supported languages for localization. */
-export interface LocalizedNames {
-    /** English name. */
-    en?: string | undefined;
-    /** Czech name. */
-    cs?: string | undefined;
-    /** German name. */
-    de?: string | undefined;
-}
-
-/** An ordered workout within a training session (e.g. "Warm-up", "Hlavní", "Cool-down") — a block of exercises. Embedded sub-document inside Workouts. */
-export interface TrainingWorkout {
-    /** Client-side stable identifier for this workout. */
-    workoutId?: string;
-    /** Display order within the session (0-based). Shares one ordering sequence with the
-session's standalone StandaloneExercises. */
-    order?: number;
-    /** Display name of the workout (e.g. "Hlavní", "Warm-up"). */
-    name?: string;
-    /** Workout format for this workout. Null means it inherits the session-level format. */
-    format?: WorkoutFormat | undefined;
-    /** Format configuration for this workout. Null when Format is null or Standard. */
-    formatConfig?: WodConfig | undefined;
-    /** Optional coach note for this workout. */
-    notes?: string | undefined;
-    /** Exercises in this workout. */
-    exercises?: SessionExercise[];
 }
 
 /** Request for listing the calling trainer's workout templates. */
@@ -15690,6 +16677,356 @@ export interface AddRoleRequest {
     role: string;
 }
 
+/** Full training-plan-template detail including all weeks, days, sessions, workouts, and exercises. Used by the detail GET and by PUT's response. */
+export interface TrainingPlanTemplateDetailDto {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** The trainer who owns this template. */
+    ownerId?: string;
+    /** Display name. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Difficulty level this template targets. */
+    difficulty?: ExerciseDifficulty | undefined;
+    /** All weeks in the template with their days, sessions, workouts, and exercises. */
+    weeks?: TrainingTemplateWeek[];
+    /** Number of weeks, server-computed from Weeks. */
+    weekCount?: number;
+    /** Who can read this entry besides its owner. */
+    visibility?: LibraryVisibility;
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When the template was created. */
+    dateCreated?: string;
+    /** When the template was last updated. */
+    dateUpdated?: string | undefined;
+}
+
+/** Primary fitness or health goal selected during onboarding. */
+export enum PrimaryGoal {
+    LoseFat = "LoseFat",
+    GainMuscle = "GainMuscle",
+    Recomposition = "Recomposition",
+    Fitness = "Fitness",
+    Health = "Health",
+}
+
+/** Difficulty level of an exercise. */
+export enum ExerciseDifficulty {
+    Beginner = "Beginner",
+    Intermediate = "Intermediate",
+    Advanced = "Advanced",
+}
+
+/** A single week within a TrainingPlanTemplate. Slim compared to TrainingWeek — no Status or DatePublished, both meaningless outside a client plan. Everything below the week — TrainingDay, TrainingSession, TrainingWorkout, SessionExercise, ExerciseSet — is reused unchanged from the client-plan shape, so copying either direction (template ↔ plan) is a straight clone of the same types. */
+export interface TrainingTemplateWeek {
+    /** Week number within the template (1-based). */
+    weekNumber?: number;
+    /** Days in this week. Always 7 entries (Monday through Sunday) — see
+TrainingDay. */
+    days?: TrainingDay[];
+}
+
+/** A single day within a training week (1 = Monday … 7 = Sunday). Every TrainingWeek materialises all 7 days, always — a rest day is a day with no sessions, mirroring PlanDay on the nutrition side. */
+export interface TrainingDay {
+    /** Day of the week (1 = Monday, 7 = Sunday). */
+    dayOfWeek?: number;
+    /** Training sessions scheduled for this day, ordered by Order. */
+    sessions?: TrainingSession[];
+    /** Optional coach note for this day. */
+    note?: string | undefined;
+}
+
+/** A single training session within a TrainingDay (e.g. "Push Day", "Leg Day"). The parent day owns the day-of-week; a session no longer carries its own — see DayOfWeek. */
+export interface TrainingSession {
+    /** Unique identifier for this session within the plan. */
+    sessionId?: string;
+    /** Display name (e.g. "Push Day", "Upper Body"). */
+    name?: string;
+    /** Display order within the day (1-based). */
+    order?: number;
+    /** Optional coach notes for this session. */
+    notes?: string | undefined;
+    /** Session-level workout format. Kept nullable for one release as an inheritable default —
+workouts inherit when their own Format is null. Null means Standard. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Workouts in this session. Each workout contains its own exercises. Every document is
+created directly in this shape — there is no production data predating the workouts
+model, so no migration or read-time backfill from a legacy flat exercises field
+exists or is needed. */
+    workouts?: TrainingWorkout[];
+    /** Standalone exercises directly on this session — not grouped under any
+TrainingWorkout (e.g. a single finisher movement that doesn't warrant its
+own workout block). Sits alongside Workouts, mirroring how
+Foods and Recipes sit side by side (#857
+phase 3a). Shares one ordering sequence with Workouts — a duplicate
+Order/Order across the two
+lists is rejected by UpdateTrainingPlanValidator. */
+    standaloneExercises?: SessionExercise[];
+    /** Flat view of every exercise in this session — the standalone StandaloneExercises
+plus every workout's nested exercises. Computed, never persisted (BsonIgnoreAttribute).
+Read-only on the wire as allExercises — a client MUST NOT round-trip this field back on
+write; UpdateSessionRequest has no member for it, so it is structurally ignored, not
+rejected, if present in a PUT body (#874). */
+    allExercises?: SessionExercise[];
+}
+
+/** An ordered workout within a training session (e.g. "Warm-up", "Hlavní", "Cool-down") — a block of exercises. Embedded sub-document inside Workouts. */
+export interface TrainingWorkout {
+    /** Client-side stable identifier for this workout. */
+    workoutId?: string;
+    /** Display order within the session (0-based). Shares one ordering sequence with the
+session's standalone StandaloneExercises. */
+    order?: number;
+    /** Display name of the workout (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this workout. Null means it inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration for this workout. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout. */
+    notes?: string | undefined;
+    /** Exercises in this workout. */
+    exercises?: SessionExercise[];
+}
+
+/** Controls who can read a sharing-library entry (meal, session, nutrition-plan, or training-plan template) besides its owner. Every consuming document stores this as a string via [BsonRepresentation(BsonType.String)] on the property, so a seeded or legacy value keeps deserializing correctly regardless of this enum's numeric order. */
+export enum LibraryVisibility {
+    Private = "Private",
+    Public = "Public",
+}
+
+/** Request for a full-state update of a training plan template: replaces name, description, goal/difficulty, and the week tree. */
+export interface UpdateTemplateRequest {
+    /** Updated display name. */
+    name: string;
+    /** Updated free-text description. */
+    description?: string | undefined;
+    /** Updated primary fitness goal. */
+    goal?: PrimaryGoal | undefined;
+    /** Updated difficulty level. */
+    difficulty?: ExerciseDifficulty | undefined;
+    /** Full week structure to persist. Replaces all existing weeks, days, sessions, workouts,
+and exercises. */
+    weeks: TemplateWeekRequest[];
+    /** Expected version for optimistic concurrency control. */
+    version?: number;
+}
+
+/** Represents a single week submitted when creating or fully replacing a training plan template. */
+export interface TemplateWeekRequest {
+    /** Week number within the template (1-based). */
+    weekNumber?: number;
+    /** Days in this week. */
+    days?: TemplateDayRequest[];
+}
+
+/** Represents a single day within a template week. */
+export interface TemplateDayRequest {
+    /** Day of week (1 = Monday … 7 = Sunday). */
+    dayOfWeek?: number;
+    /** Optional coach note for this day. */
+    note?: string | undefined;
+    /** Training sessions scheduled for this day. */
+    sessions?: TemplateSessionRequest[];
+}
+
+/** Represents a training session submitted in a template create/update request. */
+export interface TemplateSessionRequest {
+    /** Optional existing session identifier. New GUID generated if null or empty. */
+    sessionId?: string | undefined;
+    /** Display name (e.g. "Push Day"). */
+    name?: string;
+    /** Display order within the day (1-based). */
+    order?: number;
+    /** Optional coach notes. */
+    notes?: string | undefined;
+    /** Session-level workout format. Null means no format override at session level.
+Workouts inherit this when their own Format is null. */
+    format?: WorkoutFormat | undefined;
+    /** Session-level format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Ordered workouts in this session. Each workout contains its own exercises. */
+    workouts?: TemplateWorkoutRequest[];
+    /** Standalone exercises directly on this session — not grouped under any workout.
+Shares one ordering sequence with Workouts. */
+    standaloneExercises?: TemplateSessionExerciseRequest[];
+}
+
+/** Represents a training workout submitted in a template session request. */
+export interface TemplateWorkoutRequest {
+    /** Optional existing workout identifier. New GUID generated if null or empty. */
+    workoutId?: string | undefined;
+    /** Display order within the session (0-based). */
+    order?: number;
+    /** Display name of the workout (e.g. "Hlavní", "Warm-up"). */
+    name?: string;
+    /** Workout format for this workout. Null means workout inherits the session-level format. */
+    format?: WorkoutFormat | undefined;
+    /** Format configuration. Required for non-Standard, non-null workout formats; must be null
+for Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Optional coach note for this workout. */
+    notes?: string | undefined;
+    /** Exercises in this workout. */
+    exercises?: TemplateSessionExerciseRequest[];
+}
+
+/** Represents an exercise entry in a template workout or a session's standalone exercise list. */
+export interface TemplateSessionExerciseRequest {
+    /** Optional existing instance identifier for this exercise entry. New GUID generated if
+null or empty. */
+    exerciseId?: string | undefined;
+    /** External (public) identifier of the exercise. */
+    exerciseExternalId?: string;
+    /** Display name of the exercise (snapshot at time of planning). */
+    exerciseName?: string;
+    /** Display order within the workout (1-based). */
+    order?: number;
+    /** Optional coach notes for this exercise. */
+    notes?: string | undefined;
+    /** Rest time between sets in seconds. */
+    restSeconds?: number | undefined;
+    /** How performance for this exercise is measured. Defaults to Reps. */
+    movementType?: MovementType;
+    /** Per-exercise format override. Null means the exercise inherits the workout's format. */
+    format?: WorkoutFormat | undefined;
+    /** Per-exercise format configuration. Null when Format is null or Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Planned sets for this exercise. */
+    sets?: TemplateExerciseSetRequest[];
+}
+
+/** Represents a single set in a template exercise request. */
+export interface TemplateExerciseSetRequest {
+    /** Set number within the exercise (1-based). */
+    setNumber?: number;
+    /** Type of set. */
+    type?: SetType;
+    /** Target number of repetitions. */
+    reps?: number | undefined;
+    /** Target weight in kilograms. */
+    weightKg?: number | undefined;
+    /** Target duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Target RPE (1-10). */
+    rpe?: number | undefined;
+    /** Target distance in meters. */
+    distanceMeters?: number | undefined;
+    /** Rest time after this set in seconds. */
+    restSeconds?: number | undefined;
+}
+
+/** Paginated response containing a list of training plan template summaries. */
+export interface SearchTemplatesResponse {
+    /** List of template summaries for the current page. */
+    templates?: TrainingPlanTemplateSummaryDto[];
+    /** Total number of templates matching the filter. */
+    totalCount?: number;
+    /** Current page number. */
+    page?: number;
+    /** Number of items per page. */
+    pageSize?: number;
+}
+
+/** Lightweight training-plan-template summary — used for search results and as the response of endpoints that create or clone a template without needing the full week tree back. */
+export interface TrainingPlanTemplateSummaryDto {
+    /** Template's public identifier. */
+    templateId?: string;
+    /** The trainer who owns this template. */
+    ownerId?: string;
+    /** Display name. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Difficulty level this template targets. */
+    difficulty?: ExerciseDifficulty | undefined;
+    /** Number of weeks, server-computed from the template's week tree. */
+    weekCount?: number;
+    /** Who can read this entry besides its owner. */
+    visibility?: LibraryVisibility;
+    /** Optimistic concurrency version. */
+    version?: number;
+    /** When the template was created. */
+    dateCreated?: string;
+    /** When the template was last updated. */
+    dateUpdated?: string | undefined;
+}
+
+/** Request to search training plan templates with optional filters and pagination. */
+export interface SearchTemplatesRequest {
+}
+
+/** Response describing the new client plan created by instantiating a template. */
+export interface InstantiateTemplateResponse {
+    /** The newly created plan's public identifier. */
+    planId?: string;
+    /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
+    clientId?: string;
+    /** Display name of the new plan. */
+    name?: string;
+    /** Status of the new plan — always Draft immediately after instantiation. */
+    status?: string;
+    /** When the new plan was created. */
+    dateCreated?: string;
+}
+
+/** Request to instantiate a training plan template into a new Draft client plan. */
+export interface InstantiateTemplateRequest {
+    /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
+the internal ApplicationUser.Id storage key. */
+    clientId: string;
+    /** Display name for the new plan. */
+    name: string;
+    /** Optional start date. Must be a Monday and not in the past. */
+    startDate?: string | undefined;
+}
+
+/** Request to fetch a single training plan template's full detail. */
+export interface GetTemplateRequest {
+}
+
+/** Request to save an existing training plan as a new template. */
+export interface CreateTemplateFromPlanRequest {
+    /** The source plan's public identifier (TrainingPlan.ExternalId — NOT the client's
+ClientProfile.PublicId). */
+    planId: string;
+    /** Display name for the new template. */
+    name: string;
+    /** Optional free-text description for the new template. */
+    description?: string | undefined;
+    /** Who can read the new template besides the caller. Defaults to Private. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request to create a new training plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
+export interface CreateTemplateRequest {
+    /** Display name of the template. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Optional primary fitness goal this template targets. */
+    goal?: PrimaryGoal | undefined;
+    /** Optional difficulty level this template targets. */
+    difficulty?: ExerciseDifficulty | undefined;
+    /** A materialisation instruction for the empty-weeks path: creates this many weeks, each
+with all 7 days and no sessions. Mutually exclusive with Weeks. Never
+persisted as supplied — WeekCount is
+always server-computed from the resulting week tree. */
+    weekCount?: number | undefined;
+    /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
+    weeks?: TemplateWeekRequest[] | undefined;
+    /** Who can read this entry besides the caller. Defaults to Private. */
+    visibility?: LibraryVisibility;
+}
+
 /** Detailed training plan response including all weeks, sessions, exercises, and sets. */
 export interface GetTrainingPlanResponse {
     /** Plan's public identifier. */
@@ -15757,52 +17094,6 @@ TrainingDay. */
 export enum WeekStatus {
     Draft = "Draft",
     Published = "Published",
-}
-
-/** A single day within a training week (1 = Monday … 7 = Sunday). Every TrainingWeek materialises all 7 days, always — a rest day is a day with no sessions, mirroring PlanDay on the nutrition side. */
-export interface TrainingDay {
-    /** Day of the week (1 = Monday, 7 = Sunday). */
-    dayOfWeek?: number;
-    /** Training sessions scheduled for this day, ordered by Order. */
-    sessions?: TrainingSession[];
-    /** Optional coach note for this day. */
-    note?: string | undefined;
-}
-
-/** A single training session within a TrainingDay (e.g. "Push Day", "Leg Day"). The parent day owns the day-of-week; a session no longer carries its own — see DayOfWeek. */
-export interface TrainingSession {
-    /** Unique identifier for this session within the plan. */
-    sessionId?: string;
-    /** Display name (e.g. "Push Day", "Upper Body"). */
-    name?: string;
-    /** Display order within the day (1-based). */
-    order?: number;
-    /** Optional coach notes for this session. */
-    notes?: string | undefined;
-    /** Session-level workout format. Kept nullable for one release as an inheritable default —
-workouts inherit when their own Format is null. Null means Standard. */
-    format?: WorkoutFormat | undefined;
-    /** Session-level format configuration. Null when Format is null or Standard. */
-    formatConfig?: WodConfig | undefined;
-    /** Workouts in this session. Each workout contains its own exercises. Every document is
-created directly in this shape — there is no production data predating the workouts
-model, so no migration or read-time backfill from a legacy flat exercises field
-exists or is needed. */
-    workouts?: TrainingWorkout[];
-    /** Standalone exercises directly on this session — not grouped under any
-TrainingWorkout (e.g. a single finisher movement that doesn't warrant its
-own workout block). Sits alongside Workouts, mirroring how
-Foods and Recipes sit side by side (#857
-phase 3a). Shares one ordering sequence with Workouts — a duplicate
-Order/Order across the two
-lists is rejected by UpdateTrainingPlanValidator. */
-    standaloneExercises?: SessionExercise[];
-    /** Flat view of every exercise in this session — the standalone StandaloneExercises
-plus every workout's nested exercises. Computed, never persisted (BsonIgnoreAttribute).
-Read-only on the wire as allExercises — a client MUST NOT round-trip this field back on
-write; UpdateSessionRequest has no member for it, so it is structurally ignored, not
-rejected, if present in a PUT body (#874). */
-    allExercises?: SessionExercise[];
 }
 
 /** Per-(date, sessionId) completion record for the plan's client. One entry per (clientId, date, sessionId) tuple. Surfaces which exercises have already been marked complete so the trainer editor can lock the corresponding fields. */
@@ -15971,7 +17262,7 @@ Workouts inherit this when their own Format is null. */
     /** Session-level format configuration. Null when Format is null or Standard. */
     formatConfig?: WodConfig | undefined;
     /** Ordered workouts in this session. Each workout contains its own exercises. */
-    workouts?: UpdateWorkoutRequest2[];
+    workouts?: UpdateTrainingWorkoutRequest[];
     /** Standalone exercises directly on this session — not grouped under any workout.
 Shares one ordering sequence with Workouts: a duplicate Order/
 Order across the two lists is rejected (#857 phase 3a). */
@@ -15979,7 +17270,7 @@ Order across the two lists is rejected (#857 phase 3a). */
 }
 
 /** Represents a training workout submitted in a full-state session update. */
-export interface UpdateWorkoutRequest2 {
+export interface UpdateTrainingWorkoutRequest {
     /** Optional existing workout identifier. New GUID generated if null. */
     workoutId?: string | undefined;
     /** Display order within the session (0-based). */
@@ -16039,15 +17330,6 @@ export interface UpdateExerciseSetRequest {
     distanceMeters?: number | undefined;
     /** Rest time after this set in seconds. */
     restSeconds?: number | undefined;
-}
-
-/** Primary fitness or health goal selected during onboarding. */
-export enum PrimaryGoal {
-    LoseFat = "LoseFat",
-    GainMuscle = "GainMuscle",
-    Recomposition = "Recomposition",
-    Fitness = "Fitness",
-    Health = "Health",
 }
 
 /** Request to acquire an Editing lock on a published training session. */
@@ -16840,6 +18122,192 @@ export interface CancelQuestionnaireRequest {
 export interface AssignQuestionnaireRequest {
     /** Public identifier of the questionnaire to assign. */
     questionnairePublicId?: string;
+}
+
+/** Full session template detail returned by get, create, update, copy, and from-plan endpoints. */
+export interface SessionTemplateDetailResponse {
+    /** Public identifier of the session template. */
+    templateId?: string;
+    /** Display name of the template. */
+    name?: string;
+    /** Localized template names (en, cs, de), when available. */
+    localizedNames?: LocalizedNames | undefined;
+    /** Optional description of the template. */
+    description?: string | undefined;
+    /** Difficulty level of the template. */
+    difficulty?: ExerciseDifficulty;
+    /** Estimated total duration of the session in minutes. */
+    estimatedDurationMinutes?: number | undefined;
+    /** Session-level workout format / scoring methodology. */
+    format?: WorkoutFormat;
+    /** Format configuration for the session. Null when Format is Standard. */
+    formatConfig?: WodConfig | undefined;
+    /** Ordered workouts making up the template — the same TrainingWorkout shape
+used inside a training plan session, so this response maps write-side to
+UpdateSessionRequest.Workouts verbatim. */
+    workouts?: TrainingWorkout[];
+    /** Standalone exercises directly on this template (not grouped under any workout) — the
+same SessionExercise shape used inside a training plan session, so this
+response maps write-side to UpdateSessionRequest.StandaloneExercises verbatim. */
+    standaloneExercises?: SessionExercise[];
+    /** Flat, read-only view of every exercise in this template — StandaloneExercises
+plus every workout's nested exercises. Never send this back on a write: it has no
+corresponding member on the write-side session request, and sending it as standalone would
+persist every nested workout exercise a second time, compounding on each save. */
+    allExercises?: SessionExercise[];
+    /** Who can read this template besides its owner. */
+    visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the trainer who owns this template. */
+    isOwnedByCurrentUser?: boolean;
+    /** When the template was created. */
+    dateCreated?: string;
+    /** When the template was last updated. */
+    dateUpdated?: string | undefined;
+    /** Optimistic concurrency version, required on PUT requests. */
+    version?: number;
+}
+
+/** Stores food names in supported languages for localization. */
+export interface LocalizedNames {
+    /** English name. */
+    en?: string | undefined;
+    /** Czech name. */
+    cs?: string | undefined;
+    /** German name. */
+    de?: string | undefined;
+}
+
+/** Request model for updating an existing session template. */
+export interface UpdateSessionTemplateRequest {
+    /** Updated display name. */
+    name: string;
+    /** Updated localized template names (en, cs, de). */
+    localizedNames?: LocalizedNames | undefined;
+    /** Updated description. */
+    description?: string | undefined;
+    /** Updated difficulty level. */
+    difficulty?: ExerciseDifficulty;
+    /** Updated estimated total duration in minutes. */
+    estimatedDurationMinutes?: number | undefined;
+    /** Updated session-level workout format. */
+    format?: WorkoutFormat;
+    /** Updated format configuration. Must be null for Standard format. */
+    formatConfig?: WodConfig | undefined;
+    /** Updated workouts — the existing TrainingWorkout snapshot shape, verbatim. */
+    workouts?: TrainingWorkout[];
+    /** Updated standalone exercises — the existing SessionExercise snapshot shape,
+verbatim. */
+    standaloneExercises?: SessionExercise[];
+    /** Updated visibility. */
+    visibility?: LibraryVisibility;
+    /** The version the caller last read. Used for optimistic-concurrency CAS; a stale value
+returns 409. */
+    version?: number;
+}
+
+/** Paginated response for session template search results. */
+export interface SearchSessionTemplatesResponse {
+    /** List of matching session templates. */
+    templates?: SessionTemplateSummaryDto[];
+    /** Total number of matching templates. */
+    totalCount?: number;
+    /** Current page number. */
+    page?: number;
+    /** Number of items per page. */
+    pageSize?: number;
+}
+
+/** Lightweight session template summary for search/list views. */
+export interface SessionTemplateSummaryDto {
+    /** Public identifier of the session template. */
+    templateId?: string;
+    /** Display name of the template. */
+    name?: string;
+    /** Localized template names (en, cs, de), when available. */
+    localizedNames?: LocalizedNames | undefined;
+    /** Optional description of the template. */
+    description?: string | undefined;
+    /** Difficulty level of the template. */
+    difficulty?: ExerciseDifficulty;
+    /** Estimated total duration of the session in minutes. */
+    estimatedDurationMinutes?: number | undefined;
+    /** Session-level workout format / scoring methodology. */
+    format?: WorkoutFormat;
+    /** Number of workouts in this template. */
+    workoutCount?: number;
+    /** Number of standalone exercises (not grouped under any workout) in this template. */
+    standaloneExerciseCount?: number;
+    /** Who can read this template besides its owner. */
+    visibility?: LibraryVisibility;
+    /** True when the authenticated caller is the trainer who owns this template. */
+    isOwnedByCurrentUser?: boolean;
+    /** When the template was created. */
+    dateCreated?: string;
+}
+
+/** Request model for searching session templates. */
+export interface SearchSessionTemplatesRequest {
+}
+
+/** Request model for saving a session template from an existing training plan session. */
+export interface SaveSessionTemplateFromPlanRequest {
+    /** The source training plan's public identifier (TrainingPlan.ExternalId) — not the
+client id. */
+    planId: string;
+    /** The week number (1-based) within the plan that contains the source session. */
+    weekNumber?: number;
+    /** The day of week (1 = Monday … 7 = Sunday) within the week that contains the source
+session. */
+    dayOfWeek?: number;
+    /** Identifier of the source TrainingSession within the addressed day. */
+    sessionId: string;
+    /** Display name for the new template. */
+    name: string;
+    /** Optional description for the new template. */
+    description?: string | undefined;
+    /** Who can read the new template besides the caller. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request model for retrieving a single session template. */
+export interface GetSessionTemplateRequest {
+}
+
+/** Request model for deleting a session template. */
+export interface DeleteSessionTemplateRequest {
+}
+
+/** Request model for creating a new session template. */
+export interface CreateSessionTemplateRequest {
+    /** Display name of the template. */
+    name: string;
+    /** Localized template names (en, cs, de), when available. */
+    localizedNames?: LocalizedNames | undefined;
+    /** Optional description of the template. */
+    description?: string | undefined;
+    /** Difficulty level of the template. */
+    difficulty?: ExerciseDifficulty;
+    /** Estimated total duration of the session in minutes. */
+    estimatedDurationMinutes?: number | undefined;
+    /** Session-level workout format / scoring methodology. */
+    format?: WorkoutFormat;
+    /** Format configuration for the session. Must be null for Standard format. */
+    formatConfig?: WodConfig | undefined;
+    /** Ordered workouts to include — the existing TrainingWorkout snapshot shape,
+verbatim, so a template copies directly into a plan session. */
+    workouts?: TrainingWorkout[];
+    /** Standalone exercises to include — the existing SessionExercise snapshot
+shape, verbatim. Shares one ordering sequence with Workouts: a duplicate
+Order/Order across the two
+lists is rejected. */
+    standaloneExercises?: SessionExercise[];
+    /** Who can read this template besides the caller. Defaults to
+Private when omitted. */
+    visibility?: LibraryVisibility;
+}
+
+/** Request model for copying a readable session template to the caller's own library. */
+export interface CopySessionTemplateRequest {
 }
 
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
@@ -17646,14 +19114,8 @@ export interface MealRecipe {
     foodCategories?: string[] | undefined;
 }
 
-/** Controls who can read a sharing-library entry (meal, session, nutrition-plan, or training-plan template) besides its owner. Every consuming document stores this as a string via [BsonRepresentation(BsonType.String)] on the property, so a seeded or legacy value keeps deserializing correctly regardless of this enum's numeric order. */
-export enum LibraryVisibility {
-    Private = "Private",
-    Public = "Public",
-}
-
 /** Request for a full-state update of a nutrition plan template: replaces name, description, goal/dietary style, settings, week tree, and supplements. */
-export interface UpdateTemplateRequest {
+export interface UpdateTemplateRequest2 {
     /** Updated display name. */
     name: string;
     /** Updated free-text description. */
@@ -17666,7 +19128,7 @@ export interface UpdateTemplateRequest {
     globalSettings?: GlobalNutritionSettings | undefined;
     /** Full week structure to persist. Replaces all existing weeks, days, meals, foods, and
 recipes. */
-    weeks: TemplateWeekRequest[];
+    weeks: TemplateWeekRequest2[];
     /** Full supplement list to persist. Replaces all existing supplements. */
     supplements?: TemplateSupplementRequest[];
     /** Expected version for optimistic concurrency control. */
@@ -17674,15 +19136,15 @@ recipes. */
 }
 
 /** Represents a single week submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateWeekRequest {
+export interface TemplateWeekRequest2 {
     /** Week number within the template (1-based). */
     weekNumber?: number;
     /** Days in this week. */
-    days?: TemplateDayRequest[];
+    days?: TemplateDayRequest2[];
 }
 
 /** Represents a single day submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateDayRequest {
+export interface TemplateDayRequest2 {
     /** Day of week (1 = Monday … 7 = Sunday). */
     dayOfWeek?: number;
     /** Optional note for this day. */
@@ -17763,7 +19225,7 @@ Guid. */
 }
 
 /** Paginated response containing a list of nutrition plan template summaries. */
-export interface SearchTemplatesResponse {
+export interface SearchTemplatesResponse2 {
     /** List of template summaries for the current page. */
     templates?: NutritionPlanTemplateSummaryDto[];
     /** Total number of templates matching the filter. */
@@ -17801,11 +19263,11 @@ export interface NutritionPlanTemplateSummaryDto {
 }
 
 /** Request to search nutrition plan templates with optional filters and pagination. */
-export interface SearchTemplatesRequest {
+export interface SearchTemplatesRequest2 {
 }
 
 /** Response describing the new client plan created by instantiating a template. */
-export interface InstantiateTemplateResponse {
+export interface InstantiateTemplateResponse2 {
     /** The newly created plan's public identifier. */
     planId?: string;
     /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
@@ -17819,7 +19281,7 @@ export interface InstantiateTemplateResponse {
 }
 
 /** Request to instantiate a nutrition plan template into a new Draft client plan. */
-export interface InstantiateTemplateRequest {
+export interface InstantiateTemplateRequest2 {
     /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
 the internal ApplicationUser.Id storage key. */
     clientId: string;
@@ -17830,11 +19292,11 @@ the internal ApplicationUser.Id storage key. */
 }
 
 /** Request to fetch a single nutrition plan template's full detail. */
-export interface GetTemplateRequest {
+export interface GetTemplateRequest2 {
 }
 
 /** Request to save an existing nutrition plan as a new template. */
-export interface CreateTemplateFromPlanRequest {
+export interface CreateTemplateFromPlanRequest2 {
     /** The source plan's public identifier (NutritionPlan.ExternalId — NOT the client's
 ClientProfile.PublicId). */
     planId: string;
@@ -17847,7 +19309,7 @@ ClientProfile.PublicId). */
 }
 
 /** Request to create a new nutrition plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
-export interface CreateTemplateRequest {
+export interface CreateTemplateRequest2 {
     /** Display name of the template. */
     name: string;
     /** Optional free-text description. */
@@ -17866,7 +19328,7 @@ as supplied — WeekCount is always server-computed from
 the resulting week tree. */
     weekCount?: number | undefined;
     /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
-    weeks?: TemplateWeekRequest[] | undefined;
+    weeks?: TemplateWeekRequest2[] | undefined;
     /** Who can read this entry besides the caller. Defaults to Private. */
     visibility?: LibraryVisibility;
 }
@@ -18687,13 +20149,6 @@ export enum ExerciseCategory {
     Mobility = "Mobility",
     Technique = "Technique",
     Warmup = "Warmup",
-}
-
-/** Difficulty level of an exercise. */
-export enum ExerciseDifficulty {
-    Beginner = "Beginner",
-    Intermediate = "Intermediate",
-    Advanced = "Advanced",
 }
 
 /** Request model for updating a custom exercise. */
