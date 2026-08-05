@@ -48,6 +48,6 @@ public class GetTrainingPlanTemplateEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(TrainingPlanTemplateDetailDto.FromDocument(template), ct);
+        await Send.OkAsync(TrainingPlanTemplateDetailDto.FromDocument(template, callerId), ct);
     }
 }

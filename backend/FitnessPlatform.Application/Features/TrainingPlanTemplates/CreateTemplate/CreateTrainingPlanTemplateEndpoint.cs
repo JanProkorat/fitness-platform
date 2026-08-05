@@ -63,6 +63,6 @@ public class CreateTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvide
         await mongo.TrainingPlanTemplates.InsertOneAsync(template, cancellationToken: ct);
 
         await HttpContext.Response.SendAsync(
-            TrainingPlanTemplateSummaryDto.FromDocument(template), 201, cancellation: ct);
+            TrainingPlanTemplateSummaryDto.FromDocument(template, ownerId), 201, cancellation: ct);
     }
 }

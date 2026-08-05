@@ -42,11 +42,6 @@ public class NutritionPlanTemplateDetailDto
     public Guid TemplateId { get; set; }
 
     /// <summary>
-    /// The nutritionist who owns this template.
-    /// </summary>
-    public Guid OwnerId { get; set; }
-
-    /// <summary>
     /// Display name.
     /// </summary>
     public string Name { get; set; } = string.Empty;
@@ -92,6 +87,11 @@ public class NutritionPlanTemplateDetailDto
     public LibraryVisibility Visibility { get; set; }
 
     /// <summary>
+    /// True when the authenticated caller is the nutritionist who owns this template.
+    /// </summary>
+    public bool IsOwnedByCurrentUser { get; set; }
+
+    /// <summary>
     /// Optimistic concurrency version.
     /// </summary>
     public int Version { get; set; }
@@ -110,10 +110,10 @@ public class NutritionPlanTemplateDetailDto
     /// Maps a <see cref="NutritionPlanTemplate"/> document to a detailed response DTO.
     /// </summary>
     /// <param name="template">The nutrition plan template document.</param>
-    public static NutritionPlanTemplateDetailDto FromDocument(NutritionPlanTemplate template) => new()
+    /// <param name="currentUserId">Id of the authenticated caller.</param>
+    public static NutritionPlanTemplateDetailDto FromDocument(NutritionPlanTemplate template, Guid currentUserId) => new()
     {
         TemplateId = template.ExternalId,
-        OwnerId = template.OwnerId,
         Name = template.Name,
         Description = template.Description,
         Goal = template.Goal,
@@ -123,6 +123,7 @@ public class NutritionPlanTemplateDetailDto
         Weeks = template.Weeks,
         WeekCount = template.WeekCount,
         Visibility = template.Visibility,
+        IsOwnedByCurrentUser = template.OwnerId == currentUserId,
         Version = template.Version,
         DateCreated = template.DateCreated,
         DateUpdated = template.DateUpdated

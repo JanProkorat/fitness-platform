@@ -59,7 +59,7 @@ public class UpdateTrainingPlanTemplateEndpoint(IMongoContext mongo, PlanConcurr
             return;
         }
 
-        await Send.OkAsync(TrainingPlanTemplateDetailDto.FromDocument(updated), ct);
+        await Send.OkAsync(TrainingPlanTemplateDetailDto.FromDocument(updated, ownerId), ct);
     }
 
     /// <summary>

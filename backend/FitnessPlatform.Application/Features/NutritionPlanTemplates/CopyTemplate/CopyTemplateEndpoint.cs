@@ -75,6 +75,6 @@ public class CopyTemplateEndpoint(IMongoContext mongo, TimeProvider timeProvider
         await mongo.NutritionPlanTemplates.InsertOneAsync(copy, cancellationToken: ct);
 
         await HttpContext.Response.SendAsync(
-            NutritionPlanTemplateSummaryDto.FromDocument(copy), 201, cancellation: ct);
+            NutritionPlanTemplateSummaryDto.FromDocument(copy, callerId), 201, cancellation: ct);
     }
 }
