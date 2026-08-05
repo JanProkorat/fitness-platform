@@ -78,6 +78,6 @@ public class CreateTemplateFromPlanEndpoint(IMongoContext mongo, TimeProvider ti
         await mongo.NutritionPlanTemplates.InsertOneAsync(template, cancellationToken: ct);
 
         await HttpContext.Response.SendAsync(
-            NutritionPlanTemplateSummaryDto.FromDocument(template), 201, cancellation: ct);
+            NutritionPlanTemplateSummaryDto.FromDocument(template, ownerId), 201, cancellation: ct);
     }
 }

@@ -48,6 +48,6 @@ public class GetTemplateEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(template), ct);
+        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(template, callerId), ct);
     }
 }

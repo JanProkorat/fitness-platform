@@ -59,7 +59,7 @@ public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard gu
             return;
         }
 
-        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(updated), ct);
+        await Send.OkAsync(NutritionPlanTemplateDetailDto.FromDocument(updated, ownerId), ct);
     }
 
     /// <summary>

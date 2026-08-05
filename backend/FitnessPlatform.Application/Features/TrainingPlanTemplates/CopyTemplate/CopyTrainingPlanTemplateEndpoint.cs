@@ -73,6 +73,6 @@ public class CopyTrainingPlanTemplateEndpoint(IMongoContext mongo, TimeProvider 
         await mongo.TrainingPlanTemplates.InsertOneAsync(copy, cancellationToken: ct);
 
         await HttpContext.Response.SendAsync(
-            TrainingPlanTemplateSummaryDto.FromDocument(copy), 201, cancellation: ct);
+            TrainingPlanTemplateSummaryDto.FromDocument(copy, callerId), 201, cancellation: ct);
     }
 }

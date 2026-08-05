@@ -282,7 +282,7 @@ public class NutritionPlanTemplateEndpointTests(FitnessApiFactory factory)
         var template = BuildTemplate(ownerId, LibraryVisibility.Public);
         await SeedTemplateAsync(template);
 
-        var (caller, callerId) = await RegisterAsync("Nutritionist", "caller-copy-public");
+        var (caller, _) = await RegisterAsync("Nutritionist", "caller-copy-public");
 
         var response = await caller.PostAsync($"/nutrition/plan-templates/{template.ExternalId}/copy", null);
 
@@ -293,7 +293,7 @@ public class NutritionPlanTemplateEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<TemplateSummaryDto>(
             cancellationToken: TestContext.Current.CancellationToken);
         body.Should().NotBeNull();
-        body!.OwnerId.Should().Be(callerId);
+        body!.IsOwnedByCurrentUser.Should().BeTrue("the caller who copied the template now owns the clone");
         body.Visibility.Should().Be("Private");
         body.TemplateId.Should().NotBe(template.ExternalId, "the copy must have a fresh ExternalId");
 
@@ -565,7 +565,7 @@ public class NutritionPlanTemplateEndpointTests(FitnessApiFactory factory)
     private sealed class TemplateSummaryDto
     {
         public Guid TemplateId { get; set; }
-        public Guid OwnerId { get; set; }
+        public bool IsOwnedByCurrentUser { get; set; }
         public string Visibility { get; set; } = string.Empty;
         public int WeekCount { get; set; }
     }

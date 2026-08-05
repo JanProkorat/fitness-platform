@@ -68,7 +68,7 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
 
         await Send.OkAsync(new SearchTemplatesResponse
         {
-            Templates = templates.Select(NutritionPlanTemplateSummaryDto.FromDocument).ToList(),
+            Templates = templates.Select(t => NutritionPlanTemplateSummaryDto.FromDocument(t, callerId)).ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize
