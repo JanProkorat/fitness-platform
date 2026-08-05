@@ -513,6 +513,60 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// #898 — the main QA plan must carry a <c>StartDate</c> anchored to the current
+    /// week's Monday so <c>PlanWindowResolver.ResolveCurrentPlan</c>'s window
+    /// <c>[StartDate, StartDate + weeks*7)</c> covers today. Without it the plan is
+    /// "unranged" and never matches — and it cannot fall back on the resolver's legacy
+    /// single-plan rule because the Past Plan fixture is a second, ranged same-type plan
+    /// for the same client. Day coverage {1,2,3} populated / {4,5,6,7} empty is pinned in
+    /// the same assertion — the rest days are load-bearing mobile Today rest-day coverage,
+    /// not a gap to fill.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ForTimePlan_StartDateAnchoredToCurrentMondayWithDayCoverage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the ForTime fixture plan must be seeded");
+        plan!.StartDate.Should().NotBeNull(
+            "the main QA plan must have a StartDate — otherwise PlanWindowResolver treats it as " +
+            "unranged and it never matches today's window");
+        plan.StartDate!.Value.DayOfWeek.Should().Be(DayOfWeek.Monday,
+            "StartDate must anchor to a Monday so TrainingDay.DayOfWeek=1 maps to that exact date");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowStart = DateOnly.FromDateTime(plan.StartDate.Value);
+        var windowEnd = windowStart.AddDays(plan.Weeks.Count * 7);
+        today.Should().BeOnOrAfter(windowStart, "today must fall within the plan's resolved window");
+        today.Should().BeBefore(windowEnd, "today must fall within the plan's resolved window");
+
+        plan.Weeks.Should().HaveCount(1, "the ForTime fixture is a single-week plan");
+        var days = plan.Weeks[0].Days;
+        days.Should().HaveCount(7, "BuildTrainingDays/the inline day-map always materialises all 7 weekdays");
+        foreach (var dayOfWeek in new[] { 1, 2, 3 })
+        {
+            days.Single(d => d.DayOfWeek == dayOfWeek).Sessions.Should().NotBeEmpty(
+                $"day {dayOfWeek} carries a seeded session");
+        }
+
+        foreach (var dayOfWeek in new[] { 4, 5, 6, 7 })
+        {
+            days.Single(d => d.DayOfWeek == dayOfWeek).Sessions.Should().BeEmpty(
+                $"day {dayOfWeek} is an intentional rest day — the only way to exercise the mobile " +
+                "Today rest-day empty state; do not fill it with sessions");
+        }
+    }
+
+    /// <summary>
     /// Seeding twice must not create duplicate past-plan or workout-log documents.
     /// </summary>
     [Fact]
