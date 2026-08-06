@@ -36,7 +36,42 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
             .AnyAsync(cpl =>
                 cpl.ProfessionalProfileId == professionalProfile.Id &&
                 cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive, ct);
+                cpl.IsActive &&
+                cpl.CanViewTrainingPlans, ct);
+    }
+
+    /// <summary>
+    /// Verifies that the professional has an active link to the client that grants at least
+    /// one plan-view capability (training or nutrition). Intended only for the small,
+    /// deliberately dual-readable set of endpoints (e.g. client progress) that both Trainers
+    /// and Nutritionists may call — do not use this in place of <see cref="HasActiveLinkAsync"/>
+    /// or <see cref="HasPlanAccessAsync"/> for single-role-scoped operations.
+    /// </summary>
+    /// <param name="professionalUserId">The professional's ApplicationUser.Id from JWT.</param>
+    /// <param name="clientPublicId">The client's ClientProfile.PublicId from the API request.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>True if an active link exists with at least one capability flag granted.</returns>
+    public virtual async Task<bool> HasAnyPlanAccessAsync(Guid professionalUserId, Guid clientPublicId, CancellationToken ct)
+    {
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
+
+        if (professionalProfile is null) return false;
+
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
+
+        if (clientProfile is null) return false;
+
+        return await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .AnyAsync(cpl =>
+                cpl.ProfessionalProfileId == professionalProfile.Id &&
+                cpl.ClientProfileId == clientProfile.Id &&
+                cpl.IsActive &&
+                (cpl.CanViewTrainingPlans || cpl.CanViewNutritionPlans), ct);
     }
 
     /// <summary>
