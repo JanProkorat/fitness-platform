@@ -5,6 +5,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -89,6 +90,49 @@ public class SchedulerResilienceTests : IAsyncLifetime
     private static IConfiguration EmptyConfiguration() =>
         new ConfigurationBuilder().AddInMemoryCollection().Build();
 
+    /// <summary>
+    /// Signals the first Error-level log. Lets the ExecuteAsync tests below wait on the
+    /// scheduler actually having caught something, rather than sleeping a fixed interval.
+    /// </summary>
+    private sealed class ErrorSignallingLogger<T> : ILogger<T>
+    {
+        private readonly TaskCompletionSource _firstError =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task FirstError => _firstError.Task;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Error)
+            {
+                _firstError.TrySetResult();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Races the scheduler logging an error (fixed behaviour) against <c>ExecuteAsync</c>
+    /// completing — with a dropped table the latter means it faulted, which is the bug.
+    /// Bounded, so a hang fails the test instead of stalling the suite.
+    /// </summary>
+    private static async Task WaitForErrorOrExitAsync(Task firstError, Task executeTask)
+    {
+        var timeout = Task.Delay(TimeSpan.FromSeconds(60));
+        var finished = await Task.WhenAny(firstError, executeTask, timeout);
+
+        finished.Should().NotBeSameAs(timeout,
+            "the scheduler should either log the failure and keep running, or exit — not hang");
+    }
+
     private async Task DropTableAsync(string table)
     {
         await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
@@ -152,6 +196,87 @@ public class SchedulerResilienceTests : IAsyncLifetime
         (await tick.Should().ThrowAsync<PostgresException>())
             .Which.SqlState.Should().Be("42P01",
                 "the expiry sweep reads weekly_check_ins too, so it is fatal if hoisted out of the guard");
+    }
+
+    /// <summary>
+    /// THE test that fails on revert. Everything else here calls <c>TickAsync</c>, which this
+    /// change does not touch — so those tests stay green if the seed is hoisted back out of
+    /// the guard. The whole fix lives in <c>ExecuteAsync</c>, so only driving <c>ExecuteAsync</c>
+    /// discriminates.
+    ///
+    /// <para>
+    /// <c>OverrideNow</c> is parked a millisecond short of a boundary with a one-minute
+    /// interval, which collapses the alignment delay to ~1ms and makes this fast.
+    /// </para>
+    /// <para>
+    /// #726 forbids leaving these schedulers registered as hosted services in a test
+    /// <c>WebApplicationFactory</c>, because a fault there plus <c>StopHost</c> cascades across
+    /// collections. That does not apply to a directly-constructed instance: no <c>IHost</c> is
+    /// observing it, so <c>BackgroundServiceExceptionBehavior</c> never engages.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task WeeklyCheckInScheduler_ExecuteAsyncWithMissingTable_LogsAndDoesNotFault()
+    {
+        await DropTableAsync("weekly_check_ins");
+
+        var logger = new ErrorSignallingLogger<WeeklyCheckInScheduler>();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["CheckInTickIntervalMinutes"] = "1",
+            })
+            .Build();
+
+        var scheduler = new WeeklyCheckInScheduler(BuildScopeFactory(), logger, configuration)
+        {
+            OverrideNow = new DateTime(2026, 8, 5, 12, 0, 59, 999, DateTimeKind.Utc),
+        };
+
+        await scheduler.StartAsync(CancellationToken.None);
+        try
+        {
+            scheduler.ExecuteTask.Should().NotBeNull("StartAsync must have begun ExecuteAsync");
+            await WaitForErrorOrExitAsync(logger.FirstError, scheduler.ExecuteTask!);
+
+            scheduler.ExecuteTask!.IsFaulted.Should().BeFalse(
+                "an unguarded cursor seed faults ExecuteAsync, which is what lets StopHost kill the API");
+        }
+        finally
+        {
+            await scheduler.StopAsync(CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Same discriminating check for the other scheduler. Its alignment is to <c>:00</c>, so
+    /// parking <c>OverrideNow</c> at <c>11:59:59.999</c> collapses the delay to ~1ms.
+    /// </summary>
+    [Fact]
+    public async Task PhotoDiaryReminderScheduler_ExecuteAsyncWithMissingTable_LogsAndDoesNotFault()
+    {
+        await DropTableAsync("photo_diary_reminder_logs");
+
+        var logger = new ErrorSignallingLogger<PhotoDiaryReminderScheduler>();
+
+        var scheduler = new PhotoDiaryReminderScheduler(BuildScopeFactory(), logger)
+        {
+            OverrideNow = new DateTime(2026, 8, 5, 11, 59, 59, 999, DateTimeKind.Utc),
+        };
+
+        await scheduler.StartAsync(CancellationToken.None);
+        try
+        {
+            scheduler.ExecuteTask.Should().NotBeNull("StartAsync must have begun ExecuteAsync");
+            await WaitForErrorOrExitAsync(logger.FirstError, scheduler.ExecuteTask!);
+
+            scheduler.ExecuteTask!.IsFaulted.Should().BeFalse(
+                "an unguarded cursor seed faults ExecuteAsync, which is what lets StopHost kill the API");
+        }
+        finally
+        {
+            await scheduler.StopAsync(CancellationToken.None);
+        }
     }
 
     /// <summary>
