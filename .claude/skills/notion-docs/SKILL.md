@@ -142,12 +142,12 @@ bootstrap     update
 
 ## Related skills to chain
 
-- `engineering:documentation` — if a cross-package architecture concept was
-  added (new aggregate, new auth boundary, new RT event category), consider
-  whether a top-level `Architecture` sub-page needs a deeper writeup, not
-  just a Changelog bullet.
-- `engineering:standup` — for daily / weekly summaries, operate over the
-  Changelog page rather than re-deriving work from git.
+- If a cross-package architecture concept was added (new aggregate, new auth
+  boundary, new RT event category), consider whether a top-level `Architecture`
+  sub-page needs a deeper writeup, not just a Changelog bullet. No
+  documentation skill is installed — that judgement is yours.
+- For daily / weekly summaries, read the Changelog page rather than
+  re-deriving the work from git. There is no standup skill installed.
 - `prototype-scene` — when a prototype is edited, this skill should update
   the corresponding Prototypes sub-page too; `prototype-scene` edits the
   HTML, `notion-docs` reflects it in Notion.

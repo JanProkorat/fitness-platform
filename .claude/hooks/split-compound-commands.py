@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import sys
 from datetime import date, datetime
@@ -51,13 +52,46 @@ SAFE_GIT = {
 }
 UNSAFE_SUBSTR = (">", "`", "$(", "|", "-delete", "-exec", "-execdir")
 
+# Matches a heredoc redirect and captures its delimiter: <<EOF, <<-EOF, <<'EOF', <<"EOF".
+# Deliberately does NOT match <<< (a herestring, which has no body to skip).
+HEREDOC_RE = re.compile(r"""<<-?[ \t]*(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))""")
+
+
+def _consume_heredoc_bodies(cmd: str, i: int, pending: list[tuple[str, bool]],
+                            current: list[str]) -> int:
+    """Copy heredoc bodies verbatim, returning the new scan position.
+
+    Everything between the newline that opens a heredoc and its terminator line is
+    DATA, not shell. Without this the quote tracker in split_top_level treats an
+    apostrophe in ordinary prose as an opening quote and desynchronises, and any
+    `;` or `&&` in the body reads as a command separator — so writing a file whose
+    text contains a contraction used to be rejected as a compound command.
+    """
+    n = len(cmd)
+    while pending:
+        delim, strip_tabs = pending.pop(0)
+        while i < n:
+            eol = cmd.find("\n", i)
+            line = cmd[i:] if eol == -1 else cmd[i:eol]
+            chunk = line if eol == -1 else line + "\n"
+            current.append(chunk)
+            i += len(chunk)
+            # <<- lets the terminator be indented with tabs.
+            if (line.lstrip("\t") if strip_tabs else line).strip() == delim:
+                break
+            if eol == -1:
+                break
+    return i
+
 
 def split_top_level(cmd: str) -> list[str]:
-    """Split cmd on && and ; at the top level, respecting quotes and subshells."""
+    """Split cmd on && and ; at the top level, respecting quotes, subshells and heredocs."""
     parts: list[str] = []
     current: list[str] = []
     depth = 0
     in_single = in_double = False
+    # Heredocs opened on the current line, awaiting their bodies after the newline.
+    pending_heredocs: list[tuple[str, bool]] = []
     i = 0
     n = len(cmd)
 
@@ -77,6 +111,22 @@ def split_top_level(cmd: str) -> list[str]:
                 if i + 1 < n:
                     i += 1
                     current.append(cmd[i])
+            elif rest.startswith("<<") and not rest.startswith("<<<"):
+                # Record the delimiter now; the body starts after this line's newline.
+                match = HEREDOC_RE.match(rest)
+                if match:
+                    pending_heredocs.append((
+                        match.group(1) or match.group(2) or match.group(3),
+                        rest[2:3] == "-",
+                    ))
+                    current.append(match.group(0))
+                    i += len(match.group(0))
+                    continue
+                current.append(c)
+            elif c == "\n" and pending_heredocs:
+                current.append(c)
+                i = _consume_heredoc_bodies(cmd, i + 1, pending_heredocs, current)
+                continue
             elif c in "({":
                 depth += 1
                 current.append(c)

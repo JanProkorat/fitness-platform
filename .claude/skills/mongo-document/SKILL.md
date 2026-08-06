@@ -148,14 +148,15 @@ neighbour in `Features/NutritionPlans/` or `Features/TrainingPlans/`.
 
 ## Related skills to chain
 
-- **`engineering:architecture`** — if this document is a new aggregate
-  boundary (not just a log/snapshot), write a short ADR capturing why it's
-  a root document, what owns it, and its concurrency model. Mongo schema
-  decisions are load-bearing and hard to reverse.
-- **`engineering:system-design`** — useful when deciding between extending
-  an existing document vs. introducing a new one (denormalization
-  trade-offs, read/write fan-out).
-- **`gc-sec-review`** — run once the first endpoint writes to the document.
+- If this document is a new aggregate boundary (not just a log/snapshot),
+  write a short ADR capturing why it's a root document, what owns it, and its
+  concurrency model. Mongo schema decisions are load-bearing and hard to
+  reverse. No architecture skill is installed — do this inline, and read the
+  existing ADRs in Notion for the house style.
+- Deciding between extending an existing document vs. introducing a new one
+  (denormalization trade-offs, read/write fan-out) is likewise a judgement call
+  to reason through, not a skill to invoke.
+- **`owasp-security`** — run once the first endpoint writes to the document.
   Mongo is schema-less; IDOR via document id substitution is the most
   common failure mode.
 

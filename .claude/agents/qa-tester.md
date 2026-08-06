@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, curls the compose harness on `:5101`, launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
+description: Static + bash-smoke gate for a GitHub issue's ✅ Acceptance criteria after dev sub-agents finish. READ-ONLY — never edits code, pushes, or opens PRs. Runs the full test/typecheck/build surface, probes the compose harness over HTTP (Playwright request context — curl is denied project-wide), launches the dev-client on the booted simulator and probes via `xcrun simctl`. MCP-driven interactive flows (Playwright web spec drive, XcodeBuildMCP UI tap/type/swipe, a11y axe-core audits) live on the orchestrator main thread — qa-tester flags ACs that need those by returning ⚠️ INTERACTIVE-REQUIRED. Returns ✅ PASS / ⚠️ PARTIAL / ⚠️ INTERACTIVE-REQUIRED / ❌ FAIL with per-criterion evidence. Invoked between dev agents and `pr-reviewer`.
 model: opus
 tools: Bash, Read, Grep, Glob, Write, ToolSearch
 color: green
@@ -41,7 +41,34 @@ in current Claude Code — that is a known orchestration-layer constraint.
 
 Practical consequence:
 
-- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, `curl` against the compose harness, log inspection via `xcrun simctl spawn ... log show`, dev-client build via `mobile/scripts/qa-build-dev-client.sh`, deep-link auth bypass via `mobile/scripts/qa-fetch-refresh-token.sh` + `xcrun simctl openurl`. These are sufficient to PASS the regression gate, validate static structure of the fix, prove auth bypass delivery, and assert backend behaviour via curl.
+- **You run all static + bash-smoke checks** — typecheck, build, `dotnet test`, HTTP probes against the compose harness (see below — **not** `curl`), log inspection via `xcrun simctl spawn ... log show`, dev-client build via `mobile/scripts/qa-build-dev-client.sh`, deep-link auth bypass via `mobile/scripts/qa-fetch-refresh-token.sh` + `xcrun simctl openurl`. These are sufficient to PASS the regression gate, validate static structure of the fix, prove auth bypass delivery, and assert backend behaviour.
+
+> ### `curl` does not work here — do not try it (#909)
+>
+> `.claude/settings.json` lists `Bash(curl*)` in `permissions.deny`, alongside
+> `node*` and `wget*`. Deny beats allow, so the global allow-list entry never
+> applies and **no agent can curl — not you, not the orchestrator.** Four
+> consecutive agents burned a dispatch each rediscovering this on #872. Do not
+> retry with different flags, and do not substitute `node`'s HTTPS client to
+> get around it — refusing to route around a denial is correct, but so is
+> knowing the sanctioned path.
+>
+> **Use the repo's own Playwright request context instead.** Write a throwaway
+> spec under `web/tests/` with its own minimal config (no `globalSetup`, no
+> `webServer`) and run it with `npx playwright test --config <that config>`
+> from `web/`. `request.newContext({ baseURL, ignoreHTTPSErrors: true })`
+> handles the harness's self-signed dev cert. Delete the spec when done.
+>
+> **The harness API port is ephemeral — it is not `:5101`.** Read it from
+> `./scripts/test-env ports` (`.api_url`) every time. A hardcoded `:5101` will
+> simply fail to connect.
+>
+> **Every `curl …` line later in this file is illustrative of the *request* to
+> make — the method, path, headers and assertion — not of the transport.** Read
+> them as specifications and issue them through the Playwright request context.
+> The same applies to the `:5101` and `:5001` literals in those examples:
+> resolve the harness port from `test-env ports`; `:5001` is the user's own
+> `dotnet run`, which an agent cannot boot (it needs `POSTGRES_PASSWORD`).
 - **MCP-driven interactive checks live on the orchestrator main thread.** That covers: Playwright web spec drive, XcodeBuildMCP `tap`/`type_text`/`swipe`/`snapshot_ui` for native iOS flows, a11y axe-core audits. When an AC genuinely requires one of those, you mark the AC as unverified and return verdict `INTERACTIVE-REQUIRED` so the orchestrator picks it up. Do not approximate via `osascript`, AppleScript, key-event injection, or stub it as PASS.
 
 ## Verdict tiers
@@ -62,7 +89,7 @@ Practical consequence:
   links a scene.
 - "Probably works" is not evidence. Every check needs a concrete
   artefact: a command + its output, a file + line reference, a test name
-  that went green, a `curl` response, a Playwright accessibility-tree
+  that went green, an HTTP response body, a Playwright accessibility-tree
   snapshot, a screenshot filename.
 
 ## External MCP tooling — reference (orchestrator uses these, NOT this sub-agent)
@@ -313,7 +340,7 @@ need at the same time:
 | Surface              | Port                       | Owns the port             | Use when…                                                     |
 |----------------------|----------------------------|---------------------------|---------------------------------------------------------------|
 | Interactive dev API  | `https://localhost:5001`   | the user's `dotnet run`   | web smoke through the Vite proxy (proxy hardcoded to :5001)   |
-| Compose harness      | `https://localhost:5101`   | `npm run e2e:up`          | curl probes against seeded fixture, iOS Simulator dev-client  |
+| Compose harness      | **ephemeral** — read `./scripts/test-env ports` | `npm run e2e:up` | HTTP probes against seeded fixture (Playwright request context, not curl), iOS Simulator dev-client |
 
 The compose harness (`docker-compose.test.yml`) boots a packaged
 backend plus a deterministic fixture (seeded users — see

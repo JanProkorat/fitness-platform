@@ -238,20 +238,38 @@ artifacts are generated — always read the per-scene source):
 
 ## Chainable plugin skills (external)
 
-These ship as installed plugins. Invoke by their fully-qualified name:
+Invoke by their fully-qualified name. **Every entry below was verified against
+`~/.claude/plugins/installed_plugins.json` on 2026-08-06** — if you add a row,
+check the skill actually resolves first.
 
 | Skill                          | Use after…                                                |
 |--------------------------------|------------------------------------------------------------|
-| `gc-sec-review`                | Adding/changing auth, ownership, upload, or invite endpoints |
-| `engineering:code-review`      | Non-trivial backend changes or cross-package diffs        |
-| `engineering:testing-strategy` | Endpoints with concurrency / ordering concerns             |
-| `engineering:architecture`     | New aggregates, new cross-slice services, ADR-worthy decisions |
-| `engineering:standup`          | Day-end summary of the Notion Changelog page                |
-| `design:design-critique`       | New web page or mobile screen ready for review            |
-| `design:accessibility-review`  | Any screen with forms, tables, modals, or color-critical UI |
-| `design:ux-copy`               | Copy for CTAs, empty states, errors — in cs/en/de         |
-| `design:design-system`         | Before adding new tokens/components to the theme          |
-| `design:design-handoff`        | Translating a prototype scene into real code              |
+| `owasp-security`               | Adding/changing auth, ownership, upload, or invite endpoints |
+| `code-review:code-review`      | Non-trivial backend changes or cross-package diffs        |
+| `frontend-design:frontend-design` | New web page or mobile screen ready for review          |
+| `wcag-audit`                   | Any screen with forms, tables, modals, or colour-critical UI |
+| `superpowers:testing-strategy`-shaped work | Use the stack packs instead: `dotnet-tdd`, `dotnet-verify`, `react-verify`, `expo-verify` |
+| `remember:remember`            | Persisting session state worth carrying forward            |
+
+### Removed 2026-08-06 (#911) — these never existed
+
+The table previously listed `gc-sec-review`, four `engineering:*` skills and
+five `design:*` skills. **There is no `engineering` plugin and no `design`
+plugin installed**, and `gc-sec-review` does not resolve either — invoking it
+returns `Unknown skill`. Ten of ten rows were fiction, and the routing rules
+pointed the security gate at one of them, so an orchestrator following this
+file reached for a tool that was never there. Found during epic #856's security
+review, which fell back to `owasp-security`.
+
+Intent-to-reality mapping for the removed rows:
+
+- security review after auth/ownership changes → **`owasp-security`**
+- code review → **`code-review:code-review`**, or the `/review` command
+- design critique / design system → **`frontend-design:frontend-design`**
+- accessibility review → **`wcag-audit`**
+- testing strategy → no direct equivalent; use the stack `*-verify` skills
+- architecture / standup / ux-copy → **no equivalent installed.** Do the work
+  inline rather than reaching for a skill that is not there.
 
 ## Guardrails (enforced by hooks)
 
