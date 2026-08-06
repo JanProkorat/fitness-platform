@@ -12,7 +12,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for PUT /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}.
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI — see backend.yml.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class PutOverrideEndpointTests(FitnessApiFactory factory)
