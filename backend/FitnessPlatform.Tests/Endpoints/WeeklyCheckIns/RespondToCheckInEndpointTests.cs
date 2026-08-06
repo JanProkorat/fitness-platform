@@ -11,7 +11,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for POST /client/weekly-check-ins/{id}/respond.
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class RespondToCheckInEndpointTests(FitnessApiFactory factory)
