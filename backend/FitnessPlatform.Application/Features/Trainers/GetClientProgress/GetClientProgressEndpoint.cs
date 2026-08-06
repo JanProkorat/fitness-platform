@@ -13,13 +13,16 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 /// The requesting trainer must have an active link to the client.
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
-/// <param name="authHelper">Helper for verifying trainer-client relationships.</param>
+/// <param name="authHelper">Helper for verifying professional-client relationships. This
+/// endpoint is deliberately dual-readable by Trainers and Nutritionists, so it checks
+/// <see cref="ProfessionalAuthHelper.HasAnyPlanAccessAsync"/> (either capability flag)
+/// rather than the single-role-scoped <c>HasActiveLinkAsync</c> helpers.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="db">Relational database context — resolves the client's public id to
 /// ApplicationUser.Id, the canonical clientId key ComplianceService reads from Mongo (#840).</param>
 public class GetClientProgressEndpoint(
     IComplianceService complianceService,
-    NutritionAuthHelper authHelper,
+    ProfessionalAuthHelper authHelper,
     IAuditService audit,
     IApplicationDbContext db)
     : Endpoint<GetClientProgressRequest, GetClientProgressResponse>
@@ -49,8 +52,9 @@ public class GetClientProgressEndpoint(
 
         var trainerUserId = Guid.Parse(userId);
 
-        // Verify active trainer-client link
-        var hasLink = await authHelper.HasActiveLinkAsync(trainerUserId, req.ClientId, ct);
+        // Verify active professional-client link with at least one plan-view capability.
+        // Dual-readable by design (Trainer or Nutritionist) — see authHelper param doc.
+        var hasLink = await authHelper.HasAnyPlanAccessAsync(trainerUserId, req.ClientId, ct);
 
         if (!hasLink)
         {

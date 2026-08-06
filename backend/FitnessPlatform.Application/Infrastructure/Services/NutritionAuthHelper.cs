@@ -35,6 +35,7 @@ public class NutritionAuthHelper(IApplicationDbContext db)
             .AnyAsync(ctl =>
                 ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
-                ctl.IsActive, ct);
+                ctl.IsActive &&
+                ctl.CanViewNutritionPlans, ct);
     }
 }

@@ -32,13 +32,16 @@ public class GetClientProgressEndpointTests
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     /// <summary>
-    /// Creates a NutritionAuthHelper mock configured to return the specified link status.
+    /// Creates a ProfessionalAuthHelper mock configured to return the specified link status.
+    /// GetClientProgressEndpoint is deliberately dual-readable by Trainers and Nutritionists,
+    /// so it calls <see cref="ProfessionalAuthHelper.HasAnyPlanAccessAsync"/> rather than
+    /// either single-role-scoped <c>HasActiveLinkAsync</c> helper.
     /// </summary>
-    private NutritionAuthHelper CreateAuthHelper(bool hasLink)
+    private ProfessionalAuthHelper CreateAuthHelper(bool hasLink)
     {
         var authDb = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(authDb);
-        helper.HasActiveLinkAsync(
+        var helper = Substitute.ForPartsOf<ProfessionalAuthHelper>(authDb);
+        helper.HasAnyPlanAccessAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(hasLink);
         return helper;
