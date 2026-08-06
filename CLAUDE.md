@@ -290,6 +290,21 @@ A task is not complete until its verification surface passes. At minimum:
 Run these as a final step before reporting. If you cannot run them (no sandbox,
 no simulator), say so — don't claim they pass.
 
+**Scoped backend runs need the MTP filter syntax.** A plain `dotnet test
+--filter` is *silently ignored* by the xunit v3 runner — it runs the whole
+suite and reports whole-suite counts with no error. Use
+`dotnet test <csproj> -- --filter-class "<FQN>"`. Always reconcile the
+reported total against what you expected to run; a number that looks too
+large means your filter did nothing.
+
+**`build-and-test` green means the full suite passed** — as of #876 the CI
+step runs the binary with no `-class-` exclusions. It previously carried 31
+of them behind a single blanket comment, so a green check silently omitted
+207 tests, including the plan-integration and auth-flow suites, for roughly
+four months. If you ever need to skip a class in CI again, give it its own
+one-line reason and a tracking issue next to it. A blanket comment over a
+block is how the last list went stale unnoticed.
+
 ### 3. Scope discipline
 
 When the user pins a change to a specific place ("the bottom progress bar", "the

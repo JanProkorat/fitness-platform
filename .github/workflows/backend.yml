@@ -84,49 +84,24 @@ jobs:
           path: backend/msbuild.binlog
           if-no-files-found: warn
 
-      # Invoke the xunit.v3 / Microsoft.Testing.Platform binary directly so
-      # we can use xunit's native `-class-` filter to skip test classes that
-      # are known-broken for reasons unrelated to this PR. Tracking issue:
-      # pre-existing endpoint ctors gained new dependencies (IApplicationDbContext,
-      # IRealtimeNotifier, INotificationService) but their unit-test
-      # Factory.Create calls were never updated, and the integration-test
-      # suites (AuthFlow, Profile, DeleteAccount, Collaboration, Invitation,
-      # two GetClient*IntegrationTests) were never exercised in CI. These
-      # should be restored in a dedicated follow-up PR.
+      # Invoke the xunit.v3 / Microsoft.Testing.Platform binary directly.
+      #
+      # This step ran with 31 `-class-` exclusions from 2026-04 until #876.
+      # The stated cause was that endpoint constructors had gained new
+      # dependencies while their unit tests' `Factory.Create` calls were
+      # never updated, plus several integration suites that had never been
+      # enabled in CI at all. Both were re-checked on 2026-08-06: the whole
+      # test project compiles clean, all 31 classes (207 tests) pass, and
+      # the constructor/`Factory.Create` argument lists match. The causes
+      # were fixed incrementally by intervening PRs; only the filter was
+      # never revisited.
+      #
+      # No exclusions. If a class ever has to be skipped again, add it here
+      # WITH its own one-line reason and a tracking issue — never a blanket
+      # comment covering a whole block, which is how the previous list went
+      # stale without anyone noticing.
       - name: Run tests
-        run: |
-          ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests \
-            -class- '*CreatePlanEndpointTests' \
-            -class- '*CreateTrainingPlanEndpointTests' \
-            -class- '*GetComplianceScoreEndpointTests' \
-            -class- '*GetWeeklyOverviewEndpointTests' \
-            -class- '*LogMealEatenEndpointTests' \
-            -class- '*PublishTrainingWeekEndpointTests' \
-            -class- '*PublishWeekEndpointTests' \
-            -class- '*UpdatePlanFullStateTests' \
-            -class- '*AuthFlowTests' \
-            -class- '*CollaborationTests' \
-            -class- '*DeleteAccountTests' \
-            -class- '*InvitationFlowTests' \
-            -class- '*ProfileTests' \
-            -class- '*GetClientPlansIntegrationTests' \
-            -class- '*GetFullTrainingPlanIntegrationTests' \
-            -class- '*PersonalRecordDetectionTests' \
-            -class- '*PersonalRecordBroadcastTests' \
-            -class- '*GetClientRecordsEndpointTests' \
-            -class- '*GetClientTimelineEndpointTests' \
-            -class- '*UpdateTimeZoneIntegrationTests' \
-            -class- '*GetSettingsEndpointTests' \
-            -class- '*PutSettingsEndpointTests' \
-            -class- '*GetOverridesEndpointTests' \
-            -class- '*PutOverrideEndpointTests' \
-            -class- '*DeleteOverrideEndpointTests' \
-            -class- '*GetCurrentClientCheckInsEndpointTests' \
-            -class- '*RespondToCheckInEndpointTests' \
-            -class- '*DismissCheckInEndpointTests' \
-            -class- '*MarkCheckInReviewedEndpointTests' \
-            -class- '*GetTrainerCheckInsEndpointTests' \
-            -class- '*WeeklyCheckInSchedulerTests'
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
