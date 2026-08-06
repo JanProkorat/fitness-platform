@@ -21,27 +21,32 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// <c>ExecuteAsync</c> task, and <c>HostOptions.BackgroundServiceExceptionBehavior</c>
 /// (<c>StopHost</c> by default) then terminates the whole process.
 ///
-/// What these tests assert, stated precisely because the distinction matters: that a missing
-/// table surfaces out of <c>TickAsync</c> as <c>42P01</c>, i.e. that there IS an exception for
-/// the loop's guard to absorb. They do not all isolate the seed as the throwing call.
+/// Two groups of tests, and the difference between them is load-bearing.
 ///
-/// For <see cref="PhotoDiaryReminderScheduler"/> the seed is genuinely isolated: with the
-/// table present but empty, <c>ProcessTickAsync</c> finds no candidates and returns early, so
-/// only a throwing seed can fail that test.
+/// The two <c>ExecuteAsync</c> tests are the ones that protect this fix: they drive the code
+/// the change actually touches, and they fail if the seed is hoisted back out of the guard.
+/// Verified by reverting both production hunks and re-running — those two fail, the other
+/// three pass.
 ///
-/// For <see cref="WeeklyCheckInScheduler"/> it is not. <c>ProcessTickAsync</c> opens with
-/// <c>SweepExpiredAsync</c>, which resolves only <see cref="IApplicationDbContext"/> — present
-/// in this minimal graph — and runs <c>ExecuteUpdateAsync</c> against the same dropped table.
-/// So the drop is fatal at two points, and hoisting the seed back out of the guard would not
-/// fail that test on its own. The dedicated test below documents the sweep as that second
-/// call, so neither is mistaken for the only one.
+/// The three <c>42P01</c> tests call <c>TickAsync</c>, which this change does NOT touch. They
+/// establish that a dropped table produces an exception for the guard to absorb, and document
+/// where it comes from: for <see cref="PhotoDiaryReminderScheduler"/> the seed is genuinely
+/// isolated (table present but empty, so <c>ProcessTickAsync</c> returns early); for
+/// <see cref="WeeklyCheckInScheduler"/> it is not, because <c>ProcessTickAsync</c> opens with
+/// <c>SweepExpiredAsync</c>, which resolves only <see cref="IApplicationDbContext"/> and hits
+/// the same dropped table — so a companion test isolates the sweep as that second reader.
+/// These three do not discriminate the fix and are not claimed to.
 ///
-/// Scope note, stated deliberately: nothing in this suite runs these schedulers as hosted
-/// services, and per #726 nothing should — a faulting scheduler combined with
-/// <c>StopHost</c> cascades across xUnit collections, which is why
-/// <c>RemoveBackgroundHostedServices()</c> strips them from every test factory. So no test
-/// here asserts end-to-end that "the host did not stop". What is asserted is the property
-/// that decides it: whether a DB exception can reach <c>ExecuteAsync</c>'s caller unguarded.
+/// On #726: it forbids leaving these schedulers registered as hosted services in a test
+/// <c>WebApplicationFactory</c>, where a fault plus <c>StopHost</c> cascades across xUnit
+/// collections — which is why <c>RemoveBackgroundHostedServices()</c> strips them from every
+/// factory. It does NOT forbid <c>StartAsync</c> on a directly-constructed instance: no
+/// <c>IHost</c> observes it, so <c>BackgroundServiceExceptionBehavior</c> never engages. That
+/// is what makes the <c>ExecuteTask</c> assertion below both possible and safe.
+///
+/// No test here asserts end-to-end that a real host did not stop, because no real host is
+/// involved. <c>ExecuteTask</c> not faulting is the complete proxy: <c>StopHost</c> has
+/// exactly one trigger, and that is <c>ExecuteAsync</c>'s task faulting.
 ///
 /// Uses a dedicated container and a minimal DI graph rather than the shared
 /// <c>FitnessApiFactory</c> on purpose — dropping <c>weekly_check_ins</c> inside the shared
@@ -199,21 +204,9 @@ public class SchedulerResilienceTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// THE test that fails on revert. Everything else here calls <c>TickAsync</c>, which this
-    /// change does not touch — so those tests stay green if the seed is hoisted back out of
-    /// the guard. The whole fix lives in <c>ExecuteAsync</c>, so only driving <c>ExecuteAsync</c>
-    /// discriminates.
-    ///
-    /// <para>
-    /// <c>OverrideNow</c> is parked a millisecond short of a boundary with a one-minute
-    /// interval, which collapses the alignment delay to ~1ms and makes this fast.
-    /// </para>
-    /// <para>
-    /// #726 forbids leaving these schedulers registered as hosted services in a test
-    /// <c>WebApplicationFactory</c>, because a fault there plus <c>StopHost</c> cascades across
-    /// collections. That does not apply to a directly-constructed instance: no <c>IHost</c> is
-    /// observing it, so <c>BackgroundServiceExceptionBehavior</c> never engages.
-    /// </para>
+    /// One of the two tests that fail on revert — see this class's remarks for why the
+    /// <c>TickAsync</c> tests do not. <c>OverrideNow</c> is parked a millisecond short of a
+    /// boundary with a one-minute interval, collapsing the alignment delay to ~1ms.
     /// </summary>
     [Fact]
     public async Task WeeklyCheckInScheduler_ExecuteAsyncWithMissingTable_LogsAndDoesNotFault()
