@@ -214,7 +214,7 @@ Messages screen refreshes without polling.
 - Reordering / dedup concerns: there is no testing-strategy skill installed.
   Use the stack packs — `dotnet-tdd` for the red-green loop, `dotnet-verify`
   for the run — and think the ordering cases through in the test names.
-- **`owasp-security`** — if the event payload could leak data across tenants
+- **`claude-security`** — if the event payload could leak data across tenants
   (e.g. user A seeing user B's notification), run a quick review of the
   broadcast target resolution.
 
