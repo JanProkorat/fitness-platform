@@ -292,12 +292,13 @@ not improvise a parallel checklist.
      OWASP Top-10 / ASVS / LLM Top-10 hits at review time. Treat its
      findings as inputs to your classification (BLOCKING / NIT /
      QUESTION) per step 3c — same as any other hard-rule hit.
-  2. Mark the PR as "recommend running `owasp-security` before merge"
+  2. Mark the PR as "recommend running `claude-security` before merge"
      and add that to your verdict — do not try to do a deeper security
-     review yourself. `owasp-security` is a fast pre-screen; the
-     `owasp-security` chainable plugin is the deeper review and stays
-     a separate, recommended step (no duplication: owasp-security runs
-     inside first-pass, owasp-security runs as a follow-up).
+     review yourself. The two tiers are deliberate and not redundant:
+     `owasp-security` is a fast reference-guided pre-screen that runs
+     inside your first pass; `claude-security` is a deep scan whose
+     findings are each challenged by a verifier agent before being
+     reported, and it stays a separate follow-up step.
 
 **3c. Classify every finding into BLOCKING / NIT / QUESTION** and tag
 each with a scope label (`[scope:backend]`, `[scope:web]`,
@@ -399,7 +400,7 @@ You MUST:
      `Configure()` + `HandleAsync()`.
    - Security: auth, IDOR, injection, upload, invite endpoints
      deserve extra scrutiny. If the diff touches them, consider
-     whether `owasp-security` should run before merge.
+     whether `claude-security` should run before merge.
 
 3. Classify every finding into exactly one of:
    - BLOCKING — must be fixed before merge (correctness, security,
@@ -439,7 +440,7 @@ Hard-rule gate:
   - SignalR casing:                <none | list>
 
 Security-surface consideration:
-  - <"clean" | "recommend running owasp-security before merge because …">
+  - <"clean" | "recommend running claude-security before merge because …">
 
 Would-merge verdict: READY / NEEDS REWORK / NEEDS SECURITY REVIEW
 ```
@@ -460,7 +461,7 @@ passes must be clean for a green verdict.
 
 - **✅ READY FOR MERGE** — your self-review was CLEAN in step 3 AND
   the sub-reviewer returned READY with zero BLOCKING findings, zero
-  hard-rule-gate hits, and neither pass recommended `owasp-security`.
+  hard-rule-gate hits, and neither pass recommended `claude-security`.
 - **🔁 NEEDS REWORK** — sub-reviewer returned NEEDS REWORK, OR any
   BLOCKING finding exists in the second pass, OR any hard-rule-gate
   entry is non-empty in the second pass. Return the scope-tagged fix
@@ -468,8 +469,8 @@ passes must be clean for a green verdict.
   sub-agent. (Self-review NEEDS REWORK is already handled in step 3d
   and never reaches this point — you short-circuited.)
 - **NEEDS SECURITY REVIEW** — either pass (yours in step 3b or the
-  sub-reviewer in step 4) asked for `owasp-security`. Return as a
-  special case: "hold merge, run `owasp-security` (chainable plugin
+  sub-reviewer in step 4) asked for `claude-security`. Return as a
+  special case: "hold merge, run `claude-security` (chainable plugin
   skill) first, re-dispatch after findings are resolved".
 - **BLOCKED** — PR metadata is broken (missing `type:*` label,
   mismatched labels, wrong base branch, branch-rename needed). Do not

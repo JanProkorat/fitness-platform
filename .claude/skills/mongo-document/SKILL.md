@@ -156,7 +156,7 @@ neighbour in `Features/NutritionPlans/` or `Features/TrainingPlans/`.
 - Deciding between extending an existing document vs. introducing a new one
   (denormalization trade-offs, read/write fan-out) is likewise a judgement call
   to reason through, not a skill to invoke.
-- **`owasp-security`** — run once the first endpoint writes to the document.
+- **`claude-security`** — run once the first endpoint writes to the document.
   Mongo is schema-less; IDOR via document id substitution is the most
   common failure mode.
 

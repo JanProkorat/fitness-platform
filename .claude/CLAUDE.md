@@ -244,7 +244,8 @@ check the skill actually resolves first.
 
 | Skill                          | Use after…                                                |
 |--------------------------------|------------------------------------------------------------|
-| `owasp-security`               | Adding/changing auth, ownership, upload, or invite endpoints |
+| `claude-security`              | Adding/changing auth, ownership, upload, or invite endpoints — the security gate. Deep scan at a chosen effort tier; every finding is challenged by a verifier agent before it is reported |
+| `owasp-security`               | Reference guidance while *writing* auth code (OWASP Top 10, ASVS). Not a substitute for the scan above |
 | `code-review:code-review`      | Non-trivial backend changes or cross-package diffs        |
 | `frontend-design:frontend-design` | New web page or mobile screen ready for review          |
 | `wcag-audit`                   | Any screen with forms, tables, modals, or colour-critical UI |
@@ -263,7 +264,9 @@ review, which fell back to `owasp-security`.
 
 Intent-to-reality mapping for the removed rows:
 
-- security review after auth/ownership changes → **`owasp-security`**
+- security review after auth/ownership changes → **`claude-security`** (installed
+  2026-08-06 specifically to close this gap), with `owasp-security` as reference
+  guidance while writing the code
 - code review → **`code-review:code-review`**, or the `/review` command
 - design critique / design system → **`frontend-design:frontend-design`**
 - accessibility review → **`wcag-audit`**
