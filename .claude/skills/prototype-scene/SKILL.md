@@ -286,17 +286,15 @@ Then:
 
 ## Related skills to chain after scaffolding
 
-- **`design:design-critique`** — once the scene HTML is drafted, run a
-  critique pass over hierarchy/consistency before handing back.
-- **`design:accessibility-review`** — color contrast, touch targets, and
-  keyboard nav on new scenes. Cheap to run, catches regressions against
-  iOS/Notion tokens.
-- **`design:ux-copy`** — for Czech button/label/empty-state text on the new
-  scene. Keep copy aligned with existing scenes.
-- **`design:design-system`** — if the scene tempts you to introduce a new
-  component class (`.ios-*`, `.sb-*`, etc.), run the design-system skill
-  first to decide whether to extend an existing token or add a new one
-  *in `:root`* rather than inlining.
+- **`frontend-design:frontend-design`** — once the scene HTML is drafted, run a
+  critique pass over hierarchy and consistency before handing back. This also
+  covers the design-system question: if the scene tempts you to introduce a new
+  component class (`.ios-*`, `.sb-*`, etc.), decide whether to extend an
+  existing token or add a new one *in `:root`* rather than inlining.
+- **`wcag-audit`** — colour contrast, touch targets and keyboard nav on new
+  scenes. Cheap to run, catches regressions against iOS/Notion tokens.
+- Czech button/label/empty-state copy: no ux-copy skill is installed. Write it
+  inline and keep it aligned with the existing scenes.
 - **`greencode-brand`** — only when the scene contains marketing-style
   copy, external-facing visuals, or will be screenshotted for decks.
 - **Browser MCPs** (if connected) — open the prototype file

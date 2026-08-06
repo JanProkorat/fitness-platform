@@ -208,12 +208,13 @@ Messages screen refreshes without polling.
 
 ## Related skills to chain
 
-- **`engineering:code-review`** — run at the end over the full cross-package
+- **`code-review:code-review`** — run at the end over the full cross-package
   diff. Realtime events are a common source of subtle bugs (double-fires,
   wrong query invalidations, memory leaks via missing unsubscribes).
-- **`engineering:testing-strategy`** — when the event has meaningful
-  reordering / dedup concerns, invoke this before writing backend tests.
-- **`gc-sec-review`** — if the event payload could leak data across tenants
+- Reordering / dedup concerns: there is no testing-strategy skill installed.
+  Use the stack packs — `dotnet-tdd` for the red-green loop, `dotnet-verify`
+  for the run — and think the ordering cases through in the test names.
+- **`owasp-security`** — if the event payload could leak data across tenants
   (e.g. user A seeing user B's notification), run a quick review of the
   broadcast target resolution.
 
