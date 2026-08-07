@@ -20,6 +20,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    # The suite is ~15 min; restore+build adds a few more. Without this the
+    # job inherits the 6-hour default, so a hang burns runner time unnoticed
+    # instead of failing loudly. Raise it if the suite legitimately grows.
+    timeout-minutes: 40
+
     defaults:
       run:
         working-directory: ./backend
@@ -103,8 +108,45 @@ jobs:
       # WITH its own one-line reason and a tracking issue — never a blanket
       # comment covering a whole block, which is how the previous list went
       # stale without anyone noticing.
-      - name: Run tests
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests
+      #
+      # The suite runs as three namespace-partitioned chunks rather than one
+      # invocation. Two single-invocation attempts on #876's PR both died at
+      # ~15m with conclusion `cancelled`, no failing step and an empty log
+      # archive — the runner was lost, not a test failing. Chunking lowers
+      # peak resource use (each chunk is a separate process, so its
+      # Testcontainers instances are torn down before the next starts),
+      # flushes results per chunk, and localises any future failure.
+      #
+      # The partition is exhaustive BY CONSTRUCTION: chunks 1 and 2 are
+      # positive namespace filters and chunk 3 is their exact complement, so
+      # a newly added top-level namespace lands in chunk 3 instead of being
+      # silently dropped. Do not rewrite chunk 3 as a positive filter list.
+      #
+      # Verified on develop 2026-08-07: 1445 + 449 + 122 = 2016, identical to
+      # a single unfiltered run. Those counts are indicative, not asserted —
+      # they grow as tests are added.
+      - name: Run tests — Endpoints
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Endpoints*'
+        env:
+          POSTGRES_PASSWORD: test_password
+          MONGO_PASSWORD: test_password
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test
+          JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      - name: Run tests — Services, Validators, Infrastructure
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Services*' -namespace 'FitnessPlatform.Tests.Validators*' -namespace 'FitnessPlatform.Tests.Infrastructure*'
+        env:
+          POSTGRES_PASSWORD: test_password
+          MONGO_PASSWORD: test_password
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test
+          JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      # Complement of the two chunks above — see the "exhaustive by
+      # construction" note. Every namespace not matched there runs here.
+      - name: Run tests — remaining namespaces
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace- 'FitnessPlatform.Tests.Endpoints*' -namespace- 'FitnessPlatform.Tests.Services*' -namespace- 'FitnessPlatform.Tests.Validators*' -namespace- 'FitnessPlatform.Tests.Infrastructure*'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
