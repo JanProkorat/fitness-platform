@@ -41,7 +41,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
 
     // ── shared fixture helpers (mirrors CrossRoleLinkAccessTests) ────────────
 
-    private async Task<(HttpClient Http, long ProfessionalProfileId)> RegisterProfessionalAsync(string tag)
+    private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterProfessionalAsync(string tag)
     {
         var client = factory.CreateClient();
         var email = UniqueEmail(tag);
@@ -55,7 +55,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         var profile = await db.ProfessionalProfiles.FirstAsync(
             p => p.UserId == user.Id, TestContext.Current.CancellationToken);
 
-        return (client, profile.Id);
+        return (client, profile.Id, user.Id);
     }
 
     private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)> RegisterClientAsync(string tag)
@@ -228,7 +228,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task ActiveLinkWithNeitherCapability_ListClientPlans_Returns403()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("neither-list");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("neither-list");
         var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("neither-list");
         await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: false);
 
@@ -242,7 +242,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task ActiveLinkWithNeitherCapability_GetClientTimeline_Returns403()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("neither-timeline");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("neither-timeline");
         var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("neither-timeline");
         await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: false);
 
@@ -254,7 +254,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task ActiveLinkWithNeitherCapability_GetClientDashboard_Returns403()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("neither-dashboard");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("neither-dashboard");
         var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("neither-dashboard");
         await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: false);
 
@@ -268,11 +268,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task NutritionOnlyLink_ListClientPlans_ReturnsOnlyNutritionPlans()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("nutrition-only-list");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("nutrition-only-list");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("nutrition-only-list");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/plans");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -290,11 +290,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task TrainingOnlyLink_ListClientPlans_ReturnsOnlyTrainingPlans()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("training-only-list");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("training-only-list");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("training-only-list");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/plans");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -313,11 +313,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     public async Task BothFlagsLink_ListClientPlans_ReturnsBothPlanTypes()
     {
         // Regression guard — a fully-entitled caller's response must be additive/unchanged.
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("both-flags-list");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("both-flags-list");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("both-flags-list");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: true);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/plans");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -336,11 +336,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task NutritionOnlyLink_GetClientTimeline_ExcludesTrainingEntries_KeepsDualReadableEntries()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("nutrition-only-timeline");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("nutrition-only-timeline");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("nutrition-only-timeline");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/timeline?limit=100");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -369,11 +369,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task TrainingOnlyLink_GetClientTimeline_ExcludesNutritionEntries_KeepsDualReadableEntries()
     {
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("training-only-timeline");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("training-only-timeline");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("training-only-timeline");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/timeline?limit=100");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -403,11 +403,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     public async Task BothFlagsLink_GetClientTimeline_ReturnsAllEightEntryTypes()
     {
         // Regression guard — a fully-entitled caller's timeline must be unchanged.
-        var (professional, professionalProfileId) = await RegisterProfessionalAsync("both-flags-timeline");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("both-flags-timeline");
         var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("both-flags-timeline");
         var linkId = await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: true);
 
-        await SeedBothDomainsAsync(clientUserId, clientProfileId, Guid.NewGuid(), linkId);
+        await SeedBothDomainsAsync(clientUserId, clientProfileId, professionalUserId, linkId);
 
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/timeline?limit=100");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
