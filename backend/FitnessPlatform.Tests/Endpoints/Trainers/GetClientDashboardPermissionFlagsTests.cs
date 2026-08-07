@@ -118,9 +118,12 @@ public class GetClientDashboardPermissionFlagsTests
     }
 
     [Fact]
-    public async Task HandleAsync_LinkWithBothFlagsFalse_ReturnsBothFalseOnWire()
+    public async Task HandleAsync_LinkWithBothFlagsFalse_Returns403()
     {
-        // Arrange: link where both plan types are forbidden
+        // Arrange: link where both plan types are forbidden. Per #916 AC4, an active link
+        // carrying neither capability flag must be denied outright (403), matching
+        // ProfessionalAuthHelper.HasAnyPlanAccessAsync semantics from #903 — it must not
+        // fall through to a 200 with both flags reported false on the wire.
         var clientUser = EntityBuilder.User.WithEmail("noaccess@test.com")
             .WithFirstName("No").WithLastName("Access").Build();
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(12).WithUserId(_trainerId).Build();
@@ -150,8 +153,6 @@ public class GetClientDashboardPermissionFlagsTests
         }, TestContext.Current.CancellationToken);
 
         // Assert
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-        ep.Response.CanViewNutritionPlans.Should().BeFalse();
-        ep.Response.CanViewTrainingPlans.Should().BeFalse();
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
     }
 }

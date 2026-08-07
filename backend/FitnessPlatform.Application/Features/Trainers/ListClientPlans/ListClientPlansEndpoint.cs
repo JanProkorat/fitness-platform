@@ -83,6 +83,15 @@ public class ListClientPlansEndpoint(
             return;
         }
 
+        // A link that carries neither capability flag grants no plan visibility at all —
+        // deny outright rather than returning an empty-but-200 response (matches
+        // ProfessionalAuthHelper.HasAnyPlanAccessAsync semantics from #903).
+        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
         // Every Mongo document's clientId (NutritionPlan, TrainingPlan, WorkoutLog,
         // PersonalRecord) is now keyed on ApplicationUser.Id (#840) — one identifier
         // serves all of them. clientProfile.Id is the long PK used by BodyMeasurement
@@ -90,22 +99,52 @@ public class ListClientPlansEndpoint(
         var clientUserId = clientProfile.UserId;
         var clientProfileId = clientProfile.Id;
 
-        // Load all plans from Mongo in parallel — keyed on ApplicationUser.Id
-        var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
-            .Eq(p => p.ClientId, clientUserId);
+        // Each domain's plans, session executions, personal records, and compliance/weight
+        // computations are loaded only when the caller's link grants that domain's capability
+        // flag — a nutrition-only link never queries SessionExecutions/PersonalRecords, and a
+        // training-only link never queries body measurements or calls CalculateComplianceAsync.
+        var (trainingItems, trainingPlans) = link.CanViewTrainingPlans
+            ? await LoadTrainingItemsAsync(clientUserId, ct)
+            : ([], []);
+
+        var (nutritionItems, nutritionPlans) = link.CanViewNutritionPlans
+            ? await LoadNutritionItemsAsync(clientUserId, clientProfileId, ct)
+            : ([], []);
+
+        // Merge all plans and sort newest-first:
+        // Primary sort: StartDate desc (null StartDate treated as oldest — draft plans)
+        // Secondary sort: DateCreated desc as tiebreaker
+        var allItems = trainingItems
+            .Concat(nutritionItems)
+            .OrderByDescending(p => p.PeriodStart ?? DateTime.MinValue)
+            .ThenByDescending(p =>
+                // retrieve DateCreated from the original plan for tiebreaker
+                trainingPlans.FirstOrDefault(tp => tp.ExternalId == p.PlanId)?.DateCreated
+                ?? nutritionPlans.FirstOrDefault(np => np.ExternalId == p.PlanId)?.DateCreated
+                ?? DateTime.MinValue)
+            .ToList();
+
+        await Send.OkAsync(new ListClientPlansResponse
+        {
+            Plans = allItems,
+            CanViewNutritionPlans = link.CanViewNutritionPlans,
+            CanViewTrainingPlans = link.CanViewTrainingPlans
+        }, ct);
+    }
+
+    /// <summary>
+    /// Loads training plans for the client along with their per-plan result summaries
+    /// (total completed trainings, PR count). Only called when the caller's link grants
+    /// <c>CanViewTrainingPlans</c>.
+    /// </summary>
+    private async Task<(List<ClientPlanItem> Items, List<Domain.Documents.TrainingPlan> Plans)> LoadTrainingItemsAsync(
+        Guid clientUserId, CancellationToken ct)
+    {
         var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
             .Eq(p => p.ClientId, clientUserId);
-
-        var nutritionTask = mongo.NutritionPlans
-            .Find(nutritionFilter)
-            .ToListAsync(ct);
-        var trainingTask = mongo.TrainingPlans
+        var trainingPlans = await mongo.TrainingPlans
             .Find(trainingFilter)
             .ToListAsync(ct);
-
-        await Task.WhenAll(nutritionTask, trainingTask);
-        var nutritionPlans = nutritionTask.Result;
-        var trainingPlans = trainingTask.Result;
 
         // Compute result summaries for training plans:
         // totalTrainings = count of completed SessionExecutions (with Performance) with matching PlanId
@@ -124,8 +163,7 @@ public class ListClientPlansEndpoint(
             .Find(Builders<Domain.Documents.PersonalRecord>.Filter.Eq(pr => pr.ClientId, clientUserId))
             .ToListAsync(ct);
 
-        // Build training plan items
-        var trainingItems = trainingPlans.Select(plan =>
+        var items = trainingPlans.Select(plan =>
         {
             var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId);
 
@@ -157,7 +195,25 @@ public class ListClientPlansEndpoint(
             };
         }).ToList();
 
-        // Build nutrition plan items — compute compliance and weight delta per plan
+        return (items, trainingPlans);
+    }
+
+    /// <summary>
+    /// Loads nutrition plans for the client along with their per-plan result summaries
+    /// (compliance %, weight delta). Only called when the caller's link grants
+    /// <c>CanViewNutritionPlans</c> — body measurements are read here solely to feed
+    /// <see cref="ClientPlanResultSummary.WeightDeltaKg"/> on nutrition plan items, so they
+    /// are scoped to this domain rather than being independently gated.
+    /// </summary>
+    private async Task<(List<ClientPlanItem> Items, List<Domain.Documents.NutritionPlan> Plans)> LoadNutritionItemsAsync(
+        Guid clientUserId, long clientProfileId, CancellationToken ct)
+    {
+        var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
+            .Eq(p => p.ClientId, clientUserId);
+        var nutritionPlans = await mongo.NutritionPlans
+            .Find(nutritionFilter)
+            .ToListAsync(ct);
+
         // Body measurements keyed on clientProfile.Id (long PK)
         var allMeasurements = await db.BodyMeasurements
             .AsNoTracking()
@@ -202,7 +258,7 @@ public class ListClientPlansEndpoint(
 
         var complianceResults = await Task.WhenAll(complianceTasks);
 
-        var nutritionItems = nutritionPlans
+        var items = nutritionPlans
             .Select((plan, i) =>
             {
                 var (compliancePercent, weightDeltaKg) = complianceResults[i];
@@ -225,19 +281,6 @@ public class ListClientPlansEndpoint(
             })
             .ToList();
 
-        // Merge all plans and sort newest-first:
-        // Primary sort: StartDate desc (null StartDate treated as oldest — draft plans)
-        // Secondary sort: DateCreated desc as tiebreaker
-        var allItems = trainingItems
-            .Concat(nutritionItems)
-            .OrderByDescending(p => p.PeriodStart ?? DateTime.MinValue)
-            .ThenByDescending(p =>
-                // retrieve DateCreated from the original plan for tiebreaker
-                trainingPlans.FirstOrDefault(tp => tp.ExternalId == p.PlanId)?.DateCreated
-                ?? nutritionPlans.FirstOrDefault(np => np.ExternalId == p.PlanId)?.DateCreated
-                ?? DateTime.MinValue)
-            .ToList();
-
-        await Send.OkAsync(new ListClientPlansResponse { Plans = allItems }, ct);
+        return (items, nutritionPlans);
     }
 }
