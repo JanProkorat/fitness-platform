@@ -22,7 +22,8 @@ public class UnlockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    IRealtimeNotifier notifier)
+    IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<UnlockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -50,16 +51,12 @@ public class UnlockTrainingSessionEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        // Ownership guard first: plan must exist AND belong to the calling trainer.
-        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
-
-        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        // Authorship + link guard first: the plan must exist, be the calling trainer's, and the
+        // caller's link to its client must still grant training access.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 

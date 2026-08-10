@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -31,7 +32,8 @@ public class UpdateTrainingPlanEndpoint(
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -77,6 +79,17 @@ public class UpdateTrainingPlanEndpoint(
             p => p.Version,
             async (plan, mutateCt) =>
             {
+                // The lookup filter proved authorship, which is permanent. Access is not —
+                // require the caller's link to the plan's client to still grant training access.
+                var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                    trainerId, plan.ClientId, requireTrainingPlanAccess: true, mutateCt);
+
+                if (!hasAccess)
+                {
+                    await Send.NotFoundAsync(mutateCt);
+                    return false;
+                }
+
                 // Build lookup of existing week statuses
                 var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 
@@ -393,7 +406,7 @@ public class UpdateTrainingPlanEndpoint(
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
                 // Response already written directly inside the mutate delegate
-                // (SessionLocked / WorkoutAlreadyCompleted 409s).
+                // (client-link 404, SessionLocked / WorkoutAlreadyCompleted 409s).
                 return;
         }
 

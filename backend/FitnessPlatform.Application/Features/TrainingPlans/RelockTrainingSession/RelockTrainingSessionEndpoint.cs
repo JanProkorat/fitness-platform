@@ -3,9 +3,10 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using MongoDB.Driver;
+using FitnessPlatform.Application.Infrastructure.Services;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSession;
 
@@ -19,7 +20,8 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSessi
 public class RelockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
-    IRealtimeNotifier notifier)
+    IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<RelockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -47,16 +49,12 @@ public class RelockTrainingSessionEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        // Ownership guard first: plan must exist AND belong to the calling trainer.
-        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
-
-        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        // Authorship + link guard first: the plan must exist, be the calling trainer's, and the
+        // caller's link to its client must still grant training access.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
