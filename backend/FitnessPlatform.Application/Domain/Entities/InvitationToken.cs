@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FitnessPlatform.Application.Domain.Common;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Entities;
 
@@ -35,6 +36,15 @@ public class InvitationToken : TimestampableEntity
     /// Indicates whether this invitation has already been accepted.
     /// </summary>
     public bool IsUsed { get; set; }
+
+    /// <summary>
+    /// Optional explicit domain scope the professional selected when sending this
+    /// invitation. When null, the accept flow defaults to every domain implied by the
+    /// professional's held identity roles at accept time — existing behavior, unchanged
+    /// for invites created before this field existed and for anyone who does not
+    /// explicitly opt into scoping.
+    /// </summary>
+    public LinkCapabilityScope? RequestedScope { get; set; }
 
     /// <summary>
     /// Navigation property to the professional who sent this invitation.

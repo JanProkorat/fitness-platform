@@ -92,6 +92,40 @@ public class AcceptClientRequestEndpoint(
         // CanView* flags below are what actually gate plan access and are independent.
         var professionalRole = isNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
+        // A caller-requested scope narrows the CanView* flags below the full set implied
+        // by the caller's held roles — it must never widen them. Reject (400), don't
+        // clamp: silently downgrading a request that asks for more than the caller holds
+        // would mask a client bug and give no signal that the requested scope was denied.
+        if (req.RequestedScope == LinkCapabilityScope.NutritionOnly && !isNutritionist)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        if (req.RequestedScope == LinkCapabilityScope.TrainingOnly && !isTrainer)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        var canViewNutritionPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.NutritionOnly => true,
+            LinkCapabilityScope.TrainingOnly => false,
+            _ => isNutritionist
+        };
+
+        var canViewTrainingPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.TrainingOnly => true,
+            LinkCapabilityScope.NutritionOnly => false,
+            _ => isTrainer
+        };
+
         // Update request status
         clientRequest.Status = ClientRequestStatus.Accepted;
         clientRequest.RespondedAt = DateTime.UtcNow;
@@ -107,8 +141,8 @@ public class AcceptClientRequestEndpoint(
         {
             link.IsActive = true;
             link.ProfessionalRole = professionalRole;
-            link.CanViewNutritionPlans = isNutritionist;
-            link.CanViewTrainingPlans = isTrainer;
+            link.CanViewNutritionPlans = canViewNutritionPlans;
+            link.CanViewTrainingPlans = canViewTrainingPlans;
         }
         else
         {
@@ -118,8 +152,8 @@ public class AcceptClientRequestEndpoint(
                 ProfessionalProfileId = professionalProfile.Id,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
-                CanViewNutritionPlans = isNutritionist,
-                CanViewTrainingPlans = isTrainer
+                CanViewNutritionPlans = canViewNutritionPlans,
+                CanViewTrainingPlans = canViewTrainingPlans
             };
             db.ClientProfessionalLinks.Add(link);
         }

@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 using FitnessPlatform.Tests.Builders;
@@ -13,6 +15,13 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 public class CreatePendingInviteEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
+
+    private static Claim[] MultiRoleClaims(Guid userId, params string[] roles) =>
+    [
+        new Claim(AppClaims.UserId, userId.ToString()),
+        new Claim(AppClaims.Email, "professional@test.com"),
+        .. roles.Select(r => new Claim(ClaimTypes.Role, r))
+    ];
 
     [Fact]
     public async Task HandleAsync_ValidRequest_ReturnsResponseWithId()
@@ -132,5 +141,99 @@ public class CreatePendingInviteEndpointTests
         }, TestContext.Current.CancellationToken);
 
         await act.Should().ThrowAsync<ValidationFailureException>();
+    }
+
+    /// <summary>
+    /// Dual-role professional explicitly narrows the invitation to training only — the
+    /// requested scope must be stamped on both the PendingInvite and the InvitationToken
+    /// so either accept path (token-based or in-app) honors the identical choice.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_DualRoleProfessional_ExplicitTrainingOnlyScope_StampsScopeOnBothRecords()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        PendingInvite? capturedInvite = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => capturedInvite = ci.Arg<PendingInvite>());
+
+        InvitationToken? capturedToken = null;
+        db.InvitationTokens.When(x => x.Add(Arg.Any<InvitationToken>()))
+            .Do(ci => capturedToken = ci.Arg<InvitationToken>());
+
+        var emailService = Substitute.For<IEmailService>();
+        var notificationService = Substitute.For<INotificationService>();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
+        var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
+
+        var ep = Factory.Create<CreatePendingInviteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(MultiRoleClaims(_trainerId, AppRoles.Trainer, AppRoles.Nutritionist))),
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@test.com",
+            RequestedScope = LinkCapabilityScope.TrainingOnly
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        capturedInvite.Should().NotBeNull();
+        capturedInvite!.RequestedScope.Should().Be(LinkCapabilityScope.TrainingOnly);
+        capturedToken.Should().NotBeNull();
+        capturedToken!.RequestedScope.Should().Be(LinkCapabilityScope.TrainingOnly);
+    }
+
+    /// <summary>
+    /// Security invariant (#917): a Trainer-only professional cannot create a pending
+    /// invite requesting NutritionOnly scope — the requested scope must be validated
+    /// as a subset of the caller's actually-held roles. Deleting the subset check
+    /// makes this test fail (proven and reverted — see PR description).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TrainerOnlyProfessional_RequestsNutritionOnlyScope_Returns400WithErrorCode()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        var emailService = Substitute.For<IEmailService>();
+        var notificationService = Substitute.For<INotificationService>();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
+        var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
+
+        var ep = Factory.Create<CreatePendingInviteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(MultiRoleClaims(_trainerId, AppRoles.Trainer))),
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
+
+        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane@test.com",
+            RequestedScope = LinkCapabilityScope.NutritionOnly
+        }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
+        db.PendingInvites.DidNotReceive().Add(Arg.Any<PendingInvite>());
     }
 }

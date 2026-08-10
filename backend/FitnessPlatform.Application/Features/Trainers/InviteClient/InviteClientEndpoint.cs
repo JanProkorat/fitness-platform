@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +53,26 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
             return;
         }
 
+        // A requested scope narrows the eventual link's CanView* flags below the full
+        // set implied by the inviting professional's held roles — it must never widen
+        // them. Reject (400), don't clamp: a request for a domain the professional
+        // doesn't hold is a caller error, not something to silently downgrade.
+        if (req.RequestedScope == LinkCapabilityScope.NutritionOnly && !User.IsInRole(AppRoles.Nutritionist))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        if (req.RequestedScope == LinkCapabilityScope.TrainingOnly && !User.IsInRole(AppRoles.Trainer))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
         var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
 
         var invitation = new InvitationToken
@@ -58,7 +80,8 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
             ProfessionalProfileId = professionalProfile.Id,
             Email = req.Email,
             Token = tokenValue,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            RequestedScope = req.RequestedScope
         };
 
         var trainerUser = await db.Users.FirstAsync(u => u.Id == professionalProfile.UserId, ct);
