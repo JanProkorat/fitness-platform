@@ -87,6 +87,15 @@ public class GetClientTimelineEndpoint(
             return;
         }
 
+        // A link that carries neither capability flag grants no timeline visibility at
+        // all — deny outright (matches ProfessionalAuthHelper.HasAnyPlanAccessAsync
+        // semantics from #903).
+        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
         // Every Mongo document's clientId (MealLog, NutritionPlan, TrainingPlan,
         // WorkoutLog, PersonalRecord) is keyed on ApplicationUser.Id (#840).
         // QuestionnaireResponse.ClientId is an EF entity keyed on UserId too.
@@ -98,11 +107,13 @@ public class GetClientTimelineEndpoint(
         var items = new List<ClientTimelineItem>();
 
         // ── 1. Meal logs — aggregate per day to avoid dozens of rows ──
-        var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
-            & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
-
-        using (var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct))
+        // Nutrition-domain: gated on CanViewNutritionPlans.
+        if (link.CanViewNutritionPlans)
         {
+            var mealFilter = Builders<MealLog>.Filter.Eq(l => l.ClientId, clientUserId)
+                & Builders<MealLog>.Filter.Gte(l => l.EatenAt, from);
+
+            using var cursor = await mongo.MealLogs.FindAsync(mealFilter, cancellationToken: ct);
             var logs = await cursor.ToListAsync(ct);
             // Group by EatenAt date when available; fall back to LogDate for photo-only
             // entries that slipped through the Gte filter (defensive).
@@ -126,13 +137,15 @@ public class GetClientTimelineEndpoint(
         // ── 2. Workout logs (completed) ──
         // #841: scoped to executions that carry Performance data (a live-training-assistant
         // log) — checkbox-only completions never appeared in the old WorkoutLogs collection.
-        var workoutFilter = Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId)
-            & Builders<SessionExecution>.Filter.Exists(l => l.Performance)
-            & Builders<SessionExecution>.Filter.Gte(l => l.Performance!.StartedAt, from)
-            & Builders<SessionExecution>.Filter.Eq(l => l.Status, SessionExecutionStatus.Completed);
-
-        using (var cursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct))
+        // Training-domain: gated on CanViewTrainingPlans.
+        if (link.CanViewTrainingPlans)
         {
+            var workoutFilter = Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId)
+                & Builders<SessionExecution>.Filter.Exists(l => l.Performance)
+                & Builders<SessionExecution>.Filter.Gte(l => l.Performance!.StartedAt, from)
+                & Builders<SessionExecution>.Filter.Eq(l => l.Status, SessionExecutionStatus.Completed);
+
+            using var cursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct);
             var logs = await cursor.ToListAsync(ct);
             foreach (var log in logs)
             {
@@ -150,7 +163,9 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        // ── 3. Body measurements ──
+        // ── 3. Body measurements — dual-readable standalone entries (not attached to a
+        //      nutrition or training item), so they stay visible to any caller holding
+        //      at least one capability flag. See #916 classification rule. ──
         var measurements = await db.BodyMeasurements
             .AsNoTracking()
             .Where(bm => bm.ClientProfileId == clientProfile.Id && bm.MeasuredAt >= from)
@@ -171,7 +186,8 @@ public class GetClientTimelineEndpoint(
             });
         }
 
-        // ── 4. Questionnaire responses (submitted only) ──
+        // ── 4. Questionnaire responses (submitted only) — dual-readable standalone
+        //      entries, same rationale as body measurements above. ──
         var questionnaires = await db.QuestionnaireResponses
             .AsNoTracking()
             .Include(r => r.Questionnaire)
@@ -196,11 +212,13 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 5. Nutrition & training plan publish events ──
-        var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
-            & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
-
-        using (var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct))
+        // Nutrition-domain: gated on CanViewNutritionPlans.
+        if (link.CanViewNutritionPlans)
         {
+            var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+                & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
+
+            using var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct);
             var plans = await cursor.ToListAsync(ct);
             foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
             {
@@ -216,11 +234,13 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
-            & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
-
-        using (var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct))
+        // Training-domain: gated on CanViewTrainingPlans.
+        if (link.CanViewTrainingPlans)
         {
+            var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+                & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
+
+            using var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
             var plans = await cursor.ToListAsync(ct);
             foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
             {
@@ -236,12 +256,13 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        // ── 6. Personal records ──
-        var prFilter = Builders<PersonalRecord>.Filter.Eq(r => r.ClientId, clientUserId)
-            & Builders<PersonalRecord>.Filter.Gte(r => r.AchievedAt, from);
-
-        using (var cursor = await mongo.PersonalRecords.FindAsync(prFilter, cancellationToken: ct))
+        // ── 6. Personal records ── Training-domain: gated on CanViewTrainingPlans.
+        if (link.CanViewTrainingPlans)
         {
+            var prFilter = Builders<PersonalRecord>.Filter.Eq(r => r.ClientId, clientUserId)
+                & Builders<PersonalRecord>.Filter.Gte(r => r.AchievedAt, from);
+
+            using var cursor = await mongo.PersonalRecords.FindAsync(prFilter, cancellationToken: ct);
             var records = await cursor.ToListAsync(ct);
             foreach (var record in records)
             {
@@ -266,7 +287,7 @@ public class GetClientTimelineEndpoint(
             }
         }
 
-        // ── 7. Trainer-client link (the "klient propojen" event) ──
+        // ── 7. Trainer-client link (the "klient propojen" event) — dual-readable. ──
         items.Add(new ClientTimelineItem
         {
             Id = $"linked:{link.PublicId}",
@@ -290,6 +311,11 @@ public class GetClientTimelineEndpoint(
             .Take(req.Limit)
             .ToList();
 
-        await Send.OkAsync(new GetClientTimelineResponse { Items = ordered }, ct);
+        await Send.OkAsync(new GetClientTimelineResponse
+        {
+            Items = ordered,
+            CanViewNutritionPlans = link.CanViewNutritionPlans,
+            CanViewTrainingPlans = link.CanViewTrainingPlans
+        }, ct);
     }
 }

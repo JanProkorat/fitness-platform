@@ -80,4 +80,16 @@ public class GetClientTimelineResponse
     /// Timeline items, ordered by <see cref="ClientTimelineItem.OccurredAt"/> descending.
     /// </summary>
     public List<ClientTimelineItem> Items { get; set; } = [];
+
+    /// <summary>
+    /// Whether the caller's link permits viewing the client's nutrition-domain timeline
+    /// entries. Mirrors <c>ClientProfessionalLink.CanViewNutritionPlans</c>.
+    /// </summary>
+    public bool CanViewNutritionPlans { get; set; }
+
+    /// <summary>
+    /// Whether the caller's link permits viewing the client's training-domain timeline
+    /// entries. Mirrors <c>ClientProfessionalLink.CanViewTrainingPlans</c>.
+    /// </summary>
+    public bool CanViewTrainingPlans { get; set; }
 }

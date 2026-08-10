@@ -85,6 +85,15 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             return;
         }
 
+        // A link that carries neither capability flag grants no dashboard visibility at
+        // all — deny outright (matches ProfessionalAuthHelper.HasAnyPlanAccessAsync
+        // semantics from #903).
+        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
         // Count body measurements and progress photos
         var totalMeasurements = await db.BodyMeasurements
             .AsNoTracking()
@@ -107,9 +116,19 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             })
             .FirstOrDefaultAsync(ct);
 
-        // Calculate compliance data (last 7 days)
+        // Calculate compliance data (last 7 days). Substitute the caller-visible value
+        // into the existing wire fields rather than dropping them — a single-flag caller
+        // gets their own domain's figure (CompliancePercent is the COMBINED weighted
+        // figure per IComplianceService; returning it unfiltered to a single-flag caller
+        // would leak the other domain's adherence by inference).
         decimal? compliancePercent = null;
         var currentStreak = 0;
+
+        var discipline = link.CanViewNutritionPlans && link.CanViewTrainingPlans
+            ? ComplianceDiscipline.Both
+            : link.CanViewNutritionPlans
+                ? ComplianceDiscipline.NutritionOnly
+                : ComplianceDiscipline.TrainingOnly;
 
         try
         {
@@ -117,8 +136,13 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
                 clientProfile.UserId, complianceFrom, complianceTo, ct);
-            compliancePercent = compliance.CompliancePercent;
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, ct);
+            compliancePercent = discipline switch
+            {
+                ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
+                ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
+                _ => compliance.CompliancePercent
+            };
+            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, discipline, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

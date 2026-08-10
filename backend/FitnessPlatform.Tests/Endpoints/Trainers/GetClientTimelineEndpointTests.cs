@@ -92,6 +92,11 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
     /// <summary>
     /// Creates an active ClientProfessionalLink between the given trainer and client
     /// profiles, inserted directly into Postgres (bypassing the invite flow).
+    /// Both capability flags are granted by default so the pre-existing tests in this
+    /// file (ordering, PR payload structure, dedup) exercise the merged-timeline behaviour
+    /// without being entangled with the #916 per-domain gating — see
+    /// <see cref="FitnessPlatform.Tests.Endpoints.Authorization.CrossDomainPlanAccessTests"/>
+    /// for the single-flag gating coverage.
     /// </summary>
     private async Task LinkTrainerToClientAsync(long trainerProfileId, long clientProfileId)
     {
@@ -106,7 +111,7 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             ProfessionalRole = UserRole.Trainer,
             IsActive = true,
             CanViewTrainingPlans = true,
-            CanViewNutritionPlans = false,
+            CanViewNutritionPlans = true,
             DateCreated = DateTime.UtcNow,
         });
 
