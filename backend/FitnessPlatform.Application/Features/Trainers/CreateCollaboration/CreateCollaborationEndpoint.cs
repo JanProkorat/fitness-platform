@@ -166,6 +166,24 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             _ => collaboratorIsTrainer
         }) && callerLink.CanViewTrainingPlans;
 
+        // A both-flags-false link is a state the rest of the system already treats as
+        // invalid — every gated read endpoint returns 403 for a link carrying neither
+        // capability (#916), and this combination is otherwise unreachable in
+        // production. Reject (400) rather than persist: a row the readers refuse to
+        // honour is a worse outcome than a clear rejection — it would put a
+        // professional in the client's collaborations list who can see nothing, and
+        // report success for an operation that achieved nothing. The earlier
+        // caller-capability guard above stays too — it's cheaper and gives a clearer
+        // failure for the "caller holds nothing at all" case; this one catches the
+        // narrower "caller and collaborator hold disjoint capabilities" case.
+        if (!canViewNutritionPlans && !canViewTrainingPlans)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
         // Create the new ClientProfessionalLink
         var link = new ClientProfessionalLink
         {

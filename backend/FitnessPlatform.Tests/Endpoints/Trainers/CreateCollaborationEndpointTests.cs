@@ -211,12 +211,16 @@ public class CreateCollaborationEndpointTests
     /// <summary>
     /// Security invariant (sec-f2): a caller whose own link only grants nutrition
     /// visibility cannot mint a collaborator link that grants training visibility,
-    /// even when the collaborator holds the Trainer role. The stamped flags are
-    /// clamped to the intersection of the collaborator's held roles and the caller's
-    /// own link — the caller cannot delegate a capability they do not hold.
+    /// even when the collaborator holds the Trainer role. The intersection of the
+    /// collaborator's held roles and the caller's own link flags collapses to
+    /// both-false here (collaborator isn't a nutritionist; caller can't delegate
+    /// training) — the endpoint rejects (400) rather than persist a link the rest
+    /// of the system already treats as invalid (every gated read endpoint 403s a
+    /// link with neither CanView* flag, #916). No row must be created — assert the
+    /// absence of the write, not just the status code.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_NutritionOnlyLinkedCaller_CannotMintTrainingCapableLink()
+    public async Task HandleAsync_NutritionOnlyLinkedCaller_TrainerOnlyCollaborator_Returns400_NoLinkCreated()
     {
         var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
             .WithFirstName("B").WithLastName("Trainer").Build();
@@ -251,15 +255,16 @@ public class CreateCollaborationEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerAId, AppRoles.Nutritionist))),
             db, userManager);
 
-        await ep.HandleAsync(new CreateCollaborationRequest
+        var act = () => ep.HandleAsync(new CreateCollaborationRequest
         {
             ClientPublicId = clientProfile.PublicId,
             CollaboratorPublicId = trainerBProfile.PublicId
         }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(201);
-        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
-            l => !l.CanViewTrainingPlans && !l.CanViewNutritionPlans));
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
 
     /// <summary>
