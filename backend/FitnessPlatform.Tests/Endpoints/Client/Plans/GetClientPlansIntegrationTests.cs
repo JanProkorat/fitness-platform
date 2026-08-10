@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -132,8 +133,120 @@ public class GetClientPlansIntegrationTests(FitnessApiFactory factory)
             "plan A has only a draft week and must be excluded by the ElemMatch filter");
     }
 
+    /// <summary>
+    /// Reproduces the #873 cross-endpoint disagreement against a real MongoDB instance: a client
+    /// holds two Active training plans of the same type — one ranged (<c>StartDate</c> covers
+    /// today) and one unranged (legacy data, no <c>StartDate</c>), both with a session scheduled
+    /// on today's day-of-week. <c>GetTodaySessionEndpoint</c> resolves the ranged plan as
+    /// "current" via <c>PlanWindowResolver.ResolveCurrentPlan</c>; <c>GetClientPlansEndpoint</c>
+    /// must agree — before the fix, it independently evaluated each plan's own legacy week-cycle
+    /// formula and reported the unranged sibling as also having a live session today.
+    /// </summary>
+    [Fact]
+    public async Task ActiveTrainingPlans_UnrangedSiblingOfSelectedRangedPlan_AgreesWithGetTodaySession()
+    {
+        var httpClient = factory.CreateClient();
+
+        // ── 1. Register + log in a real client ──
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Test", "Client", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == clientEmail,
+                TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == user.Id,
+                TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+
+        // ── 2. Seed two Active TrainingPlan documents — one ranged, one unranged ──
+        var rangedPlanId = Guid.NewGuid();
+        var rangedPlan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: rangedPlanId,
+            clientId: clientUserId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        rangedPlan.StartDate = DateTime.UtcNow.Date;
+        rangedPlan.Weeks[0].Status = WeekStatus.Published;
+        rangedPlan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        rangedPlan.Weeks[0].Days.First(d => d.DayOfWeek == todayDow).Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Ranged Plan Session",
+            Order = 1
+        });
+
+        var unrangedPlanId = Guid.NewGuid();
+        var unrangedPlan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: unrangedPlanId,
+            clientId: clientUserId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        // StartDate deliberately left null — legacy unranged plan.
+        unrangedPlan.Weeks[0].Status = WeekStatus.Published;
+        unrangedPlan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        unrangedPlan.Weeks[0].Days.First(d => d.DayOfWeek == todayDow).Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Unranged Plan Session",
+            Order = 1
+        });
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(rangedPlan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.TrainingPlans.InsertOneAsync(unrangedPlan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+
+        // ── 3. GET /client/plans?status=Active ──
+        var plansResponse = await httpClient.GetAsync(
+            "/client/plans?status=Active",
+            TestContext.Current.CancellationToken);
+        plansResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var plansBody = await plansResponse.Content.ReadFromJsonAsync<PlansWithSessionResponse>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        plansBody.Should().NotBeNull();
+
+        var rangedItem = plansBody!.Items.Single(i => i.PlanId == rangedPlanId);
+        var unrangedItem = plansBody.Items.Single(i => i.PlanId == unrangedPlanId);
+
+        // ── 4. GET /client/training/plan/today ──
+        var todayResponse = await httpClient.GetAsync(
+            "/client/training/plan/today",
+            TestContext.Current.CancellationToken);
+        todayResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var todayBody = await todayResponse.Content.ReadFromJsonAsync<TodaySessionResponse>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        todayBody.Should().NotBeNull();
+
+        // ── 5. The two endpoints must agree ──
+        todayBody!.PlanId.Should().Be(rangedPlanId,
+            "PlanWindowResolver.ResolveCurrentPlan must select the ranged plan over its unranged sibling");
+        todayBody.HasSession.Should().BeTrue();
+
+        rangedItem.HasTodaySession.Should().BeTrue();
+        unrangedItem.HasTodaySession.Should().BeFalse(
+            "the unranged sibling was not selected as the current plan and must not independently claim a live session");
+    }
+
     // ── Local response DTOs (not sharing across features per slice rules) ──
 
     private record PlanItem(Guid PlanId, string Type, string Status);
     private record PlansResponse(List<PlanItem> Items);
+
+    private record PlanWithSessionItem(Guid PlanId, bool? HasTodaySession);
+    private record PlansWithSessionResponse(List<PlanWithSessionItem> Items);
+    private record TodaySessionResponse(Guid? PlanId, bool HasSession);
 }
