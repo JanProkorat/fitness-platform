@@ -188,21 +188,29 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         // the canonical clientId for Mongo documents (#840). A client may hold several
         // sequential, non-overlapping Active plans (#780), so pick the one whose window
         // contains today rather than the most recent.
+        //
+        // Gated on CanViewNutritionPlans: a training-only caller must not trigger this
+        // query at all, otherwise the plan's Goal/TargetWeightKg would win via the ??
+        // fallback below and disclose the existence/values of a plan the caller has no
+        // visibility into (#921).
         NutritionPlan? activePlan = null;
-        try
+        if (link.CanViewNutritionPlans)
         {
-            var planFilter = Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
-                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+            try
+            {
+                var planFilter = Builders<NutritionPlan>.Filter.And(
+                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
-            using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
-            var activePlans = await planCursor.ToListAsync(ct);
-            activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
-        }
-        catch (MongoDB.Driver.MongoException ex)
-        {
-            // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
-            Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
+                using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
+                var activePlans = await planCursor.ToListAsync(ct);
+                activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+            }
+            catch (MongoDB.Driver.MongoException ex)
+            {
+                // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
+                Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
+            }
         }
 
         OnboardingDataDto? onboarding = null;
