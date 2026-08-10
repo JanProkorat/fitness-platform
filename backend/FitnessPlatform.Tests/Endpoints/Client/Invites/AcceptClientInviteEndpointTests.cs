@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Client.Invites.Accept;
 using FitnessPlatform.Tests.Builders;
@@ -185,6 +186,52 @@ public class AcceptClientInviteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
             default, default, default, default!, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// The PendingInvite carries an explicit RequestedScope stamped at invite-creation
+    /// time (#917) — the accept flow must honor it instead of re-deriving both flags
+    /// from the professional's current held roles, even though the professional holds
+    /// both roles here.
+    /// </summary>
+    [Fact]
+    public async Task Accept_InviteCarriesExplicitScope_HonorsStoredScopeOverHeldRoles()
+    {
+        var clientId = Guid.NewGuid();
+        var inviteId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client@example.com");
+        var professionalUserId = Guid.NewGuid();
+        var professionalUser = CreateUser(professionalUserId, "pro@example.com");
+        var professionalProfile = new ProfessionalProfile
+        {
+            Id = 1, PublicId = Guid.NewGuid(), UserId = professionalUserId, User = professionalUser
+        };
+        var invite = new PendingInvite
+        {
+            PublicId = inviteId,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Email = "client@example.com",
+            IsAccepted = false,
+            RequestedScope = LinkCapabilityScope.NutritionOnly
+        };
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(professionalProfile)
+            .With(invite)
+            .Build();
+
+        _userManager.FindByIdAsync(professionalUserId.ToString()).Returns(professionalUser);
+        _userManager.GetRolesAsync(professionalUser).Returns(["Trainer", "Nutritionist"]);
+
+        var ep = CreateEndpoint(clientId, db);
+
+        await ep.HandleAsync(new AcceptClientInviteRequest { Id = inviteId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.CanViewNutritionPlans && !l.CanViewTrainingPlans));
     }
 
     [Fact]

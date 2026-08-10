@@ -123,14 +123,35 @@ public class AcceptInvitationEndpoint(
                     && pi.Email == invitation.Email
                     && !pi.IsAccepted, ct);
 
+            // Honor the scope the professional selected at invite-creation time (already
+            // validated as a subset of their held roles there) rather than re-deriving
+            // from global roles here. Falls back to the full held-role set when the
+            // invite carries no explicit scope — invites created before this field
+            // existed, or where the professional didn't opt in.
+            var requestedScope = invitation.RequestedScope ?? pendingInvite?.RequestedScope;
+
+            var canViewNutritionPlans = requestedScope switch
+            {
+                LinkCapabilityScope.NutritionOnly => true,
+                LinkCapabilityScope.TrainingOnly => false,
+                _ => professionalIsNutritionist
+            };
+
+            var canViewTrainingPlans = requestedScope switch
+            {
+                LinkCapabilityScope.TrainingOnly => true,
+                LinkCapabilityScope.NutritionOnly => false,
+                _ => professionalIsTrainer
+            };
+
             var link = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
                 ProfessionalProfileId = invitation.ProfessionalProfileId,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
-                CanViewNutritionPlans = professionalIsNutritionist,
-                CanViewTrainingPlans = professionalIsTrainer,
+                CanViewNutritionPlans = canViewNutritionPlans,
+                CanViewTrainingPlans = canViewTrainingPlans,
                 QuestionnaireId = pendingInvite?.QuestionnaireId
             };
 

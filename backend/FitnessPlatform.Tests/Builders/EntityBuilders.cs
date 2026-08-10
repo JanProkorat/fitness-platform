@@ -344,6 +344,7 @@ public class InvitationTokenBuilder
     private string _token = "invite-token";
     private DateTime _expiresAt = DateTime.UtcNow.AddDays(7);
     private bool _isUsed;
+    private LinkCapabilityScope? _requestedScope;
     private ProfessionalProfile? _professionalProfile;
 
     /// <summary>
@@ -382,12 +383,18 @@ public class InvitationTokenBuilder
     public InvitationTokenBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
+    /// Sets the requested link capability scope.
+    /// </summary>
+    public InvitationTokenBuilder WithRequestedScope(LinkCapabilityScope? scope) { _requestedScope = scope; return this; }
+
+    /// <summary>
     /// Builds the <see cref="Application.Domain.Entities.InvitationToken"/> instance.
     /// </summary>
     public InvitationToken Build() => new()
     {
         ProfessionalProfileId = _professionalProfileId, Email = _email, Token = _token,
-        ExpiresAt = _expiresAt, IsUsed = _isUsed, ProfessionalProfile = _professionalProfile!
+        ExpiresAt = _expiresAt, IsUsed = _isUsed, RequestedScope = _requestedScope,
+        ProfessionalProfile = _professionalProfile!
     };
 }
 
@@ -403,6 +410,7 @@ public class PendingInviteBuilder
     private string _email = "invited@test.com";
     private DateTime _sentAt = DateTime.UtcNow;
     private bool _isAccepted;
+    private LinkCapabilityScope? _requestedScope;
     private ProfessionalProfile? _professionalProfile;
 
     /// <summary>
@@ -441,6 +449,11 @@ public class PendingInviteBuilder
     public PendingInviteBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
+    /// Sets the requested link capability scope.
+    /// </summary>
+    public PendingInviteBuilder WithRequestedScope(LinkCapabilityScope? scope) { _requestedScope = scope; return this; }
+
+    /// <summary>
     /// Builds the <see cref="Application.Domain.Entities.PendingInvite"/> instance.
     /// </summary>
     public Application.Domain.Entities.PendingInvite Build() => new()
@@ -452,6 +465,7 @@ public class PendingInviteBuilder
         Email = _email,
         SentAt = _sentAt,
         IsAccepted = _isAccepted,
+        RequestedScope = _requestedScope,
         ProfessionalProfile = _professionalProfile!
     };
 }

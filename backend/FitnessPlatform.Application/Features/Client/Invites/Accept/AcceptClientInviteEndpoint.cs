@@ -97,14 +97,32 @@ public class AcceptClientInviteEndpoint(
             var profIsNutritionist = profRoles.Contains(AppRoles.Nutritionist);
             var profRole = profIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
+            // Honor the scope the professional selected at invite-creation time (already
+            // validated as a subset of their held roles there) rather than re-deriving
+            // from global roles here. Falls back to the full held-role set when the
+            // invite carries no explicit scope.
+            var canViewNutritionPlans = invite.RequestedScope switch
+            {
+                LinkCapabilityScope.NutritionOnly => true,
+                LinkCapabilityScope.TrainingOnly => false,
+                _ => profIsNutritionist
+            };
+
+            var canViewTrainingPlans = invite.RequestedScope switch
+            {
+                LinkCapabilityScope.TrainingOnly => true,
+                LinkCapabilityScope.NutritionOnly => false,
+                _ => profIsTrainer
+            };
+
             newLink = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
                 ProfessionalProfileId = invite.ProfessionalProfileId,
                 ProfessionalRole = profRole,
                 IsActive = true,
-                CanViewNutritionPlans = profIsNutritionist,
-                CanViewTrainingPlans = profIsTrainer,
+                CanViewNutritionPlans = canViewNutritionPlans,
+                CanViewTrainingPlans = canViewTrainingPlans,
                 QuestionnaireId = invite.QuestionnaireId
             };
             db.ClientProfessionalLinks.Add(newLink);
