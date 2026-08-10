@@ -371,6 +371,32 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         afterBody!.Plans.Should().NotContain(p => p.PlanId == planId);
     }
 
+    [Fact]
+    public async Task RevokedLink_PublishWeek_Returns404_AndDoesNotPublish()
+    {
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "revoked-nut-publish", "Nutritionist");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("revoked-nut-publish");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var planId = await SeedNutritionPlanAsync(
+            clientUserId, professionalUserId, NutritionPlanStatus.Draft, today);
+
+        await DeactivateLinkAsync(linkPublicId);
+
+        var response = await professional.PostAsJsonAsync(
+            $"/nutrition/plans/{planId}/weeks/1/publish", new { Version = 1 });
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "publishing pushes content into the client's app with a notification and a realtime event");
+
+        var status = await ReadNutritionPlanStatusAsync(planId);
+        status.Should().Be(
+            NutritionPlanStatus.Draft, "the denied publish must not have flipped the plan to Active");
+    }
+
     // ── per-domain: one capability flag never reaches the other domain ───────
 
     [Fact]
