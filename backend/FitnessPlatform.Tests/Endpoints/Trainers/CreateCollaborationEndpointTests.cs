@@ -208,6 +208,165 @@ public class CreateCollaborationEndpointTests
         db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
 
+    /// <summary>
+    /// Security invariant (sec-f2): a caller whose own link only grants nutrition
+    /// visibility cannot mint a collaborator link that grants training visibility,
+    /// even when the collaborator holds the Trainer role. The stamped flags are
+    /// clamped to the intersection of the collaborator's held roles and the caller's
+    /// own link — the caller cannot delegate a capability they do not hold.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NutritionOnlyLinkedCaller_CannotMintTrainingCapableLink()
+    {
+        var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
+            .WithFirstName("B").WithLastName("Trainer").Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-clamp@test.com")
+            .WithFirstName("C").WithLastName("U").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // Caller's own link is nutrition-only — no training visibility to delegate.
+        var existingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerAProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerAProfile)
+            .With(trainerBProfile)
+            .With(clientProfile)
+            .With(existingLink)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.GetRolesAsync(trainerBUser).Returns(["Trainer"]);
+
+        var ep = Factory.Create<CreateCollaborationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerAId, AppRoles.Nutritionist))),
+            db, userManager);
+
+        await ep.HandleAsync(new CreateCollaborationRequest
+        {
+            ClientPublicId = clientProfile.PublicId,
+            CollaboratorPublicId = trainerBProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => !l.CanViewTrainingPlans && !l.CanViewNutritionPlans));
+    }
+
+    /// <summary>
+    /// Security invariant (sec-f2): a caller whose own link grants neither CanView*
+    /// flag has nothing to delegate at all and is rejected outright, before the
+    /// collaborator is even looked up.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_CallerLinkGrantsNoCapability_Returns400WithErrorCode()
+    {
+        var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
+            .WithFirstName("B").WithLastName("Trainer").Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-nocap@test.com")
+            .WithFirstName("C").WithLastName("U").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // Caller's link is active but grants neither capability.
+        var existingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerAProfile)
+            .WithCanViewNutritionPlans(false)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerAProfile)
+            .With(trainerBProfile)
+            .With(clientProfile)
+            .With(existingLink)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+
+        var ep = Factory.Create<CreateCollaborationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerAId, AppRoles.Trainer))),
+            db, userManager);
+
+        var act = () => ep.HandleAsync(new CreateCollaborationRequest
+        {
+            ClientPublicId = clientProfile.PublicId,
+            CollaboratorPublicId = trainerBProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+    }
+
+    /// <summary>
+    /// Security invariant (sec-f2): a fully-capable caller (both CanView* flags) can
+    /// still create a collaboration with a collaborator holding only one role — the
+    /// stamped flags equal the intersection, which here collapses to exactly what the
+    /// collaborator's own role permits.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FullyCapableCaller_TrainerOnlyCollaborator_StampsIntersection()
+    {
+        var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
+            .WithFirstName("B").WithLastName("Trainer").Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-full@test.com")
+            .WithFirstName("C").WithLastName("U").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // Caller's own link grants both capabilities — no clamping ceiling from the caller.
+        var existingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerAProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(true)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerAProfile)
+            .With(trainerBProfile)
+            .With(clientProfile)
+            .With(existingLink)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.GetRolesAsync(trainerBUser).Returns(["Trainer"]);
+
+        var ep = Factory.Create<CreateCollaborationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerAId, AppRoles.Trainer))),
+            db, userManager);
+
+        await ep.HandleAsync(new CreateCollaborationRequest
+        {
+            ClientPublicId = clientProfile.PublicId,
+            CollaboratorPublicId = trainerBProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.CanViewTrainingPlans && !l.CanViewNutritionPlans));
+    }
+
     [Fact]
     public async Task HandleAsync_NoActiveLink_ThrowsError()
     {

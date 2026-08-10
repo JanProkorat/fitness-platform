@@ -103,6 +103,8 @@ public static class ErrorCodes
     /// Requested link capability scope (see <see cref="Enums.LinkCapabilityScope"/>) exceeds
     /// the identity roles actually held by the professional the link's CanView flags gate —
     /// the caller on AcceptClientRequestEndpoint, the collaborator on CreateCollaborationEndpoint.
+    /// Also used on CreateCollaborationEndpoint when the caller's own link grants neither
+    /// CanView* flag: a caller cannot delegate a capability their own link does not hold.
     /// </summary>
     public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
 
