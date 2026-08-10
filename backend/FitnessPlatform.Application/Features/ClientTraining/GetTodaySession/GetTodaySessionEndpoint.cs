@@ -278,6 +278,30 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             // Build a lookup for sessions by sessionId so backfill can resolve workout membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
+            // Per-session (workoutId?, exerciseExternalId) → the specific SessionExercise
+            // instance placement, so Performance-derived per-set data (which carries the
+            // containing LoggedWorkout.WorkoutId but no instance id) can be attributed to the
+            // correct placement when the same catalog exercise appears both standalone and
+            // nested in one session (#885). workoutId is null for a standalone placement.
+            // GroupBy+First (not a plain ToDictionary) defensively collapses the one case this
+            // cannot disambiguate — the same catalog exercise nested twice in the SAME workout —
+            // to a first-occurrence-wins read rather than throwing on the duplicate key.
+            var placementLookupBySession = todaySessions.ToDictionary(
+                s => s.SessionId,
+                s => s.Workouts
+                    .SelectMany(w => w.Exercises.Select(e => (Key: ((Guid?)w.WorkoutId, e.ExerciseExternalId), Instance: e)))
+                    .Concat(s.StandaloneExercises.Select(e => (Key: ((Guid?)null, e.ExerciseExternalId), Instance: e)))
+                    .GroupBy(x => x.Key)
+                    .ToDictionary(g => g.Key, g => g.First().Instance));
+
+            // Per-session set of real nested TrainingWorkout ids — used to tell a Performance-side
+            // LoggedWorkout.WorkoutId that matches a real nested workout apart from the fallback id
+            // UpdateWorkoutEndpoint's legacy single-workout path assigns when the client sends no
+            // WorkoutId (the shape a standalone exercise's log takes).
+            var nestedWorkoutIdsBySession = todaySessions.ToDictionary(
+                s => s.SessionId,
+                s => s.Workouts.Select(w => w.WorkoutId).ToHashSet());
+
             foreach (var doc in executionDocs)
             {
                 var sessionId = doc.SessionId!.Value;
@@ -357,68 +381,104 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                 var loggedSetsForExercise = new Dictionary<Guid, List<LoggedSetDto>>();
                 var sessionHasModifications = false;
 
-                foreach (var ex in log.Exercises)
+                // Per-instance accumulators (#885) — additive alongside the catalog-keyed ones
+                // above; populated only when the containing WorkoutId (or its absence) resolves
+                // to exactly one known placement.
+                var completedSetsByInstance = new Dictionary<Guid, List<int>>();
+                var loggedSetsByInstance = new Dictionary<Guid, List<LoggedSetDto>>();
+
+                placementLookupBySession.TryGetValue(log.SessionId.Value, out var placementLookup);
+                nestedWorkoutIdsBySession.TryGetValue(log.SessionId.Value, out var nestedWorkoutIds);
+
+                foreach (var workout in log.Performance!.Workouts)
                 {
-                    if (ex.Sets.Count == 0) continue;
-                    if (ex.Sets.All(s => s.CompletedAt is not null))
+                    var workoutKey = nestedWorkoutIds is not null && nestedWorkoutIds.Contains(workout.WorkoutId)
+                        ? workout.WorkoutId
+                        : (Guid?)null;
+
+                    foreach (var ex in workout.Exercises)
                     {
-                        set.Add(ex.ExerciseExternalId);
+                        if (ex.Sets.Count == 0) continue;
 
-                        // Source 2 of the per-instance field (#877): Performance carries no
-                        // instance id (see WorkoutExercise), so a fully-logged catalog exercise
-                        // fans out to EVERY SessionExercise instance in this session sharing that
-                        // catalog id — documented on GetTodaySessionResponse's XML docs above.
-                        if (sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession))
+                        SessionExercise? matchedInstance = null;
+                        placementLookup?.TryGetValue((workoutKey, ex.ExerciseExternalId), out matchedInstance);
+
+                        if (ex.Sets.All(s => s.CompletedAt is not null))
                         {
-                            if (!completedInstancesBySession.TryGetValue(log.SessionId.Value, out var instanceSet))
-                            {
-                                completedInstancesBySession[log.SessionId.Value] = instanceSet = [];
-                            }
+                            set.Add(ex.ExerciseExternalId);
 
-                            foreach (var matchingInstanceId in performanceSession.AllExercises
-                                         .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
-                                         .Select(sessionExercise => sessionExercise.ExerciseId))
+                            // Source 2 of the per-instance field (#877): Performance carries no
+                            // instance id (see WorkoutExercise), so a fully-logged catalog exercise
+                            // fans out to EVERY SessionExercise instance in this session sharing that
+                            // catalog id — documented on GetTodaySessionResponse's XML docs above.
+                            if (sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession))
                             {
-                                instanceSet.Add(matchingInstanceId);
+                                if (!completedInstancesBySession.TryGetValue(log.SessionId.Value, out var instanceSet))
+                                {
+                                    completedInstancesBySession[log.SessionId.Value] = instanceSet = [];
+                                }
+
+                                foreach (var matchingInstanceId in performanceSession.AllExercises
+                                             .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
+                                             .Select(sessionExercise => sessionExercise.ExerciseId))
+                                {
+                                    instanceSet.Add(matchingInstanceId);
+                                }
                             }
                         }
+
+                        var completedSetNumbers = ex.Sets
+                            .Where(s => s.CompletedAt is not null)
+                            .Select(s => s.SetNumber)
+                            .ToList();
+                        if (completedSetNumbers.Count > 0)
+                            setsForExerciseInSession[ex.ExerciseExternalId] = completedSetNumbers;
+
+                        // Build value-bearing LoggedSetDto list for every set in this exercise.
+                        var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
+                        {
+                            SetNumber = s.SetNumber,
+                            ActualReps = s.Reps,
+                            ActualWeightKg = s.WeightKg,
+                            ActualRpe = s.Rpe,
+                            ActualDurationSeconds = s.DurationSeconds,
+                            ActualDistanceMeters = s.DistanceMeters,
+                            PlannedReps = s.PlannedReps,
+                            PlannedWeightKg = s.PlannedWeightKg,
+                            PlannedRpe = s.PlannedRpe,
+                            PlannedDurationSeconds = s.PlannedDurationSeconds,
+                            PlannedDistanceMeters = s.PlannedDistanceMeters,
+                            IsModified = s.IsModified
+                        }).ToList();
+
+                        loggedSetsForExercise[ex.ExerciseExternalId] = loggedSetDtos;
+
+                        if (loggedSetDtos.Any(s => s.IsModified))
+                            sessionHasModifications = true;
+
+                        // Per-instance attribution (#885): only when this Performance entry
+                        // resolves to a single known placement — precise, unlike the
+                        // catalog-keyed writes above which apply regardless of how many
+                        // placements share the catalog id.
+                        if (matchedInstance is not null)
+                        {
+                            if (completedSetNumbers.Count > 0)
+                                completedSetsByInstance[matchedInstance.ExerciseId] = completedSetNumbers;
+                            loggedSetsByInstance[matchedInstance.ExerciseId] = loggedSetDtos;
+                        }
                     }
-
-                    var completedSetNumbers = ex.Sets
-                        .Where(s => s.CompletedAt is not null)
-                        .Select(s => s.SetNumber)
-                        .ToList();
-                    if (completedSetNumbers.Count > 0)
-                        setsForExerciseInSession[ex.ExerciseExternalId] = completedSetNumbers;
-
-                    // Build value-bearing LoggedSetDto list for every set in this exercise.
-                    var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
-                    {
-                        SetNumber = s.SetNumber,
-                        ActualReps = s.Reps,
-                        ActualWeightKg = s.WeightKg,
-                        ActualRpe = s.Rpe,
-                        ActualDurationSeconds = s.DurationSeconds,
-                        ActualDistanceMeters = s.DistanceMeters,
-                        PlannedReps = s.PlannedReps,
-                        PlannedWeightKg = s.PlannedWeightKg,
-                        PlannedRpe = s.PlannedRpe,
-                        PlannedDurationSeconds = s.PlannedDurationSeconds,
-                        PlannedDistanceMeters = s.PlannedDistanceMeters,
-                        IsModified = s.IsModified
-                    }).ToList();
-
-                    loggedSetsForExercise[ex.ExerciseExternalId] = loggedSetDtos;
-
-                    if (loggedSetDtos.Any(s => s.IsModified))
-                        sessionHasModifications = true;
                 }
+
                 if (setsForExerciseInSession.Count > 0)
                     response.CompletedSetsBySessionExercise[log.SessionId.Value] = setsForExerciseInSession;
                 if (loggedSetsForExercise.Count > 0)
                     response.LoggedSetsBySessionExercise[log.SessionId.Value] = loggedSetsForExercise;
                 if (sessionHasModifications)
                     response.HasModificationsBySession[log.SessionId.Value] = true;
+                if (completedSetsByInstance.Count > 0)
+                    response.CompletedSetsByExerciseInstanceBySession[log.SessionId.Value] = completedSetsByInstance;
+                if (loggedSetsByInstance.Count > 0)
+                    response.LoggedSetsByExerciseInstanceBySession[log.SessionId.Value] = loggedSetsByInstance;
             }
 
             foreach (var (sessionId, set) in completedBySession)

@@ -131,15 +131,69 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         var executionsWithPerformance = executions.Where(e => e.Performance is not null).ToList();
 
-        // Key: (sessionId, exerciseExternalId, setNumber) → completedAt
-        // If a session was logged more than once we take the earliest non-null completedAt
-        // per set so accidental duplicate logs don't wipe completion state.
-        var completedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), DateTime>();
+        // Every placement of every exercise across the plan's sessions, paired with the WorkoutId
+        // of its containing TrainingWorkout (null for a standalone placement). The live-log write
+        // path (UpdateWorkoutEndpoint / FinishSessionEndpoint) carries a WorkoutId per logged
+        // workout but no per-instance exercise id, so WorkoutId is the only signal available to
+        // disambiguate two placements of the same catalog exercise within one session — one
+        // standalone and one nested, or nested in two different workouts (#885). Backs three
+        // needs below: (a) recognizing whether a Performance-side LoggedWorkout.WorkoutId
+        // corresponds to a real nested workout in a given session (vs. a fallback id
+        // UpdateWorkoutEndpoint's legacy single-workout path assigns when the client sends no
+        // WorkoutId — the shape a standalone exercise's log takes), (b) resolving a specific
+        // checkbox-completed exercise INSTANCE back to its containing workout, and (c) fanning the
+        // deliberately catalog-keyed legacy CompletedSets field out to every placement sharing
+        // that catalog id, preserving its documented ambiguous-sharing behavior (see
+        // SessionExecution.CompletedSets remarks).
+        var placementsBySession = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
+            .ToDictionary(
+                s => s.SessionId,
+                s => s.Workouts
+                    .SelectMany(w => w.Exercises.Select(e => (Instance: e, WorkoutId: (Guid?)w.WorkoutId)))
+                    .Concat(s.StandaloneExercises.Select(e => (Instance: e, WorkoutId: (Guid?)null)))
+                    .ToList());
 
-        // Extended lookup: (sessionId, exerciseId, setNumber) → WorkoutSet for actual+planned values.
-        // We prefer the most-recently-updated execution per session (mirrors the dedup logic used
-        // elsewhere). If two executions for the same session have the set, the "best" one wins.
-        var loggedSets = new Dictionary<(Guid sessionId, Guid exerciseId, int setNumber), WorkoutSet>();
+        var nestedWorkoutIdsBySession = placementsBySession.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.Where(p => p.WorkoutId.HasValue).Select(p => p.WorkoutId!.Value).ToHashSet());
+
+        // GroupBy+First (not a plain ToDictionary) defensively collapses a duplicate
+        // ExerciseId — e.g. legacy/test data that leaves it at its Guid.Empty default on more
+        // than one placement — to a first-occurrence-wins read rather than throwing.
+        var instancesBySession = placementsBySession.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .GroupBy(p => p.Instance.ExerciseId)
+                .ToDictionary(g => g.Key, g => g.First()));
+
+        var placementWorkoutIdsByExternalIdBySession = placementsBySession.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .GroupBy(p => p.Instance.ExerciseExternalId)
+                .ToDictionary(g => g.Key, g => g.Select(p => p.WorkoutId).Distinct().ToList()));
+
+        // Resolves a Performance-side LoggedWorkout.WorkoutId to the key used below: the real
+        // WorkoutId when it matches a nested TrainingWorkout in this session, else null (treated
+        // as a standalone placement — see remarks above).
+        Guid? ResolveWorkoutKey(Guid sessionId, Guid loggedWorkoutId) =>
+            nestedWorkoutIdsBySession.TryGetValue(sessionId, out var nestedIds) && nestedIds.Contains(loggedWorkoutId)
+                ? loggedWorkoutId
+                : null;
+
+        // Key: (sessionId, workoutId, exerciseExternalId, setNumber) → completedAt. workoutId
+        // disambiguates two placements of the same catalog exercise within one session (#885) —
+        // null means a standalone placement. If a session was logged more than once we take the
+        // earliest non-null completedAt per set so accidental duplicate logs don't wipe
+        // completion state.
+        var completedSets = new Dictionary<(Guid sessionId, Guid? workoutId, Guid exerciseId, int setNumber), DateTime>();
+
+        // Extended lookup: (sessionId, workoutId, exerciseId, setNumber) → WorkoutSet for
+        // actual+planned values. We prefer the most-recently-updated execution per session
+        // (mirrors the dedup logic used elsewhere). If two executions for the same session have
+        // the set, the "best" one wins.
+        var loggedSets = new Dictionary<(Guid sessionId, Guid? workoutId, Guid exerciseId, int setNumber), WorkoutSet>();
 
         // Deduplicate executions per sessionId: prefer most-recently-updated FINALISED, else most-recent.
         var bestLogBySession = executionsWithPerformance
@@ -158,12 +212,16 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         foreach (var log in bestLogBySession)
         {
             var sessionId = log.SessionId!.Value;
-            foreach (var ex in log.Exercises)
+            foreach (var workout in log.Performance!.Workouts)
             {
-                foreach (var set in ex.Sets)
+                var workoutKey = ResolveWorkoutKey(sessionId, workout.WorkoutId);
+                foreach (var ex in workout.Exercises)
                 {
-                    var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
-                    loggedSets[key] = set;
+                    foreach (var set in ex.Sets)
+                    {
+                        var key = (sessionId, workoutKey, ex.ExerciseExternalId, set.SetNumber);
+                        loggedSets[key] = set;
+                    }
                 }
             }
         }
@@ -173,15 +231,19 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             if (log.SessionId is null) continue;
             var sessionId = log.SessionId.Value;
 
-            foreach (var ex in log.Exercises)
+            foreach (var workout in log.Performance!.Workouts)
             {
-                foreach (var set in ex.Sets)
+                var workoutKey = ResolveWorkoutKey(sessionId, workout.WorkoutId);
+                foreach (var ex in workout.Exercises)
                 {
-                    if (set.CompletedAt is null) continue;
+                    foreach (var set in ex.Sets)
+                    {
+                        if (set.CompletedAt is null) continue;
 
-                    var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
-                    if (!completedSets.ContainsKey(key) || set.CompletedAt < completedSets[key])
-                        completedSets[key] = set.CompletedAt.Value;
+                        var key = (sessionId, workoutKey, ex.ExerciseExternalId, set.SetNumber);
+                        if (!completedSets.ContainsKey(key) || set.CompletedAt < completedSets[key])
+                            completedSets[key] = set.CompletedAt.Value;
+                    }
                 }
             }
         }
@@ -194,29 +256,6 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // SessionId is globally unique within a plan, so we can match by sessionId
         // alone and skip the Date → WeekNumber mapping.
 
-        // Inner dict is keyed by ExerciseExternalId, but the same catalog
-        // exercise can legitimately appear in multiple sections of a single
-        // session (e.g. "Bench press" in both a warm-up and the main block).
-        // Plain `ToDictionary` would crash on the duplicate key — collapse
-        // duplicates by taking the first occurrence per catalog id; downstream
-        // code only needs ANY matching planned exercise to look up its set
-        // list, and shared-catalog instances within one session have identical
-        // set-number prescriptions when resolved via the section-aware map.
-        var sessionExerciseLookup = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Sessions)
-            .ToDictionary(
-                s => s.SessionId,
-                s => s.AllExercises
-                    .GroupBy(e => e.ExerciseExternalId)
-                    .ToDictionary(g => g.Key, g => g.First()));
-
-        // Session lookup for resolving the section-aware completed-exercise view below.
-        var sessionLookup = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Sessions)
-            .ToDictionary(s => s.SessionId);
-
         var completedSectionIdsBySession = executions
             .Where(e => e.SessionId.HasValue)
             .GroupBy(e => e.SessionId!.Value)
@@ -226,8 +265,8 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         // Per-instance completion lookup (#877): CompletedExerciseInstanceIds already holds raw
         // SessionExercise.ExerciseId values, so no resolution against the plan tree is needed —
-        // unlike completedSets/loggedSets above (which stay catalog-keyed, see their remarks),
-        // this lookup drives BuildExerciseDto's instance-resolved IsCompleted below.
+        // unlike completedSets/loggedSets above (which key on WorkoutId + ExerciseExternalId, see
+        // their remarks), this lookup drives BuildExerciseDto's instance-resolved IsCompleted below.
         var completedInstanceIdsBySession = executions
             .Where(e => e.SessionId.HasValue)
             .GroupBy(e => e.SessionId!.Value)
@@ -239,30 +278,24 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         {
             var sessionId = execution.SessionId!.Value;
 
-            if (!sessionExerciseLookup.TryGetValue(sessionId, out var exLookup))
+            if (!instancesBySession.TryGetValue(sessionId, out var instanceLookup))
                 continue;
 
             var stampedAt = execution.DateUpdated ?? execution.DateCreated;
 
-            // Fully-completed exercises: mark every planned set as complete.
-            // Sourced from the flat CompletedExerciseInstanceIds list (#857 phase 3b) — mapped
-            // back to catalog ExerciseExternalId via the session definition, since exLookup
-            // (below) is keyed by ExerciseExternalId.
-            var effectiveIds = sessionLookup.TryGetValue(sessionId, out var execSession)
-                ? execSession.AllExercises
-                    .Where(e => execution.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
-                    .Select(e => e.ExerciseExternalId)
-                    .ToHashSet()
-                : [];
-
-            foreach (var exerciseId in effectiveIds)
+            // Fully-completed exercises: mark every planned set of the SPECIFIC completed
+            // instance as complete. CompletedExerciseInstanceIds already identifies the exact
+            // placement (#857 phase 3b) — resolve it directly via instanceLookup instead of
+            // fanning out to every placement sharing the catalog id, which used to collapse a
+            // standalone-vs-nested completion onto the same key (#885).
+            foreach (var instanceId in execution.CompletedExerciseInstanceIds)
             {
-                if (!exLookup.TryGetValue(exerciseId, out var planExercise))
+                if (!instanceLookup.TryGetValue(instanceId, out var placement))
                     continue;
 
-                foreach (var set in planExercise.Sets)
+                foreach (var set in placement.Instance.Sets)
                 {
-                    var key = (sessionId, exerciseId, set.SetNumber);
+                    var key = (sessionId, placement.WorkoutId, placement.Instance.ExerciseExternalId, set.SetNumber);
                     if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
                         completedSets[key] = stampedAt;
                 }
@@ -270,24 +303,30 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
             // Partially-completed exercises: mark only the listed set numbers.
             //
-            // Deliberately keyed by ExerciseExternalId (catalog id), NOT the per-instance
-            // SessionExercise.ExerciseId — matching exLookup above (#857 finding 2). See
-            // SessionExecution.CompletedSets' remarks for why this is a documented, harmless
-            // divergence rather than an instance-keyed lookup: the field has no live write path,
-            // and its sole populator (MongoIndexInitializer.ApplyCompletionFlags) has no plan
-            // context to resolve instance ids.
-            if (execution.CompletedSets is not null)
+            // Deliberately keyed by ExerciseExternalId (catalog id) alone — no instance id, no
+            // WorkoutId (#857 finding 2). See SessionExecution.CompletedSets' remarks for why this
+            // is a documented, harmless divergence: the field has no live write path, and its sole
+            // populator (MongoIndexInitializer.ApplyCompletionFlags) has no plan context to resolve
+            // instance ids. Fans the write out to every placement (every WorkoutId variant,
+            // including the standalone one) sharing that catalog id in this session, preserving
+            // the field's pre-existing ambiguous-sharing behavior rather than silently attributing
+            // it to only one placement.
+            if (execution.CompletedSets is not null &&
+                placementWorkoutIdsByExternalIdBySession.TryGetValue(sessionId, out var workoutIdsByExternalId))
             {
                 foreach (var (externalIdString, setNumbers) in execution.CompletedSets)
                 {
                     if (!Guid.TryParse(externalIdString, out var exerciseExternalId)) continue;
-                    if (!exLookup.ContainsKey(exerciseExternalId)) continue;
+                    if (!workoutIdsByExternalId.TryGetValue(exerciseExternalId, out var placementWorkoutIds)) continue;
 
-                    foreach (var setNumber in setNumbers)
+                    foreach (var placementWorkoutId in placementWorkoutIds)
                     {
-                        var key = (sessionId, exerciseExternalId, setNumber);
-                        if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
-                            completedSets[key] = stampedAt;
+                        foreach (var setNumber in setNumbers)
+                        {
+                            var key = (sessionId, placementWorkoutId, exerciseExternalId, setNumber);
+                            if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
+                                completedSets[key] = stampedAt;
+                        }
                     }
                 }
             }
@@ -325,7 +364,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // Shared by a workout's nested exercises AND a session's standalone exercises (#857
         // phase 3a) — both are SessionExercise instances with identical completion/enrichment
         // rules, so the mapping lives in one place rather than being duplicated per call site.
-        ExerciseDto BuildExerciseDto(SessionExercise ex, Guid sessionId)
+        ExerciseDto BuildExerciseDto(SessionExercise ex, Guid sessionId, Guid? workoutId)
         {
             var muscleGroups = muscleGroupMap.TryGetValue(ex.ExerciseExternalId, out var mg)
                 ? mg
@@ -333,7 +372,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
             var setDtos = ex.Sets.Select(set =>
             {
-                var key = (sessionId, ex.ExerciseExternalId, set.SetNumber);
+                var key = (sessionId, workoutId, ex.ExerciseExternalId, set.SetNumber);
                 completedSets.TryGetValue(key, out var completedAt);
                 loggedSets.TryGetValue(key, out var loggedSet);
 
@@ -417,7 +456,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 var workoutComponents = session.Workouts.OrderBy(workout => workout.Order).Select(workout =>
                 {
                     var workoutExerciseDtos = workout.Exercises
-                        .Select(ex => BuildExerciseDto(ex, session.SessionId))
+                        .Select(ex => BuildExerciseDto(ex, session.SessionId, workout.WorkoutId))
                         .ToList();
 
                     var workoutIsCompleted = workoutExerciseDtos.Count > 0
@@ -446,7 +485,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 // Workouts, sharing the same shared Order sequence (see UpdateTrainingPlanValidator's
                 // cross-list duplicate-Order check).
                 var standaloneComponents = session.StandaloneExercises
-                    .Select(ex => (ex.Order, ExerciseDto: BuildExerciseDto(ex, session.SessionId)))
+                    .Select(ex => (ex.Order, ExerciseDto: BuildExerciseDto(ex, session.SessionId, null)))
                     .ToList();
 
                 var standaloneExerciseDtos = standaloneComponents.Select(c => c.ExerciseDto).ToList();

@@ -96,6 +96,11 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         var planId = Guid.NewGuid();
         var sessionAId = Guid.NewGuid();
         var sessionBId = Guid.NewGuid();
+        // Shared with the seeded SessionExecution.Performance.Workouts below (#885) — the
+        // live-log write path (UpdateWorkoutEndpoint) always stamps a LoggedWorkout with the
+        // REAL TrainingWorkout.WorkoutId it was logged against, so a realistic fixture must use
+        // the same value on both sides rather than two independent Guid.NewGuid() calls.
+        var sessionAWorkoutId = Guid.NewGuid();
 
         var plan = new TrainingPlan
         {
@@ -126,7 +131,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                             [
                                 new TrainingWorkout
                                 {
-                                    WorkoutId = Guid.NewGuid(),
+                                    WorkoutId = sessionAWorkoutId,
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -208,7 +213,7 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
                 [
                     new LoggedWorkout
                     {
-                        WorkoutId = Guid.NewGuid(),
+                        WorkoutId = sessionAWorkoutId,
                         Order = 0,
                         Name = "Hlavní",
                         Exercises =
@@ -845,6 +850,335 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
         session.AllExercises[0].ExerciseId.Should().Be(standaloneInstanceId,
             "standalone Exercise.Order=1 precedes the workout's Order=2 in the shared sequence");
         session.AllExercises[1].ExerciseId.Should().Be(nestedInstanceId);
+    }
+
+    /// <summary>
+    /// #885 (live-training-assistant path): the same catalog exercise is placed BOTH standalone
+    /// and nested in a workout within one session (mirroring the shape of
+    /// <see cref="GetFullPlan_WithDualPlacementSession_ReturnsBothInstancesSeparately"/>). The
+    /// client fully logs the NESTED placement's set via the live-training assistant —
+    /// <see cref="SessionExecution.Performance"/> carries the containing
+    /// <see cref="LoggedWorkout.WorkoutId"/> matching the REAL nested
+    /// <see cref="TrainingWorkout.WorkoutId"/>, exactly the shape <c>UpdateWorkoutEndpoint</c>
+    /// persists. <see cref="SessionExecution.CompletedExerciseInstanceIds"/> is deliberately
+    /// empty — no checkbox/instance-keyed signal is involved at all. Before the #885 fix, the
+    /// read-side aggregation collapsed both placements onto one (sessionId, ExerciseExternalId,
+    /// setNumber) key, so the standalone placement would incorrectly report the nested
+    /// placement's completion too.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_DualPlacementPerformance_NestedCompletedViaLiveLog_StandaloneStaysIncomplete()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Dual", "LiveLog", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == clientEmail, TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var wallBallId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var nestedInstanceId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Dual Placement Live Log Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Standalone + Nested Session",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = workoutId,
+                                    Order = 2,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = nestedInstanceId,
+                                            ExerciseExternalId = wallBallId,
+                                            ExerciseName = "Wall Ball",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                        }
+                                    ]
+                                }
+                            ],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = standaloneInstanceId,
+                                    ExerciseExternalId = wallBallId,
+                                    ExerciseName = "Wall Ball",
+                                    Order = 1,
+                                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15 }]
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        var startedAt = DateTime.UtcNow.AddMinutes(-10);
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = planId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [],
+            DateCreated = startedAt,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = workoutId, // matches the REAL nested TrainingWorkout.WorkoutId
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = wallBallId,
+                                ExerciseName = "Wall Ball",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 20, CompletedAt = startedAt.AddMinutes(2) }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync($"/client/training/plans/{planId}", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<FullPlanResponse>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        var session = body!.Weeks[0].Sessions[0];
+
+        var nestedExercise = session.Workouts.Single().Exercises.Single(e => e.ExerciseId == nestedInstanceId);
+        nestedExercise.Sets.Single(s => s.SetNumber == 1).CompletedAt.Should().NotBeNull(
+            $"the nested placement's set was actually logged via the live-training assistant. raw: {rawBody}");
+        nestedExercise.IsCompleted.Should().BeTrue();
+
+        var standaloneExercise = session.StandaloneExercises.Single(e => e.ExerciseId == standaloneInstanceId);
+        standaloneExercise.Sets.Single(s => s.SetNumber == 1).CompletedAt.Should().BeNull(
+            $"the standalone placement was never logged — collapsing on ExerciseExternalId alone would " +
+            $"incorrectly leak the nested placement's completion onto it. raw: {rawBody}");
+        standaloneExercise.IsCompleted.Should().BeFalse();
+    }
+
+    /// <summary>
+    /// #885 symmetric case: same dual-placement session, but the STANDALONE placement's set is
+    /// logged via the live-training assistant. The <see cref="LoggedWorkout.WorkoutId"/> here is a
+    /// fresh id that does NOT match any nested <see cref="TrainingWorkout.WorkoutId"/> in the
+    /// session — exactly the shape <c>UpdateWorkoutEndpoint</c>'s legacy single-workout fallback
+    /// path assigns when the client logs a standalone exercise (which has no WorkoutId of its own
+    /// to send). The nested placement must stay incomplete.
+    /// </summary>
+    [Fact]
+    public async Task GetFullPlan_DualPlacementPerformance_StandaloneCompletedViaLiveLog_NestedStaysIncomplete()
+    {
+        var httpClient = factory.CreateClient();
+
+        var clientEmail = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, clientEmail, "TestPass1!", "Dual", "LiveLog2", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, clientEmail, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == clientEmail, TestContext.Current.CancellationToken);
+            var profile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
+            clientUserId = profile.UserId;
+        }
+
+        var wallBallId = Guid.NewGuid();
+        var standaloneInstanceId = Guid.NewGuid();
+        var nestedInstanceId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Dual Placement Live Log Plan (standalone completed)",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow.AddDays(-3),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = DateTime.UtcNow.AddDays(-2),
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Standalone + Nested Session",
+                            Order = 1,
+                            Workouts =
+                            [
+                                new TrainingWorkout
+                                {
+                                    WorkoutId = workoutId,
+                                    Order = 2,
+                                    Name = "Hlavní",
+                                    Exercises =
+                                    [
+                                        new SessionExercise
+                                        {
+                                            ExerciseId = nestedInstanceId,
+                                            ExerciseExternalId = wallBallId,
+                                            ExerciseName = "Wall Ball",
+                                            Order = 1,
+                                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                        }
+                                    ]
+                                }
+                            ],
+                            StandaloneExercises =
+                            [
+                                new SessionExercise
+                                {
+                                    ExerciseId = standaloneInstanceId,
+                                    ExerciseExternalId = wallBallId,
+                                    ExerciseName = "Wall Ball",
+                                    Order = 1,
+                                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15 }]
+                                }
+                            ]
+                        }))
+                }
+            ]
+        };
+
+        var startedAt = DateTime.UtcNow.AddMinutes(-10);
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = planId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [],
+            DateCreated = startedAt,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        // Fallback WorkoutId that matches NEITHER of the session's nested
+                        // TrainingWorkout ids — the shape UpdateWorkoutEndpoint's legacy
+                        // single-workout path assigns when logging a standalone exercise.
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = wallBallId,
+                                ExerciseName = "Wall Ball",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 15, CompletedAt = startedAt.AddMinutes(2) }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync($"/client/training/plans/{planId}", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<FullPlanResponse>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        var session = body!.Weeks[0].Sessions[0];
+
+        var standaloneExercise = session.StandaloneExercises.Single(e => e.ExerciseId == standaloneInstanceId);
+        standaloneExercise.Sets.Single(s => s.SetNumber == 1).CompletedAt.Should().NotBeNull(
+            $"the standalone placement's set was actually logged via the live-training assistant. raw: {rawBody}");
+        standaloneExercise.IsCompleted.Should().BeTrue();
+
+        var nestedExercise = session.Workouts.Single().Exercises.Single(e => e.ExerciseId == nestedInstanceId);
+        nestedExercise.Sets.Single(s => s.SetNumber == 1).CompletedAt.Should().BeNull(
+            $"the nested placement was never logged — collapsing on ExerciseExternalId alone would " +
+            $"incorrectly leak the standalone placement's completion onto it. raw: {rawBody}");
+        nestedExercise.IsCompleted.Should().BeFalse();
     }
 
     // ── Legacy flat-exercise schema-on-read is retired (#837) ────────────────────
