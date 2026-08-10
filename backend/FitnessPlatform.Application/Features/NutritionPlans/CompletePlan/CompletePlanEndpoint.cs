@@ -24,7 +24,8 @@ public class CompletePlanEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard) : Endpoint<CompletePlanRequest, GetPlanResponse>
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper) : Endpoint<CompletePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,13 +62,24 @@ public class CompletePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
-            (plan, _) =>
+            async (plan, mutateCt) =>
             {
+                // The lookup filter proved authorship, which is permanent. Access is not —
+                // require the caller's link to the plan's client to still grant nutrition access.
+                var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, mutateCt);
+
+                if (!hasAccess)
+                {
+                    await Send.NotFoundAsync(mutateCt);
+                    return false;
+                }
+
                 // Only active plans can be completed
                 if (plan.Status != NutritionPlanStatus.Active)
                 {
                     ThrowError(ErrorCodes.PlanNotActive, "Only active plans can be completed.");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 // Mark as completed
@@ -77,7 +89,7 @@ public class CompletePlanEndpoint(
                 plan.DateUpdated = now;
                 plan.Version += 1;
 
-                return Task.FromResult(true);
+                return true;
             },
             ct);
 
@@ -95,7 +107,7 @@ public class CompletePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The link check inside the mutate delegate already wrote its 404.
                 return;
         }
 

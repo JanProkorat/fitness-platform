@@ -27,7 +27,8 @@ public class PublishWeekEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard) : Endpoint<PublishWeekRequest, GetPlanResponse>
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper) : Endpoint<PublishWeekRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -60,26 +61,37 @@ public class PublishWeekEndpoint(
         // consumed after a confirmed successful update to decide whether to archive siblings.
         var hadPublishedWeeks = false;
 
-        Task<bool> Validate(NutritionPlan plan, CancellationToken _)
+        async Task<bool> Validate(NutritionPlan plan, CancellationToken validateCt)
         {
+            // The lookup filter proved authorship, which is permanent. Access is not — require
+            // the caller's link to the plan's client to still grant nutrition access.
+            var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, validateCt);
+
+            if (!hasAccess)
+            {
+                await Send.NotFoundAsync(validateCt);
+                return false;
+            }
+
             var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
             if (week is null)
             {
                 ThrowError($"Week {req.WeekNumber} not found in plan.");
-                return Task.FromResult(false);
+                return false;
             }
 
             if (week.Status == WeekStatus.Published)
             {
                 ThrowError($"Week {req.WeekNumber} is already published.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Start date must be set before publishing
             if (!plan.StartDate.HasValue)
             {
                 ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // The target week's Monday must not be in the past
@@ -88,14 +100,14 @@ public class PublishWeekEndpoint(
             if (weekStartDate < today)
             {
                 ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Check if this is the first published week — if so, archive other active plans
             // afterward. Computed BEFORE the write below so it reflects pre-publish state.
             hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
 
-            return Task.FromResult(true);
+            return true;
         }
 
         var now = DateTime.UtcNow;
@@ -145,7 +157,7 @@ public class PublishWeekEndpoint(
                     "Version conflict. The week was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's validate delegate never writes a response directly.
+                // The link check inside the validate delegate already wrote its 404.
                 return;
         }
 
@@ -160,7 +172,11 @@ public class PublishWeekEndpoint(
         // above), so only the OTHER side of the comparison needs the null-guard.
         if (!hadPublishedWeeks)
         {
+            // Only the caller's OWN plans are superseded. Without the author predicate this
+            // archives every overlapping Active plan for the client regardless of who wrote it,
+            // which lets one professional destroy another's live plan.
             var siblingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+                                & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId)
                                 & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
@@ -178,7 +194,8 @@ public class PublishWeekEndpoint(
 
             if (overlappingIds.Count > 0)
             {
-                var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds);
+                var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds)
+                                    & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
 
                 var archiveUpdate = Builders<NutritionPlan>.Update
                     .Set(p => p.Status, NutritionPlanStatus.Archived)

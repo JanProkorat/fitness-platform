@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -17,7 +18,11 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.LinkQuestionnaire;
 /// Links or unlinks a questionnaire response to/from a nutrition plan.
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
-public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db, PlanConcurrencyGuard guard)
+public class LinkQuestionnaireEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<LinkNutritionQuestionnaireRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -57,6 +62,17 @@ public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContex
             p => p.Version,
             async (plan, mutateCt) =>
             {
+                // The lookup filter proved authorship, which is permanent. Access is not —
+                // require the caller's link to the plan's client to still grant nutrition access.
+                var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, mutateCt);
+
+                if (!hasAccess)
+                {
+                    await Send.NotFoundAsync(mutateCt);
+                    return false;
+                }
+
                 // Only draft or active plans can have their questionnaire link changed
                 if (plan.Status is NutritionPlanStatus.Completed or NutritionPlanStatus.Archived)
                 {
@@ -104,7 +120,7 @@ public class LinkQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContex
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The link check inside the mutate delegate already wrote its 404.
                 return;
         }
 

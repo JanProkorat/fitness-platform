@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -23,12 +24,15 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
 /// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
+/// live link to its client decides access.</param>
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard)
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -67,7 +71,7 @@ public class UpdatePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
-            (plan, _) => MutateAsync(plan, req),
+            (plan, mutateCt) => MutateAsync(plan, req, nutritionistId, mutateCt),
             ct);
 
         switch (guardResult.Outcome)
@@ -84,7 +88,7 @@ public class UpdatePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate always returns true.
+                // The link check inside the mutate delegate already wrote its 404.
                 return;
         }
 
@@ -114,13 +118,24 @@ public class UpdatePlanEndpoint(
     }
 
     /// <summary>
-    /// Endpoint-specific validation and mutation applied to the fetched plan before the
-    /// version-gated replace. Synchronous — declared as returning <c>Task&lt;bool&gt;</c> to
-    /// satisfy the guard's mutate-delegate contract. Always returns <c>true</c>: no error path
-    /// here writes a response directly, validation failures throw via <c>ThrowError</c> instead.
+    /// Endpoint-specific authorization, validation, and mutation applied to the fetched plan
+    /// before the version-gated replace. Returns <c>false</c> only on the link check, which
+    /// writes its own 404; the remaining validation failures throw via <c>ThrowError</c>.
     /// </summary>
-    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req)
+    private async Task<bool> MutateAsync(
+        NutritionPlan plan, UpdatePlanRequest req, Guid nutritionistId, CancellationToken ct)
     {
+        // The lookup filter proved authorship, which is permanent. Access is not — require the
+        // caller's link to the plan's client to still grant nutrition access.
+        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+            nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct);
+
+        if (!hasAccess)
+        {
+            await Send.NotFoundAsync(ct);
+            return false;
+        }
+
         // Build lookup of existing week statuses
         var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 
@@ -133,7 +148,7 @@ public class UpdatePlanEndpoint(
         if (removedPublished.Count > 0)
         {
             ThrowError($"Cannot remove published weeks: {string.Join(", ", removedPublished.Select(w => w.WeekNumber))}");
-            return Task.FromResult(false);
+            return false;
         }
 
         // Start date validation
@@ -145,14 +160,14 @@ public class UpdatePlanEndpoint(
             if (DateOnly.FromDateTime(plan.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be changed after it has arrived.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Clearing: only allowed if no weeks are published
             if (!req.StartDate.HasValue && plan.Weeks.Any(w => w.Status == WeekStatus.Published))
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be cleared when weeks are published.");
-                return Task.FromResult(false);
+                return false;
             }
         }
 
@@ -161,7 +176,7 @@ public class UpdatePlanEndpoint(
             if (req.StartDate.Value.DayOfWeek != System.DayOfWeek.Monday)
             {
                 ThrowError(ErrorCodes.StartDateNotMonday, "Start date must be a Monday.");
-                return Task.FromResult(false);
+                return false;
             }
 
             // Only enforce "not in past" when the start date is being set or changed.
@@ -172,7 +187,7 @@ public class UpdatePlanEndpoint(
             if (isStartDateNewOrChanged && DateOnly.FromDateTime(req.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateInPast, "Start date cannot be in the past.");
-                return Task.FromResult(false);
+                return false;
             }
         }
 
@@ -252,6 +267,6 @@ public class UpdatePlanEndpoint(
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
-        return Task.FromResult(true);
+        return true;
     }
 }
