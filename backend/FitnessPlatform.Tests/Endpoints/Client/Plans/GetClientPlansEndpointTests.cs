@@ -330,6 +330,77 @@ public class GetClientPlansEndpointTests
         item.CurrentWeek.Should().Be(2);
     }
 
+    // ── Test: disambiguation across Active same-type siblings (#873) ──
+
+    /// <summary>
+    /// Reproduces the #873 disagreement: a client holds two Active training plans of the same
+    /// type — one ranged (has a <c>StartDate</c> whose window covers today) and one unranged
+    /// (legacy data, no <c>StartDate</c>). Both independently have a session scheduled on
+    /// today's day-of-week. <see cref="FitnessPlatform.Application.Domain.Services.PlanWindowResolver.ResolveCurrentPlan{T}"/>
+    /// — the same helper <c>GetTodaySessionEndpoint</c> uses to pick one Active plan as "current"
+    /// — selects only the ranged plan here (it's the only in-window candidate). The unranged
+    /// sibling must NOT independently report a live session even though its own week-cycle
+    /// formula resolves to a week with a session today — before the fix, it did.
+    /// </summary>
+    [Fact]
+    public async Task ActiveTrainingPlans_UnrangedSiblingOfSelectedRangedPlan_ReportsHasTodaySessionFalse()
+    {
+        // Arrange
+        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        todayDow = todayDow == 0 ? 7 : todayDow;
+
+        // Ranged plan — StartDate is today, one-week window covers today. This is the plan
+        // ResolveCurrentPlan must select.
+        var rangedPlan = TrainingPlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        rangedPlan.StartDate = DateTime.UtcNow.Date;
+        rangedPlan.Weeks[0].Status = WeekStatus.Published;
+        rangedPlan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        rangedPlan.Weeks[0].Days.First(d => d.DayOfWeek == todayDow).Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Ranged Plan Session",
+            Order = 1
+        });
+
+        // Unranged sibling — no StartDate, single published week with a session on today's
+        // day-of-week. Its own legacy week-cycle formula always resolves to week 1 (the only
+        // published week), so — absent disambiguation — it would independently report a live
+        // session too.
+        var unrangedPlan = TrainingPlanTestHelpers.CreatePlan(
+            clientId: _clientId,
+            status: TrainingPlanStatus.Active,
+            weekCount: 1);
+        unrangedPlan.Weeks[0].Status = WeekStatus.Published;
+        unrangedPlan.Weeks[0].DatePublished = DateTime.UtcNow.AddDays(-1);
+        unrangedPlan.Weeks[0].Days.First(d => d.DayOfWeek == todayDow).Sessions.Add(new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Unranged Plan Session",
+            Order = 1
+        });
+
+        var mongo = CreateMockMongo(trainingPlans: [rangedPlan, unrangedPlan]);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        // Act
+        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.Response.Items.Should().HaveCount(2);
+
+        var rangedItem = ep.Response.Items.Single(i => i.PlanId == rangedPlan.ExternalId);
+        rangedItem.HasTodaySession.Should().BeTrue();
+
+        var unrangedItem = ep.Response.Items.Single(i => i.PlanId == unrangedPlan.ExternalId);
+        unrangedItem.HasTodaySession.Should().BeFalse();
+        // CurrentWeek stays informational even though this plan wasn't selected as "current".
+        unrangedItem.CurrentWeek.Should().Be(1);
+    }
+
     // ── Test: no claims → 401 ──
 
     [Fact]

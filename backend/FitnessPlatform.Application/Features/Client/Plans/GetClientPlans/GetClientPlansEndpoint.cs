@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -150,6 +151,20 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             var todayDow = (int)now.DayOfWeek;
             todayDow = todayDow == 0 ? 7 : todayDow;
 
+            // A client may hold several sequential, non-overlapping Active training plans
+            // (#780). GetTodaySessionEndpoint disambiguates which ONE of them is "current" via
+            // PlanWindowResolver.ResolveCurrentPlan before answering whether there's a session
+            // today (#873) — this endpoint must apply the same disambiguation, or an unranged
+            // Active sibling can independently claim HasTodaySession=true for a plan the
+            // today-session endpoint never selected. Non-Active plans (Completed/Archived) are
+            // unaffected — they carry no "current plan" concept to disambiguate.
+            var activeTrainingPlans = trainingPlans.Where(p => p.Status == TrainingPlanStatus.Active).ToList();
+            var currentActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlan(
+                activeTrainingPlans,
+                p => p.StartDate,
+                p => p.Weeks.Count,
+                now);
+
             foreach (var plan in trainingPlans)
             {
                 var publishedWeeks = plan.Weeks
@@ -173,7 +188,14 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
                         currentWeek = publishedWeeks.Last();
 
-                    hasTodaySession = currentWeek.Days.Any(d => d.DayOfWeek == todayDow && d.Sessions.Count > 0);
+                    // CurrentWeek stays informational for every plan (set below regardless of
+                    // selection), but only the plan ResolveCurrentPlan selected among Active
+                    // siblings may assert a live session for today.
+                    var isDisambiguatedCurrentPlan = plan.Status != TrainingPlanStatus.Active
+                        || (currentActiveTrainingPlan is not null && currentActiveTrainingPlan.ExternalId == plan.ExternalId);
+
+                    hasTodaySession = isDisambiguatedCurrentPlan
+                        && currentWeek.Days.Any(d => d.DayOfWeek == todayDow && d.Sessions.Count > 0);
                 }
 
                 items.Add(new ClientOwnPlanItem
