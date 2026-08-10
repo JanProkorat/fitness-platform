@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -111,6 +112,40 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         var collaboratorIsNutritionist = collaboratorRoles.Contains(AppRoles.Nutritionist);
         var collaboratorRole = collaboratorIsNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
+        // A caller-requested scope narrows the collaborator's CanView* flags below the
+        // full set implied by the roles the collaborator actually holds — it must never
+        // widen them. Reject (400), don't clamp: a request for a domain the collaborator
+        // doesn't hold is a caller error, not something to silently downgrade.
+        if (req.RequestedScope == LinkCapabilityScope.NutritionOnly && !collaboratorIsNutritionist)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the collaborator's held roles.");
+            return;
+        }
+
+        if (req.RequestedScope == LinkCapabilityScope.TrainingOnly && !collaboratorIsTrainer)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the collaborator's held roles.");
+            return;
+        }
+
+        var canViewNutritionPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.NutritionOnly => true,
+            LinkCapabilityScope.TrainingOnly => false,
+            _ => collaboratorIsNutritionist
+        };
+
+        var canViewTrainingPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.TrainingOnly => true,
+            LinkCapabilityScope.NutritionOnly => false,
+            _ => collaboratorIsTrainer
+        };
+
         // Create the new ClientProfessionalLink
         var link = new ClientProfessionalLink
         {
@@ -118,8 +153,8 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             ProfessionalProfileId = collaboratorProfile.Id,
             ProfessionalRole = collaboratorRole,
             IsActive = true,
-            CanViewNutritionPlans = collaboratorIsNutritionist,
-            CanViewTrainingPlans = collaboratorIsTrainer
+            CanViewNutritionPlans = canViewNutritionPlans,
+            CanViewTrainingPlans = canViewTrainingPlans
         };
 
         db.ClientProfessionalLinks.Add(link);

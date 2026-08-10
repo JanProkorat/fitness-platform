@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Trainers.CreateCollaboration;
@@ -18,5 +19,8 @@ public class CreateCollaborationValidator : Validator<CreateCollaborationRequest
 
         RuleFor(x => x.CollaboratorPublicId)
             .NotEmpty();
+
+        RuleFor(x => x.RequestedScope)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

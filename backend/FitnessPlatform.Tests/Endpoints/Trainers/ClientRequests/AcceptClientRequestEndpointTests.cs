@@ -152,4 +152,157 @@ public class AcceptClientRequestEndpointTests
         db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
             l => l.CanViewTrainingPlans && !l.CanViewNutritionPlans));
     }
+
+    /// <summary>
+    /// Dual-role professional explicitly narrows the new link to nutrition only, even
+    /// though they also hold the Trainer role — the explicit scope wins over the
+    /// full-held-role default.
+    /// </summary>
+    [Fact]
+    public async Task Accept_DualRoleProfessional_ExplicitNutritionOnlyScope_GrantsNutritionOnly()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client3@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(clientProfile)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Trainer, AppRoles.Nutritionist);
+
+        await ep.HandleAsync(
+            new AcceptClientRequestRequest
+            {
+                PublicId = clientRequest.PublicId,
+                RequestedScope = LinkCapabilityScope.NutritionOnly
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.CanViewNutritionPlans && !l.CanViewTrainingPlans));
+    }
+
+    /// <summary>
+    /// Reactivate path: an existing link already grants both flags from a prior
+    /// dual-role acceptance. Explicitly requesting TrainingOnly on reactivation must
+    /// overwrite the stale nutrition flag to false, not merge/preserve it.
+    /// </summary>
+    [Fact]
+    public async Task Accept_DualRoleProfessional_ReactivateWithExplicitTrainingOnlyScope_NarrowsAwayStaleNutritionFlag()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client4@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var existingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(professionalProfile)
+            .WithProfessionalRole(UserRole.Nutritionist)
+            .WithCanViewTrainingPlans(true)
+            .WithCanViewNutritionPlans(true)
+            .Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(clientProfile)
+            .With(existingLink)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Trainer, AppRoles.Nutritionist);
+
+        await ep.HandleAsync(
+            new AcceptClientRequestRequest
+            {
+                PublicId = clientRequest.PublicId,
+                RequestedScope = LinkCapabilityScope.TrainingOnly
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        existingLink.CanViewTrainingPlans.Should().BeTrue();
+        existingLink.CanViewNutritionPlans.Should().BeFalse(
+            "the explicit TrainingOnly scope must overwrite the stale nutrition flag, not preserve it");
+    }
+
+    /// <summary>
+    /// Security invariant (#917): a Trainer-only professional cannot request
+    /// NutritionOnly scope for themselves — the requested scope must be validated as a
+    /// subset of the caller's actually-held roles. Deleting the subset check makes this
+    /// test fail (proven and reverted — see PR description).
+    /// </summary>
+    [Fact]
+    public async Task Accept_TrainerOnlyProfessional_RequestsNutritionOnlyScope_Returns400WithErrorCode()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client5@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(clientProfile)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Trainer);
+
+        var act = () => ep.HandleAsync(
+            new AcceptClientRequestRequest
+            {
+                PublicId = clientRequest.PublicId,
+                RequestedScope = LinkCapabilityScope.NutritionOnly
+            },
+            TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+    }
 }

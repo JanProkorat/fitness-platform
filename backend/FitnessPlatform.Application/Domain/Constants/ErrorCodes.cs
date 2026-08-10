@@ -99,6 +99,13 @@ public static class ErrorCodes
     /// <summary>Collaborator already linked to client.</summary>
     public const string CollaboratorAlreadyLinked = "COLLABORATOR_ALREADY_LINKED";
 
+    /// <summary>
+    /// Requested link capability scope (see <see cref="Enums.LinkCapabilityScope"/>) exceeds
+    /// the identity roles actually held by the professional the link's CanView flags gate —
+    /// the caller on AcceptClientRequestEndpoint, the collaborator on CreateCollaborationEndpoint.
+    /// </summary>
+    public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
+
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
