@@ -2205,14 +2205,14 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    updateTrainingPlanTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateDetailDto> {
+    updateTrainingPlanTemplateEndpoint(templateId: string, updateTrainingPlanTemplateRequest: UpdateTrainingPlanTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateDetailDto> {
         let url_ = this.baseUrl + "/training/plan-templates/{templateId}";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(updateTemplateRequest);
+        const content_ = JSON.stringify(updateTrainingPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -2349,7 +2349,7 @@ export class ApiClient {
      * @param weekCount (optional) Optional filter by exact week count.
      * @return Success
      */
-    searchTrainingPlanTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, difficulty?: ExerciseDifficulty | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
+    searchTrainingPlanTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, difficulty?: ExerciseDifficulty | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTrainingPlanTemplatesResponse> {
         let url_ = this.baseUrl + "/training/plan-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -2389,7 +2389,7 @@ export class ApiClient {
         });
     }
 
-    protected processSearchTrainingPlanTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
+    protected processSearchTrainingPlanTemplatesEndpoint(response: AxiosResponse): Promise<SearchTrainingPlanTemplatesResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -2404,7 +2404,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SearchTemplatesResponse>(result200);
+            return Promise.resolve<SearchTrainingPlanTemplatesResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -2418,18 +2418,18 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SearchTemplatesResponse>(null as any);
+        return Promise.resolve<SearchTrainingPlanTemplatesResponse>(null as any);
     }
 
     /**
      * Create a training plan template
      * @return Success
      */
-    createTrainingPlanTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
+    createTrainingPlanTemplateEndpoint(createTrainingPlanTemplateRequest: CreateTrainingPlanTemplateRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/training/plan-templates";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createTemplateRequest);
+        const content_ = JSON.stringify(createTrainingPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -2497,14 +2497,14 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    instantiateTrainingPlanTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
+    instantiateTrainingPlanTemplateEndpoint(templateId: string, instantiateTrainingPlanTemplateRequest: InstantiateTrainingPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateTrainingPlanTemplateResponse> {
         let url_ = this.baseUrl + "/training/plan-templates/{templateId}/instantiate";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(instantiateTemplateRequest);
+        const content_ = JSON.stringify(instantiateTrainingPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -2528,7 +2528,7 @@ export class ApiClient {
         });
     }
 
-    protected processInstantiateTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
+    protected processInstantiateTrainingPlanTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTrainingPlanTemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -2543,7 +2543,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateTemplateResponse>(result200);
+            return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -2564,7 +2564,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<InstantiateTemplateResponse>(null as any);
+        return Promise.resolve<InstantiateTrainingPlanTemplateResponse>(null as any);
     }
 
     /**
@@ -2630,11 +2630,11 @@ export class ApiClient {
      * Save a training plan as a template
      * @return Success
      */
-    createTrainingPlanTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
+    createTrainingPlanTemplateFromPlanEndpoint(createTrainingPlanTemplateFromPlanRequest: CreateTrainingPlanTemplateFromPlanRequest, signal?: AbortSignal): Promise<TrainingPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/training/plan-templates/from-plan";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createTemplateFromPlanRequest);
+        const content_ = JSON.stringify(createTrainingPlanTemplateFromPlanRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -3174,14 +3174,14 @@ export class ApiClient {
      * @param planId Plan identifier.
      * @return Success
      */
-    linkTrainingQuestionnaireEndpoint(planId: string, linkQuestionnaireRequest: LinkQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
+    linkTrainingQuestionnaireEndpoint(planId: string, linkTrainingQuestionnaireRequest: LinkTrainingQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainingPlanResponse> {
         let url_ = this.baseUrl + "/training/plans/{planId}/link-questionnaire";
         if (planId === undefined || planId === null)
             throw new globalThis.Error("The parameter 'planId' must be defined.");
         url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(linkQuestionnaireRequest);
+        const content_ = JSON.stringify(linkTrainingQuestionnaireRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -8081,7 +8081,7 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
+    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
@@ -8225,7 +8225,7 @@ export class ApiClient {
      * @param weekCount (optional) Optional filter by exact week count.
      * @return Success
      */
-    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse2> {
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8265,7 +8265,7 @@ export class ApiClient {
         });
     }
 
-    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse2> {
+    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8280,7 +8280,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SearchTemplatesResponse2>(result200);
+            return Promise.resolve<SearchTemplatesResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -8294,14 +8294,14 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SearchTemplatesResponse2>(null as any);
+        return Promise.resolve<SearchTemplatesResponse>(null as any);
     }
 
     /**
      * Create a nutrition plan template
      * @return Success
      */
-    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -8373,7 +8373,7 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest2, signal?: AbortSignal): Promise<InstantiateTemplateResponse2> {
+    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
@@ -8404,7 +8404,7 @@ export class ApiClient {
         });
     }
 
-    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse2> {
+    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8419,7 +8419,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateTemplateResponse2>(result200);
+            return Promise.resolve<InstantiateTemplateResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -8440,7 +8440,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<InstantiateTemplateResponse2>(null as any);
+        return Promise.resolve<InstantiateTemplateResponse>(null as any);
     }
 
     /**
@@ -8506,7 +8506,7 @@ export class ApiClient {
      * Save a nutrition plan as a template
      * @return Success
      */
-    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest2, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -8908,7 +8908,7 @@ export class ApiClient {
      * @param planId Plan identifier.
      * @return Success
      */
-    linkQuestionnaireEndpoint(planId: string, linkQuestionnaireRequest: LinkQuestionnaireRequest2, signal?: AbortSignal): Promise<GetPlanResponse> {
+    linkQuestionnaireEndpoint(planId: string, linkQuestionnaireRequest: LinkQuestionnaireRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/link-questionnaire";
         if (planId === undefined || planId === null)
             throw new globalThis.Error("The parameter 'planId' must be defined.");
@@ -16809,7 +16809,7 @@ export enum LibraryVisibility {
 }
 
 /** Request for a full-state update of a training plan template: replaces name, description, goal/difficulty, and the week tree. */
-export interface UpdateTemplateRequest {
+export interface UpdateTrainingPlanTemplateRequest {
     /** Updated display name. */
     name: string;
     /** Updated free-text description. */
@@ -16820,21 +16820,21 @@ export interface UpdateTemplateRequest {
     difficulty?: ExerciseDifficulty | undefined;
     /** Full week structure to persist. Replaces all existing weeks, days, sessions, workouts,
 and exercises. */
-    weeks: TemplateWeekRequest[];
+    weeks: TrainingPlanTemplateWeekRequest[];
     /** Expected version for optimistic concurrency control. */
     version?: number;
 }
 
 /** Represents a single week submitted when creating or fully replacing a training plan template. */
-export interface TemplateWeekRequest {
+export interface TrainingPlanTemplateWeekRequest {
     /** Week number within the template (1-based). */
     weekNumber?: number;
     /** Days in this week. */
-    days?: TemplateDayRequest[];
+    days?: TrainingPlanTemplateDayRequest[];
 }
 
 /** Represents a single day within a template week. */
-export interface TemplateDayRequest {
+export interface TrainingPlanTemplateDayRequest {
     /** Day of week (1 = Monday … 7 = Sunday). */
     dayOfWeek?: number;
     /** Optional coach note for this day. */
@@ -16930,7 +16930,7 @@ export interface TemplateExerciseSetRequest {
 }
 
 /** Paginated response containing a list of training plan template summaries. */
-export interface SearchTemplatesResponse {
+export interface SearchTrainingPlanTemplatesResponse {
     /** List of template summaries for the current page. */
     templates?: TrainingPlanTemplateSummaryDto[];
     /** Total number of templates matching the filter. */
@@ -16968,11 +16968,11 @@ export interface TrainingPlanTemplateSummaryDto {
 }
 
 /** Request to search training plan templates with optional filters and pagination. */
-export interface SearchTemplatesRequest {
+export interface SearchTrainingPlanTemplatesRequest {
 }
 
 /** Response describing the new client plan created by instantiating a template. */
-export interface InstantiateTemplateResponse {
+export interface InstantiateTrainingPlanTemplateResponse {
     /** The newly created plan's public identifier. */
     planId?: string;
     /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
@@ -16986,7 +16986,7 @@ export interface InstantiateTemplateResponse {
 }
 
 /** Request to instantiate a training plan template into a new Draft client plan. */
-export interface InstantiateTemplateRequest {
+export interface InstantiateTrainingPlanTemplateRequest {
     /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
 the internal ApplicationUser.Id storage key. */
     clientId: string;
@@ -16997,11 +16997,11 @@ the internal ApplicationUser.Id storage key. */
 }
 
 /** Request to fetch a single training plan template's full detail. */
-export interface GetTemplateRequest {
+export interface GetTrainingPlanTemplateRequest {
 }
 
 /** Request to save an existing training plan as a new template. */
-export interface CreateTemplateFromPlanRequest {
+export interface CreateTrainingPlanTemplateFromPlanRequest {
     /** The source plan's public identifier (TrainingPlan.ExternalId — NOT the client's
 ClientProfile.PublicId). */
     planId: string;
@@ -17014,7 +17014,7 @@ ClientProfile.PublicId). */
 }
 
 /** Request to create a new training plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
-export interface CreateTemplateRequest {
+export interface CreateTrainingPlanTemplateRequest {
     /** Display name of the template. */
     name: string;
     /** Optional free-text description. */
@@ -17029,7 +17029,7 @@ persisted as supplied — WeekCount is
 always server-computed from the resulting week tree. */
     weekCount?: number | undefined;
     /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
-    weeks?: TemplateWeekRequest[] | undefined;
+    weeks?: TrainingPlanTemplateWeekRequest[] | undefined;
     /** Who can read this entry besides the caller. Defaults to Private. */
     visibility?: LibraryVisibility;
 }
@@ -17354,7 +17354,7 @@ export interface PublishTrainingWeekRequest {
 }
 
 /** Request to link or unlink a questionnaire response to/from a training plan. */
-export interface LinkQuestionnaireRequest {
+export interface LinkTrainingQuestionnaireRequest {
     /** Questionnaire response PublicId to link. Set to null to unlink. */
     questionnaireResponseId?: string | undefined;
     /** Optimistic concurrency version. */
@@ -17617,6 +17617,19 @@ export interface CreatePendingInviteRequest {
     message?: string | undefined;
     /** Optional public ID of a questionnaire to assign to the client. */
     questionnairePublicId?: string | undefined;
+    /** Optional explicit domain scope for the relationship this invitation will form.
+When omitted, the accept flow defaults to every domain implied by the inviting
+professional's held identity roles (existing behavior — unchanged). When
+supplied, it must be a subset of the professional's actually-held roles; e.g. a
+Trainer-only professional cannot request NutritionOnly. */
+    requestedScope?: LinkCapabilityScope | undefined;
+}
+
+/** Explicit per-relationship domain scope a professional can request when forming or reactivating a ClientProfessionalLink. Narrows the CanViewNutritionPlans / CanViewTrainingPlans flags stamped on that link relative to the full set implied by the relevant professional's held identity roles — it can only narrow, never widen, beyond what those roles already allow. */
+export enum LinkCapabilityScope {
+    Both = "Both",
+    NutritionOnly = "NutritionOnly",
+    TrainingOnly = "TrainingOnly",
 }
 
 /** Combined list of a client's nutrition and training plans returned by GET /trainer/clients/{clientId}/plans. */
@@ -17685,6 +17698,12 @@ export interface InviteClientResponse {
 export interface InviteClientRequest {
     /** Email address of the client to invite. */
     email: string;
+    /** Optional explicit domain scope for the relationship this invitation will form.
+When omitted, the accept flow defaults to every domain implied by the inviting
+professional's held identity roles (existing behavior — unchanged). When
+supplied, it must be a subset of the professional's actually-held roles; e.g. a
+Trainer-only professional cannot request NutritionOnly. */
+    requestedScope?: LinkCapabilityScope | undefined;
 }
 
 /** Response model for the professional's own profile data. */
@@ -18071,6 +18090,12 @@ export interface CreateCollaborationRequest {
     clientPublicId: string;
     /** The public ID of the collaborator's ProfessionalProfile. */
     collaboratorPublicId: string;
+    /** Optional explicit domain scope for the collaborator's new link. When omitted,
+defaults to every domain implied by the collaborator's held identity roles
+(existing behavior — unchanged). When supplied, it must be a subset of the
+collaborator's actually-held roles; e.g. a Trainer-only collaborator cannot be
+granted NutritionOnly. */
+    requestedScope?: LinkCapabilityScope | undefined;
 }
 
 export interface RejectClientRequestRequest {
@@ -18098,6 +18123,12 @@ export interface AcceptClientRequestRequest {
     questionnairePublicId?: string | undefined;
     /** Optional statement from the professional (saved for future display in chat). */
     statement?: string | undefined;
+    /** Optional explicit domain scope for the resulting client-professional link. When
+omitted, defaults to every domain implied by the caller's held identity roles
+(existing behavior — unchanged). When supplied, it must be a subset of the
+caller's actually-held roles; e.g. a Trainer-only professional cannot request
+NutritionOnly. */
+    requestedScope?: LinkCapabilityScope | undefined;
 }
 
 export interface ListNotesResponse {
@@ -19136,7 +19167,7 @@ export interface MealRecipe {
 }
 
 /** Request for a full-state update of a nutrition plan template: replaces name, description, goal/dietary style, settings, week tree, and supplements. */
-export interface UpdateTemplateRequest2 {
+export interface UpdateTemplateRequest {
     /** Updated display name. */
     name: string;
     /** Updated free-text description. */
@@ -19149,7 +19180,7 @@ export interface UpdateTemplateRequest2 {
     globalSettings?: GlobalNutritionSettings | undefined;
     /** Full week structure to persist. Replaces all existing weeks, days, meals, foods, and
 recipes. */
-    weeks: TemplateWeekRequest2[];
+    weeks: TemplateWeekRequest[];
     /** Full supplement list to persist. Replaces all existing supplements. */
     supplements?: TemplateSupplementRequest[];
     /** Expected version for optimistic concurrency control. */
@@ -19157,15 +19188,15 @@ recipes. */
 }
 
 /** Represents a single week submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateWeekRequest2 {
+export interface TemplateWeekRequest {
     /** Week number within the template (1-based). */
     weekNumber?: number;
     /** Days in this week. */
-    days?: TemplateDayRequest2[];
+    days?: TemplateDayRequest[];
 }
 
 /** Represents a single day submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateDayRequest2 {
+export interface TemplateDayRequest {
     /** Day of week (1 = Monday … 7 = Sunday). */
     dayOfWeek?: number;
     /** Optional note for this day. */
@@ -19246,7 +19277,7 @@ Guid. */
 }
 
 /** Paginated response containing a list of nutrition plan template summaries. */
-export interface SearchTemplatesResponse2 {
+export interface SearchTemplatesResponse {
     /** List of template summaries for the current page. */
     templates?: NutritionPlanTemplateSummaryDto[];
     /** Total number of templates matching the filter. */
@@ -19284,11 +19315,11 @@ export interface NutritionPlanTemplateSummaryDto {
 }
 
 /** Request to search nutrition plan templates with optional filters and pagination. */
-export interface SearchTemplatesRequest2 {
+export interface SearchTemplatesRequest {
 }
 
 /** Response describing the new client plan created by instantiating a template. */
-export interface InstantiateTemplateResponse2 {
+export interface InstantiateTemplateResponse {
     /** The newly created plan's public identifier. */
     planId?: string;
     /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
@@ -19302,7 +19333,7 @@ export interface InstantiateTemplateResponse2 {
 }
 
 /** Request to instantiate a nutrition plan template into a new Draft client plan. */
-export interface InstantiateTemplateRequest2 {
+export interface InstantiateTemplateRequest {
     /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
 the internal ApplicationUser.Id storage key. */
     clientId: string;
@@ -19313,11 +19344,11 @@ the internal ApplicationUser.Id storage key. */
 }
 
 /** Request to fetch a single nutrition plan template's full detail. */
-export interface GetTemplateRequest2 {
+export interface GetTemplateRequest {
 }
 
 /** Request to save an existing nutrition plan as a new template. */
-export interface CreateTemplateFromPlanRequest2 {
+export interface CreateTemplateFromPlanRequest {
     /** The source plan's public identifier (NutritionPlan.ExternalId — NOT the client's
 ClientProfile.PublicId). */
     planId: string;
@@ -19330,7 +19361,7 @@ ClientProfile.PublicId). */
 }
 
 /** Request to create a new nutrition plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
-export interface CreateTemplateRequest2 {
+export interface CreateTemplateRequest {
     /** Display name of the template. */
     name: string;
     /** Optional free-text description. */
@@ -19349,7 +19380,7 @@ as supplied — WeekCount is always server-computed from
 the resulting week tree. */
     weekCount?: number | undefined;
     /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
-    weeks?: TemplateWeekRequest2[] | undefined;
+    weeks?: TemplateWeekRequest[] | undefined;
     /** Who can read this entry besides the caller. Defaults to Private. */
     visibility?: LibraryVisibility;
 }
@@ -19391,7 +19422,7 @@ One entry per (MealId, LogDate) pair that has a log record; meals without a log 
 are absent (equivalent to not-touched / no badge).
 Populated by the endpoint after loading the plan. Ownership is guaranteed by the
 plan ownership gate above the MealLog query — filtering by PlanId is safe. */
-    mealLogs?: MealLogDto[];
+    mealLogs?: MealEatenStatusDto[];
     /** Supplement recommendations attached to this plan. */
     supplements?: SupplementDto[];
 }
@@ -19409,7 +19440,7 @@ export interface PlanWeek {
 }
 
 /** Per-meal eaten state derived from a MealLog document. Lets the web layer render eaten/not-touched indicators and lock editing affordances on meals the client has already confirmed as eaten. */
-export interface MealLogDto {
+export interface MealEatenStatusDto {
     /** The MealId this log belongs to. */
     mealId?: string;
     /** The calendar date (UTC) this log entry belongs to, as a date-only value.
@@ -19556,7 +19587,7 @@ export interface PublishWeekRequest {
 }
 
 /** Request to link or unlink a questionnaire response to/from a nutrition plan. */
-export interface LinkQuestionnaireRequest2 {
+export interface LinkQuestionnaireRequest {
     /** Questionnaire response PublicId to link. Set to null to unlink. */
     questionnaireResponseId?: string | undefined;
     /** Optimistic concurrency version. */
@@ -19729,7 +19760,7 @@ export interface SendMessageRequest {
     text: string;
 }
 
-export interface MarkReadRequest {
+export interface MarkConversationReadRequest {
 }
 
 export interface GetMessagesResponse {
@@ -21167,7 +21198,7 @@ export interface GetTodayPlanResponse {
 /** Response model for the client's meal log for today. */
 export interface GetTodayLogResponse {
     /** Meals eaten today. */
-    mealsEaten?: MealLogDto2[];
+    mealsEaten?: MealLogDto[];
     /** Total nutrients consumed across all meals today. */
     totalConsumed?: NutrientTotals;
     /** Remaining nutrients to reach the daily target.
@@ -21176,7 +21207,7 @@ Null if the active plan has no global settings. */
 }
 
 /** DTO representing a single logged meal with computed nutrient totals. */
-export interface MealLogDto2 {
+export interface MealLogDto {
     /** Identifier of the meal that was eaten. */
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
@@ -21606,7 +21637,7 @@ export interface PersonalRecordSummary {
 export interface GetClientRecordsRequest {
 }
 
-export interface MarkReadRequest2 {
+export interface MarkReadRequest {
 }
 
 export interface GetNotificationsResponse {

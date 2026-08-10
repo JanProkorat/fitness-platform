@@ -13,14 +13,14 @@
  *     not-yet-reached → isSessionFinished=false (or no execution row for the session)
  *
  * Nutrition plan:
- *   Eaten state is derived from MealLogDto[] returned by GET /nutrition/plans/{planId}.
+ *   Eaten state is derived from MealEatenStatusDto[] returned by GET /nutrition/plans/{planId}.
  *   A meal is 'eaten' iff its log entry has isEaten=true.
  *   A day is 'all-eaten' iff every planned mealId in the day resolves to 'eaten'.
  *   Meals/days with no log entry are 'not-touched'.
  */
 
 import type { SessionExecutionDto, LoggedSetDto } from '@/api/training-plan-types';
-import type { MealLogDto } from '@/api/plan-types';
+import type { MealEatenStatusDto } from '@/api/plan-types';
 
 // ── Composite key helper ─────────────────────────────────────────────────────
 
@@ -258,7 +258,7 @@ export type MealCompletionState = 'eaten' | 'not-touched';
 /**
  * Derive the eaten state for a single planned meal.
  *
- * A meal is 'eaten' iff at least one MealLogDto exists for the given mealId
+ * A meal is 'eaten' iff at least one MealEatenStatusDto exists for the given mealId
  * with isEaten === true. The logDate is not used for matching — any log entry
  * with isEaten for this mealId counts. Photo-only stubs (isEaten=false) are
  * treated the same as no log entry.
@@ -267,7 +267,7 @@ export type MealCompletionState = 'eaten' | 'not-touched';
  * @param mealId    The PlanMeal.mealId to check
  */
 export function deriveMealCompletionState(
-  mealLogs: MealLogDto[] | undefined,
+  mealLogs: MealEatenStatusDto[] | undefined,
   mealId: string,
 ): MealCompletionState {
   if (!mealLogs || mealLogs.length === 0) return 'not-touched';
@@ -294,7 +294,7 @@ export interface DayCompletionCounts {
  * @param mealIdsInDay  All PlanMeal.mealId values present in the day
  */
 export function deriveDayCompletionState(
-  mealLogs: MealLogDto[] | undefined,
+  mealLogs: MealEatenStatusDto[] | undefined,
   mealIdsInDay: string[],
 ): { state: DayCompletionState; counts: DayCompletionCounts } {
   const total = mealIdsInDay.length;
