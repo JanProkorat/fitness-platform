@@ -1,19 +1,19 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
+using FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 using FluentValidation;
 
-namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemplate;
+namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTemplate;
 
 /// <summary>
-/// Validates the <see cref="CreateTemplateRequest"/>.
+/// Validates the <see cref="CreateTrainingPlanTemplateRequest"/>.
 /// </summary>
-public class CreateTemplateValidator : Validator<CreateTemplateRequest>
+public class CreateTrainingPlanTemplateValidator : Validator<CreateTrainingPlanTemplateRequest>
 {
     /// <summary>
-    /// Initializes validation rules for creating a nutrition plan template.
+    /// Initializes validation rules for creating a training plan template.
     /// </summary>
-    public CreateTemplateValidator()
+    public CreateTrainingPlanTemplateValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
@@ -30,7 +30,7 @@ public class CreateTemplateValidator : Validator<CreateTemplateRequest>
 
         RuleFor(x => x)
             .Must(x => !(x.WeekCount.HasValue && x.Weeks is { Count: > 0 }))
-            .WithErrorCode(ErrorCodes.OutOfRange)
+            .WithErrorCode(ErrorCodes.MutuallyExclusiveFields)
             .WithMessage("weekCount and weeks are mutually exclusive.");
 
         RuleFor(x => x.WeekCount)
@@ -39,7 +39,6 @@ public class CreateTemplateValidator : Validator<CreateTemplateRequest>
 
         RuleFor(x => x.Weeks)
             .Must(weeks => weeks!.Count <= 52).WithErrorCode(ErrorCodes.OutOfRange)
-                .WithMessage("A template may not exceed 52 weeks.")
             .Must(weeks => weeks!.Select(w => w.WeekNumber).Distinct().Count() == weeks!.Count)
                 .WithErrorCode(ErrorCodes.OutOfRange)
             .When(x => x.Weeks is { Count: > 0 });
@@ -52,23 +51,8 @@ public class CreateTemplateValidator : Validator<CreateTemplateRequest>
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange)
             .When(x => x.Goal.HasValue);
 
-        RuleFor(x => x.DietaryStyle)
+        RuleFor(x => x.Difficulty)
             .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange)
-            .When(x => x.DietaryStyle.HasValue);
-
-        RuleForEach(x => x.Supplements).ChildRules(supplement =>
-        {
-            supplement.RuleFor(s => s.Name)
-                .NotEmpty().WithErrorCode(ErrorCodes.Required)
-                .MaximumLength(100).WithErrorCode(ErrorCodes.OutOfRange);
-
-            supplement.RuleFor(s => s.Dose)
-                .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange)
-                .When(s => s.Dose is not null);
-
-            supplement.RuleFor(s => s.Notes)
-                .MaximumLength(500).WithErrorCode(ErrorCodes.OutOfRange)
-                .When(s => s.Notes is not null);
-        });
+            .When(x => x.Difficulty.HasValue);
     }
 }

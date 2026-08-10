@@ -6,16 +6,16 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemplate;
 
 /// <summary>
-/// Validates <see cref="UpdateTemplateRequest"/>, including all nested weeks, days, meals,
+/// Validates <see cref="UpdateNutritionPlanTemplateRequest"/>, including all nested weeks, days, meals,
 /// foods, recipes, and supplements. Mirrors <c>UpdatePlanValidator</c>'s structure — same
 /// content tree, same duplicate-<c>MealId</c>-per-day hazard.
 /// </summary>
-public class UpdateTemplateValidator : Validator<UpdateTemplateRequest>
+public class UpdateNutritionPlanTemplateValidator : Validator<UpdateNutritionPlanTemplateRequest>
 {
     /// <summary>
     /// Initializes validation rules for a full-state nutrition plan template update.
     /// </summary>
-    public UpdateTemplateValidator()
+    public UpdateNutritionPlanTemplateValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)

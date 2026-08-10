@@ -9,7 +9,7 @@ using FluentValidation.TestHelper;
 namespace FitnessPlatform.Tests.Validators;
 
 /// <summary>
-/// Unit tests for <see cref="CreateTemplateValidator"/> (training plan templates, #862 review
+/// Unit tests for <see cref="CreateTrainingPlanTemplateValidator"/> (training plan templates, #862 review
 /// MAJOR): a caller-supplied week tree must reject an invalid inner <c>WodConfig</c> at
 /// template-create time, with the same rigor <c>UpdateTrainingPlanValidator</c> applies on the
 /// plan write path — otherwise <c>instantiate</c> clones the bad config verbatim into a real
@@ -23,19 +23,19 @@ namespace FitnessPlatform.Tests.Validators;
 /// </remarks>
 public class CreateTrainingPlanTemplateValidatorTests
 {
-    private readonly CreateTemplateValidator _validator = new();
+    private readonly CreateTrainingPlanTemplateValidator _validator = new();
 
     /// <summary>
     /// Builds an otherwise-valid week with a single session carrying one workout with one
     /// exercise, so <c>Format</c>/<c>FormatConfig</c> at each of the three levels can be varied
     /// independently by the caller.
     /// </summary>
-    private static TemplateWeekRequest BuildValidWeek() => new()
+    private static TrainingPlanTemplateWeekRequest BuildValidWeek() => new()
     {
         WeekNumber = 1,
         Days =
         [
-            new TemplateDayRequest
+            new TrainingPlanTemplateDayRequest
             {
                 DayOfWeek = 1,
                 Sessions =
@@ -67,7 +67,7 @@ public class CreateTrainingPlanTemplateValidatorTests
         ]
     };
 
-    private static CreateTemplateRequest BuildRequest(TemplateWeekRequest week) => new()
+    private static CreateTrainingPlanTemplateRequest BuildRequest(TrainingPlanTemplateWeekRequest week) => new()
     {
         Name = "Test Template",
         Weeks = [week]
@@ -79,16 +79,16 @@ public class CreateTrainingPlanTemplateValidatorTests
     /// many days as needed (max 7 sessions per day, max 7 days) so the week-level aggregate cap is
     /// exercised independently of any single day's count.
     /// </summary>
-    private static TemplateWeekRequest BuildWeekWithSessionCount(int sessionCount)
+    private static TrainingPlanTemplateWeekRequest BuildWeekWithSessionCount(int sessionCount)
     {
-        List<TemplateDayRequest> days = [];
+        List<TrainingPlanTemplateDayRequest> days = [];
         var remaining = sessionCount;
         var dayOfWeek = 1;
 
         while (remaining > 0)
         {
             var sessionsOnDay = Math.Min(remaining, 7);
-            days.Add(new TemplateDayRequest
+            days.Add(new TrainingPlanTemplateDayRequest
             {
                 DayOfWeek = dayOfWeek,
                 Sessions = Enumerable.Range(1, sessionsOnDay).Select(order => new TemplateSessionRequest
@@ -110,7 +110,7 @@ public class CreateTrainingPlanTemplateValidatorTests
             dayOfWeek++;
         }
 
-        return new TemplateWeekRequest { WeekNumber = 1, Days = days };
+        return new TrainingPlanTemplateWeekRequest { WeekNumber = 1, Days = days };
     }
 
     [Fact]

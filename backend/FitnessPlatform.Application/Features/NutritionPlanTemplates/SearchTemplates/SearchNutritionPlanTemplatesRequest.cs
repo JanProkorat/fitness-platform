@@ -1,11 +1,11 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.SearchTemplates;
+namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.SearchTemplates;
 
 /// <summary>
-/// Request to search training plan templates with optional filters and pagination.
+/// Request to search nutrition plan templates with optional filters and pagination.
 /// </summary>
-public class SearchTemplatesRequest
+public class SearchNutritionPlanTemplatesRequest
 {
     /// <summary>
     /// Optional case-insensitive substring match against the template name.
@@ -18,9 +18,9 @@ public class SearchTemplatesRequest
     public PrimaryGoal? Goal { get; set; }
 
     /// <summary>
-    /// Optional filter by difficulty level.
+    /// Optional filter by dietary style.
     /// </summary>
-    public ExerciseDifficulty? Difficulty { get; set; }
+    public DietaryStyle? DietaryStyle { get; set; }
 
     /// <summary>
     /// Optional filter by exact week count.

@@ -4,10 +4,10 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 
 /// <summary>
-/// Shared per-week/day/meal/food validation rules for <see cref="TemplateWeekRequest"/>. Applied
-/// identically by <c>CreateTemplateValidator</c> (when a caller-supplied week tree is provided,
+/// Shared per-week/day/meal/food validation rules for <see cref="NutritionPlanTemplateWeekRequest"/>. Applied
+/// identically by <c>CreateNutritionPlanTemplateValidator</c> (when a caller-supplied week tree is provided,
 /// guarded by its own mutual-exclusion-with-<c>WeekCount</c> condition) and
-/// <c>UpdateTemplateValidator</c> (always, since <c>Weeks</c> is required there) so the two
+/// <c>UpdateNutritionPlanTemplateValidator</c> (always, since <c>Weeks</c> is required there) so the two
 /// validators cannot drift on the shape they both accept. The distinct-<c>WeekNumber</c>-across-
 /// the-list check is NOT part of this fragment — it needs sibling access across the whole
 /// <c>Weeks</c> collection, so each caller applies it separately at the list level.
@@ -15,10 +15,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 internal static class TemplateWeekRuleSet
 {
     /// <summary>
-    /// Configures the nested week/day/meal/food rules on a <see cref="TemplateWeekRequest"/>
+    /// Configures the nested week/day/meal/food rules on a <see cref="NutritionPlanTemplateWeekRequest"/>
     /// child validator.
     /// </summary>
-    public static void Configure(InlineValidator<TemplateWeekRequest> week)
+    public static void Configure(InlineValidator<NutritionPlanTemplateWeekRequest> week)
     {
         week.RuleFor(w => w.WeekNumber)
             .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);

@@ -87,7 +87,7 @@ export interface PlanWeek {
  * One entry per (mealId, logDate) pair that has a log record.
  * Meals without a log entry are absent — equivalent to not-touched.
  */
-export interface MealLogDto {
+export interface MealEatenStatusDto {
   /** The PlanMeal.mealId this log belongs to. */
   mealId: string;
   /** Calendar date this log belongs to (ISO date string, e.g. "2025-05-29"). */
@@ -120,7 +120,7 @@ export interface NutritionPlanDetail {
    * Per-meal eaten state for all MealLog documents associated with this plan.
    * Empty array when no logs exist (all meals are not-touched).
    */
-  mealLogs: MealLogDto[];
+  mealLogs: MealEatenStatusDto[];
   /**
    * Supplement recommendations attached to this plan.
    * Empty array when no supplements have been added.

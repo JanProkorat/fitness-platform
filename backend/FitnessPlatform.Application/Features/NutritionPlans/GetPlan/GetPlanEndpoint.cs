@@ -69,7 +69,7 @@ public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : En
         var mealLogs = await logCursor.ToListAsync(ct);
 
         response.MealLogs = mealLogs
-            .Select(l => new MealLogDto
+            .Select(l => new MealEatenStatusDto
             {
                 MealId = l.MealId,
                 LogDate = DateOnly.FromDateTime(l.LogDate),

@@ -1,16 +1,16 @@
-using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
+using FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 
-namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.SearchTemplates;
+namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.SearchTemplates;
 
 /// <summary>
-/// Paginated response containing a list of nutrition plan template summaries.
+/// Paginated response containing a list of training plan template summaries.
 /// </summary>
-public class SearchTemplatesResponse
+public class SearchTrainingPlanTemplatesResponse
 {
     /// <summary>
     /// List of template summaries for the current page.
     /// </summary>
-    public List<NutritionPlanTemplateSummaryDto> Templates { get; set; } = [];
+    public List<TrainingPlanTemplateSummaryDto> Templates { get; set; } = [];
 
     /// <summary>
     /// Total number of templates matching the filter.

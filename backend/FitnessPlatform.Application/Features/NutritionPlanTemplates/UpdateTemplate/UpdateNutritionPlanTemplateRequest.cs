@@ -8,7 +8,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemp
 /// Request for a full-state update of a nutrition plan template: replaces name, description,
 /// goal/dietary style, settings, week tree, and supplements.
 /// </summary>
-public class UpdateTemplateRequest
+public class UpdateNutritionPlanTemplateRequest
 {
     /// <summary>
     /// The template's public identifier (route parameter).
@@ -44,7 +44,7 @@ public class UpdateTemplateRequest
     /// Full week structure to persist. Replaces all existing weeks, days, meals, foods, and
     /// recipes.
     /// </summary>
-    public List<TemplateWeekRequest> Weeks { get; set; } = [];
+    public List<NutritionPlanTemplateWeekRequest> Weeks { get; set; } = [];
 
     /// <summary>
     /// Full supplement list to persist. Replaces all existing supplements.

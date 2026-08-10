@@ -48,6 +48,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Fails fast on any two public class/record/enum/interface declarations
+      # under Features/ sharing a name. NSwag assigns the plain name to
+      # whichever side its document-processing order visits first and a
+      # numeric suffix (`Foo2`) to the other — not a stable contract, since an
+      # unrelated backend change can silently swap which side keeps which
+      # name. #862 hit this as an app-boot crash (ShortNames=true makes a
+      # duplicate *endpoint* class name fatal at startup, invisible to
+      # `dotnet build`); #887/#889/#923 hit it as a wrong-field-at-runtime bug
+      # via the client's numerically-suffixed type. Runs before any .NET step
+      # is set up since it is pure grep with no build dependency.
+      - name: Check for duplicate public type names under Features/
+        run: |
+          duplicates=$(grep -rhoE "^public (class|record|enum|interface) [A-Za-z0-9_]+" \
+            FitnessPlatform.Application/Features/ | awk '{print $3}' | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "::error::Duplicate public type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge."
+            echo "Colliding type name(s):"
+            echo "$duplicates"
+            exit 1
+          fi
+          echo "No duplicate public type names found under Features/."
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:

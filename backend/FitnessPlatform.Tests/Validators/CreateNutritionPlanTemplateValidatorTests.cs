@@ -8,9 +8,9 @@ using FluentValidation.TestHelper;
 namespace FitnessPlatform.Tests.Validators;
 
 /// <summary>
-/// Unit tests for <see cref="CreateTemplateValidator"/>'s week-tree rules (#861 review — BLOCKING):
+/// Unit tests for <see cref="CreateNutritionPlanTemplateValidator"/>'s week-tree rules (#861 review — BLOCKING):
 /// a caller-supplied <c>weeks[]</c> tree must be validated with the same rigor as
-/// <c>UpdateTemplateValidator</c>'s identical <see cref="TemplateWeekRequest"/> shape, since
+/// <c>UpdateNutritionPlanTemplateValidator</c>'s identical <see cref="NutritionPlanTemplateWeekRequest"/> shape, since
 /// <c>instantiate</c> later clones the tree verbatim into a real plan with no revalidation.
 /// </summary>
 /// <remarks>
@@ -19,20 +19,20 @@ namespace FitnessPlatform.Tests.Validators;
 /// validator-only test run sees the raw FluentValidation default instead, and a
 /// <c>PropertyName</c> assertion that happens to pass in isolation can flake under the full suite.
 /// </remarks>
-public class CreateTemplateValidatorTests
+public class CreateNutritionPlanTemplateValidatorTests
 {
-    private readonly CreateTemplateValidator _validator = new();
+    private readonly CreateNutritionPlanTemplateValidator _validator = new();
 
     /// <summary>
     /// Builds an otherwise-valid week carrying one day with one meal and one food, so the fields
     /// under test can be varied independently.
     /// </summary>
-    private static TemplateWeekRequest BuildValidWeek(int weekNumber = 1, int dayOfWeek = 1) => new()
+    private static NutritionPlanTemplateWeekRequest BuildValidWeek(int weekNumber = 1, int dayOfWeek = 1) => new()
     {
         WeekNumber = weekNumber,
         Days =
         [
-            new TemplateDayRequest
+            new NutritionPlanTemplateDayRequest
             {
                 DayOfWeek = dayOfWeek,
                 Meals =
@@ -57,7 +57,7 @@ public class CreateTemplateValidatorTests
         ]
     };
 
-    private static CreateTemplateRequest BuildRequest(List<TemplateWeekRequest> weeks) => new()
+    private static CreateNutritionPlanTemplateRequest BuildRequest(List<NutritionPlanTemplateWeekRequest> weeks) => new()
     {
         Name = "Test Template",
         Weeks = weeks
@@ -87,7 +87,7 @@ public class CreateTemplateValidatorTests
     public void Validate_DuplicateDayOfWeekWithinWeek_FailsWithOutOfRangeCode()
     {
         var week = BuildValidWeek();
-        week.Days.Add(new TemplateDayRequest { DayOfWeek = week.Days[0].DayOfWeek, Meals = [] });
+        week.Days.Add(new NutritionPlanTemplateDayRequest { DayOfWeek = week.Days[0].DayOfWeek, Meals = [] });
 
         var result = _validator.TestValidate(BuildRequest([week]));
 

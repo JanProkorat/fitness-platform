@@ -151,7 +151,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             planMeals.TryGetValue(log.MealId, out var planMeal);
             var totals = planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
 
-            return new MealLogDto
+            return new TodayMealLogDto
             {
                 MealId = log.MealId,
                 MealName = planMeal?.Kind.ToString() ?? string.Empty,

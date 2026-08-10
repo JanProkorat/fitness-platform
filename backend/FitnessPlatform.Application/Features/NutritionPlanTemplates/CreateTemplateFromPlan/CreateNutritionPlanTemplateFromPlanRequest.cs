@@ -1,14 +1,14 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTemplateFromPlan;
+namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemplateFromPlan;
 
 /// <summary>
-/// Request to save an existing training plan as a new template.
+/// Request to save an existing nutrition plan as a new template.
 /// </summary>
-public class CreateTemplateFromPlanRequest
+public class CreateNutritionPlanTemplateFromPlanRequest
 {
     /// <summary>
-    /// The source plan's public identifier (<c>TrainingPlan.ExternalId</c> — NOT the client's
+    /// The source plan's public identifier (<c>NutritionPlan.ExternalId</c> — NOT the client's
     /// <c>ClientProfile.PublicId</c>).
     /// </summary>
     public Guid PlanId { get; set; }

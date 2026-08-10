@@ -6,7 +6,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 /// <summary>
 /// Represents a single week submitted when creating or fully replacing a training plan template.
 /// </summary>
-public class TemplateWeekRequest
+public class TrainingPlanTemplateWeekRequest
 {
     /// <summary>
     /// Week number within the template (1-based).
@@ -16,13 +16,13 @@ public class TemplateWeekRequest
     /// <summary>
     /// Days in this week.
     /// </summary>
-    public List<TemplateDayRequest> Days { get; set; } = [];
+    public List<TrainingPlanTemplateDayRequest> Days { get; set; } = [];
 }
 
 /// <summary>
 /// Represents a single day within a template week.
 /// </summary>
-public class TemplateDayRequest
+public class TrainingPlanTemplateDayRequest
 {
     /// <summary>
     /// Day of week (1 = Monday … 7 = Sunday).

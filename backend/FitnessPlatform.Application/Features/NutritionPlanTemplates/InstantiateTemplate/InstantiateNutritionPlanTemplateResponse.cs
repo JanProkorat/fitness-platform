@@ -3,7 +3,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Instantiat
 /// <summary>
 /// Response describing the new client plan created by instantiating a template.
 /// </summary>
-public class InstantiateTemplateResponse
+public class InstantiateNutritionPlanTemplateResponse
 {
     /// <summary>
     /// The newly created plan's public identifier.

@@ -6,16 +6,16 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.UpdateTemplate;
 
 /// <summary>
-/// Validates <see cref="UpdateTemplateRequest"/>, including all nested weeks, days, sessions,
+/// Validates <see cref="UpdateTrainingPlanTemplateRequest"/>, including all nested weeks, days, sessions,
 /// workouts, and exercises. Mirrors <c>UpdateTrainingPlanValidator</c>'s structure — same content
 /// tree, same duplicate-order-per-session hazard.
 /// </summary>
-public class UpdateTemplateValidator : Validator<UpdateTemplateRequest>
+public class UpdateTrainingPlanTemplateValidator : Validator<UpdateTrainingPlanTemplateRequest>
 {
     /// <summary>
     /// Initializes validation rules for a full-state training plan template update.
     /// </summary>
-    public UpdateTemplateValidator()
+    public UpdateTrainingPlanTemplateValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)

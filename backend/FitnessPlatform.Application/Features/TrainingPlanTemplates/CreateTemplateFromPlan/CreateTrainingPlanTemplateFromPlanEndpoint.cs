@@ -19,7 +19,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 public class CreateTrainingPlanTemplateFromPlanEndpoint(IMongoContext mongo, TimeProvider timeProvider)
-    : Endpoint<CreateTemplateFromPlanRequest, TrainingPlanTemplateSummaryDto>
+    : Endpoint<CreateTrainingPlanTemplateFromPlanRequest, TrainingPlanTemplateSummaryDto>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -34,7 +34,7 @@ public class CreateTrainingPlanTemplateFromPlanEndpoint(IMongoContext mongo, Tim
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(CreateTemplateFromPlanRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CreateTrainingPlanTemplateFromPlanRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 

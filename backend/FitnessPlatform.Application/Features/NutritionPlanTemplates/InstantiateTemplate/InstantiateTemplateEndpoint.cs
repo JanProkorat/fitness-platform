@@ -29,7 +29,7 @@ public class InstantiateTemplateEndpoint(
     NutritionAuthHelper authHelper,
     IApplicationDbContext db,
     TimeProvider timeProvider)
-    : Endpoint<InstantiateTemplateRequest, InstantiateTemplateResponse>
+    : Endpoint<InstantiateNutritionPlanTemplateRequest, InstantiateNutritionPlanTemplateResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -44,7 +44,7 @@ public class InstantiateTemplateEndpoint(
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(InstantiateTemplateRequest req, CancellationToken ct)
+    public override async Task HandleAsync(InstantiateNutritionPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -130,7 +130,7 @@ public class InstantiateTemplateEndpoint(
 
         await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        await HttpContext.Response.SendAsync(new InstantiateTemplateResponse
+        await HttpContext.Response.SendAsync(new InstantiateNutritionPlanTemplateResponse
         {
             PlanId = plan.ExternalId,
             ClientId = req.ClientId,

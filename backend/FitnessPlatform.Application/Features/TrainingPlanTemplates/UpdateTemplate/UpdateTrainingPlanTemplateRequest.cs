@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.UpdateTempl
 /// Request for a full-state update of a training plan template: replaces name, description,
 /// goal/difficulty, and the week tree.
 /// </summary>
-public class UpdateTemplateRequest
+public class UpdateTrainingPlanTemplateRequest
 {
     /// <summary>
     /// The template's public identifier (route parameter).
@@ -38,7 +38,7 @@ public class UpdateTemplateRequest
     /// Full week structure to persist. Replaces all existing weeks, days, sessions, workouts,
     /// and exercises.
     /// </summary>
-    public List<TemplateWeekRequest> Weeks { get; set; } = [];
+    public List<TrainingPlanTemplateWeekRequest> Weeks { get; set; } = [];
 
     /// <summary>
     /// Expected version for optimistic concurrency control.
