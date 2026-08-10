@@ -40,7 +40,7 @@ public class InstantiateTrainingPlanTemplateEndpoint(
     ProfessionalAuthHelper authHelper,
     IApplicationDbContext db,
     TimeProvider timeProvider)
-    : Endpoint<InstantiateTemplateRequest, InstantiateTemplateResponse>
+    : Endpoint<InstantiateTrainingPlanTemplateRequest, InstantiateTrainingPlanTemplateResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -55,7 +55,7 @@ public class InstantiateTrainingPlanTemplateEndpoint(
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(InstantiateTemplateRequest req, CancellationToken ct)
+    public override async Task HandleAsync(InstantiateTrainingPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -140,7 +140,7 @@ public class InstantiateTrainingPlanTemplateEndpoint(
 
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        await HttpContext.Response.SendAsync(new InstantiateTemplateResponse
+        await HttpContext.Response.SendAsync(new InstantiateTrainingPlanTemplateResponse
         {
             PlanId = plan.ExternalId,
             ClientId = req.ClientId,

@@ -3,7 +3,7 @@ using FitnessPlatform.Application.Domain.Documents;
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 
 /// <summary>
-/// Maps the caller-supplied request tree (<see cref="TemplateWeekRequest"/>) onto the document
+/// Maps the caller-supplied request tree (<see cref="TrainingPlanTemplateWeekRequest"/>) onto the document
 /// shapes persisted on a <see cref="TrainingPlanTemplate"/>. Shared by <c>CreateTemplate</c>
 /// (when weeks are supplied directly rather than materialized from a week count) and
 /// <c>UpdateTemplate</c>'s full-state replace.
@@ -15,7 +15,7 @@ internal static class TemplateRequestMapper
     /// exercise that doesn't already carry one — mirrors
     /// <c>UpdateTrainingPlanEndpoint.ResolveOrMintId</c>'s pattern.
     /// </summary>
-    public static List<TrainingTemplateWeek> ToWeeks(List<TemplateWeekRequest> weeks) =>
+    public static List<TrainingTemplateWeek> ToWeeks(List<TrainingPlanTemplateWeekRequest> weeks) =>
         weeks.Select(week => new TrainingTemplateWeek
         {
             WeekNumber = week.WeekNumber,

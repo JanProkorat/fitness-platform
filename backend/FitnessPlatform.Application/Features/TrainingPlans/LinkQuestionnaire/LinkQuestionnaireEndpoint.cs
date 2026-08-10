@@ -18,7 +18,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.LinkQuestionnaire;
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
 public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db, PlanConcurrencyGuard guard)
-    : Endpoint<LinkQuestionnaireRequest, GetTrainingPlanResponse>
+    : Endpoint<LinkTrainingQuestionnaireRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -33,7 +33,7 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(LinkQuestionnaireRequest req, CancellationToken ct)
+    public override async Task HandleAsync(LinkTrainingQuestionnaireRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)

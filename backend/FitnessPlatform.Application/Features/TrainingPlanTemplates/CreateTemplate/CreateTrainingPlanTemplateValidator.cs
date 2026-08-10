@@ -6,14 +6,14 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTemplate;
 
 /// <summary>
-/// Validates the <see cref="CreateTemplateRequest"/>.
+/// Validates the <see cref="CreateTrainingPlanTemplateRequest"/>.
 /// </summary>
-public class CreateTemplateValidator : Validator<CreateTemplateRequest>
+public class CreateTrainingPlanTemplateValidator : Validator<CreateTrainingPlanTemplateRequest>
 {
     /// <summary>
     /// Initializes validation rules for creating a training plan template.
     /// </summary>
-    public CreateTemplateValidator()
+    public CreateTrainingPlanTemplateValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)

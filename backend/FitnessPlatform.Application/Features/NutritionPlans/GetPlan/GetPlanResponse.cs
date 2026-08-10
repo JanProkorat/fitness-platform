@@ -33,14 +33,14 @@ public class SupplementDto
 ///     <see cref="MealLog.EatenAt"/> was non-null at read time.
 ///   </description></item>
 ///   <item><description>
-///     <b>not-touched</b> — no <see cref="MealLogDto"/> row exists for the meal,
+///     <b>not-touched</b> — no <see cref="MealEatenStatusDto"/> row exists for the meal,
 ///     or <see cref="IsEaten"/> is <c>false</c> (photo-only / note-only stub).
 ///   </description></item>
 /// </list>
 /// Day-level state (all-eaten vs not-touched) is derived client-side by
 /// inspecting every meal in the day — no separate aggregate field is stored here.
 /// </remarks>
-public class MealLogDto
+public class MealEatenStatusDto
 {
     /// <summary>
     /// The <see cref="PlanMeal.MealId"/> this log belongs to.
@@ -148,7 +148,7 @@ public class GetPlanResponse
     /// Populated by the endpoint after loading the plan. Ownership is guaranteed by the
     /// plan ownership gate above the MealLog query — filtering by PlanId is safe.
     /// </summary>
-    public List<MealLogDto> MealLogs { get; set; } = [];
+    public List<MealEatenStatusDto> MealLogs { get; set; } = [];
 
     /// <summary>
     /// Supplement recommendations attached to this plan.

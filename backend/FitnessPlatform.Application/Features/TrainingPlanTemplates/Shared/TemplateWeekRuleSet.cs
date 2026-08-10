@@ -6,7 +6,7 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 
 /// <summary>
-/// Validation rules for a single <see cref="TemplateWeekRequest"/>, including its nested days,
+/// Validation rules for a single <see cref="TrainingPlanTemplateWeekRequest"/>, including its nested days,
 /// sessions, workouts, standalone exercises, and sets. Mirrors
 /// <c>UpdateTrainingPlanValidator</c>'s structure — same content tree, same
 /// duplicate-<c>Order</c>-across-workouts-and-standalone-exercises hazard
@@ -21,7 +21,7 @@ internal static class TemplateWeekRuleSet
     /// <summary>
     /// Configures validation rules for a single template week onto an inline child validator.
     /// </summary>
-    public static void Configure(InlineValidator<TemplateWeekRequest> week)
+    public static void Configure(InlineValidator<TrainingPlanTemplateWeekRequest> week)
     {
         week.RuleFor(w => w.WeekNumber)
             .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);

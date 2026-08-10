@@ -3,7 +3,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.LinkQuestionnaire;
 /// <summary>
 /// Request to link or unlink a questionnaire response to/from a training plan.
 /// </summary>
-public class LinkQuestionnaireRequest
+public class LinkTrainingQuestionnaireRequest
 {
     /// <summary>Plan identifier.</summary>
     public Guid PlanId { get; set; }

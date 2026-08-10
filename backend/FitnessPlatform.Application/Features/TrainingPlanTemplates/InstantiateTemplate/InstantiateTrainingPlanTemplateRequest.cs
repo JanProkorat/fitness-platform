@@ -3,7 +3,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Instantiate
 /// <summary>
 /// Request to instantiate a training plan template into a new Draft client plan.
 /// </summary>
-public class InstantiateTemplateRequest
+public class InstantiateTrainingPlanTemplateRequest
 {
     /// <summary>
     /// The template's public identifier (route parameter).

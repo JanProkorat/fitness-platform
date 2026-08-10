@@ -5,7 +5,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// <summary>
 /// Request to save an existing training plan as a new template.
 /// </summary>
-public class CreateTemplateFromPlanRequest
+public class CreateTrainingPlanTemplateFromPlanRequest
 {
     /// <summary>
     /// The source plan's public identifier (<c>TrainingPlan.ExternalId</c> — NOT the client's

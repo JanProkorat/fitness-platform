@@ -5,7 +5,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.SearchTempl
 /// <summary>
 /// Request to search training plan templates with optional filters and pagination.
 /// </summary>
-public class SearchTemplatesRequest
+public class SearchTrainingPlanTemplatesRequest
 {
     /// <summary>
     /// Optional case-insensitive substring match against the template name.

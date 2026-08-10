@@ -9,7 +9,7 @@ namespace FitnessPlatform.Application.Features.Messaging.MarkRead;
 /// <summary>
 /// Marks all messages in a conversation as read for the authenticated user.
 /// </summary>
-public class MarkConversationReadEndpoint(IApplicationDbContext db) : Endpoint<MarkReadRequest>
+public class MarkConversationReadEndpoint(IApplicationDbContext db) : Endpoint<MarkConversationReadRequest>
 {
     public override void Configure()
     {
@@ -22,7 +22,7 @@ public class MarkConversationReadEndpoint(IApplicationDbContext db) : Endpoint<M
         });
     }
 
-    public override async Task HandleAsync(MarkReadRequest req, CancellationToken ct)
+    public override async Task HandleAsync(MarkConversationReadRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
@@ -52,7 +52,7 @@ public class MarkConversationReadEndpoint(IApplicationDbContext db) : Endpoint<M
     }
 }
 
-public class MarkReadRequest
+public class MarkConversationReadRequest
 {
     public Guid ConversationId { get; set; }
 }
