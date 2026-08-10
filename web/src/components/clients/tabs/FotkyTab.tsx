@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import { apiClient } from '@/api/client';
 import { PlanPhotoCategory, PlanPhotoType } from '@/api/generated';
-import type { PlanPhotoResponse2 } from '@/api/client-photos';
+import type { ClientPhotoResponse } from '@/api/client-photos';
 import {
   listDiaryRequests,
   linkPhotoDiaryToPlan,
@@ -123,7 +123,7 @@ export function FotkyTab({
 
   // `GetTrainerClientPhotosResponse.photos` holds the flat array when
   // groupByMonth=false is passed.
-  const allPhotos: PlanPhotoResponse2[] = useMemo(
+  const allPhotos: ClientPhotoResponse[] = useMemo(
     () => photoData?.photos ?? [],
     [photoData],
   );
@@ -210,7 +210,7 @@ export function FotkyTab({
     return map;
   }, [diaryRequests]);
 
-  function resolvePhotoLinkedPlan(photo: PlanPhotoResponse2): DiaryPlanOption | undefined {
+  function resolvePhotoLinkedPlan(photo: ClientPhotoResponse): DiaryPlanOption | undefined {
     if (photo.planId) {
       const direct = planById.get(photo.planId);
       if (direct) return direct;
@@ -316,7 +316,7 @@ export function FotkyTab({
   }, [allPhotos]);
 
   // ── Client-side filtered photos ───────────────────────────────────────────────
-  const filteredPhotos: PlanPhotoResponse2[] = useMemo(() => {
+  const filteredPhotos: ClientPhotoResponse[] = useMemo(() => {
     if (activeFilter === 'all') return allPhotos;
     if (
       activeFilter === PlanPhotoCategory.Food ||

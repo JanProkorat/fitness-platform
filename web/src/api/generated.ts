@@ -12635,7 +12635,7 @@ export class ApiClient {
      * @param pageSize Number of items per page. Defaults to 20.
      * @param groupByMonth When true the response items are MonthGroupResponse objects
     grouped by YYYY-MM. When false (default) items are flat
-    PlanPhotoResponse objects.
+    ClientPhotoResponse objects.
     Pagination applies to groups when true, to individual photos when false.
      * @param category (optional) Optional category filter (Food / Body / FreeForm).
      * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
@@ -12738,7 +12738,7 @@ export class ApiClient {
      * @param pageSize Number of items per page. Defaults to 20.
      * @param groupByMonth When true the response items are MonthGroupResponse objects
     grouped by YYYY-MM. When false (default) items are flat
-    PlanPhotoResponse objects.
+    ClientPhotoResponse objects.
     Pagination applies to groups when true, to individual photos when false.
      * @param category (optional) Optional category filter (Food / Body / FreeForm).
      * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
@@ -15961,20 +15961,27 @@ export interface CreateWorkoutTemplateSetRequest {
     restSeconds?: number | undefined;
 }
 
+/** RFC7807 compatible problem details/ error response class. this can be used by configuring startup like so: app.UseFastEndpoints(c => c.Errors.UseProblemDetails()) */
 export interface ProblemDetails {
     type?: string;
     title?: string;
     status?: number;
     instance?: string;
     traceId?: string;
+    /** the details of the error */
     detail?: string | undefined;
     errors?: ProblemDetails_Error[];
 }
 
+/** the error details object */
 export interface ProblemDetails_Error {
+    /** the name of the error or property of the dto that caused the error */
     name?: string;
+    /** the reason for the error */
     reason?: string;
+    /** the code of the error */
     code?: string | undefined;
+    /** the severity of the error */
     severity?: string | undefined;
 }
 
@@ -17616,6 +17623,14 @@ export interface CreatePendingInviteRequest {
 export interface ListClientPlansResponse {
     /** All plans (nutrition + training) across all statuses, newest first. */
     plans?: ClientPlanItem[];
+    /** Whether the caller's link permits viewing the client's nutrition plans.
+Mirrors ClientProfessionalLink.CanViewNutritionPlans. Lets the portal
+distinguish "no nutrition plans exist" from "you may not see them". */
+    canViewNutritionPlans?: boolean;
+    /** Whether the caller's link permits viewing the client's training plans.
+Mirrors ClientProfessionalLink.CanViewTrainingPlans. Lets the portal
+distinguish "no training plans exist" from "you may not see them". */
+    canViewTrainingPlans?: boolean;
 }
 
 /** A single plan entry in the combined list. */
@@ -17788,6 +17803,12 @@ export interface GetClientVerdictRequest {
 export interface GetClientTimelineResponse {
     /** Timeline items, ordered by OccurredAt descending. */
     items?: ClientTimelineItem[];
+    /** Whether the caller's link permits viewing the client's nutrition-domain timeline
+entries. Mirrors ClientProfessionalLink.CanViewNutritionPlans. */
+    canViewNutritionPlans?: boolean;
+    /** Whether the caller's link permits viewing the client's training-domain timeline
+entries. Mirrors ClientProfessionalLink.CanViewTrainingPlans. */
+    canViewTrainingPlans?: boolean;
 }
 
 /** A single event in a client's activity timeline. */
@@ -20981,13 +21002,13 @@ export interface DeletePlanPhotoRequest {
 /** Response for GET /trainer/clients/{id}/photos. Design decision — discriminated response in a single envelope: The endpoint serves two shapes depending on the groupByMonth query flag rather than splitting into two routes, because the filtering/auth logic is identical and a single URL is easier to cache and document. Exactly one of Photos or Groups will be non-null in any response: groupByMonth=false (default): Photos is populated,  Groups is null. Pagination applies to individual photos. groupByMonth=true: Groups is populated,  Photos is null. Pagination applies to month groups (one page = N groups). The X-Total-Count response header always reflects the total count of the active collection (photos or groups). */
 export interface GetTrainerClientPhotosResponse {
     /** Flat list of photo records. Populated when groupByMonth=false. */
-    photos?: PlanPhotoResponse2[] | undefined;
+    photos?: ClientPhotoResponse[] | undefined;
     /** Month-grouped list of photo records. Populated when groupByMonth=true. */
     groups?: MonthGroupResponse[] | undefined;
 }
 
 /** DTO representing a single plan photo returned by the aggregation endpoints. Used by both the trainer view (GET /trainer/clients/{id}/photos) and the client self-view (GET /client/me/photos). */
-export interface PlanPhotoResponse2 {
+export interface ClientPhotoResponse {
     /** Public identifier of the photo record. */
     id?: string;
     /** URL to the photo in blob storage (MinIO). */
@@ -21021,7 +21042,7 @@ e.g. "2026-04". */
     yearMonth?: string;
     /** All photos whose TakenAt falls within this year-month, ordered by
 TakenAt descending. */
-    photos?: PlanPhotoResponse2[];
+    photos?: ClientPhotoResponse[];
 }
 
 /** Query parameters for GET /trainer/clients/{ClientId}/photos. */
@@ -21031,7 +21052,7 @@ export interface GetTrainerClientPhotosRequest {
 /** Response for GET /client/me/photos. Uses the same discriminated-envelope design as the trainer variant: exactly one of Photos or Groups is non-null. */
 export interface GetMyPhotosResponse {
     /** Flat list of photo records. Populated when groupByMonth=false. */
-    photos?: PlanPhotoResponse2[] | undefined;
+    photos?: ClientPhotoResponse[] | undefined;
     /** Month-grouped list of photo records. Populated when groupByMonth=true. */
     groups?: MonthGroupResponse[] | undefined;
 }

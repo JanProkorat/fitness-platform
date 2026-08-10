@@ -8,7 +8,7 @@ namespace FitnessPlatform.Application.Features.ClientPhotos.Common;
 /// Used by both the trainer view (<c>GET /trainer/clients/{id}/photos</c>)
 /// and the client self-view (<c>GET /client/me/photos</c>).
 /// </summary>
-public class PlanPhotoResponse
+public class ClientPhotoResponse
 {
     /// <summary>
     /// Public identifier of the photo record.
@@ -68,9 +68,9 @@ public class PlanPhotoResponse
     public Guid? DiaryRequestId { get; set; }
 
     /// <summary>
-    /// Maps a <see cref="PlanPhoto"/> entity to a <see cref="PlanPhotoResponse"/>.
+    /// Maps a <see cref="PlanPhoto"/> entity to a <see cref="ClientPhotoResponse"/>.
     /// </summary>
-    public static PlanPhotoResponse FromEntity(PlanPhoto p) => new()
+    public static ClientPhotoResponse FromEntity(PlanPhoto p) => new()
     {
         Id = p.PublicId,
         BlobUrl = p.BlobUrl,

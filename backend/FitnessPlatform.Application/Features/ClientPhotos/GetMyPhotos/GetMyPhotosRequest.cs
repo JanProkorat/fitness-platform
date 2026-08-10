@@ -35,7 +35,7 @@ public class GetMyPhotosRequest
     /// <summary>
     /// When <c>true</c> the response items are <see cref="Common.MonthGroupResponse"/> objects
     /// grouped by <c>YYYY-MM</c>. When <c>false</c> (default) items are flat
-    /// <see cref="Common.PlanPhotoResponse"/> objects.
+    /// <see cref="Common.ClientPhotoResponse"/> objects.
     /// Pagination applies to groups when <c>true</c>, to individual photos when <c>false</c>.
     /// </summary>
     public bool GroupByMonth { get; set; }

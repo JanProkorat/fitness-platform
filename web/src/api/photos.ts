@@ -1,7 +1,7 @@
 import { apiClient } from '@/api/client';
-import type { PlanPhotoCategory, PlanPhotoResponse, PlanPhotoResponse2 } from '@/api/generated';
+import type { PlanPhotoCategory, PlanPhotoResponse, ClientPhotoResponse } from '@/api/generated';
 
-export type { PlanPhotoCategory, PlanPhotoResponse, PlanPhotoResponse2 };
+export type { PlanPhotoCategory, PlanPhotoResponse, ClientPhotoResponse };
 
 /**
  * Fetch paginated list of photos for a plan, scoped to a specific client.
@@ -18,7 +18,7 @@ export async function getPlanPhotos(
   page: number,
   pageSize: number,
   category?: PlanPhotoCategory | null,
-): Promise<PlanPhotoResponse2[]> {
+): Promise<ClientPhotoResponse[]> {
   const response = await apiClient.getTrainerClientPhotosEndpoint(
     clientId,
     page,
