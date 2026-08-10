@@ -17,7 +17,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.UpdateTemp
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard guard, TimeProvider timeProvider)
-    : Endpoint<UpdateTemplateRequest, NutritionPlanTemplateDetailDto>
+    : Endpoint<UpdateNutritionPlanTemplateRequest, NutritionPlanTemplateDetailDto>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -32,7 +32,7 @@ public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard gu
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(UpdateTemplateRequest req, CancellationToken ct)
+    public override async Task HandleAsync(UpdateNutritionPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -65,9 +65,9 @@ public class UpdateTemplateEndpoint(IMongoContext mongo, PlanConcurrencyGuard gu
     /// <summary>
     /// Endpoint-specific mutation applied to the fetched template before the version-gated
     /// replace. Always returns <c>true</c> — every validation rule already ran in
-    /// <see cref="UpdateTemplateValidator"/> before <c>HandleAsync</c> was reached.
+    /// <see cref="UpdateNutritionPlanTemplateValidator"/> before <c>HandleAsync</c> was reached.
     /// </summary>
-    private Task<bool> MutateAsync(NutritionPlanTemplate template, UpdateTemplateRequest req)
+    private Task<bool> MutateAsync(NutritionPlanTemplate template, UpdateNutritionPlanTemplateRequest req)
     {
         var weeks = TemplateRequestMapper.ToWeeks(req.Weeks);
 

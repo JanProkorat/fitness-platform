@@ -10,7 +10,7 @@ public class GetTodayLogResponse
     /// <summary>
     /// Meals eaten today.
     /// </summary>
-    public List<MealLogDto> MealsEaten { get; set; } = [];
+    public List<TodayMealLogDto> MealsEaten { get; set; } = [];
 
     /// <summary>
     /// Total nutrients consumed across all meals today.
@@ -27,7 +27,7 @@ public class GetTodayLogResponse
 /// <summary>
 /// DTO representing a single logged meal with computed nutrient totals.
 /// </summary>
-public class MealLogDto
+public class TodayMealLogDto
 {
     /// <summary>
     /// Identifier of the meal that was eaten.

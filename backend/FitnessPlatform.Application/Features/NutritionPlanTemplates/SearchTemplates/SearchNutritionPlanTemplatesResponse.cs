@@ -5,7 +5,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.SearchTemp
 /// <summary>
 /// Paginated response containing a list of nutrition plan template summaries.
 /// </summary>
-public class SearchTemplatesResponse
+public class SearchNutritionPlanTemplatesResponse
 {
     /// <summary>
     /// List of template summaries for the current page.

@@ -5,14 +5,14 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemplateFromPlan;
 
 /// <summary>
-/// Validates the <see cref="CreateTemplateFromPlanRequest"/>.
+/// Validates the <see cref="CreateNutritionPlanTemplateFromPlanRequest"/>.
 /// </summary>
-public class CreateTemplateFromPlanValidator : Validator<CreateTemplateFromPlanRequest>
+public class CreateNutritionPlanTemplateFromPlanValidator : Validator<CreateNutritionPlanTemplateFromPlanRequest>
 {
     /// <summary>
     /// Initializes validation rules for saving a plan as a template.
     /// </summary>
-    public CreateTemplateFromPlanValidator()
+    public CreateNutritionPlanTemplateFromPlanValidator()
     {
         RuleFor(x => x.PlanId)
             .NotEmpty().WithErrorCode(ErrorCodes.Required);

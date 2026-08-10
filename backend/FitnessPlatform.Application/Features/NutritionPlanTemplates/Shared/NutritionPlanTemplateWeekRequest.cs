@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 /// Represents a single week submitted when creating or full-state updating a nutrition plan
 /// template.
 /// </summary>
-public class TemplateWeekRequest
+public class NutritionPlanTemplateWeekRequest
 {
     /// <summary>
     /// Week number within the template (1-based).
@@ -17,14 +17,14 @@ public class TemplateWeekRequest
     /// <summary>
     /// Days in this week.
     /// </summary>
-    public List<TemplateDayRequest> Days { get; set; } = [];
+    public List<NutritionPlanTemplateDayRequest> Days { get; set; } = [];
 }
 
 /// <summary>
 /// Represents a single day submitted when creating or full-state updating a nutrition plan
 /// template.
 /// </summary>
-public class TemplateDayRequest
+public class NutritionPlanTemplateDayRequest
 {
     /// <summary>
     /// Day of week (1 = Monday … 7 = Sunday).

@@ -8,7 +8,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemp
 /// Request to create a new nutrition plan template — either empty (materialized from
 /// <see cref="WeekCount"/>) or with a full week tree supplied directly.
 /// </summary>
-public class CreateTemplateRequest
+public class CreateNutritionPlanTemplateRequest
 {
     /// <summary>
     /// Display name of the template.
@@ -51,7 +51,7 @@ public class CreateTemplateRequest
     /// <summary>
     /// A full week tree to persist directly. Mutually exclusive with <see cref="WeekCount"/>.
     /// </summary>
-    public List<TemplateWeekRequest>? Weeks { get; set; }
+    public List<NutritionPlanTemplateWeekRequest>? Weeks { get; set; }
 
     /// <summary>
     /// Who can read this entry besides the caller. Defaults to <see cref="LibraryVisibility.Private"/>.

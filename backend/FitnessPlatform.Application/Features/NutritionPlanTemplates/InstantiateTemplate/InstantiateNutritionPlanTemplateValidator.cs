@@ -5,16 +5,16 @@ using FluentValidation;
 namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.InstantiateTemplate;
 
 /// <summary>
-/// Validates the <see cref="InstantiateTemplateRequest"/>. Mirrors <c>CreatePlanValidator</c>'s
+/// Validates the <see cref="InstantiateNutritionPlanTemplateRequest"/>. Mirrors <c>CreatePlanValidator</c>'s
 /// start-date rules — <c>instantiate</c> replicates plan-creation's date invariants rather than
 /// bypassing them.
 /// </summary>
-public class InstantiateTemplateValidator : Validator<InstantiateTemplateRequest>
+public class InstantiateNutritionPlanTemplateValidator : Validator<InstantiateNutritionPlanTemplateRequest>
 {
     /// <summary>
     /// Initializes validation rules for instantiating a template.
     /// </summary>
-    public InstantiateTemplateValidator()
+    public InstantiateNutritionPlanTemplateValidator()
     {
         RuleFor(x => x.ClientId)
             .NotEmpty().WithErrorCode(ErrorCodes.Required);

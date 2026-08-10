@@ -13,7 +13,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.GetTemplat
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class GetTemplateEndpoint(IMongoContext mongo)
-    : Endpoint<GetTemplateRequest, NutritionPlanTemplateDetailDto>
+    : Endpoint<GetNutritionPlanTemplateRequest, NutritionPlanTemplateDetailDto>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -28,7 +28,7 @@ public class GetTemplateEndpoint(IMongoContext mongo)
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(GetTemplateRequest req, CancellationToken ct)
+    public override async Task HandleAsync(GetNutritionPlanTemplateRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 

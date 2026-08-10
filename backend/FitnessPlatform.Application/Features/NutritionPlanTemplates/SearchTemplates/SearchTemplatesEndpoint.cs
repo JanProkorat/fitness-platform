@@ -16,7 +16,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.SearchTemp
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class SearchTemplatesEndpoint(IMongoContext mongo)
-    : Endpoint<SearchTemplatesRequest, SearchTemplatesResponse>
+    : Endpoint<SearchNutritionPlanTemplatesRequest, SearchNutritionPlanTemplatesResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -31,7 +31,7 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(SearchTemplatesRequest req, CancellationToken ct)
+    public override async Task HandleAsync(SearchNutritionPlanTemplatesRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
 
@@ -66,7 +66,7 @@ public class SearchTemplatesEndpoint(IMongoContext mongo)
         var (templates, totalCount) = await this.SearchAsync(
             mongo.NutritionPlanTemplates, callerId, t => t.Name, req.Search, req.Page, req.PageSize, extraFilter, ct);
 
-        await Send.OkAsync(new SearchTemplatesResponse
+        await Send.OkAsync(new SearchNutritionPlanTemplatesResponse
         {
             Templates = templates.Select(t => NutritionPlanTemplateSummaryDto.FromDocument(t, callerId)).ToList(),
             TotalCount = totalCount,

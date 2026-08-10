@@ -8081,14 +8081,14 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    updateTemplateEndpoint(templateId: string, updateTemplateRequest: UpdateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
+    updateTemplateEndpoint(templateId: string, updateNutritionPlanTemplateRequest: UpdateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateDetailDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(updateTemplateRequest);
+        const content_ = JSON.stringify(updateNutritionPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -8225,7 +8225,7 @@ export class ApiClient {
      * @param weekCount (optional) Optional filter by exact week count.
      * @return Success
      */
-    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchTemplatesResponse> {
+    searchTemplatesEndpoint(page: number, pageSize: number, search?: string | null | undefined, goal?: PrimaryGoal | null | undefined, dietaryStyle?: DietaryStyle | null | undefined, weekCount?: number | null | undefined, signal?: AbortSignal): Promise<SearchNutritionPlanTemplatesResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -8265,7 +8265,7 @@ export class ApiClient {
         });
     }
 
-    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchTemplatesResponse> {
+    protected processSearchTemplatesEndpoint(response: AxiosResponse): Promise<SearchNutritionPlanTemplatesResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8280,7 +8280,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<SearchTemplatesResponse>(result200);
+            return Promise.resolve<SearchNutritionPlanTemplatesResponse>(result200);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -8294,18 +8294,18 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<SearchTemplatesResponse>(null as any);
+        return Promise.resolve<SearchNutritionPlanTemplatesResponse>(null as any);
     }
 
     /**
      * Create a nutrition plan template
      * @return Success
      */
-    createTemplateEndpoint(createTemplateRequest: CreateTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateEndpoint(createNutritionPlanTemplateRequest: CreateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createTemplateRequest);
+        const content_ = JSON.stringify(createNutritionPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -8373,14 +8373,14 @@ export class ApiClient {
      * @param templateId The template's public identifier (route parameter).
      * @return Success
      */
-    instantiateTemplateEndpoint(templateId: string, instantiateTemplateRequest: InstantiateTemplateRequest, signal?: AbortSignal): Promise<InstantiateTemplateResponse> {
+    instantiateTemplateEndpoint(templateId: string, instantiateNutritionPlanTemplateRequest: InstantiateNutritionPlanTemplateRequest, signal?: AbortSignal): Promise<InstantiateNutritionPlanTemplateResponse> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/{templateId}/instantiate";
         if (templateId === undefined || templateId === null)
             throw new globalThis.Error("The parameter 'templateId' must be defined.");
         url_ = url_.replace("{templateId}", encodeURIComponent("" + templateId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(instantiateTemplateRequest);
+        const content_ = JSON.stringify(instantiateNutritionPlanTemplateRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -8404,7 +8404,7 @@ export class ApiClient {
         });
     }
 
-    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateTemplateResponse> {
+    protected processInstantiateTemplateEndpoint(response: AxiosResponse): Promise<InstantiateNutritionPlanTemplateResponse> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -8419,7 +8419,7 @@ export class ApiClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
-            return Promise.resolve<InstantiateTemplateResponse>(result200);
+            return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(result200);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -8440,7 +8440,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<InstantiateTemplateResponse>(null as any);
+        return Promise.resolve<InstantiateNutritionPlanTemplateResponse>(null as any);
     }
 
     /**
@@ -8506,11 +8506,11 @@ export class ApiClient {
      * Save a nutrition plan as a template
      * @return Success
      */
-    createTemplateFromPlanEndpoint(createTemplateFromPlanRequest: CreateTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
+    createTemplateFromPlanEndpoint(createNutritionPlanTemplateFromPlanRequest: CreateNutritionPlanTemplateFromPlanRequest, signal?: AbortSignal): Promise<NutritionPlanTemplateSummaryDto> {
         let url_ = this.baseUrl + "/nutrition/plan-templates/from-plan";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createTemplateFromPlanRequest);
+        const content_ = JSON.stringify(createNutritionPlanTemplateFromPlanRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -8908,14 +8908,14 @@ export class ApiClient {
      * @param planId Plan identifier.
      * @return Success
      */
-    linkQuestionnaireEndpoint(planId: string, linkQuestionnaireRequest: LinkQuestionnaireRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
+    linkQuestionnaireEndpoint(planId: string, linkNutritionQuestionnaireRequest: LinkNutritionQuestionnaireRequest, signal?: AbortSignal): Promise<GetPlanResponse> {
         let url_ = this.baseUrl + "/nutrition/plans/{planId}/link-questionnaire";
         if (planId === undefined || planId === null)
             throw new globalThis.Error("The parameter 'planId' must be defined.");
         url_ = url_.replace("{planId}", encodeURIComponent("" + planId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(linkQuestionnaireRequest);
+        const content_ = JSON.stringify(linkNutritionQuestionnaireRequest);
 
         let options_: AxiosRequestConfig = {
             data: content_,
@@ -19167,7 +19167,7 @@ export interface MealRecipe {
 }
 
 /** Request for a full-state update of a nutrition plan template: replaces name, description, goal/dietary style, settings, week tree, and supplements. */
-export interface UpdateTemplateRequest {
+export interface UpdateNutritionPlanTemplateRequest {
     /** Updated display name. */
     name: string;
     /** Updated free-text description. */
@@ -19180,7 +19180,7 @@ export interface UpdateTemplateRequest {
     globalSettings?: GlobalNutritionSettings | undefined;
     /** Full week structure to persist. Replaces all existing weeks, days, meals, foods, and
 recipes. */
-    weeks: TemplateWeekRequest[];
+    weeks: NutritionPlanTemplateWeekRequest[];
     /** Full supplement list to persist. Replaces all existing supplements. */
     supplements?: TemplateSupplementRequest[];
     /** Expected version for optimistic concurrency control. */
@@ -19188,15 +19188,15 @@ recipes. */
 }
 
 /** Represents a single week submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateWeekRequest {
+export interface NutritionPlanTemplateWeekRequest {
     /** Week number within the template (1-based). */
     weekNumber?: number;
     /** Days in this week. */
-    days?: TemplateDayRequest[];
+    days?: NutritionPlanTemplateDayRequest[];
 }
 
 /** Represents a single day submitted when creating or full-state updating a nutrition plan template. */
-export interface TemplateDayRequest {
+export interface NutritionPlanTemplateDayRequest {
     /** Day of week (1 = Monday … 7 = Sunday). */
     dayOfWeek?: number;
     /** Optional note for this day. */
@@ -19277,7 +19277,7 @@ Guid. */
 }
 
 /** Paginated response containing a list of nutrition plan template summaries. */
-export interface SearchTemplatesResponse {
+export interface SearchNutritionPlanTemplatesResponse {
     /** List of template summaries for the current page. */
     templates?: NutritionPlanTemplateSummaryDto[];
     /** Total number of templates matching the filter. */
@@ -19315,11 +19315,11 @@ export interface NutritionPlanTemplateSummaryDto {
 }
 
 /** Request to search nutrition plan templates with optional filters and pagination. */
-export interface SearchTemplatesRequest {
+export interface SearchNutritionPlanTemplatesRequest {
 }
 
 /** Response describing the new client plan created by instantiating a template. */
-export interface InstantiateTemplateResponse {
+export interface InstantiateNutritionPlanTemplateResponse {
     /** The newly created plan's public identifier. */
     planId?: string;
     /** The client's ClientProfile.PublicId — echoes the caller-supplied value. */
@@ -19333,7 +19333,7 @@ export interface InstantiateTemplateResponse {
 }
 
 /** Request to instantiate a nutrition plan template into a new Draft client plan. */
-export interface InstantiateTemplateRequest {
+export interface InstantiateNutritionPlanTemplateRequest {
     /** The target client's ClientProfile.PublicId — the trainer-facing identifier, not
 the internal ApplicationUser.Id storage key. */
     clientId: string;
@@ -19344,11 +19344,11 @@ the internal ApplicationUser.Id storage key. */
 }
 
 /** Request to fetch a single nutrition plan template's full detail. */
-export interface GetTemplateRequest {
+export interface GetNutritionPlanTemplateRequest {
 }
 
 /** Request to save an existing nutrition plan as a new template. */
-export interface CreateTemplateFromPlanRequest {
+export interface CreateNutritionPlanTemplateFromPlanRequest {
     /** The source plan's public identifier (NutritionPlan.ExternalId — NOT the client's
 ClientProfile.PublicId). */
     planId: string;
@@ -19361,7 +19361,7 @@ ClientProfile.PublicId). */
 }
 
 /** Request to create a new nutrition plan template — either empty (materialized from WeekCount) or with a full week tree supplied directly. */
-export interface CreateTemplateRequest {
+export interface CreateNutritionPlanTemplateRequest {
     /** Display name of the template. */
     name: string;
     /** Optional free-text description. */
@@ -19380,7 +19380,7 @@ as supplied — WeekCount is always server-computed from
 the resulting week tree. */
     weekCount?: number | undefined;
     /** A full week tree to persist directly. Mutually exclusive with WeekCount. */
-    weeks?: TemplateWeekRequest[] | undefined;
+    weeks?: NutritionPlanTemplateWeekRequest[] | undefined;
     /** Who can read this entry besides the caller. Defaults to Private. */
     visibility?: LibraryVisibility;
 }
@@ -19587,7 +19587,7 @@ export interface PublishWeekRequest {
 }
 
 /** Request to link or unlink a questionnaire response to/from a nutrition plan. */
-export interface LinkQuestionnaireRequest {
+export interface LinkNutritionQuestionnaireRequest {
     /** Questionnaire response PublicId to link. Set to null to unlink. */
     questionnaireResponseId?: string | undefined;
     /** Optimistic concurrency version. */
@@ -21198,7 +21198,7 @@ export interface GetTodayPlanResponse {
 /** Response model for the client's meal log for today. */
 export interface GetTodayLogResponse {
     /** Meals eaten today. */
-    mealsEaten?: MealLogDto[];
+    mealsEaten?: TodayMealLogDto[];
     /** Total nutrients consumed across all meals today. */
     totalConsumed?: NutrientTotals;
     /** Remaining nutrients to reach the daily target.
@@ -21207,7 +21207,7 @@ Null if the active plan has no global settings. */
 }
 
 /** DTO representing a single logged meal with computed nutrient totals. */
-export interface MealLogDto {
+export interface TodayMealLogDto {
     /** Identifier of the meal that was eaten. */
     mealId?: string;
     /** Display name of the meal (resolved from the plan). */
@@ -21637,7 +21637,7 @@ export interface PersonalRecordSummary {
 export interface GetClientRecordsRequest {
 }
 
-export interface MarkReadRequest {
+export interface MarkNotificationReadRequest {
 }
 
 export interface GetNotificationsResponse {

@@ -3,7 +3,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.GetTemplat
 /// <summary>
 /// Request to fetch a single nutrition plan template's full detail.
 /// </summary>
-public class GetTemplateRequest
+public class GetNutritionPlanTemplateRequest
 {
     /// <summary>
     /// The template's public identifier (route parameter).

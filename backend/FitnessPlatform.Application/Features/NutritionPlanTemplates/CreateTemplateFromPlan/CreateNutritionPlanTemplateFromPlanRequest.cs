@@ -5,7 +5,7 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.CreateTemp
 /// <summary>
 /// Request to save an existing nutrition plan as a new template.
 /// </summary>
-public class CreateTemplateFromPlanRequest
+public class CreateNutritionPlanTemplateFromPlanRequest
 {
     /// <summary>
     /// The source plan's public identifier (<c>NutritionPlan.ExternalId</c> — NOT the client's
