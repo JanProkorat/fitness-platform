@@ -4,7 +4,7 @@
  *
  * Photos are sourced from the parent's `allPhotos` prop (already loaded
  * by PlanPhotosTab) — filtered strictly by `diaryRequestId === request.id`
- * using the FK field now present on PlanPhotoResponse2 (ClientPhotos.Common).
+ * using the FK field now present on ClientPhotoResponse (ClientPhotos.Common).
  *
  * For Dismissed requests the dismiss reason is shown prominently instead.
  *
@@ -19,13 +19,13 @@ import { DiaryRequestStatusChip } from './DiaryRequestStatusChip';
 import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import type { PhotoDiaryRequestSummary } from '@/api/diary-requests';
 import { PhotoDiaryStatus, PhotoDiaryMode } from '@/api/generated';
-import type { PlanPhotoResponse2 } from '@/api/generated';
+import type { ClientPhotoResponse } from '@/api/generated';
 import { toLocalDateKey, calendarDayNumberFromKeys } from './diaryDayNumber';
 
 interface Props {
   request: PhotoDiaryRequestSummary;
   /** All plan photos already loaded — this component filters by diaryRequestId FK. */
-  allPhotos: PlanPhotoResponse2[];
+  allPhotos: ClientPhotoResponse[];
 }
 
 interface DayGroup {
@@ -33,11 +33,11 @@ interface DayGroup {
   /** Label like "Monday, 14 Apr" using the user's locale */
   label: string;
   dayNumber: number; // 1-based day number within diary period
-  photos: PlanPhotoResponse2[];
+  photos: ClientPhotoResponse[];
 }
 
 function buildDayGroups(
-  photos: PlanPhotoResponse2[],
+  photos: ClientPhotoResponse[],
   requestId: string,
   acceptedAt: string,
   durationDays: number,
@@ -46,7 +46,7 @@ function buildDayGroups(
   const diaryPhotos = photos.filter((p) => p.diaryRequestId === requestId);
 
   // Group by calendar day (takenAt preferred, uploadedAt as fallback)
-  const grouped = new Map<string, PlanPhotoResponse2[]>();
+  const grouped = new Map<string, ClientPhotoResponse[]>();
   for (const photo of diaryPhotos) {
     if (!photo.takenAt && !photo.uploadedAt) continue;
     const ts = photo.takenAt ?? photo.uploadedAt ?? '';
@@ -82,7 +82,7 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [lightboxDayPhotos, setLightboxDayPhotos] = useState<PlanPhotoResponse2[]>([]);
+  const [lightboxDayPhotos, setLightboxDayPhotos] = useState<ClientPhotoResponse[]>([]);
 
   const dayGroups = useMemo(() => {
     if (
@@ -101,7 +101,7 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
     [dayGroups],
   );
 
-  function openLightbox(dayPhotos: PlanPhotoResponse2[], index: number) {
+  function openLightbox(dayPhotos: ClientPhotoResponse[], index: number) {
     setLightboxDayPhotos(dayPhotos);
     setLightboxIndex(index);
     setLightboxOpen(true);

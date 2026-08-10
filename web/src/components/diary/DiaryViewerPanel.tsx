@@ -23,13 +23,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { listDiaryRequests } from '@/api/diary-requests';
 import { DiaryRequestCard } from './DiaryRequestCard';
-import type { PlanPhotoResponse2 } from '@/api/generated';
+import type { ClientPhotoResponse } from '@/api/generated';
 
 interface Props {
   planId: string;
   /** All plan photos already loaded by PlanPhotosTab. Passed through to cards
    *  so we don't fire a second request. */
-  allPhotos: PlanPhotoResponse2[];
+  allPhotos: ClientPhotoResponse[];
 }
 
 export function DiaryViewerPanel({ planId, allPhotos }: Props) {

@@ -94,7 +94,7 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db)
             // this shape, so we load a minimal projection and group in .NET.
             var allPhotos = await query
                 .OrderByDescending(p => p.TakenAt)
-                .Select(p => new PlanPhotoResponse
+                .Select(p => new ClientPhotoResponse
                 {
                     Id = p.PublicId,
                     BlobUrl = p.BlobUrl,
@@ -141,7 +141,7 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db)
                 .OrderByDescending(p => p.TakenAt)
                 .Skip((req.Page - 1) * req.PageSize)
                 .Take(req.PageSize)
-                .Select(p => new PlanPhotoResponse
+                .Select(p => new ClientPhotoResponse
                 {
                     Id = p.PublicId,
                     BlobUrl = p.BlobUrl,

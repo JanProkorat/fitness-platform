@@ -25,7 +25,7 @@ public class GetTrainerClientPhotosResponse
     /// <summary>
     /// Flat list of photo records. Populated when <c>groupByMonth=false</c>.
     /// </summary>
-    public List<PlanPhotoResponse>? Photos { get; set; }
+    public List<ClientPhotoResponse>? Photos { get; set; }
 
     /// <summary>
     /// Month-grouped list of photo records. Populated when <c>groupByMonth=true</c>.

@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Features.ClientPhotos.Common;
 public class MonthGroupResponse
 {
     /// <summary>
-    /// ISO-8601 year-month key derived from <see cref="PlanPhotoResponse.TakenAt"/>,
+    /// ISO-8601 year-month key derived from <see cref="ClientPhotoResponse.TakenAt"/>,
     /// e.g. <c>"2026-04"</c>.
     /// </summary>
     public string YearMonth { get; set; } = string.Empty;
@@ -16,5 +16,5 @@ public class MonthGroupResponse
     /// All photos whose <c>TakenAt</c> falls within this year-month, ordered by
     /// <c>TakenAt</c> descending.
     /// </summary>
-    public List<PlanPhotoResponse> Photos { get; set; } = [];
+    public List<ClientPhotoResponse> Photos { get; set; } = [];
 }
