@@ -196,6 +196,39 @@ public class GetTodaySessionResponse
     /// </para>
     /// </summary>
     public Dictionary<Guid, List<Guid>> CompletedExerciseInstanceIdsBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session, per-exercise-INSTANCE logged set values for today, sourced from live-training
+    /// Performance data. Keyed by SessionId → <see cref="SessionExercise.ExerciseId"/> (the
+    /// per-instance identifier, NOT the catalog <see cref="SessionExercise.ExerciseExternalId"/>)
+    /// → list of <see cref="LoggedSetDto"/>.
+    /// <para>
+    /// Unlike <see cref="LoggedSetsBySessionExercise"/> (keyed by catalog ExerciseExternalId,
+    /// which collapses two placements of the same catalog exercise within one session —
+    /// standalone AND nested, or nested twice — onto the same entry), this field attributes
+    /// Performance data to the single placement it was actually logged against: the containing
+    /// <see cref="LoggedWorkout"/>'s <c>WorkoutId</c> is resolved against the session's nested
+    /// <see cref="TrainingWorkout"/> ids — a match attributes the data to that nested instance, no
+    /// match (e.g. the fallback WorkoutId UpdateWorkoutEndpoint's legacy single-workout path
+    /// assigns when the client sends no WorkoutId) attributes it to the standalone instance (#885).
+    /// </para>
+    /// <para>
+    /// Additive alongside <see cref="LoggedSetsBySessionExercise"/>, which keeps its existing
+    /// catalog-keyed (and, for a dual-placement session, ambiguous) semantics unchanged for
+    /// callers that have not migrated. Empty when no live-training progress has been logged for
+    /// today.
+    /// </para>
+    /// </summary>
+    public Dictionary<Guid, Dictionary<Guid, List<LoggedSetDto>>> LoggedSetsByExerciseInstanceBySession { get; set; } = new();
+
+    /// <summary>
+    /// Per-session, per-exercise-INSTANCE completed set numbers for today, sourced from
+    /// live-training Performance data. Keyed by SessionId → <see cref="SessionExercise.ExerciseId"/>
+    /// → list of 1-based SetNumbers. See <see cref="LoggedSetsByExerciseInstanceBySession"/>
+    /// remarks for why this is instance-keyed rather than catalog-keyed, and additive alongside
+    /// <see cref="CompletedSetsBySessionExercise"/>, whose existing semantics are unchanged.
+    /// </summary>
+    public Dictionary<Guid, Dictionary<Guid, List<int>>> CompletedSetsByExerciseInstanceBySession { get; set; } = new();
 }
 
 /// <summary>
