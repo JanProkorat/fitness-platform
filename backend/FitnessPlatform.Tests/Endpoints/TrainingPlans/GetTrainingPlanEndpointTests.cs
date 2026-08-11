@@ -28,7 +28,8 @@ public class GetTrainingPlanEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -47,7 +48,8 @@ public class GetTrainingPlanEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GetTrainingPlanRequest { PlanId = plan.ExternalId }, TestContext.Current.CancellationToken);
 

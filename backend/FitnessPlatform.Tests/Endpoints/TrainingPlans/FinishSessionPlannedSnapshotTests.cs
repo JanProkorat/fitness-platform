@@ -124,7 +124,8 @@ public class FinishSessionPlannedSnapshotTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, completionService,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -164,7 +165,8 @@ public class FinishSessionPlannedSnapshotTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, completionService);
+            mongo, completionService,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },

@@ -222,7 +222,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(
@@ -277,7 +278,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(
@@ -309,7 +311,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(
@@ -357,7 +360,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(
@@ -390,7 +394,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
+            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var changedSession = ChangedSessionRequest(1, plan.Weeks[0].Days.First(d => d.DayOfWeek == 1).Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest
@@ -454,7 +459,8 @@ public class SessionLockBroadcastTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build());
+            mongo, lockService, notifier, new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var changedSession = ChangedSessionRequest(1, plan.Weeks[0].Days.First(d => d.DayOfWeek == 1).Sessions[0], sessionId);
         var req = new UpdateTrainingPlanRequest

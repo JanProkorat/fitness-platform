@@ -1,5 +1,10 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Infrastructure;
 
@@ -64,6 +69,51 @@ public static class TestHelpers
     public static void SetBearerToken(HttpClient client, string token)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    /// <summary>
+    /// Registers a client and gives the named professional an active
+    /// <see cref="ClientProfessionalLink"/> to them carrying both plan capabilities. Returns the
+    /// client's <c>ApplicationUser.Id</c> — the key every Mongo plan document's <c>ClientId</c>
+    /// carries since #840.
+    /// </summary>
+    /// <remarks>
+    /// Plan-addressed routes authorize on the caller's live link, not on the plan document's
+    /// author field, so a fixture that seeds a plan against a fabricated
+    /// <c>ClientId = Guid.NewGuid()</c> now gets a 404 before its own subject is reached. Such
+    /// fixtures call this instead: the link is what the endpoint asks about, so the link is what
+    /// the fixture must provide.
+    /// </remarks>
+    public static async Task<Guid> RegisterLinkedClientAsync(
+        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct)
+    {
+        var httpClient = factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@linked-client-fixture.com";
+        await RegisterAsync(httpClient, email, "TestPass1!", "Linked", "Client", "Client");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var user = await db.Users.FirstAsync(u => u.Email == email, ct);
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, ct);
+        var professionalProfile = await db.ProfessionalProfiles.FirstAsync(
+            pp => pp.UserId == professionalUserId, ct);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = true,
+            DateCreated = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        return user.Id;
     }
 
     private record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);

@@ -144,7 +144,8 @@ public class TrainingPlanGoalFieldsTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -193,7 +194,8 @@ public class TrainingPlanGoalFieldsTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -238,7 +240,8 @@ public class TrainingPlanGoalFieldsTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var request = new UpdateTrainingPlanRequest
         {

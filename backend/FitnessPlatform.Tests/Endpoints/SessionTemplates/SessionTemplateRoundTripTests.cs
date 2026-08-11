@@ -157,7 +157,8 @@ public class SessionTemplateRoundTripTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var sessionRequest = MapToUpdateSessionRequest(response);
 

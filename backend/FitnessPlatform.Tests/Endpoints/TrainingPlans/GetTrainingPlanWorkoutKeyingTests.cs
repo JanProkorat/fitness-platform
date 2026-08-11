@@ -183,7 +183,8 @@ public class GetTrainingPlanSectionKeyingTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

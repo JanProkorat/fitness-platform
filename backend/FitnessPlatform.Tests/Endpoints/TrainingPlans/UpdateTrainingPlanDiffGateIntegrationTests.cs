@@ -44,7 +44,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
     /// Seeds a published plan in Mongo whose single session uses the sections-based layout.
     /// </summary>
     private async Task<(TrainingPlan Plan, Guid SessionId, Guid SectionId, Guid ExerciseId)>
-        SeedSectionPublishedPlanAsync(Guid trainerUserId)
+        SeedSectionPublishedPlanAsync(Guid trainerUserId, Guid clientUserId)
     {
         var planId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -84,7 +84,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = Guid.NewGuid(),
+            ClientId = clientUserId,
             TrainerId = trainerUserId,
             Name = "Section Diff-Gate Plan",
             Status = TrainingPlanStatus.Active,
@@ -127,7 +127,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
     /// Returns (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId).
     /// </summary>
     private async Task<(TrainingPlan Plan, Guid SessionId, Guid SectionAId, Guid SectionBId, Guid ExerciseAId, Guid ExerciseBId)>
-        SeedTwoSectionPlanWithCompletedLogAsync(Guid trainerUserId)
+        SeedTwoSectionPlanWithCompletedLogAsync(Guid trainerUserId, Guid clientUserId)
     {
         var planId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -180,7 +180,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             ]
         };
 
-        var clientId = Guid.NewGuid();
+        var clientId = clientUserId;
 
         var plan = new TrainingPlan
         {
@@ -259,7 +259,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
     /// as finished (section B is unfinished). Returns the plan + IDs.
     /// </summary>
     private async Task<(TrainingPlan Plan, Guid SessionId, Guid SectionAId, Guid SectionBId, Guid ExerciseAId, Guid ExerciseBId)>
-        SeedTwoSectionPlanWithPartialCompletionAsync(Guid trainerUserId)
+        SeedTwoSectionPlanWithPartialCompletionAsync(Guid trainerUserId, Guid clientUserId)
     {
         var planId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -300,7 +300,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
             ]
         };
 
-        var clientId = Guid.NewGuid();
+        var clientId = clientUserId;
 
         var plan = new TrainingPlan
         {
@@ -501,7 +501,11 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         }
 
         // ── 2. Seed a published plan with a session ───────────────────────────────
-        var (plan, sessionId, _, exerciseId) = await SeedSectionPublishedPlanAsync(trainerUserId);
+        // Plan routes authorize on the live link, so the plan's ClientId must be a
+        // client this trainer is actually linked to.
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerUserId, TestContext.Current.CancellationToken);
+        var (plan, sessionId, _, exerciseId) = await SeedSectionPublishedPlanAsync(trainerUserId, linkedClientId);
 
         // ── 3. Build an UPDATE request that OMITS the published session ────────────
         // Sending week 1 with an EMPTY sessions list effectively removes the published
@@ -566,7 +570,10 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
 
         // ── 2. Seed a two-section plan with a completed WorkoutLog ────────────────
         var (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId) =
-            await SeedTwoSectionPlanWithCompletedLogAsync(trainerUserId);
+            await SeedTwoSectionPlanWithCompletedLogAsync(
+                trainerUserId,
+                await TestHelpers.RegisterLinkedClientAsync(
+                    factory, trainerUserId, TestContext.Current.CancellationToken));
 
         // ── 3. Acquire editing lock (seed directly — unlock guard blocks finished sessions) ──
         await AcquireEditingLockAsync(httpClient, plan, sessionId, accessToken, trainerUserId);
@@ -620,8 +627,12 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         }
 
         // ── 2. Seed plan with partial completion (section A done, section B not) ──
+        // Plan routes authorize on the live link, so both this plan and the re-seeded
+        // one below must carry a client this trainer is actually linked to.
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerUserId, TestContext.Current.CancellationToken);
         var (plan, sessionId, sectionAId, sectionBId, exerciseAId, exerciseBId) =
-            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId);
+            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId, linkedClientId);
 
         // ── 3a. Acquire editing lock and edit section B (unfinished) → expect 200 ──
         await AcquireEditingLockAsync(httpClient, plan, sessionId, accessToken, trainerUserId);
@@ -647,7 +658,7 @@ public class UpdateTrainingPlanDiffGateIntegrationTests(FitnessApiFactory factor
         // After the 200, the plan version is bumped; we need to re-seed the original plan
         // to test editing section A at version 1.
         var (plan2, sessionId2, sectionAId2, sectionBId2, exerciseAId2, exerciseBId2) =
-            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId);
+            await SeedTwoSectionPlanWithPartialCompletionAsync(trainerUserId, linkedClientId);
 
         await AcquireEditingLockAsync(httpClient, plan2, sessionId2, accessToken, trainerUserId);
 

@@ -61,6 +61,11 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
     {
         var (trainer, trainerId) = await RegisterTrainerAsync("owned");
 
+        // Plan routes authorize on the live link, so the source plan must belong to a
+        // client this trainer is actually linked to.
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerId, TestContext.Current.CancellationToken);
+
         var sourceSessionId = Guid.NewGuid();
         var sourceWorkoutId = Guid.NewGuid();
         var sourceWorkoutExerciseId = Guid.NewGuid();
@@ -69,7 +74,7 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = Guid.NewGuid(),
+            ClientId = linkedClientId,
             TrainerId = trainerId,
             Name = "Source Plan",
             Status = TrainingPlanStatus.Active,

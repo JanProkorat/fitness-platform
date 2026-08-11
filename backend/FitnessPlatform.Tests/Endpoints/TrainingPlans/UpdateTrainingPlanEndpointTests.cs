@@ -39,7 +39,8 @@ public class UpdateTrainingPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
     [Fact]
     public async Task HandleAsync_ValidUpdate_Returns200()
@@ -54,7 +55,8 @@ public class UpdateTrainingPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -171,7 +173,8 @@ public class UpdateTrainingPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var request = new UpdateTrainingPlanRequest
         {

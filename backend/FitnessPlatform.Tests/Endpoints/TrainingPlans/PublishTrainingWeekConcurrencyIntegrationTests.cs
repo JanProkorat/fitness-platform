@@ -26,7 +26,12 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@publish-training-week-test.com";
 
-    private async Task<(HttpClient Client, Guid TrainerId)> RegisterTrainerAsync()
+    /// <summary>
+    /// Registers a trainer plus a client they are actively linked to. Plan-addressed routes
+    /// authorize on the live link, so the linked client's user id is what every seeded plan's
+    /// <c>ClientId</c> must carry for the endpoint to reach its own subject.
+    /// </summary>
+    private async Task<(HttpClient Client, Guid TrainerId, Guid LinkedClientId)> RegisterTrainerAsync()
     {
         var client = factory.CreateClient();
         var email = UniqueEmail();
@@ -34,12 +39,19 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
         var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
         TestHelpers.SetBearerToken(client, accessToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(
-            u => u.Email == email, TestContext.Current.CancellationToken);
+        Guid trainerId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email, TestContext.Current.CancellationToken);
+            trainerId = user.Id;
+        }
 
-        return (client, user.Id);
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerId, TestContext.Current.CancellationToken);
+
+        return (client, trainerId, linkedClientId);
     }
 
     private async Task SeedPlanAsync(TrainingPlan plan)
@@ -79,8 +91,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_ConcurrentUnrelatedVersionBump_Returns200_NoFalseConflict()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var plan = BuildDraftPlan(trainerId);
+        var (client, trainerId, linkedClientId) = await RegisterTrainerAsync();
+        var plan = BuildDraftPlan(trainerId, clientId: linkedClientId);
         await SeedPlanAsync(plan);
 
         // Simulate a concurrent unrelated edit that bumped the document Version — e.g. the
@@ -114,8 +126,7 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_FirstWeek_ArchivesOverlappingSibling_SecondWeekPublish_DoesNotReArchive()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var clientId = Guid.NewGuid();
+        var (client, trainerId, clientId) = await RegisterTrainerAsync();
         var plan = BuildDraftPlan(trainerId, clientId: clientId, weekCount: 2);
         await SeedPlanAsync(plan);
 
@@ -163,8 +174,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_AlreadyPublishedWeek_Returns400_Idempotent()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var plan = BuildDraftPlan(trainerId, weekCount: 1);
+        var (client, trainerId, linkedClientId) = await RegisterTrainerAsync();
+        var plan = BuildDraftPlan(trainerId, clientId: linkedClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         var first = await client.PostAsync(
@@ -194,8 +205,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_TargetWeekNotFound_Returns400()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var plan = BuildDraftPlan(trainerId, weekCount: 1);
+        var (client, trainerId, linkedClientId) = await RegisterTrainerAsync();
+        var plan = BuildDraftPlan(trainerId, clientId: linkedClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         var response = await client.PostAsync(
@@ -211,7 +222,7 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_NonexistentPlan_Returns404()
     {
-        var (client, _) = await RegisterTrainerAsync();
+        var (client, _, _) = await RegisterTrainerAsync();
 
         var response = await client.PostAsync(
             $"/training/plans/{Guid.NewGuid()}/weeks/1/publish",
@@ -224,10 +235,10 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_WrongOwner_Returns404()
     {
-        var (_, ownerTrainerId) = await RegisterTrainerAsync();
-        var (otherClient, _) = await RegisterTrainerAsync();
+        var (_, ownerTrainerId, ownerClientId) = await RegisterTrainerAsync();
+        var (otherClient, _, _) = await RegisterTrainerAsync();
 
-        var plan = BuildDraftPlan(ownerTrainerId, weekCount: 1);
+        var plan = BuildDraftPlan(ownerTrainerId, clientId: ownerClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         // A different trainer attempts to publish a plan they don't own — the lookup filter
@@ -245,8 +256,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_StartDateNotSet_Returns400()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var plan = BuildDraftPlan(trainerId, weekCount: 1);
+        var (client, trainerId, linkedClientId) = await RegisterTrainerAsync();
+        var plan = BuildDraftPlan(trainerId, clientId: linkedClientId, weekCount: 1);
         plan.StartDate = null;
         await SeedPlanAsync(plan);
 
@@ -261,8 +272,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
     [Fact]
     public async Task Publish_WeekStartInPast_Returns400()
     {
-        var (client, trainerId) = await RegisterTrainerAsync();
-        var plan = BuildDraftPlan(trainerId, weekCount: 1, startDate: DateTime.UtcNow.Date.AddDays(-30));
+        var (client, trainerId, linkedClientId) = await RegisterTrainerAsync();
+        var plan = BuildDraftPlan(trainerId, clientId: linkedClientId, weekCount: 1, startDate: DateTime.UtcNow.Date.AddDays(-30));
         await SeedPlanAsync(plan);
 
         var response = await client.PostAsync(

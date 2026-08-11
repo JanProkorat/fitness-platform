@@ -53,7 +53,8 @@ public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         return (client, user.Id);
     }
 
-    private async Task<(NutritionPlan Plan, PlanMeal Meal)> InsertPlanWithMealAsync(Guid nutritionistId)
+    private async Task<(NutritionPlan Plan, PlanMeal Meal)> InsertPlanWithMealAsync(
+        Guid nutritionistId, Guid clientUserId)
     {
         var meal = new PlanMeal
         {
@@ -76,7 +77,7 @@ public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         {
             ExternalId = Guid.NewGuid(),
             NutritionistId = nutritionistId,
-            ClientId = Guid.NewGuid(),
+            ClientId = clientUserId,
             Name = "Test Plan",
             Weeks =
             [
@@ -98,7 +99,11 @@ public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
     public async Task SaveMealTemplateFromPlan_ValidRequest_CopiesFoodsAndInheritsKind()
     {
         var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var (plan, meal) = await InsertPlanWithMealAsync(nutritionistId);
+        // Plan routes authorize on the live link, so the plan must belong to a client
+        // this nutritionist is actually linked to.
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistId, TestContext.Current.CancellationToken);
+        var (plan, meal) = await InsertPlanWithMealAsync(nutritionistId, linkedClientId);
 
         var response = await client.PostAsJsonAsync(
             "/nutrition/meal-templates/from-plan",

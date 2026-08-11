@@ -160,7 +160,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var req = new UpdatePlanRequest
         {
@@ -212,7 +213,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -261,7 +263,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         var req = new UpdatePlanRequest
         {

@@ -99,7 +99,8 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -136,7 +137,8 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -176,7 +178,8 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -236,7 +239,8 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -278,7 +282,8 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {

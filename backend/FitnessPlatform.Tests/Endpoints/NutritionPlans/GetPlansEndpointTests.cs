@@ -28,7 +28,8 @@ public class GetPlansEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 
@@ -46,7 +47,8 @@ public class GetPlansEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 
