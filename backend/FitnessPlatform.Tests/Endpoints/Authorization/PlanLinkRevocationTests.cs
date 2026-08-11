@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -185,6 +186,53 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         return externalId;
     }
 
+    /// <summary>
+    /// Seeds a training plan carrying one published week with a single real session, and returns
+    /// both ids. The session must actually exist for an unlock attempt to be able to succeed —
+    /// with a fabricated session id the endpoint's session-existence guard returns the same 404
+    /// the plan-level guard does, and the test cannot tell which one denied it.
+    /// </summary>
+    private async Task<(Guid PlanId, Guid SessionId)> SeedTrainingPlanWithSessionAsync(
+        Guid clientUserId, Guid trainerUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var externalId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = externalId,
+            ClientId = clientUserId,
+            TrainerId = trainerUserId,
+            Name = "Plan-link training plan with session",
+            Status = TrainingPlanStatus.Active,
+            StartDate = TrainingPlanTestHelpers.LastMonday(),
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (1, new TrainingSession
+                        {
+                            SessionId = sessionId,
+                            Name = "Plan-link session",
+                            Order = 1,
+                            Workouts = []
+                        }))
+                }
+            ],
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        return (externalId, sessionId);
+    }
+
     private async Task<NutritionPlanStatus> ReadNutritionPlanStatusAsync(Guid planExternalId)
     {
         using var scope = factory.Services.CreateScope();
@@ -336,15 +384,21 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         var (_, clientProfileId, clientUserId) = await RegisterClientAsync("revoked-trn-unlock");
         var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
 
-        var planId = await SeedTrainingPlanAsync(clientUserId, professionalUserId);
+        var (planId, sessionId) = await SeedTrainingPlanWithSessionAsync(clientUserId, professionalUserId);
+
+        var beforeRevocation = await professional.PostAsJsonAsync(
+            $"/training/plans/{planId}/sessions/{sessionId}/unlock", new { });
+        beforeRevocation.StatusCode.Should().Be(
+            HttpStatusCode.NoContent, "the professional is still linked at this point");
+
         await DeactivateLinkAsync(linkPublicId);
 
-        var response = await professional.PostAsJsonAsync(
-            $"/training/plans/{planId}/sessions/{Guid.NewGuid()}/unlock", new { });
-
-        response.StatusCode.Should().Be(
+        var afterRevocation = await professional.PostAsJsonAsync(
+            $"/training/plans/{planId}/sessions/{sessionId}/unlock", new { });
+        afterRevocation.StatusCode.Should().Be(
             HttpStatusCode.NotFound,
-            "the plan-level guard must deny before the session-existence guard is even consulted");
+            "ending the collaboration must deny the unlock even though the session exists and " +
+            "plan.TrainerId still names the caller");
     }
 
     [Fact]
