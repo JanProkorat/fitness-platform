@@ -44,7 +44,8 @@ public class UpdateTrainingPlanFormatTests
             CreateNoOpLockService(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            new MockDbBuilder().Build());
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
     private static UpdateTrainingWorkoutRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>

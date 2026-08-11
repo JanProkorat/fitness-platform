@@ -52,6 +52,11 @@ public class SaveSessionTemplateFromPlanEndpointTests(FitnessApiFactory factory)
 
     private async Task<(TrainingPlan Plan, TrainingSession Session)> InsertPlanWithSessionAsync(Guid trainerId)
     {
+        // The route authorizes on the caller's live link to the plan's client, not on authorship
+        // alone, so the source plan needs a real linked client rather than a fabricated id.
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerId, TestContext.Current.CancellationToken);
+
         var session = new TrainingSession
         {
             SessionId = Guid.NewGuid(),
@@ -90,7 +95,7 @@ public class SaveSessionTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         {
             ExternalId = Guid.NewGuid(),
             TrainerId = trainerId,
-            ClientId = Guid.NewGuid(),
+            ClientId = clientUserId,
             Name = "Test Plan",
             Weeks =
             [

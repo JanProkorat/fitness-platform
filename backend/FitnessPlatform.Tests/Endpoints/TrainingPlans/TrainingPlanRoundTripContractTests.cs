@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -107,10 +108,15 @@ public class TrainingPlanRoundTripContractTests(FitnessApiFactory factory)
 
         var effectiveStartDate = startDate ?? TrainingPlanTestHelpers.LastMonday();
 
+        // Plan-addressed routes authorize on the caller's live ClientProfessionalLink, so a plan
+        // seeded against a fabricated client id is unreachable. Default to a real, linked client.
+        var effectiveClientUserId = clientUserId ?? await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerUserId, TestContext.Current.CancellationToken);
+
         var plan = new TrainingPlan
         {
             ExternalId = planId,
-            ClientId = clientUserId ?? Guid.NewGuid(),
+            ClientId = effectiveClientUserId,
             TrainerId = trainerUserId,
             Name = "Round-Trip Contract Plan",
             Status = TrainingPlanStatus.Active,
@@ -438,6 +444,24 @@ public class TrainingPlanRoundTripContractTests(FitnessApiFactory factory)
             var clientProfile = await db.ClientProfiles.FirstAsync(
                 cp => cp.UserId == clientUser.Id, TestContext.Current.CancellationToken);
             clientUserId = clientProfile.UserId;
+
+            // The trainer GET surface authorizes on the live link, not on plan.TrainerId.
+            var professionalProfile = await db.ProfessionalProfiles.FirstAsync(
+                pp => pp.UserId == trainerUserId, TestContext.Current.CancellationToken);
+
+            db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalProfileId = professionalProfile.Id,
+                ClientProfileId = clientProfile.Id,
+                ProfessionalRole = UserRole.Trainer,
+                IsActive = true,
+                CanViewNutritionPlans = true,
+                CanViewTrainingPlans = true,
+                DateCreated = DateTime.UtcNow
+            });
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         // Aligned to "today" so GetTodaySession finds it, matching the pattern used by the

@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -23,12 +24,15 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
 /// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
+/// live link to its client decides access.</param>
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard)
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -67,6 +71,7 @@ public class UpdatePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
             (plan, _) => MutateAsync(plan, req),
             ct);
 
@@ -84,7 +89,7 @@ public class UpdatePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate always returns true.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -111,6 +116,23 @@ public class UpdatePlanEndpoint(
         // contract), regardless of whether the published-week notification branch above ran.
         var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
         await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
+    {
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 
     /// <summary>

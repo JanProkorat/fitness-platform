@@ -45,7 +45,8 @@ public class PublishWeekEndpointTests
             new MockDbBuilder().Build(),
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
     /// <summary>
     /// Builds the plan the mocked <c>FindOneAndUpdateAsync</c> should return for a successful

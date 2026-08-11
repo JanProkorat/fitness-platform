@@ -47,7 +47,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -70,7 +71,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new GetPlanRequest { PlanId = Guid.NewGuid() },
@@ -94,7 +96,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -127,7 +130,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -163,7 +167,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -193,7 +198,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerNutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -231,7 +237,8 @@ public class GetPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo, db);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);

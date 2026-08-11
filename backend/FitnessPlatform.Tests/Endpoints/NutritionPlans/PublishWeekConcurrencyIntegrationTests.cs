@@ -26,7 +26,12 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
 {
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@publish-week-test.com";
 
-    private async Task<(HttpClient Client, Guid NutritionistId)> RegisterNutritionistAsync()
+    /// <summary>
+    /// Registers a nutritionist plus a client they are actively linked to. Plan-addressed routes
+    /// authorize on the live link, so the linked client's user id is what every seeded plan's
+    /// <c>ClientId</c> must carry for the endpoint to reach its own subject.
+    /// </summary>
+    private async Task<(HttpClient Client, Guid NutritionistId, Guid LinkedClientId)> RegisterNutritionistAsync()
     {
         var client = factory.CreateClient();
         var email = UniqueEmail();
@@ -34,12 +39,19 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
         var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
         TestHelpers.SetBearerToken(client, accessToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(
-            u => u.Email == email, TestContext.Current.CancellationToken);
+        Guid nutritionistId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email, TestContext.Current.CancellationToken);
+            nutritionistId = user.Id;
+        }
 
-        return (client, user.Id);
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistId, TestContext.Current.CancellationToken);
+
+        return (client, nutritionistId, linkedClientId);
     }
 
     private async Task SeedPlanAsync(NutritionPlan plan)
@@ -79,8 +91,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_ConcurrentUnrelatedVersionBump_Returns200_NoFalseConflict()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var plan = BuildDraftPlan(nutritionistId);
+        var (client, nutritionistId, linkedClientId) = await RegisterNutritionistAsync();
+        var plan = BuildDraftPlan(nutritionistId, clientId: linkedClientId);
         await SeedPlanAsync(plan);
 
         // Simulate a concurrent unrelated edit that bumped the document Version — e.g. the
@@ -117,8 +129,7 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_FirstWeek_ArchivesOverlappingSibling_SecondWeekPublish_DoesNotReArchive()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var clientId = Guid.NewGuid();
+        var (client, nutritionistId, clientId) = await RegisterNutritionistAsync();
         var plan = BuildDraftPlan(nutritionistId, clientId: clientId, weekCount: 2);
         await SeedPlanAsync(plan);
 
@@ -166,8 +177,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_AlreadyPublishedWeek_Returns400_Idempotent()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var plan = BuildDraftPlan(nutritionistId, weekCount: 1);
+        var (client, nutritionistId, linkedClientId) = await RegisterNutritionistAsync();
+        var plan = BuildDraftPlan(nutritionistId, clientId: linkedClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         var first = await client.PostAsync(
@@ -197,8 +208,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_TargetWeekNotFound_Returns400()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var plan = BuildDraftPlan(nutritionistId, weekCount: 1);
+        var (client, nutritionistId, linkedClientId) = await RegisterNutritionistAsync();
+        var plan = BuildDraftPlan(nutritionistId, clientId: linkedClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         var response = await client.PostAsync(
@@ -214,7 +225,7 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_NonexistentPlan_Returns404()
     {
-        var (client, _) = await RegisterNutritionistAsync();
+        var (client, _, _) = await RegisterNutritionistAsync();
 
         var response = await client.PostAsync(
             $"/nutrition/plans/{Guid.NewGuid()}/weeks/1/publish",
@@ -227,10 +238,10 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_WrongOwner_Returns404()
     {
-        var (_, ownerNutritionistId) = await RegisterNutritionistAsync();
-        var (otherClient, _) = await RegisterNutritionistAsync();
+        var (_, ownerNutritionistId, ownerClientId) = await RegisterNutritionistAsync();
+        var (otherClient, _, _) = await RegisterNutritionistAsync();
 
-        var plan = BuildDraftPlan(ownerNutritionistId, weekCount: 1);
+        var plan = BuildDraftPlan(ownerNutritionistId, clientId: ownerClientId, weekCount: 1);
         await SeedPlanAsync(plan);
 
         // A different nutritionist attempts to publish a plan they don't own — the lookup filter
@@ -248,8 +259,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_StartDateNotSet_Returns400()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var plan = BuildDraftPlan(nutritionistId, weekCount: 1);
+        var (client, nutritionistId, linkedClientId) = await RegisterNutritionistAsync();
+        var plan = BuildDraftPlan(nutritionistId, clientId: linkedClientId, weekCount: 1);
         plan.StartDate = null;
         await SeedPlanAsync(plan);
 
@@ -264,8 +275,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Publish_WeekStartInPast_Returns400()
     {
-        var (client, nutritionistId) = await RegisterNutritionistAsync();
-        var plan = BuildDraftPlan(nutritionistId, weekCount: 1, startDate: DateTime.UtcNow.Date.AddDays(-30));
+        var (client, nutritionistId, linkedClientId) = await RegisterNutritionistAsync();
+        var plan = BuildDraftPlan(nutritionistId, clientId: linkedClientId, weekCount: 1, startDate: DateTime.UtcNow.Date.AddDays(-30));
         await SeedPlanAsync(plan);
 
         var response = await client.PostAsync(
@@ -326,6 +337,8 @@ public class PublishWeekConcurrencyIntegrationTests(FitnessApiFactory factory)
         var result = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.NutritionPlans,
             lookupFilter,
+            // This test's subject is the race window, not authorization — grant and move on.
+            (_, _) => Task.FromResult(true),
             async (_, ct) =>
             {
                 // Simulate a competing request publishing the SAME week right here, between our

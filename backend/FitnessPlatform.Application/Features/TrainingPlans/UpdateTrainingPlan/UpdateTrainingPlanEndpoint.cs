@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -26,12 +27,15 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
+/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
+/// live link to its client decides access.</param>
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -75,6 +79,7 @@ public class UpdateTrainingPlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
                 // Build lookup of existing week statuses
@@ -392,8 +397,8 @@ public class UpdateTrainingPlanEndpoint(
                     "Version conflict. The plan was modified by another request.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Response already written directly inside the mutate delegate
-                // (SessionLocked / WorkoutAlreadyCompleted 409s).
+                // Response already written directly — either the authorize delegate's client-link
+                // 404, or the mutate delegate's SessionLocked / WorkoutAlreadyCompleted 409s.
                 return;
         }
 
@@ -425,6 +430,23 @@ public class UpdateTrainingPlanEndpoint(
         // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
         var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
         await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant training access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
+    {
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                trainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 
     /// <summary>

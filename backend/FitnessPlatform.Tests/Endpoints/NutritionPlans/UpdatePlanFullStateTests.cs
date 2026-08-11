@@ -37,7 +37,8 @@ public class UpdatePlanFullStateTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {

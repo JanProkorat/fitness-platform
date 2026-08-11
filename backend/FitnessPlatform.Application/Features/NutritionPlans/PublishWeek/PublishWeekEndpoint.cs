@@ -27,7 +27,8 @@ public class PublishWeekEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard) : Endpoint<PublishWeekRequest, GetPlanResponse>
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper) : Endpoint<PublishWeekRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -60,7 +61,21 @@ public class PublishWeekEndpoint(
         // consumed after a confirmed successful update to decide whether to archive siblings.
         var hadPublishedWeeks = false;
 
-        Task<bool> Validate(NutritionPlan plan, CancellationToken _)
+        // The lookup filter proved authorship, which is permanent. Access is not — require the
+        // caller's link to the plan's client to still grant nutrition access.
+        async Task<bool> Authorize(NutritionPlan plan, CancellationToken authorizeCt)
+        {
+            if (await authHelper.HasPlanAccessForClientUserAsync(
+                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, authorizeCt))
+            {
+                return true;
+            }
+
+            await Send.NotFoundAsync(authorizeCt);
+            return false;
+        }
+
+        Task<bool> Validate(NutritionPlan plan, CancellationToken validateCt)
         {
             var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
             if (week is null)
@@ -105,8 +120,16 @@ public class PublishWeekEndpoint(
         // unpublished — NOT on the document's Version — so a concurrent edit to an unrelated
         // week/field never produces a false 409 (AC#4), while a genuine race that publishes the
         // SAME week between our fetch and this write causes zero documents to match (AC#2/#7).
+        // The Ne(Archived) predicate is a security guard, not a state check. This update sets
+        // Status = Active unconditionally, and this path has no version comparison, so the
+        // Version bump on an archival is invisible to it. Without this predicate a publish that
+        // passed its link check microseconds before the plan was archived — by an ending
+        // collaboration, or by a sibling plan superseding this one — would still match here and
+        // set the plan back to Active, resurrecting a plan whose author no longer has a live
+        // link and which the client would then be served.
         var writeFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
             & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId)
+            & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Archived)
             & Builders<NutritionPlan>.Filter.ElemMatch(p => p.Weeks,
                 w => w.WeekNumber == req.WeekNumber && w.Status != WeekStatus.Published);
 
@@ -129,6 +152,7 @@ public class PublishWeekEndpoint(
         var guardResult = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.NutritionPlans,
             lookupFilter,
+            Authorize,
             Validate,
             writeFilter,
             update,
@@ -145,7 +169,7 @@ public class PublishWeekEndpoint(
                     "Version conflict. The week was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's validate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -160,7 +184,11 @@ public class PublishWeekEndpoint(
         // above), so only the OTHER side of the comparison needs the null-guard.
         if (!hadPublishedWeeks)
         {
+            // Only the caller's OWN plans are superseded. Without the author predicate this
+            // archives every overlapping Active plan for the client regardless of who wrote it,
+            // which lets one professional destroy another's live plan.
             var siblingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+                                & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId)
                                 & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
@@ -178,11 +206,16 @@ public class PublishWeekEndpoint(
 
             if (overlappingIds.Count > 0)
             {
-                var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds);
+                var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds)
+                                    & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
 
+                // The Version bump keeps a concurrent version-gated replace from writing the
+                // pre-archival document back and resurrecting the superseded plan as Active; it
+                // becomes a 409 instead.
                 var archiveUpdate = Builders<NutritionPlan>.Update
                     .Set(p => p.Status, NutritionPlanStatus.Archived)
-                    .Set(p => p.DateUpdated, DateTime.UtcNow);
+                    .Set(p => p.DateUpdated, DateTime.UtcNow)
+                    .Inc(p => p.Version, 1);
 
                 await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
             }

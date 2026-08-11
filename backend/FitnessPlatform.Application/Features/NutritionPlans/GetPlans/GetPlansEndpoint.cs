@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -17,7 +18,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context — resolves the client's public id to
 /// ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).</param>
-public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db) : Endpoint<GetPlansRequest, GetPlansResponse>
+/// <param name="authHelper">Link capability helper — scopes the list to clients the caller is
+/// still linked to with nutrition access.</param>
+public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+    : Endpoint<GetPlansRequest, GetPlansResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -45,7 +49,15 @@ public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db) : E
         var nutritionistId = Guid.Parse(userId);
 
         var filterBuilder = Builders<NutritionPlan>.Filter;
-        var filter = filterBuilder.Eq(p => p.NutritionistId, nutritionistId);
+
+        // Authorship alone is not access: it is permanent, the link is not. Scope the list to the
+        // clients the caller is still actively linked to with nutrition access, so a plan whose
+        // collaboration has ended stops being served (and stops handing out its ExternalId).
+        var accessibleClientUserIds = await authHelper.GetAccessibleClientUserIdsAsync(
+            nutritionistId, requireTrainingPlanAccess: false, ct);
+
+        var filter = filterBuilder.Eq(p => p.NutritionistId, nutritionistId)
+                     & filterBuilder.In(p => p.ClientId, accessibleClientUserIds);
 
         if (req.ClientId.HasValue)
         {

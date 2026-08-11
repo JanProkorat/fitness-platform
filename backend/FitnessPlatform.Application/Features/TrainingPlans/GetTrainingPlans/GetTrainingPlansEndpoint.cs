@@ -47,10 +47,8 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelpe
         var trainerId = Guid.Parse(userId);
 
         // Server-side enforcement of CanViewTrainingPlans (#590) — mirrors the ownership +
-        // permission-flag check used elsewhere (e.g. ListClientPlansEndpoint). Only relevant
-        // when the caller scopes the query to a specific client; an unscoped list already
-        // implicitly filters to TrainerId == trainerId below, so there is no client-specific
-        // permission to check.
+        // permission-flag check used elsewhere (e.g. ListClientPlansEndpoint). Explicit 403 when
+        // the caller names a client they cannot see.
         if (req.ClientId.HasValue)
         {
             var hasPlanAccess = await authHelper.HasPlanAccessAsync(trainerId, req.ClientId.Value, requireTrainingPlanAccess: true, ct);
@@ -63,7 +61,15 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelpe
         }
 
         var filterBuilder = Builders<TrainingPlan>.Filter;
-        var filter = filterBuilder.Eq(p => p.TrainerId, trainerId);
+
+        // Authorship alone is not access: TrainerId is permanent, the link is not. Scope the list
+        // to the clients the caller is still actively linked to with training access, so a plan
+        // whose collaboration has ended stops being served — and stops handing out its ExternalId.
+        var accessibleClientUserIds = await authHelper.GetAccessibleClientUserIdsAsync(
+            trainerId, requireTrainingPlanAccess: true, ct);
+
+        var filter = filterBuilder.Eq(p => p.TrainerId, trainerId)
+                     & filterBuilder.In(p => p.ClientId, accessibleClientUserIds);
 
         if (req.ClientId.HasValue)
         {

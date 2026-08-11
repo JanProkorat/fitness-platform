@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
@@ -25,7 +26,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
-public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lockService, IApplicationDbContext db)
+/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
+/// live link to its client decides access.</param>
+public class GetTrainingPlanEndpoint(
+    IMongoContext mongo,
+    ISessionLockService lockService,
+    IApplicationDbContext db,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -54,14 +61,12 @@ public class GetTrainingPlanEndpoint(IMongoContext mongo, ISessionLockService lo
 
         var trainerId = Guid.Parse(userId);
 
-        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        // Authorship + link gate: treat "not mine" and "no longer linked" as "not found" to
+        // avoid an existence leak.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
 
-        // Ownership gate: treat "not mine" as "not found" to avoid existence leak.
-        if (plan is null || plan.TrainerId != trainerId)
+        if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 

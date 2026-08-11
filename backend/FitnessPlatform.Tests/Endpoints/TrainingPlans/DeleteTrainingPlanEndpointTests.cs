@@ -25,7 +25,8 @@ public class DeleteTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new DeleteTrainingPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -42,7 +43,8 @@ public class DeleteTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo);
+            mongo,
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new DeleteTrainingPlanRequest { PlanId = plan.ExternalId }, TestContext.Current.CancellationToken);
 

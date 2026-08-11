@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
@@ -14,7 +15,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
-public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : Endpoint<GetPlanRequest, GetPlanResponse>
+/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
+/// live link to its client decides access.</param>
+public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+    : Endpoint<GetPlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -41,13 +45,10 @@ public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : En
 
         var nutritionistId = Guid.Parse(userId);
 
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, authHelper, req.PlanId, nutritionistId, ct);
 
-        if (plan is null || plan.NutritionistId != nutritionistId)
+        if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
@@ -58,8 +59,8 @@ public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : En
         var response = GetPlanResponse.FromDocument(plan, clientPublicId);
 
         // ── MealLog fold-in ──────────────────────────────────────────────────────
-        // Query MealLogs by PlanId only. Ownership is already validated above
-        // (plan.NutritionistId == nutritionistId), so there is no IDOR risk here.
+        // Query MealLogs by PlanId only. Authorship AND the caller's live nutrition link to the
+        // plan's client are both validated above, so there is no IDOR risk here.
         //
         // A meal is considered eaten iff MealLog.EatenAt != null.
         // MealLog.EatenAt == null means the log is a photo-only or note-only stub

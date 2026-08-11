@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -17,7 +18,11 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.LinkQuestionnaire;
 /// Links or unlinks a questionnaire response to/from a training plan.
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
-public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db, PlanConcurrencyGuard guard)
+public class LinkTrainingQuestionnaireEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    PlanConcurrencyGuard guard,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<LinkTrainingQuestionnaireRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -55,6 +60,7 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
                 // Only draft or active plans can have their questionnaire link changed
@@ -104,7 +110,7 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -114,5 +120,22 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
         // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
         var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
         await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant training access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
+    {
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                trainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

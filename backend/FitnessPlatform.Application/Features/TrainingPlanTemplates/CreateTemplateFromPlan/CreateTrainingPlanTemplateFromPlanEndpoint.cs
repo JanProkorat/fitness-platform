@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTemplateFromPlan;
@@ -18,7 +19,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-public class CreateTrainingPlanTemplateFromPlanEndpoint(IMongoContext mongo, TimeProvider timeProvider)
+/// <param name="authHelper">Link capability helper — authorship identifies the source plan, the
+/// caller's live link to its client decides access.</param>
+public class CreateTrainingPlanTemplateFromPlanEndpoint(
+    IMongoContext mongo,
+    TimeProvider timeProvider,
+    ProfessionalAuthHelper authHelper)
     : Endpoint<CreateTrainingPlanTemplateFromPlanRequest, TrainingPlanTemplateSummaryDto>
 {
     /// <inheritdoc />
@@ -56,6 +62,17 @@ public class CreateTrainingPlanTemplateFromPlanEndpoint(IMongoContext mongo, Tim
         var plan = await cursor.FirstOrDefaultAsync(ct);
 
         if (plan is null)
+        {
+            await this.SendLibraryNotFoundAsync(TrainingPlanTemplateLibrary.Denial, ct);
+            return;
+        }
+
+        // Authorship is permanent; the collaboration is not. Require the caller's link to the
+        // plan's client to still grant training access, routed through the same shaped 404.
+        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+            ownerId, plan.ClientId, requireTrainingPlanAccess: true, ct);
+
+        if (!hasAccess)
         {
             await this.SendLibraryNotFoundAsync(TrainingPlanTemplateLibrary.Denial, ct);
             return;
