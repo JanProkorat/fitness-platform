@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -16,7 +17,10 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodayLogResponse>
+/// <param name="blobStorage">Blob storage service — converts each meal photo's stored BlobUrl into
+/// a short-lived pre-signed read URL before the response leaves the process (F9).</param>
+public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage)
+    : EndpointWithoutRequest<GetTodayLogResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -163,6 +167,13 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 Note = log.Note
             };
         }).ToList();
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
+        // for each meal photo before it leaves the process (F9).
+        foreach (var photo in mealsEaten.SelectMany(m => m.Photos))
+        {
+            photo.BlobUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? photo.BlobUrl;
+        }
 
         // Sum all meal totals
         var totalConsumed = new NutrientTotals

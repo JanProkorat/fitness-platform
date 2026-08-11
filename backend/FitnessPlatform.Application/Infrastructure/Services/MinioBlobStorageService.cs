@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Interfaces;
 using Minio;
 using Minio.DataModel.Args;
@@ -22,6 +23,7 @@ public class MinioBlobStorageService : IBlobStorageService
     private readonly string _publicEndpoint;
     private readonly bool _manageBucket;
     private readonly bool _publicUrlIncludesBucket;
+    private readonly TimeSpan _readUrlExpiry;
 
     public MinioBlobStorageService(IConfiguration configuration)
     {
@@ -35,6 +37,8 @@ public class MinioBlobStorageService : IBlobStorageService
         _publicUrlIncludesBucket = configuration.GetValue("MinIO:PublicUrlIncludesBucket", true);
         _publicEndpoint = configuration["MinIO:PublicEndpoint"]
                           ?? $"{(secure ? "https" : "http")}://{endpoint}";
+        _readUrlExpiry = TimeSpan.FromMinutes(
+            configuration.GetValue(ConfigKeys.MinIoReadUrlExpiryMinutes, 15));
 
         var builder = new MinioClient()
             .WithEndpoint(endpoint)
@@ -56,6 +60,14 @@ public class MinioBlobStorageService : IBlobStorageService
     // Public-read policy applied when ManageBucket=true (local MinIO). For R2,
     // public access is toggled in the Cloudflare dashboard ("Allow R2.dev
     // access" or via a custom domain) — this code path is skipped entirely.
+    //
+    // Scoped to catalog/profile prefixes only (avatars, foods, recipes, exercise videos) —
+    // content that is meant to be publicly viewable regardless of session or relationship.
+    // Deliberately EXCLUDES "plan-photos/*" and "diary/*" (client progress, meal, and session
+    // photos): those objects must only resolve via a pre-signed GET minted by
+    // GenerateReadUrlAsync, so that revoking a client-professional link stops an already-issued
+    // URL from resolving once its short signature window elapses (F9 — a bucket-wide grant would
+    // make every stored blob URL permanent and unauthenticated regardless of link state).
     private static readonly string PublicReadPolicyTemplate = """
         {
           "Version": "2012-10-17",
@@ -64,7 +76,12 @@ public class MinioBlobStorageService : IBlobStorageService
               "Effect": "Allow",
               "Principal": { "AWS": ["*"] },
               "Action": ["s3:GetObject"],
-              "Resource": ["arn:aws:s3:::{BUCKET}/*"]
+              "Resource": [
+                "arn:aws:s3:::{BUCKET}/avatars/*",
+                "arn:aws:s3:::{BUCKET}/foods/*",
+                "arn:aws:s3:::{BUCKET}/recipes/*",
+                "arn:aws:s3:::{BUCKET}/exercises/*"
+              ]
             }
           ]
         }
@@ -95,6 +112,32 @@ public class MinioBlobStorageService : IBlobStorageService
         return _publicUrlIncludesBucket
             ? $"{publicBase}/{_bucketName}/{containerPath}"
             : $"{publicBase}/{containerPath}";
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(storedBlobUrl))
+        {
+            return storedBlobUrl;
+        }
+
+        var containerPath = TryExtractContainerPath(storedBlobUrl);
+        if (containerPath is null)
+        {
+            // Foreign or legacy value this service did not issue — return unchanged rather
+            // than throwing, so one bad stored row cannot fail an entire photo-list response.
+            return storedBlobUrl;
+        }
+
+        // No bucket-existence check here (unlike the write paths above): an object can only be
+        // read if it was already uploaded, which already ensured the bucket exists. Presigning
+        // a GET is a local signature computation — it needs no network round trip.
+        return await _client.PresignedGetObjectAsync(
+            new PresignedGetObjectArgs()
+                .WithBucket(_bucketName)
+                .WithObject(containerPath)
+                .WithExpiry((int)_readUrlExpiry.TotalSeconds));
     }
 
     /// <inheritdoc />
@@ -174,5 +217,23 @@ public class MinioBlobStorageService : IBlobStorageService
                 .WithBucket(_bucketName)
                 .WithPolicy(policy),
             ct);
+    }
+
+    /// <summary>
+    /// Reverses <see cref="BuildPublicUrl"/>: strips the configured public-base (and bucket
+    /// segment, when <see cref="_publicUrlIncludesBucket"/>) prefix from a stored blob URL to
+    /// recover the raw container path. Returns null when <paramref name="blobUrl"/> does not
+    /// start with the expected prefix — a foreign URL or a value from before a config change.
+    /// </summary>
+    private string? TryExtractContainerPath(string blobUrl)
+    {
+        var publicBase = _publicEndpoint.TrimEnd('/');
+        var prefix = _publicUrlIncludesBucket
+            ? $"{publicBase}/{_bucketName}/"
+            : $"{publicBase}/";
+
+        return blobUrl.StartsWith(prefix, StringComparison.Ordinal)
+            ? blobUrl[prefix.Length..]
+            : null;
     }
 }

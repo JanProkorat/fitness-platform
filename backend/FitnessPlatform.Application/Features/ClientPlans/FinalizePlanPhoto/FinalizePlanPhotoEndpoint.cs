@@ -35,11 +35,14 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
 /// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="blobStorage">Blob storage service — converts the newly-persisted BlobUrl into a
+/// short-lived pre-signed read URL before echoing it back in the 201 response (F9).</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    ILogger<FinalizePlanPhotoEndpoint> logger)
+    ILogger<FinalizePlanPhotoEndpoint> logger,
+    IBlobStorageService blobStorage)
     : Endpoint<FinalizePlanPhotoRequest, PlanPhotoResponse>
 {
     /// <inheritdoc />
@@ -220,6 +223,11 @@ public class FinalizePlanPhotoEndpoint(
         }
 
         var response = MapToResponse(photo);
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
+        // before echoing it back to the caller who just uploaded it (F9).
+        response.BlobUrl = await blobStorage.GenerateReadUrlAsync(response.BlobUrl, ct) ?? response.BlobUrl;
+
         HttpContext.Response.Headers.Location =
             $"/client/plans/{req.PlanId}/photos/{photo.PublicId}";
         await Send.ResponseAsync(response, StatusCodes.Status201Created, ct);

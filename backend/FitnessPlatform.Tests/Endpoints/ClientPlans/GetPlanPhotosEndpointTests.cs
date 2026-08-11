@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Infrastructure;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
 
@@ -17,6 +18,12 @@ public class GetPlanPhotosEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
+
     private MockDbBuilder CreateDbBuilder() =>
         new MockDbBuilder()
             .With(new ClientProfile { Id = 1, UserId = _clientId, PublicId = _clientId });
@@ -26,7 +33,8 @@ public class GetPlanPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db);
+            db,
+            _blobStorage);
 
     private PlanPhoto CreatePhoto(
         Guid planId,
@@ -141,6 +149,37 @@ public class GetPlanPhotosEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.Should().BeEmpty();
+    }
+
+    // ── Signed read URLs (F9) ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_PhotosExist_ReturnsSignedReadUrlNotStoredValue()
+    {
+        var planId = Guid.NewGuid();
+        var photo = CreatePhoto(planId, PlanPhotoCategory.Body, "plan-photos/abc/photo.jpg");
+
+        var db = CreateDbBuilder().With(photo).Build();
+        var ep = CreateEndpoint(db);
+
+        await ep.HandleAsync(new GetPlanPhotosRequest
+        {
+            PlanId = planId,
+            Page = 1,
+            PageSize = 20
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Should().ContainSingle();
+
+        // Positive control: the stored BlobUrl reaches the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("plan-photos/abc/photo.jpg");
+
+        // Negative control: the response never carries the raw, permanent stored value —
+        // only the fake's recognisable signed-URL marker. A bucket with no public-read grant
+        // on plan-photos/* would 403 on the raw value (F9).
+        ep.Response[0].BlobUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
+        ep.Response[0].BlobUrl.Should().NotBe("plan-photos/abc/photo.jpg");
     }
 
     // ── Pagination ────────────────────────────────────────────────────────────

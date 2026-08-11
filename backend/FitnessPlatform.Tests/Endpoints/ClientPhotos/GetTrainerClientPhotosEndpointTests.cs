@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientPhotos.GetTrainerClientPhotos;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Infrastructure;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
@@ -76,7 +77,8 @@ public class GetTrainerClientPhotosEndpointTests
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -111,7 +113,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -149,7 +152,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
@@ -172,7 +176,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -182,6 +187,40 @@ public class GetTrainerClientPhotosEndpointTests
         ep.Response.Photos.Should().NotBeNull();
         ep.Response.Photos!.Count.Should().Be(2);
         ep.Response.Groups.Should().BeNull();
+    }
+
+    // ── Signed read URLs (F9) ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_ActiveLink_ReturnsSignedReadUrlNotStoredValue()
+    {
+        var (builder, _, _) = CreateLinkedSetup();
+        var photo = MakePhoto(2, PlanPhotoCategory.Body);
+        var db = builder.With(photo).Build();
+
+        var blobStorage = new FakeBlobStorageService();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db,
+            blobStorage);
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Positive control: the stored BlobUrl reached the signing call verbatim.
+        blobStorage.SignedUrlRequests.Should().Contain("https://blob/photo.jpg");
+
+        // Negative control: a professional whose link was later revoked, holding this exact
+        // response from before revocation, must not be able to keep re-fetching the raw
+        // permanent URL — only the short-lived signed marker is returned (F9).
+        ep.Response.Photos!.Single().BlobUrl.Should().Be("https://blob/photo.jpg?signed=test");
+        ep.Response.Photos!.Single().BlobUrl.Should().NotBe("https://blob/photo.jpg");
     }
 
     [Fact]
@@ -194,7 +233,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -224,7 +264,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 2, PageSize = 2 },
@@ -254,7 +295,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 2, PageSize = 2 },
@@ -280,7 +322,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -316,7 +359,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -349,7 +393,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -382,7 +427,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -413,7 +459,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest
@@ -449,7 +496,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
@@ -492,7 +540,8 @@ public class GetTrainerClientPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
-            db);
+            db,
+            new FakeBlobStorageService());
 
         await ep.HandleAsync(
             new GetTrainerClientPhotosRequest

@@ -12,6 +12,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
@@ -186,7 +187,7 @@ public class SessionLockStateTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, lockService);
+            mongo, db, lockService, new FakeBlobStorageService());
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -246,7 +247,7 @@ public class SessionLockStateTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, lockService);
+            mongo, db, lockService, new FakeBlobStorageService());
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);

@@ -12,6 +12,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
@@ -33,12 +34,18 @@ public class FinalizePlanPhotoEndpointTests
     private readonly ILogger<FinalizePlanPhotoEndpoint> _logger =
         Substitute.For<ILogger<FinalizePlanPhotoEndpoint>>();
 
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
+
     private FinalizePlanPhotoEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger);
+            mongo, db, _notifier, _logger, _blobStorage);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -116,7 +123,14 @@ public class FinalizePlanPhotoEndpointTests
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(201);
-        ep.Response.BlobUrl.Should().Be("plan-photos/abc/photo.jpg");
+
+        // Positive control: the just-persisted BlobUrl reached the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("plan-photos/abc/photo.jpg");
+
+        // Negative control: the 201 body echoes a short-lived signed URL, never the raw
+        // permanent value — the bucket no longer grants public read on plan-photos/* (F9).
+        ep.Response.BlobUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
+        ep.Response.BlobUrl.Should().NotBe("plan-photos/abc/photo.jpg");
         ep.Response.Category.Should().Be(PlanPhotoCategory.Body);
         ep.Response.PlanId.Should().Be(planId);
         ep.Response.PlanType.Should().Be(PlanPhotoType.Nutrition);

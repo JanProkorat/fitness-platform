@@ -37,7 +37,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// The plan's <c>weeks</c> array itself must never be projected away entirely — doing so would
 /// collapse <see cref="PlanWindowResolver"/>'s week-count selector to zero for every plan.
 /// </remarks>
-public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService) : EndpointWithoutRequest<GetTodaySessionResponse>
+/// <param name="blobStorage">Blob storage service — converts each session photo's stored BlobUrl
+/// into a short-lived pre-signed read URL before the response leaves the process (F9).</param>
+public class GetTodaySessionEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    ISessionLockService lockService,
+    IBlobStorageService blobStorage) : EndpointWithoutRequest<GetTodaySessionResponse>
 {
     /// <summary>
     /// Phase-1 projection: plan-level fields plus per-week metadata only (weekNumber, status,
@@ -558,7 +564,7 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
             {
                 if (sessionLog.Photos.Count > 0)
                 {
-                    response.PhotosBySession[sessionLog.SessionId] = sessionLog.Photos
+                    var sessionPhotos = sessionLog.Photos
                         .Select(p => new SessionPhotoDto
                         {
                             BlobUrl = p.BlobUrl,
@@ -566,6 +572,16 @@ public class GetTodaySessionEndpoint(IMongoContext mongo, IApplicationDbContext 
                             Note = p.Note
                         })
                         .ToList();
+
+                    // A stored BlobUrl is no longer publicly fetchable — mint a short-lived
+                    // read URL for each photo before it leaves the process (F9).
+                    foreach (var sessionPhoto in sessionPhotos)
+                    {
+                        sessionPhoto.BlobUrl = await blobStorage.GenerateReadUrlAsync(sessionPhoto.BlobUrl, ct)
+                                               ?? sessionPhoto.BlobUrl;
+                    }
+
+                    response.PhotosBySession[sessionLog.SessionId] = sessionPhotos;
                 }
 
                 // Expose the session-level diary note so the mobile client can pre-load

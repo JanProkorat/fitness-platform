@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -168,7 +169,7 @@ public class GetTodaySessionLoggedSetsTests
         return Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_userIdGuid, AppRoles.Client))),
-            mongo, db, lockService);
+            mongo, db, lockService, new FakeBlobStorageService());
     }
 
     private TrainingPlan BuildPlanWithSession(Guid sessionId, Guid exerciseId, int dow)

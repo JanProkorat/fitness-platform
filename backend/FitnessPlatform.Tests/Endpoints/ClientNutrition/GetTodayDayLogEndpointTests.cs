@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -22,6 +23,12 @@ namespace FitnessPlatform.Tests.Endpoints.ClientNutrition;
 public class GetTodayDayLogEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -98,7 +105,7 @@ public class GetTodayDayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path tests
@@ -158,7 +165,14 @@ public class GetTodayDayLogEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.Note.Should().Be("Feeling strong");
         ep.Response.Photos.Should().HaveCount(1);
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/plan-photos/photo1.jpg");
+
+        // Positive control: the stored BlobUrl reached the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/plan-photos/photo1.jpg");
+
+        // Negative control: the response carries the signed marker, never the raw permanent
+        // value — the bucket no longer grants public read on plan-photos/* (F9).
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/plan-photos/photo1.jpg?signed=test");
+        ep.Response.Photos[0].BlobUrl.Should().NotBe("https://minio.local/plan-photos/photo1.jpg");
         ep.Response.Photos[0].UploadedAt.Should().Be(uploadedAt);
         ep.Response.Photos[0].Note.Should().Be("Morning shot");
         ep.Response.Photos[0].Category.Should().Be("Progress");
@@ -274,9 +288,9 @@ public class GetTodayDayLogEndpointTests
         ep.Response.Photos.Should().HaveCount(2);
         ep.Response.Photos.Should().AllSatisfy(p => p.Category.Should().Be("Food"));
         // Descending order: uploadedAt2 (newer) first, then uploadedAt1
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/b.jpg");
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/b.jpg?signed=test");
         ep.Response.Photos[0].UploadedAt.Should().Be(uploadedAt2);
-        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/meal/a.jpg");
+        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/meal/a.jpg?signed=test");
         ep.Response.Photos[1].UploadedAt.Should().Be(uploadedAt1);
         ep.Response.Photos[1].Note.Should().Be("Before eating");
         ep.Response.Note.Should().BeNull();
@@ -338,15 +352,15 @@ public class GetTodayDayLogEndpointTests
         ep.Response.Photos.Should().HaveCount(3);
 
         // Descending order: newest first
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/lunch2.jpg");
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/lunch2.jpg?signed=test");
         ep.Response.Photos[0].Category.Should().Be("Food");
         ep.Response.Photos[0].UploadedAt.Should().Be(newest);
 
-        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/plan/progress.jpg");
+        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/plan/progress.jpg?signed=test");
         ep.Response.Photos[1].Category.Should().Be("Progress");
         ep.Response.Photos[1].UploadedAt.Should().Be(middle);
 
-        ep.Response.Photos[2].BlobUrl.Should().Be("https://minio.local/meal/lunch1.jpg");
+        ep.Response.Photos[2].BlobUrl.Should().Be("https://minio.local/meal/lunch1.jpg?signed=test");
         ep.Response.Photos[2].Category.Should().Be("Food");
         ep.Response.Photos[2].UploadedAt.Should().Be(oldest);
     }

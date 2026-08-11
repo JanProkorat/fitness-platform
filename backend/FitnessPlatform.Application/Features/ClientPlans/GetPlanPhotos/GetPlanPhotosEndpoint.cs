@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,9 @@ namespace FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
 /// Optional <c>category</c> query filter narrows results to Food, Body, or FreeForm.
 /// </summary>
 /// <param name="db">Relational database context.</param>
-public class GetPlanPhotosEndpoint(IApplicationDbContext db)
+/// <param name="blobStorage">Blob storage service — converts each stored BlobUrl into a
+/// short-lived pre-signed read URL before the response leaves the process (F9).</param>
+public class GetPlanPhotosEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage)
     : Endpoint<GetPlanPhotosRequest, List<PlanPhotoResponse>>
 {
     /// <inheritdoc />
@@ -86,6 +89,13 @@ public class GetPlanPhotosEndpoint(IApplicationDbContext db)
                 DiaryRequestId = p.DiaryRequestId
             })
             .ToListAsync(ct);
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
+        // for each photo before it leaves the process (F9).
+        foreach (var photo in photos)
+        {
+            photo.BlobUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? photo.BlobUrl;
+        }
 
         await Send.OkAsync(photos, ct);
     }

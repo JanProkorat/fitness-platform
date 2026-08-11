@@ -50,6 +50,11 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
     /// <remarks>Mirrors <see cref="FitnessPlatform.Tests.Infrastructure.FakeBlobStorageService"/> — returns the bare container path (test double, no real host).</remarks>
     public string BuildPublicUrl(string containerPath) => containerPath;
 
+    /// <inheritdoc />
+    /// <remarks>Mirrors <see cref="FitnessPlatform.Tests.Infrastructure.FakeBlobStorageService"/> — passes the stored value through unchanged (test double, no real signing).</remarks>
+    public Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct) =>
+        Task.FromResult(storedBlobUrl);
+
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
         _objects.Add(containerPath);

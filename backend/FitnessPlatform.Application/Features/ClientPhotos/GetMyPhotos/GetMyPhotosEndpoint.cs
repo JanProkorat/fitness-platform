@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPhotos.Common;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,9 @@ namespace FitnessPlatform.Application.Features.ClientPhotos.GetMyPhotos;
 /// </para>
 /// </remarks>
 /// <param name="db">Relational database context (PostgreSQL via EF Core).</param>
-public class GetMyPhotosEndpoint(IApplicationDbContext db)
+/// <param name="blobStorage">Blob storage service — converts each stored BlobUrl into a
+/// short-lived pre-signed read URL before the response leaves the process (F9).</param>
+public class GetMyPhotosEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage)
     : Endpoint<GetMyPhotosRequest, GetMyPhotosResponse>
 {
     /// <inheritdoc />
@@ -126,6 +129,10 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db)
                 .Take(req.PageSize)
                 .ToList();
 
+            // Sign only the photos actually being returned (post-pagination), not the full
+            // in-memory grouping set — a stored BlobUrl is no longer publicly fetchable (F9).
+            await SignPhotoUrlsAsync(pagedGroups.SelectMany(g => g.Photos), ct);
+
             HttpContext.Response.Headers["X-Total-Count"] = totalGroups.ToString();
 
             await Send.OkAsync(new GetMyPhotosResponse
@@ -156,12 +163,29 @@ public class GetMyPhotosEndpoint(IApplicationDbContext db)
                 })
                 .ToListAsync(ct);
 
+            // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
+            // for each photo before it leaves the process (F9).
+            await SignPhotoUrlsAsync(photos, ct);
+
             HttpContext.Response.Headers["X-Total-Count"] = totalCount.ToString();
 
             await Send.OkAsync(new GetMyPhotosResponse
             {
                 Photos = photos
             }, ct);
+        }
+    }
+
+    /// <summary>
+    /// Replaces each photo's stored, permanent BlobUrl with a short-lived pre-signed read URL
+    /// in place. Must run on every response path before <c>Send.OkAsync</c> — the bucket no
+    /// longer grants public read on the <c>plan-photos/</c> prefix these photos live under.
+    /// </summary>
+    private async Task SignPhotoUrlsAsync(IEnumerable<ClientPhotoResponse> photos, CancellationToken ct)
+    {
+        foreach (var photo in photos)
+        {
+            photo.BlobUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? photo.BlobUrl;
         }
     }
 }

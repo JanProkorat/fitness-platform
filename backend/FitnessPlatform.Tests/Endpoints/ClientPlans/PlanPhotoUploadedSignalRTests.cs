@@ -14,6 +14,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -175,7 +176,7 @@ public class PlanPhotoUploadedSignalRTests
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _finalizeLogger);
+            mongo, db, _notifier, _finalizeLogger, new FakeBlobStorageService());
 
     private SaveMealPhotosEndpoint CreateSaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
         Factory.Create<SaveMealPhotosEndpoint>(
