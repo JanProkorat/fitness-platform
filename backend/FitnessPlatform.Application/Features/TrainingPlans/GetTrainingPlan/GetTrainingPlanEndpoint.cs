@@ -379,15 +379,10 @@ public class GetTrainingPlanEndpoint(
         // ── 4. Batch-fetch session lock state ────────────────────────────────────
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
-        var allSessionIds = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Sessions)
-            .Select(s => s.SessionId)
-            .ToList();
-
-        if (allSessionIds.Count > 0)
+        // Same set the execution filter above was scoped to — walked once.
+        if (planSessionIds.Count > 0)
         {
-            var lockDocs = await lockService.GetStateAsync(allSessionIds, ct);
+            var lockDocs = await lockService.GetStateAsync(planSessionIds, ct);
 
             response.SessionLockStates = lockDocs
                 .Select(l => new SessionLockStateDto

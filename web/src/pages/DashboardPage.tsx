@@ -805,7 +805,7 @@ export default function DashboardPage() {
                     )}
                     {isTrainer && (
                       <CardPropRow label={`${t('dashboard.colTrainsToday')}:`}>
-                        {client.trains}/{client.trainsGoal}
+                        {formatMetricPair(client.trains, client.trainsGoal)}
                       </CardPropRow>
                     )}
                   </CardBody>

@@ -74,10 +74,20 @@ public class GetDashboardSummaryEndpoint(
             return;
         }
 
-        // Fetch all active client links with profiles
+        // Fetch all active client links with profiles.
+        //
+        // A link carrying NEITHER capability grants no visibility of that client, so the client is
+        // omitted from the roster entirely. This is the roster analogue of the outright deny the
+        // four single-client sibling routes carry — denying the whole request would be wrong here,
+        // since one such link says nothing about the other clients on the roster. It also keeps
+        // LinkCapabilities.Discipline's contract true for this caller: it is never asked about a
+        // link that grants nothing, so its Both fallback is genuinely unreachable rather than
+        // silently handing a neither-flag link the combined cross-domain figures.
         var links = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ProfessionalProfileId == professionalProfile.Id && l.IsActive)
+            .Where(l => l.ProfessionalProfileId == professionalProfile.Id
+                        && l.IsActive
+                        && (l.CanViewNutritionPlans || l.CanViewTrainingPlans))
             .Include(l => l.ClientProfile)
             .ThenInclude(cp => cp.User)
             .ToListAsync(ct);

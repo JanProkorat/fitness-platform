@@ -549,12 +549,21 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/photos?pageSize=100");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var categories = await ReadPhotoCategoriesAsync(response);
+        var photos = await ReadPhotosAsync(response);
+        var categories = photos.Select(p => p.Category).ToList();
 
         categories.Should().NotContain("Food", "a food photo hangs off a meal log in a nutrition plan");
         categories.Should().Contain("Training");
-        categories.Should().Contain("Body", "body photos are standalone and stay dual-readable");
         categories.Should().Contain("FreeForm", "free-form photos are standalone and stay dual-readable");
+
+        // Asserted by URL, not by category: two Body rows are seeded and only one of them carries
+        // PlanType = Nutrition, so a category-level `Contain("Body")` is satisfied by the other row
+        // and passes even with a PlanType-keyed predicate that wrongly hides this one.
+        photos.Select(p => p.BlobUrl).Should().Contain(
+            url => url.Contains("body-via-nutrition-screen"),
+            "a body photo uploaded through the nutrition day-photo screen carries " +
+            "PlanType = Nutrition, and must still reach a training-only coach — body photos are " +
+            "dual-readable, so the scoping keys on Category, never on PlanType");
 
         // The caller picks the filter, so the excluded domain must stay excluded when they ask for
         // it by name — this is the exploit path, not a hypothetical.
@@ -562,7 +571,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             $"/trainer/clients/{clientPublicId}/photos?category=Food&pageSize=100");
         targeted.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        (await ReadPhotoCategoriesAsync(targeted)).Should().BeEmpty(
+        (await ReadPhotosAsync(targeted)).Should().BeEmpty(
             "asking for the denied domain by name must return nothing, not everything in it");
     }
 
@@ -578,7 +587,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/photos?pageSize=100");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var categories = await ReadPhotoCategoriesAsync(response);
+        var categories = (await ReadPhotosAsync(response)).Select(p => p.Category).ToList();
 
         categories.Should().NotContain("Training");
         categories.Should().Contain("Food");
@@ -589,15 +598,20 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             $"/trainer/clients/{clientPublicId}/photos?category=Training&pageSize=100");
         targeted.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        (await ReadPhotoCategoriesAsync(targeted)).Should().BeEmpty();
+        (await ReadPhotosAsync(targeted)).Should().BeEmpty();
     }
 
-    private static async Task<List<string>> ReadPhotoCategoriesAsync(HttpResponseMessage response)
+    /// <summary>
+    /// Reads the photo list once. The response content stream is consumed by the first
+    /// ReadFromJsonAsync, so a caller needing both the categories and the urls must project from a
+    /// single read rather than calling two readers over the same response.
+    /// </summary>
+    private static async Task<List<PhotoItem>> ReadPhotosAsync(HttpResponseMessage response)
     {
         var body = await response.Content.ReadFromJsonAsync<PhotosResponse>(
             JsonOptions, TestContext.Current.CancellationToken);
 
-        return body!.Photos.Select(p => p.Category).ToList();
+        return body!.Photos;
     }
 
     /// <summary>
@@ -640,6 +654,21 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
                 ClientProfileId = clientProfileId,
                 Category = PlanPhotoCategory.Body,
                 BlobUrl = "https://example.invalid/body.jpg",
+                TakenAt = takenAt,
+                UploadedByUserId = uploadedByUserId,
+            },
+            // The shape SaveDayPhotosEndpoint actually writes: EVERY day photo, Body and FreeForm
+            // included, carries PlanType = Nutrition and the plan's id, because day photos are
+            // uploaded through a nutrition-plan screen. Scoping on PlanType rather than Category
+            // therefore hid this row from a training-only coach — a real loss of dual-readable
+            // content. Seeded so that regression cannot come back.
+            new PlanPhoto
+            {
+                ClientProfileId = clientProfileId,
+                Category = PlanPhotoCategory.Body,
+                PlanType = PlanPhotoType.Nutrition,
+                PlanId = Guid.NewGuid(),
+                BlobUrl = "https://example.invalid/body-via-nutrition-screen.jpg",
                 TakenAt = takenAt,
                 UploadedByUserId = uploadedByUserId,
             },
@@ -854,7 +883,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
 
     private record PhotosResponse(List<PhotoItem> Photos);
 
-    private record PhotoItem(string Category);
+    private record PhotoItem(string Category, string BlobUrl);
 
     private record PlansResponse(List<PlanItem> Plans, bool CanViewNutritionPlans, bool CanViewTrainingPlans);
 

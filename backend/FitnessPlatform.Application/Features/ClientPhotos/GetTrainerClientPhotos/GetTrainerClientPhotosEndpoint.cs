@@ -112,22 +112,29 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
             .AsNoTracking()
             .Where(p => p.ClientProfileId == clientProfile.Id);
 
-        // Domain scoping. A food photo is written with plan type Nutrition, its plan's identifier
-        // and a meal-log id; a session photo with plan type Training — those hang off a nutrition
-        // or training item, so they follow the link's flags. Body and free-form photos carry a null
-        // plan id and are standalone, so they stay dual-readable, matching how the timeline
-        // endpoint already classifies body measurements. Applied to the BASE query, before the
-        // caller's own category and plan filters, so no request field can widen it.
+        // Domain scoping, keyed on Category alone — deliberately NOT on PlanType.
+        //
+        // Category is the authoritative signal for what a photo hangs off: Food is a meal-log
+        // attachment in a nutrition plan, Training is a session attachment. Body and free-form
+        // photos are standalone and stay dual-readable in both directions, matching how the
+        // timeline endpoint already classifies body measurements.
+        //
+        // PlanType cannot be used for this. SaveDayPhotosEndpoint writes EVERY day photo — Body and
+        // FreeForm included — with PlanType = Nutrition and the plan's id, because day photos are
+        // uploaded through a nutrition-plan screen. Keying on PlanType therefore hid a client's
+        // body-progress photos from a training-only coach: fail-closed, but a real loss of
+        // dual-readable content rather than a leak being closed.
+        //
+        // Applied to the BASE query, before the caller's own category and plan filters, so no
+        // request field can widen it.
         if (!capabilities.CanViewNutritionPlans)
         {
-            query = query.Where(p =>
-                p.Category != PlanPhotoCategory.Food && p.PlanType != PlanPhotoType.Nutrition);
+            query = query.Where(p => p.Category != PlanPhotoCategory.Food);
         }
 
         if (!capabilities.CanViewTrainingPlans)
         {
-            query = query.Where(p =>
-                p.Category != PlanPhotoCategory.Training && p.PlanType != PlanPhotoType.Training);
+            query = query.Where(p => p.Category != PlanPhotoCategory.Training);
         }
 
         // Optional plan filter
