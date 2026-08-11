@@ -723,15 +723,23 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     [Fact]
     public async Task TrainingOnlyLink_GetDashboardSummary_OmitsNutritionFields()
     {
-        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("training-only-summary");
-        var (_, clientProfileId, _) = await RegisterClientAsync("training-only-summary");
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("training-only-summary");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("training-only-summary");
         await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        // Seeded so KcalGoal and TodayKcal would be NON-null for a permitted caller — otherwise
+        // asserting them null here proves nothing.
+        await SeedActiveNutritionPlanWithTodayAsync(clientUserId, professionalUserId);
 
         var response = await professional.GetAsync("/trainer/dashboard-summary");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var client = await ReadSingleDashboardClientAsync(response);
 
+        // All three discriminate against this seed. Verified by granting the nutrition flag: a
+        // permitted caller receives AvgDailyKcal 0, TodayKcal 0 and KcalGoal 2200, so each BeNull
+        // below fails. Without the seeded plan, KcalGoal and TodayKcal are null for a permitted
+        // caller too and these two assertions would have proven nothing.
         client.AvgDailyKcal.Should().BeNull("the seven-day average is read off the client's nutrition plan");
         client.TodayKcal.Should().BeNull("today's consumed calories are nutrition data");
         client.KcalGoal.Should().BeNull("the daily target is read off the client's nutrition plan");
@@ -786,6 +794,53 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             "holding the Nutritionist role must not widen a link stamped nutrition-denied");
         client.ActiveNutritionPlansCount.Should().BeNull(
             "global role state must never widen a per-link capability");
+    }
+
+    /// <summary>
+    /// Seeds an active nutrition plan whose published week resolves to a day for today, carrying a
+    /// daily calorie target. Without this a permitted caller also receives null KcalGoal and
+    /// TodayKcal — no plan means no target — so asserting those two are null for a DENIED caller
+    /// would pass for a reason unrelated to the gate.
+    /// </summary>
+    private async Task SeedActiveNutritionPlanWithTodayAsync(Guid clientUserId, Guid nutritionistUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        // Start on the Monday of the current week so day-index resolution lands inside week 1.
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+
+        await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            NutritionistId = nutritionistUserId,
+            Name = "Dashboard Gate Nutrition Plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = monday,
+            DatePublished = monday,
+            GlobalSettings = new GlobalNutritionSettings { DailyKcal = 2200m },
+            Weeks =
+            [
+                new PlanWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = Enumerable.Range(1, 7)
+                        .Select(dayOfWeek => new PlanDay
+                        {
+                            DayOfWeek = dayOfWeek,
+                            DayTotals = new NutrientTotals { Kcal = 2100m },
+                            Meals = [],
+                        })
+                        .ToList(),
+                }
+            ],
+            Version = 1,
+            DateCreated = monday,
+        }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
     private static async Task<DashboardClient> ReadSingleDashboardClientAsync(HttpResponseMessage response)

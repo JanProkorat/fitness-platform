@@ -278,6 +278,9 @@ public class GetDashboardSummaryEndpoint(
         // client has eaten nothing today", which is a claim about the data rather than about
         // visibility. It stays null when there is simply no plan day too — the client's calorie
         // intake is not something this caller is being told is absent.
+        // The flag test is redundant today — todayPlanDay is only ever assigned inside the
+        // nutrition-gated branch above — and is kept deliberately, so that if that coupling is ever
+        // broken this line still cannot emit a calorie figure to a caller who may not see one.
         decimal? todayKcal = capabilities.CanViewNutritionPlans && todayPlanDay is not null ? 0 : null;
 
         if (todayPlanDay is not null)
