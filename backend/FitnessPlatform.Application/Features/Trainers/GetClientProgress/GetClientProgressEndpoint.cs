@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -52,11 +53,14 @@ public class GetClientProgressEndpoint(
 
         var trainerUserId = Guid.Parse(userId);
 
-        // Verify active professional-client link with at least one plan-view capability.
-        // Dual-readable by design (Trainer or Nutritionist) — see authHelper param doc.
-        var hasLink = await authHelper.HasAnyPlanAccessAsync(trainerUserId, req.ClientId, ct);
+        // Either flag admits the caller — that part was always right, and this route is reachable
+        // by a Trainer or a Nutritionist by design. What was missing is that the BODY is not
+        // domain-neutral: the meal counts and macro averages are nutrition data, and the compliance
+        // percentage and streak are combined cross-domain figures. Read the flags, not a boolean,
+        // so the response can be shaped as well as admitted.
+        var capabilities = await authHelper.GetLinkCapabilitiesAsync(trainerUserId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is null || capabilities.Value.GrantsNothing)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -79,9 +83,19 @@ public class GetClientProgressEndpoint(
         var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
         var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
 
+        var discipline = capabilities.Value.Discipline;
+
         var compliance = await complianceService.CalculateComplianceAsync(clientUserId, from, to, ct);
-        var streak = await complianceService.CalculateStreakAsync(clientUserId, ct);
-        var averageMacros = await complianceService.CalculateAverageMacrosAsync(clientUserId, from, to, ct);
+
+        // The streak overload without a discipline hard-codes the combined figure, so a
+        // single-flag caller was receiving a number weighted by the domain their link denies.
+        var streak = await complianceService.CalculateStreakAsync(clientUserId, discipline, ct);
+
+        // Not computed at all unless the caller may see it — the averages are derived from the
+        // client's meal logs and nutrition plan.
+        var averageMacros = capabilities.Value.CanViewNutritionPlans
+            ? await complianceService.CalculateAverageMacrosAsync(clientUserId, from, to, ct)
+            : null;
 
         // Audit: trainer accessing client health/progress data
         await audit.LogAsync(
@@ -94,9 +108,16 @@ public class GetClientProgressEndpoint(
 
         await Send.OkAsync(new GetClientProgressResponse
         {
-            CompliancePercent = compliance.CompliancePercent,
-            MealsPlanned = compliance.MealsPlanned,
-            MealsLogged = compliance.MealsLogged,
+            // The caller's own domain's figure, not the combined weighted one — returning the
+            // latter to a single-flag caller discloses the other domain's adherence by inference.
+            CompliancePercent = discipline switch
+            {
+                ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
+                ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
+                _ => compliance.CompliancePercent
+            },
+            MealsPlanned = capabilities.Value.CanViewNutritionPlans ? compliance.MealsPlanned : null,
+            MealsLogged = capabilities.Value.CanViewNutritionPlans ? compliance.MealsLogged : null,
             CurrentStreak = streak,
             AverageDailyMacros = averageMacros,
             From = from,

@@ -49,7 +49,10 @@ export function ProgressSnapshot({
     ? Math.round(Math.abs(targetWeight - currentWeight) * 10) / 10
     : null;
 
-  const prTotal = verdict?.prCountThisMonth ?? 0;
+  // NOT `?? 0` — the API sends null when the caller's link denies training, and a bold 0
+  // asserts the client set no personal records this month. The two rows below this one in the
+  // same tile already render an em dash for exactly this case.
+  const prTotal = verdict?.prCountThisMonth ?? null;
 
   return (
     <div className="grid gap-3.5" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
@@ -116,7 +119,7 @@ export function ProgressSnapshot({
             <span className="text-text2">
               🏆 {t('clientDetail.prehled.progress.stats.prTotal')}
             </span>
-            <b className="text-[15px]">{prTotal}</b>
+            <b className="text-[15px]">{prTotal != null ? prTotal : '—'}</b>
           </div>
           <div className="flex justify-between items-baseline">
             <span className="text-text2">

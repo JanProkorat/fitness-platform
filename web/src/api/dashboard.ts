@@ -10,14 +10,20 @@ export interface ClientDashboardItem {
   goal: string | null;
   compliancePercent: number;
   currentStreak: number;
-  avgDailyKcal: number;
-  todayKcal: number;
+  /** null when the caller's link does not grant the nutrition domain. */
+  avgDailyKcal: number | null;
+  /** null when the caller's link does not grant the nutrition domain. */
+  todayKcal: number | null;
   kcalGoal: number | null;
-  workoutsCompleted: number;
-  workoutsPlanned: number;
+  /** null when the caller's link does not grant the training domain. */
+  workoutsCompleted: number | null;
+  /** null when the caller's link does not grant the training domain. */
+  workoutsPlanned: number | null;
   lastActivityAt: string | null;
-  activeNutritionPlansCount: number;
-  hasActiveTrainingPlan: boolean;
+  /** null when the caller's link does not grant the nutrition domain. */
+  activeNutritionPlansCount: number | null;
+  /** null when the caller's link does not grant the training domain — distinct from false. */
+  hasActiveTrainingPlan: boolean | null;
 }
 
 export interface DashboardSummaryResponse {

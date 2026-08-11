@@ -113,7 +113,7 @@ export function VerdictHeroCard({ verdict }: VerdictHeroCardProps) {
         {/* PR this month */}
         <div className="text-center">
           <div className="text-[17px] font-bold leading-none text-text">
-            {verdict.prCountThisMonth}
+            {verdict.prCountThisMonth ?? '—'}
           </div>
           <div className="text-[10px] uppercase tracking-[0.04em] text-text3 mt-0.5">
             {t('clientDetail.verdict.signals.prThisMonth')}

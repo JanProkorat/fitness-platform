@@ -68,17 +68,50 @@ function formatLastActivity(lastActivityAt: string | null): { text: string; colo
   };
 }
 
+/**
+ * A metric the API may withhold. `null` means "your link does not grant this domain", which is a
+ * different thing from zero — the API deliberately sends null rather than 0 so the UI can say
+ * "not visible" instead of asserting the client ate nothing or trained not at all.
+ */
+type WithheldableNumber = number | null;
+
 export interface EnrichedClient extends ClientDashboardItem {
   goalTag: 'blue' | 'purple' | 'green' | 'orange' | 'gray';
   compliance: number;
   streak: number;
-  kcal: number;
-  todayKcalRounded: number;
-  kcalGoal: number;
-  trains: number;
-  trainsGoal: number;
+  kcal: WithheldableNumber;
+  todayKcalRounded: WithheldableNumber;
+  kcalGoal: WithheldableNumber;
+  trains: WithheldableNumber;
+  trainsGoal: WithheldableNumber;
   lastActivity: string;
   lastActivityColor: string;
+}
+
+/** Rounds a withheld-able metric without turning null into 0 — `Math.round(null)` is 0. */
+function roundOrWithhold(value: number | null | undefined): WithheldableNumber {
+  return value == null ? null : Math.round(value);
+}
+
+/** Shown in place of a metric the caller's link does not grant. */
+export const WITHHELD_PLACEHOLDER = '—';
+
+/**
+ * Formats an "actual / goal" metric pair, collapsing to the withheld placeholder when either half
+ * is unavailable. Never renders a withheld value as 0 — that would read as real data.
+ */
+export function formatMetricPair(actual: WithheldableNumber, goal: WithheldableNumber): string {
+  if (actual == null || goal == null) return WITHHELD_PLACEHOLDER;
+  return `${actual}/${goal}`;
+}
+
+/**
+ * The actual-to-goal ratio, or null when either half is withheld or the goal is zero. Callers
+ * sorting on this should place null consistently rather than treating it as 0.
+ */
+export function metricRatio(actual: WithheldableNumber, goal: WithheldableNumber): number | null {
+  if (actual == null || goal == null || goal <= 0) return null;
+  return actual / goal;
 }
 
 export function enrichClient(c: ClientDashboardItem): EnrichedClient {
@@ -89,9 +122,9 @@ export function enrichClient(c: ClientDashboardItem): EnrichedClient {
     goalTag: goalToTag(c.goal),
     compliance: Math.round(c.compliancePercent),
     streak: c.currentStreak,
-    kcal: Math.round(c.avgDailyKcal),
-    todayKcalRounded: Math.round(c.todayKcal),
-    kcalGoal: Math.round(c.kcalGoal ?? 0),
+    kcal: roundOrWithhold(c.avgDailyKcal),
+    todayKcalRounded: roundOrWithhold(c.todayKcal),
+    kcalGoal: roundOrWithhold(c.kcalGoal),
     trains: c.workoutsCompleted,
     trainsGoal: c.workoutsPlanned,
     lastActivity: activity.text,

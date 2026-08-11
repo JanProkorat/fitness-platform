@@ -1,6 +1,7 @@
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientVerdict;
@@ -26,6 +27,7 @@ public class GetClientVerdictTests
             clientProfile.UserId,
             clientProfile.Id,
             Arg.Any<decimal?>(),
+            Arg.Any<LinkCapabilities>(),
             Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -64,7 +66,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -93,7 +95,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -123,7 +125,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -155,7 +157,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -184,7 +186,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -210,7 +212,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -242,7 +244,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OnTrack,
@@ -271,7 +273,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OnTrack,

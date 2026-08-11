@@ -17765,21 +17765,21 @@ export interface ClientDashboardItem {
     /** Current streak of consecutive compliant days. */
     currentStreak?: number;
     /** Average daily kcal consumed over the last 7 days. */
-    avgDailyKcal?: number;
+    avgDailyKcal?: number | undefined;
     /** Kcal consumed today (from meal logs). */
-    todayKcal?: number;
+    todayKcal?: number | undefined;
     /** Daily kcal target from the active nutrition plan (null if none). */
     kcalGoal?: number | undefined;
     /** Completed workouts this week (Mon–today). */
-    workoutsCompleted?: number;
+    workoutsCompleted?: number | undefined;
     /** Planned training sessions this week (from active plan's current week). */
-    workoutsPlanned?: number;
+    workoutsPlanned?: number | undefined;
     /** UTC timestamp of the client's most recent activity (meal log, workout, measurement). */
     lastActivityAt?: string | undefined;
     /** Number of nutrition plans that have started, are not completed, and have at least one published week. */
-    activeNutritionPlansCount?: number;
+    activeNutritionPlansCount?: number | undefined;
     /** Whether the client has an active training plan. */
-    hasActiveTrainingPlan?: boolean;
+    hasActiveTrainingPlan?: boolean | undefined;
 }
 
 export interface GetClientVerdictResponse {
@@ -17798,7 +17798,7 @@ export interface GetClientVerdictResponse {
     /** UTC timestamp of the most recent activity (workout log, meal log, or measurement), or null. */
     lastActiveAt?: string | undefined;
     /** Number of personal records achieved in the current calendar month. */
-    prCountThisMonth?: number;
+    prCountThisMonth?: number | undefined;
 }
 
 /** Represents the on-track verdict for a client as assessed by the trainer dashboard. */
@@ -17911,16 +17911,21 @@ export interface GetClientsRequest {
 
 /** Response model containing a client's progress data for the trainer view. */
 export interface GetClientProgressResponse {
-    /** Compliance percentage (0-100), representing how many planned meals were logged. */
+    /** Compliance percentage (0-100). Scoped to the caller's own domain — a single-flag link
+receives its own domain's figure rather than the combined weighted one, which would
+disclose the other domain's adherence by inference. */
     compliancePercent?: number;
-    /** Total number of meals planned in the date range. */
-    mealsPlanned?: number;
-    /** Total number of meals logged in the date range. */
-    mealsLogged?: number;
-    /** Current streak of consecutive compliant days. */
+    /** Total number of meals planned in the date range, or null when the caller's link
+does not grant the nutrition domain. */
+    mealsPlanned?: number | undefined;
+    /** Total number of meals logged in the date range, or null when the caller's link
+does not grant the nutrition domain. */
+    mealsLogged?: number | undefined;
+    /** Current streak of consecutive compliant days, computed over the caller's own domain. */
     currentStreak?: number;
-    /** Average daily macronutrient totals for the date range. */
-    averageDailyMacros?: NutrientTotals;
+    /** Average daily macronutrient totals for the date range, or null when the caller's
+link does not grant the nutrition domain. */
+    averageDailyMacros?: NutrientTotals | undefined;
     /** Start date of the progress calculation range. */
     from?: string;
     /** End date of the progress calculation range. */
@@ -20672,6 +20677,29 @@ today. Additive alongside CompletedExerciseIdsBySession and
 CompletedExerciseIdsByWorkoutAndSession, which keep their existing
 catalog-keyed semantics unchanged. */
     completedExerciseInstanceIdsBySession?: { [key: string]: string[]; };
+    /** Per-session, per-exercise-INSTANCE logged set values for today, sourced from live-training
+Performance data. Keyed by SessionId → ExerciseId (the
+per-instance identifier, NOT the catalog ExerciseExternalId)
+→ list of LoggedSetDto.
+Unlike LoggedSetsBySessionExercise (keyed by catalog ExerciseExternalId,
+which collapses two placements of the same catalog exercise within one session —
+standalone AND nested, or nested twice — onto the same entry), this field attributes
+Performance data to the single placement it was actually logged against: the containing
+LoggedWorkout's WorkoutId is resolved against the session's nested
+TrainingWorkout ids — a match attributes the data to that nested instance, no
+match (e.g. the fallback WorkoutId UpdateWorkoutEndpoint's legacy single-workout path
+assigns when the client sends no WorkoutId) attributes it to the standalone instance (#885).
+Additive alongside LoggedSetsBySessionExercise, which keeps its existing
+catalog-keyed (and, for a dual-placement session, ambiguous) semantics unchanged for
+callers that have not migrated. Empty when no live-training progress has been logged for
+today. */
+    loggedSetsByExerciseInstanceBySession?: { [key: string]: { [key: string]: LoggedSetDto[]; }; };
+    /** Per-session, per-exercise-INSTANCE completed set numbers for today, sourced from
+live-training Performance data. Keyed by SessionId → ExerciseId
+→ list of 1-based SetNumbers. See LoggedSetsByExerciseInstanceBySession
+remarks for why this is instance-keyed rather than catalog-keyed, and additive alongside
+CompletedSetsBySessionExercise, whose existing semantics are unchanged. */
+    completedSetsByExerciseInstanceBySession?: { [key: string]: { [key: string]: number[]; }; };
 }
 
 /** A photo attached to a session diary entry, as returned in PhotosBySession. */

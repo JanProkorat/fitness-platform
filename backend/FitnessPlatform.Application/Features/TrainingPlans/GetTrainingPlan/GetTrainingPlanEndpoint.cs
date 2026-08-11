@@ -76,11 +76,25 @@ public class GetTrainingPlanEndpoint(
         var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
         var response = GetTrainingPlanResponse.FromDocument(plan, clientPublicId);
 
-        // ── 1. SessionExecution fold-in (#841: unifies the former TrainingCompletion +
-        // WorkoutLog fold-ins into a single query — same client-wide scope the old
-        // TrainingCompletion query used, not PlanId-scoped, so this preserves the exact
-        // (slightly broader than PlanId) query shape the response has always had). ─────
-        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, plan.ClientId);
+        // ── 1. SessionExecution fold-in (#841 unified the former TrainingCompletion +
+        // WorkoutLog fold-ins into a single query) ───────────────────────────────────
+        // Scoped to THIS plan's sessions, not to the client. The client-wide filter this
+        // replaces was inherited from the old TrainingCompletion query and kept for wire-shape
+        // continuity, but a client legitimately holds several plans — sequential non-overlapping
+        // ones, and plans from more than one professional — so it folded another coach's
+        // set-level results (actual reps, weight, RPE) and their planned values into this
+        // response. The completions projection below tolerated that by looking sessions up
+        // against this plan, but still emitted the out-of-plan rows; the performance projection
+        // applied no session restriction at all. Same idiom as the client-facing full-plan route.
+        var planSessionIds = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
+            .Select(s => s.SessionId)
+            .ToList();
+
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, plan.ClientId)
+                              & Builders<SessionExecution>.Filter.In(
+                                  c => c.SessionId, planSessionIds.Cast<Guid?>());
         var executionSort = Builders<SessionExecution>.Sort
             .Ascending(c => c.Date)
             .Ascending(c => c.SessionId);
@@ -365,15 +379,10 @@ public class GetTrainingPlanEndpoint(
         // ── 4. Batch-fetch session lock state ────────────────────────────────────
         // Single Mongo round-trip — not one per session. Mirrors the pattern used
         // in GetFullTrainingPlanEndpoint (client read) so the shape is consistent.
-        var allSessionIds = plan.Weeks
-            .SelectMany(w => w.Days)
-            .SelectMany(d => d.Sessions)
-            .Select(s => s.SessionId)
-            .ToList();
-
-        if (allSessionIds.Count > 0)
+        // Same set the execution filter above was scoped to — walked once.
+        if (planSessionIds.Count > 0)
         {
-            var lockDocs = await lockService.GetStateAsync(allSessionIds, ct);
+            var lockDocs = await lockService.GetStateAsync(planSessionIds, ct);
 
             response.SessionLockStates = lockDocs
                 .Select(l => new SessionLockStateDto

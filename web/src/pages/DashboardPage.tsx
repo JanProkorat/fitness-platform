@@ -6,7 +6,15 @@ import { useAuthStore } from '@/stores/auth';
 import { getDashboardSummary } from '@/api/dashboard';
 import { getIncomingRequests, acceptClientRequest, rejectClientRequest, type IncomingRequest } from '@/api/client-requests';
 import { getTrainerQuestionnaires } from '@/api/questionnaires';
-import { complianceColor, initials, enrichClient, type EnrichedClient } from '@/lib/dashboard-helpers';
+import {
+  complianceColor,
+  initials,
+  enrichClient,
+  formatMetricPair,
+  metricRatio,
+  WITHHELD_PLACEHOLDER,
+  type EnrichedClient,
+} from '@/lib/dashboard-helpers';
 import { showApiError } from '@/lib/api-errors';
 
 import { PageHeader } from '@/components/layout';
@@ -145,17 +153,20 @@ export default function DashboardPage() {
   const activeCount = clients.filter((c) => c.isActive).length;
   const totalCount = clients.length;
   // Only count clients with an active plan relevant to the coach's role.
+  // A withheld count/flag is unknown, not empty — it must not make a client look plan-less.
   const clientsWithPlans = clients.filter((c) =>
-    (isNutritionist && c.activeNutritionPlansCount > 0) ||
-    (isTrainer && c.hasActiveTrainingPlan),
+    (isNutritionist && (c.activeNutritionPlansCount ?? 0) > 0) ||
+    (isTrainer && c.hasActiveTrainingPlan === true),
   );
   const avgCompliance =
     clientsWithPlans.length > 0
       ? Math.round(clientsWithPlans.reduce((sum, c) => sum + c.compliance, 0) / clientsWithPlans.length)
       : 0;
-  const totalTrains = clients.reduce((sum, c) => sum + c.trains, 0);
-  const totalTrainsGoal = clients.reduce((sum, c) => sum + c.trainsGoal, 0);
-  const activePlansCount = clients.reduce((sum, c) => sum + c.activeNutritionPlansCount, 0);
+  // Roster totals skip clients whose link withholds the domain. The sum is then an
+  // under-count rather than a wrong number, which is the honest failure direction here.
+  const totalTrains = clients.reduce((sum, c) => sum + (c.trains ?? 0), 0);
+  const totalTrainsGoal = clients.reduce((sum, c) => sum + (c.trainsGoal ?? 0), 0);
+  const activePlansCount = clients.reduce((sum, c) => sum + (c.activeNutritionPlansCount ?? 0), 0);
   const alertClients = clientsWithPlans.filter((c) => c.compliance < 50);
 
   // -- filter & sort options ------------------------------------------------
@@ -178,11 +189,21 @@ export default function DashboardPage() {
       switch (filter) {
         case 'active': return c.isActive;
         case 'inactive': return !c.isActive;
-        case 'withPlan': return c.activeNutritionPlansCount > 0 || c.hasActiveTrainingPlan;
-        case 'noPlan': return c.activeNutritionPlansCount === 0 && !c.hasActiveTrainingPlan;
+        case 'withPlan':
+          return (c.activeNutritionPlansCount ?? 0) > 0 || c.hasActiveTrainingPlan === true;
+        case 'noPlan': {
+          // "No plan" is a claim, so it needs at least one domain we can actually see. A client
+          // whose only visible domain is withheld falls through both withPlan and noPlan rather
+          // than being asserted either way.
+          const anyDomainVisible =
+            c.activeNutritionPlansCount != null || c.hasActiveTrainingPlan != null;
+          const anyPlanPresent =
+            (c.activeNutritionPlansCount ?? 0) > 0 || c.hasActiveTrainingPlan === true;
+          return anyDomainVisible && !anyPlanPresent;
+        }
         case 'lowCompliance':
-          return ((isNutritionist && c.activeNutritionPlansCount > 0) ||
-                  (isTrainer && c.hasActiveTrainingPlan)) && c.compliance < 50;
+          return ((isNutritionist && (c.activeNutritionPlansCount ?? 0) > 0) ||
+                  (isTrainer && c.hasActiveTrainingPlan === true)) && c.compliance < 50;
         default: return true;
       }
     });
@@ -202,15 +223,13 @@ export default function DashboardPage() {
           break;
         }
         case 'kcal': {
-          const ap = a.kcalGoal > 0 ? a.todayKcalRounded / a.kcalGoal : 0;
-          const bp = b.kcalGoal > 0 ? b.todayKcalRounded / b.kcalGoal : 0;
-          cmp = ap - bp;
+          cmp = (metricRatio(a.todayKcalRounded, a.kcalGoal) ?? -1)
+              - (metricRatio(b.todayKcalRounded, b.kcalGoal) ?? -1);
           break;
         }
         case 'trains': {
-          const ap = a.trainsGoal > 0 ? a.trains / a.trainsGoal : 0;
-          const bp = b.trainsGoal > 0 ? b.trains / b.trainsGoal : 0;
-          cmp = ap - bp;
+          cmp = (metricRatio(a.trains, a.trainsGoal) ?? -1)
+              - (metricRatio(b.trains, b.trainsGoal) ?? -1);
           break;
         }
       }
@@ -337,17 +356,22 @@ export default function DashboardPage() {
         key: 'kcal',
         label: t('dashboard.colKcalToday'),
         render: (row: EnrichedClient) => {
-          const pct = row.kcalGoal > 0 ? Math.round((row.todayKcalRounded / row.kcalGoal) * 100) : 0;
+          const ratio = metricRatio(row.todayKcalRounded, row.kcalGoal);
+
+          if (ratio === null) {
+            return <span className="text-xs text-text3">{WITHHELD_PLACEHOLDER}</span>;
+          }
+
           return (
             <div className="flex items-center gap-1.5">
               <ProgressBar
-                value={Math.min(pct, 100)}
+                value={Math.min(Math.round(ratio * 100), 100)}
                 color="var(--accent)"
                 className="w-[50px]"
                 height={4}
               />
               <span className="text-xs text-text2">
-                {row.todayKcalRounded}/{row.kcalGoal}
+                {formatMetricPair(row.todayKcalRounded, row.kcalGoal)}
               </span>
             </div>
           );
@@ -360,6 +384,10 @@ export default function DashboardPage() {
         key: 'trains',
         label: t('dashboard.colTrainsToday'),
         render: (row: EnrichedClient) => {
+          if (row.trains == null || row.trainsGoal == null) {
+            return <span className="text-xs text-text3">{WITHHELD_PLACEHOLDER}</span>;
+          }
+
           const variant = row.trains >= row.trainsGoal
             ? 'green'
             : row.trains >= row.trainsGoal / 2
@@ -367,7 +395,7 @@ export default function DashboardPage() {
             : 'red';
           return (
             <Tag variant={variant as 'green' | 'orange' | 'red'}>
-              {row.trains}/{row.trainsGoal}
+              {formatMetricPair(row.trains, row.trainsGoal)}
             </Tag>
           );
         },
@@ -378,11 +406,19 @@ export default function DashboardPage() {
       cols.push({
         key: 'nutritionPlan',
         label: t('dashboard.colNutritionPlan'),
-        render: (row: EnrichedClient) => (
-          <Tag variant={row.activeNutritionPlansCount > 0 ? 'green' : 'gray'}>
-            {row.activeNutritionPlansCount > 0 ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
-          </Tag>
-        ),
+        render: (row: EnrichedClient) => {
+          // Withheld is neither yes nor no — rendering "no" would assert the client has no
+          // nutrition plan, which this caller's link does not entitle them to know.
+          if (row.activeNutritionPlansCount == null) {
+            return <span className="text-xs text-text3">{WITHHELD_PLACEHOLDER}</span>;
+          }
+
+          return (
+            <Tag variant={row.activeNutritionPlansCount > 0 ? 'green' : 'gray'}>
+              {row.activeNutritionPlansCount > 0 ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
+            </Tag>
+          );
+        },
       });
     }
 
@@ -390,11 +426,20 @@ export default function DashboardPage() {
       cols.push({
         key: 'trainingPlan',
         label: t('dashboard.colTrainingPlan'),
-        render: (row: EnrichedClient) => (
-          <Tag variant={row.hasActiveTrainingPlan ? 'green' : 'gray'}>
-            {row.hasActiveTrainingPlan ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
-          </Tag>
-        ),
+        render: (row: EnrichedClient) => {
+          // Same reasoning as the nutrition column, and the reason this needed a null check the
+          // typechecker could not demand: `boolean | null` is a valid condition, so a truthy test
+          // silently renders "no" for a domain the caller simply cannot see.
+          if (row.hasActiveTrainingPlan == null) {
+            return <span className="text-xs text-text3">{WITHHELD_PLACEHOLDER}</span>;
+          }
+
+          return (
+            <Tag variant={row.hasActiveTrainingPlan ? 'green' : 'gray'}>
+              {row.hasActiveTrainingPlan ? t('dashboard.yesLabel') : t('dashboard.noLabel')}
+            </Tag>
+          );
+        },
       });
     }
 
@@ -547,7 +592,9 @@ export default function DashboardPage() {
             if (isNutritionist) {
               details.push(t('dashboard.calloutComplianceDetail', { compliance: client.compliance }));
             }
-            if (isTrainer) {
+            // Skipped entirely rather than interpolated when withheld — the template renders
+            // "Completing /  workouts" for a null pair, which reads as a rendering bug.
+            if (isTrainer && client.trains != null && client.trainsGoal != null) {
               details.push(t('dashboard.calloutTrainsDetail', { trains: client.trains, trainsGoal: client.trainsGoal }));
             }
             return (
@@ -753,12 +800,12 @@ export default function DashboardPage() {
                     </CardPropRow>
                     {isNutritionist && (
                       <CardPropRow label={`${t('dashboard.colKcalToday')}:`}>
-                        {client.todayKcalRounded}/{client.kcalGoal}
+                        {formatMetricPair(client.todayKcalRounded, client.kcalGoal)}
                       </CardPropRow>
                     )}
                     {isTrainer && (
                       <CardPropRow label={`${t('dashboard.colTrainsToday')}:`}>
-                        {client.trains}/{client.trainsGoal}
+                        {formatMetricPair(client.trains, client.trainsGoal)}
                       </CardPropRow>
                     )}
                   </CardBody>

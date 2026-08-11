@@ -3,6 +3,8 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -33,17 +35,25 @@ public class GetClientProgressEndpointTests
 
     /// <summary>
     /// Creates a ProfessionalAuthHelper mock configured to return the specified link status.
-    /// GetClientProgressEndpoint is deliberately dual-readable by Trainers and Nutritionists,
-    /// so it calls <see cref="ProfessionalAuthHelper.HasAnyPlanAccessAsync"/> rather than
-    /// either single-role-scoped <c>HasActiveLinkAsync</c> helper.
+    /// GetClientProgressEndpoint is deliberately dual-readable by Trainers and Nutritionists, so
+    /// either flag admits the caller — but the endpoint now reads the flags themselves via
+    /// <see cref="ProfessionalAuthHelper.GetLinkCapabilitiesAsync"/> so it can shape the response
+    /// body per domain, not merely decide who may reach it. These tests default to both flags:
+    /// their subject is the progress computation, not the gate. The per-domain body filtering is
+    /// asserted end-to-end against real data in <c>CrossDomainPlanAccessTests</c>.
     /// </summary>
-    private ProfessionalAuthHelper CreateAuthHelper(bool hasLink)
+    private ProfessionalAuthHelper CreateAuthHelper(
+        bool hasLink,
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = true)
     {
         var authDb = Substitute.For<IApplicationDbContext>();
         var helper = Substitute.ForPartsOf<ProfessionalAuthHelper>(authDb);
-        helper.HasAnyPlanAccessAsync(
+        helper.GetLinkCapabilitiesAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
+            .Returns(hasLink
+                ? new LinkCapabilities(canViewNutritionPlans, canViewTrainingPlans)
+                : null);
         return helper;
     }
 
@@ -72,7 +82,11 @@ public class GetClientProgressEndpointTests
                 MealsLogged = 9
             });
 
-        _complianceService.CalculateStreakAsync(_clientUserId, Arg.Any<CancellationToken>())
+        // The discipline overload — the endpoint no longer calls the one that hard-codes the
+        // combined figure, since that returned a streak weighted by the domain a single-flag
+        // caller's link denies.
+        _complianceService.CalculateStreakAsync(
+                _clientUserId, Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
             .Returns(4);
 
         _complianceService.CalculateAverageMacrosAsync(

@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -184,5 +185,64 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
                 cpl.ClientProfileId == clientProfile.Id &&
                 cpl.IsActive &&
                 (requireTrainingPlanAccess ? cpl.CanViewTrainingPlans : cpl.CanViewNutritionPlans), ct);
+    }
+
+    /// <summary>
+    /// Loads the capabilities the caller's active link to this client grants, or <c>null</c> when
+    /// there is no active link (or no profile on either side). Returns the flags rather than a
+    /// boolean so a route can shape its <b>response body</b> per domain, not merely decide who may
+    /// reach it.
+    /// </summary>
+    /// <remarks>
+    /// The boolean helpers above answer "may this caller reach this route". Several client-addressed
+    /// routes need the follow-up question — "which halves of this response may they see" — and
+    /// answering it from a boolean is what let a training-only professional read a client's calorie
+    /// targets and macro averages through routes that had correctly let them in. A caller that
+    /// receives a non-null result must still apply the
+    /// <see cref="LinkCapabilities.GrantsNothing"/> deny before emitting per-client plan data.
+    /// </remarks>
+    /// <param name="professionalUserId">The professional's ApplicationUser.Id from JWT.</param>
+    /// <param name="clientPublicId">The client's ClientProfile.PublicId from the API request.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The link's capabilities, or <c>null</c> when no active link exists.</returns>
+    public virtual async Task<LinkCapabilities?> GetLinkCapabilitiesAsync(
+        Guid professionalUserId,
+        Guid clientPublicId,
+        CancellationToken ct)
+    {
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
+
+        if (professionalProfile is null)
+        {
+            return null;
+        }
+
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
+
+        if (clientProfile is null)
+        {
+            return null;
+        }
+
+        // Projected to an anonymous (reference) type deliberately: LinkCapabilities is a struct, so
+        // projecting straight to it would make a link carrying neither flag indistinguishable from
+        // no link at all — both would come back as default. "No link" and "a link that grants
+        // nothing" are different answers and the callers treat them differently (404 vs 403).
+        var flags = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(cpl =>
+                cpl.ProfessionalProfileId == professionalProfile.Id &&
+                cpl.ClientProfileId == clientProfile.Id &&
+                cpl.IsActive)
+            .Select(cpl => new { cpl.CanViewNutritionPlans, cpl.CanViewTrainingPlans })
+            .FirstOrDefaultAsync(ct);
+
+        return flags is null
+            ? null
+            : new LinkCapabilities(flags.CanViewNutritionPlans, flags.CanViewTrainingPlans);
     }
 }

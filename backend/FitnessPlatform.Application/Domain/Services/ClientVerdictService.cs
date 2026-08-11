@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -31,6 +32,7 @@ public class ClientVerdictService(
         Guid clientUserId,
         long clientProfileId,
         decimal? targetWeightKg,
+        LinkCapabilities capabilities,
         CancellationToken ct)
     {
         // ── EF queries — must be serialized (DbContext is not thread-safe) ──
@@ -63,7 +65,15 @@ public class ClientVerdictService(
         var trainingTask = ComputeTrainingFrequencyAsync(clientUserId, ct);
         var latestWorkoutTask = FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
         var latestMealTask = FetchLatestMealLogTimestampAsync(clientUserId, ct);
-        var prCountTask = ComputePrCountThisMonthAsync(clientUserId, ct);
+        // Skipped outright, not filtered afterwards, when the link denies training: the record
+        // count feeds nothing but its own response field, so there is no reason to read a client's
+        // personal records for a caller who may not see them. The compliance and training-frequency
+        // reads below cannot be skipped the same way — ComputeVerdict consumes both, and the
+        // verdict scalar is a pre-existing accepted leak whose value must not change here. Those
+        // two are suppressed at the response boundary instead.
+        var prCountTask = capabilities.CanViewTrainingPlans
+            ? ComputePrCountThisMonthAsync(clientUserId, ct)
+            : Task.FromResult(0);
 
         await Task.WhenAll(complianceTask, trainingTask, latestWorkoutTask, latestMealTask, prCountTask);
 
@@ -86,16 +96,26 @@ public class ClientVerdictService(
             frequencyActual, frequencyPrescribed, hasActiveTrainingPlan,
             lastActiveAt);
 
+        // Each itemised signal requires BOTH that the data exists and that the caller's link grants
+        // its domain. Weight, and the coalesced last-active timestamp, stay dual-readable: body
+        // measurements are standalone rather than hanging off a nutrition or training item, which
+        // is how the timeline endpoint already classifies them.
         return new ClientVerdictResult
         {
             Verdict = verdict,
-            CompliancePercent = hasActiveNutritionPlan ? compliancePercent : null,
+            CompliancePercent = hasActiveNutritionPlan && capabilities.CanViewNutritionPlans
+                ? compliancePercent
+                : null,
             WeightDeltaToGoal = hasWeightSignal ? weightDeltaToGoal : null,
             WeightDirection = weightDirection,
-            TrainingFrequencyActual = hasActiveTrainingPlan ? frequencyActual : null,
-            TrainingFrequencyPrescribed = hasActiveTrainingPlan ? frequencyPrescribed : null,
+            TrainingFrequencyActual = hasActiveTrainingPlan && capabilities.CanViewTrainingPlans
+                ? frequencyActual
+                : null,
+            TrainingFrequencyPrescribed = hasActiveTrainingPlan && capabilities.CanViewTrainingPlans
+                ? frequencyPrescribed
+                : null,
             LastActiveAt = lastActiveAt,
-            PrCountThisMonth = prCountThisMonth
+            PrCountThisMonth = capabilities.CanViewTrainingPlans ? prCountThisMonth : null
         };
     }
 
