@@ -334,6 +334,8 @@ public class PublishTrainingWeekConcurrencyIntegrationTests(FitnessApiFactory fa
         var result = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.TrainingPlans,
             lookupFilter,
+            // This test's subject is the race window, not authorization — grant and move on.
+            (_, _) => Task.FromResult(true),
             async (_, ct) =>
             {
                 // Simulate a competing request publishing the SAME week right here, between our

@@ -256,6 +256,16 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         return (externalId, sessionId);
     }
 
+    private async Task<NutritionPlan> ReadNutritionPlanAsync(Guid planExternalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        return await mongo.NutritionPlans
+            .Find(Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, planExternalId))
+            .FirstAsync(TestContext.Current.CancellationToken);
+    }
+
     private async Task<TrainingPlanStatus> ReadTrainingPlanStatusAsync(Guid planExternalId)
     {
         using var scope = factory.Services.CreateScope();
@@ -701,6 +711,42 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         (await ReadTrainingPlanStatusAsync(trainingPlanId)).Should().Be(
             TrainingPlanStatus.Archived,
             "both domains retire, since the whole collaboration ended");
+    }
+
+    /// <summary>
+    /// Draft plans retire too. A draft is never served to the client, so leaving one behind is not
+    /// a disclosure — but the plan routes now gate on the live link, so it would be equally
+    /// undeletable, and the document would accumulate with nobody able to reach it.
+    /// </summary>
+    /// <remarks>
+    /// The Version bump is asserted alongside because it is load-bearing rather than bookkeeping:
+    /// the version-gated replace matches on ExternalId + Version, so without the bump an update
+    /// that had already passed authorization would still match after the archival and write the
+    /// whole pre-archival document back, resurrecting the plan as Active.
+    /// </remarks>
+    [Fact]
+    public async Task EndCollaboration_ArchivesDraftPlansAndBumpsVersion()
+    {
+        var (_, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "end-collab-draft", "Nutritionist");
+        var (clientHttp, clientProfileId, clientUserId) = await RegisterClientWithSessionAsync("end-collab-draft");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var draftPlanId = await SeedNutritionPlanAsync(
+            clientUserId, professionalUserId, NutritionPlanStatus.Draft);
+
+        var response = await clientHttp.DeleteAsync($"/client/collaborations/{linkPublicId}");
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var plan = await ReadNutritionPlanAsync(draftPlanId);
+
+        plan.Status.Should().Be(
+            NutritionPlanStatus.Archived,
+            "a draft the author can no longer delete must not linger unreachable");
+        plan.Version.Should().Be(
+            2,
+            "the archival bumps Version from its seeded 1, so a racing version-gated replace " +
+            "conflicts instead of resurrecting the plan");
     }
 
     [Fact]

@@ -61,37 +61,40 @@ public class PublishWeekEndpoint(
         // consumed after a confirmed successful update to decide whether to archive siblings.
         var hadPublishedWeeks = false;
 
-        async Task<bool> Validate(NutritionPlan plan, CancellationToken validateCt)
+        // The lookup filter proved authorship, which is permanent. Access is not — require the
+        // caller's link to the plan's client to still grant nutrition access.
+        async Task<bool> Authorize(NutritionPlan plan, CancellationToken authorizeCt)
         {
-            // The lookup filter proved authorship, which is permanent. Access is not — require
-            // the caller's link to the plan's client to still grant nutrition access.
-            var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, validateCt);
-
-            if (!hasAccess)
+            if (await authHelper.HasPlanAccessForClientUserAsync(
+                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, authorizeCt))
             {
-                await Send.NotFoundAsync(validateCt);
-                return false;
+                return true;
             }
 
+            await Send.NotFoundAsync(authorizeCt);
+            return false;
+        }
+
+        Task<bool> Validate(NutritionPlan plan, CancellationToken validateCt)
+        {
             var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
             if (week is null)
             {
                 ThrowError($"Week {req.WeekNumber} not found in plan.");
-                return false;
+                return Task.FromResult(false);
             }
 
             if (week.Status == WeekStatus.Published)
             {
                 ThrowError($"Week {req.WeekNumber} is already published.");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Start date must be set before publishing
             if (!plan.StartDate.HasValue)
             {
                 ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
-                return false;
+                return Task.FromResult(false);
             }
 
             // The target week's Monday must not be in the past
@@ -100,14 +103,14 @@ public class PublishWeekEndpoint(
             if (weekStartDate < today)
             {
                 ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Check if this is the first published week — if so, archive other active plans
             // afterward. Computed BEFORE the write below so it reflects pre-publish state.
             hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
 
-            return true;
+            return Task.FromResult(true);
         }
 
         var now = DateTime.UtcNow;
@@ -141,6 +144,7 @@ public class PublishWeekEndpoint(
         var guardResult = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.NutritionPlans,
             lookupFilter,
+            Authorize,
             Validate,
             writeFilter,
             update,
@@ -157,7 +161,7 @@ public class PublishWeekEndpoint(
                     "Version conflict. The week was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // The link check inside the validate delegate already wrote its 404.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -197,9 +201,13 @@ public class PublishWeekEndpoint(
                 var archiveFilter = Builders<NutritionPlan>.Filter.In(p => p.ExternalId, overlappingIds)
                                     & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
 
+                // The Version bump keeps a concurrent version-gated replace from writing the
+                // pre-archival document back and resurrecting the superseded plan as Active; it
+                // becomes a 409 instead.
                 var archiveUpdate = Builders<NutritionPlan>.Update
                     .Set(p => p.Status, NutritionPlanStatus.Archived)
-                    .Set(p => p.DateUpdated, DateTime.UtcNow);
+                    .Set(p => p.DateUpdated, DateTime.UtcNow)
+                    .Inc(p => p.Version, 1);
 
                 await mongo.NutritionPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
             }

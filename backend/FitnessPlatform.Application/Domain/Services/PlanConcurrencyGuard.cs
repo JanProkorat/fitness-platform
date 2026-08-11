@@ -14,9 +14,11 @@ public enum PlanConcurrencyOutcome
     VersionConflict,
 
     /// <summary>
-    /// The <c>mutate</c> delegate already wrote a response (e.g. via <c>SendProblemAsync</c>) and
-    /// signalled the guard to stop before reaching <c>ReplaceOneAsync</c>. The caller must return
-    /// immediately without sending any further response.
+    /// A caller-supplied delegate — <c>authorize</c>, <c>mutate</c>, or <c>validate</c> — already
+    /// wrote a response (e.g. an authorization 404, or a <c>SendProblemAsync</c> 409) and signalled
+    /// the guard to stop before it reached the write. The caller must return immediately without
+    /// sending any further response, and must not attach side effects specific to one of those
+    /// delegates to this arm: it does not say which one denied.
     /// </summary>
     HandledByMutator,
 
@@ -177,6 +179,16 @@ public class PlanConcurrencyGuard
     /// </remarks>
     /// <param name="collection">The Mongo collection to read from and write to.</param>
     /// <param name="lookupFilter">Filter identifying the document by ExternalId and owner (e.g. NutritionistId/TrainerId).</param>
+    /// <param name="authorize">
+    /// Per-document authorization, run immediately after the fetch and before
+    /// <paramref name="validate"/>. Returns <c>false</c> — having already written its own denial —
+    /// to stop the guard. Required for the same reason as on the replace path above: on a
+    /// security-critical seam, omitting the check must be a compile error rather than a silent
+    /// bypass. This path has no version comparison, so there is no 409/404 oracle to close here;
+    /// separating authorization from <paramref name="validate"/> is about the guarantee being
+    /// uniform across both guard methods. Pass a delegate returning <c>true</c> only when the
+    /// lookup filter alone is a complete authorization decision.
+    /// </param>
     /// <param name="validate">
     /// Endpoint-specific validation logic, run against the freshly fetched document. Must NOT
     /// mutate the document — the actual mutation happens server-side via the targeted update. May
@@ -199,6 +211,7 @@ public class PlanConcurrencyGuard
     public async Task<PlanConcurrencyResult<TDoc>> UpdateWithArrayFilterGuardAsync<TDoc>(
         IMongoCollection<TDoc> collection,
         FilterDefinition<TDoc> lookupFilter,
+        Func<TDoc, CancellationToken, Task<bool>> authorize,
         Func<TDoc, CancellationToken, Task<bool>> validate,
         FilterDefinition<TDoc> writeFilter,
         UpdateDefinition<TDoc> update,
@@ -211,6 +224,11 @@ public class PlanConcurrencyGuard
         if (doc is null)
         {
             return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.NotFound };
+        }
+
+        if (!await authorize(doc, ct))
+        {
+            return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.HandledByMutator };
         }
 
         var shouldContinue = await validate(doc, ct);

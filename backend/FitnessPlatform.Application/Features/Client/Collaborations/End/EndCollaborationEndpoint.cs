@@ -68,10 +68,17 @@ public class EndCollaborationEndpoint(
             return;
         }
 
+        // Archive BEFORE deactivating the link, not after. The link lookup above requires
+        // IsActive, so if the Mongo write failed after the link had already been committed as
+        // inactive, the retry would 404 here and the plans would stay Active with nobody able to
+        // reach them — exactly the half-state this archival exists to prevent. In this order a
+        // failed Mongo write leaves the link still active, so the whole operation is retryable,
+        // and the transient state it fails into (plans archived, link briefly still live) is the
+        // harmless direction.
+        await ArchiveDepartingProfessionalsPlansAsync(link.ProfessionalProfile.UserId, userGuid, ct);
+
         link.IsActive = false;
         await db.SaveChangesAsync(ct);
-
-        await ArchiveDepartingProfessionalsPlansAsync(link.ProfessionalProfile.UserId, userGuid, ct);
 
         // Notify the professional
         var clientUser = await db.Users.FirstAsync(u => u.Id == userGuid, ct);
@@ -94,9 +101,9 @@ public class EndCollaborationEndpoint(
     }
 
     /// <summary>
-    /// Archives the Active plans the departing professional authored for this client, in both
-    /// domains. Scoped to that one professional's own plans — a client may hold plans from more
-    /// than one professional, and ending one collaboration must not touch another's.
+    /// Archives the not-yet-terminal plans the departing professional authored for this client, in
+    /// both domains. Scoped to that one professional's own plans — a client may hold plans from
+    /// more than one professional, and ending one collaboration must not touch another's.
     /// </summary>
     /// <remarks>
     /// Without this, deactivating the link leaves those plans Active and unreachable: the
@@ -105,6 +112,20 @@ public class EndCollaborationEndpoint(
     /// StartDate with no author predicate — so the departed professional's plan could outrank the
     /// replacement's on the client's Today screen. Retiring them here is what makes ending a
     /// collaboration a complete operation rather than a half-state.
+    ///
+    /// <para>
+    /// <c>Draft</c> is included alongside <c>Active</c> for the same reason. A draft is never
+    /// served to the client, so leaving it behind is not a disclosure — but it would be equally
+    /// unreachable, and the document would accumulate with nobody able to delete it.
+    /// </para>
+    ///
+    /// <para>
+    /// The <c>Version</c> bump is load-bearing, not bookkeeping. The version-gated replace in
+    /// <see cref="Domain.Services.PlanConcurrencyGuard"/> matches on <c>ExternalId + Version</c>,
+    /// so an update that passed its authorization check just before this archival ran would
+    /// otherwise still match and write the whole pre-archival document back — resurrecting the
+    /// plan as Active. Bumping the version turns that racing replace into a 409 instead.
+    /// </para>
     ///
     /// <para>
     /// Deliberately not reversible: re-linking the same professional does not un-archive. That
@@ -121,21 +142,27 @@ public class EndCollaborationEndpoint(
 
         var nutritionFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                               & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalUserId)
-                              & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active);
+                              & Builders<NutritionPlan>.Filter.In(
+                                  p => p.Status,
+                                  new[] { NutritionPlanStatus.Draft, NutritionPlanStatus.Active });
 
         var nutritionUpdate = Builders<NutritionPlan>.Update
             .Set(p => p.Status, NutritionPlanStatus.Archived)
-            .Set(p => p.DateUpdated, now);
+            .Set(p => p.DateUpdated, now)
+            .Inc(p => p.Version, 1);
 
         await mongo.NutritionPlans.UpdateManyAsync(nutritionFilter, nutritionUpdate, cancellationToken: ct);
 
         var trainingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                              & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalUserId)
-                             & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+                             & Builders<TrainingPlan>.Filter.In(
+                                 p => p.Status,
+                                 new[] { TrainingPlanStatus.Draft, TrainingPlanStatus.Active });
 
         var trainingUpdate = Builders<TrainingPlan>.Update
             .Set(p => p.Status, TrainingPlanStatus.Archived)
-            .Set(p => p.DateUpdated, now);
+            .Set(p => p.DateUpdated, now)
+            .Inc(p => p.Version, 1);
 
         await mongo.TrainingPlans.UpdateManyAsync(trainingFilter, trainingUpdate, cancellationToken: ct);
     }
