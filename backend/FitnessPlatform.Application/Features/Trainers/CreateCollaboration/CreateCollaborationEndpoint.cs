@@ -12,7 +12,9 @@ namespace FitnessPlatform.Application.Features.Trainers.CreateCollaboration;
 
 /// <summary>
 /// Endpoint for inviting another professional (trainer or nutritionist) to co-manage a client.
-/// The requesting trainer must already have an active link to the client.
+/// The requesting trainer must already have an active link to the client that grants at
+/// least one CanView* capability — the new collaborator link can never carry a capability
+/// the caller's own link does not hold.
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager for role lookups.</param>
@@ -66,16 +68,29 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         }
 
         // Verify the requesting trainer has an active link to this client
-        var hasActiveLink = await db.ClientProfessionalLinks
+        var callerLink = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .AnyAsync(ctl =>
+            .FirstOrDefaultAsync(ctl =>
                 ctl.ProfessionalProfileId == professionalProfile.Id &&
                 ctl.ClientProfileId == clientProfile.Id &&
                 ctl.IsActive, ct);
 
-        if (!hasActiveLink)
+        if (callerLink is null)
         {
             ThrowError("You do not have an active relationship with this client.");
+            return;
+        }
+
+        // A caller cannot delegate a capability their own link does not grant — an
+        // active link with neither CanView* flag set has nothing to delegate. Reject
+        // (400), don't silently mint a powerless link: a caller with no capability at
+        // all requesting a collaboration is a caller error, not something to downgrade
+        // to a no-op link.
+        if (!callerLink.CanViewNutritionPlans && !callerLink.CanViewTrainingPlans)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
             return;
         }
 
@@ -132,19 +147,42 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             return;
         }
 
-        var canViewNutritionPlans = req.RequestedScope switch
+        // Clamp to the intersection of what the collaborator's held roles/requested
+        // scope would imply AND what the caller's own link actually grants. A caller
+        // cannot delegate a capability they do not hold themselves — without this,
+        // any professional with an active but narrowly-scoped link could mint a
+        // collaborator link carrying a capability their own link denies.
+        var canViewNutritionPlans = (req.RequestedScope switch
         {
             LinkCapabilityScope.NutritionOnly => true,
             LinkCapabilityScope.TrainingOnly => false,
             _ => collaboratorIsNutritionist
-        };
+        }) && callerLink.CanViewNutritionPlans;
 
-        var canViewTrainingPlans = req.RequestedScope switch
+        var canViewTrainingPlans = (req.RequestedScope switch
         {
             LinkCapabilityScope.TrainingOnly => true,
             LinkCapabilityScope.NutritionOnly => false,
             _ => collaboratorIsTrainer
-        };
+        }) && callerLink.CanViewTrainingPlans;
+
+        // A both-flags-false link is a state the rest of the system already treats as
+        // invalid — every gated read endpoint returns 403 for a link carrying neither
+        // capability (#916), and this combination is otherwise unreachable in
+        // production. Reject (400) rather than persist: a row the readers refuse to
+        // honour is a worse outcome than a clear rejection — it would put a
+        // professional in the client's collaborations list who can see nothing, and
+        // report success for an operation that achieved nothing. The earlier
+        // caller-capability guard above stays too — it's cheaper and gives a clearer
+        // failure for the "caller holds nothing at all" case; this one catches the
+        // narrower "caller and collaborator hold disjoint capabilities" case.
+        if (!canViewNutritionPlans && !canViewTrainingPlans)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
 
         // Create the new ClientProfessionalLink
         var link = new ClientProfessionalLink
