@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
@@ -21,12 +22,24 @@ public interface IClientVerdictService
     /// <param name="targetWeightKg">
     /// The client's target weight in kg from onboarding, or null if not set.
     /// </param>
+    /// <param name="capabilities">
+    /// What the caller's link to this client permits them to see. Required, not optional: the
+    /// itemised per-domain signals (training frequency, personal-record count, nutrition
+    /// compliance) are suppressed for a caller whose link denies that domain, and a caller that
+    /// forgot to pass its capabilities would otherwise silently receive all of them.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>A <see cref="ClientVerdictResult"/> with all computed signals.</returns>
+    /// <returns>
+    /// A <see cref="ClientVerdictResult"/> whose itemised signals are populated only for the
+    /// domains <paramref name="capabilities"/> grants. The <see cref="ClientVerdictResult.Verdict"/>
+    /// scalar itself is still blended from every signal — that is a pre-existing and accepted
+    /// inference leak, and narrowing it would change the headline value every caller already sees.
+    /// </returns>
     Task<ClientVerdictResult> ComputeAsync(
         Guid clientUserId,
         long clientProfileId,
         decimal? targetWeightKg,
+        LinkCapabilities capabilities,
         CancellationToken ct);
 }
 
@@ -73,7 +86,8 @@ public class ClientVerdictResult
     public DateTime? LastActiveAt { get; set; }
 
     /// <summary>
-    /// Number of personal records achieved in the current calendar month.
+    /// Number of personal records achieved in the current calendar month, or <c>null</c> when the
+    /// caller's link does not grant the training domain.
     /// </summary>
-    public int PrCountThisMonth { get; set; }
+    public int? PrCountThisMonth { get; set; }
 }

@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.ClientPhotos.Common;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -79,15 +81,27 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
             return;
         }
 
-        // Verify active trainer-client link
-        var hasActiveLink = await db.ClientProfessionalLinks
+        // Verify active trainer-client link, and read its capability flags rather than only its
+        // existence — the caller supplies the category filter, so an existence check alone let a
+        // training-only professional select precisely the nutrition-domain rows their link denies.
+        var link = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .AnyAsync(l =>
+            .Where(l =>
                 l.ClientProfileId == clientProfile.Id &&
                 l.ProfessionalProfileId == professionalProfile.Id &&
-                l.IsActive, ct);
+                l.IsActive)
+            .Select(l => new { l.CanViewNutritionPlans, l.CanViewTrainingPlans })
+            .FirstOrDefaultAsync(ct);
 
-        if (!hasActiveLink)
+        if (link is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var capabilities = new LinkCapabilities(link.CanViewNutritionPlans, link.CanViewTrainingPlans);
+
+        if (capabilities.GrantsNothing)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -97,6 +111,24 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db)
         var query = db.PlanPhotos
             .AsNoTracking()
             .Where(p => p.ClientProfileId == clientProfile.Id);
+
+        // Domain scoping. A food photo is written with plan type Nutrition, its plan's identifier
+        // and a meal-log id; a session photo with plan type Training — those hang off a nutrition
+        // or training item, so they follow the link's flags. Body and free-form photos carry a null
+        // plan id and are standalone, so they stay dual-readable, matching how the timeline
+        // endpoint already classifies body measurements. Applied to the BASE query, before the
+        // caller's own category and plan filters, so no request field can widen it.
+        if (!capabilities.CanViewNutritionPlans)
+        {
+            query = query.Where(p =>
+                p.Category != PlanPhotoCategory.Food && p.PlanType != PlanPhotoType.Nutrition);
+        }
+
+        if (!capabilities.CanViewTrainingPlans)
+        {
+            query = query.Where(p =>
+                p.Category != PlanPhotoCategory.Training && p.PlanType != PlanPhotoType.Training);
+        }
 
         // Optional plan filter
         if (req.PlanId.HasValue)

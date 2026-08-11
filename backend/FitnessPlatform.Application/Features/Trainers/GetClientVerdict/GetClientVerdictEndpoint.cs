@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -79,6 +80,17 @@ public class GetClientVerdictEndpoint(
             return;
         }
 
+        // The link's existence decides who may reach the route; its flags decide which halves of
+        // the response they see. A link carrying neither flag grants no per-client plan visibility
+        // at all — the same deny the dashboard, timeline and plan-list routes already carry.
+        var capabilities = LinkCapabilities.FromLink(link);
+
+        if (capabilities.GrantsNothing)
+        {
+            await Send.ForbiddenAsync(ct);
+            return;
+        }
+
         var targetWeightKg = clientProfile.OnboardingData?.TargetWeightKg;
 
         // clientProfile.UserId is the ApplicationUser.Id (Guid) used by all Mongo documents
@@ -88,6 +100,7 @@ public class GetClientVerdictEndpoint(
             clientUserId: clientProfile.UserId,
             clientProfileId: clientProfile.Id,
             targetWeightKg: targetWeightKg,
+            capabilities: capabilities,
             ct: ct);
 
         await Send.OkAsync(new GetClientVerdictResponse
