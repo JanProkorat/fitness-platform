@@ -124,11 +124,10 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         decimal? compliancePercent = null;
         var currentStreak = 0;
 
-        var discipline = link.CanViewNutritionPlans && link.CanViewTrainingPlans
-            ? ComplianceDiscipline.Both
-            : link.CanViewNutritionPlans
-                ? ComplianceDiscipline.NutritionOnly
-                : ComplianceDiscipline.TrainingOnly;
+        // Shared derivation — this endpoint was the only route deriving discipline from the link
+        // rather than from global roles, and it is now one of several. Keeping the rule in
+        // LinkCapabilities stops the copies drifting apart.
+        var discipline = LinkCapabilities.FromLink(link).Discipline;
 
         try
         {
