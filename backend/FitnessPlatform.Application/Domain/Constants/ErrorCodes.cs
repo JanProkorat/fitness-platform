@@ -108,6 +108,20 @@ public static class ErrorCodes
     /// </summary>
     public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
 
+    /// <summary>
+    /// An unaccepted pending invite already exists for this professional and email — the
+    /// professional must wait for a response or delete the existing invite before resending
+    /// (claude-security F8: repeated invites to the same target are abuse, not a workflow need).
+    /// </summary>
+    public const string DuplicatePendingInvite = "DUPLICATE_PENDING_INVITE";
+
+    /// <summary>
+    /// The professional has reached the maximum number of outstanding (unaccepted) pending
+    /// invites. Bounds the standing fan-out an abusive account can build up even when paced
+    /// below the rate-limit window (claude-security F8).
+    /// </summary>
+    public const string TooManyPendingInvites = "TOO_MANY_PENDING_INVITES";
+
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
