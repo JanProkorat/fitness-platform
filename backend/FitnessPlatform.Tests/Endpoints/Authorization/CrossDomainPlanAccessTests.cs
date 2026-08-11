@@ -58,6 +58,29 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         return (client, profile.Id, user.Id);
     }
 
+    /// <summary>
+    /// Registers a professional holding the given global roles. Needed for the escalation cases:
+    /// the whole point is that holding a role must NOT widen what a narrowed link grants, so the
+    /// test has to be able to hold both roles while carrying a single-flag link.
+    /// </summary>
+    private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterProfessionalWithRolesAsync(
+        string tag, params string[] roles)
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail(tag);
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Pro", roles);
+        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        TestHelpers.SetBearerToken(client, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        var profile = await db.ProfessionalProfiles.FirstAsync(
+            p => p.UserId == user.Id, TestContext.Current.CancellationToken);
+
+        return (client, profile.Id, user.Id);
+    }
+
     private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)> RegisterClientAsync(string tag)
     {
         var client = factory.CreateClient();
@@ -658,7 +681,170 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
+    // ── dashboard summary: per-link scope, never per-role (F3) ────────────────
+    // Two defects in one endpoint. The nutrition fields were gated by nothing at all, and the
+    // compliance discipline was derived from User.IsInRole rather than from the link — so holding a
+    // role widened what a deliberately narrowed link returned.
+    //
+    // These assert null vs non-null rather than specific values, and so need no seeded plan data: a
+    // permitted caller gets 0 (or false) for a client with no data, a denied caller gets null. That
+    // distinction is exactly the property under test, and it is also why the endpoint sends null
+    // instead of 0 — 0 asserts the client ate nothing.
+
+    [Fact]
+    public async Task TrainingOnlyLink_GetDashboardSummary_OmitsNutritionFields()
+    {
+        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("training-only-summary");
+        var (_, clientProfileId, _) = await RegisterClientAsync("training-only-summary");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        var response = await professional.GetAsync("/trainer/dashboard-summary");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var client = await ReadSingleDashboardClientAsync(response);
+
+        client.AvgDailyKcal.Should().BeNull("the seven-day average is read off the client's nutrition plan");
+        client.TodayKcal.Should().BeNull("today's consumed calories are nutrition data");
+        client.KcalGoal.Should().BeNull("the daily target is read off the client's nutrition plan");
+        client.ActiveNutritionPlansCount.Should().BeNull(
+            "the count discloses that the client has a nutrition plan at all");
+
+        client.WorkoutsPlanned.Should().NotBeNull(
+            "the caller's own domain must still be populated — otherwise the gate is deny-all");
+        client.HasActiveTrainingPlan.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task NutritionOnlyLink_GetDashboardSummary_OmitsTrainingFields()
+    {
+        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("nutrition-only-summary");
+        var (_, clientProfileId, _) = await RegisterClientAsync("nutrition-only-summary");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        var response = await professional.GetAsync("/trainer/dashboard-summary");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var client = await ReadSingleDashboardClientAsync(response);
+
+        client.WorkoutsCompleted.Should().BeNull("today's completed sessions are training data");
+        client.WorkoutsPlanned.Should().BeNull("what the trainer programmed is training data");
+        client.HasActiveTrainingPlan.Should().BeNull(
+            "false would assert the client has no training plan — a claim this caller has not earned");
+
+        client.ActiveNutritionPlansCount.Should().NotBeNull("the caller's own domain stays populated");
+    }
+
+    /// <summary>
+    /// The escalation case. A professional holding BOTH global roles whose link was deliberately
+    /// narrowed to training-only still satisfies <c>User.IsInRole(Nutritionist)</c>, so the old
+    /// role-derived discipline resolved to combined and returned the nutrition figures for a link
+    /// that denies nutrition. Scope must come from the link, never from role state.
+    /// </summary>
+    [Fact]
+    public async Task DualRoleProfessional_WithNarrowedLink_GetDashboardSummary_StillOmitsDeniedDomain()
+    {
+        var (professional, professionalProfileId, _) = await RegisterProfessionalWithRolesAsync(
+            "dual-role-narrowed", "Trainer", "Nutritionist");
+        var (_, clientProfileId, _) = await RegisterClientAsync("dual-role-narrowed");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        var response = await professional.GetAsync("/trainer/dashboard-summary");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var client = await ReadSingleDashboardClientAsync(response);
+
+        client.AvgDailyKcal.Should().BeNull(
+            "holding the Nutritionist role must not widen a link stamped nutrition-denied");
+        client.ActiveNutritionPlansCount.Should().BeNull(
+            "global role state must never widen a per-link capability");
+    }
+
+    private static async Task<DashboardClient> ReadSingleDashboardClientAsync(HttpResponseMessage response)
+    {
+        var body = await response.Content.ReadFromJsonAsync<DashboardSummaryResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        return body!.Clients.Should().ContainSingle().Subject;
+    }
+
+    // ── client progress: body is not domain-neutral (F4) ──────────────────────
+    // Either flag admits the caller and that stays — but the meal counts and macro averages are
+    // nutrition data, and the compliance percentage and streak were the combined cross-domain
+    // figures, so the leak ran in both directions.
+
+    [Fact]
+    public async Task TrainingOnlyLink_GetClientProgress_OmitsNutritionFigures()
+    {
+        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("training-only-progress");
+        var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("training-only-progress");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/progress");
+        response.StatusCode.Should().Be(
+            HttpStatusCode.OK, "either flag admits this route — it is dual-readable by design");
+
+        var body = await response.Content.ReadFromJsonAsync<ClientProgressResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.MealsPlanned.Should().BeNull("the client's planned meal count is nutrition data");
+        body.MealsLogged.Should().BeNull("the client's logged meal count is nutrition data");
+        body.AverageDailyMacros.Should().BeNull(
+            "the full macro breakdown is nutrition data and is not even computed now");
+    }
+
+    [Fact]
+    public async Task NutritionOnlyLink_GetClientProgress_KeepsNutritionFigures()
+    {
+        // Positive control for the pair above: the gate is per domain, not deny-all.
+        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("nutrition-only-progress");
+        var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("nutrition-only-progress");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/progress");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ClientProgressResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.MealsPlanned.Should().NotBeNull();
+        body.MealsLogged.Should().NotBeNull();
+        body.AverageDailyMacros.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ActiveLinkWithNeitherCapability_GetClientProgress_Returns404()
+    {
+        var (professional, professionalProfileId, _) = await RegisterProfessionalAsync("neither-progress");
+        var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("neither-progress");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: false);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/progress");
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "matches the route's existing no-link response rather than introducing a 403 here");
+    }
+
     // ── local response DTOs ────────────────────────────────────────────────────
+
+    private record DashboardSummaryResponse(List<DashboardClient> Clients);
+
+    private record DashboardClient(
+        decimal? AvgDailyKcal,
+        decimal? TodayKcal,
+        decimal? KcalGoal,
+        int? WorkoutsCompleted,
+        int? WorkoutsPlanned,
+        int? ActiveNutritionPlansCount,
+        bool? HasActiveTrainingPlan);
+
+    private record ClientProgressResponse(
+        int? MealsPlanned,
+        int? MealsLogged,
+        NutrientTotalsDto? AverageDailyMacros);
+
+    private record NutrientTotalsDto(decimal Kcal);
+
 
     private record VerdictResponse(
         decimal? CompliancePercent,
