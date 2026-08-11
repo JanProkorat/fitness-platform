@@ -24,9 +24,14 @@ public class MinioBlobStorageService : IBlobStorageService
     private readonly bool _manageBucket;
     private readonly bool _publicUrlIncludesBucket;
     private readonly TimeSpan _readUrlExpiry;
+    private readonly ILogger<MinioBlobStorageService> _logger;
 
-    public MinioBlobStorageService(IConfiguration configuration)
+    public MinioBlobStorageService(
+        IConfiguration configuration,
+        ILogger<MinioBlobStorageService> logger)
     {
+        _logger = logger;
+
         var endpoint = configuration["MinIO:Endpoint"] ?? "localhost:9000";
         var accessKey = configuration["MinIO:AccessKey"] ?? "minioadmin";
         var secretKey = configuration["MinIO:SecretKey"] ?? "minioadmin";
@@ -125,9 +130,25 @@ public class MinioBlobStorageService : IBlobStorageService
         var containerPath = TryExtractContainerPath(storedBlobUrl);
         if (containerPath is null)
         {
-            // Foreign or legacy value this service did not issue — return unchanged rather
-            // than throwing, so one bad stored row cannot fail an entire photo-list response.
-            return storedBlobUrl;
+            // Fail CLOSED, and loudly. Extraction reverses BuildPublicUrl using the CURRENT
+            // MinIO:PublicEndpoint / BucketName / PublicUrlIncludesBucket configuration, so every
+            // row written before a change to any of those stops matching — not a rare foreign-value
+            // case but a whole-table one. Returning the stored value unchanged there would hand the
+            // caller the permanent unsigned URL this method exists to replace, silently undoing F9
+            // for every photo. That is worse in production than in dev: MinIO:ManageBucket is false
+            // on the hosted bucket, so the narrowed public-read policy below is not applied there
+            // and the raw URL genuinely resolves.
+            //
+            // An empty value renders as a broken image — visible, diagnosable, and safe. Still not
+            // an exception, so one unparseable row cannot fail an entire photo-list response.
+            _logger.LogWarning(
+                "Could not derive a container path from stored blob URL, so no signed read URL was "
+                + "issued and the photo will not render. This usually means MinIO:PublicEndpoint, "
+                + "MinIO:BucketName or MinIO:PublicUrlIncludesBucket changed after the row was "
+                + "written. Stored prefix seen: {StoredPrefix}",
+                storedBlobUrl.Length > 40 ? storedBlobUrl[..40] : storedBlobUrl);
+
+            return string.Empty;
         }
 
         // No bucket-existence check here (unlike the write paths above): an object can only be
