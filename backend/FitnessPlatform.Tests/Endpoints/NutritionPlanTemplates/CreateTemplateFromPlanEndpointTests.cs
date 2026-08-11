@@ -59,10 +59,15 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
     {
         var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("owned");
 
+        // The route authorizes on the caller's live link to the plan's client, not on authorship
+        // alone, so the source plan needs a real linked client rather than a fabricated id.
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistId, TestContext.Current.CancellationToken);
+
         var plan = new NutritionPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = Guid.NewGuid(),
+            ClientId = clientUserId,
             NutritionistId = nutritionistId,
             Name = "Source Plan",
             Status = NutritionPlanStatus.Active,

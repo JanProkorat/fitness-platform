@@ -83,6 +83,29 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         return (profile.PublicId, profile.Id, user.Id);
     }
 
+    /// <summary>
+    /// Registers a client and returns their authenticated <see cref="HttpClient"/> alongside the
+    /// ids. <see cref="RegisterClientAsync"/> discards the session because most tests here drive
+    /// the professional's side; the end-collaboration route is client-invoked, so it needs one.
+    /// </summary>
+    private async Task<(HttpClient Http, long ClientProfileId, Guid ClientUserId)> RegisterClientWithSessionAsync(
+        string tag)
+    {
+        var client = factory.CreateClient();
+        var email = UniqueEmail(tag);
+        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
+        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        TestHelpers.SetBearerToken(client, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+        var profile = await db.ClientProfiles.FirstAsync(
+            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
+
+        return (client, profile.Id, user.Id);
+    }
+
     private async Task<Guid> LinkAsync(
         long professionalProfileId,
         long clientProfileId,
@@ -647,6 +670,64 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
             HttpStatusCode.NotFound,
             "a revoked trainer must not be able to copy the client's session into a permanent " +
             "template they keep after the collaboration ends");
+    }
+
+    // ── ending a collaboration retires that professional's plans ─────────────
+    // Author-scoping the publish-week archival removed the only thing that used to retire a
+    // departing professional's plan — via the missing author predicate that was itself the
+    // vulnerability. Ending the collaboration now retires those plans explicitly, so they cannot
+    // linger Active and unreachable: the departed professional can no longer Complete or Delete
+    // them, and the client-facing resolver picks among Active plans by latest StartDate with no
+    // author predicate.
+
+    [Fact]
+    public async Task EndCollaboration_ArchivesTheDepartingProfessionalsPlans()
+    {
+        var (_, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "end-collab-archive", "Nutritionist", "Trainer");
+        var (clientHttp, clientProfileId, clientUserId) = await RegisterClientWithSessionAsync("end-collab-archive");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var nutritionPlanId = await SeedNutritionPlanAsync(clientUserId, professionalUserId);
+        var trainingPlanId = await SeedTrainingPlanAsync(clientUserId, professionalUserId);
+
+        var response = await clientHttp.DeleteAsync($"/client/collaborations/{linkPublicId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await ReadNutritionPlanStatusAsync(nutritionPlanId)).Should().Be(
+            NutritionPlanStatus.Archived,
+            "a plan whose author can no longer reach it must not stay Active and unreachable");
+        (await ReadTrainingPlanStatusAsync(trainingPlanId)).Should().Be(
+            TrainingPlanStatus.Archived,
+            "both domains retire, since the whole collaboration ended");
+    }
+
+    [Fact]
+    public async Task EndCollaboration_LeavesAnotherProfessionalsPlanActive()
+    {
+        var (_, departingProfileId, departingUserId) = await RegisterProfessionalAsync(
+            "end-collab-departing", "Nutritionist");
+        var (_, incumbentProfileId, incumbentUserId) = await RegisterProfessionalAsync(
+            "end-collab-incumbent", "Nutritionist");
+        var (clientHttp, clientProfileId, clientUserId) = await RegisterClientWithSessionAsync("end-collab-other");
+
+        var departingLinkPublicId = await LinkAsync(departingProfileId, clientProfileId);
+        await LinkAsync(incumbentProfileId, clientProfileId);
+
+        var departingPlanId = await SeedNutritionPlanAsync(clientUserId, departingUserId);
+        var incumbentPlanId = await SeedNutritionPlanAsync(clientUserId, incumbentUserId);
+
+        var response = await clientHttp.DeleteAsync($"/client/collaborations/{departingLinkPublicId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await ReadNutritionPlanStatusAsync(departingPlanId)).Should().Be(
+            NutritionPlanStatus.Archived, "the departing professional's plan retires");
+        (await ReadNutritionPlanStatusAsync(incumbentPlanId)).Should().Be(
+            NutritionPlanStatus.Active,
+            "a client may hold plans from more than one professional — ending one collaboration " +
+            "must not touch another's live plan");
     }
 
     // ── publish-week sibling archival must be owner-scoped ───────────────────
