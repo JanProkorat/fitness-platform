@@ -71,10 +71,15 @@ public class EndCollaborationEndpoint(
         // Archive BEFORE deactivating the link, not after. The link lookup above requires
         // IsActive, so if the Mongo write failed after the link had already been committed as
         // inactive, the retry would 404 here and the plans would stay Active with nobody able to
-        // reach them — exactly the half-state this archival exists to prevent. In this order a
-        // failed Mongo write leaves the link still active, so the whole operation is retryable,
-        // and the transient state it fails into (plans archived, link briefly still live) is the
-        // harmless direction.
+        // reach them — exactly the half-state this archival exists to prevent, and unrepairable.
+        //
+        // This order is retryable instead: a failed Mongo write leaves the link active, so the
+        // whole operation can simply be re-issued. It is not free of consequence though — if the
+        // archival succeeds and the SaveChangesAsync below then fails, the client's plans are
+        // Archived while the collaboration is still live, and every client-facing read filters on
+        // Status == Active, so the client sees no plan until the request is retried. Retryable
+        // beats unrepairable, which is why the order is this way round, but the failure is not
+        // invisible to the client and should not be described as harmless.
         await ArchiveDepartingProfessionalsPlansAsync(link.ProfessionalProfile.UserId, userGuid, ct);
 
         link.IsActive = false;

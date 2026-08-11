@@ -776,6 +776,45 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
             "must not touch another's live plan");
     }
 
+    /// <summary>
+    /// A publish must not resurrect an archived plan. The publish write filter has no version
+    /// comparison, so the Version bump an archival applies is invisible to it — only an explicit
+    /// Ne(Archived) predicate stops the unconditional <c>Status = Active</c> in that update from
+    /// taking effect.
+    /// </summary>
+    /// <remarks>
+    /// The race this guards is narrow — a publish whose link check passed microseconds before the
+    /// client ended the collaboration — and a race is not directly testable. This asserts the
+    /// mechanism the race depends on instead: with the plan already Archived and the caller's link
+    /// fully live, the publish must still refuse to set it back to Active. Remove the predicate and
+    /// this test fails.
+    /// </remarks>
+    [Fact]
+    public async Task PublishWeek_OnAnArchivedPlan_DoesNotResurrectIt()
+    {
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "publish-archived", "Nutritionist");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("publish-archived");
+        await LinkAsync(professionalProfileId, clientProfileId);
+
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var monday = today.AddDays(((int)DayOfWeek.Monday - (int)today.DayOfWeek + 7) % 7);
+
+        // Archived, but with an unpublished week — so only the status predicate can stop the write.
+        var planId = await SeedNutritionPlanAsync(
+            clientUserId, professionalUserId, NutritionPlanStatus.Archived, monday);
+
+        var response = await professional.PostAsJsonAsync(
+            $"/nutrition/plans/{planId}/weeks/1/publish", new { });
+
+        response.StatusCode.Should().NotBe(
+            HttpStatusCode.OK, "publishing must not succeed against an archived plan");
+
+        (await ReadNutritionPlanStatusAsync(planId)).Should().Be(
+            NutritionPlanStatus.Archived,
+            "the unconditional Status = Active in the publish update must not reach an archived plan");
+    }
+
     // ── publish-week sibling archival must be owner-scoped ───────────────────
 
     [Fact]

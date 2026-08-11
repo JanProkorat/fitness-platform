@@ -123,8 +123,16 @@ public class PublishTrainingWeekEndpoint(
         // unpublished — NOT on the document's Version — so a concurrent edit to an unrelated
         // week/field never produces a false 409 (AC#4), while a genuine race that publishes the
         // SAME week between our fetch and this write causes zero documents to match (AC#2/#7).
+        // The Ne(Archived) predicate is a security guard, not a state check. This update sets
+        // Status = Active unconditionally, and this path has no version comparison, so the
+        // Version bump on an archival is invisible to it. Without this predicate a publish that
+        // passed its link check microseconds before the plan was archived — by an ending
+        // collaboration, or by a sibling plan superseding this one — would still match here and
+        // set the plan back to Active, resurrecting a plan whose author no longer has a live
+        // link and which the client would then be served.
         var writeFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
             & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId)
+            & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Archived)
             & Builders<TrainingPlan>.Filter.ElemMatch(p => p.Weeks,
                 w => w.WeekNumber == req.WeekNumber && w.Status != WeekStatus.Published);
 
