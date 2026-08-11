@@ -3,12 +3,15 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Tests.Endpoints.PhotoDiaryRequests;
 
@@ -57,7 +60,11 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         return (http, user.Id, email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<long> InsertLinkAsync(
+        Guid clientUserId,
+        Guid professionalUserId,
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -73,14 +80,54 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
             IsActive = true,
-            CanViewNutritionPlans = true,
-            CanViewTrainingPlans = false,
+            CanViewNutritionPlans = canViewNutritionPlans,
+            CanViewTrainingPlans = canViewTrainingPlans,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
         };
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return link.Id;
+    }
+
+    /// <summary>
+    /// ClientId is ApplicationUser.Id (#840) — CreateRequestEndpoint resolves
+    /// <c>link.ClientProfile.UserId</c> and compares it against
+    /// <c>NutritionPlan.ClientId</c>/<c>TrainingPlan.ClientId</c> directly.
+    /// </summary>
+    private async Task<Guid> InsertNutritionPlanAsync(Guid clientUserId, Guid professionalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planId = Guid.NewGuid();
+        await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            NutritionistId = professionalId,
+            Status = NutritionPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        return planId;
+    }
+
+    /// <summary>
+    /// Same rule as <see cref="InsertNutritionPlanAsync"/>.
+    /// </summary>
+    private async Task<Guid> InsertTrainingPlanAsync(Guid clientUserId, Guid professionalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planId = Guid.NewGuid();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = professionalId,
+            Status = TrainingPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        return planId;
     }
 
     private async Task<long> InsertPendingInviteAsync(Guid professionalUserId, string inviteeEmail)
@@ -209,6 +256,92 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
             new { PendingInviteId = inviteId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── Cross-domain capability on plan-scoped requests ────────────────────────
+    // Residual from #916/#931-#932 review: the plan-ownership check here validated that the
+    // plan belongs to the client but never checked whether the caller's own link grants the
+    // capability matching the plan's domain, so a training-only professional could scope a
+    // diary request to the client's nutrition plan (and vice versa).
+
+    [Fact]
+    public async Task Create_LinkLacksNutritionCapability_PlanIsNutrition_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        // Active link, but scoped to training only — no nutrition capability.
+        var linkId = await InsertLinkAsync(
+            clientUserId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var planId = await InsertNutritionPlanAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_LinkLacksTrainingCapability_PlanIsTraining_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync("Trainer");
+        var (_, clientUserId, _) = await SetupClientAsync();
+        // Active link, but scoped to nutrition only (the default) — no training capability.
+        var linkId = await InsertLinkAsync(clientUserId, profId);
+        var planId = await InsertTrainingPlanAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_LinkGrantsNutritionCapability_PlanIsNutrition_Returns200()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientUserId, _) = await SetupClientAsync();
+        // Active link with the matching capability — positive control for the two 404
+        // cases above, proving the gate discriminates rather than denying everything.
+        var linkId = await InsertLinkAsync(clientUserId, profId, canViewNutritionPlans: true);
+        var planId = await InsertNutritionPlanAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
+    }
+
+    [Fact]
+    public async Task Create_LinkGrantsTrainingCapability_PlanIsTraining_Returns200()
+    {
+        var (http, profId) = await SetupProfessionalAsync("Trainer");
+        var (_, clientUserId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(
+            clientUserId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var planId = await InsertTrainingPlanAsync(clientUserId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests",
+            new { LinkId = linkId, PlanId = planId, DurationDays = 7 },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<CreateResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
     }
 
     // ── Happy path — link-based ───────────────────────────────────────────────
