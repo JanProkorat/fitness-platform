@@ -30,6 +30,7 @@ public class MarkWorkoutCompleteEndpointTests
     private readonly ISessionLockService _lockService = CreateStubLockService();
     private static readonly IOptions<TrainingLockOptions> LockOptions =
         Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
+    private readonly ProfessionalAuthHelper _authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
     private readonly ILogger<MarkWorkoutCompleteEndpoint> _logger = Substitute.For<ILogger<MarkWorkoutCompleteEndpoint>>();
 
     private static ISessionLockService CreateStubLockService()
@@ -108,7 +109,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -147,7 +148,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         // Mark section complete again — idempotent
         await ep.HandleAsync(
@@ -180,7 +181,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -199,7 +200,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = Guid.NewGuid() },
@@ -233,7 +234,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest
@@ -255,7 +256,7 @@ public class MarkWorkoutCompleteEndpointTests
 
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },

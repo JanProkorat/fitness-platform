@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -16,7 +17,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining;
 /// Design notes:
 /// - The trainer's UserId is read from <see cref="TrainingPlan.TrainerId"/>, which is set when
 ///   the plan is created and always equals the trainer's <c>ApplicationUser.Id</c>.
-/// - If no trainer is linked (TrainerId is empty) the broadcast is silently skipped.
+/// - Before broadcasting, the injected <see cref="ProfessionalAuthHelper"/> confirms the trainer
+///   still holds an ACTIVE link to this client that grants <c>CanViewTrainingPlans</c> — authorship on the
+///   plan document is permanent, but the link is not; a professional whose collaboration has
+///   ended (or whose link was narrowed away from training) must stop receiving the client's
+///   live session progress, compliance percentage and streak (F6).
+/// - If no trainer is linked (TrainerId is empty) or the link no longer grants access, the
+///   broadcast is silently skipped.
 /// - Any exception from the notifier is caught and logged so the primary mutation always
 ///   succeeds even if the SignalR channel is unavailable.
 /// </summary>
@@ -30,6 +37,7 @@ internal static class TrainingProgressBroadcaster
     /// <param name="notifier">Realtime notifier.</param>
     /// <param name="compliance">Compliance service for computing today's compliance and streak.</param>
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
+    /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
     /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
     /// <param name="sessionId">The session that was mutated.</param>
@@ -51,6 +59,7 @@ internal static class TrainingProgressBroadcaster
         IRealtimeNotifier notifier,
         IComplianceService compliance,
         IMongoContext mongo,
+        ProfessionalAuthHelper authHelper,
         TrainingPlan plan,
         Guid clientId,
         Guid sessionId,
@@ -64,6 +73,9 @@ internal static class TrainingProgressBroadcaster
     {
         var trainerId = plan.TrainerId;
         if (trainerId == Guid.Empty)
+            return;
+
+        if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
             return;
 
         try
@@ -104,6 +116,7 @@ internal static class TrainingProgressBroadcaster
     /// <param name="notifier">Realtime notifier.</param>
     /// <param name="compliance">Compliance service for computing today's compliance and streak.</param>
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
+    /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
     /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
     /// <param name="date">The date for which the mutation occurred.</param>
@@ -115,6 +128,7 @@ internal static class TrainingProgressBroadcaster
         IRealtimeNotifier notifier,
         IComplianceService compliance,
         IMongoContext mongo,
+        ProfessionalAuthHelper authHelper,
         TrainingPlan plan,
         Guid clientId,
         DateOnly date,
@@ -125,6 +139,9 @@ internal static class TrainingProgressBroadcaster
     {
         var trainerId = plan.TrainerId;
         if (trainerId == Guid.Empty)
+            return;
+
+        if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
             return;
 
         try

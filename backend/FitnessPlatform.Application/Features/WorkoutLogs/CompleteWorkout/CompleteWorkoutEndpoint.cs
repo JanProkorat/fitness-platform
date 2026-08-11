@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -28,6 +29,7 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
+/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger for swallowing broadcast errors.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
@@ -35,6 +37,7 @@ public class CompleteWorkoutEndpoint(
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
+    ProfessionalAuthHelper authHelper,
     ILogger<CompleteWorkoutEndpoint> logger) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
@@ -131,7 +134,7 @@ public class CompleteWorkoutEndpoint(
                     // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
                     var totalExercises = log.Exercises.Count;
                     await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                        notifier, compliance, mongo, plan,
+                        notifier, compliance, mongo, authHelper, plan,
                         clientId: plan.ClientId,
                         sessionId: log.SessionId.Value,
                         date: DateOnly.FromDateTime(log.Date),

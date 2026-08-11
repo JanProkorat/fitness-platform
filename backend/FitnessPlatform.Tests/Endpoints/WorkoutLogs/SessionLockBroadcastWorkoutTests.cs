@@ -272,7 +272,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(
@@ -328,7 +329,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(
@@ -364,7 +366,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(

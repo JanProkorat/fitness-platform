@@ -157,7 +157,8 @@ public class SessionLockEnforcementTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
     }
 
     [Fact]
