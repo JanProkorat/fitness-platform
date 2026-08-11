@@ -71,7 +71,8 @@ public class UpdatePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
-            (plan, mutateCt) => MutateAsync(plan, req, nutritionistId, mutateCt),
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
+            (plan, _) => MutateAsync(plan, req),
             ct);
 
         switch (guardResult.Outcome)
@@ -88,7 +89,7 @@ public class UpdatePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // The link check inside the mutate delegate already wrote its 404.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -118,24 +119,30 @@ public class UpdatePlanEndpoint(
     }
 
     /// <summary>
-    /// Endpoint-specific authorization, validation, and mutation applied to the fetched plan
-    /// before the version-gated replace. Returns <c>false</c> only on the link check, which
-    /// writes its own 404; the remaining validation failures throw via <c>ThrowError</c>.
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
     /// </summary>
-    private async Task<bool> MutateAsync(
-        NutritionPlan plan, UpdatePlanRequest req, Guid nutritionistId, CancellationToken ct)
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
     {
-        // The lookup filter proved authorship, which is permanent. Access is not — require the
-        // caller's link to the plan's client to still grant nutrition access.
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct);
-
-        if (!hasAccess)
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
         {
-            await Send.NotFoundAsync(ct);
-            return false;
+            return true;
         }
 
+        await Send.NotFoundAsync(ct);
+        return false;
+    }
+
+    /// <summary>
+    /// Endpoint-specific validation and mutation applied to the fetched plan before the
+    /// version-gated replace. Synchronous — declared as returning <c>Task&lt;bool&gt;</c> to
+    /// satisfy the guard's mutate-delegate contract. Always returns <c>true</c>: no error path
+    /// here writes a response directly, validation failures throw via <c>ThrowError</c> instead.
+    /// </summary>
+    private Task<bool> MutateAsync(NutritionPlan plan, UpdatePlanRequest req)
+    {
         // Build lookup of existing week statuses
         var existingWeeks = plan.Weeks.ToDictionary(w => w.WeekNumber);
 
@@ -148,7 +155,7 @@ public class UpdatePlanEndpoint(
         if (removedPublished.Count > 0)
         {
             ThrowError($"Cannot remove published weeks: {string.Join(", ", removedPublished.Select(w => w.WeekNumber))}");
-            return false;
+            return Task.FromResult(false);
         }
 
         // Start date validation
@@ -160,14 +167,14 @@ public class UpdatePlanEndpoint(
             if (DateOnly.FromDateTime(plan.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be changed after it has arrived.");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Clearing: only allowed if no weeks are published
             if (!req.StartDate.HasValue && plan.Weeks.Any(w => w.Status == WeekStatus.Published))
             {
                 ThrowError(ErrorCodes.StartDateLocked, "Start date cannot be cleared when weeks are published.");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -176,7 +183,7 @@ public class UpdatePlanEndpoint(
             if (req.StartDate.Value.DayOfWeek != System.DayOfWeek.Monday)
             {
                 ThrowError(ErrorCodes.StartDateNotMonday, "Start date must be a Monday.");
-                return false;
+                return Task.FromResult(false);
             }
 
             // Only enforce "not in past" when the start date is being set or changed.
@@ -187,7 +194,7 @@ public class UpdatePlanEndpoint(
             if (isStartDateNewOrChanged && DateOnly.FromDateTime(req.StartDate.Value) < today)
             {
                 ThrowError(ErrorCodes.StartDateInPast, "Start date cannot be in the past.");
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -267,6 +274,6 @@ public class UpdatePlanEndpoint(
         plan.DateUpdated = DateTime.UtcNow;
         plan.Version += 1;
 
-        return true;
+        return Task.FromResult(true);
     }
 }

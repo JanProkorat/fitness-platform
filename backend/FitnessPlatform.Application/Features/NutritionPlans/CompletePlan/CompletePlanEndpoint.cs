@@ -62,24 +62,14 @@ public class CompletePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
-            async (plan, mutateCt) =>
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
+            (plan, _) =>
             {
-                // The lookup filter proved authorship, which is permanent. Access is not —
-                // require the caller's link to the plan's client to still grant nutrition access.
-                var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, mutateCt);
-
-                if (!hasAccess)
-                {
-                    await Send.NotFoundAsync(mutateCt);
-                    return false;
-                }
-
                 // Only active plans can be completed
                 if (plan.Status != NutritionPlanStatus.Active)
                 {
                     ThrowError(ErrorCodes.PlanNotActive, "Only active plans can be completed.");
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 // Mark as completed
@@ -89,7 +79,7 @@ public class CompletePlanEndpoint(
                 plan.DateUpdated = now;
                 plan.Version += 1;
 
-                return true;
+                return Task.FromResult(true);
             },
             ct);
 
@@ -107,7 +97,7 @@ public class CompletePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // The link check inside the mutate delegate already wrote its 404.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -138,5 +128,22 @@ public class CompletePlanEndpoint(
         // contract) — reuse the profile already resolved above instead of a second lookup.
         var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
         await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
+    {
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

@@ -233,6 +233,18 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         return (externalId, sessionId);
     }
 
+    private async Task<TrainingPlanStatus> ReadTrainingPlanStatusAsync(Guid planExternalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planExternalId))
+            .FirstAsync(TestContext.Current.CancellationToken);
+
+        return plan.Status;
+    }
+
     private async Task<NutritionPlanStatus> ReadNutritionPlanStatusAsync(Guid planExternalId)
     {
         using var scope = factory.Services.CreateScope();
@@ -360,7 +372,7 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task RevokedLink_CompleteTrainingPlan_Returns404()
+    public async Task RevokedLink_CompleteTrainingPlan_Returns404_AndDoesNotMutate()
     {
         var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
             "revoked-trn-write", "Trainer");
@@ -373,7 +385,47 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         var response = await professional.PostAsJsonAsync(
             $"/training/plans/{planId}/complete", new { Version = 1 });
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(
+            HttpStatusCode.NotFound, "ending the collaboration must end write access too");
+
+        var status = await ReadTrainingPlanStatusAsync(planId);
+        status.Should().Be(
+            TrainingPlanStatus.Active, "the denied write must not have reached the document");
+    }
+
+    /// <summary>
+    /// A revoked caller must not be able to tell a version conflict from a missing plan. The
+    /// version-guarded routes fetch by ExternalId + author, and authorship is permanent — so if
+    /// the link check ran after the guard's version comparison, a stale version would come back
+    /// 409 ("exists, and you wrote it") while a fabricated plan id came back 404. Probing versions
+    /// would then also reveal how often the replacement professional is editing the plan.
+    /// </summary>
+    [Fact]
+    public async Task RevokedLink_CompleteWithStaleVersion_Returns404_NotAVersionConflict()
+    {
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "revoked-nut-oracle", "Nutritionist");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("revoked-nut-oracle");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var planId = await SeedNutritionPlanAsync(clientUserId, professionalUserId);
+        await DeactivateLinkAsync(linkPublicId);
+
+        // Version 999 is deliberately wrong — the seeded plan is at version 1.
+        var staleVersion = await professional.PostAsJsonAsync(
+            $"/nutrition/plans/{planId}/complete", new { Version = 999 });
+
+        staleVersion.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "authorization must be decided before the version comparison, or the 409/404 split " +
+            "becomes an existence oracle");
+
+        var fabricatedPlan = await professional.PostAsJsonAsync(
+            $"/nutrition/plans/{Guid.NewGuid()}/complete", new { Version = 999 });
+
+        fabricatedPlan.StatusCode.Should().Be(
+            staleVersion.StatusCode,
+            "a plan the caller lost access to must be indistinguishable from one that never existed");
     }
 
     [Fact]
@@ -532,6 +584,69 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         var response = await professional.GetAsync($"/training/plans/{planId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // ── "save the client's plan into my library" routes ──────────────────────
+    // Four routes copy a client's plan content into a permanent, caller-owned template. They are
+    // the same threat as a plain read — the copy outlives the collaboration and, with a non-private
+    // Visibility, becomes readable by other professionals. Two of the four deny through the
+    // sharing-library problem body rather than a bodiless 404, so they are also the denial shape
+    // most likely to drift.
+
+    [Fact]
+    public async Task RevokedLink_CreateNutritionTemplateFromPlan_IsDenied()
+    {
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "revoked-nut-template", "Nutritionist");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("revoked-nut-template");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var planId = await SeedNutritionPlanAsync(clientUserId, professionalUserId);
+
+        var beforeRevocation = await professional.PostAsJsonAsync(
+            "/nutrition/plan-templates/from-plan",
+            new { PlanId = planId, Name = "Before revocation" });
+        beforeRevocation.StatusCode.Should().Be(
+            HttpStatusCode.Created, "the professional is still linked at this point");
+
+        await DeactivateLinkAsync(linkPublicId);
+
+        var afterRevocation = await professional.PostAsJsonAsync(
+            "/nutrition/plan-templates/from-plan",
+            new { PlanId = planId, Name = "After revocation" });
+
+        afterRevocation.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "a revoked professional must not be able to copy the client's plan into a permanent " +
+            "template they keep after the collaboration ends");
+    }
+
+    [Fact]
+    public async Task RevokedLink_SaveSessionTemplateFromPlan_IsDenied()
+    {
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync(
+            "revoked-trn-template", "Trainer");
+        var (_, clientProfileId, clientUserId) = await RegisterClientAsync("revoked-trn-template");
+        var linkPublicId = await LinkAsync(professionalProfileId, clientProfileId);
+
+        var (planId, sessionId) = await SeedTrainingPlanWithSessionAsync(clientUserId, professionalUserId);
+
+        var beforeRevocation = await professional.PostAsJsonAsync(
+            "/training/session-templates/from-plan",
+            new { PlanId = planId, WeekNumber = 1, DayOfWeek = 1, SessionId = sessionId, Name = "Before" });
+        beforeRevocation.StatusCode.Should().Be(
+            HttpStatusCode.Created, "the professional is still linked at this point");
+
+        await DeactivateLinkAsync(linkPublicId);
+
+        var afterRevocation = await professional.PostAsJsonAsync(
+            "/training/session-templates/from-plan",
+            new { PlanId = planId, WeekNumber = 1, DayOfWeek = 1, SessionId = sessionId, Name = "After" });
+
+        afterRevocation.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "a revoked trainer must not be able to copy the client's session into a permanent " +
+            "template they keep after the collaboration ends");
     }
 
     // ── publish-week sibling archival must be owner-scoped ───────────────────

@@ -60,19 +60,9 @@ public class LinkQuestionnaireEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
             async (plan, mutateCt) =>
             {
-                // The lookup filter proved authorship, which is permanent. Access is not —
-                // require the caller's link to the plan's client to still grant nutrition access.
-                var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, mutateCt);
-
-                if (!hasAccess)
-                {
-                    await Send.NotFoundAsync(mutateCt);
-                    return false;
-                }
-
                 // Only draft or active plans can have their questionnaire link changed
                 if (plan.Status is NutritionPlanStatus.Completed or NutritionPlanStatus.Archived)
                 {
@@ -120,7 +110,7 @@ public class LinkQuestionnaireEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // The link check inside the mutate delegate already wrote its 404.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -130,5 +120,22 @@ public class LinkQuestionnaireEndpoint(
         // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
         var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
         await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
+    {
+        if (await authHelper.HasPlanAccessForClientUserAsync(
+                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

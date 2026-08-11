@@ -87,6 +87,16 @@ public class PlanConcurrencyGuard
     /// <param name="replaceFilter">Filter identifying the document by ExternalId and the pre-mutation version, used for the optimistic-concurrency write.</param>
     /// <param name="expectedVersion">The version the caller expects the document to currently have.</param>
     /// <param name="getVersion">Reads the current version from a fetched document.</param>
+    /// <param name="authorize">
+    /// Per-document authorization, run immediately after the fetch and <b>before</b> the version
+    /// comparison. Returns <c>false</c> — having already written its own denial — to stop the
+    /// guard; <c>true</c> proceeds. It must run before the version check because otherwise a
+    /// caller with no right to the document still gets a 409 for a version mismatch and a 404
+    /// only for a document that does not exist, and that split is an existence oracle: it
+    /// confirms the document is there and, by probing versions, reveals how often somebody else
+    /// is editing it. Pass a delegate returning <c>true</c> only when the lookup filter alone is
+    /// a complete authorization decision.
+    /// </param>
     /// <param name="mutate">
     /// Endpoint-specific validation and mutation logic. Must mutate the document in place,
     /// including bumping its own version and updated-at fields. May throw to short-circuit
@@ -103,6 +113,7 @@ public class PlanConcurrencyGuard
         FilterDefinition<TDoc> replaceFilter,
         int expectedVersion,
         Func<TDoc, int> getVersion,
+        Func<TDoc, CancellationToken, Task<bool>> authorize,
         Func<TDoc, CancellationToken, Task<bool>> mutate,
         CancellationToken ct)
     {
@@ -112,6 +123,12 @@ public class PlanConcurrencyGuard
         if (doc is null)
         {
             return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.NotFound };
+        }
+
+        // Before the version comparison, not after — see the authorize parameter's doc-comment.
+        if (!await authorize(doc, ct))
+        {
+            return new PlanConcurrencyResult<TDoc> { Outcome = PlanConcurrencyOutcome.HandledByMutator };
         }
 
         if (getVersion(doc) != expectedVersion)

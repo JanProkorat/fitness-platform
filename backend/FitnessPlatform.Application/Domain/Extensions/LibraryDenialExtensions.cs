@@ -345,8 +345,13 @@ public static class LibraryDenialExtensions
         var lookupFilter = Builders<TDoc>.Filter.Eq(d => d.ExternalId, externalId);
         var replaceFilter = lookupFilter & Builders<TDoc>.Filter.Eq(d => d.Version, expectedVersion);
 
+        // The guard's authorize hook exists so a caller with no right to the document cannot read
+        // an existence/version oracle off the 409-vs-404 split. Here the ownership decision has
+        // already been made — LoadLibraryEntryForWriteOrRespondAsync above rejected any non-owner
+        // before this point — so there is nothing left to authorize and the hook is a no-op.
         var result = await guard.ReplaceWithVersionGuardAsync(
-            collection, lookupFilter, replaceFilter, expectedVersion, d => d.Version, mutate, ct);
+            collection, lookupFilter, replaceFilter, expectedVersion, d => d.Version,
+            (_, _) => Task.FromResult(true), mutate, ct);
 
         switch (result.Outcome)
         {
