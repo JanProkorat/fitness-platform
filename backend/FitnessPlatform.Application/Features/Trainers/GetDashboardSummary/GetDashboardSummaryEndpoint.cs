@@ -57,15 +57,12 @@ public class GetDashboardSummaryEndpoint(
 
         var trainerUserId = Guid.Parse(userId);
 
-        var isTrainer = User.IsInRole(AppRoles.Trainer);
-        var isNutritionist = User.IsInRole(AppRoles.Nutritionist);
-        var discipline = (isTrainer, isNutritionist) switch
-        {
-            (true, true) => ComplianceDiscipline.Both,
-            (true, false) => ComplianceDiscipline.TrainingOnly,
-            (false, true) => ComplianceDiscipline.NutritionOnly,
-            _ => ComplianceDiscipline.Both, // admin or unexpected — fall back to combined
-        };
+        // No global-role reads here, deliberately. This endpoint derived its domain scope from
+        // User.IsInRole, so adding a role to one's own account retroactively widened the figures
+        // returned for every existing link — and a dual-role professional whose link was
+        // deliberately narrowed to one domain still satisfied IsInRole for both. Scope is now
+        // derived per link inside the per-client builder, which is also why no discipline is
+        // threaded through: there is no longer a channel for role state to reach it.
 
         var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -126,7 +123,7 @@ public class GetDashboardSummaryEndpoint(
             async (pair, token) =>
             {
                 items[pair.index] = await BuildClientDashboardItemAsync(
-                    pair.link, lastMeasurementByProfileId, discipline, now, sevenDaysAgo, token);
+                    pair.link, lastMeasurementByProfileId, now, sevenDaysAgo, token);
             });
 
         await Send.OkAsync(new GetDashboardSummaryResponse { Clients = items.ToList() }, ct);
@@ -141,11 +138,15 @@ public class GetDashboardSummaryEndpoint(
     private async Task<ClientDashboardItem> BuildClientDashboardItemAsync(
         ClientProfessionalLink link,
         IReadOnlyDictionary<long, DateTime> lastMeasurementByProfileId,
-        ComplianceDiscipline discipline,
         DateTime now,
         DateTime sevenDaysAgo,
         CancellationToken ct)
     {
+        // Scope comes from THIS link, per client. Two clients on the same roster can grant
+        // different domains, so a single caller-level discipline could never have been correct.
+        var capabilities = LinkCapabilities.FromLink(link);
+        var discipline = capabilities.Discipline;
+
         // ApplicationUser.Id — the canonical clientId key for every Mongo document
         // (WorkoutLog, NutritionPlan, TrainingPlan, MealLog, ComplianceService) since #840.
         var clientUserId = link.ClientProfile.User.Id;
@@ -161,36 +162,58 @@ public class GetDashboardSummaryEndpoint(
         // Streak — scoped to the viewer's discipline
         var streak = await complianceService.CalculateStreakAsync(clientUserId, discipline, ct);
 
-        // Average daily kcal (last 7 days)
-        var avgMacros = await complianceService.CalculateAverageMacrosAsync(
-            clientUserId, sevenDaysAgo, now, ct);
+        // Average daily kcal (last 7 days) — nutrition domain, so skipped outright for a link that
+        // denies it rather than computed and then dropped.
+        var avgMacros = capabilities.CanViewNutritionPlans
+            ? await complianceService.CalculateAverageMacrosAsync(clientUserId, sevenDaysAgo, now, ct)
+            : null;
 
         // Today's training progress — planned vs completed for today only,
         // sourced from TrainingCompletion (same source of truth as the
         // mobile Today card and the streak calculation).
-        var todayCompliance = await complianceService.CalculateComplianceAsync(
-            clientUserId, now.Date, now.Date, ct);
-        var workoutsCompleted = todayCompliance.TrainingsCompleted;
-        var workoutsPlanned = todayCompliance.TrainingsPlanned;
+        // Training domain — the planned-vs-completed pair is the trainer's programming and the
+        // client's execution of it, so a nutrition-only link neither triggers the read nor sees it.
+        long? workoutsCompleted = null;
+        int? workoutsPlanned = null;
+
+        if (capabilities.CanViewTrainingPlans)
+        {
+            var todayCompliance = await complianceService.CalculateComplianceAsync(
+                clientUserId, now.Date, now.Date, ct);
+            workoutsCompleted = todayCompliance.TrainingsCompleted;
+            workoutsPlanned = todayCompliance.TrainingsPlanned;
+        }
 
         // Active training plan — still needed for HasActiveTrainingPlan flag. A client may hold
         // several sequential, non-overlapping Active plans (#780); pick the one whose date
         // window contains today rather than the most recently published one.
-        var activeTrainingPlans = await mongo.TrainingPlans
-            .Find(Builders<TrainingPlan>.Filter.And(
-                Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId),
-                Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
-            .ToListAsync(ct);
-        var activePlan = PlanWindowResolver.ResolveCurrentPlan(activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, now);
+        TrainingPlan? activePlan = null;
+
+        if (capabilities.CanViewTrainingPlans)
+        {
+            var activeTrainingPlans = await mongo.TrainingPlans
+                .Find(Builders<TrainingPlan>.Filter.And(
+                    Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                    Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
+                .ToListAsync(ct);
+            activePlan = PlanWindowResolver.ResolveCurrentPlan(activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, now);
+        }
 
         // Active nutrition plan — NutritionPlan.ClientId = ApplicationUser.Id (#840). Same
-        // date-window selection.
-        var activeNutritionPlans = await mongo.NutritionPlans
-            .Find(Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
-                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)))
-            .ToListAsync(ct);
-        var activeNutritionPlan = PlanWindowResolver.ResolveCurrentPlan(activeNutritionPlans, p => p.StartDate, p => p.Weeks.Count, now);
+        // date-window selection. Not read at all without the nutrition flag: everything derived
+        // from it below (the day's calorie target, today's consumed calories) is nutrition data,
+        // and its mere existence is itself a disclosure.
+        NutritionPlan? activeNutritionPlan = null;
+
+        if (capabilities.CanViewNutritionPlans)
+        {
+            var activeNutritionPlans = await mongo.NutritionPlans
+                .Find(Builders<NutritionPlan>.Filter.And(
+                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)))
+                .ToListAsync(ct);
+            activeNutritionPlan = PlanWindowResolver.ResolveCurrentPlan(activeNutritionPlans, p => p.StartDate, p => p.Weeks.Count, now);
+        }
 
         // Resolve today's plan day (same week/day cycling as GetTodayPlan)
         PlanDay? todayPlanDay = null;
@@ -240,7 +263,12 @@ public class GetDashboardSummaryEndpoint(
         // Today's consumed kcal — use plan mealTotals for eaten meals
         // (includes both foods AND recipes, matching the mobile display).
         var todayStart = now.Date;
-        decimal todayKcal = 0;
+
+        // Null rather than zero for a link without the nutrition flag: zero would read as "this
+        // client has eaten nothing today", which is a claim about the data rather than about
+        // visibility. It stays null when there is simply no plan day too — the client's calorie
+        // intake is not something this caller is being told is absent.
+        decimal? todayKcal = capabilities.CanViewNutritionPlans && todayPlanDay is not null ? 0 : null;
 
         if (todayPlanDay is not null)
         {
@@ -261,18 +289,24 @@ public class GetDashboardSummaryEndpoint(
                 .Sum(m => m.MealTotals?.Kcal ?? 0);
         }
 
-        // Active nutrition plans: started, not completed/archived, has ≥1 published week
-        var activeNutritionPlansCount = (int)await mongo.NutritionPlans
-            .CountDocumentsAsync(
-                Builders<NutritionPlan>.Filter.And(
-                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
-                    Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active),
-                    Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null),
-                    Builders<NutritionPlan>.Filter.Lte(p => p.StartDate, now),
-                    Builders<NutritionPlan>.Filter.ElemMatch(
-                        p => p.Weeks,
-                        Builders<PlanWeek>.Filter.Eq(w => w.Status, WeekStatus.Published))),
-                cancellationToken: ct);
+        // Active nutrition plans: started, not completed/archived, has ≥1 published week.
+        // The count discloses that the client has a nutrition plan at all, so it follows the flag.
+        int? activeNutritionPlansCount = null;
+
+        if (capabilities.CanViewNutritionPlans)
+        {
+            activeNutritionPlansCount = (int)await mongo.NutritionPlans
+                .CountDocumentsAsync(
+                    Builders<NutritionPlan>.Filter.And(
+                        Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                        Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active),
+                        Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null),
+                        Builders<NutritionPlan>.Filter.Lte(p => p.StartDate, now),
+                        Builders<NutritionPlan>.Filter.ElemMatch(
+                            p => p.Weeks,
+                            Builders<PlanWeek>.Filter.Eq(w => w.Status, WeekStatus.Published))),
+                    cancellationToken: ct);
+        }
 
         // Last activity: most recent workout or measurement
         DateTime? lastActivity = null;
@@ -315,14 +349,16 @@ public class GetDashboardSummaryEndpoint(
             Goal = link.ClientProfile.Goals,
             CompliancePercent = percentForViewer,
             CurrentStreak = streak,
-            AvgDailyKcal = avgMacros.Kcal,
+            AvgDailyKcal = avgMacros?.Kcal,
             TodayKcal = todayKcal,
             KcalGoal = kcalGoal,
-            WorkoutsCompleted = (int)workoutsCompleted,
+            WorkoutsCompleted = (int?)workoutsCompleted,
             WorkoutsPlanned = workoutsPlanned,
             LastActivityAt = lastActivity,
             ActiveNutritionPlansCount = activeNutritionPlansCount,
-            HasActiveTrainingPlan = activePlan is not null,
+            // Null, not false: false would assert the client has no training plan, which is a
+            // claim this caller has not earned rather than an absence of visibility.
+            HasActiveTrainingPlan = capabilities.CanViewTrainingPlans ? activePlan is not null : null,
         };
     }
 }
