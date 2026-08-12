@@ -4,10 +4,12 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
+using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
 
@@ -180,6 +182,44 @@ public class GetPlanPhotosEndpointTests
         // while BlobUrl stays the canonical, permanent identity value so a client can safely
         // echo it back on a later write instead of the expiring signature.
         ep.Response[0].DisplayUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
+        ep.Response[0].BlobUrl.Should().Be("plan-photos/abc/photo.jpg");
+    }
+
+    [Fact]
+    public async Task HandleAsync_BlobStorageReturnsNull_DisplayUrlIsEmpty_NotStoredValue()
+    {
+        // Simulates a hypothetical IBlobStorageService implementation that honours the
+        // documented fail-closed contract literally and returns null (rather than
+        // string.Empty) when a stored URL cannot be re-signed. Every call site historically
+        // ended in "?? photo.BlobUrl", which would restore the permanent unsigned value the
+        // moment such an implementation shipped — silently reopening F9. Revert this
+        // endpoint's "?? string.Empty" back to "?? photo.BlobUrl" and this assertion fails:
+        // DisplayUrl would equal the stored, permanent BlobUrl instead of being empty.
+        var planId = Guid.NewGuid();
+        var photo = CreatePhoto(planId, PlanPhotoCategory.Body, "plan-photos/abc/photo.jpg");
+
+        var blobStorage = Substitute.For<IBlobStorageService>();
+        blobStorage.GenerateReadUrlAsync(Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns((string?)null);
+
+        var db = CreateDbBuilder().With(photo).Build();
+        var ep = Factory.Create<GetPlanPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            db,
+            blobStorage);
+
+        await ep.HandleAsync(new GetPlanPhotosRequest
+        {
+            PlanId = planId,
+            Page = 1,
+            PageSize = 20
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response[0].DisplayUrl.Should().BeEmpty();
+        ep.Response[0].DisplayUrl.Should().NotBe("plan-photos/abc/photo.jpg");
         ep.Response[0].BlobUrl.Should().Be("plan-photos/abc/photo.jpg");
     }
 
