@@ -168,11 +168,12 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             };
         }).ToList();
 
-        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived read URL
-        // for each meal photo before it leaves the process (F9).
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived DisplayUrl for
+        // each meal photo before it leaves the process (F9). BlobUrl itself stays the canonical,
+        // permanent identity value.
         foreach (var photo in mealsEaten.SelectMany(m => m.Photos))
         {
-            photo.BlobUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? photo.BlobUrl;
+            photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
         }
 
         // Sum all meal totals

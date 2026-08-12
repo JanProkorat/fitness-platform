@@ -198,12 +198,13 @@ public class GetTodayLogEndpointTests
         _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/bucket/photo1.jpg");
         _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/bucket/photo2.jpg");
 
-        // Negative control: the response carries the signed marker, never the raw permanent
-        // value — the bucket no longer grants public read on diary/* (F9).
-        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/photo1.jpg?signed=test");
-        dto.Photos[0].BlobUrl.Should().NotBe("https://minio.local/bucket/photo1.jpg");
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on diary/* (F9) — while BlobUrl stays the canonical, permanent identity
+        // value so a client can safely echo it back on a later SaveMealPhotos call.
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/photo1.jpg?signed=test");
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/photo1.jpg");
         dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
-        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/photo2.jpg?signed=test");
+        dto.Photos[1].DisplayUrl.Should().Be("https://minio.local/bucket/photo2.jpg?signed=test");
         dto.Note.Should().Be("Great post-workout dinner");
     }
 
@@ -313,7 +314,8 @@ public class GetTodayLogEndpointTests
         var dto = ep.Response.MealsEaten[0];
         dto.EatenAt.Should().BeNull();
         dto.Photos.Should().HaveCount(1);
-        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/snack.jpg?signed=test");
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/snack.jpg?signed=test");
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/snack.jpg");
         dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
         dto.Note.Should().Be("afternoon snack photo");
     }
@@ -384,9 +386,10 @@ public class GetTodayLogEndpointTests
 
         var dto = ep.Response.MealsEaten[0];
         dto.Photos.Should().HaveCount(2);
-        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/smoothie.jpg?signed=test");
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/smoothie.jpg?signed=test");
+        dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/smoothie.jpg");
         dto.Photos[0].Note.Should().Be("Blueberry variant");
-        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg?signed=test");
+        dto.Photos[1].DisplayUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg?signed=test");
         dto.Photos[1].Note.Should().BeNull();
     }
 

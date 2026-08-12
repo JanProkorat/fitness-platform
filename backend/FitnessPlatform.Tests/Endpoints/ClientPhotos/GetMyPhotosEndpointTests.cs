@@ -175,10 +175,11 @@ public class GetMyPhotosEndpointTests
         // Positive control: the stored BlobUrl reached the signing call verbatim.
         blobStorage.SignedUrlRequests.Should().Contain("https://blob/photo.jpg");
 
-        // Negative control: the response carries the signed marker, never the raw
-        // permanent value a revoked-link professional could keep re-fetching forever (F9).
-        ep.Response.Photos!.Single().BlobUrl.Should().Be("https://blob/photo.jpg?signed=test");
-        ep.Response.Photos!.Single().BlobUrl.Should().NotBe("https://blob/photo.jpg");
+        // Negative control: DisplayUrl carries the signed marker a revoked-link professional
+        // could not keep re-fetching forever (F9), while BlobUrl stays the canonical, permanent
+        // identity value so a client can safely echo it back on a later write.
+        ep.Response.Photos!.Single().DisplayUrl.Should().Be("https://blob/photo.jpg?signed=test");
+        ep.Response.Photos!.Single().BlobUrl.Should().Be("https://blob/photo.jpg");
     }
 
     [Fact]
@@ -209,8 +210,10 @@ public class GetMyPhotosEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         blobStorage.SignedUrlRequests.Should().Contain("https://blob/photo.jpg");
-        ep.Response.Groups!.Single().Photos.Single().BlobUrl
+        ep.Response.Groups!.Single().Photos.Single().DisplayUrl
             .Should().Be("https://blob/photo.jpg?signed=test");
+        ep.Response.Groups!.Single().Photos.Single().BlobUrl
+            .Should().Be("https://blob/photo.jpg");
     }
 
     // ── Pagination ────────────────────────────────────────────────────────────

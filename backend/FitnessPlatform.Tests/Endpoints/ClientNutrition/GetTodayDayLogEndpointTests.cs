@@ -169,10 +169,11 @@ public class GetTodayDayLogEndpointTests
         // Positive control: the stored BlobUrl reached the signing call verbatim.
         _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/plan-photos/photo1.jpg");
 
-        // Negative control: the response carries the signed marker, never the raw permanent
-        // value — the bucket no longer grants public read on plan-photos/* (F9).
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/plan-photos/photo1.jpg?signed=test");
-        ep.Response.Photos[0].BlobUrl.Should().NotBe("https://minio.local/plan-photos/photo1.jpg");
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on plan-photos/* (F9) — while BlobUrl stays the canonical, permanent
+        // identity value so a client can safely echo it back on a later SaveDayPhotos call.
+        ep.Response.Photos[0].DisplayUrl.Should().Be("https://minio.local/plan-photos/photo1.jpg?signed=test");
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/plan-photos/photo1.jpg");
         ep.Response.Photos[0].UploadedAt.Should().Be(uploadedAt);
         ep.Response.Photos[0].Note.Should().Be("Morning shot");
         ep.Response.Photos[0].Category.Should().Be("Progress");
@@ -288,9 +289,10 @@ public class GetTodayDayLogEndpointTests
         ep.Response.Photos.Should().HaveCount(2);
         ep.Response.Photos.Should().AllSatisfy(p => p.Category.Should().Be("Food"));
         // Descending order: uploadedAt2 (newer) first, then uploadedAt1
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/b.jpg?signed=test");
+        ep.Response.Photos[0].DisplayUrl.Should().Be("https://minio.local/meal/b.jpg?signed=test");
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/b.jpg");
         ep.Response.Photos[0].UploadedAt.Should().Be(uploadedAt2);
-        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/meal/a.jpg?signed=test");
+        ep.Response.Photos[1].DisplayUrl.Should().Be("https://minio.local/meal/a.jpg?signed=test");
         ep.Response.Photos[1].UploadedAt.Should().Be(uploadedAt1);
         ep.Response.Photos[1].Note.Should().Be("Before eating");
         ep.Response.Note.Should().BeNull();
@@ -352,15 +354,16 @@ public class GetTodayDayLogEndpointTests
         ep.Response.Photos.Should().HaveCount(3);
 
         // Descending order: newest first
-        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/lunch2.jpg?signed=test");
+        ep.Response.Photos[0].DisplayUrl.Should().Be("https://minio.local/meal/lunch2.jpg?signed=test");
+        ep.Response.Photos[0].BlobUrl.Should().Be("https://minio.local/meal/lunch2.jpg");
         ep.Response.Photos[0].Category.Should().Be("Food");
         ep.Response.Photos[0].UploadedAt.Should().Be(newest);
 
-        ep.Response.Photos[1].BlobUrl.Should().Be("https://minio.local/plan/progress.jpg?signed=test");
+        ep.Response.Photos[1].DisplayUrl.Should().Be("https://minio.local/plan/progress.jpg?signed=test");
         ep.Response.Photos[1].Category.Should().Be("Progress");
         ep.Response.Photos[1].UploadedAt.Should().Be(middle);
 
-        ep.Response.Photos[2].BlobUrl.Should().Be("https://minio.local/meal/lunch1.jpg?signed=test");
+        ep.Response.Photos[2].DisplayUrl.Should().Be("https://minio.local/meal/lunch1.jpg?signed=test");
         ep.Response.Photos[2].Category.Should().Be("Food");
         ep.Response.Photos[2].UploadedAt.Should().Be(oldest);
     }

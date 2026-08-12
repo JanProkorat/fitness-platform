@@ -160,13 +160,14 @@ public class GetTodaySessionPhotosTests
         _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/a.jpg");
         _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/b.jpg");
 
-        // Negative control: the response carries the signed marker, never the raw permanent
-        // value — the bucket no longer grants public read on diary/* (F9).
-        photos[0].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg?signed=test");
-        photos[0].BlobUrl.Should().NotBe("https://minio.local/diary/sessions/s1/a.jpg");
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on diary/* (F9) — while BlobUrl stays the canonical, permanent identity
+        // value so a client can safely echo it back on a later SaveSessionPhotos call.
+        photos[0].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg?signed=test");
+        photos[0].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg");
         photos[0].UploadedAt.Should().Be(uploadedAt);
         photos[0].Note.Should().Be("Note A");
-        photos[1].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg?signed=test");
+        photos[1].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg?signed=test");
         photos[1].Note.Should().BeNull();
     }
 

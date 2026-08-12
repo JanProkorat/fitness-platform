@@ -48,6 +48,16 @@ public class FakeBlobStorageService : IBlobStorageService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Mirrors the real service's contract: strips a query string (the fake's own
+    /// <c>?signed=test</c> marker included) so a signed URL echoed back by a test normalizes to
+    /// the same value <see cref="BuildPublicUrl"/> would have produced. Returns null for
+    /// null/empty/whitespace input, matching the "genuinely foreign value" contract.
+    /// </remarks>
+    public string? NormalizeToCanonicalUrl(string blobUrl) =>
+        string.IsNullOrWhiteSpace(blobUrl) ? null : blobUrl.Split('?', 2)[0];
+
+    /// <inheritdoc />
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
         // Record the upload so tests can assert it was called.

@@ -574,11 +574,12 @@ public class GetTodaySessionEndpoint(
                         .ToList();
 
                     // A stored BlobUrl is no longer publicly fetchable — mint a short-lived
-                    // read URL for each photo before it leaves the process (F9).
+                    // DisplayUrl for each photo before it leaves the process (F9). BlobUrl itself
+                    // stays the canonical, permanent identity value.
                     foreach (var sessionPhoto in sessionPhotos)
                     {
-                        sessionPhoto.BlobUrl = await blobStorage.GenerateReadUrlAsync(sessionPhoto.BlobUrl, ct)
-                                               ?? sessionPhoto.BlobUrl;
+                        sessionPhoto.DisplayUrl = await blobStorage.GenerateReadUrlAsync(sessionPhoto.BlobUrl, ct)
+                                                   ?? string.Empty;
                     }
 
                     response.PhotosBySession[sessionLog.SessionId] = sessionPhotos;

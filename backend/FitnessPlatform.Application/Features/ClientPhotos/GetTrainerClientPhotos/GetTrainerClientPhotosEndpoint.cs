@@ -253,15 +253,17 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db, IBlobStora
     }
 
     /// <summary>
-    /// Replaces each photo's stored, permanent BlobUrl with a short-lived pre-signed read URL
-    /// in place. Must run on every response path before <c>Send.OkAsync</c> — the bucket no
-    /// longer grants public read on the <c>plan-photos/</c> prefix these photos live under.
+    /// Populates each photo's <see cref="ClientPhotoResponse.DisplayUrl"/> with a short-lived
+    /// pre-signed read URL. Must run on every response path before <c>Send.OkAsync</c> — the
+    /// bucket no longer grants public read on the <c>plan-photos/</c> prefix these photos live
+    /// under. <see cref="ClientPhotoResponse.BlobUrl"/> is left untouched — it stays the
+    /// canonical, permanent identity value.
     /// </summary>
     private async Task SignPhotoUrlsAsync(IEnumerable<ClientPhotoResponse> photos, CancellationToken ct)
     {
         foreach (var photo in photos)
         {
-            photo.BlobUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? photo.BlobUrl;
+            photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
         }
     }
 }

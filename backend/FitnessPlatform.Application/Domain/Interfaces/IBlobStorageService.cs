@@ -51,15 +51,53 @@ public interface IBlobStorageService
     /// </para>
     ///
     /// <para>
-    /// Returns the input unchanged (including <c>null</c>/empty) when it is null, empty, or does
-    /// not match this service's own URL shape (a foreign or legacy value) — callers should not
-    /// fail an entire response because one stored URL cannot be re-signed.
+    /// <b>Fails CLOSED, not open.</b> Returns the input unchanged only for a <c>null</c>/empty
+    /// <paramref name="storedBlobUrl"/> (nothing to sign). When <paramref name="storedBlobUrl"/>
+    /// is non-empty but does not match this service's own URL shape — a foreign value, or a row
+    /// written before <c>MinIO:PublicEndpoint</c> / <c>MinIO:BucketName</c> /
+    /// <c>MinIO:PublicUrlIncludesBucket</c> changed — this returns <see cref="string.Empty"/>,
+    /// NEVER the permanent stored value. Callers MUST NOT fall back to the stored value with
+    /// <c>?? storedBlobUrl</c> on a null/empty result: doing so hands the caller the permanent
+    /// unsigned URL this method exists to replace and silently reopens F9 for every photo the
+    /// moment extraction fails. Use <c>?? string.Empty</c> instead — the resulting broken image
+    /// is visible and diagnosable, unlike a silently-restored permanent URL.
     /// </para>
     /// </summary>
     /// <param name="storedBlobUrl">The blob URL previously persisted on the photo/document row.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>A short-lived pre-signed GET URL, or the input unchanged if it cannot be re-signed.</returns>
+    /// <returns>
+    /// A short-lived pre-signed GET URL; the input unchanged only when it was null/empty;
+    /// otherwise <see cref="string.Empty"/> when the value cannot be re-signed.
+    /// </returns>
     Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct);
+
+    /// <summary>
+    /// Normalizes a client-submitted blob URL to the exact canonical form this service persists
+    /// (the same value <see cref="BuildPublicUrl"/> would produce for the underlying container
+    /// path) — strips a pre-signed query string when present, then re-derives the value from the
+    /// CURRENT <c>MinIO:PublicEndpoint</c> / <c>MinIO:BucketName</c> / <c>MinIO:PublicUrlIncludesBucket</c>
+    /// configuration.
+    ///
+    /// <para>
+    /// Write paths that accept a client-submitted <c>BlobUrl</c> MUST call this before persisting
+    /// it. A client may echo back the short-lived read URL <see cref="GenerateReadUrlAsync"/>
+    /// issued (or, from an app build that predates the identity/presentation split, a value that
+    /// used to BE the signed URL before it was split into a separate display field) — without
+    /// normalization, the signature's query string becomes the permanently stored value, and
+    /// once the signature lapses <see cref="GenerateReadUrlAsync"/> can no longer resolve the row
+    /// back to a container path (F9 follow-up). Normalizing to the SAME canonical value the row
+    /// already has (rather than rejecting the submission outright) means a re-save that echoes a
+    /// signed URL updates the existing row in place instead of appearing as a new, unrecognized
+    /// one under REPLACE-semantics endpoints.
+    /// </para>
+    /// </summary>
+    /// <param name="blobUrl">The client-submitted blob URL to normalize.</param>
+    /// <returns>
+    /// The canonical stored form, or <c>null</c> when <paramref name="blobUrl"/> is null/empty or
+    /// does not match this service's own URL shape at all — a genuinely foreign value the caller
+    /// must reject rather than persist.
+    /// </returns>
+    string? NormalizeToCanonicalUrl(string blobUrl);
 
     /// <summary>
     /// Uploads raw bytes directly to blob storage (server-side upload).

@@ -162,6 +162,26 @@ public class MinioBlobStorageService : IBlobStorageService
     }
 
     /// <inheritdoc />
+    public string? NormalizeToCanonicalUrl(string blobUrl)
+    {
+        if (string.IsNullOrWhiteSpace(blobUrl))
+        {
+            return null;
+        }
+
+        // Strip a pre-signed query string (e.g. "?X-Amz-Signature=...") before matching — an
+        // echoed short-lived read URL must resolve to the same canonical value as its unsigned
+        // form, or a legitimate re-save turns into a delete-and-reinsert under REPLACE semantics.
+        var withoutQuery = blobUrl.Split('?', 2)[0];
+
+        var containerPath = withoutQuery.Contains("://", StringComparison.Ordinal)
+            ? TryExtractContainerPath(withoutQuery)
+            : withoutQuery;
+
+        return containerPath is null ? null : BuildPublicUrl(containerPath);
+    }
+
+    /// <inheritdoc />
     public async Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
         await EnsureBucketWithPublicReadAsync(ct);

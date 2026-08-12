@@ -127,10 +127,11 @@ public class FinalizePlanPhotoEndpointTests
         // Positive control: the just-persisted BlobUrl reached the signing call verbatim.
         _blobStorage.SignedUrlRequests.Should().Contain("plan-photos/abc/photo.jpg");
 
-        // Negative control: the 201 body echoes a short-lived signed URL, never the raw
-        // permanent value — the bucket no longer grants public read on plan-photos/* (F9).
-        ep.Response.BlobUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
-        ep.Response.BlobUrl.Should().NotBe("plan-photos/abc/photo.jpg");
+        // Negative control: DisplayUrl carries the short-lived signed URL — the bucket no
+        // longer grants public read on plan-photos/* (F9) — while BlobUrl stays the canonical,
+        // permanent identity value so a client can safely echo it back on a later write.
+        ep.Response.DisplayUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
+        ep.Response.BlobUrl.Should().Be("plan-photos/abc/photo.jpg");
         ep.Response.Category.Should().Be(PlanPhotoCategory.Body);
         ep.Response.PlanId.Should().Be(planId);
         ep.Response.PlanType.Should().Be(PlanPhotoType.Nutrition);
@@ -264,6 +265,58 @@ public class FinalizePlanPhotoEndpointTests
 
         ep.HttpContext.Response.StatusCode.Should().Be(201);
         ep.Response.TakenAt.Should().Be(expectedTakenAt);
+    }
+
+    // ── BlobUrl normalization (F9 follow-up) ──────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlWithSignedQueryString_PersistsCanonicalForm()
+    {
+        // A client echoes back a short-lived DisplayUrl (or a stale value from an app build
+        // predating the identity/presentation split). Persisting the raw query string would
+        // make the signature the permanent stored value, unrecoverable once it lapses. Revert
+        // the endpoint's NormalizeToCanonicalUrl call and this assertion fails: the persisted
+        // BlobUrl would equal the raw, still-signed input instead of the stripped canonical form.
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, clientId: _clientId);
+        var mongo = CreateMongoWithNutritionPlan(plan);
+        var db = CreateDbBuilder().Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = "plan-photos/abc/signed-echo.jpg?signed=test",
+            Category = PlanPhotoCategory.Body
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+        ep.Response.BlobUrl.Should().Be("plan-photos/abc/signed-echo.jpg");
+        ep.Response.BlobUrl.Should().NotContain("?");
+    }
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlCannotBeNormalized_Returns400()
+    {
+        // An empty BlobUrl cannot be normalised to a canonical form. Remove the endpoint's
+        // guard and this 400 disappears — the request proceeds to a 201 with an empty BlobUrl
+        // persisted instead.
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, clientId: _clientId);
+        var mongo = CreateMongoWithNutritionPlan(plan);
+        var db = CreateDbBuilder().Build();
+
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = "",
+            Category = PlanPhotoCategory.Body
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
     }
 
     // ── BlobUrl prefix security regression tests (validator) ──────────────────

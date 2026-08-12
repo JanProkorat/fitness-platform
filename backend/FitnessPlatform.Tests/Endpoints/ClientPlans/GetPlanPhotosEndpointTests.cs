@@ -175,11 +175,12 @@ public class GetPlanPhotosEndpointTests
         // Positive control: the stored BlobUrl reaches the signing call verbatim.
         _blobStorage.SignedUrlRequests.Should().Contain("plan-photos/abc/photo.jpg");
 
-        // Negative control: the response never carries the raw, permanent stored value —
-        // only the fake's recognisable signed-URL marker. A bucket with no public-read grant
-        // on plan-photos/* would 403 on the raw value (F9).
-        ep.Response[0].BlobUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
-        ep.Response[0].BlobUrl.Should().NotBe("plan-photos/abc/photo.jpg");
+        // Negative control: DisplayUrl carries the fake's recognisable signed-URL marker — a
+        // bucket with no public-read grant on plan-photos/* would 403 on the raw value (F9) —
+        // while BlobUrl stays the canonical, permanent identity value so a client can safely
+        // echo it back on a later write instead of the expiring signature.
+        ep.Response[0].DisplayUrl.Should().Be("plan-photos/abc/photo.jpg?signed=test");
+        ep.Response[0].BlobUrl.Should().Be("plan-photos/abc/photo.jpg");
     }
 
     // ── Pagination ────────────────────────────────────────────────────────────

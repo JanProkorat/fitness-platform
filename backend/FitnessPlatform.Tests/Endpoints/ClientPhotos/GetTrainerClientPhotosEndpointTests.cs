@@ -218,9 +218,10 @@ public class GetTrainerClientPhotosEndpointTests
 
         // Negative control: a professional whose link was later revoked, holding this exact
         // response from before revocation, must not be able to keep re-fetching the raw
-        // permanent URL — only the short-lived signed marker is returned (F9).
-        ep.Response.Photos!.Single().BlobUrl.Should().Be("https://blob/photo.jpg?signed=test");
-        ep.Response.Photos!.Single().BlobUrl.Should().NotBe("https://blob/photo.jpg");
+        // permanent URL via DisplayUrl — only the short-lived signed marker is returned there
+        // (F9) — while BlobUrl stays the canonical, permanent identity value.
+        ep.Response.Photos!.Single().DisplayUrl.Should().Be("https://blob/photo.jpg?signed=test");
+        ep.Response.Photos!.Single().BlobUrl.Should().Be("https://blob/photo.jpg");
     }
 
     [Fact]
