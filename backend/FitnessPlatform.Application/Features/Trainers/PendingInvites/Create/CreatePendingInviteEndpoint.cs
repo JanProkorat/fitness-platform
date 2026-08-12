@@ -14,12 +14,15 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// <summary>
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
-/// Does NOT notify an existing user immediately (see claude-security F8 note in
-/// <see cref="HandleAsync"/>) — that side effect is deferred to acceptance time.
+/// Also creates an in-app notification and sends a real-time event if the client already has an
+/// account. Does NOT seed a chat message — see the claude-security F8 note in
+/// <see cref="HandleAsync"/>; that side effect is deferred to acceptance time.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
     IEmailService emailService,
+    INotificationService notificationService,
+    IRealtimeNotifier notifier,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <summary>
@@ -163,16 +166,53 @@ public class CreatePendingInviteEndpoint(
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
         await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, req.Message, ct);
 
-        // claude-security F8: this endpoint used to also seed a chat message, an in-app
-        // notification, and a realtime push into any registered user matching the invited
-        // email — with no prior relationship to the caller and no accepted invite. That let a
-        // free professional account drop attacker-written text into an arbitrary stranger's
-        // message stream. Those side effects are now deferred to acceptance time (the accept
-        // flow — AcceptClientInviteEndpoint / AcceptInvitationEndpoint, #768 — already seeds
-        // the conversation once the invitee has affirmatively agreed to the relationship).
-        // An existing user who was invited still discovers it without a push: GetPendingInviteEndpoint
-        // (/client/invites/pending) is polled the same way pending questionnaires/plan banners
-        // surface elsewhere in the client apps (#93 pattern).
+        // If the invited client already has an account, create an in-app notification + real-time event
+        var reqEmailLower = req.Email.ToLower();
+        var existingUser = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Email!.ToLower() == reqEmailLower, ct);
+
+        if (existingUser is not null)
+        {
+            // claude-security F8: this branch used to ALSO seed a conversation and write the
+            // caller's free-text message into it, before the invitee had agreed to anything.
+            // That let any professional account drop attacker-written prose straight into an
+            // arbitrary stranger's message stream, addressed only by guessing their email.
+            // The conversation seed is deferred to acceptance — AcceptClientInviteEndpoint and
+            // AcceptInvitationEndpoint both already seed it from the invite's stored Message
+            // (#768), so nothing is lost, it just waits for consent.
+            //
+            // The notification and realtime event below stay: their payload is composed here
+            // from the professional's own profile and the invite id, the invitee needs some
+            // signal that an invite arrived, and the message they carry is the same text
+            // GetPendingInviteEndpoint already returns for the invite itself.
+            await notificationService.CreateAsync(
+                existingUser.Id,
+                NotificationType.InvitationReceived,
+                new Dictionary<string, string>
+                {
+                    ["trainerName"] = trainerName,
+                    ["inviteId"] = pendingInvite.PublicId.ToString(),
+                },
+                ct: ct);
+
+            var senderRole = User.IsInRole(AppRoles.Nutritionist) ? "Nutritionist" : "Trainer";
+
+            await notifier.NotifyAsync(
+                existingUser.Id,
+                "invitationreceived",
+                new
+                {
+                    id = pendingInvite.PublicId,
+                    trainerId = professionalProfile.PublicId,
+                    trainerName,
+                    trainerRole = senderRole,
+                    trainerCity = professionalProfile.City ?? string.Empty,
+                    message = pendingInvite.Message
+                },
+                ct);
+        }
+
         logger.LogInformation(
             "Pending invitation created from professional {ProfessionalId} to {Email}",
             professionalProfile.PublicId, req.Email);

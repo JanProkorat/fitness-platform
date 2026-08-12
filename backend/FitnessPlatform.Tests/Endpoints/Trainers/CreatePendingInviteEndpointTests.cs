@@ -29,6 +29,8 @@ public class CreatePendingInviteEndpointTests
         params string[] roles)
     {
         var emailService = Substitute.For<IEmailService>();
+        var notificationService = Substitute.For<INotificationService>();
+        var notifier = Substitute.For<IRealtimeNotifier>();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
         return Factory.Create<CreatePendingInviteEndpoint>(
@@ -36,7 +38,7 @@ public class CreatePendingInviteEndpointTests
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailService, logger);
+            db, emailService, notificationService, notifier, logger);
     }
 
     [Fact]

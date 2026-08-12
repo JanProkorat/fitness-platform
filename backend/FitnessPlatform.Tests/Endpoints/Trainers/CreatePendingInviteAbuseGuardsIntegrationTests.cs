@@ -8,12 +8,14 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 /// <summary>
 /// End-to-end (real Postgres via Testcontainers) coverage for the claude-security F8 fix on
 /// POST /trainer/pending-invites: creating an invite for an email that already belongs to a
-/// registered user must NOT immediately write a chat message, a notification, or fire a
-/// realtime push into that user's account — those side effects are deferred to acceptance time.
-/// A unit test against a mocked DbContext cannot observe this: the fix removed the
-/// IConversationSeedService/INotificationService/IRealtimeNotifier dependencies from the
-/// endpoint entirely, so only a real end-to-end read of the invited user's own inbox proves
-/// nothing was written there.
+/// registered user must NOT write the caller's free-text message into that user's chat before
+/// they have accepted anything — the conversation seed is deferred to acceptance time.
+///
+/// The in-app notification is deliberately NOT deferred, and this test pins that too: an invitee
+/// who never opens the app would otherwise never learn an invite arrived. The two assertions
+/// together are the point — a version that defers both, or neither, fails one of them. A unit
+/// test against a mocked DbContext cannot observe either half; only a real read of the invited
+/// user's own inbox shows what actually landed there.
 /// </summary>
 [Collection(TestCollection.Name)]
 public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory factory)
@@ -21,7 +23,7 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";
 
     [Fact]
-    public async Task CreateInvite_ForExistingUserWithMessage_DoesNotSeedConversationOrNotification()
+    public async Task CreateInvite_ForExistingUserWithMessage_DoesNotSeedConversationButDoesNotify()
     {
         // Arrange: the invited email ALREADY belongs to a registered client — the exact shape
         // the abuse case exploited (no relationship required between the professional and the
@@ -60,14 +62,16 @@ public class CreatePendingInviteAbuseGuardsIntegrationTests(FitnessApiFactory fa
         conversations.Should().BeEmpty(
             "the chat message must not be seeded until the client accepts the invite");
 
-        // Assert: no notification was created for the invited client either.
+        // Assert the other half: the notification IS raised. Without this the invitee has no
+        // signal at all until they happen to open the app, and a change that defers the
+        // notification along with the conversation would slip through the assertion above.
         var notificationsResponse = await clientClient.GetAsync(
             "/client/notifications", TestContext.Current.CancellationToken);
         notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var notifications = await notificationsResponse.Content.ReadFromJsonAsync<GetNotificationsResult>(
             cancellationToken: TestContext.Current.CancellationToken);
-        notifications!.Items.Should().BeEmpty(
-            "an unsolicited invite must not raise an in-app notification before acceptance");
+        notifications!.Items.Should().ContainSingle(
+            "the invitee is told an invite arrived — it is the message body, not the alert, that waits for consent");
 
         // Positive control: the client CAN still discover the invite through the existing
         // polling endpoint — the fix defers the push, it does not hide the invite entirely.
