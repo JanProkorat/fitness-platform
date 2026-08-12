@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.AbandonWorkout;
@@ -16,18 +17,23 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.AbandonWorkout;
 ///
 /// Idempotent: if no Live lock is held (already released, expired, or session was ad-hoc),
 /// returns 200 with no broadcast. Only emits <c>sessioneditlockchanged</c> (state=Stable)
-/// to both client and trainer when a lock was actually released (ReleaseAsync returns true)
-/// AND the log's PlanId resolves a training plan (avoids spurious fan-out).
+/// when a lock was actually released (ReleaseAsync returns true) AND the log's PlanId
+/// resolves a training plan (avoids spurious fan-out). The client-addressed emit is
+/// unconditional; the trainer-addressed emit additionally requires that the trainer still
+/// holds a live, training-capable link to the client (F6/F11 residual — plan authorship is
+/// permanent, the link is not).
 ///
 /// Broadcast failure is non-fatal — the release is authoritative.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
+/// <param name="authHelper">Link capability helper — gates the trainer-addressed broadcast.</param>
 public class AbandonWorkoutEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
-    IRealtimeNotifier notifier) : Endpoint<AbandonWorkoutRequest, AbandonWorkoutResponse>
+    IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper) : Endpoint<AbandonWorkoutRequest, AbandonWorkoutResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -104,7 +110,16 @@ public class AbandonWorkoutEndpoint(
                         "Client");
 
                     await notifier.NotifyAsync(clientUserIdGuid, "sessioneditlockchanged", payload, ct);
-                    await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+
+                    // Gate the trainer-addressed emit on the trainer's CURRENT link capability.
+                    // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
+                    // professional whose collaboration ended (or was narrowed away from training)
+                    // must stop receiving live signals of when the client is training (F6/F11 residual).
+                    if (await authHelper.HasPlanAccessForClientUserAsync(
+                            plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+                    {
+                        await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+                    }
                 }
                 catch
                 {

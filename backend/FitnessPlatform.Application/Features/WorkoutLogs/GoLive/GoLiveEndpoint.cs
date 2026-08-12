@@ -23,17 +23,21 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.GoLive;
 /// plan-bound (non-null PlanId + SessionId on the execution).
 ///
 /// Returns 409 <c>session_locked</c> when the session is already in Editing state.
-/// Emits <c>sessioneditlockchanged</c> (state=Live) to both client and trainer on successful acquire.
+/// Emits <c>sessioneditlockchanged</c> (state=Live) to the client unconditionally, and to the
+/// trainer only when the trainer still holds a live, training-capable link to the client
+/// (F6/F11 residual — plan authorship is permanent, the link is not).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
+/// <param name="authHelper">Link capability helper — gates the trainer-addressed broadcast.</param>
 public class GoLiveEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    IRealtimeNotifier notifier) : Endpoint<GoLiveRequest, GoLiveResponse>
+    IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper) : Endpoint<GoLiveRequest, GoLiveResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -134,7 +138,16 @@ public class GoLiveEndpoint(
                 "Client");
 
             await notifier.NotifyAsync(clientUserIdGuid, "sessioneditlockchanged", payload, ct);
-            await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+
+            // Gate the trainer-addressed emit on the trainer's CURRENT link capability.
+            // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
+            // professional whose collaboration ended (or was narrowed away from training)
+            // must stop receiving live signals of when the client is training (F6/F11 residual).
+            if (await authHelper.HasPlanAccessForClientUserAsync(
+                    plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+            {
+                await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
+            }
         }
         catch
         {

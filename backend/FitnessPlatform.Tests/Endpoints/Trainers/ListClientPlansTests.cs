@@ -22,6 +22,7 @@ public class ListClientPlansTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
+    private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     // ── Happy path — combined list ───────────────────────────────────────────
 
@@ -375,6 +376,68 @@ public class ListClientPlansTests
             .WithMessage("compliance-db-error");
     }
 
+    // ── Audit logging (F11) ──────────────────────────────────────────────────
+    // ListClientPlansEndpoint reads plan inventory, compliance percentages and weight
+    // deltas without leaving an audit trail, unlike sibling routes (GetClientMeasurements)
+    // reading the same rows. A successful read must audit; a denied caller (no link) must
+    // not — the negative case is the control proving the assertion below isn't vacuous.
+
+    [Fact]
+    public async Task List_Success_LogsAuditRead()
+    {
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var mongo = BuildMongo(nutritionPlans: [], trainingPlans: [], workoutLogs: [], personalRecords: []);
+
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await _audit.Received(1).LogAsync(
+            _trainerId,
+            "Read",
+            "ClientPlans",
+            clientProfile.PublicId,
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_NotLinkedToClient_DoesNotLogAudit()
+    {
+        // Same denial path as List_NotLinkedToClient_Returns403 — a caller refused access
+        // must not generate an audit row for a read that never happened.
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientUser = EntityBuilder.User.WithEmail("client@test.com").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .Build();
+
+        var mongo = BuildMongo();
+
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+        await _audit.DidNotReceive().LogAsync(
+            Arg.Any<Guid?>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── Auth & ownership errors ──────────────────────────────────────────────
 
     [Fact]
@@ -383,7 +446,7 @@ public class ListClientPlansTests
         var db = new MockDbBuilder().Build();
         var mongo = BuildMongo();
 
-        var ep = Factory.Create<ListClientPlansEndpoint>(db, mongo, _complianceService);
+        var ep = Factory.Create<ListClientPlansEndpoint>(db, mongo, _complianceService, _audit);
 
         await ep.HandleAsync(new ListClientPlansRequest { ClientId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
@@ -503,7 +566,7 @@ public class ListClientPlansTests
 
         return Factory.Create<ListClientPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo, _complianceService);
+            db, mongo, _complianceService, _audit);
     }
 
     private (IApplicationDbContext db, Application.Domain.Entities.ClientProfile clientProfile)

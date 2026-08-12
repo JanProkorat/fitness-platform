@@ -37,6 +37,7 @@ public class MarkExerciseCompleteBroadcastTests
     private readonly ISessionLockService _lockService = CreateStubLockService();
     private static readonly IOptions<TrainingLockOptions> LockOptions =
         Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
+    private readonly ProfessionalAuthHelper _authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
     private readonly ILogger<MarkExerciseCompleteEndpoint> _logger =
         Substitute.For<ILogger<MarkExerciseCompleteEndpoint>>();
 
@@ -73,7 +74,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -83,6 +84,38 @@ public class MarkExerciseCompleteBroadcastTests
 
         // Exactly one notification to the trainer's user id
         await _notifier.Received(1).NotifyAsync(
+            _trainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── F6 (claude-security review): revoked/narrowed link stops the broadcast ────
+    // TrainingProgressBroadcaster used to read plan.TrainerId unconditionally — authorship is
+    // permanent even after the collaboration ends. This proves the shared broadcaster now
+    // consults the link's live capability before notifying.
+
+    [Fact]
+    public async Task HandleAsync_LinkDeniesTrainingAccess_DoesNotBroadcastToTrainer()
+    {
+        var plan = CreateActivePlan();
+        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
+        var db = CreateMockDb(_clientId, _clientId);
+        var denyingAuthHelper = EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false);
+
+        var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingAuthHelper, _logger);
+
+        await ep.HandleAsync(
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "the mutation itself must still succeed — only the broadcast is gated");
+
+        await _notifier.DidNotReceive().NotifyAsync(
             _trainerId,
             "trainingprogressupdated",
             Arg.Any<object>(),
@@ -101,7 +134,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -135,7 +168,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -160,7 +193,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -201,7 +234,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         // exercise1 is already complete — idempotent no-op
         await ep.HandleAsync(
@@ -236,7 +269,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -279,7 +312,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest
@@ -316,7 +349,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
 
         // Should NOT throw; the broadcast exception is swallowed
         var act = async () => await ep.HandleAsync(

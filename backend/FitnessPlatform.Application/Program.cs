@@ -169,6 +169,23 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Partitioned by the authenticated professional's UserId, not IP — see
+    // AppPolicies.PendingInviteRateLimit for why the account is the meaningful bucket here.
+    // Falls back to the IP-based key only in the defensive case where the claim is somehow
+    // absent (the endpoint already requires a Trainer/Nutritionist/Admin role, so this claim
+    // is always present in practice).
+    options.AddPolicy(AppPolicies.PendingInviteRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

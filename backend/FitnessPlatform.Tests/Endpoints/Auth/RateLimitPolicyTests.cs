@@ -424,5 +424,74 @@ public class RateLimitPolicyTests : IAsyncLifetime
             $"login from {forwardedIp2} must succeed — it has its own partition independent of {forwardedIp1}");
     }
 
+    // ---------------------------------------------------------------------------
+    // claude-security F8: /trainer/pending-invites is partitioned by the
+    // authenticated professional's UserId claim, not by IP.
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// Proves AppPolicies.PendingInviteRateLimit's partition key is the caller's UserId claim,
+    /// not the request IP. Two different professionals sharing the SAME IP must NOT share a
+    /// bucket: exhausting professional #1's 30-permit budget must not affect professional #2.
+    /// If the partition key ever regressed to <c>GetPartitionKey(context)</c> (the IP-based
+    /// fallback used by the login/refresh policies), professional #2's very first call from the
+    /// same IP would already be blocked — this test would fail immediately rather than after
+    /// 30 calls.
+    /// </summary>
+    [Fact]
+    public async Task PendingInviteBudget_PartitionedByProfessional_NotSharedAcrossAccountsOnSameIp()
+    {
+        const string sharedIp = "10.0.4.1";
+        const int permitLimit = 30;
+
+        using var client1 = CreateClientWithIp(sharedIp);
+        using var client2 = CreateClientWithIp(sharedIp);
+
+        var professional1Email = UniqueEmail();
+        await TestHelpers.RegisterAsync(client1, professional1Email, "TestPass1!", "Coach", "One", "Trainer");
+        var (professional1Access, _) = await TestHelpers.LoginAsync(client1, professional1Email, "TestPass1!");
+        TestHelpers.SetBearerToken(client1, professional1Access);
+
+        var professional2Email = UniqueEmail();
+        await TestHelpers.RegisterAsync(client2, professional2Email, "TestPass1!", "Coach", "Two", "Trainer");
+        var (professional2Access, _) = await TestHelpers.LoginAsync(client2, professional2Email, "TestPass1!");
+        TestHelpers.SetBearerToken(client2, professional2Access);
+
+        // Exhaust professional #1's pending-invite budget (PermitLimit = 30).
+        for (var i = 0; i < permitLimit; i++)
+        {
+            var response = await client1.PostAsJsonAsync("/trainer/pending-invites", new
+            {
+                FirstName = "Invitee",
+                LastName = $"{i}",
+                Email = $"invitee-{i}-{Guid.NewGuid():N}@ratelimit-test.com"
+            });
+            response.StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests,
+                $"pending-invite call #{i + 1} from professional #1 should not be rate-limited yet (budget = {permitLimit})");
+        }
+
+        // Confirm professional #1's bucket is now exhausted — the baseline that makes the
+        // cross-account assertion below meaningful.
+        var exhausted = await client1.PostAsJsonAsync("/trainer/pending-invites", new
+        {
+            FirstName = "Invitee",
+            LastName = "Final",
+            Email = $"invitee-final-{Guid.NewGuid():N}@ratelimit-test.com"
+        });
+        exhausted.StatusCode.Should().Be(HttpStatusCode.TooManyRequests,
+            $"professional #1's pending-invite budget must be exhausted after {permitLimit} permits");
+
+        // Professional #2, sharing the SAME IP, must NOT be blocked — the partition key is the
+        // authenticated professional's UserId claim, not the request IP.
+        var stillAllowed = await client2.PostAsJsonAsync("/trainer/pending-invites", new
+        {
+            FirstName = "Invitee",
+            LastName = "FromOther",
+            Email = $"invitee-other-{Guid.NewGuid():N}@ratelimit-test.com"
+        });
+        stillAllowed.StatusCode.Should().NotBe(HttpStatusCode.TooManyRequests,
+            "professional #2 must have their own independent bucket even when sharing the same IP as professional #1");
+    }
+
     private record RefreshResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);
 }

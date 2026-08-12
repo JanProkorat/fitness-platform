@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using FitnessPlatform.Tests.Infrastructure;
@@ -92,11 +93,12 @@ public class PhotoDiaryPhotoUploadedSignalRTests
 
     // ── Endpoint factory ──────────────────────────────────────────────────────────
 
-    private FinalizePlanPhotoEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private FinalizePlanPhotoEndpoint CreateEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger, new FakeBlobStorageService());
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, new FakeBlobStorageService());
 
     // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -321,5 +323,56 @@ public class PhotoDiaryPhotoUploadedSignalRTests
 
         await act.Should().NotThrowAsync();
         ep.HttpContext.Response.StatusCode.Should().Be(201);
+    }
+
+    [Fact]
+    public async Task Upload_WithDiaryRequest_ProfessionalLacksCapability_DoesNotEmitPhotoDiaryPhotoUploaded()
+    {
+        // The nutritionist authored the plan and the diary request, but no longer holds a live,
+        // nutrition-capable ClientProfessionalLink — the same capability gate that protects
+        // planPhotoUploaded (F6 residual) also covers this diary-tracking event.
+        var planId = Guid.NewGuid();
+        var clientUser = MakeClientUser();
+        var clientProfile = MakeClientProfile(clientUser);
+        var link = new ClientProfessionalLink
+        {
+            Id = 1,
+            ProfessionalProfileId = 2,
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            IsActive = true,
+            ProfessionalRole = UserRole.Nutritionist,
+            PublicId = Guid.NewGuid(),
+            DateCreated = DateTime.UtcNow,
+        };
+        var diaryReq = MakeDiaryRequest(link.Id, link);
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(clientProfile)
+            .With(link)
+            .With(diaryReq)
+            .Build();
+
+        var mongo = CreateMongoWithNutritionPlan(planId);
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body,
+            DiaryRequestId = diaryReq.Id,
+        }, TestContext.Current.CancellationToken);
+
+        // The PlanPhoto row and diary status transition still happen — only the broadcasts
+        // are gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "photodiaryphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
     }
 }

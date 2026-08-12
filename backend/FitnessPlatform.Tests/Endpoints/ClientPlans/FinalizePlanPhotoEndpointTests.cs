@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using FitnessPlatform.Tests.Infrastructure;
@@ -40,12 +41,13 @@ public class FinalizePlanPhotoEndpointTests
     /// </summary>
     private readonly FakeBlobStorageService _blobStorage = new();
 
-    private FinalizePlanPhotoEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private FinalizePlanPhotoEndpoint CreateEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger, _blobStorage);
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, _blobStorage);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -16,7 +17,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining;
 /// Design notes:
 /// - The trainer's UserId is read from <see cref="TrainingPlan.TrainerId"/>, which is set when
 ///   the plan is created and always equals the trainer's <c>ApplicationUser.Id</c>.
-/// - If no trainer is linked (TrainerId is empty) the broadcast is silently skipped.
+/// - Before broadcasting, the injected <see cref="ProfessionalAuthHelper"/> confirms the trainer
+///   still holds an ACTIVE link to this client that grants <c>CanViewTrainingPlans</c> — authorship on the
+///   plan document is permanent, but the link is not; a professional whose collaboration has
+///   ended (or whose link was narrowed away from training) must stop receiving the client's
+///   live session progress, compliance percentage and streak (F6).
+/// - If no trainer is linked (TrainerId is empty) or the link no longer grants access, the
+///   broadcast is silently skipped.
 /// - Any exception from the notifier is caught and logged so the primary mutation always
 ///   succeeds even if the SignalR channel is unavailable.
 /// </summary>
@@ -30,8 +37,11 @@ internal static class TrainingProgressBroadcaster
     /// <param name="notifier">Realtime notifier.</param>
     /// <param name="compliance">Compliance service for computing today's compliance and streak.</param>
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
+    /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
-    /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
+    /// <param name="clientId">The client's <c>ApplicationUser.Id</c> (MongoDB clientId) — also the
+    /// identity passed to <see cref="ProfessionalAuthHelper.HasPlanAccessForClientUserAsync"/> to
+    /// gate the broadcast, so it is load-bearing for authorization, not just a payload field.</param>
     /// <param name="sessionId">The session that was mutated.</param>
     /// <param name="date">The date for which the mutation occurred.</param>
     /// <param name="completedExerciseCount">Completed exercises in the session after mutation.</param>
@@ -51,6 +61,7 @@ internal static class TrainingProgressBroadcaster
         IRealtimeNotifier notifier,
         IComplianceService compliance,
         IMongoContext mongo,
+        ProfessionalAuthHelper authHelper,
         TrainingPlan plan,
         Guid clientId,
         Guid sessionId,
@@ -68,6 +79,11 @@ internal static class TrainingProgressBroadcaster
 
         try
         {
+            if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+            {
+                return;
+            }
+
             var (compliancePercent, streak, sessionsCompleted, sessionsPlanned) =
                 await ComputeMetricsAsync(compliance, mongo, plan, clientId, date, ct);
 
@@ -104,8 +120,11 @@ internal static class TrainingProgressBroadcaster
     /// <param name="notifier">Realtime notifier.</param>
     /// <param name="compliance">Compliance service for computing today's compliance and streak.</param>
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
+    /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
-    /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
+    /// <param name="clientId">The client's <c>ApplicationUser.Id</c> (MongoDB clientId) — also the
+    /// identity passed to <see cref="ProfessionalAuthHelper.HasPlanAccessForClientUserAsync"/> to
+    /// gate the broadcast, so it is load-bearing for authorization, not just a payload field.</param>
     /// <param name="date">The date for which the mutation occurred.</param>
     /// <param name="aggregateCompletedExercises">Sum of completed exercises across all updated sessions.</param>
     /// <param name="aggregateTotalExercises">Sum of total exercises across all updated sessions.</param>
@@ -115,6 +134,7 @@ internal static class TrainingProgressBroadcaster
         IRealtimeNotifier notifier,
         IComplianceService compliance,
         IMongoContext mongo,
+        ProfessionalAuthHelper authHelper,
         TrainingPlan plan,
         Guid clientId,
         DateOnly date,
@@ -129,6 +149,11 @@ internal static class TrainingProgressBroadcaster
 
         try
         {
+            if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+            {
+                return;
+            }
+
             var (compliancePercent, streak, sessionsCompleted, sessionsPlanned) =
                 await ComputeMetricsAsync(compliance, mongo, plan, clientId, date, ct);
 

@@ -12,6 +12,7 @@ using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using FitnessPlatform.Tests.Infrastructure;
@@ -172,23 +173,26 @@ public class PlanPhotoUploadedSignalRTests
 
     // ── Endpoint factories ───────────────────────────────────────────────────────
 
-    private FinalizePlanPhotoEndpoint CreateFinalizeEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private FinalizePlanPhotoEndpoint CreateFinalizeEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _finalizeLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _finalizeLogger, new FakeBlobStorageService());
 
-    private SaveMealPhotosEndpoint CreateSaveMealPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private SaveMealPhotosEndpoint CreateSaveMealPhotosEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<SaveMealPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _mealLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _mealLogger, new FakeBlobStorageService());
 
-    private SaveDayPhotosEndpoint CreateSaveDayPhotosEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private SaveDayPhotosEndpoint CreateSaveDayPhotosEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _dayLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _dayLogger, new FakeBlobStorageService());
 
     // ════════════════════════════════════════════════════════════════════════════
     // FinalizePlanPhoto — nutrition plan
@@ -611,6 +615,75 @@ public class PlanPhotoUploadedSignalRTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
 
         // No photos inserted → no events
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "planphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // F6 residual: FinalizePlanPhoto gates BOTH domains on the professional's
+    // CURRENT link capability, not mere plan authorship (nutritionistId/trainerId
+    // are permanent fields on the plan document; the underlying link is not).
+    // ════════════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task FinalizePlanPhoto_NutritionPlan_NutritionistLacksCapability_DoesNotEmit()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            clientId: _clientId,
+            nutritionistId: _nutritionistId);
+
+        var mongo = CreateMongoWithNutritionPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body
+        }, TestContext.Current.CancellationToken);
+
+        // The PlanPhoto row still gets created — only the broadcast is gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "planphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task FinalizePlanPhoto_TrainingPlan_TrainerLacksCapability_DoesNotEmit()
+    {
+        var planId = Guid.NewGuid();
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = _clientId,
+            TrainerId = _trainerId,
+            Status = TrainingPlanStatus.Active
+        };
+
+        var mongo = CreateMongoWithTrainingPlan(trainingPlan);
+        var db = CreateMockDb();
+        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.FreeForm
+        }, TestContext.Current.CancellationToken);
+
+        // The PlanPhoto row still gets created — only the broadcast is gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(),
             "planphotouploaded",

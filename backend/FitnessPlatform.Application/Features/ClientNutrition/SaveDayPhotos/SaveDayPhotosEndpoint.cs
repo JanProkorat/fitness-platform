@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -31,6 +32,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="authHelper">Link capability helper — gates the nutritionist-addressed broadcast.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
@@ -39,6 +41,7 @@ public class SaveDayPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper,
     ILogger<SaveDayPhotosEndpoint> logger,
     IBlobStorageService blobStorage)
     : Endpoint<SaveDayPhotosRequest>
@@ -196,7 +199,28 @@ public class SaveDayPhotosEndpoint(
             ct);
 
         // Emit planPhotoUploaded to the owning nutritionist for each newly-created row (best-effort).
+        // Gated on the nutritionist's CURRENT link capability, not mere plan authorship (F6
+        // residual): plan.NutritionistId is permanent, but the underlying ClientProfessionalLink
+        // is not — a professional whose collaboration ended must stop receiving the client's
+        // diary photos. The check is evaluated once (not per photo) and never fails the client's
+        // own write — an exception here only skips the broadcast.
+        var nutritionistHasAccess = false;
         if (plan.NutritionistId != Guid.Empty)
+        {
+            try
+            {
+                nutritionistHasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                    plan.NutritionistId, clientId, requireTrainingPlanAccess: false, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to verify nutritionist {NutritionistId} link capability for client {ClientId}; planPhotoUploaded events skipped",
+                    plan.NutritionistId, clientId);
+            }
+        }
+
+        if (nutritionistHasAccess)
         {
             foreach (var newPhoto in newPhotos)
             {
@@ -225,7 +249,7 @@ public class SaveDayPhotosEndpoint(
         else if (newPhotos.Count > 0)
         {
             logger.LogWarning(
-                "Could not resolve owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
+                "Could not resolve an accessible owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
                 plan.ExternalId);
         }
 

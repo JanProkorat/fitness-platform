@@ -492,13 +492,17 @@ public class UpdateWorkoutEndpoint(
                 "Failed to broadcast personalrecordachieved to client {ClientId}.", pr.ClientId);
         }
 
-        // Notify each active trainer linked to this client.
+        // Notify each active trainer linked to this client. Personal records are training-domain
+        // data — the recipient query must carry the same CanViewTrainingPlans requirement the
+        // REST route serving this collection (GetClientTimeline) enforces (F6), otherwise a
+        // nutrition-only professional receives exercise/weight/rep data over SignalR that the
+        // gated REST route would refuse them.
         List<Guid> trainerUserIds;
         try
         {
             trainerUserIds = await db.ClientProfessionalLinks
                 .AsNoTracking()
-                .Where(l => l.ClientProfile.UserId == pr.ClientId && l.IsActive)
+                .Where(l => l.ClientProfile.UserId == pr.ClientId && l.IsActive && l.CanViewTrainingPlans)
                 .Select(l => l.ProfessionalProfile.UserId)
                 .ToListAsync(ct);
         }

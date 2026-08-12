@@ -88,7 +88,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -129,12 +129,54 @@ public class GoLiveEndpointTests
     }
 
     [Fact]
+    public async Task GoLive_RevokedOrNutritionOnlyLink_EmitsLiveToClientOnly_NotTrainer()
+    {
+        // Arrange — same plan-bound log as the happy path, but the trainer's link no longer
+        // grants CanViewTrainingPlans (revoked collaboration, or narrowed to nutrition-only).
+        // The client must still receive their own lock state; the trainer must receive nothing (F6/F11 residual).
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [MakePlan()]);
+        var lockService = AcquiredLiveService();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<GoLiveEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, lockService, LockOptions, notifier,
+            EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        // Act
+        await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert — 200 OK; lock still acquired (the lock is authoritative, not gated on link capability)
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Client still receives their own lock-state change.
+        await notifier.Received(1).NotifyAsync(
+            _clientId,
+            "sessioneditlockchanged",
+            Arg.Any<SessionLockChangedPayload>(),
+            Arg.Any<CancellationToken>());
+
+        // Trainer receives NOTHING — the link no longer grants training-plan access.
+        await notifier.DidNotReceive().NotifyAsync(
+            _trainerId,
+            Arg.Any<string>(),
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GoLive_NoClaims_Returns401()
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
 
         var ep = Factory.Create<GoLiveEndpoint>(
-            mongo, Substitute.For<ISessionLockService>(), LockOptions, Substitute.For<IRealtimeNotifier>());
+            mongo, Substitute.For<ISessionLockService>(), LockOptions, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -152,7 +194,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -179,7 +221,8 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -201,7 +244,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -229,7 +272,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -256,7 +299,8 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 

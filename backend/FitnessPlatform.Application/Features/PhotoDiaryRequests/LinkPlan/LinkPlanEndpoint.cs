@@ -64,14 +64,21 @@ public class LinkPlanEndpoint(
         // #840) so the plan-ownership check (below) can verify the target plan actually
         // belongs to this diary's client. Invite-based requests that haven't been accepted
         // into a link yet have no resolvable client — the plan can never be proven to belong
-        // to them, so treat as not-owned.
-        Guid? clientUserId = request.Link?.ClientProfile.UserId;
+        // to them, so treat as not-owned. A deactivated link (collaboration ended) is treated
+        // the same way: the caller still owns the diary request (checked above), but a revoked
+        // link must not become a channel to retroactively attach a plan to it.
+        var activeLink = request.Link is { IsActive: true } ? request.Link : null;
 
         var planBelongsToClient = false;
-        if (clientUserId.HasValue)
+        if (activeLink is not null)
         {
+            var clientUserId = activeLink.ClientProfile.UserId;
+
             // Ownership check mirrors CreateRequestEndpoint: check nutrition plans first, then
             // fall back to training plans — the request isn't scoped to a single plan kind.
+            // Beyond ownership, the link must also carry the capability flag matching the
+            // plan's domain — the same cross-domain bound CreateRequestEndpoint enforces at
+            // creation time; this route must not let it be bypassed after the fact.
             var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
                 .Eq(p => p.ExternalId, req.PlanId);
             var nutritionPlan = await (await mongo.NutritionPlans
@@ -80,7 +87,7 @@ public class LinkPlanEndpoint(
 
             if (nutritionPlan is not null)
             {
-                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value;
+                planBelongsToClient = nutritionPlan.ClientId == clientUserId && activeLink.CanViewNutritionPlans;
             }
             else
             {
@@ -90,7 +97,8 @@ public class LinkPlanEndpoint(
                     .FindAsync(trainingFilter, cancellationToken: ct))
                     .FirstOrDefaultAsync(ct);
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value;
+                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId
+                    && activeLink.CanViewTrainingPlans;
             }
         }
 

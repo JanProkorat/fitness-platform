@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -20,7 +21,9 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// write — #841 retired the separate TrainingCompletion fan-out).
 /// Also releases the <c>Live</c> session lock when the log is plan-bound
 /// (i.e. when the log carries a non-null <c>SessionId</c>).
-/// Emits <c>sessioneditlockchanged</c> (state=Stable) to both client and trainer when a lock is released.
+/// Emits <c>sessioneditlockchanged</c> (state=Stable) to the client unconditionally when a lock is
+/// released, and to the trainer only when the trainer still holds a live, training-capable link to
+/// the client (F6/F11 residual — plan authorship is permanent, the link is not).
 /// Emits <c>trainingprogressupdated</c> to the trainer so the portal reflects the finished state in real time.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
@@ -28,6 +31,7 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
+/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger for swallowing broadcast errors.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
@@ -35,6 +39,7 @@ public class CompleteWorkoutEndpoint(
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
+    ProfessionalAuthHelper authHelper,
     ILogger<CompleteWorkoutEndpoint> logger) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
@@ -123,7 +128,17 @@ public class CompleteWorkoutEndpoint(
                             "Client");
 
                         await notifier.NotifyAsync(clientId, "sessioneditlockchanged", lockPayload, ct);
-                        await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", lockPayload, ct);
+
+                        // Gate the trainer-addressed emit on the trainer's CURRENT link capability.
+                        // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
+                        // professional whose collaboration ended (or was narrowed away from training)
+                        // must stop receiving live signals of when the client is training and
+                        // editing a session (F6/F11 residual).
+                        if (await authHelper.HasPlanAccessForClientUserAsync(
+                                plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+                        {
+                            await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", lockPayload, ct);
+                        }
                     }
 
                     // Emit trainingprogressupdated so the trainer portal reflects the finished state in real time.
@@ -131,7 +146,7 @@ public class CompleteWorkoutEndpoint(
                     // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
                     var totalExercises = log.Exercises.Count;
                     await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                        notifier, compliance, mongo, plan,
+                        notifier, compliance, mongo, authHelper, plan,
                         clientId: plan.ClientId,
                         sessionId: log.SessionId.Value,
                         date: DateOnly.FromDateTime(log.Date),

@@ -64,7 +64,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -86,7 +87,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -104,7 +106,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -126,7 +129,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -155,7 +159,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -201,7 +206,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -235,7 +241,8 @@ public class CompleteWorkoutEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
-            StubComplianceService(), Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
