@@ -397,7 +397,7 @@ public class ListClientPlansTests
         await _audit.Received(1).LogAsync(
             _trainerId,
             "Read",
-            nameof(Application.Domain.Entities.ClientProfile),
+            "ClientPlans",
             clientProfile.PublicId,
             Arg.Any<string?>(),
             Arg.Any<string?>(),
