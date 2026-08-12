@@ -1,80 +1,143 @@
 ---
-description: Vertical slice architecture rules for .NET backend features
+description: Vertical slice architecture rules for the FitnessPlatform .NET backend
 ---
 
 # Architecture Rules
 
-Every feature is a self-contained vertical slice owning its request, response, endpoint, validator, errors, and feature configuration. No horizontal layers — see #no-horizontal-layers and #banned-patterns.
+> **Descriptive unless marked otherwise.** Every claim below was measured
+> against `backend/FitnessPlatform.Application` on `develop` at `dc990021`
+> (issue #937). Where a rule is aspirational — a direction for new code that
+> most of the existing code does not follow — it is labelled
+> **[ASPIRATIONAL]** and states the current count. Do not read an
+> aspirational rule as a description of the codebase, and do not open a
+> finding against existing code for failing it.
+
+The backend is **one project** — `FitnessPlatform.Application` (plus
+`FitnessPlatform.Tests`). Feature code is organised as vertical slices under
+`Features/`; everything shared across slices lives under `Domain/` or
+`Infrastructure/`. See #vertical-slice-layout and #shared-layers.
 
 ## Vertical slice layout
 
-Every feature lives in `src/{Project}/Features/{Area}/` — one type per file, co-located. Nest per action (`CreateOrder/`, `GetOrder/`) when a slice has multiple request/response/validator types; flatten for trivial queries.
+Every feature lives in `FitnessPlatform.Application/Features/{Area}/` — one
+type per file, co-located, nested one folder per action. 233 endpoint files
+across 27 area folders follow this shape; the per-action nesting is
+universal, not optional.
 
 ```
-Features/Orders/
-  OrdersFeatureConfiguration.cs
-  CreateOrder/ { CreateOrderEndpoint.cs, CreateOrderRequest.cs, CreateOrderResponse.cs, CreateOrderValidator.cs }
-  GetOrder/    { GetOrderEndpoint.cs, GetOrderRequest.cs, GetOrderResponse.cs }
-  Errors/      { OrderErrors.cs }
-  Shared/      { OrderDto.cs }
+Features/NutritionPlans/
+  CreatePlan/  { CreatePlanEndpoint.cs, CreatePlanRequest.cs, CreatePlanValidator.cs }
+  GetPlan/     { GetPlanEndpoint.cs, GetPlanRequest.cs, GetPlanResponse.cs }
+  GetPlans/    { GetPlansEndpoint.cs, GetPlansRequest.cs, GetPlansResponse.cs, GetPlansValidator.cs }
+  UpdatePlan/  { UpdatePlanEndpoint.cs, UpdatePlanRequest.cs, UpdatePlanValidator.cs }
+  Shared/      { PlanSummaryDto.cs }
 ```
 
-## Feature configuration
+A `Shared/` sub-folder holds DTOs and error tables reused by two or more
+actions in the same area (10 areas have one). Feature-scoped error tables
+live there too — `Features/SessionTemplates/Shared/SessionTemplateErrors.cs`,
+`Features/MealTemplates/Shared/MealTemplateErrors.cs`. There is no `Errors/`
+folder convention (0 exist).
 
-Every feature slice MUST include `{Feature}FeatureConfiguration : IFeatureConfiguration` in its root folder. Auto-discovered via reflection (no `Program.cs` registration);
-Requirements: parameterless ctor, `internal sealed`, `FeatureInfo` name = Swagger tag.
+There is **no** `{Feature}FeatureConfiguration` type and no
+`IFeatureConfiguration` interface in this backend — a slice's root folder
+holds nothing but its action folders and (optionally) `Shared/`. Swagger
+grouping comes from FastEndpoints' route-derived tags, not from a
+per-feature configuration object. (A rule requiring one was removed in #937;
+it had 0 occurrences and had never existed here.)
 
-```csharp
-/// <summary>
-/// Feature configuration for the Orders slice.
-/// </summary>
-internal sealed class OrdersFeatureConfiguration : IFeatureConfiguration
-{
-    /// <summary>
-    /// Swagger tag info for this feature.
-    /// </summary>
-    public FeatureInfo Info => new("Orders", "CRUD operations over orders");
+## Shared layers
 
-    /// <summary>
-    /// Register feature-scoped services here.
-    /// </summary>
-    public IServiceCollection AddFeatureDependencies(IServiceCollection services, IConfiguration configuration)
-        => services;
-}
-```
+Two shared trees sit alongside `Features/`. Both are load-bearing — this
+backend is **not** a features-only tree.
+
+| Folder | Holds | Size |
+|---|---|---|
+| `Domain/Common/` | Entity base classes (`BaseEntity`, `TimestampableEntity`, `PublicTimestampableEntity`) and their interfaces | — |
+| `Domain/Constants/` | `AppRoles`, `AppClaims`, `ErrorCodes`, `MongoCollections` | — |
+| `Domain/Entities/` | EF Core / PostgreSQL entities | 30 files |
+| `Domain/Documents/` | MongoDB document classes | 46 files |
+| `Domain/Enums/` | Domain enums | — |
+| `Domain/Extensions/` | Endpoint extension methods (`SendProblemAsync`, library-denial and plan-load helpers) | — |
+| `Domain/Interfaces/` | Service interfaces | 18 files |
+| `Domain/Services/` | Cross-feature domain helpers — `PlanConcurrencyGuard`, `PlanWindowResolver`, `ClientVerdictService`, `LibraryAccessGuard`, `LibrarySearchHelper` | 5 files |
+| `Infrastructure/Data/` | `ApplicationDbContext`, `MongoContext`, EF migrations | — |
+| `Infrastructure/Services/` | External integrations and background work — email, push, blob, macro calculation, schedulers | 33 files |
+| `Infrastructure/Hubs/` | SignalR `NotificationHub`, presence tracking | — |
+| `Middleware/` | Global exception handler, locale capture | — |
+| `Seed/` | Seed data + runners | — |
 
 ## No horizontal layers
 
-No top-level `Services/`, `Repositories/`, `Application/`, `Domain/`. Features are the only organizing principle — grow large endpoints by extracting `private` methods on the same class. Cross-feature: no references across feature namespaces. Shared data → `Shared/` or `Common/`, or query `DbContext` directly from each feature.
+Scoped rule, not a blanket ban. **Feature logic** does not get its own
+service layer: a slice's business logic lives in its endpoint's
+`HandleAsync`, grown by extracting `private` methods on the same class. Do
+not add a `Features/{Area}/Services/` folder, a per-feature handler type, or
+a `{Feature}Service` class to hold what the endpoint should own.
+
+What *is* allowed, and widely used:
+
+- **`Domain/Services/`** for a helper genuinely shared by two or more slices
+  (5 files today). A guard or resolver used by one slice belongs in that
+  slice's endpoint; promote it only on the second caller.
+- **`Infrastructure/Services/`** for anything crossing a process boundary —
+  email, push, blob storage, HTTP clients, hosted background services (33
+  files today).
+- **`Domain/Extensions/`** for endpoint extension methods that let several
+  slices share a load-and-authorize sequence
+  (`LoadOwnedNutritionPlanIfAllowedAsync`,
+  `LoadLibraryEntryForReadOrRespondAsync`, `SendProblemAsync`).
+
+Cross-feature references between two `Features/{Area}` namespaces are still
+the smell: the shared thing goes to `Domain/` instead.
 
 ## Banned patterns
 
-NO: Mapping libraries — hand-write projections with `Select` or custom mapping extensions.
-NO: MediatR / `IRequest<T>` handlers — endpoint owns the logic.
-NO: Service / Manager classes for feature logic — extract private methods on the endpoint.
-NO: `Services/` / `Repositories/` / `Application/` / `Domain/` folders.
+These four are genuinely absent from the backend and must stay absent —
+each measured at **0** occurrences:
 
-See #no-horizontal-layers for rationale.
+- **Mapping libraries** (AutoMapper, Mapster) — hand-write projections with
+  `Select`, or a static `FromDocument`/`FromEntity` factory on the response
+  type (the established form: `GetPlanResponse.FromDocument(...)`).
+- **MediatR / `IRequest<T>` handlers** — the endpoint owns the logic.
+- **The repository pattern** — see #no-repository-pattern.
+- **`#region` / `#endregion`** — see `rules/csharp-style.md#no-regions`.
+
+Not banned, contrary to what this file said before #937:
+`Domain/`, `Infrastructure/`, `Domain/Services/` and
+`Infrastructure/Services/` are the actual layout — see #shared-layers.
 
 ## No repository pattern
 
-Inject `DbContext` directly into endpoints via primary constructor. No repository interface or wrapper class. EF Core is already a Unit-of-Work + Repository implementation.
+Inject `IApplicationDbContext` / `IMongoContext` directly into endpoints via
+the primary constructor. No repository interface, no wrapper class — EF Core
+is already a Unit-of-Work + Repository implementation, and the Mongo driver
+is accessed through `IMongoContext`'s typed collection properties.
 
-## Common infrastructure
+`IRepository` appears 0 times in the backend. All 233 endpoints use a
+primary constructor for their dependencies; 91 take `ApplicationDbContext`
+directly.
 
-Allowed only when reused by 2+ features:
-
-- `Common/` — interfaces (`ICurrentUser`, `IPermissionService`), shared utilities, base classes.
-- `Database/` or `Infrastructure/EntityFramework/` — DbContext, entities, configurations, migrations.
-- `Infrastructure/` — external service integrations (Graph API, HTTP clients).
-- `Authorization/` — policies, handlers, permission providers.
+```csharp
+public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+    : Endpoint<GetPlanRequest, GetPlanResponse>
+```
 
 ## One type per file
 
 See `rules/naming.md#files-and-types`.
 
-## Project references
+## Project layout
 
-- `{Project}` (App or Api) — endpoints, features, database, infrastructure wiring.
-- `{Project}.Shared` — enums, permission constants, DTOs shared with frontend/Functions. No project refs.
-- `{Project}.Infrastructure` — external service integrations. References `Shared`.
+Two projects, no `.Shared` / `.Infrastructure` split:
+
+- `FitnessPlatform.Application` — `Microsoft.NET.Sdk.Web`, `net10.0`,
+  `Nullable`/`ImplicitUsings` enabled, `GenerateDocumentationFile=true` with
+  `NoWarn=1591`. Holds endpoints, domain, infrastructure wiring, migrations,
+  seed data.
+- `FitnessPlatform.Tests` — xUnit v3 + Testcontainers.
+
+Types shared with the web and mobile clients are not shared via a project
+reference — the clients consume generated TypeScript from Swagger (see the
+`regen-api` skill). There is no `FitnessPlatform.Shared` project; do not
+cite one.
