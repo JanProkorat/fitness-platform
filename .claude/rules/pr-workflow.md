@@ -43,7 +43,7 @@ This gate applies with extra force to **subagents**: a designer, developer,
 reviewer, or researcher subagent hands its result back to the
 orchestrator and never touches the remote. Only the orchestrating/main thread
 pushes, opens, or completes a PR — see
-`rules/scope-boundaries.md#parallel-agents-and-worktree-isolation` for the
+`rules/branch-and-pr.md#parallel-sub-agents-one-branch-each` for the
 matching commit-level restriction.
 
 `git push` and the PR-completion commands belong on a repo's `ask`/`deny`
