@@ -6,9 +6,11 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
@@ -64,12 +66,13 @@ public class SaveSessionPhotosEndpointTests
         };
     }
 
-    private SaveSessionPhotosEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private SaveSessionPhotosEndpoint CreateEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<SaveSessionPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger);
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path: new log inserted
@@ -287,6 +290,81 @@ public class SaveSessionPhotosEndpointTests
             p.PlanType == PlanPhotoType.Training &&
             p.LinkId == sessionId &&
             p.Description == "Great lift"));
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // F6 residual: planPhotoUploaded is gated on the trainer's CURRENT link
+    // capability, not mere plan authorship.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_NewPhoto_TrainerHasCapability_EmitsPlanPhotoUploaded()
+    {
+        // Positive control: with a granting authHelper (the default), the newly-created
+        // PlanPhoto row must still trigger the trainer-addressed broadcast.
+        var sessionId = Guid.NewGuid();
+        var plan = CreateActivePlan(sessionId);
+
+        var logCollection = TrainingPhotoTestHelpers.CreateSessionLogCollection([]);
+        var mongo = TrainingPhotoTestHelpers.CreateMongoWithPlan(plan);
+        mongo.SessionLogs.Returns(logCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper());
+
+        await ep.HandleAsync(new SaveSessionPhotosRequest
+        {
+            SessionId = sessionId,
+            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/granted.jpg" }],
+            Note = null
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        await _notifier.Received(1).NotifyAsync(
+            plan.TrainerId,
+            "planphotouploaded",
+            Arg.Any<PlanPhotoUploadedEvent>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_NewPhoto_TrainerLacksCapability_DoesNotEmitPlanPhotoUploaded()
+    {
+        // The trainer authored the plan (plan.TrainerId is set) but no longer holds a live,
+        // training-capable ClientProfessionalLink — the same defect class F6 closed at the
+        // other six sites: authorship must never substitute for a live capability check.
+        var sessionId = Guid.NewGuid();
+        var plan = CreateActivePlan(sessionId);
+
+        var logCollection = TrainingPhotoTestHelpers.CreateSessionLogCollection([]);
+        var mongo = TrainingPhotoTestHelpers.CreateMongoWithPlan(plan);
+        mongo.SessionLogs.Returns(logCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        await ep.HandleAsync(new SaveSessionPhotosRequest
+        {
+            SessionId = sessionId,
+            Photos = [new SessionPhotoInput { BlobUrl = "https://minio.local/diary/sessions/s1/denied.jpg" }],
+            Note = null
+        }, TestContext.Current.CancellationToken);
+
+        // The write itself still succeeds — only the broadcast is gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "planphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
     }
 
     // ──────────────────────────────────────────────────────────────────────────

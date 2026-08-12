@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using Microsoft.Extensions.Logging;
@@ -87,12 +88,13 @@ public class SaveDayPhotosEndpointTests
         return cursor;
     }
 
-    private SaveDayPhotosEndpoint CreateEndpoint(IMongoContext mongo, IApplicationDbContext db) =>
+    private SaveDayPhotosEndpoint CreateEndpoint(
+        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger);
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -465,6 +467,46 @@ public class SaveDayPhotosEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         existingPlanPhoto.Description.Should().Be("New");
         db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // F6 residual: planPhotoUploaded is gated on the nutritionist's CURRENT link
+    // capability, not mere plan authorship.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveDayPhotos_NutritionistLacksCapability_DoesNotEmitPlanPhotoUploaded()
+    {
+        // The nutritionist authored the plan (plan.NutritionistId is set) but no longer holds
+        // a live, nutrition-capable ClientProfessionalLink — the same defect class F6 closed at
+        // the other six sites: authorship must never substitute for a live capability check.
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var dayLogCollection = CreateDayLogCollection(existingLogs: []);
+        mongo.DayLogs.Returns(dayLogCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        await ep.HandleAsync(
+            new SaveDayPhotosRequest
+            {
+                Photos = [new DayPhotoInput { BlobUrl = "https://minio.local/plan-photos/denied.jpg", Category = DayPhotoCategory.Progress }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // The write itself still succeeds — only the broadcast is gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "planphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
     }
 
     // ──────────────────────────────────────────────────────────────────────────

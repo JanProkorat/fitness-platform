@@ -68,11 +68,12 @@ public class LinkPlanEndpoint(
         // the same way: the caller still owns the diary request (checked above), but a revoked
         // link must not become a channel to retroactively attach a plan to it.
         var activeLink = request.Link is { IsActive: true } ? request.Link : null;
-        Guid? clientUserId = activeLink?.ClientProfile.UserId;
 
         var planBelongsToClient = false;
-        if (clientUserId.HasValue)
+        if (activeLink is not null)
         {
+            var clientUserId = activeLink.ClientProfile.UserId;
+
             // Ownership check mirrors CreateRequestEndpoint: check nutrition plans first, then
             // fall back to training plans — the request isn't scoped to a single plan kind.
             // Beyond ownership, the link must also carry the capability flag matching the
@@ -86,7 +87,7 @@ public class LinkPlanEndpoint(
 
             if (nutritionPlan is not null)
             {
-                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value && activeLink!.CanViewNutritionPlans;
+                planBelongsToClient = nutritionPlan.ClientId == clientUserId && activeLink.CanViewNutritionPlans;
             }
             else
             {
@@ -96,8 +97,8 @@ public class LinkPlanEndpoint(
                     .FindAsync(trainingFilter, cancellationToken: ct))
                     .FirstOrDefaultAsync(ct);
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value
-                    && activeLink!.CanViewTrainingPlans;
+                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId
+                    && activeLink.CanViewTrainingPlans;
             }
         }
 

@@ -39,7 +39,9 @@ internal static class TrainingProgressBroadcaster
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
     /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
-    /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
+    /// <param name="clientId">The client's <c>ApplicationUser.Id</c> (MongoDB clientId) — also the
+    /// identity passed to <see cref="ProfessionalAuthHelper.HasPlanAccessForClientUserAsync"/> to
+    /// gate the broadcast, so it is load-bearing for authorization, not just a payload field.</param>
     /// <param name="sessionId">The session that was mutated.</param>
     /// <param name="date">The date for which the mutation occurred.</param>
     /// <param name="completedExerciseCount">Completed exercises in the session after mutation.</param>
@@ -75,13 +77,13 @@ internal static class TrainingProgressBroadcaster
         if (trainerId == Guid.Empty)
             return;
 
-        if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
-        {
-            return;
-        }
-
         try
         {
+            if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+            {
+                return;
+            }
+
             var (compliancePercent, streak, sessionsCompleted, sessionsPlanned) =
                 await ComputeMetricsAsync(compliance, mongo, plan, clientId, date, ct);
 
@@ -120,7 +122,9 @@ internal static class TrainingProgressBroadcaster
     /// <param name="mongo">Mongo context for counting today's session completions.</param>
     /// <param name="authHelper">Link capability helper — gates the broadcast on a live, capable link.</param>
     /// <param name="plan">The client's active training plan.</param>
-    /// <param name="clientId">The client's public Guid (MongoDB clientId).</param>
+    /// <param name="clientId">The client's <c>ApplicationUser.Id</c> (MongoDB clientId) — also the
+    /// identity passed to <see cref="ProfessionalAuthHelper.HasPlanAccessForClientUserAsync"/> to
+    /// gate the broadcast, so it is load-bearing for authorization, not just a payload field.</param>
     /// <param name="date">The date for which the mutation occurred.</param>
     /// <param name="aggregateCompletedExercises">Sum of completed exercises across all updated sessions.</param>
     /// <param name="aggregateTotalExercises">Sum of total exercises across all updated sessions.</param>
@@ -143,13 +147,13 @@ internal static class TrainingProgressBroadcaster
         if (trainerId == Guid.Empty)
             return;
 
-        if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
-        {
-            return;
-        }
-
         try
         {
+            if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+            {
+                return;
+            }
+
             var (compliancePercent, streak, sessionsCompleted, sessionsPlanned) =
                 await ComputeMetricsAsync(compliance, mongo, plan, clientId, date, ct);
 

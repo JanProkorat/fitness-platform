@@ -79,10 +79,8 @@ public class WorkoutCompletionService(
             // authorship survives a collaboration ending, so without this check a revoked
             // trainer would keep receiving a persisted notification + device push for the
             // client's PRs (F6). Personal records are training-domain data.
-            var hasTrainingAccess = plan is not null && await authHelper.HasPlanAccessForClientUserAsync(
-                plan.TrainerId, execution.ClientId, requireTrainingPlanAccess: true, ct);
-
-            if (plan is not null && hasTrainingAccess)
+            if (plan is not null && await authHelper.HasPlanAccessForClientUserAsync(
+                    plan.TrainerId, execution.ClientId, requireTrainingPlanAccess: true, ct))
             {
                 var prSummary = string.Join(", ", prDescriptions.Take(3));
 

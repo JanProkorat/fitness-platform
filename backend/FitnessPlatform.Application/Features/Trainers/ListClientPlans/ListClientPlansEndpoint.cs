@@ -137,7 +137,7 @@ public class ListClientPlansEndpoint(
         await audit.LogAsync(
             trainerUserId,
             "Read",
-            nameof(ClientProfile),
+            "ClientPlans",
             clientProfile.PublicId,
             HttpContext.Connection.RemoteIpAddress?.ToString(),
             ct: ct);
