@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -17,10 +18,15 @@ namespace FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 /// Trainer must have an active ClientProfessionalLink to the client; returns 403 if not
 /// linked (matches GetClientVerdict ownership pattern).
 /// </summary>
+/// <param name="db">Database context.</param>
+/// <param name="mongo">MongoDB context.</param>
+/// <param name="complianceService">Service for calculating compliance metrics.</param>
+/// <param name="audit">Audit logging service.</param>
 public class ListClientPlansEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
-    IComplianceService complianceService)
+    IComplianceService complianceService,
+    IAuditService audit)
     : Endpoint<ListClientPlansRequest, ListClientPlansResponse>
 {
     /// <inheritdoc />
@@ -123,6 +129,18 @@ public class ListClientPlansEndpoint(
                 ?? nutritionPlans.FirstOrDefault(np => np.ExternalId == p.PlanId)?.DateCreated
                 ?? DateTime.MinValue)
             .ToList();
+
+        // Audit: professional accessing a client's plan inventory, compliance percentages and
+        // weight deltas. Sibling routes reading the same measurement/compliance data (e.g.
+        // GetClientMeasurements) already audit; this route read the same rows without leaving
+        // a trace (F11).
+        await audit.LogAsync(
+            trainerUserId,
+            "Read",
+            "ClientPlans",
+            clientProfile.PublicId,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            ct: ct);
 
         await Send.OkAsync(new ListClientPlansResponse
         {

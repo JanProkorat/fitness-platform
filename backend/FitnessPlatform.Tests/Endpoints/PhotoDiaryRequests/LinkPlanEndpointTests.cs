@@ -60,7 +60,12 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         return (http, user.Id);
     }
 
-    private async Task<(long LinkId, Guid ClientPublicId)> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<(long LinkId, Guid ClientPublicId)> InsertLinkAsync(
+        Guid clientUserId,
+        Guid professionalUserId,
+        bool isActive = true,
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = false)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -75,9 +80,9 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
-            CanViewNutritionPlans = true,
-            CanViewTrainingPlans = false,
+            IsActive = isActive,
+            CanViewNutritionPlans = canViewNutritionPlans,
+            CanViewTrainingPlans = canViewTrainingPlans,
             PublicId = Guid.NewGuid(),
             DateCreated = DateTime.UtcNow,
         };
@@ -263,6 +268,68 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    // ── 404 — link revoked or lacking the plan's domain capability ────────────
+    // Residual from #916/#931-#932 review: this endpoint traversed request.Link with no
+    // IsActive check and no capability check, so a departed professional (or one whose link
+    // was narrowed to the other domain) could still retroactively attach a plan to a diary
+    // request they already own. Both cases must 404 identically to "plan not owned" — the
+    // caller must not be able to distinguish "revoked" from "never had access" from "wrong
+    // domain".
+
+    [Fact]
+    public async Task Link_LinkDeactivated_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        var (linkId, _) = await InsertLinkAsync(clientId, profId, isActive: false);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+        var planId = await InsertNutritionPlanAsync(clientId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Link_ActiveLinkLacksNutritionCapability_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync();
+        var (_, clientId) = await SetupClientAsync();
+        // Active link, but scoped to training only — no nutrition capability.
+        var (linkId, _) = await InsertLinkAsync(
+            clientId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+        var planId = await InsertNutritionPlanAsync(clientId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Link_ActiveLinkLacksTrainingCapability_Returns404()
+    {
+        var (http, profId) = await SetupProfessionalAsync("Trainer");
+        var (_, clientId) = await SetupClientAsync();
+        // Active link, but scoped to nutrition only (the default) — no training capability.
+        var (linkId, _) = await InsertLinkAsync(clientId, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId);
+        var planId = await InsertTrainingPlanAsync(clientId, profId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/trainer/photo-diary-requests/{requestId}/link",
+            new { PlanId = planId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // ── Happy path — nutrition plan ────────────────────────────────────────────
 
     [Fact]
@@ -302,7 +369,8 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
     {
         var (http, profId) = await SetupProfessionalAsync("Trainer");
         var (_, clientId) = await SetupClientAsync();
-        var (linkId, _) = await InsertLinkAsync(clientId, profId);
+        var (linkId, _) = await InsertLinkAsync(
+            clientId, profId, canViewNutritionPlans: false, canViewTrainingPlans: true);
         var requestId = await InsertDiaryRequestAsync(profId, linkId);
         var planId = await InsertTrainingPlanAsync(clientId, profId);
 

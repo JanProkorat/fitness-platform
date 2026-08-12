@@ -14,21 +14,31 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// <summary>
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
-/// Also creates an in-app notification and sends a real-time event if the client already has an account.
+/// Also creates an in-app notification and sends a real-time event if the client already has an
+/// account. Does NOT seed a chat message — see the claude-security F8 note in
+/// <see cref="HandleAsync"/>; that side effect is deferred to acceptance time.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
     IEmailService emailService,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    IConversationSeedService conversationSeedService,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
+    /// <summary>
+    /// Maximum number of outstanding (unaccepted) pending invites a single professional may
+    /// hold at once. Bounds the standing fan-out an abusive account can build up even when
+    /// paced below the <see cref="AppPolicies.PendingInviteRateLimit"/> window — 200 comfortably
+    /// exceeds any real professional's prospective-client roster (claude-security F8).
+    /// </summary>
+    private const int MaxOutstandingInvitesPerProfessional = 200;
+
     /// <inheritdoc />
     public override void Configure()
     {
         Post("/trainer/pending-invites");
         Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Admin);
+        Options(x => x.RequireRateLimiting(AppPolicies.PendingInviteRateLimit));
         Summary(s =>
         {
             s.Summary = "Create a pending invitation";
@@ -73,6 +83,36 @@ public class CreatePendingInviteEndpoint(
             this.ThrowErrorWithCode(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        // Reject a duplicate pending invite for the same professional and email — repeatedly
+        // re-inviting the same target is the abuse shape, not a legitimate workflow need (a
+        // professional who wants to resend can delete the existing invite first).
+        var reqEmailLowerForDuplicateCheck = req.Email.ToLower();
+        var hasDuplicate = await db.PendingInvites
+            .AsNoTracking()
+            .AnyAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id
+                         && pi.Email.ToLower() == reqEmailLowerForDuplicateCheck
+                         && !pi.IsAccepted, ct);
+
+        if (hasDuplicate)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.DuplicatePendingInvite,
+                "An unaccepted invite already exists for this email.", ct);
+            return;
+        }
+
+        // Cap outstanding (unaccepted) invites per professional — bounds the standing fan-out
+        // an abusive account can build up even when paced below the rate-limit window.
+        var outstandingCount = await db.PendingInvites
+            .AsNoTracking()
+            .CountAsync(pi => pi.ProfessionalProfileId == professionalProfile.Id && !pi.IsAccepted, ct);
+
+        if (outstandingCount >= MaxOutstandingInvitesPerProfessional)
+        {
+            await this.SendProblemAsync(429, ErrorCodes.TooManyPendingInvites,
+                "Maximum number of outstanding pending invites reached.", ct);
             return;
         }
 
@@ -134,16 +174,18 @@ public class CreatePendingInviteEndpoint(
 
         if (existingUser is not null)
         {
-            // Find or create a conversation between the professional and the existing
-            // user, and — if a message was provided — seed it as the conversation's
-            // first message (shared with the accept-time seeding in
-            // AcceptClientInviteEndpoint / AcceptInvitationEndpoint, #768).
-            var professionalUserId = professionalProfile.UserId;
-
-            await conversationSeedService.GetOrSeedConversationAsync(
-                professionalUserId, existingUser.Id, professionalUserId, trainerName, req.Message,
-                seedIntoExisting: true, ct: ct);
-
+            // claude-security F8: this branch used to ALSO seed a conversation and write the
+            // caller's free-text message into it, before the invitee had agreed to anything.
+            // That let any professional account drop attacker-written prose straight into an
+            // arbitrary stranger's message stream, addressed only by guessing their email.
+            // The conversation seed is deferred to acceptance — AcceptClientInviteEndpoint and
+            // AcceptInvitationEndpoint both already seed it from the invite's stored Message
+            // (#768), so nothing is lost, it just waits for consent.
+            //
+            // The notification and realtime event below stay: their payload is composed here
+            // from the professional's own profile and the invite id, the invitee needs some
+            // signal that an invite arrived, and the message they carry is the same text
+            // GetPendingInviteEndpoint already returns for the invite itself.
             await notificationService.CreateAsync(
                 existingUser.Id,
                 NotificationType.InvitationReceived,

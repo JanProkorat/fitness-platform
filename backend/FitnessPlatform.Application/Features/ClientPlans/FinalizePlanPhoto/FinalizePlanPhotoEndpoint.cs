@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -22,23 +23,28 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 ///
 /// Ownership: looks up the plan in NutritionPlans first; falls back to TrainingPlans.
 /// Returns 404 if neither exists for the given client.
-/// After a successful insert:
+/// After a successful insert, when the resolved professional still holds a live link that
+/// grants the plan's domain capability (F6 residual — plan authorship is permanent, the link
+/// is not):
 /// <list type="bullet">
 ///   <item>Emits a <c>planPhotoUploaded</c> SignalR event to the owning professional.</item>
 ///   <item>When <see cref="FinalizePlanPhotoRequest.DiaryRequestId"/> is set, additionally emits
 ///     a <c>photoDiaryPhotoUploaded</c> event to the same professional group so the trainer/
 ///     nutritionist can track diary progress in real time.</item>
 /// </list>
-/// Both broadcasts are best-effort: a failure does not fail the HTTP response.
+/// Both broadcasts (and the capability check itself) are best-effort: a failure does not fail
+/// the HTTP response — the PlanPhoto row is already committed.
 /// </summary>
 /// <param name="mongo">MongoDB context for plan lookup.</param>
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
 /// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
+/// <param name="authHelper">Link capability helper — gates both professional-addressed broadcasts.</param>
 /// <param name="logger">Logger.</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
+    ProfessionalAuthHelper authHelper,
     ILogger<FinalizePlanPhotoEndpoint> logger)
     : Endpoint<FinalizePlanPhotoRequest, PlanPhotoResponse>
 {
@@ -155,8 +161,30 @@ public class FinalizePlanPhotoEndpoint(
 
         await db.SaveChangesAsync(ct);
 
-        // Emit planPhotoUploaded to the owning professional (best-effort).
+        // Gate both broadcasts below on the professional's CURRENT link capability, not mere
+        // plan authorship (F6 residual): professionalUserId is resolved from a permanent plan
+        // field, but the underlying ClientProfessionalLink is not — a professional whose
+        // collaboration ended must stop receiving the client's plan photos. Evaluated once,
+        // and any failure here only skips the broadcast — it never fails the already-committed
+        // write.
+        var professionalHasAccess = false;
         if (professionalUserId.HasValue)
+        {
+            try
+            {
+                professionalHasAccess = await authHelper.HasPlanAccessForClientUserAsync(
+                    professionalUserId.Value, clientId, requireTrainingPlanAccess: planType == PlanPhotoType.Training, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to verify professional {ProfessionalId} link capability for client {ClientId}; planPhotoUploaded/photoDiaryPhotoUploaded events skipped",
+                    professionalUserId.Value, clientId);
+            }
+        }
+
+        // Emit planPhotoUploaded to the owning professional (best-effort).
+        if (professionalUserId.HasValue && professionalHasAccess)
         {
             try
             {
@@ -179,6 +207,12 @@ public class FinalizePlanPhotoEndpoint(
                     photo.PublicId, professionalUserId.Value);
             }
         }
+        else if (professionalUserId.HasValue)
+        {
+            logger.LogWarning(
+                "Professional {ProfessionalId} lacks a live capable link to client {ClientId}; planPhotoUploaded event skipped",
+                professionalUserId.Value, clientId);
+        }
         else
         {
             logger.LogWarning(
@@ -188,7 +222,7 @@ public class FinalizePlanPhotoEndpoint(
 
         // Emit photoDiaryPhotoUploaded when this photo is linked to a diary request (best-effort).
         // Recipient: request.ProfessionalId  →  nutritionist/trainer group.
-        if (diaryRequest is not null && professionalUserId.HasValue)
+        if (diaryRequest is not null && professionalUserId.HasValue && professionalHasAccess)
         {
             try
             {

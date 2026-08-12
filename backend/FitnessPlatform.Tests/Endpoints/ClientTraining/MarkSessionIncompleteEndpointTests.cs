@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkSessionIncomplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -26,6 +27,7 @@ public class MarkSessionIncompleteEndpointTests
     private readonly Guid _exercise2 = Guid.NewGuid();
     private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly ProfessionalAuthHelper _authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
     private readonly ILogger<MarkSessionIncompleteEndpoint> _logger = Substitute.For<ILogger<MarkSessionIncompleteEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
@@ -57,7 +59,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -88,7 +90,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -132,7 +134,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest
@@ -174,7 +176,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest
@@ -201,7 +203,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(wrongClientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -225,7 +227,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = Guid.NewGuid() },
@@ -242,7 +244,7 @@ public class MarkSessionIncompleteEndpointTests
 
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -311,7 +313,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _authHelper, _logger);
 
         // Act
         await ep.HandleAsync(

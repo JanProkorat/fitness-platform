@@ -21,6 +21,7 @@ public class WorkoutCompletionService(
     IMongoContext mongo,
     IPrDetectionService prDetection,
     INotificationService notifications,
+    ProfessionalAuthHelper authHelper,
     ILogger<WorkoutCompletionService> logger) : IWorkoutCompletionService
 {
     /// <inheritdoc />
@@ -74,7 +75,12 @@ public class WorkoutCompletionService(
             using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
             var plan = await planCursor.FirstOrDefaultAsync(ct);
 
-            if (plan is not null)
+            // Gate on the trainer's current link, not the plan's permanent author field —
+            // authorship survives a collaboration ending, so without this check a revoked
+            // trainer would keep receiving a persisted notification + device push for the
+            // client's PRs (F6). Personal records are training-domain data.
+            if (plan is not null && await authHelper.HasPlanAccessForClientUserAsync(
+                    plan.TrainerId, execution.ClientId, requireTrainingPlanAccess: true, ct))
             {
                 var prSummary = string.Join(", ", prDescriptions.Take(3));
 
