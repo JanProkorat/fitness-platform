@@ -171,7 +171,11 @@ export function ExpandableSessionCard({
   const [lightboxVisible, setLightboxVisible] = useState(false)
   const photoList = photos ?? []
   const hasPhotos = photoList.length > 0
-  const photoUrls = photoList.map((p) => p.blobUrl).filter((u): u is string => typeof u === 'string' && u.length > 0)
+  // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which is
+  // identity-only and not directly fetchable. Map without filtering so
+  // `photoUrls`/`photoNotes` stay index-aligned; ImageLightbox renders a
+  // placeholder for an empty entry (e.g. the backend failed to re-sign it).
+  const photoUrls = photoList.map((p) => p.displayUrl ?? '')
   const photoNotes = photoList.map((p) => p.note ?? null)
 
   const handleBadgePress = useCallback(() => {

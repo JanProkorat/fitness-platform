@@ -13,6 +13,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using ApplicationPhotoRequest = FitnessPlatform.Application.Domain.Entities.PhotoDiaryRequest;
@@ -97,7 +98,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger);
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, new FakeBlobStorageService());
 
     // ── Tests ─────────────────────────────────────────────────────────────────────
 

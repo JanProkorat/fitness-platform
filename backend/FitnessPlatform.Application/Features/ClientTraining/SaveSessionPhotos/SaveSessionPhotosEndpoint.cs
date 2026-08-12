@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPlans;
@@ -33,12 +34,16 @@ namespace FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 /// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
 /// <param name="authHelper">Link capability helper — gates the trainer-addressed broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
+/// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
+/// permanently stored value (F9 follow-up).</param>
 public class SaveSessionPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     ProfessionalAuthHelper authHelper,
-    ILogger<SaveSessionPhotosEndpoint> logger)
+    ILogger<SaveSessionPhotosEndpoint> logger,
+    IBlobStorageService blobStorage)
     : Endpoint<SaveSessionPhotosRequest>
 {
     /// <inheritdoc />
@@ -110,6 +115,12 @@ public class SaveSessionPhotosEndpoint(
             return;
         }
 
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
         var now = DateTime.UtcNow;
         var todayUtc = now.Date;
 
@@ -128,7 +139,7 @@ public class SaveSessionPhotosEndpoint(
         var existingByUrl = (existingLog?.Photos ?? [])
             .ToDictionary(p => p.BlobUrl, p => p);
 
-        var replacementPhotos = req.Photos
+        var replacementPhotos = normalizedPhotos
             .Select(input =>
             {
                 var perPhotoNote = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
@@ -246,6 +257,37 @@ public class SaveSessionPhotosEndpoint(
         }
 
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Normalises every submitted <see cref="SessionPhotoInput.BlobUrl"/> to its canonical stored
+    /// form before it reaches any Mongo/DB write — see
+    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
+    /// short-lived DisplayUrl issued by GetTodaySession (or, from an app build that predates the
+    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
+    /// the signed query string would become the permanently stored value. Returns <c>null</c>
+    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
+    /// been written in that case.
+    /// </summary>
+    private async Task<List<SessionPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
+        List<SessionPhotoInput> inputs, CancellationToken ct)
+    {
+        var normalized = new List<SessionPhotoInput>(inputs.Count);
+
+        foreach (var input in inputs)
+        {
+            var canonicalBlobUrl = blobStorage.NormalizeToCanonicalUrl(input.BlobUrl);
+            if (canonicalBlobUrl is null)
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            normalized.Add(new SessionPhotoInput { BlobUrl = canonicalBlobUrl, Note = input.Note });
+        }
+
+        return normalized;
     }
 
     /// <summary>

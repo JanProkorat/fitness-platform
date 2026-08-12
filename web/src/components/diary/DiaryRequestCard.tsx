@@ -107,14 +107,15 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
     setLightboxOpen(true);
   }
 
-  // Keep URLs and captions index-aligned. Photos without a blobUrl are dropped
-  // so the lightbox doesn't get empty src strings.
+  // Keep URLs and captions index-aligned. Photos without a displayUrl are
+  // dropped so the lightbox doesn't get empty src strings. displayUrl is a
+  // short-lived signed read URL — render-only, never persist or echo it back.
   const { lightboxUrls, lightboxCaptions } = useMemo(() => {
     const urls: string[] = [];
     const captions: (string | null)[] = [];
     for (const p of lightboxDayPhotos) {
-      if (!p.blobUrl) continue;
-      urls.push(p.blobUrl);
+      if (!p.displayUrl) continue;
+      urls.push(p.displayUrl);
       captions.push(p.description ?? null);
     }
     return { lightboxUrls: urls, lightboxCaptions: captions };
@@ -272,9 +273,9 @@ export function DiaryRequestCard({ request, allPhotos }: Props) {
                             style={{ width: 64, height: 64, background: 'var(--bg3)', flexShrink: 0 }}
                             title={photo.description ?? t('nutrition.photos.photoAlt')}
                           >
-                            {photo.blobUrl ? (
+                            {photo.displayUrl ? (
                               <img
-                                src={photo.blobUrl}
+                                src={photo.displayUrl}
                                 alt={photo.description ?? `${t('nutrition.photos.photoAlt')} ${idx + 1}`}
                                 className="absolute inset-0 h-full w-full object-cover"
                                 loading="lazy"

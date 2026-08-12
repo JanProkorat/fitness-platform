@@ -542,9 +542,9 @@ export function FotkyTab({
                       className="relative w-full"
                       style={{ aspectRatio: '1 / 1' }}
                     >
-                      {photo.blobUrl ? (
+                      {photo.displayUrl ? (
                         <img
-                          src={photo.blobUrl}
+                          src={photo.displayUrl}
                           alt={photo.description ?? `${t('clientDetail.fotky.photoAlt')} ${idx + 1}`}
                           className="absolute inset-0 h-full w-full object-cover"
                           loading="lazy"

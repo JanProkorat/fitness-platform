@@ -50,6 +50,20 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
     /// <remarks>Mirrors <see cref="FitnessPlatform.Tests.Infrastructure.FakeBlobStorageService"/> — returns the bare container path (test double, no real host).</remarks>
     public string BuildPublicUrl(string containerPath) => containerPath;
 
+    /// <inheritdoc />
+    /// <remarks>
+    /// Test double only — the seed-idempotency tests in this file never exercise the signing
+    /// contract, so this does not need to mirror the real service's fail-closed behavior. Passes
+    /// the stored value through unchanged.
+    /// </remarks>
+    public Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct) =>
+        Task.FromResult(storedBlobUrl);
+
+    /// <inheritdoc />
+    /// <remarks>Test double only — strips a query string, mirroring the real service's contract.</remarks>
+    public string? NormalizeToCanonicalUrl(string blobUrl) =>
+        string.IsNullOrWhiteSpace(blobUrl) ? null : blobUrl.Split('?', 2)[0];
+
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
         _objects.Add(containerPath);

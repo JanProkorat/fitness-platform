@@ -20704,8 +20704,17 @@ CompletedSetsBySessionExercise, whose existing semantics are unchanged. */
 
 /** A photo attached to a session diary entry, as returned in PhotosBySession. */
 export interface SessionPhotoDto {
-    /** The MinIO blob URL for this photo. */
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable — the
+bucket carries no public-read grant for this prefix. This is the write-path identity key,
+safe to echo back unchanged on a subsequent SaveSessionPhotos call. Never render this as
+an <img>/Image source; use DisplayUrl instead. */
     blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: submitting this value back to SaveSessionPhotos would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
     /** UTC timestamp when the photo was uploaded/persisted. */
     uploadedAt?: string;
     /** Optional per-photo caption (max 500 chars). Null when none was provided. */
@@ -20976,8 +20985,17 @@ export interface ClientRequestDto {
 export interface PlanPhotoResponse {
     /** Public identifier of the photo record. */
     id?: string;
-    /** Permanent blob URL for the photo. */
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
+client-photo prefixes (the bucket carries no public-read grant there) — this is the
+write-path identity key, safe to echo back unchanged on a subsequent save. Never render
+this as an <img>/Image source; use DisplayUrl instead. */
     blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: a client that submits this value back on a save would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
     /** Display / filtering category (Food / Body / FreeForm). */
     category?: PlanPhotoCategory;
     /** Optional caption. */
@@ -21070,8 +21088,17 @@ export interface GetTrainerClientPhotosResponse {
 export interface ClientPhotoResponse {
     /** Public identifier of the photo record. */
     id?: string;
-    /** URL to the photo in blob storage (MinIO). */
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
+client-photo prefixes (the bucket carries no public-read grant there) — this is the
+write-path identity key, safe to echo back unchanged on a subsequent save. Never render
+this as an <img>/Image source; use DisplayUrl instead. */
     blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: a client that submits this value back on a save would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
     /** Optional caption or description for the photo. */
     description?: string | undefined;
     /** Display / filtering category (Food / Body / FreeForm). */
@@ -21255,8 +21282,17 @@ Null when no note was provided. */
 
 /** DTO for a single photo reference on a meal log entry. */
 export interface MealPhotoDto {
-    /** The MinIO blob URL for this photo. */
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable — the
+bucket carries no public-read grant for this prefix. This is the write-path identity key,
+safe to echo back unchanged on a subsequent SaveMealPhotos call. Never render this as an
+<img>/Image source; use DisplayUrl instead. */
     blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: submitting this value back to SaveMealPhotos would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
     /** UTC timestamp when the photo was uploaded. */
     uploadedAt?: string;
     /** Optional per-photo caption set by the client when saving photos.
@@ -21275,8 +21311,17 @@ Empty when no photos have been uploaded for today. */
 
 /** DTO for a single day-level photo reference in a day log response. */
 export interface DayPhotoDto {
-    /** The MinIO blob URL for this photo. */
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable — the
+bucket carries no public-read grant for this prefix. This is the write-path identity key,
+safe to echo back unchanged on a subsequent SaveDayPhotos call. Never render this as an
+<img>/Image source; use DisplayUrl instead. */
     blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: submitting this value back to SaveDayPhotos would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
     /** UTC timestamp when the photo was uploaded. */
     uploadedAt?: string;
     /** Optional per-photo caption set by the client when saving photos.

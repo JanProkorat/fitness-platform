@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -20,6 +21,12 @@ namespace FitnessPlatform.Tests.Endpoints.ClientNutrition;
 public class GetTodayLogEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -81,7 +88,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -122,7 +129,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -177,7 +184,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -186,9 +193,18 @@ public class GetTodayLogEndpointTests
 
         var dto = ep.Response.MealsEaten[0];
         dto.Photos.Should().HaveCount(2);
+
+        // Positive control: both stored BlobUrls reached the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/bucket/photo1.jpg");
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/bucket/photo2.jpg");
+
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on diary/* (F9) — while BlobUrl stays the canonical, permanent identity
+        // value so a client can safely echo it back on a later SaveMealPhotos call.
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/photo1.jpg?signed=test");
         dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/photo1.jpg");
         dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
-        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/photo2.jpg");
+        dto.Photos[1].DisplayUrl.Should().Be("https://minio.local/bucket/photo2.jpg?signed=test");
         dto.Note.Should().Be("Great post-workout dinner");
     }
 
@@ -231,7 +247,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -288,7 +304,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -298,6 +314,7 @@ public class GetTodayLogEndpointTests
         var dto = ep.Response.MealsEaten[0];
         dto.EatenAt.Should().BeNull();
         dto.Photos.Should().HaveCount(1);
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/snack.jpg?signed=test");
         dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/snack.jpg");
         dto.Photos[0].UploadedAt.Should().Be(uploadedAt);
         dto.Note.Should().Be("afternoon snack photo");
@@ -360,7 +377,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -369,9 +386,10 @@ public class GetTodayLogEndpointTests
 
         var dto = ep.Response.MealsEaten[0];
         dto.Photos.Should().HaveCount(2);
+        dto.Photos[0].DisplayUrl.Should().Be("https://minio.local/bucket/smoothie.jpg?signed=test");
         dto.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/smoothie.jpg");
         dto.Photos[0].Note.Should().Be("Blueberry variant");
-        dto.Photos[1].BlobUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg");
+        dto.Photos[1].DisplayUrl.Should().Be("https://minio.local/bucket/smoothie2.jpg?signed=test");
         dto.Photos[1].Note.Should().BeNull();
     }
 
@@ -385,7 +403,7 @@ public class GetTodayLogEndpointTests
         var ep = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, _blobStorage);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

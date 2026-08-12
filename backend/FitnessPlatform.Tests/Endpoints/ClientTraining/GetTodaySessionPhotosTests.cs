@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -25,6 +26,12 @@ namespace FitnessPlatform.Tests.Endpoints.ClientTraining;
 public class GetTodaySessionPhotosTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -112,7 +119,7 @@ public class GetTodaySessionPhotosTests
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService());
+            mongo, db, CreateStubLockService(), _blobStorage);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Read-back: photos saved to SessionLog appear in PhotosBySession
@@ -148,10 +155,19 @@ public class GetTodaySessionPhotosTests
         ep.Response.PhotosBySession.Should().ContainKey(sessionId);
         var photos = ep.Response.PhotosBySession[sessionId];
         photos.Should().HaveCount(2);
+
+        // Positive control: both stored BlobUrls reached the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/a.jpg");
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/b.jpg");
+
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on diary/* (F9) — while BlobUrl stays the canonical, permanent identity
+        // value so a client can safely echo it back on a later SaveSessionPhotos call.
+        photos[0].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg?signed=test");
         photos[0].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg");
         photos[0].UploadedAt.Should().Be(uploadedAt);
         photos[0].Note.Should().Be("Note A");
-        photos[1].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg");
+        photos[1].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg?signed=test");
         photos[1].Note.Should().BeNull();
     }
 

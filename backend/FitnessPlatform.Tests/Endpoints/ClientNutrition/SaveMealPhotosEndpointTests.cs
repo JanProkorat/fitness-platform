@@ -12,6 +12,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -28,6 +29,7 @@ public class SaveMealPhotosEndpointTests
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
     private readonly ILogger<SaveMealPhotosEndpoint> _logger =
         Substitute.For<ILogger<SaveMealPhotosEndpoint>>();
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -102,7 +104,7 @@ public class SaveMealPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger);
+            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, _blobStorage);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -810,6 +812,101 @@ public class SaveMealPhotosEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(204);
         existingPlanPhoto.Description.Should().Be("New");
         db.PlanPhotos.DidNotReceive().Add(Arg.Any<PlanPhoto>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // BlobUrl normalization (F9 follow-up)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlWithSignedQueryString_PersistsCanonicalForm()
+    {
+        // A client echoes back a short-lived DisplayUrl (or a stale value from an app build
+        // predating the identity/presentation split). Persisting the raw query string would
+        // make the signature the permanent stored value. Revert the endpoint's
+        // NormalizePhotoUrlsOrRespondAsync call and this assertion fails: the inserted photo's
+        // BlobUrl would equal the raw, still-signed input instead of the stripped canonical form.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        MealLog? insertedLog = null;
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([]));
+        mealLogCollection.InsertOneAsync(
+                Arg.Do<MealLog>(log => insertedLog = log),
+                Arg.Any<InsertOneOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/echoed.jpg?signed=test" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        insertedLog.Should().NotBeNull();
+        insertedLog!.Photos.Should().ContainSingle();
+        insertedLog.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/echoed.jpg");
+        insertedLog.Photos[0].BlobUrl.Should().NotContain("?");
+    }
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlCannotBeNormalized_Returns400()
+    {
+        // An empty BlobUrl cannot be normalised to a canonical form. Remove the endpoint's
+        // NormalizePhotoUrlsOrRespondAsync guard and this 400 disappears — the request proceeds
+        // to a 204 with an empty BlobUrl persisted instead.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.DatePublished = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+
+        await mealLogCollection.DidNotReceive().InsertOneAsync(
+            Arg.Any<MealLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await mealLogCollection.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<MealLog>>(),
+            Arg.Any<UpdateDefinition<MealLog>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     // ──────────────────────────────────────────────────────────────────────────

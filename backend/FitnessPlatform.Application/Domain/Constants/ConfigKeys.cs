@@ -92,4 +92,13 @@ public static class ConfigKeys
     /// Apple Service ID (reverse-domain format) used as the JWT audience when verifying Apple identity tokens.
     /// </summary>
     public const string AppleClientId = "Apple:ClientId";
+
+    /// <summary>
+    /// How long a pre-signed blob read URL remains valid, in minutes. Governs how quickly a
+    /// revoked client-professional link's already-issued photo URLs stop resolving — the bucket
+    /// carries no public-read grant for client-photo prefixes, so this window is the only thing
+    /// standing between "link revoked" and "photo bytes no longer fetchable". Defaults to 15
+    /// minutes (the same window already used for pre-signed upload URLs) when unset.
+    /// </summary>
+    public const string MinIoReadUrlExpiryMinutes = "MinIO:ReadUrlExpiryMinutes";
 }

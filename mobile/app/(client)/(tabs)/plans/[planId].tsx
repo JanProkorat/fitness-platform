@@ -333,13 +333,15 @@ function NutritionPlanDetail({
 
   // Build a mealId → photos map. Photos only exist for today's meals; for other
   // days the map will simply have no matching entries and MealCard gets photos=[].
+  // `blobUrl` is the write-path identity (kept as the filter key); `displayUrl`
+  // is the short-lived signed URL MealCard renders — never `blobUrl`.
   const mealPhotosByMealId = useMemo(() => {
-    const map: Record<string, { blobUrl: string; note?: string | null }[]> = {}
+    const map: Record<string, { blobUrl: string; displayUrl?: string; note?: string | null }[]> = {}
     for (const entry of todayLog?.mealsEaten ?? []) {
       if (!entry.mealId || !entry.photos?.length) continue
       map[entry.mealId] = entry.photos
         .filter((p) => !!p.blobUrl)
-        .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null }))
+        .map((p) => ({ blobUrl: p.blobUrl as string, displayUrl: p.displayUrl, note: p.note ?? null }))
     }
     return map
   }, [todayLog])

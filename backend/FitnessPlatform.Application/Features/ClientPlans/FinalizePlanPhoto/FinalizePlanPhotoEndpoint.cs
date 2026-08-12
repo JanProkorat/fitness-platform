@@ -40,12 +40,15 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 /// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
 /// <param name="authHelper">Link capability helper — gates both professional-addressed broadcasts.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="blobStorage">Blob storage service — converts the newly-persisted BlobUrl into a
+/// short-lived pre-signed read URL before echoing it back in the 201 response (F9).</param>
 public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     ProfessionalAuthHelper authHelper,
-    ILogger<FinalizePlanPhotoEndpoint> logger)
+    ILogger<FinalizePlanPhotoEndpoint> logger,
+    IBlobStorageService blobStorage)
     : Endpoint<FinalizePlanPhotoRequest, PlanPhotoResponse>
 {
     /// <inheritdoc />
@@ -80,6 +83,22 @@ public class FinalizePlanPhotoEndpoint(
         }
 
         var callerUserId = Guid.Parse(userId);
+
+        // Normalise to the canonical stored form before persisting — a client may echo back the
+        // short-lived DisplayUrl issued by GenerateReadUrlAsync (or, from an app build that
+        // predates the identity/presentation split, a value that used to BE the permanent
+        // BlobUrl). Without this the signed query string becomes the permanently stored value,
+        // and once the signature lapses GenerateReadUrlAsync can no longer resolve it back to a
+        // container path (F9 follow-up). The validator already confirms req.BlobUrl matches this
+        // plan's storage prefix; this only re-derives the canonical form, it does not widen what
+        // is accepted.
+        var canonicalBlobUrl = blobStorage.NormalizeToCanonicalUrl(req.BlobUrl);
+        if (canonicalBlobUrl is null)
+        {
+            await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                "Photo URL is not a recognised blob storage URL.", ct);
+            return;
+        }
 
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
@@ -140,7 +159,7 @@ public class FinalizePlanPhotoEndpoint(
             PlanType = planType,
             LinkId = linkId,
             Category = req.Category,
-            BlobUrl = req.BlobUrl,
+            BlobUrl = canonicalBlobUrl,
             Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim(),
             MealLogId = req.Category == PlanPhotoCategory.Food ? req.MealLogId : null,
             TakenAt = req.TakenAt ?? now,
@@ -254,6 +273,12 @@ public class FinalizePlanPhotoEndpoint(
         }
 
         var response = MapToResponse(photo);
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived DisplayUrl
+        // before echoing it back to the caller who just uploaded it (F9). BlobUrl itself stays
+        // the canonical, permanent identity value.
+        response.DisplayUrl = await blobStorage.GenerateReadUrlAsync(response.BlobUrl, ct) ?? string.Empty;
+
         HttpContext.Response.Headers.Location =
             $"/client/plans/{req.PlanId}/photos/{photo.PublicId}";
         await Send.ResponseAsync(response, StatusCodes.Status201Created, ct);

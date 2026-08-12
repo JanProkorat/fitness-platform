@@ -16,9 +16,21 @@ public class ClientPhotoResponse
     public Guid Id { get; set; }
 
     /// <summary>
-    /// URL to the photo in blob storage (MinIO).
+    /// Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
+    /// client-photo prefixes (the bucket carries no public-read grant there) — this is the
+    /// write-path identity key, safe to echo back unchanged on a subsequent save. Never render
+    /// this as an <c>&lt;img&gt;</c>/<c>Image</c> source; use <see cref="DisplayUrl"/> instead.
     /// </summary>
     public string BlobUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+    /// <c>MinIO:ReadUrlExpiryMinutes</c> (default 15 minutes) — presentation-only, re-fetch
+    /// rather than persisting, caching, or echoing it back on a write. Never conflate this with
+    /// <see cref="BlobUrl"/>: a client that submits this value back on a save would permanently
+    /// store an expiring signature (F9 follow-up).
+    /// </summary>
+    public string DisplayUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Optional caption or description for the photo.

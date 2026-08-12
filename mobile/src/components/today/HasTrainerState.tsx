@@ -236,14 +236,27 @@ export function HasTrainerState({ topBanner }: HasTrainerStateProps = {}) {
     return set
   }, [logQuery.data])
 
-  /** Per-meal diary photos from the log, keyed by mealId. Includes per-photo captions. */
+  /**
+   * Per-meal diary photos from the log, keyed by mealId. Includes per-photo
+   * captions. `blobUrl` is the write-path identity (kept for React keys /
+   * dedup); `displayUrl` is the short-lived signed URL consumers must render
+   * — never `blobUrl`, which is not directly fetchable.
+   */
   const mealPhotosByMealId = useMemo(() => {
-    const map: Record<string, { blobUrl: string; note?: string | null; uploadedAt?: string }[]> = {}
+    const map: Record<
+      string,
+      { blobUrl: string; displayUrl?: string; note?: string | null; uploadedAt?: string }[]
+    > = {}
     logQuery.data?.mealsEaten?.forEach((m) => {
       if (m.mealId && m.photos && m.photos.length > 0) {
         map[m.mealId] = m.photos
           .filter((p) => typeof p.blobUrl === 'string')
-          .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null, uploadedAt: p.uploadedAt }))
+          .map((p) => ({
+            blobUrl: p.blobUrl as string,
+            displayUrl: p.displayUrl,
+            note: p.note ?? null,
+            uploadedAt: p.uploadedAt,
+          }))
       }
     })
     return map

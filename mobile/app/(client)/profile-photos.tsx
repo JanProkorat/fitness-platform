@@ -110,9 +110,9 @@ function PhotoRow({ row, tileSize, onPress, sectionYearMonth }: PhotoRowProps) {
           accessibilityRole="imagebutton"
           style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.fill2 }]}
         >
-          {photo.blobUrl ? (
+          {photo.displayUrl ? (
             <Image
-              source={{ uri: photo.blobUrl }}
+              source={{ uri: photo.displayUrl }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
@@ -257,24 +257,19 @@ export default function ProfilePhotosScreen() {
     (photo: ClientPhotoResponse, sectionYearMonth: string) => {
       const section = allGroups.find((g) => g.yearMonth === sectionYearMonth)
       const sectionPhotos = section?.photos ?? []
-      // Keep urls and notes index-aligned: drop entries with no blobUrl from
-      // both arrays so the caption that shows with each photo is the one the
-      // trainer wrote on it.
-      const urls: string[] = []
-      const notes: (string | null)[] = []
-      let photoIndex = 0
-      for (let i = 0; i < sectionPhotos.length; i++) {
-        const p = sectionPhotos[i]
-        if (typeof p.blobUrl !== 'string') continue
-        if (p.id === photo.id || p.blobUrl === photo.blobUrl) {
-          photoIndex = urls.length
-        }
-        urls.push(p.blobUrl)
-        notes.push(p.description ?? null)
-      }
+      // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which
+      // is identity-only and not directly fetchable. Map without filtering so
+      // the images/notes arrays stay index-aligned with `sectionPhotos`;
+      // ImageLightbox renders a placeholder for an empty entry. Identity for
+      // locating the tapped photo's index still uses `blobUrl`/`id`.
+      const urls = sectionPhotos.map((p) => p.displayUrl ?? '')
+      const notes = sectionPhotos.map((p) => p.description ?? null)
+      const photoIndex = sectionPhotos.findIndex(
+        (p) => p.id === photo.id || (p.blobUrl != null && p.blobUrl === photo.blobUrl),
+      )
       setLightboxImages(urls)
       setLightboxNotes(notes)
-      setLightboxIndex(photoIndex)
+      setLightboxIndex(photoIndex >= 0 ? photoIndex : 0)
       setLightboxVisible(true)
     },
     [allGroups],

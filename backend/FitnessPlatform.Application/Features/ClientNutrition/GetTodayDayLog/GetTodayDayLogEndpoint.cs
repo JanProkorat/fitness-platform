@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -18,7 +19,9 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayDayLog;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="blobStorage">Blob storage service — converts each photo's stored BlobUrl into a
+/// short-lived pre-signed read URL before the response leaves the process (F9).</param>
+public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage)
     : EndpointWithoutRequest<GetTodayDayLogResponse>
 {
     /// <inheritdoc />
@@ -131,6 +134,14 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
             .Concat(mealPhotos)
             .OrderByDescending(p => p.UploadedAt)
             .ToList();
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived DisplayUrl for
+        // each photo before it leaves the process (F9). BlobUrl itself stays the canonical,
+        // permanent identity value.
+        foreach (var photo in allPhotos)
+        {
+            photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
+        }
 
         var response = new GetTodayDayLogResponse
         {

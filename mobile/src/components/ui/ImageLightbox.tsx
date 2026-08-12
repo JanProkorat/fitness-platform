@@ -109,11 +109,21 @@ export function ImageLightbox({
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<string>) => (
       <View style={{ width, height, justifyContent: 'center', alignItems: 'center' }}>
-        <Image
-          source={{ uri: item }}
-          style={{ width, height }}
-          resizeMode="contain"
-        />
+        {item ? (
+          <Image
+            source={{ uri: item }}
+            style={{ width, height }}
+            resizeMode="contain"
+          />
+        ) : (
+          // `item` can legitimately be an empty string — the backend fails
+          // closed and returns no signed URL when it cannot re-sign a photo
+          // (see F9). Show a placeholder rather than an <Image> with an empty
+          // uri, which some platforms render as a broken-image icon.
+          <View style={styles.emptyImagePlaceholder}>
+            <Ionicons name="image-outline" size={48} color="rgba(255,255,255,0.4)" />
+          </View>
+        )}
       </View>
     ),
     [width, height]
@@ -276,6 +286,19 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     color: 'white',
+  },
+  /**
+   * Shown in place of an <Image> when an entry's uri is an empty string
+   * (photo failed to re-sign server-side). Matches the backdrop's existing
+   * rgba(255,255,255,x) chrome palette used elsewhere in this file.
+   */
+  emptyImagePlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   /**
    * Floating caption containers — no background, positioned in the upper/lower
