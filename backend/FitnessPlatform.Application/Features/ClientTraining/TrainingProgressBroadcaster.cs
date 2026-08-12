@@ -76,7 +76,9 @@ internal static class TrainingProgressBroadcaster
             return;
 
         if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+        {
             return;
+        }
 
         try
         {
@@ -142,7 +144,9 @@ internal static class TrainingProgressBroadcaster
             return;
 
         if (!await authHelper.HasPlanAccessForClientUserAsync(trainerId, clientId, requireTrainingPlanAccess: true, ct))
+        {
             return;
+        }
 
         try
         {
