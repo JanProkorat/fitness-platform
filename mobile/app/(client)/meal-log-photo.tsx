@@ -51,6 +51,18 @@ import { Toast } from '@/lib/toast'
 
 const NOTE_MAX_CHARS = 500
 
+/**
+ * Local editing-session shape for a meal diary photo. Distinct from the
+ * generated `MealPhotoInput` write DTO (which carries only `blobUrl` +
+ * `note`) so the render-only `displayUrl` field can never leak into the
+ * save payload — see `saveMutation` below, which strips it explicitly.
+ */
+interface UploadedMealPhoto {
+  blobUrl: string
+  displayUrl?: string
+  note: string | null
+}
+
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
 export default function MealLogPhotoScreen() {
@@ -99,12 +111,21 @@ export default function MealLogPhotoScreen() {
 
   // ── Local state (seeded from cache on mount) ──
   const [note, setNote] = useState(() => existingLog?.note ?? '')
-  // Photos are now structured objects (blobUrl + per-photo caption note).
-  const [uploadedPhotos, setUploadedPhotos] = useState<MealPhotoInput[]>(
+  // Photos are structured objects. `blobUrl` is the permanent write-path
+  // identity (echoed back unchanged on save); `displayUrl` is a short-lived
+  // signed URL used ONLY for rendering the thumbnail — never persisted, never
+  // sent back to the server. Freshly-picked photos (this session, not yet
+  // saved) have no `displayUrl` because the upload endpoint returns only a
+  // `blobUrl` — those render a placeholder until the screen re-fetches after
+  // save. The seeding filter below keys on `blobUrl` (identity presence), not
+  // `displayUrl` — a photo whose signature merely failed to (re-)generate
+  // must NOT be dropped here, or the next save would permanently delete it
+  // from the server (replace semantics keyed by blobUrl).
+  const [uploadedPhotos, setUploadedPhotos] = useState<UploadedMealPhoto[]>(
     () =>
       (existingLog?.photos ?? [])
         .filter((p) => typeof p.blobUrl === 'string' && p.blobUrl.length > 0)
-        .map((p) => ({ blobUrl: p.blobUrl as string, note: p.note ?? null })),
+        .map((p) => ({ blobUrl: p.blobUrl as string, displayUrl: p.displayUrl, note: p.note ?? null })),
   )
 
   // ── Multi-photo picker (gallery) ──
@@ -171,10 +192,14 @@ export default function MealLogPhotoScreen() {
   // Sends the complete final state in one call: the backend sets Photos to
   // exactly the submitted structured photo objects and sets Note to the
   // submitted value (null = clear).
+  // Echo ONLY `blobUrl` (the write-path identity) — `displayUrl` is a
+  // short-lived signed URL and must never be persisted (F9). Mapping
+  // explicitly here (rather than passing `uploadedPhotos` through) makes it
+  // impossible for `displayUrl` to leak into the request payload.
   const saveMutation = useMutation({
     mutationFn: () =>
       saveMealPhotos(mealId, {
-        photos: uploadedPhotos,
+        photos: uploadedPhotos.map((p): MealPhotoInput => ({ blobUrl: p.blobUrl, note: p.note })),
         note: note.trim() || null,
       }),
     onSuccess: () => {
@@ -382,13 +407,23 @@ export default function MealLogPhotoScreen() {
                     key={photo.blobUrl}
                     style={[styles.photoRow, { backgroundColor: colors.bg2, borderColor: colors.sep2 }]}
                   >
-                    {/* Thumbnail */}
+                    {/* Thumbnail — renders the short-lived signed `displayUrl`, never
+                        the permanent `blobUrl` (unfetchable, no public-read grant).
+                        Freshly-picked photos in this session have no `displayUrl`
+                        yet (the upload endpoint returns only `blobUrl`), so they
+                        show a placeholder until the screen re-fetches after save. */}
                     <View style={[styles.thumbWrap, { backgroundColor: colors.fill2 }]}>
-                      <Image
-                        source={{ uri: photo.blobUrl }}
-                        style={styles.thumbImg}
-                        resizeMode="cover"
-                      />
+                      {photo.displayUrl ? (
+                        <Image
+                          source={{ uri: photo.displayUrl }}
+                          style={styles.thumbImg}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={[styles.thumbImg, styles.thumbPlaceholder]}>
+                          <Ionicons name="image-outline" size={22} color={colors.label3} />
+                        </View>
+                      )}
                       <Pressable
                         onPress={() => handleRemovePhoto(photo.blobUrl)}
                         style={[styles.thumbRemoveBtn, { backgroundColor: colors.bg2 }]}
@@ -643,6 +678,10 @@ const styles = StyleSheet.create({
   thumbImg: {
     width: 80,
     height: 80,
+  },
+  thumbPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   thumbRemoveBtn: {
     position: 'absolute',
