@@ -147,7 +147,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -201,7 +201,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -230,7 +230,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier);
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -303,6 +303,58 @@ public class SessionLockBroadcastWorkoutTests
                 p.SessionId == _sessionId &&
                 p.State == "Stable" &&
                 p.Holder == "Client"),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── CompleteWorkout: revoked/nutrition-only link → Stable to client only, NOT trainer ──
+
+    [Fact]
+    public async Task CompleteWorkout_RevokedOrNutritionOnlyLink_EmitsStableToClientOnly_NotTrainer()
+    {
+        // Arrange — same plan-bound log as the happy path, but the trainer's link no longer
+        // grants CanViewTrainingPlans (revoked collaboration, or narrowed to nutrition-only).
+        // The client must still receive their own lock state; the trainer must receive nothing (F6/F11 residual).
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [MakePlan()]);
+
+        var lockService = Substitute.For<ISessionLockService>();
+        lockService.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>()).Returns(true);
+
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, StubCompletionService(), lockService, notifier,
+            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+
+        // Act
+        await ep.HandleAsync(
+            new CompleteWorkoutRequest { LogId = logId },
+            TestContext.Current.CancellationToken);
+
+        // Assert — 200 OK; lock still released (the release is authoritative, not gated on link capability)
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Client still receives their own lock-state change.
+        await notifier.Received(1).NotifyAsync(
+            _clientId,
+            "sessioneditlockchanged",
+            Arg.Any<SessionLockChangedPayload>(),
+            Arg.Any<CancellationToken>());
+
+        // Trainer receives NOTHING for sessioneditlockchanged — the link no longer grants
+        // training-plan access. (trainingprogressupdated is independently gated too, so this
+        // asserts no NotifyAsync call at all reaches the trainer.)
+        await notifier.DidNotReceive().NotifyAsync(
+            _trainerId,
+            Arg.Any<string>(),
+            Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }
 

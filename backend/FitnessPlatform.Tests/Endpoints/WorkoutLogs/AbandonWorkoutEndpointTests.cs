@@ -72,7 +72,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -109,6 +109,46 @@ public class AbandonWorkoutEndpointTests
     }
 
     [Fact]
+    public async Task Abandon_RevokedOrNutritionOnlyLink_EmitsStableToClientOnly_NotTrainer()
+    {
+        // Arrange — same plan-bound log as the happy path, but the trainer's link no longer
+        // grants CanViewTrainingPlans (revoked collaboration, or narrowed to nutrition-only).
+        // The client must still receive their own lock state; the trainer must receive nothing (F6/F11 residual).
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log], plans: [MakePlan()]);
+        var lockService = ReleasedLockService();
+        var notifier = Substitute.For<IRealtimeNotifier>();
+
+        var ep = Factory.Create<AbandonWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+
+        // Act
+        await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
+
+        // Assert — 200 OK; lock still released (the release is authoritative, not gated on link capability)
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Client still receives their own lock-state change.
+        await notifier.Received(1).NotifyAsync(
+            _clientId,
+            "sessioneditlockchanged",
+            Arg.Any<SessionLockChangedPayload>(),
+            Arg.Any<CancellationToken>());
+
+        // Trainer receives NOTHING — the link no longer grants training-plan access.
+        await notifier.DidNotReceive().NotifyAsync(
+            _trainerId,
+            Arg.Any<string>(),
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Abandon_NoActiveLock_Returns200_IdempotentNoBroadcast()
     {
         // Arrange — ReleaseAsync returns false (lock already gone / expired)
@@ -123,7 +163,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -144,7 +184,8 @@ public class AbandonWorkoutEndpointTests
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
 
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
-            mongo, Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>());
+            mongo, Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new AbandonWorkoutRequest { LogId = Guid.NewGuid() },
@@ -162,7 +203,8 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(
             new AbandonWorkoutRequest { LogId = Guid.NewGuid() },
@@ -188,7 +230,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -223,7 +265,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier);
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
 
         // Act — should not throw despite notifier failure
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
