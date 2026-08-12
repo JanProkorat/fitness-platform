@@ -128,13 +128,15 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId, allowFoodC
   );
 
   // Keep imageUrls and imageCaptions index-aligned. We only emit photos that
-  // have a non-empty blobUrl so the lightbox never gets empty src strings.
+  // have a non-empty displayUrl so the lightbox never gets empty src strings.
+  // displayUrl is a short-lived signed read URL — render-only, never persist
+  // or echo it back. blobUrl (the permanent identity key) is never rendered.
   const { imageUrls, imageCaptions } = useMemo(() => {
     const urls: string[] = [];
     const captions: (string | null)[] = [];
     for (const p of photos) {
-      if (!p.blobUrl) continue;
-      urls.push(p.blobUrl);
+      if (!p.displayUrl) continue;
+      urls.push(p.displayUrl);
       captions.push(p.description ?? null);
     }
     return { imageUrls: urls, imageCaptions: captions };
@@ -254,9 +256,9 @@ export function PlanPhotosTab({ planId, clientId, clientName, linkId, allowFoodC
               <Card key={photo.id ?? idx} onClick={() => openLightbox(idx)}>
                 {/* Cover — same h-40 as food/recipe/client cards */}
                 <div className="relative h-40 w-full overflow-hidden rounded-t-md bg-bg3">
-                  {photo.blobUrl ? (
+                  {photo.displayUrl ? (
                     <img
-                      src={photo.blobUrl}
+                      src={photo.displayUrl}
                       alt={photo.description ?? `${t('nutrition.photos.photoAlt')} ${idx + 1}`}
                       className="absolute inset-0 h-full w-full object-cover"
                       loading="lazy"
