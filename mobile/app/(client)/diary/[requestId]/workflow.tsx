@@ -457,9 +457,14 @@ export function DiaryWorkflowScreen() {
   const submitDisabled = !canSubmitStaged || isSubmittingStaged
 
   // ── Lightbox helpers ──
+  // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which is
+  // identity-only and not directly fetchable. Map without filtering so the
+  // images/notes arrays stay index-aligned with `photos` (the caller passes
+  // the tapped tile's own index into this array); ImageLightbox renders a
+  // placeholder for an empty entry.
   const openLightboxForPhotos = useCallback(
     (photos: PlanPhotoResponse[], index: number) => {
-      setLightboxImages(photos.map((p) => p.blobUrl ?? '').filter(Boolean))
+      setLightboxImages(photos.map((p) => p.displayUrl ?? ''))
       setLightboxNotes(photos.map((p) => p.description ?? null))
       setLightboxIndex(index)
       setLightboxVisible(true)
@@ -626,11 +631,15 @@ export function DiaryWorkflowScreen() {
                   accessibilityRole="button"
                   style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.fill2 }]}
                 >
-                  <Image
-                    source={{ uri: photo.blobUrl }}
-                    style={StyleSheet.absoluteFill}
-                    resizeMode="cover"
-                  />
+                  {photo.displayUrl ? (
+                    <Image
+                      source={{ uri: photo.displayUrl }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Ionicons name="image-outline" size={20} color={colors.label3} />
+                  )}
                   {photo.description ? (
                     <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
                       <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={1}>
@@ -974,6 +983,8 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: Radius.sm,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tileCaption: {
     position: 'absolute',
