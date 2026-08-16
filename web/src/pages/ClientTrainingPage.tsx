@@ -90,7 +90,7 @@ export default function ClientTrainingPage() {
     );
   }
 
-  if (clientError) {
+  if (clientError && !clientLoaded) {
     return (
       <div style={{ padding: '80px', textAlign: 'center' }}>
         <p style={{ color: 'var(--red)', fontSize: 14 }}>{t('clientTraining.clientLoadError')}</p>
