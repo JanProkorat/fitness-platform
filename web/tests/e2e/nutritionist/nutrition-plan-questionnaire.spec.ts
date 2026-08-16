@@ -5,11 +5,13 @@
  * Fixture (QaSeedRunner #720): the QA nutritionist owns "QA Nutrition Intake
  * Questionnaire" and the QA client has a Submitted response linked to the
  * nutrition plan dddddddd-eeee-ffff-0000-111111111111. Runs under the
- * `nutritionist` project (storageState .auth/nutritionist.json) because the
+ * `nutritionist` project, authenticated via the `nutritionistTest` fixture
+ * in ../fixtures/auth.ts (#897 — mints a fresh per-attempt refresh token
+ * instead of reusing the shared .auth/nutritionist.json token), because the
  * nutrition plan is nutritionist-owned and GetClientResponses filters by the
  * calling professional's id.
  */
-import { test, expect } from '@playwright/test';
+import { nutritionistTest as test, expect } from '../fixtures/auth';
 
 const CLIENT_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const NUTRITION_PLAN_ID = 'dddddddd-eeee-ffff-0000-111111111111';

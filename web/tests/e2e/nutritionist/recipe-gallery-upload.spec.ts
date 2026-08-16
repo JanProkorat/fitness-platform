@@ -30,7 +30,7 @@
  *   QaRecipe3 — "Chicken + Broccoli stir-fry"
  */
 
-import { test, expect } from '@playwright/test';
+import { nutritionistTest as test, expect } from '../fixtures/auth';
 import { Buffer } from 'node:buffer';
 
 // ── Minimal 1×1 transparent PNG (67 bytes) ────────────────────────────────────
