@@ -51,7 +51,7 @@
  * service; it WOULD 429 if this suite were ever re-pointed at the
  * interactive dev API on :5001, where that limiter is active.
  */
-import { test as base } from '@playwright/test';
+import { test as base, request as apiRequest } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -108,7 +108,7 @@ interface StorageStateTemplate {
  */
 function buildRoleTest(role: Role) {
   return base.extend({
-    storageState: async ({ request, baseURL }, use) => {
+    storageState: async ({ baseURL }, use) => {
       const password = process.env['QA_SEED_PASSWORD'];
 
       if (!password) {
@@ -118,24 +118,43 @@ function buildRoleTest(role: Role) {
         );
       }
 
-      const response = await request.post('/auth/login', {
-        data: { email: ROLE_EMAILS[role], password },
-      });
+      const origin = baseURL ?? 'http://localhost:5173';
 
-      if (!response.ok()) {
-        // Throw loudly rather than handing back an empty/partial token: a
-        // silently-broken login would still land the spec on /login and
-        // reproduce the exact confusing "element not found" symptom this
-        // issue is about, instead of surfacing as an auth diagnosis.
-        throw new Error(
-          `[auth fixture] POST /auth/login for role "${role}" returned ` +
-            `${response.status()} ${response.statusText()}. Is the compose ` +
-            'harness running (npm run e2e:up) and QA_SEED_PASSWORD set ' +
-            'correctly?',
-        );
+      // Deliberately NOT the `request` fixture: that fixture shares its
+      // cookie jar / context options with the test's `context`/`page`
+      // fixtures, which in turn depend on THIS `storageState` fixture —
+      // requesting `request` here creates a circular dependency, and the
+      // resulting APIRequestContext never gets its baseURL configured
+      // (observed as "apiRequestContext.post: Invalid URL" during the #897
+      // verification drive). A standalone context via `request.newContext`
+      // (Playwright's top-level API-testing entry point, distinct from the
+      // fixture of the same name) has no such entanglement.
+      const apiContext = await apiRequest.newContext({ baseURL: origin });
+
+      let refreshToken: string;
+
+      try {
+        const response = await apiContext.post('/auth/login', {
+          data: { email: ROLE_EMAILS[role], password },
+        });
+
+        if (!response.ok()) {
+          // Throw loudly rather than handing back an empty/partial token: a
+          // silently-broken login would still land the spec on /login and
+          // reproduce the exact confusing "element not found" symptom this
+          // issue is about, instead of surfacing as an auth diagnosis.
+          throw new Error(
+            `[auth fixture] POST /auth/login for role "${role}" returned ` +
+              `${response.status()} ${response.statusText()}. Is the compose ` +
+              'harness running (npm run e2e:up) and QA_SEED_PASSWORD set ' +
+              'correctly?',
+          );
+        }
+
+        ({ refreshToken } = (await response.json()) as LoginResponseBody);
+      } finally {
+        await apiContext.dispose();
       }
-
-      const { refreshToken } = (await response.json()) as LoginResponseBody;
 
       const templatePath = path.resolve(`.auth/${role}.json`);
       const template = JSON.parse(
@@ -144,12 +163,12 @@ function buildRoleTest(role: Role) {
 
       // Clone the template's cookies + non-auth localStorage untouched, and
       // replace only the refreshToken entry with the one THIS attempt just
-      // minted. Rewrite the origin to the live baseURL fixture rather than
-      // whatever origin auth.setup.ts happened to run under — this also
-      // fixes the pre-existing http://localhost:5173 vs http://web:5173
-      // mismatch baked into .auth/*.json for dockerised runs, as a side
-      // effect of no longer reading a stale origin off disk.
-      const origin = baseURL ?? 'http://localhost:5173';
+      // minted. `origin` (computed above, before the login call) rewrites
+      // to the live baseURL fixture rather than whatever origin
+      // auth.setup.ts happened to run under — this also fixes the
+      // pre-existing http://localhost:5173 vs http://web:5173 mismatch
+      // baked into .auth/*.json for dockerised runs, as a side effect of no
+      // longer reading a stale origin off disk.
       const localStorage = (template.origins[0]?.localStorage ?? []).map(
         (entry) =>
           entry.name === 'refreshToken' ? { ...entry, value: refreshToken } : entry,
