@@ -272,4 +272,35 @@ public class ClientVerdictServiceTests
 
         verdict.Should().NotBe(ClientVerdict.OffTrack);
     }
+
+    // ── #919 capability-driven reduction ──────────────────────────────────────
+    // ClientVerdictService.ComputeAsync now gates the nutrition and training reads on the
+    // caller's LinkCapabilities the same way it already gated the personal-record count: a denied
+    // domain's read is skipped outright, so ComputeVerdict is called with that domain's
+    // hasActivePlan forced to false. ComputeVerdict itself did not change — every branch already
+    // guarded on hasActiveNutritionPlan/hasActiveTrainingPlan, which is exactly why the reduction
+    // needed no new branch here. This test documents that guarantee at the ComputeVerdict level:
+    // a denied domain reduced to "no active plan" cannot flip the scalar to OffTrack via the
+    // no-activity plan-existence check, even though the client genuinely holds a plan in that
+    // domain and has no activity at all.
+
+    [Fact]
+    public void ComputeVerdict_ReducedDomainNoActivity_DoesNotLeakPlanExistenceViaOffTrack()
+    {
+        // Simulates a training-only caller: the nutrition domain's read was skipped, so
+        // hasActiveNutritionPlan is false here regardless of what actually exists in Mongo for
+        // this client. With no training plan either and zero activity, the no-activity branch
+        // must NOT flag OffTrack — doing so would leak that the denied domain has a plan.
+        var verdict = Compute(
+            noActivity: true,
+            hasActiveNutritionPlan: false,
+            compliancePercent: null,
+            hasActiveTrainingPlan: false,
+            frequencyActual: null,
+            frequencyPrescribed: null,
+            hasWeightSignal: false,
+            weightDeltaToGoal: null);
+
+        verdict.Should().Be(ClientVerdict.OnTrack);
+    }
 }

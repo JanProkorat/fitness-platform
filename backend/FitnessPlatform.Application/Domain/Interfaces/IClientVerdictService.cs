@@ -30,10 +30,16 @@ public interface IClientVerdictService
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>
-    /// A <see cref="ClientVerdictResult"/> whose itemised signals are populated only for the
-    /// domains <paramref name="capabilities"/> grants. The <see cref="ClientVerdictResult.Verdict"/>
-    /// scalar itself is still blended from every signal — that is a pre-existing and accepted
-    /// inference leak, and narrowing it would change the headline value every caller already sees.
+    /// A <see cref="ClientVerdictResult"/> reduced to the domains <paramref name="capabilities"/>
+    /// grants. The itemised signals (training frequency, personal-record count, nutrition
+    /// compliance) are populated only for a visible domain, and the
+    /// <see cref="ClientVerdictResult.Verdict"/> scalar itself is computed only from the visible
+    /// domains — a caller whose link denies a domain never sees that domain's influence on the
+    /// headline verdict, because the underlying read for a denied domain is skipped rather than
+    /// computed and filtered afterward. Weight (<see cref="ClientVerdictResult.WeightDeltaToGoal"/>,
+    /// <see cref="ClientVerdictResult.WeightDirection"/>) and
+    /// <see cref="ClientVerdictResult.LastActiveAt"/> remain dual-readable and always contribute:
+    /// body measurements are standalone entries, not data attached to a nutrition or training item.
     /// </returns>
     Task<ClientVerdictResult> ComputeAsync(
         Guid clientUserId,

@@ -61,16 +61,23 @@ public class ClientVerdictService(
             .FirstOrDefaultAsync(ct);
 
         // ── MongoDB queries — thread-safe, run in parallel ──────────────────
-        var complianceTask = ComputeComplianceAsync(clientUserId, ct);
-        var trainingTask = ComputeTrainingFrequencyAsync(clientUserId, ct);
+        // Every domain-scoped read is skipped outright, not filtered afterwards, when the caller's
+        // link denies that domain. This is what makes the reduction land "for free": a skipped
+        // compliance/training read yields hasActiveNutritionPlan=false / hasActiveTrainingPlan=false,
+        // and every branch in ComputeVerdict already guards on those two booleans, so the verdict
+        // scalar itself reduces to only the visible domain without any change to ComputeVerdict's
+        // signature or logic. Weight and LastActiveAt are deliberately NOT gated here — they are
+        // dual-readable per the response boundary below, so their reads always run.
+        var complianceTask = capabilities.CanViewNutritionPlans
+            ? ComputeComplianceAsync(clientUserId, ct)
+            : Task.FromResult<(decimal? compliancePercent, bool hasActivePlan)>((null, false));
+        var trainingTask = capabilities.CanViewTrainingPlans
+            ? ComputeTrainingFrequencyAsync(clientUserId, ct)
+            : Task.FromResult<(int? actual, int? prescribed, bool hasActivePlan)>((null, null, false));
         var latestWorkoutTask = FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
         var latestMealTask = FetchLatestMealLogTimestampAsync(clientUserId, ct);
-        // Skipped outright, not filtered afterwards, when the link denies training: the record
-        // count feeds nothing but its own response field, so there is no reason to read a client's
-        // personal records for a caller who may not see them. The compliance and training-frequency
-        // reads below cannot be skipped the same way — ComputeVerdict consumes both, and the
-        // verdict scalar is a pre-existing accepted leak whose value must not change here. Those
-        // two are suppressed at the response boundary instead.
+        // The record count feeds nothing but its own response field, so there is no reason to read
+        // a client's personal records for a caller who may not see them.
         var prCountTask = capabilities.CanViewTrainingPlans
             ? ComputePrCountThisMonthAsync(clientUserId, ct)
             : Task.FromResult(0);
