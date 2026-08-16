@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getTrainingPlan, completeTrainingPlan, finishSession, unlockTrainingSession, relockTrainingSession, linkTrainingQuestionnaire } from '@/api/training-plans';
 import { listSectionTemplates, createSectionTemplate } from '@/api/sectionTemplates';
-import type { WorkoutTemplateResponse } from '@/api/sectionTemplates';
-import type { WorkoutFormat, MovementType, SetType } from '@/api/training-plan-types';
 import type { WorkoutFormat as GenWorkoutFormat, MovementType as GenMovementType, SetType as GenSetType, WodConfig as GenWodConfig } from '@/api/generated';
 import { PlanQuestionnairePanel } from '@/components/questionnaire/PlanQuestionnairePanel';
 import { QuestionnaireAnswersView } from '@/components/questionnaire/QuestionnaireAnswersView';
@@ -60,6 +58,7 @@ export default function TrainingPlanPage() {
   const addSection = useTrainingPlanStore((s) => s.addSection);
   const removeSection = useTrainingPlanStore((s) => s.removeSection);
   const duplicateSection = useTrainingPlanStore((s) => s.duplicateSection);
+  const duplicateSession = useTrainingPlanStore((s) => s.duplicateSession);
   const updateSection = useTrainingPlanStore((s) => s.updateSection);
   const reorderSections = useTrainingPlanStore((s) => s.reorderSections);
   const moveSectionToSession = useTrainingPlanStore((s) => s.moveSectionToSession);
@@ -96,10 +95,6 @@ export default function TrainingPlanPage() {
   // section between sessions (a SectionCard instance otherwise unmounts and
   // its local state resets when the parent session changes).
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [templateConfirmTarget, setTemplateConfirmTarget] = useState<{
-    sessionId: string;
-    template: WorkoutTemplateResponse;
-  } | null>(null);
   const [saveAsTemplateTarget, setSaveAsTemplateTarget] = useState<{
     sessionId: string;
     sectionId: string;
@@ -456,61 +451,6 @@ export default function TrainingPlanPage() {
       sessionId: markFinishedTarget.sessionId,
       completedAt: markFinishedTarget.completedAt,
     });
-  };
-
-  // Apply-template client-side splice: replaces exercises + format of the target session.
-  const applyTemplateToSession = (sessionId: string, template: WorkoutTemplateResponse) => {
-    const store = useTrainingPlanStore.getState();
-    if (!store.plan) return;
-    useTrainingPlanStore.setState({
-      plan: {
-        ...store.plan,
-        weeks: store.plan.weeks.map((w) =>
-          w.weekNumber !== selectedWeek
-            ? w
-            : {
-                ...w,
-                sessions: w.sessions.map((s) =>
-                  s.sessionId !== sessionId
-                    ? s
-                    : {
-                        ...s,
-                        // Generated WorkoutTemplateResponse.defaultFormat is string | undefined; safe cast
-                        // because the backend only emits WorkoutFormat enum values.
-                        format: (template.defaultFormat ?? 'Standard') as WorkoutFormat,
-                        formatConfig: template.defaultFormatConfig ?? null,
-                        // Map generated SessionExercise (all fields optional per NSwag) to the local
-                        // SessionExercise shape (required fields). Backend guarantees well-formed data
-                        // for stored template exercises, so fallbacks here are defensive only.
-                        allExercises: (template.defaultExercises ?? []).map((ex) => ({
-                          exerciseId: crypto.randomUUID(),
-                          exerciseExternalId: ex.exerciseExternalId ?? '',
-                          exerciseName: ex.exerciseName ?? '',
-                          order: ex.order ?? 1,
-                          notes: ex.notes ?? null,
-                          restSeconds: ex.restSeconds ?? null,
-                          movementType: (ex.movementType ?? 'Reps') as MovementType,
-                          format: (ex.format ?? null) as WorkoutFormat | null,
-                          formatConfig: ex.formatConfig ?? null,
-                          sets: (ex.sets ?? []).map((s) => ({
-                            setNumber: s.setNumber ?? 1,
-                            type: (s.type ?? 'Normal') as SetType,
-                            reps: s.reps ?? null,
-                            weightKg: s.weightKg ?? null,
-                            durationSeconds: s.durationSeconds ?? null,
-                            rpe: s.rpe ?? null,
-                            distanceMeters: s.distanceMeters ?? null,
-                            restSeconds: s.restSeconds ?? null,
-                          })),
-                        })),
-                      },
-                ),
-              },
-        ),
-      },
-      isDirty: true,
-    });
-    setTemplateConfirmTarget(null);
   };
 
   const handleConfirmSaveAsTemplate = async () => {
@@ -1359,26 +1299,7 @@ export default function TrainingPlanPage() {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const clone = {
-                          ...session,
-                          sessionId: crypto.randomUUID(),
-                          name: `${session.name} (kopie)`,
-                          order: daySessions.length + 1,
-                          allExercises: session.allExercises.map((ex) => ({ ...ex, sets: ex.sets.map((s) => ({ ...s })) })),
-                        };
-                        const store = useTrainingPlanStore.getState();
-                        if (!store.plan) return;
-                        useTrainingPlanStore.setState({
-                          plan: {
-                            ...store.plan,
-                            weeks: store.plan.weeks.map((w) =>
-                              w.weekNumber === selectedWeek
-                                ? { ...w, sessions: [...w.sessions, clone] }
-                                : w,
-                            ),
-                          },
-                          isDirty: true,
-                        });
+                        duplicateSession(selectedWeek, session.sessionId);
                       }}
                       disabled={isSessionEffectivelyReadOnly}
                       style={{
@@ -1756,38 +1677,6 @@ export default function TrainingPlanPage() {
       >
         <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
           {t('training.discardMessage')}
-        </p>
-      </Dialog>
-
-      {/* ── Apply Template Confirm Dialog ── */}
-      <Dialog
-        open={!!templateConfirmTarget}
-        onClose={() => setTemplateConfirmTarget(null)}
-        title={t('training.section.applyTemplate')}
-        maxWidth={400}
-        footer={
-          <>
-            <Button onClick={() => setTemplateConfirmTarget(null)}>{t('training.cancel')}</Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (templateConfirmTarget) {
-                  applyTemplateToSession(
-                    templateConfirmTarget.sessionId,
-                    templateConfirmTarget.template,
-                  );
-                }
-              }}
-            >
-              {t('training.template.applyConfirm')}
-            </Button>
-          </>
-        }
-      >
-        <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-          {t('training.template.applyConfirmMessage', {
-            name: templateConfirmTarget?.template.name ?? '',
-          })}
         </p>
       </Dialog>
 

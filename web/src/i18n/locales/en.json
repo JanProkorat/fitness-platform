@@ -1179,6 +1179,7 @@
     "weightLabel": "Weight (kg)",
     "restSecondsLabel": "Rest (s)",
     "duplicateSession": "Duplicate session",
+    "sessionDuplicateName": "{{name}} (copy)",
     "removeSession": "Remove session",
     "addExercisePlaceholder": "+ Add exercise...",
     "leaveTitle": "Unsaved changes",
