@@ -36,18 +36,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import * as ImagePicker from 'expo-image-picker'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
 import { generatePlanPhotoUploadUrl, finalizePlanPhoto } from '@/api/planPhotos'
-import {
-  getDiaryRequestById,
-  submitDiaryRequest,
-  type ClientPhotoDiaryRequestSummary,
-} from '@/api/diaryRequests'
+import { submitDiaryRequest } from '@/api/diaryRequests'
+import { useDiaryRequestState } from '@/hooks/useDiaryRequestState'
 import { Toast } from '@/lib/toast'
 import { transcodeHeicToJpeg } from '@/lib/heicTranscode'
 
@@ -144,30 +141,12 @@ export function DiaryBulkScreen() {
   // from the wizard (just-accepted, no params) and from the Today resume banner,
   // neither of which threads planId through the URL. The PlanPhoto upload
   // pipeline requires it because photos are scoped to a plan, not a request.
-  const requestQuery = useQuery<ClientPhotoDiaryRequestSummary | undefined>({
-    queryKey: ['diary-request', requestId],
-    queryFn: () => getDiaryRequestById(requestId ?? ''),
-    enabled: !!requestId,
-    staleTime: 30_000,
-  })
-  const planId = requestQuery.data?.planId
-
-  // Root cause (#782): `planId` is `undefined` in three situations that used
-  // to be indistinguishable in the UI — (1) the request query is still
-  // loading, (2) `requestId` never arrived as a route param so the query is
-  // permanently `enabled: false` and never settles at all, and (3) the query
-  // settled but the request has no plan attached (a valid backend state —
-  // CreateRequestRequest.PlanId is optional) or the request could not be
-  // found. All three used to render the same permanently-disabled
-  // ActivityIndicator on the "Add photos" card with no way out. Split them:
-  // `isPending` covers the transient case (bounded by the default single
-  // retry in queryClient.ts); a missing `requestId` or a hard fetch failure
-  // are now surfaced with a retry button; `requestSettled && !planId` covers
-  // the terminal "no plan to upload against" case (now an explicit message
-  // instead of an infinite spinner).
-  const requestFailed = requestQuery.isError || !requestId
-  const requestSettled = !requestQuery.isPending && !requestQuery.isError
-  const missingPlan = requestSettled && !!requestId && !planId
+  // The query + the requestFailed/missingPlan derivation both live in
+  // useDiaryRequestState (#782/#798) — see that hook for the full rationale.
+  const { planId, requestFailed, missingPlan, refetch: refetchRequest } = useDiaryRequestState(
+    requestId,
+    30_000,
+  )
 
   // ── Photo list managed by a local reducer ────────────────────────────────────
   const [photos, dispatch] = useReducer(photosReducer, [])
@@ -483,7 +462,7 @@ export function DiaryBulkScreen() {
             </Text>
             {requestId ? (
               <Pressable
-                onPress={() => requestQuery.refetch()}
+                onPress={() => refetchRequest()}
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.retryLoadBtn,

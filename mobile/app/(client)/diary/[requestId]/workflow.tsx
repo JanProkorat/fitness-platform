@@ -50,10 +50,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { useTheme } from '@/hooks/useTheme'
 import { Type } from '@/constants/typography'
 import { Radius } from '@/constants/radius'
-import {
-  getDiaryRequestById,
-  type ClientPhotoDiaryRequestSummary,
-} from '@/api/diaryRequests'
+import { useDiaryRequestState } from '@/hooks/useDiaryRequestState'
 import {
   getPlanPhotos,
   generatePlanPhotoUploadUrl,
@@ -179,20 +176,22 @@ export function DiaryWorkflowScreen() {
   stagedRef.current = staged
 
   // ── Query: diary request metadata ──
-  const requestQuery = useQuery<ClientPhotoDiaryRequestSummary | undefined>({
-    queryKey: ['diary-request', requestId],
-    queryFn: () => getDiaryRequestById(requestId ?? ''),
-    enabled: !!requestId,
-    staleTime: 60_000,
-  })
-  const request = requestQuery.data
+  // The query + the requestFailed/missingPlan derivation both live in
+  // useDiaryRequestState (#782/#798) — see that hook for the full rationale.
+  const {
+    request,
+    planId,
+    isLoading: requestIsLoading,
+    requestFailed,
+    missingPlan,
+    refetch: refetchRequest,
+  } = useDiaryRequestState(requestId, 60_000)
 
   const durationDays = request?.durationDays ?? 7
   const currentDay = computeCurrentDay(request?.acceptedAt, durationDays)
   const isFinalDay = currentDay >= durationDays
 
   // ── Query: plan photos filtered to this diary request ──
-  const planId = request?.planId
   // Backend validator caps `pageSize` at 100 — passing more (e.g. 200) returns
   // a 400 and we silently get an empty list. 100 is plenty: even a 14-day
   // diary with 5 photos/day tops out around 70 entries, well under the cap.
@@ -478,7 +477,13 @@ export function DiaryWorkflowScreen() {
   const tileSize = (width - MARGIN * 2 - GAP) / 2
 
   // ── Loading state ──
-  if (requestQuery.isLoading) {
+  // Guardrail: this MUST stay `isLoading`, never `isPending`. With
+  // `requestId` absent the query is `enabled: false`, so `isPending` stays
+  // `true` forever — swapping this would turn the card-level infinite
+  // spinner this issue fixes into a worse, full-screen infinite spinner.
+  // The missing-requestId case falls through to the pinned card below and
+  // is caught by `requestFailed`.
+  if (requestIsLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
         <View style={styles.centered}>
@@ -558,37 +563,88 @@ export function DiaryWorkflowScreen() {
 
       {/* ── Pinned picker card (stays visible while the photos below scroll) ── */}
       <View style={styles.pickerArea}>
-        <Pressable
-          onPress={handlePick}
-          disabled={picking || !planId}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: picking || !planId }}
-          style={({ pressed }) => [
-            styles.addCard,
-            {
-              backgroundColor: colors.bg2,
-              borderColor: colors.sep,
-              opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          {picking || !planId ? (
-            <ActivityIndicator color={colors.gold} />
-          ) : (
-            <>
-              <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
-                {t('diary.bulk.hint')}
-              </Text>
-              <Text style={styles.addCardIcon}>📷</Text>
-              <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
-                {t('diary.bulk.addPhotos')}
-              </Text>
-              <Text style={[Type.caption1, styles.addCardHint, { color: colors.label2 }]}>
-                {t('diary.bulk.addPhotosHint')}
-              </Text>
-            </>
-          )}
-        </Pressable>
+        {requestFailed ? (
+          // Hard fetch failure (network / server), or `requestId` never
+          // arrived as a route param — surfaced with a retry instead of
+          // leaving the card spinning forever (#782/#798). Refetching a
+          // query with no `requestId` is a no-op, so the retry action is
+          // only offered when there's an actual query to retry.
+          <View
+            style={[
+              styles.addCard,
+              styles.stateCard,
+              { backgroundColor: colors.bg2, borderColor: colors.red },
+            ]}
+          >
+            <Text style={[Type.callout, styles.addCardTitle, styles.stateText, { color: colors.label }]}>
+              {t('diary.bulk.errorLoadRequest')}
+            </Text>
+            {requestId ? (
+              <Pressable
+                onPress={() => refetchRequest()}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.retryLoadBtn,
+                  { backgroundColor: colors.gold, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Text style={[Type.subheadline, styles.retryLoadLabel, { color: colors.onAccent }]}>
+                  {t('diary.bulk.retryLoad')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : missingPlan ? (
+          // Query settled successfully but the request has no plan attached
+          // (a valid backend state — CreateRequestRequest.PlanId is
+          // optional) or the request could not be found. Upload is
+          // structurally impossible without a planId, so say so explicitly
+          // instead of disabling the button forever with no explanation
+          // (#782/#798).
+          <View
+            style={[
+              styles.addCard,
+              styles.stateCard,
+              { backgroundColor: colors.bg2, borderColor: colors.sep },
+            ]}
+          >
+            <Text style={[Type.callout, styles.addCardTitle, styles.stateText, { color: colors.label }]}>
+              {t('diary.bulk.noPlanError')}
+            </Text>
+          </View>
+        ) : (
+          <Pressable
+            onPress={handlePick}
+            disabled={picking || !planId}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: picking || !planId }}
+            style={({ pressed }) => [
+              styles.addCard,
+              {
+                backgroundColor: colors.bg2,
+                borderColor: colors.sep,
+                opacity: picking || !planId ? 0.5 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            {picking || !planId ? (
+              <ActivityIndicator color={colors.gold} />
+            ) : (
+              <>
+                <Text style={[Type.caption1, styles.addCardHintTop, { color: colors.label3 }]}>
+                  {t('diary.bulk.hint')}
+                </Text>
+                <Text style={styles.addCardIcon}>📷</Text>
+                <Text style={[Type.callout, styles.addCardTitle, { color: colors.label }]}>
+                  {t('diary.bulk.addPhotos')}
+                </Text>
+                <Text style={[Type.caption1, styles.addCardHint, { color: colors.label2 }]}>
+                  {t('diary.bulk.addPhotosHint')}
+                </Text>
+              </>
+            )}
+          </Pressable>
+        )}
       </View>
 
       <ScrollView
@@ -908,6 +964,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
     lineHeight: 18,
+  },
+
+  // Error / no-plan state card (matches bulk.stateCard, #782/#798)
+  stateCard: {
+    borderStyle: 'solid',
+    gap: 10,
+  },
+  stateText: {
+    textAlign: 'center',
+  },
+  retryLoadBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+  },
+  retryLoadLabel: {
+    fontWeight: '600',
   },
 
   // Staged tiles grid (matches bulk.grid)
