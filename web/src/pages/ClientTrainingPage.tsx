@@ -35,7 +35,11 @@ export default function ClientTrainingPage() {
   const canManageTraining = Boolean(user?.roles.some((r) => ['Trainer', 'Admin'].includes(r)));
   const [createOpen, setCreateOpen] = useState(false);
 
-  const { data: client, isLoading: clientLoading } = useQuery({
+  const {
+    data: client,
+    isLoading: clientLoading,
+    isError: clientError,
+  } = useQuery({
     queryKey: ['client-dashboard', clientId],
     queryFn: () => getClientDashboard(clientId),
     enabled: Boolean(clientId),
@@ -82,6 +86,22 @@ export default function ClientTrainingPage() {
     return (
       <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text3)', fontSize: 14 }}>
         {t('clientTraining.loading')}
+      </div>
+    );
+  }
+
+  if (clientError) {
+    return (
+      <div style={{ padding: '80px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--red)', fontSize: 14 }}>{t('clientTraining.clientLoadError')}</p>
+        <button
+          type="button"
+          className="btn"
+          style={{ marginTop: 12 }}
+          onClick={() => navigate('/dashboard', { replace: true })}
+        >
+          {t('clientTraining.back')}
+        </button>
       </div>
     );
   }

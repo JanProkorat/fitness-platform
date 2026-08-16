@@ -2183,6 +2183,7 @@
     "loading": "Načítání tréninkového plánu…",
     "loadError": "Chyba při načítání tréninkového plánu.",
     "createError": "Nepodařilo se vytvořit plán.",
+    "clientLoadError": "Klienta se nepodařilo načíst. Zkuste to prosím znovu.",
     "back": "← Zpět",
     "defaultPlanName": "Tréninkový plán",
     "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup.",

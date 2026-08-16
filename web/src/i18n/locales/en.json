@@ -2150,6 +2150,7 @@
     "loading": "Loading training plan…",
     "loadError": "Error loading training plan.",
     "createError": "Failed to create plan.",
+    "clientLoadError": "Could not load this client. Please try again.",
     "back": "← Back",
     "defaultPlanName": "Training plan",
     "roleDenied": "You do not have access to this client's training plans.",
