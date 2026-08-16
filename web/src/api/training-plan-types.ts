@@ -224,7 +224,11 @@ export interface TrainingPlanCompletion {
   /**
    * @deprecated Use `completedExerciseIdsByWorkout` instead. Kept for one
    * release while the backend emits both fields. When `completedExerciseIdsByWorkout`
-   * is present, this flat list is ignored by lock derivation.
+   * is present, this flat list is ignored by lock derivation. Historically this
+   * was the ONLY carrier of a completed standalone exercise (standalone
+   * exercises have no workout to key by) — that gap is now closed by
+   * `completedExerciseInstanceIds`, which surfaces standalone (and nested)
+   * completion at instance level instead of collapsing to catalog ids (#884).
    */
   completedExerciseIds: string[];
   /**
@@ -233,6 +237,19 @@ export interface TrainingPlanCompletion {
    * `completedExerciseIds` field.
    */
   completedExerciseIdsByWorkout?: Record<string, string[]>;
+  /**
+   * Completed exercise INSTANCE ids for this session/date — raw
+   * `SessionExercise.exerciseId` values, additive alongside the catalog-keyed
+   * `completedExerciseIds` / `completedExerciseIdsByWorkout` fields above
+   * (which keep their existing semantics unchanged). Lets lock derivation
+   * identify a specific placement of an exercise, including a standalone
+   * exercise (no workout to key by) or the same catalog exercise appearing
+   * twice in one session — standalone AND nested, or nested twice. See
+   * `training-plan-locks.ts`'s `computePlanLocks` for the consuming rollup.
+   * Empty array (never undefined) when nothing has been completed. Mirrors
+   * `TrainingPlanCompletionDto.CompletedExerciseInstanceIds` (#884).
+   */
+  completedExerciseInstanceIds: string[];
   /**
    * Workout IDs the client has marked done at the workout level (used for
    * workouts without exercises, e.g. ForTime "Running" workouts).

@@ -5,17 +5,31 @@ import type { TrainingPlanDetail } from '@/api/training-plan-types';
  * marked as completed. Trainers must not edit these — past results would
  * be invalidated.
  *
- *   exerciseKeys — `${sessionId}:${workoutId}:${exerciseExternalId}` for each
- *                  completed exercise, scoped to the specific workout within
- *                  the session. Using the workout dimension prevents a false
- *                  lock when the same catalog exercise appears in multiple
- *                  workouts of the same session.
- *   sectionIds   — workouts that are "complete" — either every exercise in
- *                  them is locked, OR they have no exercises and the client
- *                  marked the workout itself complete (ForTime "Running"
- *                  style workouts).
- *   sessionIds   — sessions whose every workout is in `sectionIds` AND that
- *                  have at least one workout.
+ *   exerciseKeys          — `${sessionId}:${workoutId}:${exerciseExternalId}`
+ *                            for each completed exercise, scoped to the
+ *                            specific workout within the session. Using the
+ *                            workout dimension prevents a false lock when the
+ *                            same catalog exercise appears in multiple
+ *                            workouts of the same session.
+ *   sectionIds             — workouts that are "complete" — either every
+ *                            exercise in them is locked, OR they have no
+ *                            exercises and the client marked the workout
+ *                            itself complete (ForTime "Running" style
+ *                            workouts).
+ *   standaloneExerciseIds  — `${sessionId}:${exerciseId}` (instance id, see
+ *                            `SessionExercise.exerciseId`) for each completed
+ *                            standalone exercise. Instance-keyed rather than
+ *                            catalog-keyed — a standalone exercise has no
+ *                            containing workout to disambiguate it by, and
+ *                            the backend now surfaces completion at instance
+ *                            level for exactly this reason (#884). Additive
+ *                            alongside `exerciseKeys`/`sectionIds`, which stay
+ *                            catalog-keyed.
+ *   sessionIds             — sessions that have content (at least one workout
+ *                            OR at least one standalone exercise) AND whose
+ *                            every workout is in `sectionIds` AND whose every
+ *                            standalone exercise is in `standaloneExerciseIds`
+ *                            (vacuously true when there are none of either).
  *
  * The keys are stable for a given plan + completions snapshot, so memoizing
  * on `plan` in components is enough.
@@ -23,12 +37,14 @@ import type { TrainingPlanDetail } from '@/api/training-plan-types';
 export interface PlanLocks {
   exerciseKeys: Set<string>;
   sectionIds: Set<string>;
+  standaloneExerciseIds: Set<string>;
   sessionIds: Set<string>;
 }
 
 const EMPTY_LOCKS: PlanLocks = {
   exerciseKeys: new Set(),
   sectionIds: new Set(),
+  standaloneExerciseIds: new Set(),
   sessionIds: new Set(),
 };
 
@@ -53,14 +69,38 @@ export function sectionLockKey(sessionId: string, workoutId: string): string {
   return `${sessionId}:${workoutId}`;
 }
 
+/**
+ * Build the composite key used to look up whether a specific standalone
+ * exercise instance (identified by its `SessionExercise.exerciseId`) within a
+ * specific session is locked. Instance-keyed, not catalog-keyed — a
+ * standalone exercise has no containing workout to disambiguate a repeated
+ * catalog exercise by, so the raw instance id is the only precise handle.
+ */
+export function standaloneExerciseLockKey(sessionId: string, exerciseId: string): string {
+  return `${sessionId}:${exerciseId}`;
+}
+
 export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
   if (!plan || !plan.completions || plan.completions.length === 0) return EMPTY_LOCKS;
 
   const exerciseKeys = new Set<string>();
   // `${sessionId}:${sectionId}` for any section the client section-completed.
   const sectionCompletionKeys = new Set<string>();
+  // sessionId -> set of completed exercise INSTANCE ids for that session
+  // (raw SessionExercise.exerciseId values). Used below to derive
+  // standaloneExerciseIds — instance-keyed, so no workout dimension needed.
+  const completedInstanceIdsBySession = new Map<string, Set<string>>();
 
   for (const c of plan.completions) {
+    for (const instanceId of c.completedExerciseInstanceIds ?? []) {
+      let instanceIds = completedInstanceIdsBySession.get(c.sessionId);
+      if (!instanceIds) {
+        instanceIds = new Set<string>();
+        completedInstanceIdsBySession.set(c.sessionId, instanceIds);
+      }
+      instanceIds.add(instanceId);
+    }
+
     if (c.completedExerciseIdsByWorkout) {
       // New shape: workout-scoped completion map. Each entry provides the
       // workoutId as the key and the list of completed exerciseExternalIds as
@@ -101,10 +141,14 @@ export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
   }
 
   const sectionIds = new Set<string>();
+  const standaloneExerciseIds = new Set<string>();
   const sessionIds = new Set<string>();
   for (const week of plan.weeks) {
     for (const session of week.sessions) {
-      if (session.workouts.length === 0) continue;
+      const sessionHasContent =
+        session.workouts.length > 0 || session.standaloneExercises.length > 0;
+      if (!sessionHasContent) continue;
+
       let allSectionsLocked = true;
       for (const section of session.workouts) {
         let sectionLocked: boolean;
@@ -126,11 +170,26 @@ export function computePlanLocks(plan: TrainingPlanDetail | null): PlanLocks {
           allSectionsLocked = false;
         }
       }
-      if (allSectionsLocked) {
+
+      // Not walking `session.allExercises` here — that computed union would
+      // double-count nested exercises already handled by the workout loop
+      // above; only the persisted `standaloneExercises` list is walked.
+      const completedInstanceIds = completedInstanceIdsBySession.get(session.sessionId);
+      let allStandaloneLocked = true;
+      for (const exercise of session.standaloneExercises) {
+        const locked = completedInstanceIds?.has(exercise.exerciseId) ?? false;
+        if (locked) {
+          standaloneExerciseIds.add(standaloneExerciseLockKey(session.sessionId, exercise.exerciseId));
+        } else {
+          allStandaloneLocked = false;
+        }
+      }
+
+      if (allSectionsLocked && allStandaloneLocked) {
         sessionIds.add(session.sessionId);
       }
     }
   }
 
-  return { exerciseKeys, sectionIds, sessionIds };
+  return { exerciseKeys, sectionIds, standaloneExerciseIds, sessionIds };
 }
