@@ -19,6 +19,12 @@
  *   3. missingPlan      — query settled successfully, no planId on the request
  *   4. ready            — query settled successfully with a planId
  *
+ * A 7th test below exercises `useDiaryRequestState` itself (not the pure
+ * derivation) via a minimal `react-test-renderer` harness, specifically to
+ * lock in the `isLoading` !== `isPending` guardrail as a suite-enforced
+ * fact rather than a comment — see that test's own doc block for exactly
+ * what it does and does not cover.
+ *
  * To run:
  *   cd mobile && npx jest src/hooks/__tests__/useDiaryRequestState.test.ts
  */
@@ -81,5 +87,77 @@ describe('deriveDiaryRequestState', () => {
     const result = deriveDiaryRequestState(undefined, undefined, false, true);
     expect(result.requestFailed).toBe(true);
     expect(result.missingPlan).toBe(false);
+  });
+});
+
+// ─── Hook wiring (not just the pure derivation) ───────────────────────────────
+//
+// The 6 tests above exercise `deriveDiaryRequestState` directly — they would
+// stay green even if `useDiaryRequestState` itself passed the wrong flag
+// (e.g. `query.isPending` where `query.isLoading` belongs) into its returned
+// `isLoading` field, because the pure function never sees that wiring at all.
+// The `workflow.tsx` full-screen gate reads `isLoading` off this hook's
+// return value directly, so that specific wiring is exactly what needs
+// suite-level protection, per the guardrail documented on the hook itself.
+//
+// This package has no `@testing-library/react`-style `renderHook` harness,
+// so the hook is exercised via a minimal `react-test-renderer` mount: a
+// throwaway component calls the real hook inside a real `QueryClientProvider`
+// and reports the result out through a plain callback captured by the test.
+// `requestId: undefined` means the query is `enabled: false` and never
+// fetches, so a single synchronous render is enough — no `waitFor`/async
+// flush is needed.
+//
+// What this DOES cover: `useDiaryRequestState(undefined, ...)` returns
+// `isLoading === false` (never `true`) for a disabled query, i.e. the exact
+// case the guardrail comment in `workflow.tsx` and in this hook depends on.
+// What this does NOT cover: the `requestId`-present branches (loading /
+// requestFailed-by-error / missingPlan / ready with a real fetch resolving)
+// — those still route only through `deriveDiaryRequestState` above, since
+// driving a real network-backed `useQuery` to each of those states would
+// need fake timers / mocked `getDiaryRequestById` resolution, which is out
+// of scope for locking down this one guardrail.
+describe('useDiaryRequestState (hook wiring)', () => {
+  it('returns isLoading === false when requestId is undefined (query is enabled:false)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const React = require('react');
+    // react-test-renderer ships no type declarations and this repo has no
+    // @types/react-test-renderer package installed; it is already a
+    // transitive dependency (via jest-expo) so no new dependency is added.
+    // require() resolves to `any` here (via @types/node's NodeRequire), so
+    // no ts-expect-error suppression is needed.
+    const TestRenderer = require('react-test-renderer');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { QueryClient, QueryClientProvider } = require('@tanstack/react-query');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { useDiaryRequestState } = require('../useDiaryRequestState');
+
+    let captured: { isLoading: boolean; requestFailed: boolean } | undefined;
+
+    function HookHarness() {
+      const state = useDiaryRequestState(undefined, 60_000);
+      captured = { isLoading: state.isLoading, requestFailed: state.requestFailed };
+      return null;
+    }
+
+    const queryClient = new QueryClient();
+
+    TestRenderer.act(() => {
+      TestRenderer.create(
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(HookHarness),
+        ),
+      );
+    });
+
+    expect(captured).toBeDefined();
+    // The guardrail: with requestId undefined the query is enabled:false, so
+    // isPending stays true forever -- but isLoading (isPending && isFetching)
+    // correctly settles to false. If useDiaryRequestState ever returns
+    // isPending mislabeled as isLoading, this assertion catches it.
+    expect(captured!.isLoading).toBe(false);
+    expect(captured!.requestFailed).toBe(true);
   });
 });
