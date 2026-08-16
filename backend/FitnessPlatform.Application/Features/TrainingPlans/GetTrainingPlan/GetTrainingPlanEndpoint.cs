@@ -125,6 +125,15 @@ public class GetTrainingPlanEndpoint(
                 var completedExternalIds = new List<Guid>();
                 var byWorkout = new Dictionary<Guid, List<Guid>>();
 
+                // Additive per-instance completion ids (#884) — mirrors
+                // GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession (#877). Source 1:
+                // carried verbatim from the execution document regardless of whether the session
+                // lookup below succeeds — these are already instance ids and need no session
+                // context to resolve. Source 2 (inside the session-found branch) is
+                // Performance-derived and DOES need the session's exercise instances to attribute
+                // a fully-logged catalog exercise to its sibling placement(s).
+                var instanceIds = new HashSet<Guid>(c.CompletedExerciseInstanceIds);
+
                 if (session is not null)
                 {
                     foreach (var workout in session.Workouts)
@@ -144,6 +153,35 @@ public class GetTrainingPlanEndpoint(
                     completedExternalIds.AddRange(session.StandaloneExercises
                         .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
                         .Select(e => e.ExerciseExternalId));
+
+                    // Source 2: Performance carries no instance id (see WorkoutExercise), so a
+                    // fully-logged catalog exercise fans out to EVERY SessionExercise instance in
+                    // this session sharing that catalog id — deliberate over-report, mirrors
+                    // #877's GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession remarks
+                    // (GetTodaySessionResponse.cs:180-198). The write path cannot attribute a
+                    // fully-logged catalog exercise to one placement, so over-reporting is chosen
+                    // over under-reporting: over-locking is the fail-safe direction for a trainer
+                    // editor.
+                    if (c.Performance is not null)
+                    {
+                        foreach (var workout in c.Performance.Workouts)
+                        {
+                            foreach (var ex in workout.Exercises)
+                            {
+                                if (ex.Sets.Count == 0 || !ex.Sets.All(s => s.CompletedAt is not null))
+                                {
+                                    continue;
+                                }
+
+                                foreach (var matchingInstanceId in session.AllExercises
+                                             .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
+                                             .Select(sessionExercise => sessionExercise.ExerciseId))
+                                {
+                                    instanceIds.Add(matchingInstanceId);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 return new TrainingPlanCompletionDto
@@ -152,6 +190,7 @@ public class GetTrainingPlanEndpoint(
                     SessionId = c.SessionId!.Value,
                     CompletedExerciseIds = completedExternalIds.Distinct().ToList(),
                     CompletedExerciseIdsByWorkout = byWorkout,
+                    CompletedExerciseInstanceIds = instanceIds.ToList(),
                     CompletedWorkoutIds = c.CompletedWorkoutIds ?? [],
                     Version = c.Version
                 };

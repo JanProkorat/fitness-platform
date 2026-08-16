@@ -66,6 +66,43 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
+    /// Creates a single-week, single-day <see cref="TrainingPlan"/> wrapping exactly the given
+    /// <paramref name="session"/> (placed on Monday). Convenience for tests that need a session
+    /// carrying <see cref="TrainingSession.StandaloneExercises"/> alongside
+    /// <see cref="TrainingSession.Workouts"/> — the plain <see cref="CreatePlan"/> helper builds
+    /// only empty days.
+    /// </summary>
+    public static TrainingPlan CreatePlanWithSession(
+        TrainingSession session,
+        Guid? externalId = null,
+        Guid? clientId = null,
+        Guid? trainerId = null,
+        string name = "Test Training Plan",
+        TrainingPlanStatus status = TrainingPlanStatus.Active,
+        int version = 1)
+    {
+        return new TrainingPlan
+        {
+            ExternalId = externalId ?? Guid.NewGuid(),
+            ClientId = clientId ?? Guid.NewGuid(),
+            TrainerId = trainerId ?? Guid.NewGuid(),
+            Name = name,
+            Status = status,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = MaterializeDays((1, session))
+                }
+            ],
+            Version = version,
+            DateCreated = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
     /// Creates a mocked <see cref="IMongoContext"/> with training plans collection.
     /// </summary>
     public static IMongoContext CreateMockMongo(params TrainingPlan[] plans)
