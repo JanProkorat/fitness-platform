@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.WorkoutTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTemplate;
@@ -24,7 +25,9 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "Update workout template";
-            s.Description = "Replaces name, format, and default exercises. Uses optimistic concurrency via the Version field.";
+            s.Description = "Replaces name, format, and default exercises. Uses optimistic concurrency via the Version field. Another trainer's template returns 404, identical to a genuinely missing template, and is checked before the version comparison.";
+            s.Responses[StatusCodes.Status200OK] = "Updated workout template";
+            s.Responses[StatusCodes.Status404NotFound] = "Workout template not found, or not owned by the caller";
         });
     }
 
@@ -46,16 +49,13 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
             cancellationToken: ct);
         var template = await cursor.FirstOrDefaultAsync(ct);
 
-        if (template is null)
+        // Existence + ownership check — collapsed into one 404 so a non-owner cannot
+        // distinguish "not yours" from "does not exist" (see WorkoutTemplateErrors remarks).
+        // Must run before the Version comparison below: otherwise a non-owner could read a
+        // version oracle off a 400 vs. 404 split.
+        if (template is null || template.OwnerTrainerId != trainerId)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Workout template not found.");
-            return;
-        }
-
-        // Ownership check
-        if (template.OwnerTrainerId != trainerId)
-        {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Workout template belongs to another trainer.");
+            await this.SendProblemAsync(404, ErrorCodes.WorkoutTemplateNotFound, WorkoutTemplateErrors.NotFoundDetail, ct);
             return;
         }
 

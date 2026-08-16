@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Features.WorkoutTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.DeleteWorkoutTemplate;
@@ -23,7 +25,9 @@ public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "Delete workout template";
-            s.Description = "Permanently deletes a workout template. Returns 403 if owned by another trainer.";
+            s.Description = "Permanently deletes a workout template. Another trainer's template returns 404, identical to a genuinely missing template.";
+            s.Responses[StatusCodes.Status204NoContent] = "Workout template deleted";
+            s.Responses[StatusCodes.Status404NotFound] = "Workout template not found, or not owned by the caller";
         });
     }
 
@@ -45,15 +49,9 @@ public class DeleteWorkoutTemplateEndpoint(IMongoContext mongo)
             cancellationToken: ct);
         var template = await cursor.FirstOrDefaultAsync(ct);
 
-        if (template is null)
+        if (template is null || template.OwnerTrainerId != trainerId)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotFound, "Workout template not found.");
-            return;
-        }
-
-        if (template.OwnerTrainerId != trainerId)
-        {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateNotOwned, "Workout template belongs to another trainer.");
+            await this.SendProblemAsync(404, ErrorCodes.WorkoutTemplateNotFound, WorkoutTemplateErrors.NotFoundDetail, ct);
             return;
         }
 

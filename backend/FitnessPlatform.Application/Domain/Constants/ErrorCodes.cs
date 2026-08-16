@@ -270,11 +270,8 @@ public static class ErrorCodes
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
     // ── Workout Templates ────────────────────────────────────────────
-    /// <summary>Workout template not found.</summary>
+    /// <summary>Workout template not found, or not owned by the calling trainer (indistinguishable from missing).</summary>
     public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
-
-    /// <summary>Workout template belongs to another trainer.</summary>
-    public const string WorkoutTemplateNotOwned = "WORKOUT_TEMPLATE_NOT_OWNED";
 
     /// <summary>Workout template version mismatch (optimistic concurrency).</summary>
     public const string WorkoutTemplateVersionConflict = "WORKOUT_TEMPLATE_VERSION_CONFLICT";
