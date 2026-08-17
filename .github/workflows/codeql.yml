@@ -11,7 +11,9 @@ on:
   push:
     branches: [develop, main]
   pull_request:
-    branches: [develop, main, 'feature/*']
+    # See the note in backend.yml — epic branches take their issue's
+    # type: prefix, so this must cover more than feature/.
+    branches: [develop, main, 'feature/*', 'refactor/*', 'fix/*', 'docs/*', 'chore/*']
   schedule:
     # Weekly full scan (Sundays 03:17 UTC) to catch newly-published
     # query updates against code that hasn't changed in a while.

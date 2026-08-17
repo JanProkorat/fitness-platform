@@ -9,7 +9,9 @@ on:
       - 'package-lock.json'
       - '.github/workflows/mobile-ci.yml'
   pull_request:
-    branches: [main, develop, 'feature/*']
+    # See the note in backend.yml — epic branches take their issue's
+    # type: prefix, so this must cover more than feature/.
+    branches: [main, develop, 'feature/*', 'refactor/*', 'fix/*', 'docs/*', 'chore/*']
     paths:
       - 'mobile/**'
       - 'package.json'
