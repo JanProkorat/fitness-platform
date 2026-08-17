@@ -267,6 +267,35 @@ Skill: review  <pr-number>
 Use it as written. The house methodology is the house methodology; do
 not improvise a parallel checklist.
 
+> ⚠️ **WORKTREE HAZARD — read before invoking `review`.**
+>
+> The `review` skill resolves paths against the **session's working
+> directory**, not against the PR's branch or worktree. When the PR under
+> review lives in a `.worktrees/<issue>-<slug>/` checkout — which is the
+> norm for any parallel dispatch (`rules/branch-and-pr.md#parallel-sub-agents-one-branch-each`)
+> — the skill reads the MAIN checkout instead. The main checkout is
+> routinely on a different branch and routinely carries another issue's
+> uncommitted work.
+>
+> This has already produced a real failure: reviewing #798 (mobile), the
+> skill returned findings about `ClientLocalTimeExtensions.cs` and
+> `WorkoutCompletionService.cs` — files belonging to #935, a different
+> in-flight issue, which happened to be sitting uncommitted in main. The
+> findings looked plausible enough to route work to the wrong dev agent.
+>
+> **Therefore:**
+> 1. Before invoking `review`, establish the PR's actual checkout path
+>    (`gh pr view <n> --json headRefName` plus `git worktree list`), and
+>    confirm whether it is the main checkout or a worktree.
+> 2. If it is a **worktree**, do NOT rely on the bare `Skill: review
+>    <pr-number>` call. Either invoke it from that worktree, or skip the
+>    skill for this pass and run the hard-rule gate in 3b against an
+>    explicit `gh pr diff <n>` — and say in your verdict which you did.
+> 3. **Reconcile every finding against the PR diff before reporting it.**
+>    Any finding citing a file that is not in `gh pr diff --name-only` is
+>    a wrong-tree artefact: discard it and note that you did. A finding
+>    you cannot locate in the diff is never a finding.
+
 **3b. Supplement the skill run with the project's hard-rule gate
 (cite `file:line` for every finding):**
 
@@ -342,6 +371,11 @@ to what a real external reviewer would have:
 - The repo's code-review skill name (`review`) and its location.
 - The merge exclusion list and the `type:*`-label → strategy mapping
   (so the sub-reviewer can flag issues that would block merge).
+- **The PR's checkout path** — the `.worktrees/<issue>-<slug>/` directory
+  if the branch lives in one, otherwise the repo root. This is not
+  orchestrator context and does not compromise the blind read; it is the
+  address of the code under review. Withholding it is what causes the
+  wrong-tree failure below.
 
 **What the sub-reviewer must NOT receive from you:**
 
@@ -374,11 +408,33 @@ an **epic branch** (`feature/<epic-N>-<short>`) when the PR is one
 sub-issue of a larger epic. The diff and the merge exclusions you
 flag are relative to that base, not always `develop`.
 
+The code under review is checked out at <checkout-path>. Run every
+file read and every command against THAT path (`-C <checkout-path>` or
+cd there first). Do not read files from the repository root unless
+<checkout-path> IS the repository root — the root is routinely on a
+different branch and routinely carries another issue's uncommitted
+work.
+
 You MUST:
 
 1. Invoke the project's review skill:  Skill: review  with argument
    <pr-number>. That skill is the house code-review methodology — use
    it as written, do not improvise a different checklist.
+
+   ⚠️ EXCEPTION — if <checkout-path> is NOT the repository root, the
+   `review` skill is unreliable here: it resolves paths against the
+   session working directory rather than the PR's worktree, so it will
+   read the wrong branch. In that case SKIP the skill and perform the
+   review directly from `gh pr diff <pr-number>` plus targeted reads
+   under <checkout-path>. State in your summary which path you took.
+
+1b. RECONCILE BEFORE REPORTING. Run `gh pr diff <pr-number> --name-only`
+   and check every finding you are about to report against that list.
+   A finding citing a file that is not in the diff is a wrong-tree
+   artefact, not a defect — discard it and say so. This is not a
+   hypothetical: a previous review of a mobile PR reported findings
+   about backend files belonging to an entirely different in-flight
+   issue, purely because the skill read the wrong checkout.
 
 2. Supplement it with the project's hard rules (cite file:line in
    every finding):
