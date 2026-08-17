@@ -1003,4 +1003,124 @@ public class ComplianceServiceTests
 
         result.TrainingsCompleted.Should().Be(0, "ForTime section was never marked complete");
     }
+
+    // ── #935 streak continuity across the client's local midnight ──────────────
+
+    /// <summary>
+    /// The mandatory #935 streak-continuity case: a session completed right after the client's
+    /// LOCAL midnight is attributed to the client's local calendar day (via
+    /// <c>SessionExecution.Date</c>), and a caller that anchors the streak walk's "today" on
+    /// that SAME local day sees it. A caller that instead anchors on the server's stale UTC day
+    /// for the same instant — exactly what every <c>CalculateStreakAsync</c> caller did before
+    /// #935 — never even enters the walk, because the plan's own floor (its <c>StartDate</c>,
+    /// itself resolved on the client's local day the very first time the client interacted with
+    /// it) is already past that stale "today".
+    /// </summary>
+    /// <remarks>
+    /// The plan intentionally spans exactly ONE day (<c>StartDate</c> == the local day the
+    /// completion is dated on). The shared <c>CreateMockSessionExecutionCollection</c> test
+    /// double (used by every other streak test in this file) ignores its filter argument and
+    /// always returns the full seeded completion list regardless of the query's Date — a
+    /// pre-existing, out-of-scope simplification. A one-day plan window sidesteps it entirely:
+    /// the walk's loop condition (<c>currentDate &gt;= floorDate</c>) can visit at most a single
+    /// day, so which day gets checked — not whether the mock also matches on Date — is what
+    /// distinguishes the two calls below.
+    /// </remarks>
+    [Fact]
+    public async Task CalculateStreakAsync_SessionCompletedJustAfterLocalMidnight_CountsOnlyWhenAnchoredOnClientLocalDay()
+    {
+        // 2026-06-15 22:30 UTC == 2026-06-16 00:30 in Europe/Prague (UTC+2 in June) — the same
+        // boundary instant exercised in ClientLocalDateResolverTests. The client's LOCAL
+        // calendar day for this instant is 2026-06-16; the server's stale UTC calendar day is
+        // 2026-06-15 — the exact divergence #935 exists to fix.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var todayLocal = new DateOnly(2026, 6, 16);
+        var staleUtcDay = new DateOnly(2026, 6, 15);
+        var start = todayLocal.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Test Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = start,
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                    {
+                        DayOfWeek = d,
+                        Sessions =
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = sessionId,
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = Guid.NewGuid(),
+                                        Order = 0,
+                                        Name = "Main",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = ex1,
+                                                ExerciseExternalId = ex1,
+                                                ExerciseName = "Exercise 1",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = start
+        };
+
+        // The completion is dated on the client's local day (2026-06-16) — exactly what
+        // WorkoutCompletionService now writes via SessionExecution.ToCompletionDateUtc resolved
+        // from the client's own time zone (#935).
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: start,
+            completedExerciseIds: [ex1]);
+
+        var mongo = CreateMongo(trainingPlan: trainingPlan, completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        // Correct: anchor the walk on the client's own local day — the plan floor (its
+        // StartDate) is exactly that day, so the walk visits it and finds the completion.
+        var streakFromLocalDay = await sut.CalculateStreakAsync(
+            _clientId, todayLocal, TestContext.Current.CancellationToken);
+        streakFromLocalDay.Should().Be(1,
+            "the session completed just after local midnight is dated on the client's local day, " +
+            "which is also the plan's own floor");
+
+        // Regression guard: anchoring on the server's stale UTC day for the SAME instant (what
+        // every CalculateStreakAsync caller did before #935) starts the walk BEFORE the plan's
+        // floor — the loop condition (currentDate >= floorDate) never executes, so the streak
+        // is silently reported as zero even though the client just completed their session.
+        var streakFromStaleUtcDay = await sut.CalculateStreakAsync(
+            _clientId, staleUtcDay, TestContext.Current.CancellationToken);
+        streakFromStaleUtcDay.Should().Be(0,
+            "anchoring on the UTC day instead of the client's local day starts the walk before " +
+            "the plan even began, from that stale day's point of view");
+    }
 }

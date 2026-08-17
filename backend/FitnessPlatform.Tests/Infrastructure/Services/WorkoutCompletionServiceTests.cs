@@ -83,7 +83,7 @@ public class WorkoutCompletionServiceTests
         var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, authHelper);
         var execution = CreateExecution();
 
-        await service.CompleteAsync(execution, DateTime.UtcNow, TestContext.Current.CancellationToken);
+        await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);
 
         await notifications.Received(1).CreateAsync(
             _trainerId,
@@ -107,7 +107,7 @@ public class WorkoutCompletionServiceTests
         var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, authHelper);
         var execution = CreateExecution();
 
-        await service.CompleteAsync(execution, DateTime.UtcNow, TestContext.Current.CancellationToken);
+        await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);
 
         await notifications.DidNotReceive().CreateAsync(
             Arg.Any<Guid>(),
@@ -130,7 +130,7 @@ public class WorkoutCompletionServiceTests
         var service = CreateService(mongo, [], notifications, authHelper);
         var execution = CreateExecution();
 
-        await service.CompleteAsync(execution, DateTime.UtcNow, TestContext.Current.CancellationToken);
+        await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);
 
         await notifications.DidNotReceive().CreateAsync(
             Arg.Any<Guid>(),

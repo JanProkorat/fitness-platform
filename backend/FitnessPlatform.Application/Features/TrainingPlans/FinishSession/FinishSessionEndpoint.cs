@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
@@ -22,10 +23,15 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 /// <param name="completionService">Shared workout completion pipeline.</param>
 /// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
 /// live link to its client decides access.</param>
+/// <param name="db">Relational database context — resolves the CLIENT's (not the trainer's)
+/// persisted time zone (#935). Whoever writes <see cref="SessionExecution.Date"/> resolves it
+/// from the client's own time zone regardless of which role drove the mutation, so the client's
+/// own Today card reads back the same calendar day this trainer-initiated finish wrote.</param>
 public class FinishSessionEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
-    ProfessionalAuthHelper authHelper) : Endpoint<FinishSessionRequest, FinishSessionResponse>
+    ProfessionalAuthHelper authHelper,
+    IApplicationDbContext db) : Endpoint<FinishSessionRequest, FinishSessionResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -77,6 +83,11 @@ public class FinishSessionEndpoint(
             return;
         }
 
+        // Resolve the CLIENT's (not the trainer's) persisted time zone (#935) — see the ctor
+        // doc comment. Every SessionExecution.Date this endpoint writes or looks up below is
+        // keyed on the client's local calendar day.
+        var clientTimeZone = await db.ResolveClientTimeZoneAsync(plan.ClientId, ct);
+
         // 3. Resolve the effective completion instant, normalizing to UTC so that
         //    DateOnly.FromDateTime(completedAt) always lands on the correct calendar day
         //    regardless of the DateTime.Kind the JSON binder assigned to the incoming value.
@@ -116,7 +127,7 @@ public class FinishSessionEndpoint(
         // 5. Reuse the execution for this exact (clientId, sessionId, date) if one exists —
         //    the unified partial-unique index allows only one per day — otherwise materialize a
         //    fresh SessionExecution from the session template.
-        var date = SessionExecution.ToCompletionDateUtc(completedAt);
+        var date = SessionExecution.ToCompletionDateUtc(completedAt, clientTimeZone);
         var executionFilter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, plan.ClientId)
                               & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, req.SessionId)
                               & Builders<SessionExecution>.Filter.Eq(e => e.Date, date);
@@ -128,7 +139,7 @@ public class FinishSessionEndpoint(
             // TrainingPlan.ClientId is ApplicationUser.Id (#840) — same identifier
             // SessionExecution.ClientId has always used, so no ClientProfile translation
             // is needed here anymore (previously required a PublicId -> UserId lookup).
-            execution = MaterializeFromTemplate(plan, session, completedAt, plan.ClientId);
+            execution = MaterializeFromTemplate(plan, session, completedAt, date, plan.ClientId);
             await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
         }
         else if (execution.Performance is null)
@@ -142,9 +153,13 @@ public class FinishSessionEndpoint(
         // 6. Delegate the full completion pipeline to the shared service.
         //    The completedAt instant drives BOTH Performance.CompletedAt and the completion flags,
         //    so that backdated finishes are attributed to the correct calendar day.
+        //    Whoever writes SessionExecution.Date resolves it from the CLIENT's time zone (#935),
+        //    regardless of which role is authenticated — clientTimeZone above is always resolved
+        //    from plan.ClientId, never the trainer's own claim, even though a trainer drives this
+        //    endpoint.
         try
         {
-            await completionService.CompleteAsync(execution, completedAt, ct);
+            await completionService.CompleteAsync(execution, completedAt, clientTimeZone, ct);
         }
         catch (WorkoutAlreadyCompletedException)
         {
@@ -170,10 +185,17 @@ public class FinishSessionEndpoint(
     /// initialized from the plan's <see cref="ExerciseSet"/> prescription and
     /// <see cref="WorkoutSet.CompletedAt"/> stamped with the supplied instant.
     /// </summary>
+    /// <param name="plan">The owning training plan.</param>
+    /// <param name="session">The session template to materialize.</param>
+    /// <param name="completedAt">The instant every set's <c>CompletedAt</c> is stamped with.</param>
+    /// <param name="date">The pre-resolved calendar-day key (client's local day, #935) — passed
+    /// in rather than re-derived so this helper needs no time-zone parameter of its own.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c>.</param>
     private static SessionExecution MaterializeFromTemplate(
         TrainingPlan plan,
         TrainingSession session,
         DateTime completedAt,
+        DateTime date,
         Guid clientUserId)
     {
         return new SessionExecution
@@ -182,7 +204,7 @@ public class FinishSessionEndpoint(
             ClientId = clientUserId,
             PlanId = plan.ExternalId,
             SessionId = session.SessionId,
-            Date = SessionExecution.ToCompletionDateUtc(completedAt),
+            Date = date,
             Performance = BuildPerformanceFromTemplate(session, completedAt),
             DateCreated = DateTime.UtcNow,
             Version = 1

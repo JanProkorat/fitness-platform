@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
@@ -33,6 +34,12 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
 /// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger for swallowing broadcast errors.</param>
+/// <param name="db">Relational database context — resolves the completing client's persisted
+/// time zone (#935) so <see cref="SessionExecution.Date"/> lands on the client's own local
+/// calendar day. The caller is always the client here (self-completion), but resolution still
+/// goes through the shared extension for consistency with the trainer-driven FinishSession path.</param>
+/// <param name="timeProvider">Clock abstraction (#935) — lets tests pin the completion instant
+/// deterministically instead of reading <see cref="DateTime.UtcNow"/> directly.</param>
 public class CompleteWorkoutEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
@@ -40,7 +47,9 @@ public class CompleteWorkoutEndpoint(
     IRealtimeNotifier notifier,
     IComplianceService compliance,
     ProfessionalAuthHelper authHelper,
-    ILogger<CompleteWorkoutEndpoint> logger) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
+    ILogger<CompleteWorkoutEndpoint> logger,
+    IApplicationDbContext db,
+    TimeProvider timeProvider) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -84,10 +93,15 @@ public class CompleteWorkoutEndpoint(
 
         // Delegate the full completion pipeline (PR detection, log update,
         // TrainingCompletion fan-out, notification) to the shared service.
-        // Live client completions use DateTime.UtcNow as the completion instant.
+        // Live client completions use the current instant, resolved via TimeProvider (#935)
+        // so tests can pin it deterministically. The client's own persisted time zone is
+        // resolved here and passed down so SessionExecution.Date lands on their local day.
+        var clientTimeZone = await db.ResolveClientTimeZoneAsync(clientId, ct);
+        var completedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+
         try
         {
-            await completionService.CompleteAsync(log, DateTime.UtcNow, ct);
+            await completionService.CompleteAsync(log, completedAtUtc, clientTimeZone, ct);
         }
         catch (WorkoutAlreadyCompletedException)
         {

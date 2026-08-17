@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -76,7 +77,8 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext
 
             using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
             var activePlans = await planCursor.ToListAsync(ct);
-            var activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+            var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientProfile.UserId, ct);
+            var activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
             planTargetWeightKg = activePlan?.TargetWeightKg;
         }
         catch (MongoDB.Driver.MongoException ex)

@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -62,8 +63,11 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
 
         // NutritionPlan/DayLog/MealLog.ClientId = ApplicationUser.Id since #840.
         var clientId = clientProfile.UserId;
-        var todayUtc = DateTime.UtcNow.Date;
-        var tomorrowUtc = todayUtc.AddDays(1);
+
+        // Resolve the client's local calendar day (#935) — todayUtc anchors LogDate-style
+        // equality checks; windowStartUtc/windowEndUtc anchor the legacy EatenAt instant-range
+        // filter so a meal logged near local midnight lands in the correct local day's window.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
 
         // Resolve the client's Active plan whose date window contains today to scope the lookup —
         // a client may hold several sequential, non-overlapping Active plans (#780).
@@ -73,7 +77,7 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         if (plan is null)
         {
@@ -96,8 +100,8 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, (DateTime?)todayUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, (DateTime?)tomorrowUtc))));
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, (DateTime?)windowStartUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, (DateTime?)windowEndUtc))));
 
         var dayLogTask = mongo.DayLogs.FindAsync(dayLogFilterDef, cancellationToken: ct);
         var mealLogTask = mongo.MealLogs.FindAsync(mealLogFilterDef, cancellationToken: ct);

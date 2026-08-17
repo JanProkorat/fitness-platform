@@ -7,8 +7,10 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
@@ -28,10 +30,18 @@ public class FinishSessionEndpointTests
 
     // ── helpers ──────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// FinishSessionEndpoint takes IApplicationDbContext since #935, to resolve the CLIENT's
+    /// (not the trainer's) persisted time zone for the SessionExecution.Date calendar-day key.
+    /// No ApplicationUser row is seeded, so resolution falls back to UTC — identical to this
+    /// suite's pre-#935 behaviour (every fixture already anchors dates in UTC).
+    /// </summary>
+    private static IApplicationDbContext CreateMockDb() => new MockDbBuilder().Build();
+
     private IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
@@ -162,7 +172,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -174,6 +184,7 @@ public class FinishSessionEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Is<SessionExecution>(l => l.ExternalId == incompleteExecution.ExternalId),
             Arg.Any<DateTime>(),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -193,7 +204,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -222,6 +233,7 @@ public class FinishSessionEndpointTests
                 l.Performance!.Workouts.Count > 0 &&
                 l.Performance!.Workouts[0].Exercises.Count > 0),
             Arg.Any<DateTime>(),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -240,6 +252,7 @@ public class FinishSessionEndpointTests
         completionService.CompleteAsync(
                 Arg.Do<SessionExecution>(l => capturedLog = l),
                 Arg.Any<DateTime>(),
+                Arg.Any<TimeZoneInfo>(),
                 Arg.Any<CancellationToken>())
             .Returns(new List<string>());
 
@@ -248,7 +261,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -281,7 +294,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -298,6 +311,7 @@ public class FinishSessionEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d == backdated),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -322,7 +336,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -330,7 +344,7 @@ public class FinishSessionEndpointTests
 
         // The service is called once — meaning the same pipeline runs.
         await completionService.Received(1).CompleteAsync(
-            Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+            Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>());
     }
 
     // ── ownership guard: trainer doesn't own the plan ────────────────────────────
@@ -349,7 +363,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -370,7 +384,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = Guid.NewGuid(), SessionId = Guid.NewGuid() },
@@ -392,7 +406,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = wrongSessionId },
@@ -417,7 +431,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -466,7 +480,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -526,7 +540,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         // completedAt is one day before the plan was created — must be rejected
         var tooEarly = dateCreated.AddDays(-1);
@@ -558,7 +572,7 @@ public class FinishSessionEndpointTests
 
         var completionService = Substitute.For<IWorkoutCompletionService>();
         completionService
-            .CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Throws(new WorkoutAlreadyCompletedException());
 
         var ep = Factory.Create<FinishSessionEndpoint>(
@@ -566,7 +580,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -596,7 +610,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         // Simulate JSON-bound DateTime with Unspecified kind (equivalent to a UTC instant one week ago)
         var rawFromJson = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-5), DateTimeKind.Unspecified);
@@ -617,6 +631,7 @@ public class FinishSessionEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d.Kind == DateTimeKind.Utc),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -649,7 +664,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },

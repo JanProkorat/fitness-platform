@@ -32,7 +32,7 @@ public class GetWeeklyOverviewEndpointTests
                 MealsLogged = 13
             });
 
-        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<CancellationToken>())
+        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(3);
 
         _complianceService.CalculateAverageMacrosAsync(

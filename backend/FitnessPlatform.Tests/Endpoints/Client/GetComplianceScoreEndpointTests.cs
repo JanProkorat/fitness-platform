@@ -35,7 +35,7 @@ public class GetComplianceScoreEndpointTests
                 MealsLogged = 18
             });
 
-        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<CancellationToken>())
+        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(5);
 
         // Endpoint needs IApplicationDbContext to resolve ClientProfile.PublicId from UserId.

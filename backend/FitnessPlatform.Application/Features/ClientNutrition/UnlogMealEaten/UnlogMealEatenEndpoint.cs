@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -55,12 +56,14 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
 
-        // Remove any meal log entries for this meal and client logged today (UTC).
+        // Remove any meal log entries for this meal and client logged today. Resolves the
+        // client's local calendar day (#935) — today anchors the LogDate equality check,
+        // windowStart/windowEnd anchor the legacy EatenAt instant-range filter, so a meal
+        // logged near local midnight is still found under the correct local day.
         // Uses the same OR pattern as GetTodayLog and SaveMealPhotos to find all log
         // variants: modern records (LogDate == today), photo-only records (EatenAt null,
         // LogDate == today), and legacy records (LogDate = default, EatenAt in today's window).
-        var today = DateTime.UtcNow.Date;
-        var tomorrow = today.AddDays(1);
+        var (today, windowStart, windowEnd) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
 
         var filter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),
@@ -68,8 +71,8 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, today),
                 Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, today),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrow))));
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStart),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEnd))));
 
         var deleteResult = await mongo.MealLogs.DeleteManyAsync(filter, ct);
 

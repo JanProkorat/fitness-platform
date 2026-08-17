@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -56,7 +57,11 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var now = DateTime.UtcNow;
+
+        // Resolve the client's local calendar day (#935) — anchors current-week resolution,
+        // plan-window disambiguation, and the day-of-week HasTodaySession check below on the
+        // client's local "today" rather than the server's UTC day.
+        var now = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
 
         // Parse status filter
         NutritionPlanStatus? nutritionStatus = null;

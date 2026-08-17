@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -64,7 +65,8 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -51,11 +52,15 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
-        var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+
+        // Resolve the client's local calendar day (#935) rather than the server's UTC day for the
+        // default range and the streak anchor — see GetWeeklyOverviewEndpoint for the same fix.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var from = req.From ?? todayLocalUtc.AddDays(-7);
+        var to = req.To ?? todayLocalUtc.AddDays(1).AddTicks(-1);
 
         var compliance = await complianceService.CalculateComplianceAsync(clientId, from, to, ct);
-        var streak = await complianceService.CalculateStreakAsync(clientId, ct);
+        var streak = await complianceService.CalculateStreakAsync(clientId, DateOnly.FromDateTime(todayLocalUtc), ct);
 
         await Send.OkAsync(new GetComplianceScoreResponse
         {

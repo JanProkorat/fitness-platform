@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -57,6 +58,11 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
 
+        // Resolve the client's local calendar day (#935) — anchors plan-window resolution AND
+        // the MealLog.LogDate this endpoint writes below, so a meal logged near local midnight
+        // is keyed on the client's local day, not the server's UTC day.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+
         // Resolve the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
         var filter = Builders<NutritionPlan>.Filter.And(
@@ -65,7 +71,7 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -91,7 +97,10 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
             ClientId = clientId,
             PlanId = plan.ExternalId,
             MealId = req.MealId,
-            LogDate = now.Date,
+            // LogDate is the CLIENT's local calendar day (#935) — todayLocalUtc, not now.Date
+            // (the server's UTC day), so a meal logged near local midnight is filed under the
+            // day the client's own Today card shows. EatenAt stays the true UTC instant.
+            LogDate = todayLocalUtc,
             EatenAt = now,
             FoodsEaten = meal.Foods,
             Photos = (req.PhotoBlobUrls ?? [])

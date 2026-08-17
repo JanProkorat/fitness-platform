@@ -223,13 +223,8 @@ public class PhotoDiaryReminderScheduler(
 
             // ── Check if client already uploaded a photo today ────────────────
             // "today" = [start-of-local-day, end-of-local-day) in UTC.
-            var localDayStart = localNow.Date;
-            var localDayEnd   = localDayStart.AddDays(1);
-
-            var dayStartUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localDayStart, DateTimeKind.Unspecified), tz);
-            var dayEndUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localDayEnd, DateTimeKind.Unspecified), tz);
+            var (dayStartUtc, dayEndUtc) = Domain.Services.ClientLocalDateResolver.ResolveLocalDayWindowUtc(
+                DateOnly.FromDateTime(localNow.Date), tz);
 
             var alreadyUploaded = await db.PlanPhotos
                 .AsNoTracking()
@@ -443,19 +438,8 @@ public class PhotoDiaryReminderScheduler(
 
     private DateTime UtcNow() => OverrideNow ?? DateTime.UtcNow;
 
-    private TimeZoneInfo GetTimeZoneInfo(string ianaId)
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(ianaId);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            logger.LogWarning(
-                "PhotoDiaryReminderScheduler: unknown time zone '{IanaId}'; falling back to UTC.", ianaId);
-            return TimeZoneInfo.Utc;
-        }
-    }
+    private TimeZoneInfo GetTimeZoneInfo(string ianaId) =>
+        Domain.Services.ClientLocalDateResolver.ResolveTimeZone(ianaId, logger);
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505";

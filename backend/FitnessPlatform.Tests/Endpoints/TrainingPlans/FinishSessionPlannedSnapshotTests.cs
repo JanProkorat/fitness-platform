@@ -6,7 +6,9 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -28,10 +30,16 @@ public class FinishSessionPlannedSnapshotTests
     private IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
+
+    /// <summary>
+    /// FinishSessionEndpoint takes IApplicationDbContext since #935 to resolve the client's
+    /// persisted time zone. No ApplicationUser row is seeded, so resolution falls back to UTC.
+    /// </summary>
+    private static IApplicationDbContext CreateMockDb() => new MockDbBuilder().Build();
 
     private static TrainingPlan CreatePlanWithPrescribedSets(Guid trainerId, Guid sessionId)
     {
@@ -125,7 +133,7 @@ public class FinishSessionPlannedSnapshotTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -148,6 +156,7 @@ public class FinishSessionPlannedSnapshotTests
                         s.PlannedDistanceMeters == s.DistanceMeters &&
                         !s.IsModified))),
             Arg.Any<DateTime>(),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -166,7 +175,7 @@ public class FinishSessionPlannedSnapshotTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -183,6 +192,7 @@ public class FinishSessionPlannedSnapshotTests
                 l.Exercises[0].Sets[0].PlannedWeightKg == 100m &&
                 l.Exercises[0].Sets[2].PlannedRpe == null),  // set 3 has no Rpe in prescription
             Arg.Any<DateTime>(),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 }

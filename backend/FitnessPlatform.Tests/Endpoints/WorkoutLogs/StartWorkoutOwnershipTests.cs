@@ -5,6 +5,8 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 
@@ -64,7 +66,7 @@ public class StartWorkoutOwnershipTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientUserId, AppRoles.Client))),
-            mongo);
+            mongo, new MockDbBuilder().Build(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(
@@ -100,7 +102,7 @@ public class StartWorkoutOwnershipTests
         var ep = Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(attackerUserId, AppRoles.Client))),
-            mongo);
+            mongo, new MockDbBuilder().Build(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(

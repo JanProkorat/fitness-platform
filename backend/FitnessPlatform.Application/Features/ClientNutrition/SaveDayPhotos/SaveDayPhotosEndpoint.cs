@@ -96,7 +96,11 @@ public class SaveDayPhotosEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        // Resolve the client's local calendar day (#935) once — todayUtc anchors LogDate-style
+        // equality checks and plan-window resolution; windowStartUtc/windowEndUtc anchor the
+        // CreatedAt instant-range filter below so it isn't skewed by the client's UTC offset.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         if (plan is null)
         {
@@ -111,8 +115,6 @@ public class SaveDayPhotosEndpoint(
         }
 
         var now = DateTime.UtcNow;
-        var todayUtc = now.Date;
-        var tomorrowUtc = todayUtc.AddDays(1);
 
         // Key: one log per (client, plan, calendar day).
         // Defensive OR branch: matches both modern records (LogDate == today) and any future
@@ -125,8 +127,8 @@ public class SaveDayPhotosEndpoint(
             Builders<DayLog>.Filter.Or(
                 Builders<DayLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<DayLog>.Filter.And(
-                    Builders<DayLog>.Filter.Gte(l => l.CreatedAt, todayUtc),
-                    Builders<DayLog>.Filter.Lt(l => l.CreatedAt, tomorrowUtc))));
+                    Builders<DayLog>.Filter.Gte(l => l.CreatedAt, windowStartUtc),
+                    Builders<DayLog>.Filter.Lt(l => l.CreatedAt, windowEndUtc))));
 
         var existingCursor = await mongo.DayLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);

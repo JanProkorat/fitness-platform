@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -54,6 +55,11 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
 
+        // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
+        // the week calculation below on the client's local "today" rather than the server's
+        // UTC day.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
         var filter = Builders<Domain.Documents.NutritionPlan>.Filter.And(
@@ -62,7 +68,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -82,7 +88,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         if (plan.StartDate.HasValue)
         {
-            var daysSinceStart = (int)(DateTime.UtcNow.Date - plan.StartDate.Value.Date).TotalDays;
+            var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
 
             if (daysSinceStart < 0)
             {
@@ -97,7 +103,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         }
         else
         {
-            var daysSincePublish = (int)(DateTime.UtcNow.Date - plan.DatePublished!.Value.Date).TotalDays;
+            var daysSincePublish = (int)(todayLocalUtc - plan.DatePublished!.Value.Date).TotalDays;
 
             if (daysSincePublish < 0)
             {

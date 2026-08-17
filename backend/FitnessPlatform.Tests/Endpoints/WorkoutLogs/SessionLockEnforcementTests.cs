@@ -7,8 +7,10 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -52,12 +54,14 @@ public class SessionLockEnforcementTests
     private StartWorkoutEndpoint CreateStartEndpoint(IMongoContext mongo)
     {
         // Since #840, TrainingPlan.ClientId stores ApplicationUser.Id directly, so
-        // StartWorkoutEndpoint's ownership check no longer needs an IApplicationDbContext
-        // (ClientProfile lookup) — mongo is the endpoint's only dependency.
+        // StartWorkoutEndpoint's ownership check no longer needs a ClientProfile lookup.
+        // It DOES take IApplicationDbContext since #935, to resolve the caller's persisted
+        // time zone for the SessionExecution.Date calendar-day key — no ApplicationUser row
+        // is seeded here, so resolution falls back to UTC (identical to pre-#935 behaviour).
         return Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, new MockDbBuilder().Build(), TimeProvider.System);
     }
 
     // ── StartWorkout tests ────────────────────────────────────────────────────
@@ -133,7 +137,7 @@ public class SessionLockEnforcementTests
     private IWorkoutCompletionService MockCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
@@ -144,6 +148,10 @@ public class SessionLockEnforcementTests
         svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult { CompliancePercent = 100m });
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        // #935: TrainingProgressBroadcaster now anchors the streak walk on the caller-supplied
+        // local calendar day rather than DateTime.UtcNow — stub the new overload too.
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(1);
         return svc;
     }
@@ -158,7 +166,8 @@ public class SessionLockEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            new MockDbBuilder().Build(), TimeProvider.System);
     }
 
     [Fact]

@@ -75,7 +75,11 @@ public class MarkExerciseCompleteEndpoint(
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        // req.CompletedOn is never populated by the client in practice — the fallback resolves
+        // the CLIENT's local calendar day (#935) rather than the server's UTC day.
+        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, ct)))
+            .ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Resolve the client's Active training plan whose date window contains today (and
         // validate session/exercise ownership) — a client may hold several sequential,

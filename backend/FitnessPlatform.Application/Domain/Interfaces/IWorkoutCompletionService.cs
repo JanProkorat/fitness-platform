@@ -25,10 +25,17 @@ public interface IWorkoutCompletionService
     /// </param>
     /// <param name="completedAtUtc">
     ///   The UTC instant to record as the completion time.
-    ///   Pass <see cref="DateTime.UtcNow"/> for live completions; pass a backdated value for
-    ///   trainer-driven historical finishes.
+    ///   Pass <see cref="DateTime.UtcNow"/> (or a <see cref="TimeProvider"/> reading) for live
+    ///   completions; pass a backdated value for trainer-driven historical finishes.
+    /// </param>
+    /// <param name="clientTimeZone">
+    ///   The completing CLIENT's resolved time zone (#935) — the caller resolves this (via
+    ///   <c>IApplicationDbContext.ResolveClientTimeZoneAsync</c>) and passes it down so
+    ///   <see cref="SessionExecution.Date"/> lands on the client's own local calendar day
+    ///   regardless of which role (client or trainer) drove the completion.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The list of human-readable PR descriptions (may be empty).</returns>
-    Task<List<string>> CompleteAsync(SessionExecution execution, DateTime completedAtUtc, CancellationToken ct);
+    Task<List<string>> CompleteAsync(
+        SessionExecution execution, DateTime completedAtUtc, TimeZoneInfo clientTimeZone, CancellationToken ct);
 }

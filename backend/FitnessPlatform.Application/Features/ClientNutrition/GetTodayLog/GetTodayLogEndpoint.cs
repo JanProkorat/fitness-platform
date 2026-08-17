@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -57,8 +58,12 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var todayUtc = DateTime.UtcNow.Date;
-        var tomorrowUtc = todayUtc.AddDays(1);
+
+        // Resolve the client's local calendar day (#935) — todayUtc anchors LogDate-style
+        // equality checks; windowStartUtc/windowEndUtc anchor the EatenAt instant-range filter
+        // so a meal logged near local midnight lands in the correct local day's window rather
+        // than the server's UTC day.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
 
         // Fetch today's meal logs.
         // Matches three cases uniformly:
@@ -75,8 +80,8 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc))));
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
 
         var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var logs = await logCursor.ToListAsync(ct);
@@ -89,7 +94,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         // Resolve today's plan day so we can use pre-computed MealTotals
         // (which include both foods AND recipes, matching the mobile optimistic

@@ -198,9 +198,11 @@ internal static class TrainingProgressBroadcaster
         var todayStart = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var todayEnd = todayStart.AddDays(1);
 
-        // Run compliance + streak concurrently
+        // Run compliance + streak concurrently. The streak walk anchors on `date` — the same
+        // client-local calendar day the caller already resolved for the mutation (#935) — not
+        // DateTime.UtcNow, so a completion near local midnight extends the correct day's streak.
         var complianceTask = compliance.CalculateComplianceAsync(clientId, todayStart, todayStart, ct);
-        var streakTask = compliance.CalculateStreakAsync(clientId, ct);
+        var streakTask = compliance.CalculateStreakAsync(clientId, date, ct);
 
         await Task.WhenAll(complianceTask, streakTask);
 
