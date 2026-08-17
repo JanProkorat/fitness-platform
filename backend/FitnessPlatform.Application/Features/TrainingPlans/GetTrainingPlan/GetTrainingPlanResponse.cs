@@ -173,6 +173,50 @@ public class TrainingPlanCompletionDto
     /// </summary>
     public Dictionary<Guid, List<Guid>> CompletedExerciseIdsByWorkout { get; set; } = new();
 
+    /// <summary>
+    /// Completed exercise INSTANCE ids for this session/date, raw
+    /// <see cref="SessionExercise.ExerciseId"/> values. Unlike <see cref="CompletedExerciseIds"/>
+    /// and <see cref="CompletedExerciseIdsByWorkout"/> (both keyed on the catalog
+    /// <see cref="SessionExercise.ExerciseExternalId"/>), this field lets a client (the trainer
+    /// web editor) lock a specific placement of an exercise when the same catalog exercise
+    /// appears twice in one session — standalone AND nested, or nested twice — including a
+    /// standalone-only session, which the catalog-keyed fields above cannot express at all (#884).
+    /// <para>
+    /// Mirrors <see cref="FitnessPlatform.Application.Features.ClientTraining.GetTodaySession.GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession"/>
+    /// (#877) both in shape and in the union rule below — read that type's remarks
+    /// (<c>GetTodaySessionResponse.cs:161-198</c>) for the full rationale; this field applies the
+    /// same rule to a single (session, date) completion record instead of a session-keyed
+    /// dictionary, because <see cref="TrainingPlanCompletionDto"/> is already one entry per
+    /// completion.
+    /// </para>
+    /// <para>
+    /// <b>Union of two sources — read this before consuming the field.</b>
+    /// </para>
+    /// <list type="number">
+    /// <item>Every id in the underlying <c>SessionExecution.CompletedExerciseInstanceIds</c>,
+    /// carried verbatim — these already identify a single placement, and are carried through
+    /// even when the session lookup below misses (a completion whose SessionId is not part of
+    /// this plan projects cleanly with empty catalog-keyed fields rather than throwing).</item>
+    /// <item><b>Performance-derived completion, fanned out to every sibling instance sharing the
+    /// same catalog id.</b> The live-training-assistant path carries only
+    /// <see cref="WorkoutExercise.ExerciseExternalId"/> — no instance id — so a fully-logged
+    /// catalog exercise cannot be attributed to one specific placement. Concretely: if a session
+    /// holds catalog exercise X both standalone and nested, and the client fully logs X via the
+    /// live-training assistant, BOTH instance ids appear here — the write path cannot distinguish
+    /// which placement was actually performed, so both are reported complete rather than neither.
+    /// This is deliberate: over-locking is the fail-safe direction for a trainer editor (the
+    /// alternative — reporting neither — would render a live-training-assistant-finished session
+    /// with no locks at all, the exact failure mode #877 rejected).</item>
+    /// </list>
+    /// <para>
+    /// Empty list (never null) when no exercise instance has been completed for this session/date.
+    /// Additive alongside <see cref="CompletedExerciseIds"/> and
+    /// <see cref="CompletedExerciseIdsByWorkout"/>, which keep their existing catalog-keyed
+    /// semantics unchanged.
+    /// </para>
+    /// </summary>
+    public List<Guid> CompletedExerciseInstanceIds { get; set; } = [];
+
     public List<Guid> CompletedWorkoutIds { get; set; } = [];
     public int Version { get; set; }
 }
