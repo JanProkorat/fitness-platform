@@ -8,7 +8,11 @@ on:
     # pattern cclint.yml already uses.
     paths: ['backend/**', '.github/workflows/backend.yml']
   pull_request:
-    branches: [main, develop, 'feature/*']
+    # Every epic-branch prefix, not just feature/. An epic branch takes the
+    # prefix of its issue's type: label (rules/branch-and-pr.md), so a
+    # refactor epic is refactor/<N>-<slug> — and a sub-issue PR based on it
+    # got no CI at all until this list covered the other prefixes.
+    branches: [main, develop, 'feature/*', 'refactor/*', 'fix/*', 'docs/*', 'chore/*']
     paths: ['backend/**', '.github/workflows/backend.yml']
 
 permissions:

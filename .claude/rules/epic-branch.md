@@ -10,7 +10,8 @@ state where one sub-issue has merged and the next is still in flight.
 ```
 main
  └── develop                   ← release-stable; only complete epics merge in
-      └── feature/<E>-<short>  ← THE EPIC BRANCH (one per epic issue)
+      └── <type>/<E>-<short>   ← THE EPIC BRANCH (one per epic issue;
+                                  <type> from the epic's own type: label)
            ├── feature/<C1>-<short>   ← sub-issue branches off the EPIC branch
            ├── fix/<C2>-<short>
            └── refactor/<C3>-<short>
@@ -22,9 +23,18 @@ main
   child-issue references (`- [ ] #123 — title`) OR child issues that
   back-reference it via "Part of #N" / "Parent: #N". Detection: any
   parent issue with ≥1 sub-issue.
-- **Epic branch** — `feature/<epic-N>-<short-kebab>`, branched off
+- **Epic branch** — `<type>/<epic-N>-<short-kebab>`, where `<type>`
+  matches the epic issue's own `type:*` label exactly as
+  [`branch-and-pr.md`](branch-and-pr.md) prescribes — a refactor epic is
+  `refactor/<N>-<slug>`, not `feature/<N>-<slug>`. Branched off
   `develop`. Created the moment epic work starts. Lives until the
   epic's consolidated PR merges to `develop`.
+
+  This file previously said `feature/` unconditionally. That wording is
+  what set the `pull_request.branches` filters in `.github/workflows/`
+  to `'feature/*'` alone, so sub-issue PRs based on a `refactor/` epic
+  branch ran **no CI at all** — not pending, absent. Fixed in #936; if
+  you add a new branch prefix, widen those five filters with it.
 - **Sub-issue branch** — `<type>/<child-N>-<short-kebab>` where
   `<type>` matches the child's `type:*` label. Branched off the
   **epic branch**, not `develop`. PR base = the epic branch.
