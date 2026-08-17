@@ -74,8 +74,8 @@ public class SessionExecution
 
     /// <summary>
     /// The calendar day (midnight UTC) this execution applies to. Derived via
-    /// <see cref="ToCompletionDateUtc"/> from the workout's start/completion instant (live path)
-    /// or supplied directly (checkbox path).
+    /// <see cref="ToCompletionDateUtc(DateTime, TimeZoneInfo)"/> from the workout's start/completion
+    /// instant (live path) or supplied directly (checkbox path).
     /// </summary>
     [BsonElement("date")]
     public DateTime Date { get; set; }

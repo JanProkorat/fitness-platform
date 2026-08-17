@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -51,16 +52,20 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var today = DateTime.UtcNow.Date;
+
+        // Resolve the client's local calendar day (#935) rather than the server's UTC day — a
+        // Prague client at 00:30 local Monday (22:30 UTC Sunday) must see the NEW week's overview,
+        // not last week's.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
 
         // Calculate Monday of the current week (handle Sunday as day 0)
-        var dayOfWeek = today.DayOfWeek;
+        var dayOfWeek = todayLocalUtc.DayOfWeek;
         var daysToMonday = dayOfWeek == DayOfWeek.Sunday ? 6 : (int)dayOfWeek - 1;
-        var weekStart = today.AddDays(-daysToMonday);
+        var weekStart = todayLocalUtc.AddDays(-daysToMonday);
         var weekEnd = weekStart.AddDays(6);
 
         var compliance = await complianceService.CalculateComplianceAsync(clientId, weekStart, weekEnd, ct);
-        var streak = await complianceService.CalculateStreakAsync(clientId, ct);
+        var streak = await complianceService.CalculateStreakAsync(clientId, DateOnly.FromDateTime(todayLocalUtc), ct);
         var averageMacros = await complianceService.CalculateAverageMacrosAsync(clientId, weekStart, weekEnd, ct);
 
         await Send.OkAsync(new GetWeeklyOverviewResponse
