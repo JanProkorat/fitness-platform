@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +68,7 @@ public class ClientLinkAuthorizationService(IApplicationDbContext db) : IClientL
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<(Guid ClientUserId, LinkCapabilities Capabilities)>> GetAccessibleClientsAsync(
-        Guid professionalUserId, CancellationToken ct, bool? requireTrainingPlanAccess = null)
+        Guid professionalUserId, CancellationToken ct, LinkCapabilityScope? requiredScope = null)
     {
         var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
@@ -82,14 +83,17 @@ public class ClientLinkAuthorizationService(IApplicationDbContext db) : IClientL
             .AsNoTracking()
             .Where(cpl => cpl.ProfessionalProfileId == professionalProfile.Id && cpl.IsActive);
 
-        // No filter means "every active link, including one that grants neither domain" — see
-        // LinkCapabilities.GrantsNothing. Pushing a domain requirement down here (rather than
-        // filtering the unfiltered result afterward) is what keeps the plan LIST routes' query a
-        // single indexed lookup instead of an over-fetch.
-        var filteredLinks = requireTrainingPlanAccess switch
+        // null means "every active link, including one that grants neither domain" — see
+        // LinkCapabilities.GrantsNothing — and is deliberately NOT the same as
+        // LinkCapabilityScope.Both, which requires both flags. Collapsing null into Both would
+        // silently drop every GrantsNothing row from this unfiltered batch query. Pushing a domain
+        // requirement down here (rather than filtering the unfiltered result afterward) is what
+        // keeps the plan LIST routes' query a single indexed lookup instead of an over-fetch.
+        var filteredLinks = requiredScope switch
         {
-            true => activeLinks.Where(cpl => cpl.CanViewTrainingPlans),
-            false => activeLinks.Where(cpl => cpl.CanViewNutritionPlans),
+            LinkCapabilityScope.TrainingOnly => activeLinks.Where(cpl => cpl.CanViewTrainingPlans),
+            LinkCapabilityScope.NutritionOnly => activeLinks.Where(cpl => cpl.CanViewNutritionPlans),
+            LinkCapabilityScope.Both => activeLinks.Where(cpl => cpl.CanViewTrainingPlans && cpl.CanViewNutritionPlans),
             null => activeLinks
         };
 

@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 
@@ -104,7 +105,13 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
         bool requireTrainingPlanAccess,
         CancellationToken ct)
     {
-        var accessibleClients = await _service.GetAccessibleClientsAsync(professionalUserId, ct, requireTrainingPlanAccess);
+        // This wrapper's bool has always meant "one domain or the other" — never both, and
+        // never neither (unlike the service's own null). So it maps onto exactly two of the
+        // three LinkCapabilityScope values and must never pass null or Both down.
+        var requiredScope = requireTrainingPlanAccess
+            ? LinkCapabilityScope.TrainingOnly
+            : LinkCapabilityScope.NutritionOnly;
+        var accessibleClients = await _service.GetAccessibleClientsAsync(professionalUserId, ct, requiredScope);
         return accessibleClients.Select(client => client.ClientUserId).ToList();
     }
 

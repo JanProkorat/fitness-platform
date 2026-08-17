@@ -275,7 +275,7 @@ public class ClientLinkAuthorizationServiceTests(FitnessApiFactory factory)
         var service = CreateService(out var scope);
 
         var accessible = await service.GetAccessibleClientsAsync(
-            professionalUserId, TestContext.Current.CancellationToken, requireTrainingPlanAccess: true);
+            professionalUserId, TestContext.Current.CancellationToken, requiredScope: LinkCapabilityScope.TrainingOnly);
 
         accessible.Should().ContainSingle();
         accessible.Single().ClientUserId.Should().Be(trainingClientUserId);
@@ -293,10 +293,31 @@ public class ClientLinkAuthorizationServiceTests(FitnessApiFactory factory)
         var service = CreateService(out var scope);
 
         var accessible = await service.GetAccessibleClientsAsync(
-            professionalUserId, TestContext.Current.CancellationToken, requireTrainingPlanAccess: false);
+            professionalUserId, TestContext.Current.CancellationToken, requiredScope: LinkCapabilityScope.NutritionOnly);
 
         accessible.Should().ContainSingle();
         accessible.Single().ClientUserId.Should().Be(nutritionClientUserId);
+        scope.Dispose();
+    }
+
+    [Fact]
+    public async Task GetAccessibleClientsAsync_WithBothScope_RequiresBothCapabilityFlags()
+    {
+        var professionalUserId = await RegisterProfessionalAsync("batch-both-filter");
+        var (_, bothClientUserId) = await RegisterClientAsync("batch-both-filter-yes");
+        var (_, trainingOnlyClientUserId) = await RegisterClientAsync("batch-both-filter-training-only");
+        var (_, nutritionOnlyClientUserId) = await RegisterClientAsync("batch-both-filter-nutrition-only");
+        await CreateLinkAsync(professionalUserId, bothClientUserId, isActive: true, canViewNutritionPlans: true, canViewTrainingPlans: true);
+        await CreateLinkAsync(professionalUserId, trainingOnlyClientUserId, isActive: true, canViewNutritionPlans: false, canViewTrainingPlans: true);
+        await CreateLinkAsync(professionalUserId, nutritionOnlyClientUserId, isActive: true, canViewNutritionPlans: true, canViewTrainingPlans: false);
+        var service = CreateService(out var scope);
+
+        var accessible = await service.GetAccessibleClientsAsync(
+            professionalUserId, TestContext.Current.CancellationToken, requiredScope: LinkCapabilityScope.Both);
+
+        accessible.Should().ContainSingle(
+            "Both must require CanViewTrainingPlans AND CanViewNutritionPlans, excluding either single-domain link");
+        accessible.Single().ClientUserId.Should().Be(bothClientUserId);
         scope.Dispose();
     }
 }

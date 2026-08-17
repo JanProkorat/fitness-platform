@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
 
@@ -60,14 +61,20 @@ public interface IClientLinkAuthorizationService
     /// </summary>
     /// <param name="professionalUserId">The professional's ApplicationUser.Id from JWT.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <param name="requireTrainingPlanAccess">
+    /// <param name="requiredScope">
     /// When <see langword="null"/> (the default), every active link is returned regardless of
     /// which capability it grants — including one that grants neither domain
-    /// (<see cref="LinkCapabilities.GrantsNothing"/>). When <see langword="true"/>, the predicate
-    /// pushes <c>CanViewTrainingPlans</c> down into the query; when <see langword="false"/>,
-    /// <c>CanViewNutritionPlans</c>. A caller that only ever wants one domain's client set should
-    /// pass the flag rather than filtering the unfiltered list itself, so the database — not the
-    /// application — drops the non-matching rows.
+    /// (<see cref="LinkCapabilities.GrantsNothing"/>). This is deliberately distinct from
+    /// <see cref="LinkCapabilityScope.Both"/>: <see langword="null"/> applies no capability
+    /// predicate at all (gates on <c>IsActive</c> only), while <see cref="LinkCapabilityScope.Both"/>
+    /// requires <c>CanViewTrainingPlans AND CanViewNutritionPlans</c>. Collapsing the two would
+    /// silently drop every <see cref="LinkCapabilities.GrantsNothing"/> row from the unfiltered
+    /// query. When <see cref="LinkCapabilityScope.TrainingOnly"/>, the predicate pushes
+    /// <c>CanViewTrainingPlans</c> down into the query; when
+    /// <see cref="LinkCapabilityScope.NutritionOnly"/>, <c>CanViewNutritionPlans</c>; when
+    /// <see cref="LinkCapabilityScope.Both"/>, both flags (AND). A caller that only ever wants one
+    /// domain's client set should pass the scope rather than filtering the unfiltered list itself,
+    /// so the database — not the application — drops the non-matching rows.
     /// </param>
     /// <returns>
     /// The accessible clients' <c>ApplicationUser.Id</c> paired with their link's capabilities;
@@ -76,5 +83,5 @@ public interface IClientLinkAuthorizationService
     /// matching the pre-existing behaviour.
     /// </returns>
     Task<IReadOnlyList<(Guid ClientUserId, LinkCapabilities Capabilities)>> GetAccessibleClientsAsync(
-        Guid professionalUserId, CancellationToken ct, bool? requireTrainingPlanAccess = null);
+        Guid professionalUserId, CancellationToken ct, LinkCapabilityScope? requiredScope = null);
 }
