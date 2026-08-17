@@ -2149,6 +2149,7 @@
     "loading": "Trainingsplan wird geladen…",
     "loadError": "Fehler beim Laden des Trainingsplans.",
     "createError": "Plan konnte nicht erstellt werden.",
+    "clientLoadError": "Der Klient konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
     "back": "← Zurück",
     "defaultPlanName": "Trainingsplan",
     "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten.",
