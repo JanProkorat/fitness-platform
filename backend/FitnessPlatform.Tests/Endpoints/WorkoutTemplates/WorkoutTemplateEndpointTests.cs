@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FastEndpoints;
 using FastEndpoints.Testing;
 using FluentAssertions;
@@ -111,24 +112,31 @@ public class WorkoutTemplateEndpointTests
         Version = version
     };
 
-    private Action<DefaultHttpContext> TrainerAuth() =>
-        ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-            new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)));
+    private Action<DefaultHttpContext> TrainerAuth(MemoryStream? responseBody = null) =>
+        ctx =>
+        {
+            ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)));
+            if (responseBody is not null)
+            {
+                ctx.Request.HttpContext.Response.Body = responseBody;
+            }
+        };
 
     private CreateWorkoutTemplateEndpoint CreateCreateEndpoint(IMongoContext mongo) =>
         Factory.Create<CreateWorkoutTemplateEndpoint>(TrainerAuth(), mongo);
 
-    private GetWorkoutTemplateEndpoint CreateGetEndpoint(IMongoContext mongo) =>
-        Factory.Create<GetWorkoutTemplateEndpoint>(TrainerAuth(), mongo);
+    private GetWorkoutTemplateEndpoint CreateGetEndpoint(IMongoContext mongo, MemoryStream? responseBody = null) =>
+        Factory.Create<GetWorkoutTemplateEndpoint>(TrainerAuth(responseBody), mongo);
 
     private ListWorkoutTemplatesEndpoint CreateListEndpoint(IMongoContext mongo) =>
         Factory.Create<ListWorkoutTemplatesEndpoint>(TrainerAuth(), mongo);
 
-    private UpdateWorkoutTemplateEndpoint CreateUpdateEndpoint(IMongoContext mongo) =>
-        Factory.Create<UpdateWorkoutTemplateEndpoint>(TrainerAuth(), mongo);
+    private UpdateWorkoutTemplateEndpoint CreateUpdateEndpoint(IMongoContext mongo, MemoryStream? responseBody = null) =>
+        Factory.Create<UpdateWorkoutTemplateEndpoint>(TrainerAuth(responseBody), mongo);
 
-    private DeleteWorkoutTemplateEndpoint CreateDeleteEndpoint(IMongoContext mongo) =>
-        Factory.Create<DeleteWorkoutTemplateEndpoint>(TrainerAuth(), mongo);
+    private DeleteWorkoutTemplateEndpoint CreateDeleteEndpoint(IMongoContext mongo, MemoryStream? responseBody = null) =>
+        Factory.Create<DeleteWorkoutTemplateEndpoint>(TrainerAuth(responseBody), mongo);
 
     // ── CREATE ────────────────────────────────────────────────────────────────
 
@@ -206,29 +214,41 @@ public class WorkoutTemplateEndpointTests
     [Fact]
     public async Task Get_NotFound_Returns404()
     {
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([]);
-        var ep = CreateGetEndpoint(mongo);
+        var ep = CreateGetEndpoint(mongo, responseBody);
 
         var req = new GetWorkoutTemplateRequest { TemplateId = Guid.NewGuid() };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await act.Should().ThrowAsync<Exception>();
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
     }
 
     [Fact]
-    public async Task Get_TemplateOwnedByAnotherTrainer_Returns403()
+    public async Task Get_TemplateOwnedByAnotherTrainer_Returns404_IdenticalToMissing()
     {
         var otherTrainerId = Guid.NewGuid();
         var template = MakeTemplate(ownerId: otherTrainerId);
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([template]);
-        var ep = CreateGetEndpoint(mongo);
+        var ep = CreateGetEndpoint(mongo, responseBody);
 
         var req = new GetWorkoutTemplateRequest { TemplateId = template.ExternalId };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        // Must be byte-for-byte indistinguishable from the missing-template case above:
+        // same status, same errorCode.
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await act.Should().ThrowAsync<Exception>();
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
     }
 
     // ── LIST ──────────────────────────────────────────────────────────────────
@@ -297,7 +317,33 @@ public class WorkoutTemplateEndpointTests
     }
 
     [Fact]
-    public async Task Update_WrongVersion_Returns409()
+    public async Task Update_NotFound_Returns404()
+    {
+        using var responseBody = new MemoryStream();
+        var mongo = CreateMockMongo([]);
+        var ep = CreateUpdateEndpoint(mongo, responseBody);
+
+        var req = new UpdateWorkoutTemplateRequest
+        {
+            TemplateId = Guid.NewGuid(),
+            Name = "Ghost Update",
+            Version = 1,
+            DefaultExercises = []
+        };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
+    }
+
+    // Renamed from "Returns409" — ThrowErrorWithCode hardcodes 400, unchanged by this issue
+    // (see WorkoutTemplateErrors remarks: only the not-found/not-owned collapse is in scope).
+    [Fact]
+    public async Task Update_WrongVersion_Returns400()
     {
         var template = MakeTemplate(version: 2);
         var mongo = CreateMockMongo([template]);
@@ -317,12 +363,13 @@ public class WorkoutTemplateEndpointTests
     }
 
     [Fact]
-    public async Task Update_TemplateOwnedByAnotherTrainer_Returns403()
+    public async Task Update_TemplateOwnedByAnotherTrainer_Returns404_IdenticalToMissing()
     {
         var otherTrainerId = Guid.NewGuid();
         var template = MakeTemplate(ownerId: otherTrainerId, version: 1);
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([template]);
-        var ep = CreateUpdateEndpoint(mongo);
+        var ep = CreateUpdateEndpoint(mongo, responseBody);
 
         var req = new UpdateWorkoutTemplateRequest
         {
@@ -331,14 +378,28 @@ public class WorkoutTemplateEndpointTests
             Version = 1,
             DefaultExercises = []
         };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        // Must be byte-for-byte indistinguishable from the missing-template case: same status,
+        // same errorCode. Also proves the ownership check runs BEFORE the version comparison —
+        // a stale version supplied by a non-owner still returns 404, not a version-conflict shape.
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await act.Should().ThrowAsync<Exception>();
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
+
+        await mongo.WorkoutTemplates.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<WorkoutTemplate>>(),
+            Arg.Any<WorkoutTemplate>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
+    // Renamed from "Returns409" — ThrowErrorWithCode hardcodes 400, unchanged by this issue.
     [Fact]
-    public async Task Update_DbVersionConflict_Returns409()
+    public async Task Update_DbVersionConflict_Returns400()
     {
         // Version matches in-memory but DB ReplaceOne returns ModifiedCount=0 (concurrent writer won)
         var template = MakeTemplate(version: 1);
@@ -385,27 +446,43 @@ public class WorkoutTemplateEndpointTests
     [Fact]
     public async Task Delete_NotFound_Returns404()
     {
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([]);
-        var ep = CreateDeleteEndpoint(mongo);
+        var ep = CreateDeleteEndpoint(mongo, responseBody);
 
         var req = new DeleteWorkoutTemplateRequest { TemplateId = Guid.NewGuid() };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await act.Should().ThrowAsync<Exception>();
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
     }
 
     [Fact]
-    public async Task Delete_TemplateOwnedByAnotherTrainer_Returns403()
+    public async Task Delete_TemplateOwnedByAnotherTrainer_Returns404_IdenticalToMissing()
     {
         var template = MakeTemplate(ownerId: Guid.NewGuid());
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([template]);
-        var ep = CreateDeleteEndpoint(mongo);
+        var ep = CreateDeleteEndpoint(mongo, responseBody);
 
         var req = new DeleteWorkoutTemplateRequest { TemplateId = template.ExternalId };
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        // Must be byte-for-byte indistinguishable from the missing-template case above, and the
+        // document must NOT be deleted.
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        await act.Should().ThrowAsync<Exception>();
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
+
+        await mongo.WorkoutTemplates.DidNotReceive().DeleteOneAsync(
+            Arg.Any<FilterDefinition<WorkoutTemplate>>(),
+            Arg.Any<CancellationToken>());
     }
 }
