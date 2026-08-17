@@ -185,8 +185,12 @@ public class FinishSessionEndpoint(
     /// initialized from the plan's <see cref="ExerciseSet"/> prescription and
     /// <see cref="WorkoutSet.CompletedAt"/> stamped with the supplied instant.
     /// </summary>
+    /// <param name="plan">The owning training plan.</param>
+    /// <param name="session">The session template to materialize.</param>
+    /// <param name="completedAt">The instant every set's <c>CompletedAt</c> is stamped with.</param>
     /// <param name="date">The pre-resolved calendar-day key (client's local day, #935) — passed
     /// in rather than re-derived so this helper needs no time-zone parameter of its own.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c>.</param>
     private static SessionExecution MaterializeFromTemplate(
         TrainingPlan plan,
         TrainingSession session,
