@@ -453,8 +453,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     // ── client verdict: itemised per-domain signals (F5) ──────────────────────
     // The endpoint gated on IsActive alone and carried no neither-flag deny, so it reported how
     // many sessions the client's trainer had programmed, how many they completed, and their
-    // personal-record count to a link that denies training. The blended Verdict scalar itself is a
-    // pre-existing accepted inference leak and is deliberately NOT narrowed here.
+    // personal-record count to a link that denies training. The blended Verdict scalar itself
+    // (#919) is now reduced to only the domains the caller's link grants: the denied domain's
+    // read is skipped outright rather than computed and filtered afterward, so it cannot leak
+    // through the headline verdict either. Weight and LastActiveAt remain dual-readable and
+    // always contribute, per the classification rule at ClientVerdictService.cs:99-102.
 
     [Fact]
     public async Task ActiveLinkWithNeitherCapability_GetClientVerdict_Returns403()
@@ -492,6 +495,8 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             "how many sessions the client's trainer programmed is training-domain data");
         body.TrainingFrequencyActual.Should().BeNull(
             "how many the client completed is training-domain data");
+        body.LastActiveAt.Should().NotBeNull(
+            "activity timestamps stay dual-readable regardless of which domain the link denies");
     }
 
     [Fact]
@@ -515,6 +520,140 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         body.PrCountThisMonth.Should().NotBeNull(
             "the gate is per domain — a training-only link must still receive training signals, " +
             "or the fix has degenerated into denying everything");
+        body.LastActiveAt.Should().NotBeNull(
+            "activity timestamps stay dual-readable regardless of which domain the link denies");
+    }
+
+    // ── client verdict: the blended scalar reduces to the visible domain (#919) ──────────
+    // Prior to #919, ClientVerdictService.ComputeVerdict consumed compliance and training-frequency
+    // signals from BOTH domains for every caller, regardless of the link's capability flags. A
+    // denied domain's bad signal could still flip the headline Verdict, letting a caller infer facts
+    // about a domain they cannot see. The fix skips the denied domain's read outright, so its signal
+    // never reaches ComputeVerdict at all.
+
+    [Fact]
+    public async Task TrainingOnlyLink_GetClientVerdict_ReducesScalarToVisibleDomain()
+    {
+        // The client has an active nutrition plan with 0% compliance — a hard OffTrack signal
+        // under the old blended computation — but the caller's link denies nutrition entirely.
+        // No training plan exists, so the visible domain contributes nothing either. Recent
+        // activity (a body measurement) keeps the inactivity branch from separately triggering.
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("training-only-verdict-scalar");
+        var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("training-only-verdict-scalar");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        await SeedNutritionPlanForComplianceAsync(clientUserId, professionalUserId, logMeal: false);
+        await SeedRecentBodyMeasurementAsync(clientProfileId);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/verdict");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<VerdictResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Verdict.Should().Be(
+            ClientVerdict.OnTrack,
+            "the 0% nutrition compliance must not reach the scalar for a caller whose link denies " +
+            "nutrition — the read is skipped, not computed and dropped");
+        body.CompliancePercent.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task NutritionOnlyLink_GetClientVerdict_ReducesScalarToVisibleDomain()
+    {
+        // The client has an active training plan prescribing one session this week and completing
+        // none of it — a soft NeedsAttention signal under the old blended computation — but the
+        // caller's link denies training entirely. Nutrition compliance is a clean 100%, so the
+        // visible domain alone would never produce anything but OnTrack.
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("nutrition-only-verdict-scalar");
+        var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("nutrition-only-verdict-scalar");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        await SeedNutritionPlanForComplianceAsync(clientUserId, professionalUserId, logMeal: true);
+        await SeedTrainingPlanWithUnmetFrequencyAsync(clientUserId, professionalUserId);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/verdict");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<VerdictResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Verdict.Should().Be(
+            ClientVerdict.OnTrack,
+            "the unmet training frequency must not reach the scalar for a caller whose link denies " +
+            "training — the read is skipped, not computed and dropped");
+        body.TrainingFrequencyActual.Should().BeNull();
+        body.TrainingFrequencyPrescribed.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task BothFlagsLink_GetClientVerdict_ScalarStaysFullyBlended()
+    {
+        // Regression guard — a fully-entitled caller's Verdict and itemised signals must be
+        // byte-identical to what the (still-blended) signals actually are. Both domains carry a
+        // failing signal here (0% compliance, 0-of-1 sessions), so a caller who is entitled to see
+        // both must still see the compliance-driven OffTrack and the raw itemised numbers.
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("both-flags-verdict-scalar");
+        var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("both-flags-verdict-scalar");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: true);
+
+        await SeedNutritionPlanForComplianceAsync(clientUserId, professionalUserId, logMeal: false);
+        await SeedTrainingPlanWithUnmetFrequencyAsync(clientUserId, professionalUserId);
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/verdict");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<VerdictResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Verdict.Should().Be(
+            ClientVerdict.OffTrack,
+            "a fully-entitled caller must still see the compliance-driven OffTrack — the fix must " +
+            "be inert when nothing is denied");
+        body.CompliancePercent.Should().Be(0m);
+        body.TrainingFrequencyActual.Should().Be(0);
+        body.TrainingFrequencyPrescribed.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task TrainingOnlyLink_GetClientVerdict_NutritionOnlyPlanExistence_DoesNotLeakViaOffTrack()
+    {
+        // ComputeVerdict's no-activity branch returns OffTrack when EITHER domain has an active
+        // plan. Before #919 that check ran on the real hasActiveNutritionPlan value regardless of
+        // capability, so a training-only caller could infer "this client has a nutrition plan" from
+        // an OffTrack verdict alone, with zero activity of any kind. The client here has no
+        // activity at all and only a nutrition plan; the caller's link is training-only.
+        var (professional, professionalProfileId, professionalUserId) = await RegisterProfessionalAsync("training-only-verdict-existence");
+        var (clientPublicId, clientProfileId, clientUserId) = await RegisterClientAsync("training-only-verdict-existence");
+        await LinkAsync(professionalProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                NutritionistId = professionalUserId,
+                Name = "Existence-Only Nutrition Plan",
+                Status = NutritionPlanStatus.Active,
+                Weeks = [],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await professional.GetAsync($"/trainer/clients/{clientPublicId}/verdict");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<VerdictResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Verdict.Should().NotBe(
+            ClientVerdict.OffTrack,
+            "a training-only caller must not be able to infer that the client has a nutrition plan " +
+            "from an OffTrack verdict driven purely by plan existence");
     }
 
     // ── client photos: domain-tagged categories follow the flags (F7) ─────────
@@ -843,6 +982,152 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
         }, cancellationToken: TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// Seeds an active nutrition plan whose published week resolves to exactly one planned meal
+    /// for today, and optionally logs a matching meal so <c>NutritionCompliancePercent</c> lands
+    /// deterministically at either 0% (<paramref name="logMeal"/> false) or 100% (true) — both
+    /// values needed to isolate the verdict-scalar reduction from the actual compliance
+    /// calculation, which is otherwise sensitive to plan-week/window alignment.
+    /// </summary>
+    private async Task SeedNutritionPlanForComplianceAsync(Guid clientUserId, Guid nutritionistUserId, bool logMeal)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayDayOfWeek = (int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek;
+
+        await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            NutritionistId = nutritionistUserId,
+            Name = "Verdict-Scalar Nutrition Plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = monday,
+            DatePublished = monday,
+            Weeks =
+            [
+                new PlanWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = Enumerable.Range(1, 7)
+                        .Select(dayOfWeek => new PlanDay
+                        {
+                            DayOfWeek = dayOfWeek,
+                            Meals = dayOfWeek == todayDayOfWeek
+                                ? [new PlanMeal { MealId = Guid.NewGuid(), Kind = MealKind.Breakfast, Order = 1 }]
+                                : [],
+                        })
+                        .ToList(),
+                }
+            ],
+            Version = 1,
+            DateCreated = monday,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        if (logMeal)
+        {
+            await mongo.MealLogs.InsertOneAsync(new MealLog
+            {
+                Id = ObjectId.GenerateNewId(),
+                ClientId = clientUserId,
+                PlanId = Guid.NewGuid(),
+                MealId = Guid.NewGuid(),
+                EatenAt = today.AddHours(8),
+                FoodsEaten = [],
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Seeds an active training plan prescribing exactly one session this week (one standalone
+    /// exercise, so the session counts toward the plan's prescribed total) with no matching
+    /// <see cref="SessionExecution"/> — deterministically actual=0, prescribed=1.
+    /// </summary>
+    private async Task SeedTrainingPlanWithUnmetFrequencyAsync(Guid clientUserId, Guid trainerUserId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var today = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayDayOfWeek = (int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek;
+
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            Id = ObjectId.GenerateNewId(),
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = trainerUserId,
+            Name = "Verdict-Scalar Training Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = monday,
+            DatePublished = monday,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = Enumerable.Range(1, 7)
+                        .Select(dayOfWeek => new TrainingDay
+                        {
+                            DayOfWeek = dayOfWeek,
+                            Sessions = dayOfWeek == todayDayOfWeek
+                                ?
+                                [
+                                    new TrainingSession
+                                    {
+                                        SessionId = Guid.NewGuid(),
+                                        Name = "Verdict-Scalar Session",
+                                        Order = 1,
+                                        StandaloneExercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = Guid.NewGuid(),
+                                                ExerciseExternalId = Guid.NewGuid(),
+                                                ExerciseName = "Verdict-Scalar Exercise",
+                                                Order = 1,
+                                            }
+                                        ],
+                                    }
+                                ]
+                                : [],
+                        })
+                        .ToList(),
+                }
+            ],
+            Version = 1,
+            DateCreated = monday,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Seeds a body measurement dated yesterday, with no weight target set anywhere for this
+    /// client — supplies a dual-readable <c>LastActiveAt</c> without contributing a weight signal
+    /// or belonging to either the nutrition or training domain.
+    /// </summary>
+    private async Task SeedRecentBodyMeasurementAsync(long clientProfileId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.BodyMeasurements.Add(new BodyMeasurement
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfileId,
+            MeasuredAt = DateTime.UtcNow.AddDays(-1),
+            WeightKg = 80m,
+        });
+
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
     private static async Task<DashboardClient> ReadSingleDashboardClientAsync(HttpResponseMessage response)
     {
         var body = await response.Content.ReadFromJsonAsync<DashboardSummaryResponse>(
@@ -931,10 +1216,12 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
 
 
     private record VerdictResponse(
+        ClientVerdict Verdict,
         decimal? CompliancePercent,
         int? TrainingFrequencyActual,
         int? TrainingFrequencyPrescribed,
-        int? PrCountThisMonth);
+        int? PrCountThisMonth,
+        DateTime? LastActiveAt);
 
     private record PhotosResponse(List<PhotoItem> Photos);
 
