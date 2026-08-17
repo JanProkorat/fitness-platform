@@ -1192,6 +1192,7 @@
     "weightLabel": "Váha (kg)",
     "restSecondsLabel": "Odpočinek (s)",
     "duplicateSession": "Duplikovat trénink",
+    "sessionDuplicateName": "{{name}} (kopie)",
     "removeSession": "Odstranit trénink",
     "addExercisePlaceholder": "+ Přidat cvik...",
     "leaveTitle": "Neuložené změny",

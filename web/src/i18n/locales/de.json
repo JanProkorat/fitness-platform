@@ -1178,6 +1178,7 @@
     "weightLabel": "Gewicht (kg)",
     "restSecondsLabel": "Pause (s)",
     "duplicateSession": "Einheit duplizieren",
+    "sessionDuplicateName": "{{name}} (Kopie)",
     "removeSession": "Einheit entfernen",
     "addExercisePlaceholder": "+ Übung hinzufügen...",
     "leaveTitle": "Nicht gespeicherte Änderungen",

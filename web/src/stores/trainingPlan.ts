@@ -66,6 +66,7 @@ interface TrainingPlanState {
   addSection: (weekNumber: number, sessionId: string, format?: WorkoutFormat) => void;
   removeSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
   duplicateSection: (weekNumber: number, sessionId: string, sectionId: string) => void;
+  duplicateSession: (weekNumber: number, sessionId: string) => void;
   updateSection: (weekNumber: number, sessionId: string, sectionId: string, patch: Partial<Pick<TrainingWorkout, 'name' | 'format' | 'formatConfig' | 'notes'>>) => void;
   reorderSections: (weekNumber: number, sessionId: string, fromIdx: number, toIdx: number) => void;
   moveSectionToSession: (
@@ -188,6 +189,33 @@ function patchSection(
     );
     return recomputeAllExercises({ ...s, workouts });
   });
+}
+
+/**
+ * Deep-clone a single exercise instance, minting a fresh `exerciseId` so the
+ * copy doesn't share completion-state lookups with the source once saved
+ * (exercise completion is keyed on this per-instance id since #857).
+ */
+function cloneExerciseWithNewIds(exercise: SessionExercise): SessionExercise {
+  return {
+    ...exercise,
+    exerciseId: crypto.randomUUID(),
+    sets: exercise.sets.map((st) => ({ ...st })),
+  };
+}
+
+/**
+ * Deep-clone a workout (section), minting a fresh `workoutId` and a fresh
+ * `exerciseId` for every nested exercise via `cloneExerciseWithNewIds`.
+ * Shared by `duplicateSection` and `duplicateSession` so both mint ids the
+ * same way.
+ */
+function cloneWorkoutWithNewIds(workout: TrainingWorkout): TrainingWorkout {
+  return {
+    ...workout,
+    workoutId: crypto.randomUUID(),
+    exercises: workout.exercises.map(cloneExerciseWithNewIds),
+  };
 }
 
 /**
@@ -501,16 +529,7 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
       plan: updateSession(plan, weekNumber, sessionId, (s) => {
         const sourceIdx = s.workouts.findIndex((sec) => sec.workoutId === sectionId);
         if (sourceIdx === -1) return s;
-        const source = s.workouts[sourceIdx];
-        const clone: TrainingWorkout = {
-          ...source,
-          workoutId: crypto.randomUUID(),
-          exercises: source.exercises.map((ex) => ({
-            ...ex,
-            exerciseId: crypto.randomUUID(),
-            sets: ex.sets.map((st) => ({ ...st })),
-          })),
-        };
+        const clone = cloneWorkoutWithNewIds(s.workouts[sourceIdx]);
         const workouts = [
           ...s.workouts.slice(0, sourceIdx + 1),
           clone,
@@ -518,6 +537,41 @@ export const useTrainingPlanStore = create<TrainingPlanState>((set, get) => ({
         ].map((sec, i) => ({ ...sec, order: i }));
         return recomputeAllExercises({ ...s, workouts });
       }),
+      isDirty: true,
+    });
+  },
+
+  duplicateSession: (weekNumber, sessionId) => {
+    const { plan } = get();
+    if (!plan) return;
+    const week = plan.weeks.find((w) => w.weekNumber === weekNumber);
+    if (!week) return;
+    const source = week.sessions.find((s) => s.sessionId === sessionId);
+    if (!source) return;
+
+    // Order values are session-level (scoped to the day), same scheme as
+    // addSession. Workout/exercise Order values are preserved verbatim from
+    // the source — they were already a valid distinct set within the
+    // session (see UpdateTrainingPlanValidator's session-wide order rule),
+    // and renumbering them is neither required nor safe (workouts are
+    // 0-based, exercises are validated >= 1).
+    const sameDaySessionCount = week.sessions.filter((s) => s.dayOfWeek === source.dayOfWeek).length;
+    const clone: TrainingSession = recomputeAllExercises({
+      ...source,
+      sessionId: crypto.randomUUID(),
+      name: i18n.t('training.sessionDuplicateName', { name: source.name }),
+      order: sameDaySessionCount + 1,
+      workouts: source.workouts.map(cloneWorkoutWithNewIds),
+      standaloneExercises: source.standaloneExercises.map(cloneExerciseWithNewIds),
+    });
+
+    set({
+      plan: {
+        ...plan,
+        weeks: plan.weeks.map((w) =>
+          w.weekNumber === weekNumber ? { ...w, sessions: [...w.sessions, clone] } : w,
+        ),
+      },
       isDirty: true,
     });
   },
