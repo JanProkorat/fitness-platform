@@ -76,7 +76,10 @@ public class MarkWholeDayCompleteEndpoint(
 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
-        var targetDateOnly = req.Date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+        // req.Date is never populated by the client in practice — the fallback resolves the
+        // CLIENT's local calendar day (#935) rather than the server's UTC day.
+        var targetDateOnly = req.Date ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, ct));
         var targetDate = targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Find the Active training plan whose date window contains the target date — a client

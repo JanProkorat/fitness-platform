@@ -111,10 +111,24 @@ public class ComplianceService : IComplianceService
 
     /// <inheritdoc />
     public Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct)
-        => CalculateStreakAsync(clientId, ComplianceDiscipline.Both, ct);
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, DateOnly.FromDateTime(DateTime.UtcNow), ct);
 
     /// <inheritdoc />
-    public async Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct)
+    public Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct)
+        => CalculateStreakInternalAsync(clientId, discipline, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+
+    /// <inheritdoc />
+    public Task<int> CalculateStreakAsync(Guid clientId, DateOnly today, CancellationToken ct)
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, ct);
+
+    /// <summary>
+    /// Shared implementation for every <c>CalculateStreakAsync</c> overload — walks backward from
+    /// <paramref name="today"/> rather than always re-deriving it from <see cref="DateTime.UtcNow"/>,
+    /// so a caller that has already resolved the client's local calendar day (#935) can anchor the
+    /// walk on it.
+    /// </summary>
+    private async Task<int> CalculateStreakInternalAsync(
+        Guid clientId, ComplianceDiscipline discipline, DateOnly today, CancellationToken ct)
     {
         var nutritionPlan = discipline == ComplianceDiscipline.TrainingOnly
             ? null
@@ -161,8 +175,8 @@ public class ComplianceService : IComplianceService
             return 0;
 
         var streak = 0;
-        var today = DateTime.UtcNow.Date;
-        var currentDate = today;
+        var todayUtc = today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var currentDate = todayUtc;
 
         while (currentDate >= floorDate.Value)
         {
@@ -228,7 +242,7 @@ public class ComplianceService : IComplianceService
                 streak++;
                 currentDate = currentDate.AddDays(-1);
             }
-            else if (currentDate == today)
+            else if (currentDate == todayUtc)
             {
                 // Today hasn't finished yet — don't break the streak, just skip today
                 currentDate = currentDate.AddDays(-1);

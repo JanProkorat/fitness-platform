@@ -95,7 +95,8 @@ public class SaveSessionPhotosEndpoint(
 
         var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -122,7 +123,9 @@ public class SaveSessionPhotosEndpoint(
         }
 
         var now = DateTime.UtcNow;
-        var todayUtc = now.Date;
+        // SessionLog.LogDate is the CLIENT's local calendar day (#935), already resolved above
+        // as todayLocalUtc — not now.Date (the server's UTC day).
+        var todayUtc = todayLocalUtc;
 
         // Key: one log per (client, plan, session, calendar day).
         var logFilter = Builders<SessionLog>.Filter.And(

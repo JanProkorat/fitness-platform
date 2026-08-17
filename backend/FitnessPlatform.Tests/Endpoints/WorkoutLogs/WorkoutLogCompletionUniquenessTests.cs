@@ -300,7 +300,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         // CompleteAsync on the loser must throw WorkoutAlreadyCompletedException because
         // the partial unique index (clientId, sessionId, date) rejects the second completed
         // execution for the same triplet on the same day.
-        var act = async () => await svc.CompleteAsync(loser, today, ct);
+        var act = async () => await svc.CompleteAsync(loser, today, TimeZoneInfo.Utc, ct);
         await act.Should().ThrowAsync<WorkoutAlreadyCompletedException>();
 
         // Exactly one completed execution must exist for this session on this day.
@@ -346,7 +346,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         var svc = scope.ServiceProvider.GetRequiredService<Application.Domain.Interfaces.IWorkoutCompletionService>();
 
         // Must NOT throw — different day means a different index key.
-        var act = async () => await svc.CompleteAsync(secondExecution, day2, ct);
+        var act = async () => await svc.CompleteAsync(secondExecution, day2, TimeZoneInfo.Utc, ct);
         await act.Should().NotThrowAsync<WorkoutAlreadyCompletedException>(
             "different-day re-completions of the same session are valid");
 

@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -68,6 +69,10 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // single variable serves every collection queried below.
         var clientId = clientProfile.UserId;
         var planId = Route<Guid>("planId");
+
+        // Resolve the client's local calendar day (#935) — anchors the current-week
+        // resolution below on the client's local "today" rather than the server's UTC day.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
 
         // ── 2. Fetch training plan (ownership check baked into filter) ────────────
         // Filtering on both ExternalId and ClientId means a plan belonging to
@@ -356,7 +361,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 plan.Weeks.Count,
                 publishedWeeks.First().DatePublished,
                 plan.DateCreated,
-                DateTime.UtcNow);
+                todayLocalUtc);
         }
 
         // ── 6. Build response ─────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -56,6 +57,10 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
         var clientId = clientProfile.UserId;
 
+        // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
+        // the current-week/day-of-week calculation below on the client's local "today".
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
         var filter = Builders<NutritionPlan>.Filter.And(
@@ -64,7 +69,7 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -84,7 +89,7 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        var today = DateTime.UtcNow.Date;
+        var today = todayLocalUtc;
 
         // Determine the anchor date used for computing week start/end dates
         // Prefer StartDate; fall back to DatePublished for legacy plans
@@ -116,8 +121,9 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 {
                     // Beyond published weeks or on an unpublished week — fall back to last published week
                     currentWeek = publishedWeeks[^1].WeekNumber;
-                    // Use current day of week (Monday=1 … Sunday=7)
-                    var dow = (int)DateTime.UtcNow.DayOfWeek;
+                    // Use current day of week (Monday=1 … Sunday=7) — today already carries
+                    // the client's local calendar date (#935).
+                    var dow = (int)today.DayOfWeek;
                     currentDayOfWeek = dow == 0 ? 7 : dow;
                 }
                 else

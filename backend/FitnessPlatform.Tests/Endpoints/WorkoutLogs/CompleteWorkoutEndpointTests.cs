@@ -8,6 +8,8 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -28,10 +30,12 @@ public class CompleteWorkoutEndpointTests
     private IWorkoutCompletionService StubCompletionService()
     {
         var svc = Substitute.For<IWorkoutCompletionService>();
-        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
         return svc;
     }
+
+    private static IApplicationDbContext CreateMockDb() => new MockDbBuilder().Build();
 
     private static ISessionLockService StubLockService()
     {
@@ -47,6 +51,10 @@ public class CompleteWorkoutEndpointTests
         svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult { CompliancePercent = 100m });
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        // #935: TrainingProgressBroadcaster now anchors the streak walk on the caller-supplied
+        // local calendar day rather than DateTime.UtcNow — stub the new overload too.
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
             .Returns(1);
         return svc;
     }
@@ -65,7 +73,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -74,6 +83,7 @@ public class CompleteWorkoutEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d > DateTime.UtcNow.AddSeconds(-5) && d <= DateTime.UtcNow),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -88,7 +98,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -107,7 +118,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -130,7 +142,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -139,6 +152,7 @@ public class CompleteWorkoutEndpointTests
         await completionService.Received(1).CompleteAsync(
             Arg.Any<SessionExecution>(),
             Arg.Is<DateTime>(d => d >= before && d <= after),
+            Arg.Any<TimeZoneInfo>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -151,7 +165,7 @@ public class CompleteWorkoutEndpointTests
 
         var completionService = Substitute.For<IWorkoutCompletionService>();
         completionService
-            .CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
             .Throws(new WorkoutAlreadyCompletedException());
 
         var ep = Factory.Create<CompleteWorkoutEndpoint>(
@@ -160,7 +174,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -207,7 +222,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -242,7 +258,8 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
-            Substitute.For<ILogger<CompleteWorkoutEndpoint>>());
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            CreateMockDb(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);

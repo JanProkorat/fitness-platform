@@ -2,6 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -26,8 +28,14 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
 /// document rather than inserting a second one (which would violate the unique index).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
+/// <param name="db">Relational database context — resolves the caller's persisted time zone
+/// (#935) so the execution's calendar-day key lands on the CLIENT's local day, not the UTC day.</param>
+/// <param name="timeProvider">Clock abstraction (#935) — lets tests pin the start instant
+/// deterministically instead of reading <see cref="DateTime.UtcNow"/> directly.</param>
 public class StartWorkoutEndpoint(
-    IMongoContext mongo) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    TimeProvider timeProvider) : Endpoint<StartWorkoutRequest, StartWorkoutResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -56,7 +64,12 @@ public class StartWorkoutEndpoint(
         // clientUserIdGuid is the ApplicationUser.Id (what JWT AppClaims.UserId stores).
         // SessionExecution.ClientId is set to this value.
         var clientUserIdGuid = Guid.Parse(userId);
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+
+        // Resolve the caller's local calendar day (#935) — the key EVERY SessionExecution.Date
+        // must agree on, whether created here, by a Mark* checkbox, or by the trainer-driven
+        // FinishSession endpoint.
+        var clientTimeZone = await db.ResolveClientTimeZoneAsync(clientUserIdGuid, ct);
 
         // ── Ownership validation (plan-bound workouts only) ───────────────────────
         // Ad-hoc workouts (null PlanId or null SessionId) skip plan lookup entirely —
@@ -83,7 +96,7 @@ public class StartWorkoutEndpoint(
                 return;
             }
 
-            var date = SessionExecution.ToCompletionDateUtc(now);
+            var date = SessionExecution.ToCompletionDateUtc(now, clientTimeZone);
             var filter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientUserIdGuid)
                 & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, req.SessionId.Value)
                 & Builders<SessionExecution>.Filter.Eq(e => e.Date, date);
@@ -173,7 +186,7 @@ public class StartWorkoutEndpoint(
             ClientId = clientUserIdGuid,
             PlanId = req.PlanId,
             SessionId = req.SessionId,
-            Date = SessionExecution.ToCompletionDateUtc(now),
+            Date = SessionExecution.ToCompletionDateUtc(now, clientTimeZone),
             Performance = new SessionExecutionPerformance { StartedAt = now, Workouts = [] },
             DateCreated = now,
             Version = 1

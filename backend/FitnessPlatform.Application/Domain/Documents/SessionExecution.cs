@@ -186,8 +186,30 @@ public class SessionExecution
     /// Single authoritative expression — mirrors the retired <c>WorkoutLog.ToCompletionDateUtc</c>
     /// so historical data derived from it agrees on the calendar day for backdated finishes.
     /// </summary>
+    /// <remarks>
+    /// This overload anchors the calendar day on the UTC calendar — it is the correct choice only
+    /// for call sites that have deliberately not yet adopted per-client local-day resolution (see
+    /// <c>Seed/QaSeedRunner.cs</c>). New production call sites should use the
+    /// <see cref="ToCompletionDateUtc(DateTime, TimeZoneInfo)"/> overload, which resolves the
+    /// calendar day from the CLIENT's local time zone (#935) — see
+    /// <see cref="Services.ClientLocalDateResolver"/>.
+    /// </remarks>
     /// <param name="instantUtc">The UTC instant to convert.</param>
     /// <returns>The corresponding midnight UTC <see cref="DateTime"/>.</returns>
     public static DateTime ToCompletionDateUtc(DateTime instantUtc) =>
         DateOnly.FromDateTime(instantUtc).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+    /// <summary>
+    /// Converts a UTC instant to the midnight-UTC value of the CLIENT's LOCAL calendar day used
+    /// as <see cref="Date"/> (#935). Delegates to
+    /// <see cref="Services.ClientLocalDateResolver.ResolveLocalDateUtcMidnight"/> — this overload
+    /// exists on <see cref="SessionExecution"/> itself so every production call site keeps using
+    /// the same authoritative expression named on this type.
+    /// </summary>
+    /// <param name="instantUtc">The UTC instant to convert.</param>
+    /// <param name="clientTimeZone">The client's resolved time zone (see
+    /// <see cref="Extensions.ClientLocalTimeExtensions.ResolveClientTimeZoneAsync"/>).</param>
+    /// <returns>The corresponding midnight UTC <see cref="DateTime"/> for the client's local day.</returns>
+    public static DateTime ToCompletionDateUtc(DateTime instantUtc, TimeZoneInfo clientTimeZone) =>
+        Services.ClientLocalDateResolver.ResolveLocalDateUtcMidnight(instantUtc, clientTimeZone);
 }

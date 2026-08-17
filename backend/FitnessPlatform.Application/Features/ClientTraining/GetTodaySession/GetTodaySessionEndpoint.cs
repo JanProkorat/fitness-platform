@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
@@ -109,6 +110,11 @@ public class GetTodaySessionEndpoint(
         // so a single variable serves every collection queried below.
         var clientId = clientProfile.UserId;
 
+        // Resolve the client's local calendar day (#935) — every "today" comparison below (plan
+        // window, current week, day-of-week, and the SessionExecution lookup date) anchors on
+        // this rather than the server's UTC day.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+
         // Find the Active training plan whose date window contains today — a client may hold
         // several sequential, non-overlapping Active plans (#780).
         // Phase 1: lightweight projection — plan metadata + per-week metadata only, no session content.
@@ -120,7 +126,7 @@ public class GetTodaySessionEndpoint(
             new FindOptions<TrainingPlan, TrainingPlan> { Projection = LightPlanProjection },
             ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -167,7 +173,7 @@ public class GetTodaySessionEndpoint(
             plan.Weeks.Count,
             publishedWeeks.First().DatePublished,
             plan.DateCreated,
-            DateTime.UtcNow);
+            todayLocalUtc);
 
         if (resolvedWeek is null)
         {
@@ -217,8 +223,9 @@ public class GetTodaySessionEndpoint(
 
         currentWeek = hydratedWeek;
 
-        // Find today's sessions (1 = Monday, 7 = Sunday)
-        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        // Find today's sessions (1 = Monday, 7 = Sunday) — todayLocalUtc already carries the
+        // client's LOCAL calendar date (#935), so its DayOfWeek is the local day-of-week.
+        var todayDow = (int)todayLocalUtc.DayOfWeek;
         todayDow = todayDow == 0 ? 7 : todayDow; // Convert Sunday from 0 to 7
 
         var todayDay = currentWeek.Days.FirstOrDefault(d => d.DayOfWeek == todayDow);
@@ -259,7 +266,11 @@ public class GetTodaySessionEndpoint(
         // date) now carries both signals.
         if (todaySessions.Count > 0)
         {
-            var targetDate = DateTime.UtcNow.Date;
+            // targetDate anchors on the client's LOCAL calendar day (#935), matching the same key
+            // every writer of SessionExecution.Date now uses (Mark* endpoints, StartWorkout,
+            // WorkoutCompletionService, FinishSession) — the server's UTC day would otherwise
+            // silently unmatch a completion recorded near local midnight.
+            var targetDate = todayLocalUtc;
             var todaySessionIds = todaySessions.Select(s => s.SessionId).ToList();
 
             // Per-session accumulator so entries from both signals (checkbox flags, Performance) union cleanly.

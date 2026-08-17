@@ -98,7 +98,11 @@ public class SaveMealPhotosEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        // Resolve the client's local calendar day (#935) once — todayUtc anchors LogDate-style
+        // equality checks and plan-window resolution; windowStartUtc/windowEndUtc anchor the
+        // legacy EatenAt instant-range filter below so it isn't skewed by the UTC offset.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         if (plan is null)
         {
@@ -125,9 +129,6 @@ public class SaveMealPhotosEndpoint(
         }
 
         var now = DateTime.UtcNow;
-        var todayUtc = now.Date;
-
-        var tomorrowUtc = todayUtc.AddDays(1);
 
         // Key: one log per (client, plan, meal, calendar day).
         // Matches both the modern keying (LogDate == today) and legacy records that were
@@ -141,8 +142,8 @@ public class SaveMealPhotosEndpoint(
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc))));
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
 
         var existingCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);

@@ -5,7 +5,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -18,17 +20,23 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 /// Lock acquisition happens in the separate GoLive endpoint (issue #401).
 /// Since #840, TrainingPlan.ClientId stores ApplicationUser.Id directly, so the endpoint's
 /// ownership check is a direct comparison against the caller's JWT-derived UserId — no
-/// IApplicationDbContext dependency (no ClientProfile lookup) is involved any more.
+/// ClientProfile lookup is involved any more. The endpoint DOES take
+/// <see cref="IApplicationDbContext"/> since #935, to resolve the caller's persisted time
+/// zone for the SessionExecution.Date calendar-day key. No ApplicationUser row is seeded
+/// below unless a test needs a specific time zone, so resolution falls back to UTC —
+/// identical to this suite's pre-#935 behaviour.
 /// </summary>
 public class StartWorkoutEndpointTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
 
-    private StartWorkoutEndpoint CreateEndpointWithUser(IMongoContext mongo) =>
+    private static IApplicationDbContext CreateMockDb() => new MockDbBuilder().Build();
+
+    private StartWorkoutEndpoint CreateEndpointWithUser(IMongoContext mongo, IApplicationDbContext? db = null) =>
         Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo);
+            mongo, db ?? CreateMockDb(), TimeProvider.System);
 
     [Fact]
     public async Task HandleAsync_ValidRequest_CreatesLog()
@@ -53,7 +61,7 @@ public class StartWorkoutEndpointTests
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
         // No user claims — endpoint returns 401 before any lock/plan lookup.
-        var ep = Factory.Create<StartWorkoutEndpoint>(mongo);
+        var ep = Factory.Create<StartWorkoutEndpoint>(mongo, CreateMockDb(), TimeProvider.System);
 
         await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
 

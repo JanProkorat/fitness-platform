@@ -28,17 +28,21 @@ public class WorkoutCompletionService(
     public async Task<List<string>> CompleteAsync(
         SessionExecution execution,
         DateTime completedAtUtc,
+        TimeZoneInfo clientTimeZone,
         CancellationToken ct)
     {
         // 1. PR detection — mutates execution.Performance.Sections[].Exercises[].Sets[].IsPR in place.
         var prDescriptions = await prDetection.DetectAndMarkPRsAsync(execution, ct);
 
         // 2. Mark the execution as completed at the supplied instant.
-        //    Date is set to midnight UTC on the same calendar day as completedAtUtc, using
+        //    Date is set to midnight UTC on the CLIENT's local calendar day for completedAtUtc
+        //    (#935) — whoever drives the completion (the client themselves, or a trainer via
+        //    FinishSession), the resolved key is always the client's own time zone, using
         //    SessionExecution.ToCompletionDateUtc so a backdated finish is attributed correctly.
+        //    The caller resolves clientTimeZone (never the trainer's) and passes it in.
         execution.Performance!.CompletedAt = completedAtUtc;
         execution.Status = SessionExecutionStatus.Completed;
-        execution.Date = SessionExecution.ToCompletionDateUtc(completedAtUtc);
+        execution.Date = SessionExecution.ToCompletionDateUtc(completedAtUtc, clientTimeZone);
         execution.DateUpdated = DateTime.UtcNow;
 
         // 3. For plan-bound sessions, populate the checkbox completion flags too — every
