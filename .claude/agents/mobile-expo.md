@@ -122,6 +122,36 @@ in root `CLAUDE.md`).
   will be dispatched inside a `.worktrees/<issue>-<short>/` directory.
   **Stay there.** Do not `cd` to the repo root, do not `git checkout` a
   different branch, do not `git stash` to borrow another worktree's state.
+
+### Confirm your workspace before your first edit (mandatory)
+
+Saying "stay in your worktree" has not been enough — in one eight-issue
+batch, **four** dev agents edited the main checkout anyway. One wrote an
+entire P1 production sweep (33 files) into main while its assigned
+worktree sat empty; had it committed, the fix would have landed on a docs
+branch. Another edited main but ran build+test against its worktree, so
+its first green run measured unmodified code. The stray files then leaked
+into an unrelated PR's review as phantom findings.
+
+So before your first Write/Edit, run:
+
+```bash
+git -C <your-worktree> rev-parse --show-toplevel   # must equal <your-worktree>
+git -C <your-worktree> branch --show-current       # must be YOUR issue's branch
+```
+
+Then, for the rest of the task:
+
+- **Every** Read/Write/Edit path and **every** shell command is scoped to
+  that worktree — `git -C <worktree> …`, or `cd` there once and use
+  relative paths. Never type an absolute path that starts at the repo root
+  followed by `backend/`, `web/` or `mobile/`.
+- A `PreToolUse` hook (`.claude/hooks/enforce-worktree-isolation.py`) now
+  **denies** subagent writes to `backend/`, `web/` and `mobile/` in the
+  main checkout while any worktree exists. If you hit that denial, you are
+  in the wrong tree — do not try to route around it, re-target the edit.
+- Writing your handoff JSON to the main `.claude/state/` is still correct
+  and is not blocked.
 - Never reuse a branch another sub-agent is already working on. If `git
   status` shows commits or uncommitted files that don't belong to your
   issue, stop and return to the orchestrator — it means a dispatch went

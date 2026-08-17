@@ -47,8 +47,7 @@
       "Bash(dotnet ef migrations add:*)",
       "Edit(.claude/settings.json)",
       "Edit(.claude/settings.local.json)",
-      "Write(.claude/settings.json)",
-      "Bash(python3*)"
+      "Write(.claude/settings.json)"
     ]
   },
   "hooks": {
@@ -89,6 +88,15 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-generated-client.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/enforce-worktree-isolation.py"
           }
         ]
       }
