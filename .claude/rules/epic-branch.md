@@ -30,11 +30,19 @@ main
   `develop`. Created the moment epic work starts. Lives until the
   epic's consolidated PR merges to `develop`.
 
-  This file previously said `feature/` unconditionally. That wording is
-  what set the `pull_request.branches` filters in `.github/workflows/`
-  to `'feature/*'` alone, so sub-issue PRs based on a `refactor/` epic
-  branch ran **no CI at all** — not pending, absent. Fixed in #936; if
-  you add a new branch prefix, widen those five filters with it.
+  This file previously said `feature/` unconditionally, and the
+  `pull_request.branches` filters in `.github/workflows/` matched it —
+  `'feature/*'` alone. Those filters were widened in #936 to cover every
+  prefix above, defensively: a sub-issue PR's base is the epic branch, so
+  a filter that lists only `feature/*` cannot be relied on to match a
+  `refactor/` or `fix/` epic. If you add a new branch prefix, widen those
+  five filters with it.
+
+  Not a verified root cause: PR #965 had no workflow runs at creation but
+  did get them on its next push, with the old filters still in place both
+  times. Whatever caused that gap, it was not conclusively the prefix
+  list. Treat "no checks on a fresh sub-issue PR" as unexplained, and
+  push a commit before concluding CI is broken.
 - **Sub-issue branch** — `<type>/<child-N>-<short-kebab>` where
   `<type>` matches the child's `type:*` label. Branched off the
   **epic branch**, not `develop`. PR base = the epic branch.
