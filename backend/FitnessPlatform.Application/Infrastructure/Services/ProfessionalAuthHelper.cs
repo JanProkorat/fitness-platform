@@ -1,7 +1,7 @@
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Infrastructure.Services;
 
@@ -9,8 +9,16 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// Verifies professional ↔ client relationships and plan view permissions.
 /// Cross-database: reads PostgreSQL (professional/client profiles, links) to authorize MongoDB plan access.
 /// </summary>
+/// <remarks>
+/// Every method here is an <see cref="ObsoleteAttribute"/> thin delegating wrapper over
+/// <see cref="ClientLinkAuthorizationService"/> (#958) — the consolidated entry point the rest of
+/// the epic migrates call sites onto. Each wrapper keeps the exact domain gate it had before the
+/// extraction; see the individual method remarks for which capability flag it reads.
+/// </remarks>
 public class ProfessionalAuthHelper(IApplicationDbContext db)
 {
+    private readonly ClientLinkAuthorizationService _service = new(db);
+
     /// <summary>
     /// Verifies that the professional (by ApplicationUser.Id) has an active link to the client (by ClientProfile.PublicId).
     /// </summary>
@@ -18,27 +26,15 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="clientPublicId">The client's ClientProfile.PublicId from the API request.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>True if an active link exists.</returns>
+    /// <remarks>
+    /// Despite the name, this gates on <c>CanViewTrainingPlans</c>, not mere link presence — see
+    /// <see cref="NutritionAuthHelper.HasActiveLinkAsync"/> for the mirror nutrition gate.
+    /// </remarks>
+    [Obsolete("Use ClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync and read CanViewTrainingPlans off the result.")]
     public virtual async Task<bool> HasActiveLinkAsync(Guid professionalUserId, Guid clientPublicId, CancellationToken ct)
     {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null) return false;
-
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
-
-        if (clientProfile is null) return false;
-
-        return await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive &&
-                cpl.CanViewTrainingPlans, ct);
+        var capabilities = await _service.GetCapabilitiesByClientPublicIdAsync(professionalUserId, clientPublicId, ct);
+        return capabilities?.CanViewTrainingPlans ?? false;
     }
 
     /// <summary>
@@ -52,27 +48,11 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="clientPublicId">The client's ClientProfile.PublicId from the API request.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>True if an active link exists with at least one capability flag granted.</returns>
+    [Obsolete("Use ClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync and check !GrantsNothing.")]
     public virtual async Task<bool> HasAnyPlanAccessAsync(Guid professionalUserId, Guid clientPublicId, CancellationToken ct)
     {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null) return false;
-
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
-
-        if (clientProfile is null) return false;
-
-        return await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive &&
-                (cpl.CanViewTrainingPlans || cpl.CanViewNutritionPlans), ct);
+        var capabilities = await _service.GetCapabilitiesByClientPublicIdAsync(professionalUserId, clientPublicId, ct);
+        return capabilities is { } c && !c.GrantsNothing;
     }
 
     /// <summary>
@@ -98,31 +78,15 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="requireTrainingPlanAccess">If true, checks CanViewTrainingPlans; if false, checks CanViewNutritionPlans.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>True if an active link with the required permission exists.</returns>
+    [Obsolete("Use ClientLinkAuthorizationService.GetCapabilitiesByClientUserIdAsync and read the appropriate capability flag.")]
     public virtual async Task<bool> HasPlanAccessForClientUserAsync(
         Guid professionalUserId,
         Guid clientUserId,
         bool requireTrainingPlanAccess,
         CancellationToken ct)
     {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null) return false;
-
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == clientUserId, ct);
-
-        if (clientProfile is null) return false;
-
-        return await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive &&
-                (requireTrainingPlanAccess ? cpl.CanViewTrainingPlans : cpl.CanViewNutritionPlans), ct);
+        var capabilities = await _service.GetCapabilitiesByClientUserIdAsync(professionalUserId, clientUserId, ct);
+        return capabilities is { } c && (requireTrainingPlanAccess ? c.CanViewTrainingPlans : c.CanViewNutritionPlans);
     }
 
     /// <summary>
@@ -135,25 +99,20 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="requireTrainingPlanAccess">If true, requires CanViewTrainingPlans; if false, CanViewNutritionPlans.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The accessible clients' ApplicationUser.Ids; empty when none.</returns>
+    [Obsolete("Use ClientLinkAuthorizationService.GetAccessibleClientsAsync.")]
     public virtual async Task<IReadOnlyList<Guid>> GetAccessibleClientUserIdsAsync(
         Guid professionalUserId,
         bool requireTrainingPlanAccess,
         CancellationToken ct)
     {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null) return [];
-
-        return await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.IsActive &&
-                (requireTrainingPlanAccess ? cpl.CanViewTrainingPlans : cpl.CanViewNutritionPlans))
-            .Join(db.ClientProfiles, cpl => cpl.ClientProfileId, cp => cp.Id, (cpl, cp) => cp.UserId)
-            .ToListAsync(ct);
+        // This wrapper's bool has always meant "one domain or the other" — never both, and
+        // never neither (unlike the service's own null). So it maps onto exactly two of the
+        // three LinkCapabilityScope values and must never pass null or Both down.
+        var requiredScope = requireTrainingPlanAccess
+            ? LinkCapabilityScope.TrainingOnly
+            : LinkCapabilityScope.NutritionOnly;
+        var accessibleClients = await _service.GetAccessibleClientsAsync(professionalUserId, ct, requiredScope);
+        return accessibleClients.Select(client => client.ClientUserId).ToList();
     }
 
     /// <summary>
@@ -164,27 +123,11 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="requireTrainingPlanAccess">If true, checks CanViewTrainingPlans; if false, checks CanViewNutritionPlans.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>True if an active link with the required permission exists.</returns>
+    [Obsolete("Use ClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync and read the appropriate capability flag.")]
     public virtual async Task<bool> HasPlanAccessAsync(Guid professionalUserId, Guid clientPublicId, bool requireTrainingPlanAccess, CancellationToken ct)
     {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null) return false;
-
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
-
-        if (clientProfile is null) return false;
-
-        return await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive &&
-                (requireTrainingPlanAccess ? cpl.CanViewTrainingPlans : cpl.CanViewNutritionPlans), ct);
+        var capabilities = await _service.GetCapabilitiesByClientPublicIdAsync(professionalUserId, clientPublicId, ct);
+        return capabilities is { } c && (requireTrainingPlanAccess ? c.CanViewTrainingPlans : c.CanViewNutritionPlans);
     }
 
     /// <summary>
@@ -205,44 +148,10 @@ public class ProfessionalAuthHelper(IApplicationDbContext db)
     /// <param name="clientPublicId">The client's ClientProfile.PublicId from the API request.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The link's capabilities, or <c>null</c> when no active link exists.</returns>
-    public virtual async Task<LinkCapabilities?> GetLinkCapabilitiesAsync(
+    [Obsolete("Use ClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync directly.")]
+    public virtual Task<LinkCapabilities?> GetLinkCapabilitiesAsync(
         Guid professionalUserId,
         Guid clientPublicId,
-        CancellationToken ct)
-    {
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == professionalUserId, ct);
-
-        if (professionalProfile is null)
-        {
-            return null;
-        }
-
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == clientPublicId, ct);
-
-        if (clientProfile is null)
-        {
-            return null;
-        }
-
-        // Projected to an anonymous (reference) type deliberately: LinkCapabilities is a struct, so
-        // projecting straight to it would make a link carrying neither flag indistinguishable from
-        // no link at all — both would come back as default. "No link" and "a link that grants
-        // nothing" are different answers and the callers treat them differently (404 vs 403).
-        var flags = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(cpl =>
-                cpl.ProfessionalProfileId == professionalProfile.Id &&
-                cpl.ClientProfileId == clientProfile.Id &&
-                cpl.IsActive)
-            .Select(cpl => new { cpl.CanViewNutritionPlans, cpl.CanViewTrainingPlans })
-            .FirstOrDefaultAsync(ct);
-
-        return flags is null
-            ? null
-            : new LinkCapabilities(flags.CanViewNutritionPlans, flags.CanViewTrainingPlans);
-    }
+        CancellationToken ct) =>
+        _service.GetCapabilitiesByClientPublicIdAsync(professionalUserId, clientPublicId, ct);
 }
