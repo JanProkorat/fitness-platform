@@ -356,6 +356,31 @@ public class ClientNotesTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
+    [Fact]
+    public async Task Edit_NotLinkedToClient_Returns403()
+    {
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientUser = EntityBuilder.User.Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(10).WithUser(clientUser).Build();
+        // No link
+        var db = new MockDbBuilder().With(trainerProfile).With(clientProfile).Build();
+        var note = CreateNote(clientProfile.UserId, _trainerId);
+        var mongo = BuildWritableMongo([note]);
+
+        var ep = CreateEditEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(
+            new EditNoteRequest
+            {
+                ClientId = clientProfile.PublicId,
+                NoteId = note.ExternalId,
+                Text = "Hijacked."
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+    }
+
     // ── DELETE /trainer/clients/{clientId}/notes/{noteId} ───────────────────
 
     [Fact]
