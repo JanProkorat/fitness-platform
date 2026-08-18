@@ -144,7 +144,7 @@ public class GetTrainingPlanSessionExecutionTests
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -326,7 +326,7 @@ public class GetTrainingPlanSessionExecutionTests
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

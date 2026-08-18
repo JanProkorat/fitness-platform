@@ -48,7 +48,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -72,7 +72,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetPlanRequest { PlanId = Guid.NewGuid() },
@@ -97,7 +97,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -131,7 +131,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -168,7 +168,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
@@ -199,12 +199,39 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerNutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
         // Assert — 404 (no existence leak)
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants nutrition
+    /// access — this must still 404, distinct from
+    /// <see cref="HandleAsync_PlanBelongsToDifferentNutritionist_Returns404_AndMealLogsNotQueried"/>
+    /// which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
+
+        var ep = Factory.Create<GetPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, db,
+            PlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
+
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
@@ -238,7 +265,7 @@ public class GetPlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo, db,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);

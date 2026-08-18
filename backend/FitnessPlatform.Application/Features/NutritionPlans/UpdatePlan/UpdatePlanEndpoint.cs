@@ -9,7 +9,6 @@ using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -24,15 +23,15 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
 /// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -125,8 +124,11 @@ public class UpdatePlanEndpoint(
     /// </summary>
     private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
     {
-        if (await authHelper.HasPlanAccessForClientUserAsync(
-                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewNutritionPlans: true })
         {
             return true;
         }

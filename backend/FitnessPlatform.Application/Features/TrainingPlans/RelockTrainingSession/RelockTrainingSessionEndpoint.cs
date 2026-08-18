@@ -6,7 +6,6 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.RelockTrainingSession;
 
@@ -21,7 +20,7 @@ public class RelockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<RelockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -51,7 +50,7 @@ public class RelockTrainingSessionEndpoint(
 
         // Authorship + link guard first: the plan must exist, be the calling trainer's, and the
         // caller's link to its client must still grant training access.
-        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {

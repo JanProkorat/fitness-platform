@@ -8,7 +8,6 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
@@ -21,8 +20,8 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="completionService">Shared workout completion pipeline.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
 /// <param name="db">Relational database context — resolves the CLIENT's (not the trainer's)
 /// persisted time zone (#935). Whoever writes <see cref="SessionExecution.Date"/> resolves it
 /// from the client's own time zone regardless of which role drove the mutation, so the client's
@@ -30,7 +29,7 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 public class FinishSessionEndpoint(
     IMongoContext mongo,
     IWorkoutCompletionService completionService,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     IApplicationDbContext db) : Endpoint<FinishSessionRequest, FinishSessionResponse>
 {
     /// <inheritdoc />
@@ -64,7 +63,7 @@ public class FinishSessionEndpoint(
         // 1. Load the plan and apply the authorship + client-link guard.
         //    Mirror GetTrainingPlanEndpoint: "not mine" and "no longer linked" are both returned
         //    as NotFound to prevent an existence leak.
-        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {

@@ -3,9 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
@@ -15,9 +15,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
-public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
+public class GetPlanEndpoint(
+    IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -45,7 +46,7 @@ public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, Prof
 
         var nutritionistId = Guid.Parse(userId);
 
-        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, authHelper, req.PlanId, nutritionistId, ct);
+        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, nutritionistId, ct);
 
         if (plan is null)
         {

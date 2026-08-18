@@ -9,7 +9,6 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
@@ -27,15 +26,15 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
 public class UpdateTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
     IApplicationDbContext db,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UpdateTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -439,8 +438,11 @@ public class UpdateTrainingPlanEndpoint(
     /// </summary>
     private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
     {
-        if (await authHelper.HasPlanAccessForClientUserAsync(
-                trainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewTrainingPlans: true })
         {
             return true;
         }

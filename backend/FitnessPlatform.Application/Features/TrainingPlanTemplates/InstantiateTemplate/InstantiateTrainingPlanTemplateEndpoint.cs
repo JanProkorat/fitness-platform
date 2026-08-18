@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -32,12 +32,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Instantiate
 /// issue's acceptance criteria names.
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates trainer-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 public class InstantiateTrainingPlanTemplateEndpoint(
     IMongoContext mongo,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     IApplicationDbContext db,
     TimeProvider timeProvider)
     : Endpoint<InstantiateTrainingPlanTemplateRequest, InstantiateTrainingPlanTemplateResponse>
@@ -77,9 +77,12 @@ public class InstantiateTrainingPlanTemplateEndpoint(
             return;
         }
 
-        var hasLink = await authHelper.HasActiveLinkAsync(trainerId, req.ClientId, ct);
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Instantiating a training plan requires CanViewTrainingPlans specifically.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             // 404 via the shared library helper, never a bare 404 and never 403 — a 403 would
             // confirm the client exists to an unlinked coach. See this type's remarks.

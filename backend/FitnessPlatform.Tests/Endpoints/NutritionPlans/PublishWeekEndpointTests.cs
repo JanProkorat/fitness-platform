@@ -31,7 +31,10 @@ public class PublishWeekEndpointTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
-    private PublishWeekEndpoint CreateEndpoint(IMongoContext mongo, MemoryStream? responseBody = null) =>
+    private PublishWeekEndpoint CreateEndpoint(
+        IMongoContext mongo,
+        MemoryStream? responseBody = null,
+        IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<PublishWeekEndpoint>(
             ctx =>
             {
@@ -46,7 +49,7 @@ public class PublishWeekEndpointTests
             Substitute.For<INotificationService>(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
     /// <summary>
     /// Builds the plan the mocked <c>FindOneAndUpdateAsync</c> should return for a successful
@@ -292,6 +295,42 @@ public class PublishWeekEndpointTests
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself. The plan is owned by the caller,
+    /// but the caller's link to the plan's client no longer grants nutrition access — this must
+    /// 404 before the write is even attempted, distinct from
+    /// <see cref="HandleAsync_NotFound_Returns404"/> which denies on a missing plan.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId, nutritionistId: _nutritionistId, weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
+
+        var ep = CreateEndpoint(mongo, linkAuthorizationService: PlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        var req = new PublishWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.NutritionPlans.DidNotReceive().FindOneAndUpdateAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateDefinition<NutritionPlan>>(),
+            Arg.Any<FindOneAndUpdateOptions<NutritionPlan, NutritionPlan>>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -145,6 +146,24 @@ public static class WorkoutLogTestHelpers
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(hasLink);
         return authHelper;
+    }
+
+    /// <summary>
+    /// Creates a mocked <see cref="IClientLinkAuthorizationService"/> that reports no active link
+    /// at all — both the PublicId- and UserId-addressed overloads return <see langword="null"/>,
+    /// and the batch overload returns an empty list. Use for a deny-path test that must fail
+    /// loudly (403/404, never a silently-granted 200) if the link guard were ever removed.
+    /// </summary>
+    public static IClientLinkAuthorizationService CreateDenyingLinkAuthorizationService()
+    {
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetCapabilitiesByClientUserIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetAccessibleClientsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>(), Arg.Any<LinkCapabilityScope?>())
+            .Returns([]);
+        return service;
     }
 
     private static IAsyncCursor<SessionExecution> CreateCursor(List<SessionExecution> logs)

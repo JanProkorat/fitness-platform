@@ -146,6 +146,46 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         responseBody.Should().Contain("NUTRITION_PLAN_TEMPLATE_NOT_FOUND");
     }
 
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants nutrition
+    /// access — this must still 404, distinct from
+    /// <see cref="FromPlan_PlanOwnedByAnotherNutritionist_Returns404"/> which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task FromPlan_NotLinkedToClient_Returns404()
+    {
+        var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("not-linked");
+
+        // Link exists but grants only the training domain — must not admit a nutrition route.
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        var plan = new NutritionPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            NutritionistId = nutritionistId,
+            Name = "Source Plan",
+            Status = NutritionPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+            Weeks = [new PlanWeek { WeekNumber = 1 }]
+        };
+        await SeedPlanAsync(plan);
+
+        var response = await nutritionist.PostAsJsonAsync("/nutrition/plan-templates/from-plan", new
+        {
+            PlanId = plan.ExternalId,
+            Name = "Denied Template"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        responseBody.Should().Contain("NUTRITION_PLAN_TEMPLATE_NOT_FOUND");
+    }
+
     [Fact]
     public async Task FromPlan_MissingPlan_Returns404SameCodeAsUnowned()
     {

@@ -172,7 +172,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -204,7 +204,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -261,7 +261,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -294,7 +294,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -336,7 +336,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -363,7 +363,35 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
+
+        await ep.HandleAsync(
+            new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the calling trainer, but the trainer's link to the plan's client no longer grants
+    /// training access — this must still 404, distinct from
+    /// <see cref="HandleAsync_PlanOwnedByOtherTrainer_Returns404"/> which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithSession(_trainerId, sessionId);
+
+        var (mongo, _) = CreateMockMongoWithInsert(plan, []);
+
+        var ep = Factory.Create<FinishSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubCompletionService(),
+            TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -384,7 +412,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = Guid.NewGuid(), SessionId = Guid.NewGuid() },
@@ -406,7 +434,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = wrongSessionId },
@@ -431,7 +459,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -480,7 +508,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest
@@ -540,7 +568,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubCompletionService(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         // completedAt is one day before the plan was created — must be rejected
         var tooEarly = dateCreated.AddDays(-1);
@@ -580,7 +608,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -610,7 +638,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         // Simulate JSON-bound DateTime with Unspecified kind (equivalent to a UTC instant one week ago)
         var rawFromJson = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-5), DateTimeKind.Unspecified);
@@ -664,7 +692,7 @@ public class FinishSessionEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },

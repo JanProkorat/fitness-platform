@@ -73,6 +73,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -98,6 +99,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -118,6 +120,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -142,6 +145,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -174,6 +178,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, completionService, StubLockService(), Substitute.For<IRealtimeNotifier>(),
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -222,6 +227,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 
@@ -258,6 +264,7 @@ public class CompleteWorkoutEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), StubLockService(), notifier,
             StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             CreateMockDb(), TimeProvider.System);
 

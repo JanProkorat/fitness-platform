@@ -22,20 +22,20 @@ public class GetTrainingPlansEndpointTests
     {
         var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest { ClientId = _clientId }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await authHelper.Received(1).HasPlanAccessAsync(
-            _trainerId, _clientId, true, Arg.Any<CancellationToken>());
+        await linkAuthorizationService.Received(1).GetCapabilitiesByClientPublicIdAsync(
+            _trainerId, _clientId, Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -48,13 +48,38 @@ public class GetTrainingPlansEndpointTests
     {
         var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: false);
+        var linkAuthorizationService = TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService();
         var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
+
+        await ep.HandleAsync(new GetTrainingPlansRequest { ClientId = _clientId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+    }
+
+    /// <summary>
+    /// Mirror-site regression guard: this is a training route and must require
+    /// <c>CanViewTrainingPlans</c> specifically. A link that grants only the nutrition domain
+    /// must still be denied — if the guard were ever widened to <c>caps is not null</c>, this
+    /// test would regress to 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ClientIdFilter_LinkGrantsOnlyNutrition_Returns403()
+    {
+        var plan = TrainingPlanTestHelpers.CreatePlan(clientId: _clientId, trainerId: _trainerId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            canViewNutritionPlans: true, canViewTrainingPlans: false);
+        var db = new MockDbBuilder().Build();
+
+        var ep = Factory.Create<GetTrainingPlansEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, linkAuthorizationService, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest { ClientId = _clientId }, TestContext.Current.CancellationToken);
 
@@ -66,13 +91,13 @@ public class GetTrainingPlansEndpointTests
     {
         var plan = TrainingPlanTestHelpers.CreatePlan(trainerId: _trainerId);
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(hasPlanAccess: false);
+        var linkAuthorizationService = TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService();
         var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetTrainingPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         await ep.HandleAsync(new GetTrainingPlansRequest(), TestContext.Current.CancellationToken);
 
@@ -80,7 +105,7 @@ public class GetTrainingPlansEndpointTests
         // client-specific permission to enforce.
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        await authHelper.DidNotReceive().HasPlanAccessAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        await linkAuthorizationService.DidNotReceive().GetCapabilitiesByClientPublicIdAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 }

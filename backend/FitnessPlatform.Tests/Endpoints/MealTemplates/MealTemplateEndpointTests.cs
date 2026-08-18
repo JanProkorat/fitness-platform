@@ -430,7 +430,7 @@ public class MealTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveMealTemplateFromPlanEndpoint>(
             callerId, _mongoContext, _macroCalculator, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveMealTemplateFromPlanRequest
         {
@@ -451,7 +451,7 @@ public class MealTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveMealTemplateFromPlanEndpoint>(
             nutritionistId, _mongoContext, _macroCalculator, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveMealTemplateFromPlanRequest
         {
@@ -473,7 +473,7 @@ public class MealTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveMealTemplateFromPlanEndpoint>(
             nutritionistId, _mongoContext, _macroCalculator, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveMealTemplateFromPlanRequest
         {

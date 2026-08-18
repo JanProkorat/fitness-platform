@@ -416,7 +416,7 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveSessionTemplateFromPlanEndpoint>(
             callerId, _mongoContext, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveSessionTemplateFromPlanRequest
         {
@@ -437,7 +437,7 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveSessionTemplateFromPlanEndpoint>(
             trainerId, _mongoContext, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveSessionTemplateFromPlanRequest
         {
@@ -459,7 +459,7 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
 
         var ep = CreateEndpoint<SaveSessionTemplateFromPlanEndpoint>(
             trainerId, _mongoContext, TimeProvider.System,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveSessionTemplateFromPlanRequest
         {

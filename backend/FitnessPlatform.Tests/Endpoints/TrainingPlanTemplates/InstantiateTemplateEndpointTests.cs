@@ -67,7 +67,11 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
         return profile.Id;
     }
 
-    private async Task LinkAsync(long trainerProfileId, long clientProfileId)
+    private Task LinkAsync(long trainerProfileId, long clientProfileId) =>
+        LinkAsync(trainerProfileId, clientProfileId, canViewTrainingPlans: true, canViewNutritionPlans: true);
+
+    private async Task LinkAsync(
+        long trainerProfileId, long clientProfileId, bool canViewTrainingPlans, bool canViewNutritionPlans)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -79,8 +83,8 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfileId,
             ProfessionalRole = UserRole.Trainer,
             IsActive = true,
-            CanViewTrainingPlans = true,
-            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = canViewTrainingPlans,
+            CanViewNutritionPlans = canViewNutritionPlans,
             DateCreated = DateTime.UtcNow
         });
 
@@ -354,6 +358,32 @@ public class InstantiateTemplateEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         body.Should().Contain("TRAINING_PLAN_TEMPLATE_NOT_FOUND",
             "the unlinked-client 404 routes through the shared library helper, carrying the same code as a missing template");
+    }
+
+    /// <summary>
+    /// Mirror-site regression guard: this is a training route and must require
+    /// <c>CanViewTrainingPlans</c> specifically. An active link that grants only the nutrition
+    /// domain must still be denied — if the guard were ever widened to a bare "link exists"
+    /// check, this test would regress to 201.
+    /// </summary>
+    [Fact]
+    public async Task Instantiate_LinkGrantsOnlyNutrition_Returns404()
+    {
+        var (trainer, trainerId) = await RegisterTrainerAsync("nutrition-only");
+        var (clientPublicId, clientProfileId, _) = await RegisterClientAsync("nutrition-only");
+        var professionalProfileId = await GetProfessionalProfileIdAsync(trainerId);
+        await LinkAsync(professionalProfileId, clientProfileId, canViewTrainingPlans: false, canViewNutritionPlans: true);
+
+        var template = BuildTemplateWithSessionContent(trainerId);
+        await SeedTemplateAsync(template);
+
+        var response = await trainer.PostAsJsonAsync(
+            $"/training/plan-templates/{template.ExternalId}/instantiate",
+            new { ClientId = clientPublicId, Name = "Plan" });
+
+        response.StatusCode.Should().Be(
+            HttpStatusCode.NotFound,
+            "a link that grants only the nutrition domain must not admit a training-plan instantiation");
     }
 
     // ── template guard: read-guarded, not write-guarded ──────────────────────

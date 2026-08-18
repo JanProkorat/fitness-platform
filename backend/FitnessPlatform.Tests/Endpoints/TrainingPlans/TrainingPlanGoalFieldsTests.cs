@@ -40,7 +40,7 @@ public class TrainingPlanGoalFieldsTests
     public async Task CreateTrainingPlan_WithGoalAndTargetWeight_PersistsFields()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
@@ -49,7 +49,7 @@ public class TrainingPlanGoalFieldsTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -76,7 +76,7 @@ public class TrainingPlanGoalFieldsTests
     public async Task CreateTrainingPlan_WithoutGoal_PersistsNullFields()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
@@ -85,7 +85,7 @@ public class TrainingPlanGoalFieldsTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -145,7 +145,7 @@ public class TrainingPlanGoalFieldsTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -195,7 +195,7 @@ public class TrainingPlanGoalFieldsTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -241,7 +241,7 @@ public class TrainingPlanGoalFieldsTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var request = new UpdateTrainingPlanRequest
         {
