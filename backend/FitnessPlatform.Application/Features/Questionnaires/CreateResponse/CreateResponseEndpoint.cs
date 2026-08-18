@@ -71,15 +71,24 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
         }
 
         // The service exposes only the link's capability flags, never its own database Id — the
-        // new response still needs that Id as an FK, so it is looked up separately here. The link
-        // is guaranteed to exist and be active because the capability lookup above just confirmed it.
+        // new response still needs that Id as an FK, so it is looked up separately here. The
+        // capability lookup above confirmed an active link existed at that point, but it can be
+        // deactivated between the two queries, so this must still handle a missing link rather
+        // than assume one (FirstOrDefaultAsync, not FirstAsync) to preserve the endpoint's
+        // pre-migration atomic behaviour of "link missing -> 404", never a 500.
         var linkId = await db.ClientProfessionalLinks
             .AsNoTracking()
             .Where(l => l.ClientProfileId == clientProfile.Id
                         && l.ProfessionalProfileId == professionalProfile.Id
                         && l.IsActive)
-            .Select(l => l.Id)
-            .FirstAsync(ct);
+            .Select(l => (long?)l.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (linkId is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
         // 3. Create the response
         var response = new QuestionnaireResponse
@@ -88,7 +97,7 @@ public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthori
             QuestionnaireId = questionnaire.Id,
             ClientId = userGuid,
             ProfessionalId = questionnaire.ProfessionalId,
-            LinkId = linkId,
+            LinkId = linkId.Value,
             Status = QuestionnaireResponseStatus.InProgress,
         };
 
