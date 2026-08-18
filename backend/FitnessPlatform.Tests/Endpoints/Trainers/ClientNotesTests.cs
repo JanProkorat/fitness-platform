@@ -7,6 +7,8 @@ using FitnessPlatform.Application.Features.Trainers.ClientNotes.CreateNote;
 using FitnessPlatform.Application.Features.Trainers.ClientNotes.DeleteNote;
 using FitnessPlatform.Application.Features.Trainers.ClientNotes.EditNote;
 using FitnessPlatform.Application.Features.Trainers.ClientNotes.ListNotes;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
@@ -53,7 +55,7 @@ public class ClientNotesTests
 
         var ep = Factory.Create<CreateNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(
             new CreateNoteRequest { ClientId = clientProfile.PublicId, Text = "Should fail." },
@@ -182,7 +184,7 @@ public class ClientNotesTests
 
         var ep = Factory.Create<ListNotesEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(
             new ListNotesRequest { ClientId = clientProfile.PublicId },
@@ -279,7 +281,7 @@ public class ClientNotesTests
 
         var ep = Factory.Create<EditNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(
             new EditNoteRequest { ClientId = clientProfile.PublicId, NoteId = Guid.NewGuid(), Text = "x" },
@@ -354,6 +356,31 @@ public class ClientNotesTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
+    [Fact]
+    public async Task Edit_NotLinkedToClient_Returns403()
+    {
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientUser = EntityBuilder.User.Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(10).WithUser(clientUser).Build();
+        // No link
+        var db = new MockDbBuilder().With(trainerProfile).With(clientProfile).Build();
+        var note = CreateNote(clientProfile.UserId, _trainerId);
+        var mongo = BuildWritableMongo([note]);
+
+        var ep = CreateEditEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(
+            new EditNoteRequest
+            {
+                ClientId = clientProfile.PublicId,
+                NoteId = note.ExternalId,
+                Text = "Hijacked."
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+    }
+
     // ── DELETE /trainer/clients/{clientId}/notes/{noteId} ───────────────────
 
     [Fact]
@@ -380,7 +407,7 @@ public class ClientNotesTests
 
         var ep = Factory.Create<DeleteNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(
             new DeleteNoteRequest { ClientId = clientProfile.PublicId, NoteId = Guid.NewGuid() },
@@ -492,22 +519,22 @@ public class ClientNotesTests
     private CreateNoteEndpoint CreateCreateEndpoint(IApplicationDbContext db, IMongoContext mongo, Guid callerId) =>
         Factory.Create<CreateNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
     private ListNotesEndpoint CreateListEndpoint(IApplicationDbContext db, IMongoContext mongo, Guid callerId) =>
         Factory.Create<ListNotesEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
     private EditNoteEndpoint CreateEditEndpoint(IApplicationDbContext db, IMongoContext mongo, Guid callerId) =>
         Factory.Create<EditNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
     private DeleteNoteEndpoint CreateDeleteEndpoint(IApplicationDbContext db, IMongoContext mongo, Guid callerId) =>
         Factory.Create<DeleteNoteEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo);
+            db, mongo, new ClientLinkAuthorizationService(db));
 
     private static ClaimsPrincipal FakeTrainerPrincipal(Guid userId) =>
         new(new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));

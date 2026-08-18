@@ -4,6 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Trainers.UpdateClientData;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.AspNetCore.Identity;
@@ -44,7 +45,7 @@ public class UpdateClientDataEndpointTests
         Factory.Create<UpdateClientDataEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, userManager, _audit);
+            db, userManager, _audit, new ClientLinkAuthorizationService(db));
 
     [Fact]
     public async Task HandleAsync_ValidNameAndEmail_UpdatesIdentityFields_Returns200()
