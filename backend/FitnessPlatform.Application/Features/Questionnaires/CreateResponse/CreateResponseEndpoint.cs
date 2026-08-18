@@ -3,12 +3,13 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.CreateResponse;
 
-public class CreateResponseEndpoint(IApplicationDbContext db)
+public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CreateResponseRequest>
 {
     public override void Configure()
@@ -57,17 +58,28 @@ public class CreateResponseEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var link = await db.ClientProfessionalLinks
-            .Where(l => l.ClientProfileId == clientProfile.Id
-                        && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive)
-            .FirstOrDefaultAsync(ct);
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile". No
+        // capability flag is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            questionnaire.ProfessionalId, userGuid, ct);
 
-        if (link is null)
+        if (capabilities is null)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
+
+        // The service exposes only the link's capability flags, never its own database Id — the
+        // new response still needs that Id as an FK, so it is looked up separately here. The link
+        // is guaranteed to exist and be active because the capability lookup above just confirmed it.
+        var linkId = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(l => l.ClientProfileId == clientProfile.Id
+                        && l.ProfessionalProfileId == professionalProfile.Id
+                        && l.IsActive)
+            .Select(l => l.Id)
+            .FirstAsync(ct);
 
         // 3. Create the response
         var response = new QuestionnaireResponse
@@ -76,7 +88,7 @@ public class CreateResponseEndpoint(IApplicationDbContext db)
             QuestionnaireId = questionnaire.Id,
             ClientId = userGuid,
             ProfessionalId = questionnaire.ProfessionalId,
-            LinkId = link.Id,
+            LinkId = linkId,
             Status = QuestionnaireResponseStatus.InProgress,
         };
 
