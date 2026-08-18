@@ -136,19 +136,6 @@ public static class WorkoutLogTestHelpers
     }
 
     /// <summary>
-    /// Creates a mocked ProfessionalAuthHelper.
-    /// </summary>
-    public static ProfessionalAuthHelper CreateMockAuthHelper(bool hasLink = true)
-    {
-        var db = Substitute.For<IApplicationDbContext>();
-        var authHelper = Substitute.For<ProfessionalAuthHelper>(db);
-        authHelper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return authHelper;
-    }
-
-    /// <summary>
     /// Creates a mocked <see cref="IClientLinkAuthorizationService"/> that reports no active link
     /// at all — both the PublicId- and UserId-addressed overloads return <see langword="null"/>,
     /// and the batch overload returns an empty list. Use for a deny-path test that must fail

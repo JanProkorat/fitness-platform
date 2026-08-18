@@ -49,7 +49,11 @@ public class GetExerciseProgressEndpointTests
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo();
         var linkAuthorizationService = WorkoutLogTestHelpers.CreateDenyingLinkAuthorizationService();
-        var db = new MockDbBuilder().Build();
+        // Client profile is seeded so the guard under test — the capability check at :54 — is the
+        // only thing that can produce the 404. An empty db would let the downstream ClientProfile
+        // lookup (:66) return the same status, making this indistinguishable from
+        // HandleAsync_ClientProfileNotFound_Returns404.
+        var db = BuildMockDbWithClientProfile(_clientPublicId, _clientUserId);
 
         var ep = Factory.Create<GetExerciseProgressEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(

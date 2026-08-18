@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlans;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
@@ -107,5 +108,11 @@ public class GetTrainingPlansEndpointTests
 
         await linkAuthorizationService.DidNotReceive().GetCapabilitiesByClientPublicIdAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+
+        // Pins the scope this LIST route passes — training plans must only be scoped to
+        // clients with CanViewTrainingPlans. Swapping this for NutritionOnly would silently
+        // leak the caller's cross-domain plan list with the rest of the suite green.
+        await linkAuthorizationService.Received(1).GetAccessibleClientsAsync(
+            _trainerId, Arg.Any<CancellationToken>(), LinkCapabilityScope.TrainingOnly);
     }
 }
