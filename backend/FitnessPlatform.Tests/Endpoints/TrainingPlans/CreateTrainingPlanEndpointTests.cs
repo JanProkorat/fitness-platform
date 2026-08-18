@@ -229,7 +229,9 @@ public class CreateTrainingPlanEndpointTests
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var linkAuthorizationService = TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService();
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -252,13 +254,20 @@ public class CreateTrainingPlanEndpointTests
     /// nutrition domain must still be denied here — if the guard were ever collapsed to a bare
     /// "link exists" check (widening it to <c>caps is not null</c>), this test would regress to 201.
     /// </summary>
+    /// <remarks>
+    /// The client profile is seeded so the capability check is the sole source of the 404 —
+    /// without it, an empty <c>ClientProfiles</c> would 404 on the profile lookup regardless of
+    /// whether the capability guard fired, masking a flag inversion (training &lt;-&gt; nutrition).
+    /// </remarks>
     [Fact]
     public async Task HandleAsync_LinkGrantsOnlyNutrition_Returns404()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
         var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
             canViewNutritionPlans: true, canViewTrainingPlans: false);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
