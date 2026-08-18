@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -74,5 +76,45 @@ public static class EndpointTestHelpers
             .Returns((IReadOnlyList<Guid>)accessibleClientUserIds.ToList());
 
         return helper;
+    }
+
+    /// <summary>
+    /// An <see cref="IClientLinkAuthorizationService"/> substitute that grants every link
+    /// capability — the <c>IClientLinkAuthorizationService</c> counterpart of
+    /// <see cref="CreateGrantingAuthHelper"/>, added additively for the call sites migrating
+    /// off the <c>[Obsolete]</c> <see cref="ProfessionalAuthHelper"/> /
+    /// <see cref="NutritionAuthHelper"/> wrappers onto the consolidated service directly.
+    /// </summary>
+    /// <remarks>
+    /// A unit test whose subject is something else — response mapping, plan computation, macro
+    /// totals — injects this so it keeps testing its own subject instead of silently becoming an
+    /// authorization test. Deny-path tests should NOT use this helper — they need the stub to
+    /// actually return <see langword="null"/> or a <c>GrantsNothing</c> capability, so a real
+    /// authorization regression fails loudly instead of a dead granting stub passing quietly
+    /// (the #916 / F1–F11 failure mode).
+    /// </remarks>
+    /// <param name="canViewNutritionPlans">Whether the simulated link grants nutrition-domain access.</param>
+    /// <param name="canViewTrainingPlans">Whether the simulated link grants training-domain access.</param>
+    /// <param name="accessibleClients">
+    /// What <see cref="IClientLinkAuthorizationService.GetAccessibleClientsAsync"/> returns — only
+    /// consulted by the plan LIST routes, whose unit tests mock the Mongo collection and so never
+    /// evaluate the resulting filter.
+    /// </param>
+    public static IClientLinkAuthorizationService CreateGrantingLinkAuthorizationService(
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = true,
+        IReadOnlyList<(Guid ClientUserId, LinkCapabilities Capabilities)>? accessibleClients = null)
+    {
+        var capabilities = new LinkCapabilities(canViewNutritionPlans, canViewTrainingPlans);
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)capabilities);
+        service.GetCapabilitiesByClientUserIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)capabilities);
+        service.GetAccessibleClientsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>(), Arg.Any<LinkCapabilityScope?>())
+            .Returns(accessibleClients ?? []);
+
+        return service;
     }
 }

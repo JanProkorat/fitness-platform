@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,10 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientNotes.ListNotes;
 /// <summary>
 /// Lists trainer notes for a client, ordered by createdAt descending (newest first), paginated.
 /// </summary>
-public class ListNotesEndpoint(IApplicationDbContext db, IMongoContext mongo)
+public class ListNotesEndpoint(
+    IApplicationDbContext db,
+    IMongoContext mongo,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<ListNotesRequest, ListNotesResponse>
 {
     /// <inheritdoc />
@@ -49,13 +53,13 @@ public class ListNotesEndpoint(IApplicationDbContext db, IMongoContext mongo)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
         if (clientProfile is null) { await Send.NotFoundAsync(ct); return; }
 
-        // Ownership check: trainer must have an active link with the client
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ProfessionalProfileId == trainerProfile.Id
-                        && l.ClientProfileId == clientProfile.Id
-                        && l.IsActive, ct);
-        if (!hasLink) { await Send.ForbiddenAsync(ct); return; }
+        // Ownership check: trainer must have an active link with the client. The professional
+        // and client profiles are already confirmed to exist above, so a null result here can
+        // only mean "no active link" — not "no professional/client profile". No capability flag
+        // is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
+        if (capabilities is null) { await Send.ForbiddenAsync(ct); return; }
 
         var clientUserId = clientProfile.UserId;
 

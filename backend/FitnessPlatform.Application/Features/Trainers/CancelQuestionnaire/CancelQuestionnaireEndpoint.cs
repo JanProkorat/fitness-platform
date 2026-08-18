@@ -18,7 +18,8 @@ public class CancelQuestionnaireEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
-    ILogger<CancelQuestionnaireEndpoint> logger)
+    ILogger<CancelQuestionnaireEndpoint> logger,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CancelQuestionnaireRequest>
 {
     public override void Configure()
@@ -59,14 +60,12 @@ public class CancelQuestionnaireEndpoint(
             return;
         }
 
-        var link = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(l =>
-                l.ClientProfileId == clientProfile.Id &&
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.IsActive, ct);
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            userGuid, req.ClientPublicId, ct);
 
-        if (link is null)
+        if (capabilities is null)
         {
             await Send.NotFoundAsync(ct);
             return;

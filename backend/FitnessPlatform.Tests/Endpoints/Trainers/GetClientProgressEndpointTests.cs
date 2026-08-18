@@ -8,7 +8,6 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
@@ -34,27 +33,27 @@ public class GetClientProgressEndpointTests
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     /// <summary>
-    /// Creates a ProfessionalAuthHelper mock configured to return the specified link status.
-    /// GetClientProgressEndpoint is deliberately dual-readable by Trainers and Nutritionists, so
-    /// either flag admits the caller — but the endpoint now reads the flags themselves via
-    /// <see cref="ProfessionalAuthHelper.GetLinkCapabilitiesAsync"/> so it can shape the response
-    /// body per domain, not merely decide who may reach it. These tests default to both flags:
-    /// their subject is the progress computation, not the gate. The per-domain body filtering is
-    /// asserted end-to-end against real data in <c>CrossDomainPlanAccessTests</c>.
+    /// Creates an <see cref="IClientLinkAuthorizationService"/> mock configured to return the
+    /// specified link status. GetClientProgressEndpoint is deliberately dual-readable by Trainers
+    /// and Nutritionists, so either flag admits the caller — but the endpoint reads the flags
+    /// themselves via <see cref="IClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync"/>
+    /// so it can shape the response body per domain, not merely decide who may reach it. These
+    /// tests default to both flags: their subject is the progress computation, not the gate. The
+    /// per-domain body filtering is asserted end-to-end against real data in
+    /// <c>CrossDomainPlanAccessTests</c>.
     /// </summary>
-    private ProfessionalAuthHelper CreateAuthHelper(
+    private static IClientLinkAuthorizationService CreateLinkAuthorizationService(
         bool hasLink,
         bool canViewNutritionPlans = true,
         bool canViewTrainingPlans = true)
     {
-        var authDb = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<ProfessionalAuthHelper>(authDb);
-        helper.GetLinkCapabilitiesAsync(
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(hasLink
                 ? new LinkCapabilities(canViewNutritionPlans, canViewTrainingPlans)
                 : null);
-        return helper;
+        return service;
     }
 
     /// <summary>
@@ -70,7 +69,7 @@ public class GetClientProgressEndpointTests
     public async Task HandleAsync_ActiveLink_ReturnsProgress()
     {
         // Arrange
-        var authHelper = CreateAuthHelper(hasLink: true);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: true);
         var db = CreateDb();
 
         _complianceService.CalculateComplianceAsync(
@@ -103,7 +102,7 @@ public class GetClientProgressEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit, db);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -136,14 +135,14 @@ public class GetClientProgressEndpointTests
     public async Task HandleAsync_NoLink_Returns404()
     {
         // Arrange — no active link
-        var authHelper = CreateAuthHelper(hasLink: false);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: false);
         var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit, db);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -159,11 +158,11 @@ public class GetClientProgressEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         // Arrange — no user claims
-        var authHelper = CreateAuthHelper(hasLink: false);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: false);
         var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
-            _complianceService, authHelper, _audit, db);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest

@@ -13,9 +13,18 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientVerdict;
 /// Returns the on-track verdict and supporting signals for a specific client.
 /// Trainer must have an active link to the client. Returns 403 if not linked.
 /// </summary>
+/// <param name="db">Database context.</param>
+/// <param name="verdictService">Computes the verdict and its supporting signals.</param>
+/// <param name="linkAuthorizationService">
+/// Resolves the caller's link capabilities to the client. Called only after the caller's own
+/// professional profile and the target client profile are separately confirmed to exist (both
+/// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
+/// link" — preserving the endpoint's deliberate 403 (not 404) for that case.
+/// </param>
 public class GetClientVerdictEndpoint(
     IApplicationDbContext db,
-    IClientVerdictService verdictService)
+    IClientVerdictService verdictService,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetClientVerdictRequest, GetClientVerdictResponse>
 {
     /// <inheritdoc />
@@ -66,15 +75,13 @@ public class GetClientVerdictEndpoint(
             return;
         }
 
-        // Verify an active trainer-client link exists; return 403 (not 404) when missing
-        var link = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(l =>
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.ClientProfileId == clientProfile.Id &&
-                l.IsActive, ct);
+        // Verify an active trainer-client link exists; return 403 (not 404) when missing. The
+        // professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerUserId, req.ClientId, ct);
 
-        if (link is null)
+        if (capabilities is null)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -83,9 +90,7 @@ public class GetClientVerdictEndpoint(
         // The link's existence decides who may reach the route; its flags decide which halves of
         // the response they see. A link carrying neither flag grants no per-client plan visibility
         // at all — the same deny the dashboard, timeline and plan-list routes already carry.
-        var capabilities = LinkCapabilities.FromLink(link);
-
-        if (capabilities.GrantsNothing)
+        if (capabilities.Value.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -100,7 +105,7 @@ public class GetClientVerdictEndpoint(
             clientUserId: clientProfile.UserId,
             clientProfileId: clientProfile.Id,
             targetWeightKg: targetWeightKg,
-            capabilities: capabilities,
+            capabilities: capabilities.Value,
             ct: ct);
 
         await Send.OkAsync(new GetClientVerdictResponse

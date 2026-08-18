@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -446,7 +447,8 @@ public class ListClientPlansTests
         var db = new MockDbBuilder().Build();
         var mongo = BuildMongo();
 
-        var ep = Factory.Create<ListClientPlansEndpoint>(db, mongo, _complianceService, _audit);
+        var ep = Factory.Create<ListClientPlansEndpoint>(
+            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new ListClientPlansRequest { ClientId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
@@ -566,7 +568,7 @@ public class ListClientPlansTests
 
         return Factory.Create<ListClientPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo, _complianceService, _audit);
+            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
     }
 
     private (IApplicationDbContext db, Application.Domain.Entities.ClientProfile clientProfile)
