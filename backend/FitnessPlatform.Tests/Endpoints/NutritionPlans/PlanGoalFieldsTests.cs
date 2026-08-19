@@ -161,7 +161,7 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var req = new UpdatePlanRequest
         {
@@ -214,7 +214,7 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -264,7 +264,7 @@ public class PlanGoalFieldsTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var req = new UpdatePlanRequest
         {
@@ -332,13 +332,8 @@ public class PlanGoalFieldsTests
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private static NutritionAuthHelper CreateAuthHelper(bool hasLink)
-    {
-        var db = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(db);
-        helper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return helper;
-    }
+    private static IClientLinkAuthorizationService CreateAuthHelper(bool hasLink) =>
+        hasLink
+            ? EndpointTestHelpers.CreateGrantingLinkAuthorizationService()
+            : PlanTestHelpers.CreateDenyingLinkAuthorizationService();
 }

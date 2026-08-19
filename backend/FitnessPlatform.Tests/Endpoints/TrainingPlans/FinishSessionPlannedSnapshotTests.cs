@@ -133,7 +133,7 @@ public class FinishSessionPlannedSnapshotTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
@@ -175,7 +175,7 @@ public class FinishSessionPlannedSnapshotTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, completionService,
-            EndpointTestHelpers.CreateGrantingAuthHelper(), CreateMockDb());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), CreateMockDb());
 
         await ep.HandleAsync(
             new FinishSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },

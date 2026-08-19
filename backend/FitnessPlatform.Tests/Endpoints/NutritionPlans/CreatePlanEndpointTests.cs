@@ -5,9 +5,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
@@ -232,7 +232,9 @@ public class CreatePlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: false);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -263,14 +265,42 @@ public class CreatePlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
 
-    private static NutritionAuthHelper CreateAuthHelper(bool hasLink)
+    private static IClientLinkAuthorizationService CreateAuthHelper(bool hasLink) =>
+        hasLink
+            ? EndpointTestHelpers.CreateGrantingLinkAuthorizationService()
+            : PlanTestHelpers.CreateDenyingLinkAuthorizationService();
+
+    /// <summary>
+    /// Mirror-site regression guard: this is a nutrition route and must require
+    /// <c>CanViewNutritionPlans</c> specifically. A link that grants only the training domain
+    /// must still be denied — if the guard were ever widened to <c>caps is not null</c>, this
+    /// test would regress to 201.
+    /// </summary>
+    /// <remarks>
+    /// The client profile is seeded so the capability check is the sole source of the 404 —
+    /// without it, an empty <c>ClientProfiles</c> would 404 on the profile lookup regardless of
+    /// whether the capability guard fired, masking a flag inversion (nutrition &lt;-&gt; training).
+    /// </remarks>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
     {
-        // Create db substitute first, then partial substitute — avoids NSubstitute nesting pitfall
-        var db = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(db);
-        helper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return helper;
+        var mongo = PlanTestHelpers.CreateMockMongo();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = Factory.Create<CreatePlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, linkAuthorizationService, db);
+
+        await ep.HandleAsync(
+            new CreatePlanRequest { ClientId = _clientId, Name = "Plan" },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 }

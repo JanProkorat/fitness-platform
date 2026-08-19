@@ -25,7 +25,7 @@ public class CreateTrainingPlanEndpointTests
     public async Task HandleAsync_ValidRequest_CreatesPlan()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
@@ -34,7 +34,7 @@ public class CreateTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -73,7 +73,7 @@ public class CreateTrainingPlanEndpointTests
         existingPlan.StartDate = DateTime.UtcNow.Date;
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(existingPlan);
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
@@ -87,7 +87,7 @@ public class CreateTrainingPlanEndpointTests
                         EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer)));
                 ctx.Request.HttpContext.Response.Body = responseBody;
             },
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         // New plan's window [today, today+14) overlaps the existing plan's [today, today+28).
         var request = new CreateTrainingPlanRequest
@@ -127,7 +127,7 @@ public class CreateTrainingPlanEndpointTests
         existingPlan.StartDate = DateTime.UtcNow.Date.AddDays(-60);
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongo(existingPlan);
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
@@ -136,7 +136,7 @@ public class CreateTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -173,7 +173,7 @@ public class CreateTrainingPlanEndpointTests
     public async Task HandleAsync_WithValidQuestionnaireResponseLink_CreatesPlan()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var questionnaireResponseId = Guid.NewGuid();
 
         // Distinct on purpose — see remarks above. PublicId is the trainer-facing key the
@@ -201,7 +201,7 @@ public class CreateTrainingPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
 
         var request = new CreateTrainingPlanRequest
         {
@@ -228,14 +228,52 @@ public class CreateTrainingPlanEndpointTests
     public async Task HandleAsync_NoActiveLink_Returns404()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper(false);
-        var db = new MockDbBuilder().Build();
+        var linkAuthorizationService = TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, authHelper, db);
+            mongo, linkAuthorizationService, db);
+
+        await ep.HandleAsync(new CreateTrainingPlanRequest
+        {
+            ClientId = _clientId,
+            Name = "Test"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Mirror-site regression guard: <see cref="CreateTrainingPlanEndpoint"/> is a training route
+    /// and must require <c>CanViewTrainingPlans</c> specifically. A link that grants only the
+    /// nutrition domain must still be denied here — if the guard were ever collapsed to a bare
+    /// "link exists" check (widening it to <c>caps is not null</c>), this test would regress to 201.
+    /// </summary>
+    /// <remarks>
+    /// The client profile is seeded so the capability check is the sole source of the 404 —
+    /// without it, an empty <c>ClientProfiles</c> would 404 on the profile lookup regardless of
+    /// whether the capability guard fired, masking a flag inversion (training &lt;-&gt; nutrition).
+    /// </remarks>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyNutrition_Returns404()
+    {
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            canViewNutritionPlans: true, canViewTrainingPlans: false);
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = Factory.Create<CreateTrainingPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, linkAuthorizationService, db);
 
         await ep.HandleAsync(new CreateTrainingPlanRequest
         {
@@ -250,9 +288,9 @@ public class CreateTrainingPlanEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var authHelper = TrainingPlanTestHelpers.CreateMockAuthHelper();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
         var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<CreateTrainingPlanEndpoint>(mongo, authHelper, db);
+        var ep = Factory.Create<CreateTrainingPlanEndpoint>(mongo, linkAuthorizationService, db);
 
         await ep.HandleAsync(new CreateTrainingPlanRequest
         {

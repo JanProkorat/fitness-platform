@@ -9,7 +9,6 @@ using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
@@ -26,13 +25,13 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
 public class GetTrainingPlanEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IApplicationDbContext db,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -63,7 +62,7 @@ public class GetTrainingPlanEndpoint(
 
         // Authorship + link gate: treat "not mine" and "no longer linked" as "not found" to
         // avoid an existence leak.
-        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {

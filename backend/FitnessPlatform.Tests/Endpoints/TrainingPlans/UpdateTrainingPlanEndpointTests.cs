@@ -40,7 +40,7 @@ public class UpdateTrainingPlanEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
     [Fact]
     public async Task HandleAsync_ValidUpdate_Returns200()
@@ -56,7 +56,7 @@ public class UpdateTrainingPlanEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var request = new UpdateTrainingPlanRequest
         {
@@ -73,6 +73,51 @@ public class UpdateTrainingPlanEndpointTests
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants training
+    /// access — this must still 404. If <see cref="IClientLinkAuthorizationService"/> were
+    /// removed from this guard, this test would regress to 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 2);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build(),
+            TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        var request = new UpdateTrainingPlanRequest
+        {
+            PlanId = planId,
+            Name = "Updated Plan",
+            Version = 1,
+            Weeks =
+            [
+                new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [] },
+                new UpdateTrainingWeekRequest { WeekNumber = 2, Sessions = [] }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.TrainingPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<TrainingPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -174,7 +219,7 @@ public class UpdateTrainingPlanEndpointTests
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var request = new UpdateTrainingPlanRequest
         {

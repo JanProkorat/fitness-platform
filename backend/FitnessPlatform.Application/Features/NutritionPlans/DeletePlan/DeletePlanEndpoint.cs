@@ -4,8 +4,8 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.DeletePlan;
@@ -20,9 +20,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.DeletePlan;
 /// guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the plan, the caller's
-/// live link to its client decides access.</param>
-public class DeletePlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper) : Endpoint<DeletePlanRequest>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
+public class DeletePlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<DeletePlanRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -51,7 +52,7 @@ public class DeletePlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper auth
 
         // Verify authorship AND that the caller's link to the plan's client still grants
         // nutrition access.
-        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, authHelper, req.PlanId, nutritionistId, ct);
+        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, nutritionistId, ct);
 
         if (plan is null)
         {

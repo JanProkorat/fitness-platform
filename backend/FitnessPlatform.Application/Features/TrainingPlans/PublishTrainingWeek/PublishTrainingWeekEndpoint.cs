@@ -30,7 +30,7 @@ public class PublishTrainingWeekEndpoint(
     IRealtimeNotifier notifier,
     ISessionLockService lockService,
     PlanConcurrencyGuard guard,
-    ProfessionalAuthHelper authHelper) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -68,8 +68,11 @@ public class PublishTrainingWeekEndpoint(
         // caller's link to the plan's client to still grant training access.
         async Task<bool> Authorize(TrainingPlan plan, CancellationToken authorizeCt)
         {
-            if (await authHelper.HasPlanAccessForClientUserAsync(
-                    trainerId, plan.ClientId, requireTrainingPlanAccess: true, authorizeCt))
+            // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                trainerId, plan.ClientId, authorizeCt);
+
+            if (capabilities is { CanViewTrainingPlans: true })
             {
                 return true;
             }

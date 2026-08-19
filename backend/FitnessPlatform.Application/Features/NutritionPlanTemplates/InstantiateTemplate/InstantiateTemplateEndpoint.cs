@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -21,12 +21,12 @@ namespace FitnessPlatform.Application.Features.NutritionPlanTemplates.Instantiat
 /// bypassing them (mirrors <c>CreatePlanEndpoint</c>).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates nutritionist-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the nutritionist-client link's CanViewNutritionPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
 public class InstantiateTemplateEndpoint(
     IMongoContext mongo,
-    NutritionAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     IApplicationDbContext db,
     TimeProvider timeProvider)
     : Endpoint<InstantiateNutritionPlanTemplateRequest, InstantiateNutritionPlanTemplateResponse>
@@ -66,9 +66,12 @@ public class InstantiateTemplateEndpoint(
             return;
         }
 
-        var hasLink = await authHelper.HasActiveLinkAsync(nutritionistId, req.ClientId, ct);
+        // req.ClientId is the nutritionist-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Instantiating a nutrition plan requires CanViewNutritionPlans specifically.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            nutritionistId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
             // 404, never 403 — a 403 would confirm the client exists to an unlinked coach.
             await Send.NotFoundAsync(ct);

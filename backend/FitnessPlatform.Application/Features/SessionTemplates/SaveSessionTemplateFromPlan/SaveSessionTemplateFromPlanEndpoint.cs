@@ -4,10 +4,10 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.SessionTemplates.GetSessionTemplate;
 using FitnessPlatform.Application.Features.SessionTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 
@@ -20,12 +20,12 @@ namespace FitnessPlatform.Application.Features.SessionTemplates.SaveSessionTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected system clock.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the source plan, the
-/// caller's live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// source plan, the caller's live link to its client decides access.</param>
 internal sealed class SaveSessionTemplateFromPlanEndpoint(
     IMongoContext mongo,
     TimeProvider timeProvider,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<SaveSessionTemplateFromPlanRequest, SessionTemplateDetailResponse>
 {
     /// <inheritdoc />
@@ -118,10 +118,11 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
         // Authorship is permanent; the collaboration is not. Require the caller's link to the
         // plan's client to still grant training access, routed through the same shaped 404 as an
         // unowned plan so a denial stays indistinguishable from a miss.
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            trainerId, plan.ClientId, requireTrainingPlanAccess: true, ct);
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerId, plan.ClientId, ct);
 
-        if (!hasAccess)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await this.SendProblemAsync(404, ErrorCodes.PlanNotFound, "Training plan not found.", ct);
             return null;

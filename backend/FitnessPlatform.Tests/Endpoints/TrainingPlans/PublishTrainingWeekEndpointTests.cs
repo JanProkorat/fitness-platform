@@ -100,7 +100,7 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -110,6 +110,50 @@ public class PublishTrainingWeekEndpointTests
         }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself. The plan is owned by the caller,
+    /// but the caller's link to the plan's client no longer grants training access — this must
+    /// 404 before the write is even attempted. If <see cref="IClientLinkAuthorizationService"/>
+    /// were removed from this guard, this test would regress to 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
+
+        var ep = Factory.Create<PublishTrainingWeekEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService(),
+            new PlanConcurrencyGuard(),
+            TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(new PublishTrainingWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.TrainingPlans.DidNotReceive().FindOneAndUpdateAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateDefinition<TrainingPlan>>(),
+            Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+            Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -138,7 +182,7 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -179,7 +223,7 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -240,7 +284,7 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {
@@ -283,7 +327,7 @@ public class PublishTrainingWeekEndpointTests
             Substitute.For<IRealtimeNotifier>(),
             StubLockService(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new PublishTrainingWeekRequest
         {

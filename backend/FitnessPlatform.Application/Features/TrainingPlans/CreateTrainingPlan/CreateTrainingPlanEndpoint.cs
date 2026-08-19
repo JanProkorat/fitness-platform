@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -24,9 +24,10 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 /// See the guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates trainer-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
-public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db)
+public class CreateTrainingPlanEndpoint(
+    IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
     : Endpoint<CreateTrainingPlanRequest, TrainingPlanSummaryDto>
 {
     /// <inheritdoc />
@@ -54,9 +55,12 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
 
         var trainerId = Guid.Parse(userId);
 
-        var hasLink = await authHelper.HasActiveLinkAsync(trainerId, req.ClientId, ct);
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Training plans require CanViewTrainingPlans specifically.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await Send.NotFoundAsync(ct);
             return;

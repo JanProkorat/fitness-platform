@@ -85,7 +85,7 @@ public class GetTrainingPlanLockStateTests
             mongo,
             lockService,
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

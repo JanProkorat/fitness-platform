@@ -88,7 +88,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -146,7 +146,7 @@ public class GoLiveEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, lockService, LockOptions, notifier,
-            EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+            WorkoutLogTestHelpers.CreateDenyingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -176,7 +176,7 @@ public class GoLiveEndpointTests
 
         var ep = Factory.Create<GoLiveEndpoint>(
             mongo, Substitute.For<ISessionLockService>(), LockOptions, Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -194,7 +194,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
 
@@ -222,7 +222,7 @@ public class GoLiveEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -244,7 +244,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -272,7 +272,7 @@ public class GoLiveEndpointTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -300,7 +300,7 @@ public class GoLiveEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, lockService, LockOptions, Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 

@@ -184,7 +184,7 @@ public class GetTrainingPlanSectionKeyingTests
             mongo,
             TrainingPlanTestHelpers.CreateNoOpLockService(),
             new MockDbBuilder().Build(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

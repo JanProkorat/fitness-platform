@@ -3,9 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTemplateFromPlan;
@@ -19,12 +19,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.CreateTempl
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="timeProvider">Injected time source for audit timestamps.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the source plan, the
-/// caller's live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// source plan, the caller's live link to its client decides access.</param>
 public class CreateTrainingPlanTemplateFromPlanEndpoint(
     IMongoContext mongo,
     TimeProvider timeProvider,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CreateTrainingPlanTemplateFromPlanRequest, TrainingPlanTemplateSummaryDto>
 {
     /// <inheritdoc />
@@ -69,10 +69,11 @@ public class CreateTrainingPlanTemplateFromPlanEndpoint(
 
         // Authorship is permanent; the collaboration is not. Require the caller's link to the
         // plan's client to still grant training access, routed through the same shaped 404.
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            ownerId, plan.ClientId, requireTrainingPlanAccess: true, ct);
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            ownerId, plan.ClientId, ct);
 
-        if (!hasAccess)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await this.SendLibraryNotFoundAsync(TrainingPlanTemplateLibrary.Denial, ct);
             return;
