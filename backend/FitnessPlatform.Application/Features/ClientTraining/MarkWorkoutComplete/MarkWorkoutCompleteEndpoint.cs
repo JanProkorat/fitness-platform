@@ -30,7 +30,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWorkoutComplet
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
 /// <param name="lockService">Session lock service — used to refresh the Live TTL on activity.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
 public class MarkWorkoutCompleteEndpoint(
     IMongoContext mongo,
@@ -39,7 +39,7 @@ public class MarkWorkoutCompleteEndpoint(
     IComplianceService compliance,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<MarkWorkoutCompleteEndpoint> logger)
     : Endpoint<MarkWorkoutCompleteRequest, MarkWorkoutCompleteResponse>
 {
@@ -176,7 +176,7 @@ public class MarkWorkoutCompleteEndpoint(
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 existing.CompletedExerciseInstanceIds.Count, totalExercises,
                 logger, ct,
@@ -244,7 +244,7 @@ public class MarkWorkoutCompleteEndpoint(
                 existing.Version = retryVersion;
 
                 await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                    notifier, compliance, mongo, authHelper, plan, clientId,
+                    notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                     req.SessionId, DateOnly.FromDateTime(targetDate),
                     existing.CompletedExerciseInstanceIds.Count, totalExercises,
                     logger, ct,
@@ -255,7 +255,7 @@ public class MarkWorkoutCompleteEndpoint(
             }
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 execution.CompletedExerciseInstanceIds.Count, totalExercises,
                 logger, ct,

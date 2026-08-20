@@ -29,7 +29,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComple
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
 /// <param name="lockService">Session lock service — used to refresh Live TTLs on activity.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
 public class MarkWholeDayCompleteEndpoint(
     IMongoContext mongo,
@@ -38,7 +38,7 @@ public class MarkWholeDayCompleteEndpoint(
     IComplianceService compliance,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<MarkWholeDayCompleteEndpoint> logger)
     : Endpoint<MarkWholeDayCompleteRequest, MarkWholeDayCompleteResponse>
 {
@@ -253,7 +253,7 @@ public class MarkWholeDayCompleteEndpoint(
             var aggregateTotal = summaries.Sum(s => s.TotalExerciseCount);
 
             await TrainingProgressBroadcaster.BroadcastWholeDayAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 targetDateOnly, aggregateCompleted, aggregateTotal,
                 logger, ct);
         }

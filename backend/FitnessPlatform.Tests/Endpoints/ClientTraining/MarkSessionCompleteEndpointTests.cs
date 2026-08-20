@@ -31,7 +31,7 @@ public class MarkSessionCompleteEndpointTests
     private readonly ISessionLockService _lockService = CreateStubLockService();
     private static readonly IOptions<TrainingLockOptions> LockOptions =
         Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
-    private readonly ProfessionalAuthHelper _authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private readonly ILogger<MarkSessionCompleteEndpoint> _logger = Substitute.For<ILogger<MarkSessionCompleteEndpoint>>();
 
     private static ISessionLockService CreateStubLockService()
@@ -61,7 +61,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -100,7 +100,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -146,7 +146,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -188,7 +188,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -218,7 +218,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = Guid.NewGuid() },
@@ -235,7 +235,7 @@ public class MarkSessionCompleteEndpointTests
 
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },

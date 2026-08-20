@@ -174,25 +174,25 @@ public class PlanPhotoUploadedSignalRTests
     // ── Endpoint factories ───────────────────────────────────────────────────────
 
     private FinalizePlanPhotoEndpoint CreateFinalizeEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _finalizeLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _finalizeLogger, new FakeBlobStorageService());
 
     private SaveMealPhotosEndpoint CreateSaveMealPhotosEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveMealPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _mealLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _mealLogger, new FakeBlobStorageService());
 
     private SaveDayPhotosEndpoint CreateSaveDayPhotosEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _dayLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _dayLogger, new FakeBlobStorageService());
 
     // ════════════════════════════════════════════════════════════════════════════
     // FinalizePlanPhoto — nutrition plan
@@ -639,7 +639,7 @@ public class PlanPhotoUploadedSignalRTests
 
         var mongo = CreateMongoWithNutritionPlan(plan);
         var db = CreateMockDb();
-        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewNutritionPlans: false));
 
         await ep.HandleAsync(new FinalizePlanPhotoRequest
         {
@@ -672,7 +672,7 @@ public class PlanPhotoUploadedSignalRTests
 
         var mongo = CreateMongoWithTrainingPlan(trainingPlan);
         var db = CreateMockDb();
-        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+        var ep = CreateFinalizeEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false));
 
         await ep.HandleAsync(new FinalizePlanPhotoRequest
         {

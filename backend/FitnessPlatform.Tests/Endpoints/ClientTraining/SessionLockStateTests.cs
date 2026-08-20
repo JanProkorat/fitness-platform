@@ -373,7 +373,7 @@ public class SessionLockStateTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, notifier, compliance, lockService, DefaultLockOptions(),
-            EndpointTestHelpers.CreateGrantingAuthHelper(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             NullLogger<MarkExerciseCompleteEndpoint>.Instance);
 
         // Completion now keys on the SessionExercise instance id alone — the parent workout is

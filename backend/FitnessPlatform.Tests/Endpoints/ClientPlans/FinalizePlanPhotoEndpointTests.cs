@@ -42,12 +42,12 @@ public class FinalizePlanPhotoEndpointTests
     private readonly FakeBlobStorageService _blobStorage = new();
 
     private FinalizePlanPhotoEndpoint CreateEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, _blobStorage);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
