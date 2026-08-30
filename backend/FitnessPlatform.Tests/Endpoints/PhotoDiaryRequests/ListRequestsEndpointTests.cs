@@ -57,7 +57,7 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
         return (http, user.Id, email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -72,7 +72,7 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),
@@ -266,6 +266,51 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
             JsonOptions, TestContext.Current.CancellationToken);
         body!.Items.Should().Contain(i => i.Id == myRequestId);
         body.Items.Should().NotContain(i => i.Id == otherRequestId);
+    }
+
+    [Fact]
+    public async Task ListClient_ViaDeactivatedLink_NotReturnedAndExcludedFromTotalCount()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientUserId, _) = await SetupClientAsync();
+
+        var deactivatedLinkId = await InsertLinkAsync(clientUserId, profId, isActive: false);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId: deactivatedLinkId);
+
+        var response = await http.GetAsync(
+            "/client/photo-diary-requests",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var total = int.Parse(response.Headers.GetValues("X-Total-Count").First());
+        total.Should().Be(0);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Items.Should().NotContain(i => i.Id == requestId);
+    }
+
+    [Fact]
+    public async Task ListClient_DeactivatedLinkWithMatchingInvite_OnlyInviteRoutedRequestReturned()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientUserId, clientEmail) = await SetupClientAsync();
+
+        var deactivatedLinkId = await InsertLinkAsync(clientUserId, profId, isActive: false);
+        var inviteId = await InsertPendingInviteAsync(profId, clientEmail);
+
+        var linkRoutedRequestId = await InsertDiaryRequestAsync(profId, linkId: deactivatedLinkId);
+        var inviteRoutedRequestId = await InsertDiaryRequestAsync(profId, inviteId: inviteId);
+
+        var response = await http.GetAsync(
+            "/client/photo-diary-requests",
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ListResponseBody>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        body!.Items.Should().Contain(i => i.Id == inviteRoutedRequestId);
+        body.Items.Should().NotContain(i => i.Id == linkRoutedRequestId);
     }
 
     [Fact]
