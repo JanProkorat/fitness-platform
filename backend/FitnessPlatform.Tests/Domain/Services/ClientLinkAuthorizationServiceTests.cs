@@ -11,7 +11,7 @@ namespace FitnessPlatform.Tests.Domain.Services;
 
 /// <summary>
 /// Testcontainers coverage for <see cref="IClientLinkAuthorizationService"/> — the single entry
-/// point <c>ProfessionalAuthHelper</c> and <c>NutritionAuthHelper</c> now delegate to (#958).
+/// point every call site resolves link authorization through (#958).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class ClientLinkAuthorizationServiceTests(FitnessApiFactory factory)

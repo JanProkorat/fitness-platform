@@ -5,8 +5,7 @@ namespace FitnessPlatform.Application.Domain.Interfaces;
 
 /// <summary>
 /// Single entry point for answering "what may this professional see about this client",
-/// replacing the seven near-synonymous checks that used to live on
-/// <c>ProfessionalAuthHelper</c> and <c>NutritionAuthHelper</c>.
+/// replacing the seven near-synonymous checks call sites used to hand-roll individually.
 /// </summary>
 /// <remarks>
 /// <para>

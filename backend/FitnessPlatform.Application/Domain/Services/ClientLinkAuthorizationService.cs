@@ -7,10 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
-/// Single entry point for "what may this professional see about this client" — the entry point
-/// the rest of the link-authorization epic migrates onto. Consolidates the seven near-synonymous
-/// checks that used to live on <c>ProfessionalAuthHelper</c> and <c>NutritionAuthHelper</c>, which
-/// stay wired up as <c>[Obsolete]</c> thin delegating wrappers over this service.
+/// Single entry point for "what may this professional see about this client" — consolidates the
+/// seven near-synonymous checks every link-authorization call site now resolves through directly
+/// (the epic's #958–#964 migration).
 /// Cross-database: reads PostgreSQL (professional/client profiles, links) to authorize MongoDB
 /// plan access.
 /// </summary>

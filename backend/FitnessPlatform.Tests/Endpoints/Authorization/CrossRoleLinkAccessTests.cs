@@ -13,9 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FitnessPlatform.Tests.Endpoints.Authorization;
 
 /// <summary>
-/// Regression tests for #903 — the cross-role capability-escalation hole. Before the fix,
-/// <c>NutritionAuthHelper.HasActiveLinkAsync</c> and <c>ProfessionalAuthHelper.HasActiveLinkAsync</c>
-/// gated on <see cref="ClientProfessionalLink.IsActive"/> only. Because <c>POST /users/me/roles</c>
+/// Regression tests for #903 — the cross-role capability-escalation hole. Before the fix, the
+/// nutrition and training link-presence checks gated on
+/// <see cref="ClientProfessionalLink.IsActive"/> only. Because <c>POST /users/me/roles</c>
 /// self-assignment never touches existing links, a professional already linked to a client under
 /// one role could self-assign the other role and immediately pass the other domain's link check
 /// for that same client, despite the link never granting that capability.

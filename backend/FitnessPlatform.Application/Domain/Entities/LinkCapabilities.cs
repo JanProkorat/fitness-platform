@@ -28,9 +28,8 @@ public readonly record struct LinkCapabilities(bool CanViewNutritionPlans, bool 
 {
     /// <summary>
     /// True when the link grants neither domain. Routes returning per-client plan data deny
-    /// outright in this case rather than returning an empty body — it matches
-    /// <c>ProfessionalAuthHelper.HasAnyPlanAccessAsync</c> semantics (#903) and the deny the
-    /// dashboard, timeline and plan-list routes already carry.
+    /// outright in this case rather than returning an empty body — this is the deny the
+    /// dashboard, timeline and plan-list routes already carry, per the #903 fix.
     /// </summary>
     public bool GrantsNothing => !CanViewNutritionPlans && !CanViewTrainingPlans;
 

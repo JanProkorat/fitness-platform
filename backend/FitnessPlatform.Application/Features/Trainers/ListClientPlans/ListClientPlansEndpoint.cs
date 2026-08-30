@@ -95,8 +95,8 @@ public class ListClientPlansEndpoint(
         }
 
         // A link that carries neither capability flag grants no plan visibility at all —
-        // deny outright rather than returning an empty-but-200 response (matches
-        // ProfessionalAuthHelper.HasAnyPlanAccessAsync semantics from #903).
+        // deny outright rather than returning an empty-but-200 response (matches the
+        // LinkCapabilities.GrantsNothing deny semantics from #903).
         if (capabilities.Value.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);

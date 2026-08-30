@@ -86,8 +86,8 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         }
 
         // A link that carries neither capability flag grants no dashboard visibility at
-        // all — deny outright (matches ProfessionalAuthHelper.HasAnyPlanAccessAsync
-        // semantics from #903).
+        // all — deny outright (matches the LinkCapabilities.GrantsNothing deny semantics
+        // from #903).
         if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
         {
             await Send.ForbiddenAsync(ct);

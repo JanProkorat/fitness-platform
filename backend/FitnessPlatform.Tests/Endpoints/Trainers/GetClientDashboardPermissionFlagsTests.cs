@@ -137,8 +137,8 @@ public class GetClientDashboardPermissionFlagsTests
     public async Task HandleAsync_LinkWithBothFlagsFalse_Returns403()
     {
         // Arrange: link where both plan types are forbidden. Per #916 AC4, an active link
-        // carrying neither capability flag must be denied outright (403), matching
-        // ProfessionalAuthHelper.HasAnyPlanAccessAsync semantics from #903 — it must not
+        // carrying neither capability flag must be denied outright (403), matching the
+        // LinkCapabilities.GrantsNothing deny semantics from #903 — it must not
         // fall through to a 200 with both flags reported false on the wire.
         var clientUser = EntityBuilder.User.WithEmail("noaccess@test.com")
             .WithFirstName("No").WithLastName("Access").Build();
