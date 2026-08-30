@@ -58,7 +58,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
         return (http, user.Id, email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -73,7 +73,7 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),
@@ -341,6 +341,110 @@ public class UploadWithDiaryRequestTests(FitnessApiFactory factory)
 
         // client2 tries to upload referencing client1's diary request
         var response = await clientHttp2.PostAsJsonAsync(
+            $"/client/plans/{planId}/photos",
+            new
+            {
+                BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+                Category = "Body",
+                DiaryRequestId = diaryRequest.Id,
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Upload_DiaryRequestViaDeactivatedLink_Returns404()
+    {
+        var (_, profId, _) = await SetupProfessionalAsync();
+        var (clientHttp, clientId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<FitnessPlatform.Application.Infrastructure.Data.MongoDb.IMongoContext>();
+
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(p => p.UserId == clientId, TestContext.Current.CancellationToken);
+        var planId = Guid.NewGuid();
+        await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientProfile.UserId,
+            NutritionistId = profId,
+            Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var diaryRequest = new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profId,
+            LinkId = linkId,
+            DurationDays = 7,
+            Status = PhotoDiaryStatus.Accepted,
+            Mode = PhotoDiaryMode.Workflow,
+            AcceptedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        db.PhotoDiaryRequests.Add(diaryRequest);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var response = await clientHttp.PostAsJsonAsync(
+            $"/client/plans/{planId}/photos",
+            new
+            {
+                BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+                Category = "Body",
+                DiaryRequestId = diaryRequest.Id,
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Upload_DiaryRequestViaDeactivatedLinkAlreadyCompleted_Returns404_NotConflict()
+    {
+        // Ordering guard: ownership must be checked BEFORE the status check, otherwise a
+        // 409 on a non-transitionable status would leak the request's existence to a
+        // client whose link has since been deactivated.
+        var (_, profId, _) = await SetupProfessionalAsync();
+        var (clientHttp, clientId, _) = await SetupClientAsync();
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var mongo = scope.ServiceProvider.GetRequiredService<FitnessPlatform.Application.Infrastructure.Data.MongoDb.IMongoContext>();
+
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(p => p.UserId == clientId, TestContext.Current.CancellationToken);
+        var planId = Guid.NewGuid();
+        await mongo.NutritionPlans.InsertOneAsync(new FitnessPlatform.Application.Domain.Documents.NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientProfile.UserId,
+            NutritionistId = profId,
+            Status = FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active,
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var diaryRequest = new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profId,
+            LinkId = linkId,
+            DurationDays = 7,
+            Status = PhotoDiaryStatus.Completed,
+            Mode = PhotoDiaryMode.Workflow,
+            AcceptedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            CompletedAt = DateTimeOffset.UtcNow,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        db.PhotoDiaryRequests.Add(diaryRequest);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var response = await clientHttp.PostAsJsonAsync(
             $"/client/plans/{planId}/photos",
             new
             {

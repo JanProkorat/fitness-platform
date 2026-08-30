@@ -109,7 +109,7 @@ public class DismissRequestEndpoint(
         string? clientEmail)
     {
         if (request.Link is not null)
-            return request.Link.ClientProfile.UserId == clientUserId;
+            return request.Link.ClientProfile.UserId == clientUserId && request.Link.IsActive;
 
         if (request.PendingInvite is not null && clientEmail is not null)
             return string.Equals(request.PendingInvite.Email, clientEmail,
