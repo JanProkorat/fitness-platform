@@ -181,6 +181,25 @@ public class SubmitRequestEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task Submit_ViaDeactivatedLinkAlreadyCompleted_Returns404_NotConflict()
+    {
+        // Ordering guard: ownership must be checked BEFORE the status check, otherwise a
+        // 409 on a non-transitionable status would leak the request's existence to a
+        // client whose link has since been deactivated.
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId, PhotoDiaryStatus.Completed);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/submit",
+            new { },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
     // ── Happy path — Accepted → Completed ─────────────────────────────────────
 
     [Fact]
