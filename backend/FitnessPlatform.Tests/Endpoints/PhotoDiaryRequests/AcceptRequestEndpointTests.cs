@@ -43,7 +43,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         return (http, user.Id);
     }
 
-    private async Task<(HttpClient Http, Guid UserId)> SetupClientAsync()
+    private async Task<(HttpClient Http, Guid UserId, string Email)> SetupClientAsync()
     {
         var http = factory.CreateClient();
         var email = UniqueEmail("client");
@@ -54,10 +54,10 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id);
+        return (http, user.Id, email);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -72,7 +72,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),
@@ -81,6 +81,52 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return link.Id;
+    }
+
+    private async Task<long> InsertPendingInviteAsync(Guid professionalUserId, string inviteeEmail)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var profProfile = await db.ProfessionalProfiles
+            .FirstAsync(p => p.UserId == professionalUserId, TestContext.Current.CancellationToken);
+
+        var invite = new PendingInvite
+        {
+            ProfessionalProfileId = profProfile.Id,
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = inviteeEmail,
+            SentAt = DateTime.UtcNow,
+            IsAccepted = false,
+            PublicId = Guid.NewGuid(),
+            DateCreated = DateTime.UtcNow,
+        };
+        db.PendingInvites.Add(invite);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return invite.Id;
+    }
+
+    private async Task<Guid> InsertPendingDiaryRequestViaInviteAsync(
+        Guid profUserId, long inviteId,
+        PhotoDiaryStatus status = PhotoDiaryStatus.Pending)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var request = new PhotoDiaryRequest
+        {
+            Id = Guid.NewGuid(),
+            ProfessionalId = profUserId,
+            PendingInviteId = inviteId,
+            DurationDays = 7,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        db.PhotoDiaryRequests.Add(request);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return request.Id;
     }
 
     private async Task<Guid> InsertPendingDiaryRequestViaLinkAsync(
@@ -140,7 +186,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     [Fact]
     public async Task Accept_UnknownId_Returns404()
     {
-        var (http, _) = await SetupClientAsync();
+        var (http, _, _) = await SetupClientAsync();
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{Guid.NewGuid()}/accept",
             new { Mode = PhotoDiaryMode.Bulk },
@@ -152,11 +198,46 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     public async Task Accept_OtherClientsRequest_Returns404()
     {
         var (_, profId) = await SetupProfessionalAsync();
-        var (_, client1Id) = await SetupClientAsync();
-        var (http, _) = await SetupClientAsync(); // client 2
+        var (_, client1Id, _) = await SetupClientAsync();
+        var (http, _, _) = await SetupClientAsync(); // client 2
 
         var linkId = await InsertLinkAsync(client1Id, profId);
         var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { Mode = PhotoDiaryMode.Bulk },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Accept_ViaDeactivatedLink_Returns404()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { Mode = PhotoDiaryMode.Bulk },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Accept_ViaDeactivatedLinkAlreadyAccepted_Returns404_NotConflict()
+    {
+        // Ordering guard: ownership must be checked BEFORE the status check, otherwise a
+        // 409 on a non-transitionable status would leak the request's existence to a
+        // client whose link has since been deactivated.
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
+        var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId, PhotoDiaryStatus.Accepted);
 
         var response = await http.PostAsJsonAsync(
             $"/client/photo-diary-requests/{requestId}/accept",
@@ -171,7 +252,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     public async Task Accept_Pending_Returns200_AndTransitions()
     {
         var (_, profId) = await SetupProfessionalAsync();
-        var (http, clientId) = await SetupClientAsync();
+        var (http, clientId, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId);
@@ -201,7 +282,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     public async Task Accept_WithBulkMode_Returns200_AndModeIsPersisted()
     {
         var (_, profId) = await SetupProfessionalAsync();
-        var (http, clientId) = await SetupClientAsync();
+        var (http, clientId, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId);
@@ -219,13 +300,37 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         persisted.Mode.Should().Be(PhotoDiaryMode.Bulk);
     }
 
+    [Fact]
+    public async Task Accept_ViaPendingInvite_Returns200_AndTransitions()
+    {
+        // Invite-routed requests (LinkId null, PendingInviteId set) must remain
+        // unaffected by the IsActive check, which only applies to the Link branch.
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, _, clientEmail) = await SetupClientAsync();
+
+        var inviteId = await InsertPendingInviteAsync(profId, clientEmail);
+        var requestId = await InsertPendingDiaryRequestViaInviteAsync(profId, inviteId);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/accept",
+            new { Mode = PhotoDiaryMode.Workflow },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.PhotoDiaryRequests
+            .FirstAsync(r => r.Id == requestId, TestContext.Current.CancellationToken);
+        persisted.Status.Should().Be(PhotoDiaryStatus.Accepted);
+    }
+
     // ── Conflict — wrong status ────────────────────────────────────────────────
 
     [Fact]
     public async Task Accept_AlreadyAccepted_Returns409()
     {
         var (_, profId) = await SetupProfessionalAsync();
-        var (http, clientId) = await SetupClientAsync();
+        var (http, clientId, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId, PhotoDiaryStatus.Accepted);
@@ -241,7 +346,7 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
     public async Task Accept_Dismissed_Returns409()
     {
         var (_, profId) = await SetupProfessionalAsync();
-        var (http, clientId) = await SetupClientAsync();
+        var (http, clientId, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(clientId, profId);
         var requestId = await InsertPendingDiaryRequestViaLinkAsync(profId, linkId, PhotoDiaryStatus.Dismissed);

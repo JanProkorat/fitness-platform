@@ -57,7 +57,7 @@ public class SubmitRequestEndpointTests(FitnessApiFactory factory)
         return (http, user.Id);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId, bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -72,7 +72,7 @@ public class SubmitRequestEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = UserRole.Nutritionist,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = true,
             CanViewTrainingPlans = false,
             PublicId = Guid.NewGuid(),
@@ -156,6 +156,22 @@ public class SubmitRequestEndpointTests(FitnessApiFactory factory)
         var (http, _) = await SetupClientAsync();
 
         var linkId = await InsertLinkAsync(client1Id, profId);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId, PhotoDiaryStatus.Accepted);
+
+        var response = await http.PostAsJsonAsync(
+            $"/client/photo-diary-requests/{requestId}/submit",
+            new { },
+            TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Submit_ViaDeactivatedLink_Returns404()
+    {
+        var (_, profId) = await SetupProfessionalAsync();
+        var (http, clientId) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientId, profId, isActive: false);
         var requestId = await InsertDiaryRequestAsync(profId, linkId, PhotoDiaryStatus.Accepted);
 
         var response = await http.PostAsJsonAsync(
