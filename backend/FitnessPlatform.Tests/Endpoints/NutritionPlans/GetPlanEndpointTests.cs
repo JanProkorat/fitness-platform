@@ -235,6 +235,33 @@ public class GetPlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the training
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewNutritionPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var db = CreateDbWithClientProfile(plan.ClientId, out _);
+
+        var ep = Factory.Create<GetPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: false, canViewTrainingPlans: true));
+
+        await ep.HandleAsync(new GetPlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
     [Fact]
     public async Task HandleAsync_AllMealsInDayEaten_ReturnsMealLogListWithAllIsEatenTrue()
     {

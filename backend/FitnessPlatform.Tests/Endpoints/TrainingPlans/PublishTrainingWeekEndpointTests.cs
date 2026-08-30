@@ -157,6 +157,51 @@ public class PublishTrainingWeekEndpointTests
     }
 
     /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyNutrition_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
+
+        var ep = Factory.Create<PublishTrainingWeekEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo,
+            new MockDbBuilder().Build(),
+            Substitute.For<INotificationService>(),
+            Substitute.For<IRealtimeNotifier>(),
+            StubLockService(),
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        await ep.HandleAsync(new PublishTrainingWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.TrainingPlans.DidNotReceive().FindOneAndUpdateAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<UpdateDefinition<TrainingPlan>>(),
+            Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
     /// Regression test for #839 AC#4: publishing must no longer 409 just because the plan's
     /// Version has moved since the caller last read it. The endpoint no longer compares
     /// req.Version against the document at all — concurrency for the write is gated on the

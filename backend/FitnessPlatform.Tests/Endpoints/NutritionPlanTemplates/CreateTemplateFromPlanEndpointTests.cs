@@ -153,7 +153,7 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
     /// <see cref="FromPlan_PlanOwnedByAnotherNutritionist_Returns404"/> which denies on authorship.
     /// </summary>
     [Fact]
-    public async Task FromPlan_NotLinkedToClient_Returns404()
+    public async Task FromPlan_LinkGrantsOnlyTraining_Returns404()
     {
         var (nutritionist, nutritionistId) = await RegisterNutritionistAsync("not-linked");
 

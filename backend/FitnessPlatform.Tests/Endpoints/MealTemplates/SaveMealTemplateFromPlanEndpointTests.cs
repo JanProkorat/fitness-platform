@@ -142,7 +142,7 @@ public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
     /// would regress to 201.
     /// </summary>
     [Fact]
-    public async Task SaveMealTemplateFromPlan_NotLinkedToClient_Returns404()
+    public async Task SaveMealTemplateFromPlan_LinkGrantsOnlyTraining_Returns404()
     {
         var (client, nutritionistId) = await RegisterNutritionistAsync();
 

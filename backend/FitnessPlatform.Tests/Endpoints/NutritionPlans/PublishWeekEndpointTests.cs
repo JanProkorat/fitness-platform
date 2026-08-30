@@ -333,6 +333,45 @@ public class PublishWeekEndpointTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the training
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewNutritionPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId, nutritionistId: _nutritionistId, weekCount: 2);
+        plan.StartDate = DateTime.UtcNow.Date;
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        StubSuccessfulPublish(mongo, AsPublished(plan, weekNumber: 1));
+
+        var ep = CreateEndpoint(
+            mongo,
+            linkAuthorizationService: EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: false, canViewTrainingPlans: true));
+
+        var req = new PublishWeekRequest
+        {
+            PlanId = planId,
+            WeekNumber = 1,
+            Version = 1
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.NutritionPlans.DidNotReceive().FindOneAndUpdateAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<UpdateDefinition<NutritionPlan>>(),
+            Arg.Any<FindOneAndUpdateOptions<NutritionPlan, NutritionPlan>>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_ConcurrentSameWeekPublish_ArrayFilterMatchesZero_Returns409AndDoesNotArchiveSiblings()
     {
