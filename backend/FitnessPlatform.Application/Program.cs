@@ -214,11 +214,9 @@ builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculatorService>()
 // endpoint injected it yet; the meal-template feature (#859) is the first consumer.
 builder.Services.AddSingleton(TimeProvider.System);
 
-// Client link authorization (cross-DB link verification) — the single entry point
-// NutritionAuthHelper/ProfessionalAuthHelper delegate to; see #958.
+// Client link authorization (cross-DB link verification) — the single entry point every
+// call site resolves professional/client link capabilities through; see #958, #964.
 builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
-builder.Services.AddScoped<NutritionAuthHelper>();
-builder.Services.AddScoped<ProfessionalAuthHelper>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
