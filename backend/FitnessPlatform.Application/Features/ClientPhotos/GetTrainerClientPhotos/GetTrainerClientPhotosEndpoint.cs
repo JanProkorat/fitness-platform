@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientPhotos.Common;
@@ -28,9 +27,14 @@ namespace FitnessPlatform.Application.Features.ClientPhotos.GetTrainerClientPhot
 /// </para>
 /// </remarks>
 /// <param name="db">Relational database context (PostgreSQL via EF Core).</param>
+/// <param name="linkAuthorizationService">Resolves the caller's link capabilities to the
+/// client identified by <c>{ClientId}</c>.</param>
 /// <param name="blobStorage">Blob storage service — converts each stored BlobUrl into a
 /// short-lived pre-signed read URL before the response leaves the process (F9).</param>
-public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage)
+public class GetTrainerClientPhotosEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    IBlobStorageService blobStorage)
     : Endpoint<GetTrainerClientPhotosRequest, GetTrainerClientPhotosResponse>
 {
     /// <inheritdoc />
@@ -62,49 +66,24 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db, IBlobStora
 
         var trainerUserId = Guid.Parse(userId);
 
-        // Resolve the professional profile
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(pp => pp.UserId == trainerUserId, ct);
+        // Verify active trainer-client link, and read its capability flags rather than only its
+        // existence — the caller supplies the category filter, so an existence check alone let a
+        // training-only professional select precisely the nutrition-domain rows their link denies.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerUserId, req.ClientId, ct);
 
-        if (professionalProfile is null)
+        if (capabilities is null || capabilities.Value.GrantsNothing)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Resolve the client profile
+        // Resolve the client profile — needed to scope the PlanPhotos query by ClientProfileId.
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 
         if (clientProfile is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        // Verify active trainer-client link, and read its capability flags rather than only its
-        // existence — the caller supplies the category filter, so an existence check alone let a
-        // training-only professional select precisely the nutrition-domain rows their link denies.
-        var link = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .Where(l =>
-                l.ClientProfileId == clientProfile.Id &&
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.IsActive)
-            .Select(l => new { l.CanViewNutritionPlans, l.CanViewTrainingPlans })
-            .FirstOrDefaultAsync(ct);
-
-        if (link is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        var capabilities = new LinkCapabilities(link.CanViewNutritionPlans, link.CanViewTrainingPlans);
-
-        if (capabilities.GrantsNothing)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -130,12 +109,12 @@ public class GetTrainerClientPhotosEndpoint(IApplicationDbContext db, IBlobStora
         //
         // Applied to the BASE query, before the caller's own category and plan filters, so no
         // request field can widen it.
-        if (!capabilities.CanViewNutritionPlans)
+        if (!capabilities.Value.CanViewNutritionPlans)
         {
             query = query.Where(p => p.Category != PlanPhotoCategory.Food);
         }
 
-        if (!capabilities.CanViewTrainingPlans)
+        if (!capabilities.Value.CanViewTrainingPlans)
         {
             query = query.Where(p => p.Category != PlanPhotoCategory.Training);
         }

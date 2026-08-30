@@ -119,7 +119,7 @@ primary constructor for their dependencies; 91 take `ApplicationDbContext`
 directly.
 
 ```csharp
-public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+public class GetPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPlanRequest, GetPlanResponse>
 ```
 

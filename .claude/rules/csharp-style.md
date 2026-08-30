@@ -32,7 +32,7 @@ initialisation. A primary constructor cannot declare instance fields; put
 any non-parameter field on the class body.
 
 ```csharp
-public class GetPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper)
+public class GetPlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPlanRequest, GetPlanResponse>
 ```
 

@@ -17,7 +17,17 @@ namespace FitnessPlatform.Application.Features.Trainers.UpdateClientData;
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager — used for the client's identity fields.</param>
 /// <param name="audit">Audit logging service.</param>
-public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuditService audit)
+/// <param name="linkAuthorizationService">
+/// Resolves the caller's link capabilities to the client. Called only after the caller's own
+/// professional profile and the target client profile are separately confirmed to exist (both
+/// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
+/// link" — preserving the endpoint's existing 404 (not 403) for that case.
+/// </param>
+public class UpdateClientDataEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IAuditService audit,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UpdateClientDataRequest, UpdateClientDataResponse>
 {
     /// <inheritdoc />
@@ -48,12 +58,11 @@ public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<Appl
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
         if (clientProfile is null) { await Send.NotFoundAsync(ct); return; }
 
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ProfessionalProfileId == professionalProfile.Id
-                        && l.ClientProfileId == clientProfile.Id
-                        && l.IsActive, ct);
-        if (!hasLink) { await Send.NotFoundAsync(ct); return; }
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            Guid.Parse(userId), req.ClientId, ct);
+        if (capabilities is null) { await Send.NotFoundAsync(ct); return; }
 
         // Update identity fields (#667) — these live on ApplicationUser, not ClientProfile.
         if (req.FirstName != null || req.LastName != null || req.Email != null)

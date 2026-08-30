@@ -22,11 +22,18 @@ namespace FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="audit">Audit logging service.</param>
+/// <param name="linkAuthorizationService">
+/// Resolves the caller's link capabilities to the client. Called only after the caller's own
+/// professional profile and the target client profile are separately confirmed to exist (both
+/// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
+/// link" — preserving the endpoint's deliberate 403 (not 404) for that case.
+/// </param>
 public class ListClientPlansEndpoint(
     IApplicationDbContext db,
     IMongoContext mongo,
     IComplianceService complianceService,
-    IAuditService audit)
+    IAuditService audit,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<ListClientPlansRequest, ListClientPlansResponse>
 {
     /// <inheritdoc />
@@ -75,24 +82,22 @@ public class ListClientPlansEndpoint(
             return;
         }
 
-        // Verify an active trainer-client link exists; return 403 (not 404) when missing
-        var link = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(l =>
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.ClientProfileId == clientProfile.Id &&
-                l.IsActive, ct);
+        // Verify an active trainer-client link exists; return 403 (not 404) when missing. The
+        // professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerUserId, req.ClientId, ct);
 
-        if (link is null)
+        if (capabilities is null)
         {
             await Send.ForbiddenAsync(ct);
             return;
         }
 
         // A link that carries neither capability flag grants no plan visibility at all —
-        // deny outright rather than returning an empty-but-200 response (matches
-        // ProfessionalAuthHelper.HasAnyPlanAccessAsync semantics from #903).
-        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        // deny outright rather than returning an empty-but-200 response (matches the
+        // LinkCapabilities.GrantsNothing deny semantics from #903).
+        if (capabilities.Value.GrantsNothing)
         {
             await Send.ForbiddenAsync(ct);
             return;
@@ -109,11 +114,11 @@ public class ListClientPlansEndpoint(
         // computations are loaded only when the caller's link grants that domain's capability
         // flag — a nutrition-only link never queries SessionExecutions/PersonalRecords, and a
         // training-only link never queries body measurements or calls CalculateComplianceAsync.
-        var (trainingItems, trainingPlans) = link.CanViewTrainingPlans
+        var (trainingItems, trainingPlans) = capabilities.Value.CanViewTrainingPlans
             ? await LoadTrainingItemsAsync(clientUserId, ct)
             : ([], []);
 
-        var (nutritionItems, nutritionPlans) = link.CanViewNutritionPlans
+        var (nutritionItems, nutritionPlans) = capabilities.Value.CanViewNutritionPlans
             ? await LoadNutritionItemsAsync(clientUserId, clientProfileId, ct)
             : ([], []);
 
@@ -145,8 +150,8 @@ public class ListClientPlansEndpoint(
         await Send.OkAsync(new ListClientPlansResponse
         {
             Plans = allItems,
-            CanViewNutritionPlans = link.CanViewNutritionPlans,
-            CanViewTrainingPlans = link.CanViewTrainingPlans
+            CanViewNutritionPlans = capabilities.Value.CanViewNutritionPlans,
+            CanViewTrainingPlans = capabilities.Value.CanViewTrainingPlans
         }, ct);
     }
 

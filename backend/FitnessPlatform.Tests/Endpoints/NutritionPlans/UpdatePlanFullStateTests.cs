@@ -22,8 +22,10 @@ public class UpdatePlanFullStateTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
-    private UpdatePlanEndpoint CreateEndpoint(IMongoContext mongo, IMacroCalculatorService macroCalc,
-        MemoryStream? responseBody = null) =>
+    private UpdatePlanEndpoint CreateEndpoint(
+        IMongoContext mongo, IMacroCalculatorService macroCalc,
+        MemoryStream? responseBody = null,
+        IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<UpdatePlanEndpoint>(
             ctx =>
             {
@@ -38,7 +40,7 @@ public class UpdatePlanFullStateTests
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
             new PlanConcurrencyGuard(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
     private static UpdateWeekRequest BuildWeekRequest(int weekNumber, MealFood? food = null)
     {
@@ -202,6 +204,46 @@ public class UpdatePlanFullStateTests
         await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants nutrition
+    /// access — this must still 404, distinct from <see cref="HandleAsync_NotFound_Returns404"/>
+    /// which denies on a missing plan.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(
+            mongo, macroCalc, linkAuthorizationService: PlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = "Updated Plan",
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)]
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.NutritionPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<NutritionPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
     }
 
     /// <summary>

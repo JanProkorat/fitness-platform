@@ -195,6 +195,46 @@ public class CreateTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         responseBody.Should().Contain("TRAINING_PLAN_TEMPLATE_NOT_FOUND");
     }
 
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants training
+    /// access — this must still 404, distinct from
+    /// <see cref="FromPlan_PlanOwnedByAnotherTrainer_Returns404"/> which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task FromPlan_NotLinkedToClient_Returns404()
+    {
+        var (trainer, trainerId) = await RegisterTrainerAsync("not-linked");
+
+        // Link exists but grants only the nutrition domain — must not admit a training route.
+        var clientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientId,
+            TrainerId = trainerId,
+            Name = "Source Plan",
+            Status = TrainingPlanStatus.Active,
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+            Weeks = [new TrainingWeek { WeekNumber = 1 }]
+        };
+        await SeedPlanAsync(plan);
+
+        var response = await trainer.PostAsJsonAsync("/training/plan-templates/from-plan", new
+        {
+            PlanId = plan.ExternalId,
+            Name = "Denied Template"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var responseBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        responseBody.Should().Contain("TRAINING_PLAN_TEMPLATE_NOT_FOUND");
+    }
+
     [Fact]
     public async Task FromPlan_MissingPlan_Returns404SameCodeAsUnowned()
     {

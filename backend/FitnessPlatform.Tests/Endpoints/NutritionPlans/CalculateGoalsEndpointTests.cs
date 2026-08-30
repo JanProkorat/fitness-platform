@@ -2,10 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 using FitnessPlatform.Application.Infrastructure.Services;
-using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.NutritionPlans;
 
@@ -20,16 +18,13 @@ public class CalculateGoalsEndpointTests
     public async Task HandleAsync_ValidRequest_ReturnsCalculation()
     {
         var calculator = new MacroCalculatorService();
-        var authDb = Substitute.For<IApplicationDbContext>();
-        var authHelper = Substitute.ForPartsOf<NutritionAuthHelper>(authDb);
-        authHelper.HasActiveLinkAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(true);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
 
         var ep = Factory.Create<CalculateGoalsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            calculator, authHelper);
+            calculator, linkAuthorizationService);
 
         var request = new CalculateGoalsRequest
         {
@@ -62,16 +57,48 @@ public class CalculateGoalsEndpointTests
     public async Task HandleAsync_NoLink_Returns404()
     {
         var calculator = new MacroCalculatorService();
-        var authDb = Substitute.For<IApplicationDbContext>();
-        var authHelper = Substitute.ForPartsOf<NutritionAuthHelper>(authDb);
-        authHelper.HasActiveLinkAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(false);
+        var linkAuthorizationService = PlanTestHelpers.CreateDenyingLinkAuthorizationService();
 
         var ep = Factory.Create<CalculateGoalsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            calculator, authHelper);
+            calculator, linkAuthorizationService);
+
+        var request = new CalculateGoalsRequest
+        {
+            ClientId = Guid.NewGuid(),
+            WeightKg = 80,
+            HeightCm = 180,
+            Age = 30,
+            Sex = "Male",
+            ActivityLevel = "ModeratelyActive",
+            Goal = "Maintain"
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Mirror-site regression guard: this is a nutrition route and must require
+    /// <c>CanViewNutritionPlans</c> specifically. A link that grants only the training domain
+    /// must still be denied — if the guard were ever widened to <c>caps is not null</c>, this
+    /// test would regress to 200.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
+    {
+        var calculator = new MacroCalculatorService();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        var ep = Factory.Create<CalculateGoalsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            calculator, linkAuthorizationService);
 
         var request = new CalculateGoalsRequest
         {
@@ -93,13 +120,12 @@ public class CalculateGoalsEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var calculator = new MacroCalculatorService();
-        var authDb = Substitute.For<IApplicationDbContext>();
-        var authHelper = Substitute.ForPartsOf<NutritionAuthHelper>(authDb);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
 
         var ep = Factory.Create<CalculateGoalsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            calculator, authHelper);
+            calculator, linkAuthorizationService);
 
         var request = new CalculateGoalsRequest
         {

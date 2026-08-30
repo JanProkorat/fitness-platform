@@ -3,12 +3,13 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.CreateResponse;
 
-public class CreateResponseEndpoint(IApplicationDbContext db)
+public class CreateResponseEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CreateResponseRequest>
 {
     public override void Configure()
@@ -57,13 +58,33 @@ public class CreateResponseEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var link = await db.ClientProfessionalLinks
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile". No
+        // capability flag is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            questionnaire.ProfessionalId, userGuid, ct);
+
+        if (capabilities is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // The service exposes only the link's capability flags, never its own database Id — the
+        // new response still needs that Id as an FK, so it is looked up separately here. The
+        // capability lookup above confirmed an active link existed at that point, but it can be
+        // deactivated between the two queries, so this must still handle a missing link rather
+        // than assume one (FirstOrDefaultAsync, not FirstAsync) to preserve the endpoint's
+        // pre-migration atomic behaviour of "link missing -> 404", never a 500.
+        var linkId = await db.ClientProfessionalLinks
+            .AsNoTracking()
             .Where(l => l.ClientProfileId == clientProfile.Id
                         && l.ProfessionalProfileId == professionalProfile.Id
                         && l.IsActive)
+            .Select(l => (long?)l.Id)
             .FirstOrDefaultAsync(ct);
 
-        if (link is null)
+        if (linkId is null)
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -76,7 +97,7 @@ public class CreateResponseEndpoint(IApplicationDbContext db)
             QuestionnaireId = questionnaire.Id,
             ClientId = userGuid,
             ProfessionalId = questionnaire.ProfessionalId,
-            LinkId = link.Id,
+            LinkId = linkId.Value,
             Status = QuestionnaireResponseStatus.InProgress,
         };
 

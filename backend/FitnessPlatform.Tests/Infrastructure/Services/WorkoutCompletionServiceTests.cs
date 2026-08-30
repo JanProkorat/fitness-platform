@@ -62,13 +62,13 @@ public class WorkoutCompletionServiceTests
         IMongoContext mongo,
         IReadOnlyList<string> prDescriptions,
         INotificationService notifications,
-        ProfessionalAuthHelper authHelper)
+        IClientLinkAuthorizationService linkAuthorizationService)
     {
         return new WorkoutCompletionService(
             mongo,
             CreatePrDetectionStub(prDescriptions),
             notifications,
-            authHelper,
+            linkAuthorizationService,
             Substitute.For<ILogger<WorkoutCompletionService>>());
     }
 
@@ -78,9 +78,9 @@ public class WorkoutCompletionServiceTests
         var plan = CreatePlan();
         var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
         var notifications = Substitute.For<INotificationService>();
-        var authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
 
-        var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, authHelper);
+        var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, linkAuthorizationService);
         var execution = CreateExecution();
 
         await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);
@@ -102,9 +102,9 @@ public class WorkoutCompletionServiceTests
         var plan = CreatePlan();
         var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
         var notifications = Substitute.For<INotificationService>();
-        var authHelper = EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false);
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false);
 
-        var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, authHelper);
+        var service = CreateService(mongo, ["Bench Press: 100 kg x 5"], notifications, linkAuthorizationService);
         var execution = CreateExecution();
 
         await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);
@@ -121,13 +121,13 @@ public class WorkoutCompletionServiceTests
     public async Task CompleteAsync_NoPrDetected_DoesNotNotifyTrainer_RegardlessOfAccess()
     {
         // Pre-existing behavior, unrelated to the F6 gate: no PR means no notification attempt
-        // at all, so the authHelper is never even consulted.
+        // at all, so the link authorization service is never even consulted.
         var plan = CreatePlan();
         var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
         var notifications = Substitute.For<INotificationService>();
-        var authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
 
-        var service = CreateService(mongo, [], notifications, authHelper);
+        var service = CreateService(mongo, [], notifications, linkAuthorizationService);
         var execution = CreateExecution();
 
         await service.CompleteAsync(execution, DateTime.UtcNow, TimeZoneInfo.Utc, TestContext.Current.CancellationToken);

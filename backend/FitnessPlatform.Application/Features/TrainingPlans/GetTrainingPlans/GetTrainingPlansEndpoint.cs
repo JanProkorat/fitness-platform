@@ -2,11 +2,12 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -16,10 +17,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlans;
 /// Lists training plans for the authenticated trainer with optional filtering and pagination.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates the trainer-client link's CanViewTrainingPlans permission when filtering by client.</param>
+/// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission when filtering by client.</param>
 /// <param name="db">Relational database context — resolves the client's public id to
 /// ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).</param>
-public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db) : Endpoint<GetTrainingPlansRequest, GetTrainingPlansResponse>
+public class GetTrainingPlansEndpoint(
+    IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
+    : Endpoint<GetTrainingPlansRequest, GetTrainingPlansResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -51,9 +54,10 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelpe
         // the caller names a client they cannot see.
         if (req.ClientId.HasValue)
         {
-            var hasPlanAccess = await authHelper.HasPlanAccessAsync(trainerId, req.ClientId.Value, requireTrainingPlanAccess: true, ct);
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+                trainerId, req.ClientId.Value, ct);
 
-            if (!hasPlanAccess)
+            if (capabilities is not { CanViewTrainingPlans: true })
             {
                 await Send.ForbiddenAsync(ct);
                 return;
@@ -65,11 +69,11 @@ public class GetTrainingPlansEndpoint(IMongoContext mongo, ProfessionalAuthHelpe
         // Authorship alone is not access: TrainerId is permanent, the link is not. Scope the list
         // to the clients the caller is still actively linked to with training access, so a plan
         // whose collaboration has ended stops being served — and stops handing out its ExternalId.
-        var accessibleClientUserIds = await authHelper.GetAccessibleClientUserIdsAsync(
-            trainerId, requireTrainingPlanAccess: true, ct);
+        var accessibleClients = await linkAuthorizationService.GetAccessibleClientsAsync(
+            trainerId, ct, LinkCapabilityScope.TrainingOnly);
 
         var filter = filterBuilder.Eq(p => p.TrainerId, trainerId)
-                     & filterBuilder.In(p => p.ClientId, accessibleClientUserIds);
+                     & filterBuilder.In(p => p.ClientId, accessibleClients.Select(c => c.ClientUserId));
 
         if (req.ClientId.HasValue)
         {

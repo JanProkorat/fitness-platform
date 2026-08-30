@@ -4,7 +4,9 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop, 'feature/*']
+    # See the note in backend.yml — epic branches take their issue's
+    # type: prefix, so this must cover more than feature/.
+    branches: [main, develop, 'feature/*', 'refactor/*', 'fix/*', 'docs/*', 'chore/*']
     paths:
       - 'web/**'
       - 'mobile/**'

@@ -28,8 +28,8 @@ via the primary constructor. If `HandleAsync` grows past ~50 lines, extract
 /// Retrieves a single nutrition plan with full detail.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Link capability helper.</param>
-public class GetPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper)
+/// <param name="linkAuthorizationService">Resolves link capabilities.</param>
+public class GetPlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -58,7 +58,7 @@ public class GetPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHel
         }
 
         var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(
-            mongo, authHelper, req.PlanId, Guid.Parse(userId), ct);
+            mongo, linkAuthorizationService, req.PlanId, Guid.Parse(userId), ct);
 
         if (plan is null)
         {

@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -22,7 +22,7 @@ public class LinkTrainingQuestionnaireEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     PlanConcurrencyGuard guard,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<LinkTrainingQuestionnaireRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -129,8 +129,11 @@ public class LinkTrainingQuestionnaireEndpoint(
     /// </summary>
     private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
     {
-        if (await authHelper.HasPlanAccessForClientUserAsync(
-                trainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewTrainingPlans: true })
         {
             return true;
         }

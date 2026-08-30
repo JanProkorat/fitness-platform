@@ -28,7 +28,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkSessionComplet
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
 /// <param name="lockService">Session lock service — used to refresh the Live TTL on activity.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
 public class MarkSessionCompleteEndpoint(
     IMongoContext mongo,
@@ -37,7 +37,7 @@ public class MarkSessionCompleteEndpoint(
     IComplianceService compliance,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<MarkSessionCompleteEndpoint> logger)
     : Endpoint<MarkSessionCompleteRequest, MarkSessionCompleteResponse>
 {
@@ -173,7 +173,7 @@ public class MarkSessionCompleteEndpoint(
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 allInstanceIds.Count, allInstanceIds.Count,
                 logger, ct);
@@ -245,7 +245,7 @@ public class MarkSessionCompleteEndpoint(
             }
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 allInstanceIds.Count, allInstanceIds.Count,
                 logger, ct);

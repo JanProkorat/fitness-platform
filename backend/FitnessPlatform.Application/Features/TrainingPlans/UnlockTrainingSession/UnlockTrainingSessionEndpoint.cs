@@ -23,7 +23,7 @@ public class UnlockTrainingSessionEndpoint(
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UnlockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -53,7 +53,7 @@ public class UnlockTrainingSessionEndpoint(
 
         // Authorship + link guard first: the plan must exist, be the calling trainer's, and the
         // caller's link to its client must still grant training access.
-        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, authHelper, req.PlanId, trainerId, ct);
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {

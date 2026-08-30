@@ -72,7 +72,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -125,7 +125,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+            mongo, lockService, notifier, WorkoutLogTestHelpers.CreateDenyingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -163,7 +163,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -185,7 +185,7 @@ public class AbandonWorkoutEndpointTests
 
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             mongo, Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new AbandonWorkoutRequest { LogId = Guid.NewGuid() },
@@ -204,7 +204,7 @@ public class AbandonWorkoutEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new AbandonWorkoutRequest { LogId = Guid.NewGuid() },
@@ -230,7 +230,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -265,7 +265,7 @@ public class AbandonWorkoutEndpointTests
         var ep = Factory.Create<AbandonWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act — should not throw despite notifier failure
         await ep.HandleAsync(new AbandonWorkoutRequest { LogId = logId }, TestContext.Current.CancellationToken);

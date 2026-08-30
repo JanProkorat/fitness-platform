@@ -7,7 +7,6 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.MealTemplates.GetMealTemplate;
 using FitnessPlatform.Application.Features.MealTemplates.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 
@@ -22,13 +21,13 @@ namespace FitnessPlatform.Application.Features.MealTemplates.SaveMealTemplateFro
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="macroCalculator">Shared meal-totals calculator (#859).</param>
 /// <param name="timeProvider">Injected system clock.</param>
-/// <param name="authHelper">Link capability helper — authorship identifies the source plan, the
-/// caller's live link to its client decides access.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// source plan, the caller's live link to its client decides access.</param>
 internal sealed class SaveMealTemplateFromPlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,
     TimeProvider timeProvider,
-    ProfessionalAuthHelper authHelper)
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<SaveMealTemplateFromPlanRequest, MealTemplateDetailResponse>
 {
     /// <inheritdoc />
@@ -116,10 +115,11 @@ internal sealed class SaveMealTemplateFromPlanEndpoint(
         // Authorship is permanent; the collaboration is not. Require the caller's link to the
         // plan's client to still grant nutrition access, and route the denial through the same
         // shaped 404 as every other failure of this chain.
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct);
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistId, plan.ClientId, ct);
 
-        if (!hasAccess)
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
             await this.SendLibraryNotFoundAsync(MealTemplateErrors.Denial, ct);
             return null;

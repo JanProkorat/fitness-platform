@@ -28,7 +28,7 @@ public class PublishWeekEndpoint(
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    ProfessionalAuthHelper authHelper) : Endpoint<PublishWeekRequest, GetPlanResponse>
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<PublishWeekRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -65,8 +65,11 @@ public class PublishWeekEndpoint(
         // caller's link to the plan's client to still grant nutrition access.
         async Task<bool> Authorize(NutritionPlan plan, CancellationToken authorizeCt)
         {
-            if (await authHelper.HasPlanAccessForClientUserAsync(
-                    nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, authorizeCt))
+            // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                nutritionistId, plan.ClientId, authorizeCt);
+
+            if (capabilities is { CanViewNutritionPlans: true })
             {
                 return true;
             }

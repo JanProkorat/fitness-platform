@@ -4,7 +4,6 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.GetClientProgress;
@@ -14,16 +13,16 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 /// The requesting trainer must have an active link to the client.
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
-/// <param name="authHelper">Helper for verifying professional-client relationships. This
+/// <param name="linkAuthorizationService">Resolves link capabilities. This
 /// endpoint is deliberately dual-readable by Trainers and Nutritionists, so it checks
-/// <see cref="ProfessionalAuthHelper.HasAnyPlanAccessAsync"/> (either capability flag)
-/// rather than the single-role-scoped <c>HasActiveLinkAsync</c> helpers.</param>
+/// <see cref="Domain.Entities.LinkCapabilities.GrantsNothing"/> (either capability flag)
+/// rather than requiring a specific single domain.</param>
 /// <param name="audit">Audit logging service.</param>
 /// <param name="db">Relational database context — resolves the client's public id to
 /// ApplicationUser.Id, the canonical clientId key ComplianceService reads from Mongo (#840).</param>
 public class GetClientProgressEndpoint(
     IComplianceService complianceService,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     IAuditService audit,
     IApplicationDbContext db)
     : Endpoint<GetClientProgressRequest, GetClientProgressResponse>
@@ -58,7 +57,8 @@ public class GetClientProgressEndpoint(
         // domain-neutral: the meal counts and macro averages are nutrition data, and the compliance
         // percentage and streak are combined cross-domain figures. Read the flags, not a boolean,
         // so the response can be shaped as well as admitted.
-        var capabilities = await authHelper.GetLinkCapabilitiesAsync(trainerUserId, req.ClientId, ct);
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerUserId, req.ClientId, ct);
 
         if (capabilities is null || capabilities.Value.GrantsNothing)
         {

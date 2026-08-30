@@ -29,7 +29,7 @@ public class DeletePlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new DeletePlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
@@ -52,11 +52,36 @@ public class DeletePlanEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
             mongo,
-            EndpointTestHelpers.CreateGrantingAuthHelper());
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new DeletePlanRequest { PlanId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants nutrition
+    /// access — this must still 404, distinct from <see cref="HandleAsync_NotFound_Returns404"/>
+    /// which denies on a missing plan.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NotLinkedToClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(externalId: planId, nutritionistId: _nutritionistId);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+
+        var ep = Factory.Create<DeletePlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo,
+            PlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(new DeletePlanRequest { PlanId = planId }, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }

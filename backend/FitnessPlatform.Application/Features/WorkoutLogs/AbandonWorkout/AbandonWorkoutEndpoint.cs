@@ -5,7 +5,6 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.WorkoutLogs.AbandonWorkout;
@@ -28,12 +27,12 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.AbandonWorkout;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
-/// <param name="authHelper">Link capability helper — gates the trainer-addressed broadcast.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — gates the trainer-addressed broadcast.</param>
 public class AbandonWorkoutEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper) : Endpoint<AbandonWorkoutRequest, AbandonWorkoutResponse>
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<AbandonWorkoutRequest, AbandonWorkoutResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -115,8 +114,12 @@ public class AbandonWorkoutEndpoint(
                     // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
                     // professional whose collaboration ended (or was narrowed away from training)
                     // must stop receiving live signals of when the client is training (F6/F11 residual).
-                    if (await authHelper.HasPlanAccessForClientUserAsync(
-                            plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+                    // plan.TrainerId / plan.ClientId are both ApplicationUser.Id (#840) — the
+                    // UserId-addressed overload.
+                    var trainerCapabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                        plan.TrainerId, plan.ClientId, ct);
+
+                    if (trainerCapabilities is { CanViewTrainingPlans: true })
                     {
                         await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
                     }

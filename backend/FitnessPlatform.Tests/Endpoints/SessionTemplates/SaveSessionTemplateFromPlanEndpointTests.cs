@@ -151,4 +151,70 @@ public class SaveSessionTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         persisted.Workouts.Should().HaveCount(1);
         persisted.StandaloneExercises.Should().HaveCount(1);
     }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants training
+    /// access — this must 404 (same shaped denial as a missing plan), never a 200. If
+    /// <see cref="IClientLinkAuthorizationService"/> were removed from this guard, this test
+    /// would regress to 201.
+    /// </summary>
+    [Fact]
+    public async Task SaveSessionTemplateFromPlan_NotLinkedToClient_Returns404()
+    {
+        var (client, trainerId) = await RegisterTrainerAsync();
+
+        // Link exists but grants only the nutrition domain — must not admit a training route.
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        var sessionId = Guid.NewGuid();
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            TrainerId = trainerId,
+            ClientId = clientUserId,
+            Name = "Test Plan",
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Days =
+                    [
+                        new TrainingDay
+                        {
+                            DayOfWeek = 1,
+                            Sessions =
+                            [
+                                new TrainingSession { SessionId = sessionId, Name = "Push Day", Order = 1 }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await client.PostAsJsonAsync(
+            "/training/session-templates/from-plan",
+            new
+            {
+                PlanId = plan.ExternalId,
+                WeekNumber = 1,
+                DayOfWeek = 1,
+                SessionId = sessionId,
+                Name = "Denied Template",
+                Visibility = LibraryVisibility.Private
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

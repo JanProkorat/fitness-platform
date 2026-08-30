@@ -25,7 +25,7 @@ public class CompletePlanEndpoint(
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     PlanConcurrencyGuard guard,
-    ProfessionalAuthHelper authHelper) : Endpoint<CompletePlanRequest, GetPlanResponse>
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<CompletePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -137,8 +137,11 @@ public class CompletePlanEndpoint(
     /// </summary>
     private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
     {
-        if (await authHelper.HasPlanAccessForClientUserAsync(
-                nutritionistId, plan.ClientId, requireTrainingPlanAccess: false, ct))
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewNutritionPlans: true })
         {
             return true;
         }

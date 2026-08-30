@@ -153,7 +153,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
@@ -207,7 +207,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -236,7 +236,7 @@ public class SessionLockBroadcastWorkoutTests
         var ep = Factory.Create<GoLiveEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingAuthHelper());
+            mongo, lockService, LockOptions, notifier, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GoLiveRequest { LogId = logId }, TestContext.Current.CancellationToken);
 
@@ -278,7 +278,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            StubComplianceService(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             new MockDbBuilder().Build(), TimeProvider.System);
 
@@ -337,7 +338,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false),
+            StubComplianceService(),
+            WorkoutLogTestHelpers.CreateDenyingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             new MockDbBuilder().Build(), TimeProvider.System);
 
@@ -389,7 +391,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            StubComplianceService(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             new MockDbBuilder().Build(), TimeProvider.System);
 
@@ -427,7 +430,8 @@ public class SessionLockBroadcastWorkoutTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, StubCompletionService(), lockService, notifier,
-            StubComplianceService(), EndpointTestHelpers.CreateGrantingAuthHelper(),
+            StubComplianceService(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
             Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
             new MockDbBuilder().Build(), TimeProvider.System);
 

@@ -8,7 +8,6 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -23,14 +22,14 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkSessionIncompl
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
 public class MarkSessionIncompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<MarkSessionIncompleteEndpoint> logger)
     : Endpoint<MarkSessionIncompleteRequest, MarkSessionIncompleteResponse>
 {
@@ -160,7 +159,7 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
-            notifier, compliance, mongo, authHelper, plan, clientId,
+            notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
             0, session.AllExercises.Count,
             logger, ct);

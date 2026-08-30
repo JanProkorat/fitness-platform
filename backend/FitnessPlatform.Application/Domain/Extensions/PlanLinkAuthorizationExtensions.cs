@@ -1,7 +1,7 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Domain.Extensions;
@@ -24,8 +24,8 @@ namespace FitnessPlatform.Application.Domain.Extensions;
 /// for a plan that is missing or not the caller's. Routes whose "missing plan" response is a
 /// differently-shaped Problem Details body (the sharing libraries' <c>SendLibraryNotFoundAsync</c>)
 /// keep their own denial and call
-/// <see cref="ProfessionalAuthHelper.HasPlanAccessForClientUserAsync"/> directly, as do the
-/// version-guarded mutations, whose fetch belongs to
+/// <see cref="IClientLinkAuthorizationService.GetCapabilitiesByClientUserIdAsync"/> directly, as
+/// do the version-guarded mutations, whose fetch belongs to
 /// <see cref="Services.PlanConcurrencyGuard"/>. Status codes are deliberately left as each route
 /// already had them.
 /// </para>
@@ -41,14 +41,14 @@ public static class PlanLinkAuthorizationExtensions
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="mongo">MongoDB context.</param>
-    /// <param name="authHelper">Link capability helper.</param>
+    /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
     /// <param name="planId">The plan's <c>ExternalId</c>.</param>
     /// <param name="nutritionistUserId">The caller's ApplicationUser.Id from JWT.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<NutritionPlan?> LoadOwnedNutritionPlanIfAllowedAsync(
         this IEndpoint endpoint,
         IMongoContext mongo,
-        ProfessionalAuthHelper authHelper,
+        IClientLinkAuthorizationService linkAuthorizationService,
         Guid planId,
         Guid nutritionistUserId,
         CancellationToken ct)
@@ -63,10 +63,11 @@ public static class PlanLinkAuthorizationExtensions
             return null;
         }
 
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            nutritionistUserId, plan.ClientId, requireTrainingPlanAccess: false, ct);
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistUserId, plan.ClientId, ct);
 
-        if (!hasAccess)
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
             await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
             return null;
@@ -84,14 +85,14 @@ public static class PlanLinkAuthorizationExtensions
     /// </summary>
     /// <param name="endpoint">The endpoint instance.</param>
     /// <param name="mongo">MongoDB context.</param>
-    /// <param name="authHelper">Link capability helper.</param>
+    /// <param name="linkAuthorizationService">Resolves link capabilities.</param>
     /// <param name="planId">The plan's <c>ExternalId</c>.</param>
     /// <param name="trainerUserId">The caller's ApplicationUser.Id from JWT.</param>
     /// <param name="ct">Cancellation token.</param>
     public static async Task<TrainingPlan?> LoadOwnedTrainingPlanIfAllowedAsync(
         this IEndpoint endpoint,
         IMongoContext mongo,
-        ProfessionalAuthHelper authHelper,
+        IClientLinkAuthorizationService linkAuthorizationService,
         Guid planId,
         Guid trainerUserId,
         CancellationToken ct)
@@ -106,10 +107,11 @@ public static class PlanLinkAuthorizationExtensions
             return null;
         }
 
-        var hasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-            trainerUserId, plan.ClientId, requireTrainingPlanAccess: true, ct);
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerUserId, plan.ClientId, ct);
 
-        if (!hasAccess)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
             return null;

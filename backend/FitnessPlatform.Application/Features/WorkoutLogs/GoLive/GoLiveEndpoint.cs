@@ -31,13 +31,13 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.GoLive;
 /// <param name="lockService">Session lock service.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
-/// <param name="authHelper">Link capability helper — gates the trainer-addressed broadcast.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — gates the trainer-addressed broadcast.</param>
 public class GoLiveEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper) : Endpoint<GoLiveRequest, GoLiveResponse>
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<GoLiveRequest, GoLiveResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -143,8 +143,12 @@ public class GoLiveEndpoint(
             // Plan authorship (plan.TrainerId) is permanent, but the link is not — a
             // professional whose collaboration ended (or was narrowed away from training)
             // must stop receiving live signals of when the client is training (F6/F11 residual).
-            if (await authHelper.HasPlanAccessForClientUserAsync(
-                    plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+            // plan.TrainerId / plan.ClientId are both ApplicationUser.Id (#840) — the
+            // UserId-addressed overload.
+            var trainerCapabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                plan.TrainerId, plan.ClientId, ct);
+
+            if (trainerCapabilities is { CanViewTrainingPlans: true })
             {
                 await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", payload, ct);
             }

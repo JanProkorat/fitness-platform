@@ -84,8 +84,19 @@ public static class TestHelpers
     /// fixtures call this instead: the link is what the endpoint asks about, so the link is what
     /// the fixture must provide.
     /// </remarks>
+    public static Task<Guid> RegisterLinkedClientAsync(
+        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct) =>
+        RegisterLinkedClientAsync(
+            factory, professionalUserId, ct, canViewNutritionPlans: true, canViewTrainingPlans: true);
+
+    /// <summary>
+    /// Overload allowing the caller to pin the link's per-domain capability flags — used by
+    /// mirror-site regression tests that must prove a link granting only one domain is denied on
+    /// the other domain's route (a trainer-only link on a nutrition route, and vice versa).
+    /// </summary>
     public static async Task<Guid> RegisterLinkedClientAsync(
-        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct)
+        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct,
+        bool canViewNutritionPlans, bool canViewTrainingPlans)
     {
         var httpClient = factory.CreateClient();
         var email = $"{Guid.NewGuid():N}@linked-client-fixture.com";
@@ -106,8 +117,8 @@ public static class TestHelpers
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
             IsActive = true,
-            CanViewNutritionPlans = true,
-            CanViewTrainingPlans = true,
+            CanViewNutritionPlans = canViewNutritionPlans,
+            CanViewTrainingPlans = canViewTrainingPlans,
             DateCreated = DateTime.UtcNow
         });
 

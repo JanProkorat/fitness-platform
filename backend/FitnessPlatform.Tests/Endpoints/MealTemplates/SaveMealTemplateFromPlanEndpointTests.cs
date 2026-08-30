@@ -133,4 +133,38 @@ public class SaveMealTemplateFromPlanEndpointTests(FitnessApiFactory factory)
         var expectedTotals = macroCalculator.CalculateMealTotals(meal.Foods, meal.Recipes);
         body.TotalNutrients.Kcal.Should().Be(expectedTotals.Kcal);
     }
+
+    /// <summary>
+    /// Deny-path test for the link-authorization guard itself (not authorship). The plan is
+    /// owned by the caller, but the caller's link to the plan's client no longer grants nutrition
+    /// access — this must 404 (same shaped denial as a missing plan), never a 200. If
+    /// <see cref="IClientLinkAuthorizationService"/> were removed from this guard, this test
+    /// would regress to 201.
+    /// </summary>
+    [Fact]
+    public async Task SaveMealTemplateFromPlan_NotLinkedToClient_Returns404()
+    {
+        var (client, nutritionistId) = await RegisterNutritionistAsync();
+
+        // Link exists but grants only the training domain — must not admit a nutrition route.
+        var linkedClientId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var (plan, meal) = await InsertPlanWithMealAsync(nutritionistId, linkedClientId);
+
+        var response = await client.PostAsJsonAsync(
+            "/nutrition/meal-templates/from-plan",
+            new
+            {
+                PlanId = plan.ExternalId,
+                WeekNumber = 1,
+                DayOfWeek = 1,
+                MealId = meal.MealId,
+                Name = "Denied Meal Template",
+                Visibility = LibraryVisibility.Private
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

@@ -32,7 +32,8 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities for this endpoint's own
+/// trainer-addressed lock-broadcast gate, and for <see cref="TrainingProgressBroadcaster.BroadcastSessionAsync"/>.</param>
 /// <param name="logger">Logger for swallowing broadcast errors.</param>
 /// <param name="db">Relational database context — resolves the completing client's persisted
 /// time zone (#935) so <see cref="SessionExecution.Date"/> lands on the client's own local
@@ -46,7 +47,7 @@ public class CompleteWorkoutEndpoint(
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<CompleteWorkoutEndpoint> logger,
     IApplicationDbContext db,
     TimeProvider timeProvider) : Endpoint<CompleteWorkoutRequest, WorkoutLogDetail>
@@ -148,8 +149,12 @@ public class CompleteWorkoutEndpoint(
                         // professional whose collaboration ended (or was narrowed away from training)
                         // must stop receiving live signals of when the client is training and
                         // editing a session (F6/F11 residual).
-                        if (await authHelper.HasPlanAccessForClientUserAsync(
-                                plan.TrainerId, plan.ClientId, requireTrainingPlanAccess: true, ct))
+                        // plan.TrainerId / plan.ClientId are both ApplicationUser.Id (#840) — the
+                        // UserId-addressed overload.
+                        var trainerCapabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                            plan.TrainerId, plan.ClientId, ct);
+
+                        if (trainerCapabilities is { CanViewTrainingPlans: true })
                         {
                             await notifier.NotifyAsync(plan.TrainerId, "sessioneditlockchanged", lockPayload, ct);
                         }
@@ -160,7 +165,7 @@ public class CompleteWorkoutEndpoint(
                     // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
                     var totalExercises = log.Exercises.Count;
                     await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                        notifier, compliance, mongo, authHelper, plan,
+                        notifier, compliance, mongo, linkAuthorizationService, plan,
                         clientId: plan.ClientId,
                         sessionId: log.SessionId.Value,
                         date: DateOnly.FromDateTime(log.Date),

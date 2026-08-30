@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
-using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 
@@ -37,42 +37,39 @@ public static class EndpointTestHelpers
     }
 
     /// <summary>
-    /// A <see cref="ProfessionalAuthHelper"/> substitute that grants every link capability.
+    /// An <see cref="IClientLinkAuthorizationService"/> substitute that grants every link
+    /// capability.
     /// </summary>
     /// <remarks>
-    /// Plan-addressed endpoints authorize on the caller's live <c>ClientProfessionalLink</c>, not
-    /// on the plan document's author field. A unit test whose subject is something else —
-    /// response mapping, optimistic concurrency, lock state, macro totals — injects this so it
-    /// keeps testing its own subject instead of silently becoming an authorization test. The
-    /// authorization behaviour itself is covered end-to-end against the real API by
-    /// <c>PlanLinkRevocationTests</c>, where the link is a real row that can be deactivated.
+    /// A unit test whose subject is something else — response mapping, plan computation, macro
+    /// totals — injects this so it keeps testing its own subject instead of silently becoming an
+    /// authorization test. Deny-path tests should NOT use this helper — they need the stub to
+    /// actually return <see langword="null"/> or a <c>GrantsNothing</c> capability, so a real
+    /// authorization regression fails loudly instead of a dead granting stub passing quietly
+    /// (the #916 / F1–F11 failure mode).
     /// </remarks>
-    /// <param name="hasAccess">Whether the simulated link grants the capability being asked about.</param>
-    /// <param name="accessibleClientUserIds">
-    /// What <see cref="ProfessionalAuthHelper.GetAccessibleClientUserIdsAsync"/> returns — only
+    /// <param name="canViewNutritionPlans">Whether the simulated link grants nutrition-domain access.</param>
+    /// <param name="canViewTrainingPlans">Whether the simulated link grants training-domain access.</param>
+    /// <param name="accessibleClients">
+    /// What <see cref="IClientLinkAuthorizationService.GetAccessibleClientsAsync"/> returns — only
     /// consulted by the plan LIST routes, whose unit tests mock the Mongo collection and so never
     /// evaluate the resulting filter.
     /// </param>
-    public static ProfessionalAuthHelper CreateGrantingAuthHelper(
-        bool hasAccess = true, params Guid[] accessibleClientUserIds)
+    public static IClientLinkAuthorizationService CreateGrantingLinkAuthorizationService(
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = true,
+        IReadOnlyList<(Guid ClientUserId, LinkCapabilities Capabilities)>? accessibleClients = null)
     {
-        var db = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.For<ProfessionalAuthHelper>(db);
+        var capabilities = new LinkCapabilities(canViewNutritionPlans, canViewTrainingPlans);
+        var service = Substitute.For<IClientLinkAuthorizationService>();
 
-        helper.HasActiveLinkAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasAccess);
-        helper.HasAnyPlanAccessAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasAccess);
-        helper.HasPlanAccessAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
-            .Returns(hasAccess);
-        helper.HasPlanAccessForClientUserAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
-            .Returns(hasAccess);
-        helper.GetAccessibleClientUserIdsAsync(
-                Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
-            .Returns((IReadOnlyList<Guid>)accessibleClientUserIds.ToList());
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)capabilities);
+        service.GetCapabilitiesByClientUserIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)capabilities);
+        service.GetAccessibleClientsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>(), Arg.Any<LinkCapabilityScope?>())
+            .Returns(accessibleClients ?? []);
 
-        return helper;
+        return service;
     }
 }

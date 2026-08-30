@@ -2,11 +2,12 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -18,9 +19,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context — resolves the client's public id to
 /// ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).</param>
-/// <param name="authHelper">Link capability helper — scopes the list to clients the caller is
-/// still linked to with nutrition access.</param>
-public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper authHelper)
+/// <param name="linkAuthorizationService">Resolves link capabilities — scopes the list to clients
+/// the caller is still linked to with nutrition access.</param>
+public class GetPlansEndpoint(
+    IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<GetPlansRequest, GetPlansResponse>
 {
     /// <inheritdoc />
@@ -53,11 +55,11 @@ public class GetPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, Pro
         // Authorship alone is not access: it is permanent, the link is not. Scope the list to the
         // clients the caller is still actively linked to with nutrition access, so a plan whose
         // collaboration has ended stops being served (and stops handing out its ExternalId).
-        var accessibleClientUserIds = await authHelper.GetAccessibleClientUserIdsAsync(
-            nutritionistId, requireTrainingPlanAccess: false, ct);
+        var accessibleClients = await linkAuthorizationService.GetAccessibleClientsAsync(
+            nutritionistId, ct, LinkCapabilityScope.NutritionOnly);
 
         var filter = filterBuilder.Eq(p => p.NutritionistId, nutritionistId)
-                     & filterBuilder.In(p => p.ClientId, accessibleClientUserIds);
+                     & filterBuilder.In(p => p.ClientId, accessibleClients.Select(c => c.ClientUserId));
 
         if (req.ClientId.HasValue)
         {

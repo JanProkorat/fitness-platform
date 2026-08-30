@@ -3,9 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -15,9 +15,10 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.GetExerciseProgress;
 /// Returns a time series of a client's performance for a specific exercise.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates trainer-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context — used to resolve ClientProfile.UserId from the public id.</param>
-public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db)
+public class GetExerciseProgressEndpoint(
+    IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
     : Endpoint<GetExerciseProgressRequest, GetExerciseProgressResponse>
 {
     /// <inheritdoc />
@@ -45,8 +46,12 @@ public class GetExerciseProgressEndpoint(IMongoContext mongo, ProfessionalAuthHe
 
         var trainerId = Guid.Parse(userId);
 
-        var hasLink = await authHelper.HasActiveLinkAsync(trainerId, req.ClientId, ct);
-        if (!hasLink)
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Exercise progress is training-domain data, so requires CanViewTrainingPlans.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
+
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await Send.NotFoundAsync(ct);
             return;

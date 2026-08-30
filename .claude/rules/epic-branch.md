@@ -10,7 +10,8 @@ state where one sub-issue has merged and the next is still in flight.
 ```
 main
  └── develop                   ← release-stable; only complete epics merge in
-      └── feature/<E>-<short>  ← THE EPIC BRANCH (one per epic issue)
+      └── <type>/<E>-<short>   ← THE EPIC BRANCH (one per epic issue;
+                                  <type> from the epic's own type: label)
            ├── feature/<C1>-<short>   ← sub-issue branches off the EPIC branch
            ├── fix/<C2>-<short>
            └── refactor/<C3>-<short>
@@ -22,9 +23,26 @@ main
   child-issue references (`- [ ] #123 — title`) OR child issues that
   back-reference it via "Part of #N" / "Parent: #N". Detection: any
   parent issue with ≥1 sub-issue.
-- **Epic branch** — `feature/<epic-N>-<short-kebab>`, branched off
+- **Epic branch** — `<type>/<epic-N>-<short-kebab>`, where `<type>`
+  matches the epic issue's own `type:*` label exactly as
+  [`branch-and-pr.md`](branch-and-pr.md) prescribes — a refactor epic is
+  `refactor/<N>-<slug>`, not `feature/<N>-<slug>`. Branched off
   `develop`. Created the moment epic work starts. Lives until the
   epic's consolidated PR merges to `develop`.
+
+  This file previously said `feature/` unconditionally, and the
+  `pull_request.branches` filters in `.github/workflows/` matched it —
+  `'feature/*'` alone. Those filters were widened in #936 to cover every
+  prefix above, defensively: a sub-issue PR's base is the epic branch, so
+  a filter that lists only `feature/*` cannot be relied on to match a
+  `refactor/` or `fix/` epic. If you add a new branch prefix, widen those
+  five filters with it.
+
+  Not a verified root cause: PR #965 had no workflow runs at creation but
+  did get them on its next push, with the old filters still in place both
+  times. Whatever caused that gap, it was not conclusively the prefix
+  list. Treat "no checks on a fresh sub-issue PR" as unexplained, and
+  push a commit before concluding CI is broken.
 - **Sub-issue branch** — `<type>/<child-N>-<short-kebab>` where
   `<type>` matches the child's `type:*` label. Branched off the
   **epic branch**, not `develop`. PR base = the epic branch.
