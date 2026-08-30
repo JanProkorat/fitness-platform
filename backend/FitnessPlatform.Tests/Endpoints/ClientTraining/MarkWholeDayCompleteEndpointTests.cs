@@ -39,7 +39,7 @@ public class MarkWholeDayCompleteEndpointTests
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
     private readonly ILogger<MarkWholeDayCompleteEndpoint> _logger = Substitute.For<ILogger<MarkWholeDayCompleteEndpoint>>();
     private readonly ISessionLockService _lockService = CreateStubLockService();
-    private readonly ProfessionalAuthHelper _authHelper = EndpointTestHelpers.CreateGrantingAuthHelper();
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private static readonly IOptions<TrainingLockOptions> LockOptions = Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
 
     private static ISessionLockService CreateStubLockService()
@@ -248,7 +248,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -260,6 +260,82 @@ public class MarkWholeDayCompleteEndpointTests
         await completionCollection.Received(2).InsertOneAsync(
             Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── F6 (claude-security review, #962 gap): revoked/narrowed link stops the whole-day
+    // broadcast too. TrainingProgressBroadcaster.BroadcastWholeDayAsync gates on the link's
+    // live CanViewTrainingPlans capability at its own call site (:162) — separate from
+    // BroadcastSessionAsync's gate (:84), which MarkExerciseCompleteBroadcastTests already
+    // covers. A non-empty day is required so summaries.Count > 0 and the gate at
+    // MarkWholeDayCompleteEndpoint.cs:250 is genuinely reached — an empty day would pass
+    // trivially even with the guard deleted.
+
+    [Fact]
+    public async Task HandleAsync_LinkDeniesTrainingAccess_DoesNotBroadcastToTrainer()
+    {
+        var plan = CreateMultiSessionPlan();
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+        var denyingLinkAuthorizationService =
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false);
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingLinkAuthorizationService, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "the mutation itself must still succeed — only the broadcast is gated");
+        ep.Response.Sessions.Should().NotBeEmpty(
+            "the deny assertion is only meaningful when the whole-day broadcast gate is genuinely reached");
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            plan.TrainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_LinkGrantsTrainingAccess_BroadcastsToTrainer()
+    {
+        var plan = CreateMultiSessionPlan();
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Sessions.Should().NotBeEmpty();
+
+        await _notifier.Received(1).NotifyAsync(
+            plan.TrainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -292,7 +368,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(today) },
@@ -316,7 +392,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),
@@ -333,7 +409,7 @@ public class MarkWholeDayCompleteEndpointTests
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),
@@ -364,7 +440,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -415,7 +491,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -482,7 +558,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -545,7 +621,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -661,7 +737,7 @@ public class MarkWholeDayCompleteEndpointTests
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _authHelper, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },

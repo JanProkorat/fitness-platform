@@ -91,12 +91,12 @@ public class SaveDayPhotosEndpointTests
     }
 
     private SaveDayPhotosEndpoint CreateEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, _blobStorage);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -491,7 +491,7 @@ public class SaveDayPhotosEndpointTests
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
 
-        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewNutritionPlans: false));
 
         await ep.HandleAsync(
             new SaveDayPhotosRequest

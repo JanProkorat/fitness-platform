@@ -18,6 +18,21 @@ public class GetClientMeasurementsEndpointTests
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _clientPublicId = Guid.NewGuid();
 
+    /// <summary>
+    /// An <see cref="IClientLinkAuthorizationService"/> substitute that always reports "no active
+    /// link" — measurements gate on presence alone (<c>capabilities is null</c>), not on a
+    /// specific domain flag, so a deny test for this endpoint needs a <c>null</c>-returning stub
+    /// rather than <c>EndpointTestHelpers.CreateGrantingLinkAuthorizationService</c> with a flag
+    /// set to <see langword="false"/> (which still returns a non-null, GrantsNothing result).
+    /// </summary>
+    private static IClientLinkAuthorizationService CreateDenyingLinkAuthorizationService()
+    {
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        return service;
+    }
+
     [Fact]
     public async Task HandleAsync_ActiveLink_ReturnsMeasurements()
     {
@@ -58,7 +73,7 @@ public class GetClientMeasurementsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, audit);
+            db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetClientMeasurementsRequest { ClientId = _clientPublicId, Page = 1, PageSize = 10 },
@@ -106,7 +121,7 @@ public class GetClientMeasurementsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, audit);
+            db, audit, CreateDenyingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetClientMeasurementsRequest { ClientId = _clientPublicId, Page = 1, PageSize = 10 },
@@ -124,7 +139,7 @@ public class GetClientMeasurementsEndpointTests
         var ep = Factory.Create<GetClientMeasurementsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            db, audit);
+            db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetClientMeasurementsRequest { ClientId = _clientPublicId, Page = 1, PageSize = 10 },

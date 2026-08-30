@@ -94,11 +94,11 @@ public class PhotoDiaryPhotoUploadedSignalRTests
     // ── Endpoint factory ──────────────────────────────────────────────────────────
 
     private FinalizePlanPhotoEndpoint CreateEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<FinalizePlanPhotoEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, new FakeBlobStorageService());
 
     // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -355,7 +355,7 @@ public class PhotoDiaryPhotoUploadedSignalRTests
             .Build();
 
         var mongo = CreateMongoWithNutritionPlan(planId);
-        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewNutritionPlans: false));
 
         await ep.HandleAsync(new FinalizePlanPhotoRequest
         {
