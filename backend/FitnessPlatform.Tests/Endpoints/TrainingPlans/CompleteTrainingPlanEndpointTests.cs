@@ -99,4 +99,36 @@ public class CompleteTrainingPlanEndpointTests
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
+
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyNutrition_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, status: TrainingPlanStatus.Active);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        var ep = CreateEndpoint(
+            mongo,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        await ep.HandleAsync(
+            new CompleteTrainingPlanRequest { PlanId = planId, Version = plan.Version },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.TrainingPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<Application.Domain.Documents.TrainingPlan>>(),
+            Arg.Any<Application.Domain.Documents.TrainingPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
 }

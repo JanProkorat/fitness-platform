@@ -247,6 +247,48 @@ public class UpdatePlanFullStateTests
     }
 
     /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the training
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewNutritionPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = PlanTestHelpers.CreatePlan(
+            externalId: planId,
+            nutritionistId: _nutritionistId,
+            weekCount: 1,
+            version: 1);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var macroCalc = Substitute.For<IMacroCalculatorService>();
+        var ep = CreateEndpoint(
+            mongo, macroCalc,
+            linkAuthorizationService: EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: false, canViewTrainingPlans: true));
+
+        var req = new UpdatePlanRequest
+        {
+            PlanId = planId,
+            Name = "Updated Plan",
+            Version = 1,
+            Weeks = [BuildWeekRequest(weekNumber: 1)]
+        };
+
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.NutritionPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<NutritionPlan>>(),
+            Arg.Any<NutritionPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
     /// Computes the most recent past Monday relative to today (UTC).
     /// If today is Monday it returns the Monday one week ago so the date is strictly in the past.
     /// Handles Sunday correctly (DayOfWeek.Sunday = 0, which would otherwise produce a negative offset).

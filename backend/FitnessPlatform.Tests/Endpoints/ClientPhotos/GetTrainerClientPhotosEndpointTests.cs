@@ -37,8 +37,10 @@ public class GetTrainerClientPhotosEndpointTests
         new ClientLinkAuthorizationService(db);
 
     // Builds a standard set of DB entities: trainer profile (id=1), client profile (id=2), active link.
+    // Both capability flags default to true so every pre-existing call site is unaffected; the
+    // flag-inversion tests below are the only callers that pass a narrower link.
     private (MockDbBuilder builder, ProfessionalProfile trainerProfile, ClientProfile clientProfile)
-        CreateLinkedSetup()
+        CreateLinkedSetup(bool canViewNutritionPlans = true, bool canViewTrainingPlans = true)
     {
         var trainerProfile = EntityBuilder.ProfessionalProfile
             .WithUserId(_trainerUserId)
@@ -53,6 +55,8 @@ public class GetTrainerClientPhotosEndpointTests
         var link = EntityBuilder.ClientProfessionalLink
             .WithProfessionalProfileId(1)
             .WithClientProfileId(2)
+            .WithCanViewNutritionPlans(canViewNutritionPlans)
+            .WithCanViewTrainingPlans(canViewTrainingPlans)
             .Build();
 
         var builder = new MockDbBuilder()
@@ -166,6 +170,34 @@ public class GetTrainerClientPhotosEndpointTests
             .With(clientProfile)
             .With(inactiveLink)
             .Build();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db,
+            CreateLinkAuthorizationService(db),
+            new FakeBlobStorageService());
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// The link is active but grants neither domain — <see cref="LinkCapabilities.GrantsNothing"/>
+    /// denies at :75, matching #973's finding that a universal 403 is not this endpoint's
+    /// contract. The <see cref="ClientProfile"/> row is still seeded so the endpoint's own
+    /// GrantsNothing guard is what produces the 404, not the later clientProfile-is-null guard —
+    /// otherwise this test would pass identically with the capability guard removed.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_GrantsNothing_Returns404()
+    {
+        var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: false, canViewTrainingPlans: false);
+        var db = builder.Build();
 
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -367,6 +399,80 @@ public class GetTrainerClientPhotosEndpointTests
         ep.Response.Photos!.Should().HaveCount(1);
         ep.Response.Photos[0].Category.Should().Be(PlanPhotoCategory.Food);
         ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("1");
+    }
+
+    // ── Domain-scoped capability filter ──────────────────────────────────────
+
+    /// <summary>
+    /// A nutrition-only link (<c>CanViewTrainingPlans: false</c>) must never surface
+    /// <see cref="PlanPhotoCategory.Training"/> photos, even unfiltered — the domain scoping at
+    /// :117 is applied to the base query before the caller's own filters. Body and Food photos,
+    /// which the link does grant, must still come back so the exclusion is distinguishable from
+    /// an empty result.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NutritionOnlyLink_ExcludesTrainingCategoryPhotos()
+    {
+        var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: true, canViewTrainingPlans: false);
+        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
+        builder.With(MakePhoto(2, PlanPhotoCategory.Training));
+        builder.With(MakePhoto(2, PlanPhotoCategory.Body));
+        var db = builder.Build();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db,
+            CreateLinkAuthorizationService(db),
+            new FakeBlobStorageService());
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Photos.Should().NotBeNull();
+        ep.Response.Photos!.Should().HaveCount(2);
+        ep.Response.Photos!.Should().NotContain(p => p.Category == PlanPhotoCategory.Training);
+        ep.Response.Photos!.Should().Contain(p => p.Category == PlanPhotoCategory.Food);
+        ep.Response.Photos!.Should().Contain(p => p.Category == PlanPhotoCategory.Body);
+    }
+
+    /// <summary>
+    /// A training-only link (<c>CanViewNutritionPlans: false</c>) must never surface
+    /// <see cref="PlanPhotoCategory.Food"/> photos, even unfiltered — the domain scoping at :112
+    /// is applied to the base query before the caller's own filters. Body and Training photos,
+    /// which the link does grant, must still come back so the exclusion is distinguishable from
+    /// an empty result.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyLink_ExcludesFoodCategoryPhotos()
+    {
+        var (builder, _, _) = CreateLinkedSetup(canViewNutritionPlans: false, canViewTrainingPlans: true);
+        builder.With(MakePhoto(2, PlanPhotoCategory.Food));
+        builder.With(MakePhoto(2, PlanPhotoCategory.Training));
+        builder.With(MakePhoto(2, PlanPhotoCategory.Body));
+        var db = builder.Build();
+
+        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
+            db,
+            CreateLinkAuthorizationService(db),
+            new FakeBlobStorageService());
+
+        await ep.HandleAsync(
+            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId, Page = 1, PageSize = 20 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Photos.Should().NotBeNull();
+        ep.Response.Photos!.Should().HaveCount(2);
+        ep.Response.Photos!.Should().NotContain(p => p.Category == PlanPhotoCategory.Food);
+        ep.Response.Photos!.Should().Contain(p => p.Category == PlanPhotoCategory.Training);
+        ep.Response.Photos!.Should().Contain(p => p.Category == PlanPhotoCategory.Body);
     }
 
     // ── Date filter ───────────────────────────────────────────────────────────

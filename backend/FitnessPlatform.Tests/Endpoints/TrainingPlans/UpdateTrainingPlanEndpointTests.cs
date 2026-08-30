@@ -120,6 +120,52 @@ public class UpdateTrainingPlanEndpointTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyNutrition_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(
+            externalId: planId, trainerId: _trainerId, weekCount: 2);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        var request = new UpdateTrainingPlanRequest
+        {
+            PlanId = planId,
+            Name = "Updated Plan",
+            Version = 1,
+            Weeks =
+            [
+                new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [] },
+                new UpdateTrainingWeekRequest { WeekNumber = 2, Sessions = [] }
+            ]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await mongo.TrainingPlans.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<TrainingPlan>>(),
+            Arg.Any<TrainingPlan>(),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_AllZeroIds_MintsFreshIdsInsteadOfPersistingEmptyGuids()
     {

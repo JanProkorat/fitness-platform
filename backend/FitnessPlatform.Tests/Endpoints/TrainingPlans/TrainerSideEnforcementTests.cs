@@ -377,6 +377,39 @@ public class TrainerSideEnforcementTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_Returns404_WhenLinkGrantsOnlyNutrition()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── Diff-gate: rejects edit to a Stable published session ─────────────────────
 
     [Fact]
@@ -673,6 +706,37 @@ public class TrainerSideEnforcementTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo, lockService, Substitute.For<IRealtimeNotifier>(),
             TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(
+            new RelockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await lockService.DidNotReceive().ReleaseAsync(
+            Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task Relock_Returns404_WhenLinkGrantsOnlyNutrition()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<RelockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
 
         await ep.HandleAsync(
             new RelockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
