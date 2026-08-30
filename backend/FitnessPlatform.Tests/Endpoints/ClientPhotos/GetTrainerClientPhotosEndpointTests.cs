@@ -4,7 +4,10 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPhotos.GetTrainerClientPhotos;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 
@@ -14,10 +17,24 @@ namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 /// Unit tests for <see cref="GetTrainerClientPhotosEndpoint"/>.
 /// Covers authorization, pagination, category filter, date filter, and month grouping.
 /// </summary>
+/// <remarks>
+/// Authorization is exercised against the REAL <see cref="ClientLinkAuthorizationService"/>
+/// (constructed over the same mocked <see cref="IApplicationDbContext"/>), not a substitute —
+/// the deny-path tests below seed the exact professional-profile / client-profile / link rows
+/// the production service reads, so a regression in the service itself (not just the endpoint's
+/// use of it) fails these tests too.
+/// </remarks>
 public class GetTrainerClientPhotosEndpointTests
 {
     private readonly Guid _trainerUserId = Guid.NewGuid();
     private readonly Guid _clientPublicId = Guid.NewGuid();
+
+    /// <summary>
+    /// Builds the real <see cref="ClientLinkAuthorizationService"/> over the given mocked
+    /// <see cref="IApplicationDbContext"/>, so authorization tests exercise production logic.
+    /// </summary>
+    private static IClientLinkAuthorizationService CreateLinkAuthorizationService(IApplicationDbContext db) =>
+        new ClientLinkAuthorizationService(db);
 
     // Builds a standard set of DB entities: trainer profile (id=1), client profile (id=2), active link.
     private (MockDbBuilder builder, ProfessionalProfile trainerProfile, ClientProfile clientProfile)
@@ -78,6 +95,7 @@ public class GetTrainerClientPhotosEndpointTests
         var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -114,6 +132,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(otherTrainerId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -153,6 +172,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -177,6 +197,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -205,6 +226,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             blobStorage);
 
         await ep.HandleAsync(
@@ -235,6 +257,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -266,6 +289,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -297,6 +321,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -324,6 +349,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -361,6 +387,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -395,6 +422,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -429,6 +457,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -461,6 +490,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -498,6 +528,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
@@ -542,6 +573,7 @@ public class GetTrainerClientPhotosEndpointTests
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerUserId, AppRoles.Trainer))),
             db,
+            CreateLinkAuthorizationService(db),
             new FakeBlobStorageService());
 
         await ep.HandleAsync(
