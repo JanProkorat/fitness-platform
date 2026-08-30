@@ -10,7 +10,6 @@ using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -33,7 +32,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
-/// <param name="authHelper">Link capability helper — gates the nutritionist-addressed broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service — gates the nutritionist-addressed broadcast.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
@@ -42,7 +41,7 @@ public class SaveMealPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveMealPhotosEndpoint> logger,
     IBlobStorageService blobStorage)
     : Endpoint<SaveMealPhotosRequest>
@@ -231,8 +230,12 @@ public class SaveMealPhotosEndpoint(
         {
             try
             {
-                nutritionistHasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-                    plan.NutritionistId, clientId, requireTrainingPlanAccess: false, ct);
+                // plan.NutritionistId / clientId are both ApplicationUser.Id (#840) — the
+                // UserId-addressed overload; the nutritionist here is the plan's permanent
+                // author, not the caller.
+                var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                    plan.NutritionistId, clientId, ct);
+                nutritionistHasAccess = capabilities is { CanViewNutritionPlans: true };
             }
             catch (Exception ex)
             {

@@ -69,12 +69,12 @@ public class SaveSessionPhotosEndpointTests
     }
 
     private SaveSessionPhotosEndpoint CreateEndpoint(
-        IMongoContext mongo, IApplicationDbContext db, ProfessionalAuthHelper? authHelper = null) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveSessionPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, authHelper ?? EndpointTestHelpers.CreateGrantingAuthHelper(), _logger, _blobStorage);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path: new log inserted
@@ -315,7 +315,7 @@ public class SaveSessionPhotosEndpointTests
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
 
-        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper());
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {
@@ -350,7 +350,7 @@ public class SaveSessionPhotosEndpointTests
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
             .Build();
 
-        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingAuthHelper(hasAccess: false));
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false));
 
         await ep.HandleAsync(new SaveSessionPhotosRequest
         {

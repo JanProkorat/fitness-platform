@@ -12,11 +12,14 @@ namespace FitnessPlatform.Application.Features.ClientMeasurements.AddClientMeasu
 /// <summary>
 /// Allows a trainer or nutritionist to record a body measurement on behalf of
 /// a linked client (e.g. values measured in person during a session).
-/// Verifies an active trainer-client link exists before granting access.
+/// Verifies an active professional-client link exists before granting access.
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="audit">Audit logging service.</param>
-public class AddClientMeasurementEndpoint(IApplicationDbContext db, IAuditService audit)
+/// <param name="linkAuthorizationService">Link capability service — measurements are not
+/// domain-specific, so any active link (regardless of which domain(s) it grants) is sufficient.</param>
+public class AddClientMeasurementEndpoint(
+    IApplicationDbContext db, IAuditService audit, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<AddClientMeasurementRequest, MeasurementDto>
 {
     /// <inheritdoc />
@@ -47,15 +50,6 @@ public class AddClientMeasurementEndpoint(IApplicationDbContext db, IAuditServic
 
         var trainerId = Guid.Parse(userId);
 
-        var professionalProfile = await db.ProfessionalProfiles
-            .FirstOrDefaultAsync(tp => tp.UserId == trainerId, ct);
-
-        if (professionalProfile is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
         var clientProfile = await db.ClientProfiles
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 
@@ -65,13 +59,14 @@ public class AddClientMeasurementEndpoint(IApplicationDbContext db, IAuditServic
             return;
         }
 
-        // Verify active trainer-client link
-        var hasActiveLink = await db.ClientProfessionalLinks
-            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                        && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive, ct);
+        // Verify an active professional-client link exists. Measurements are not domain-specific
+        // (neither training- nor nutrition-only) — the pre-migration check gated on IsActive
+        // alone, with no capability-flag requirement, so any active link (regardless of which
+        // domain(s) it grants) remains sufficient here.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
 
-        if (!hasActiveLink)
+        if (capabilities is null)
         {
             await Send.NotFoundAsync(ct);
             return;

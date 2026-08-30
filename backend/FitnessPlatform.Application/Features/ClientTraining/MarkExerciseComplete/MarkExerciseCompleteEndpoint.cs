@@ -28,7 +28,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseComple
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
 /// <param name="lockService">Session lock service — used to refresh the Live TTL on activity.</param>
 /// <param name="lockOptions">Training lock TTL configuration.</param>
-/// <param name="authHelper">Link capability helper for the trainer-progress broadcast.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
 public class MarkExerciseCompleteEndpoint(
     IMongoContext mongo,
@@ -37,7 +37,7 @@ public class MarkExerciseCompleteEndpoint(
     IComplianceService compliance,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<MarkExerciseCompleteEndpoint> logger)
     : Endpoint<MarkExerciseCompleteRequest, MarkExerciseCompleteResponse>
 {
@@ -176,7 +176,7 @@ public class MarkExerciseCompleteEndpoint(
             existing.Version = newVersion;
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 newInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);
@@ -245,7 +245,7 @@ public class MarkExerciseCompleteEndpoint(
             }
 
             await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                notifier, compliance, mongo, authHelper, plan, clientId,
+                notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
                 req.SessionId, DateOnly.FromDateTime(targetDate),
                 execution.CompletedExerciseInstanceIds.Count, session.AllExercises.Count,
                 logger, ct);

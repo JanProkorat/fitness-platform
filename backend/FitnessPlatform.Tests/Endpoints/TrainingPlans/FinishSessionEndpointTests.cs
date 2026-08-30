@@ -685,7 +685,7 @@ public class FinishSessionEndpointTests
         var logger = Substitute.For<ILogger<WorkoutCompletionService>>();
 
         var completionService = new WorkoutCompletionService(
-            mongo, prDetection, notifications, EndpointTestHelpers.CreateGrantingAuthHelper(), logger);
+            mongo, prDetection, notifications, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), logger);
 
         var ep = Factory.Create<FinishSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(

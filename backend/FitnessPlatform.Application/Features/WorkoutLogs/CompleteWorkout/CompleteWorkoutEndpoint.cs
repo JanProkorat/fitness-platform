@@ -32,11 +32,8 @@ namespace FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
 /// <param name="lockService">Session lock service — used to release the Live lock on finish.</param>
 /// <param name="notifier">Realtime notifier for SignalR fan-out.</param>
 /// <param name="compliance">Compliance service for computing today's metrics (used by the broadcaster).</param>
-/// <param name="authHelper">Link capability helper — kept only to pass into
-/// <see cref="TrainingProgressBroadcaster.BroadcastSessionAsync"/>, whose own
-/// <c>ProfessionalAuthHelper</c> parameter is out of this migration's scope (owned by #962).</param>
 /// <param name="linkAuthorizationService">Resolves link capabilities for this endpoint's own
-/// trainer-addressed lock-broadcast gate.</param>
+/// trainer-addressed lock-broadcast gate, and for <see cref="TrainingProgressBroadcaster.BroadcastSessionAsync"/>.</param>
 /// <param name="logger">Logger for swallowing broadcast errors.</param>
 /// <param name="db">Relational database context — resolves the completing client's persisted
 /// time zone (#935) so <see cref="SessionExecution.Date"/> lands on the client's own local
@@ -50,7 +47,6 @@ public class CompleteWorkoutEndpoint(
     ISessionLockService lockService,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
-    ProfessionalAuthHelper authHelper,
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<CompleteWorkoutEndpoint> logger,
     IApplicationDbContext db,
@@ -169,7 +165,7 @@ public class CompleteWorkoutEndpoint(
                     // All exercises in the log were stamped as done by completionService; count both sides as totalExercises.
                     var totalExercises = log.Exercises.Count;
                     await TrainingProgressBroadcaster.BroadcastSessionAsync(
-                        notifier, compliance, mongo, authHelper, plan,
+                        notifier, compliance, mongo, linkAuthorizationService, plan,
                         clientId: plan.ClientId,
                         sessionId: log.SessionId.Value,
                         date: DateOnly.FromDateTime(log.Date),

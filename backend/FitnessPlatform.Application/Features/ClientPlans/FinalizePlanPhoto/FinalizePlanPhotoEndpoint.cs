@@ -9,7 +9,6 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -38,7 +37,7 @@ namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
 /// <param name="mongo">MongoDB context for plan lookup.</param>
 /// <param name="db">Relational database context for profile lookup and photo insert.</param>
 /// <param name="notifier">Realtime notifier for pushing the SignalR events.</param>
-/// <param name="authHelper">Link capability helper — gates both professional-addressed broadcasts.</param>
+/// <param name="linkAuthorizationService">Link capability service — gates both professional-addressed broadcasts.</param>
 /// <param name="logger">Logger.</param>
 /// <param name="blobStorage">Blob storage service — converts the newly-persisted BlobUrl into a
 /// short-lived pre-signed read URL before echoing it back in the 201 response (F9).</param>
@@ -46,7 +45,7 @@ public class FinalizePlanPhotoEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    ProfessionalAuthHelper authHelper,
+    IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<FinalizePlanPhotoEndpoint> logger,
     IBlobStorageService blobStorage)
     : Endpoint<FinalizePlanPhotoRequest, PlanPhotoResponse>
@@ -191,8 +190,14 @@ public class FinalizePlanPhotoEndpoint(
         {
             try
             {
-                professionalHasAccess = await authHelper.HasPlanAccessForClientUserAsync(
-                    professionalUserId.Value, clientId, requireTrainingPlanAccess: planType == PlanPhotoType.Training, ct);
+                // professionalUserId / clientId are both ApplicationUser.Id (#840) — the
+                // UserId-addressed overload; the professional here is the plan's permanent
+                // author, not the caller. planType decides which domain flag is required.
+                var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                    professionalUserId.Value, clientId, ct);
+                professionalHasAccess = planType == PlanPhotoType.Training
+                    ? capabilities is { CanViewTrainingPlans: true }
+                    : capabilities is { CanViewNutritionPlans: true };
             }
             catch (Exception ex)
             {
