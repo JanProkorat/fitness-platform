@@ -183,13 +183,14 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     .OrderBy(w => w.WeekNumber)
                     .ToList();
 
-                // Distinct() is a no-op for plans with unique week numbers (publishedWeeks is
-                // already ascending by WeekNumber above). It only changes anything for a legacy
-                // plan whose weeks carry a DUPLICATE WeekNumber — PlanWeekCalculator's legacy
-                // cycle must use the same deduped cycle length the ClientNutrition/ClientTraining
-                // "today" reads use for that plan, or the two disagree on which week is current
-                // (#850).
-                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).Distinct().ToList();
+                // NOT deduped, deliberately. PlanWeekCalculator's legacy branch cycles on
+                // this list's Count, and the four ClientTraining callers
+                // (GetTodaySession, GetFullTrainingPlan, TrainingProgressBroadcaster,
+                // MarkWholeDayComplete) all pass the raw list. Deduping only here would make
+                // the plans list name a different current week than the Today screen for a
+                // legacy training plan with duplicate week numbers. Deduping the training
+                // side belongs inside PlanWeekCalculator so all callers move together.
+                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).ToList();
                 var currentWeekNumber = PlanWeekCalculator.ResolveCurrentWeekNumber(
                     plan.StartDate,
                     publishedWeekNumbers,
