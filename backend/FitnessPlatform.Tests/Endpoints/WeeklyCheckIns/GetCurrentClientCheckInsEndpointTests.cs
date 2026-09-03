@@ -56,7 +56,8 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         DateTime? respondedAt = null,
         DateTime? dismissedAt = null,
         DateTime? dueAt = null,
-        WeeklyCheckInStatus status = WeeklyCheckInStatus.Pending)
+        WeeklyCheckInStatus status = WeeklyCheckInStatus.Pending,
+        DateTime? sentAt = null)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -69,7 +70,7 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
             ProfessionalUserId = professionalUserId,
             Profession = profession,
             WeekStartDate = monday,
-            SentAt = DateTime.UtcNow.AddHours(-1),
+            SentAt = sentAt ?? DateTime.UtcNow.AddHours(-1),
             RespondedAt = respondedAt,
             DismissedByClientAt = dismissedAt,
             DueAt = dueAt,
@@ -271,6 +272,66 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
             cancellationToken: TestContext.Current.CancellationToken);
         body!.CheckIns.Should().HaveCount(1);
+    }
+
+    // ── One-per-profession cap (#750) ────────────────────────────────────────
+
+    [Fact]
+    public async Task GetCurrent_TwoSameProfessionActiveCheckIns_ReturnsOnlyNewest()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+
+        var thisMonday = CurrentWeekMonday();
+        var nextMonday = thisMonday.AddDays(7);
+
+        // Older check-in, from the current week, still within its own deadline.
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            weekStartDate: thisMonday,
+            dueAt: DateTime.UtcNow.AddHours(24),
+            sentAt: DateTime.UtcNow.AddHours(-2));
+
+        // Newer check-in, for the following week, also still within deadline.
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            weekStartDate: nextMonday,
+            dueAt: DateTime.UtcNow.AddHours(48),
+            sentAt: DateTime.UtcNow.AddHours(-1));
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().HaveCount(1);
+        body.CheckIns[0].WeekStartDate.Should().Be(nextMonday);
+    }
+
+    [Fact]
+    public async Task GetCurrent_OneTrainingAndOneNutritionActive_ReturnsBothAlphabetically()
+    {
+        var (http, clientUserId) = await SetupClientAsync();
+        var trainerId = await SetupTrainerAsync();
+        var nutritionistId = await SetupTrainerAsync();
+
+        await InsertCheckInAsync(clientUserId, trainerId, Profession.Training);
+        await InsertCheckInAsync(clientUserId, nutritionistId, Profession.Nutrition);
+
+        var response = await http.GetAsync(
+            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
+            cancellationToken: TestContext.Current.CancellationToken);
+        body!.CheckIns.Should().HaveCount(2);
+        body.CheckIns[0].Profession.Should().Be("Nutrition");
+        body.CheckIns[1].Profession.Should().Be("Training");
     }
 
     // ── Local DTOs ────────────────────────────────────────────────────────────
