@@ -285,22 +285,25 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         var thisMonday = CurrentWeekMonday();
         var nextMonday = thisMonday.AddDays(7);
 
-        // Older check-in, from the current week, still within its own deadline.
-        await InsertCheckInAsync(
-            clientUserId,
-            trainerId,
-            Profession.Training,
-            weekStartDate: thisMonday,
-            dueAt: DateTime.UtcNow.AddHours(24),
-            sentAt: DateTime.UtcNow.AddHours(-2));
-
-        // Newer check-in, for the following week, also still within deadline.
+        // Older SentAt, but the LATER WeekStartDate — if the secondary key
+        // (WeekStartDate) were ever promoted to primary, this row would win
+        // instead of the one below, and the assertion would fail.
         await InsertCheckInAsync(
             clientUserId,
             trainerId,
             Profession.Training,
             weekStartDate: nextMonday,
             dueAt: DateTime.UtcNow.AddHours(48),
+            sentAt: DateTime.UtcNow.AddHours(-2));
+
+        // Newer SentAt (must win), on the EARLIER WeekStartDate — only a
+        // correct primary sort key (SentAt) selects this row.
+        await InsertCheckInAsync(
+            clientUserId,
+            trainerId,
+            Profession.Training,
+            weekStartDate: thisMonday,
+            dueAt: DateTime.UtcNow.AddHours(24),
             sentAt: DateTime.UtcNow.AddHours(-1));
 
         var response = await http.GetAsync(
@@ -310,7 +313,7 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         var body = await response.Content.ReadFromJsonAsync<CheckInsWrapper>(
             cancellationToken: TestContext.Current.CancellationToken);
         body!.CheckIns.Should().HaveCount(1);
-        body.CheckIns[0].WeekStartDate.Should().Be(nextMonday);
+        body.CheckIns[0].WeekStartDate.Should().Be(thisMonday);
     }
 
     [Fact]

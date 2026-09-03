@@ -15,7 +15,8 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.GetCurrentClientCh
 /// the week named by <c>WeekStartDate</c>. At most one active check-in per
 /// <see cref="Profession"/> is returned — if more than one satisfies the active-window
 /// predicate (e.g. a stalled expiry sweeper, or a deadline offset configured longer than a
-/// week), the most recently sent one wins; see <see cref="HandleAsync"/> for the tie-break.
+/// week), the most recently sent one wins; see
+/// <see cref="LoadNewestActiveCheckInAsync"/> for the tie-break.
 /// </summary>
 public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
     : EndpointWithoutRequest<GetCurrentClientCheckInsResponse>
@@ -51,20 +52,24 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
         // EF Core cannot translate a GroupBy that selects a whole element out of a
         // grouping (`GroupBy(...).Select(g => g.OrderByDescending(...).First())`) — it
         // throws rather than client-evaluating since EF Core 3.0. DistinctBy has no SQL
-        // translation at all. Profession has exactly two values, so query each
-        // profession separately, fully server-side, and take the newest active
-        // check-in for that profession.
-        var nutritionCheckIn = await LoadNewestActiveCheckInAsync(clientUserId, Profession.Nutrition, now, ct);
-        var trainingCheckIn = await LoadNewestActiveCheckInAsync(clientUserId, Profession.Training, now, ct);
+        // translation at all. So query each profession separately, fully server-side,
+        // and take the newest active check-in for that profession.
+        //
+        // Professions are ordered alphabetically by name — not enum ordinal — because
+        // Profession is persisted as a string column and clients render the response
+        // array positionally. Iterating Enum.GetValues here (rather than hardcoding the
+        // two current members) means a third Profession is included automatically.
+        var checkIns = new List<CheckInSummary>();
 
-        // Preserve the pre-existing response order: Profession is persisted as a string
-        // column, so the old single `OrderBy(c => c.Profession)` sorted alphabetically
-        // ("Nutrition" before "Training"). Fixing the array order here — not by relying on
-        // enum ordinal — keeps that contract for clients that render in array order.
-        var checkIns = new List<CheckInSummary?> { nutritionCheckIn, trainingCheckIn }
-            .Where(c => c is not null)
-            .Select(c => c!)
-            .ToList();
+        foreach (var profession in Enum.GetValues<Profession>().OrderBy(p => p.ToString()))
+        {
+            var checkIn = await LoadNewestActiveCheckInAsync(clientUserId, profession, now, ct);
+
+            if (checkIn is not null)
+            {
+                checkIns.Add(checkIn);
+            }
+        }
 
         await Send.OkAsync(new GetCurrentClientCheckInsResponse { CheckIns = checkIns }, ct);
     }
@@ -87,7 +92,6 @@ public class GetCurrentClientCheckInsEndpoint(IApplicationDbContext db)
                 c.DismissedByClientAt == null &&
                 c.Status != WeeklyCheckInStatus.Expired &&
                 (c.DueAt == null || c.DueAt > now))
-            .Include(c => c.ProfessionalUser)
             .OrderByDescending(c => c.SentAt)
             .ThenByDescending(c => c.WeekStartDate)
             .ThenByDescending(c => c.Id)
