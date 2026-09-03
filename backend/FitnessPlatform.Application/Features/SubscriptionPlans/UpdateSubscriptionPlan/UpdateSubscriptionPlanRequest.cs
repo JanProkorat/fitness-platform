@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.SubscriptionPlans.Shared;
 
 namespace FitnessPlatform.Application.Features.SubscriptionPlans.UpdateSubscriptionPlan;
 
@@ -7,6 +8,15 @@ namespace FitnessPlatform.Application.Features.SubscriptionPlans.UpdateSubscript
 /// route and identifies which plan to update — it is not an updatable field (immutable after
 /// create; see <see cref="Domain.Entities.SubscriptionPlan.Code"/>).
 /// </summary>
+/// <remarks>
+/// A PUT replaces the full resource, so every field below is required — a body that omits
+/// one 400s in <see cref="UpdateSubscriptionPlanValidator"/> rather than silently defaulting
+/// (an omitted <c>bool</c> would otherwise bind <c>false</c> and could revoke an entitlement
+/// or deactivate a live tier; an omitted <c>MaxActiveClients</c> would bind <c>null</c> and
+/// could silently grant unlimited clients). <see cref="MaxActiveClients"/> uses
+/// <see cref="OptionalField{T}"/> specifically so an explicit <c>null</c> can still mean
+/// "unlimited" while an omitted field still 400s.
+/// </remarks>
 public class UpdateSubscriptionPlanRequest
 {
     /// <summary>Route-bound identifier of the plan to update. Not itself updatable.</summary>
@@ -24,23 +34,26 @@ public class UpdateSubscriptionPlanRequest
     /// <summary>Which professional role(s) this plan applies to.</summary>
     public ApplicableRoles ApplicableRoles { get; set; }
 
-    /// <summary>Whether the plan allows creating nutrition/training plans.</summary>
-    public bool CanCreatePlans { get; set; }
+    /// <summary>Whether the plan allows creating nutrition/training plans. Required.</summary>
+    public bool? CanCreatePlans { get; set; }
 
-    /// <summary>Whether the plan allows messaging clients.</summary>
-    public bool CanMessage { get; set; }
+    /// <summary>Whether the plan allows messaging clients. Required.</summary>
+    public bool? CanMessage { get; set; }
 
-    /// <summary>Whether the plan allows sending questionnaires.</summary>
-    public bool CanSendQuestionnaires { get; set; }
+    /// <summary>Whether the plan allows sending questionnaires. Required.</summary>
+    public bool? CanSendQuestionnaires { get; set; }
 
-    /// <summary>Whether the plan allows using weekly check-ins.</summary>
-    public bool CanUseWeeklyCheckIns { get; set; }
+    /// <summary>Whether the plan allows using weekly check-ins. Required.</summary>
+    public bool? CanUseWeeklyCheckIns { get; set; }
 
-    /// <summary>Whether the plan allows per-client check-in configuration.</summary>
-    public bool CanUsePerClientCheckInConfig { get; set; }
+    /// <summary>Whether the plan allows per-client check-in configuration. Required.</summary>
+    public bool? CanUsePerClientCheckInConfig { get; set; }
 
-    /// <summary>Maximum number of active clients allowed under this plan. Null means unlimited.</summary>
-    public int? MaxActiveClients { get; set; }
+    /// <summary>
+    /// Maximum number of active clients allowed under this plan. Required — must be present
+    /// in the body. An explicit <c>null</c> means unlimited; omitting the field entirely 400s.
+    /// </summary>
+    public OptionalField<int?> MaxActiveClients { get; set; }
 
     /// <summary>Plan price, expressed in the smallest unit of <see cref="Currency"/>.</summary>
     public long PriceMinorUnits { get; set; }
@@ -55,8 +68,9 @@ public class UpdateSubscriptionPlanRequest
     public string? ExternalPriceId { get; set; }
 
     /// <summary>
-    /// Whether the plan is currently offered/selectable. Reactivation/deactivation happens
-    /// through this field — there is no separate "reactivate" endpoint.
+    /// Whether the plan is currently offered/selectable. Required — reactivation/deactivation
+    /// happens through this field, and an omitted value must not silently deactivate a live
+    /// tier. There is no separate "reactivate" endpoint.
     /// </summary>
-    public bool IsActive { get; set; }
+    public bool? IsActive { get; set; }
 }

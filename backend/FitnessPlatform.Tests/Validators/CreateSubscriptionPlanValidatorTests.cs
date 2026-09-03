@@ -122,4 +122,14 @@ public class CreateSubscriptionPlanValidatorTests
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.BillingInterval).WithErrorCode(ErrorCodes.OutOfRange);
     }
+
+    [Fact]
+    public void ExternalPriceId_TooLong_FailsWithOutOfRangeCode()
+    {
+        var req = ValidRequest();
+        req.ExternalPriceId = new string('a', 201);
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.ExternalPriceId).WithErrorCode(ErrorCodes.OutOfRange);
+    }
 }

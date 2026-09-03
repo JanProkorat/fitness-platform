@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.SubscriptionPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
@@ -18,9 +19,8 @@ internal sealed class UpdateSubscriptionPlanEndpoint(IApplicationDbContext db)
     /// <inheritdoc />
     public override void Configure()
     {
-        Put("/admin/subscription-plans/{Code:regex(^[a-z0-9-]{{1,50}}$)}");
+        Put("/admin/subscription-plans/{Code}");
         Roles(AppRoles.Admin);
-        Description(b => b.WithName(nameof(UpdateSubscriptionPlanEndpoint)));
         Summary(s =>
         {
             s.Summary = "Update subscription plan";
@@ -40,7 +40,11 @@ internal sealed class UpdateSubscriptionPlanEndpoint(IApplicationDbContext db)
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound,
+                ErrorCodes.SubscriptionPlanNotFound,
+                "No subscription plan with this Code.",
+                ct);
             return;
         }
 
@@ -48,18 +52,17 @@ internal sealed class UpdateSubscriptionPlanEndpoint(IApplicationDbContext db)
         plan.NameEn = req.NameEn;
         plan.NameDe = req.NameDe;
         plan.ApplicableRoles = req.ApplicableRoles;
-        plan.CanCreatePlans = req.CanCreatePlans;
-        plan.CanMessage = req.CanMessage;
-        plan.CanSendQuestionnaires = req.CanSendQuestionnaires;
-        plan.CanUseWeeklyCheckIns = req.CanUseWeeklyCheckIns;
-        plan.CanUsePerClientCheckInConfig = req.CanUsePerClientCheckInConfig;
-        plan.MaxActiveClients = req.MaxActiveClients;
+        plan.CanCreatePlans = req.CanCreatePlans!.Value;
+        plan.CanMessage = req.CanMessage!.Value;
+        plan.CanSendQuestionnaires = req.CanSendQuestionnaires!.Value;
+        plan.CanUseWeeklyCheckIns = req.CanUseWeeklyCheckIns!.Value;
+        plan.CanUsePerClientCheckInConfig = req.CanUsePerClientCheckInConfig!.Value;
+        plan.MaxActiveClients = req.MaxActiveClients.Value;
         plan.PriceMinorUnits = req.PriceMinorUnits;
         plan.Currency = req.Currency;
         plan.BillingInterval = req.BillingInterval;
         plan.ExternalPriceId = req.ExternalPriceId;
-        plan.IsActive = req.IsActive;
-        plan.DateUpdated = DateTime.UtcNow;
+        plan.IsActive = req.IsActive!.Value;
 
         await db.SaveChangesAsync(ct);
 

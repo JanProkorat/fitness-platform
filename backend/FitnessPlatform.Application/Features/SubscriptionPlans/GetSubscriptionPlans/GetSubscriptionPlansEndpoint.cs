@@ -19,7 +19,6 @@ internal sealed class GetSubscriptionPlansEndpoint(IApplicationDbContext db)
     {
         Get("/admin/subscription-plans");
         Roles(AppRoles.Admin);
-        Description(b => b.WithName(nameof(GetSubscriptionPlansEndpoint)));
         Summary(s =>
         {
             s.Summary = "List subscription plans";

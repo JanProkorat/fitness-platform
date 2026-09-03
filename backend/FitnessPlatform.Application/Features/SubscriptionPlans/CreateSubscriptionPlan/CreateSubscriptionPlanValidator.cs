@@ -50,5 +50,8 @@ internal sealed class CreateSubscriptionPlanValidator : Validator<CreateSubscrip
         RuleFor(x => x.MaxActiveClients)
             .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange)
             .When(x => x.MaxActiveClients.HasValue);
+
+        RuleFor(x => x.ExternalPriceId)
+            .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

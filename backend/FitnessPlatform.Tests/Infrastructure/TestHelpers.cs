@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -146,7 +147,10 @@ public static class TestHelpers
         {
             var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
             var user = await userManager.FindByEmailAsync(email);
-            await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
+            var roleResult = await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
+
+            roleResult.Succeeded.Should().BeTrue(
+                $"AddToRoleAsync failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
         }
 
         var (accessToken, _) = await LoginAsync(httpClient, email, "TestPass1!");

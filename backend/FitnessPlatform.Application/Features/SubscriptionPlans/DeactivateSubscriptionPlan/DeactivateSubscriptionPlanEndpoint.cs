@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +19,8 @@ internal sealed class DeactivateSubscriptionPlanEndpoint(IApplicationDbContext d
     /// <inheritdoc />
     public override void Configure()
     {
-        Delete("/admin/subscription-plans/{Code:regex(^[a-z0-9-]{{1,50}}$)}");
+        Delete("/admin/subscription-plans/{Code}");
         Roles(AppRoles.Admin);
-        Description(b => b.WithName(nameof(DeactivateSubscriptionPlanEndpoint)));
         Summary(s =>
         {
             s.Summary = "Deactivate subscription plan";
@@ -39,14 +39,17 @@ internal sealed class DeactivateSubscriptionPlanEndpoint(IApplicationDbContext d
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound,
+                ErrorCodes.SubscriptionPlanNotFound,
+                "No subscription plan with this Code.",
+                ct);
             return;
         }
 
         if (plan.IsActive)
         {
             plan.IsActive = false;
-            plan.DateUpdated = DateTime.UtcNow;
             await db.SaveChangesAsync(ct);
         }
 

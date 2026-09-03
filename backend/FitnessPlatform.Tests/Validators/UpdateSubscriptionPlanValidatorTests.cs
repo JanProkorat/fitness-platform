@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.SubscriptionPlans.Shared;
 using FitnessPlatform.Application.Features.SubscriptionPlans.UpdateSubscriptionPlan;
 using FluentAssertions;
 using FluentValidation.TestHelper;
@@ -20,10 +21,15 @@ public class UpdateSubscriptionPlanValidatorTests
         NameEn = "Small",
         NameDe = "Klein",
         ApplicableRoles = ApplicableRoles.Both,
+        CanCreatePlans = true,
+        CanMessage = true,
+        CanSendQuestionnaires = true,
+        CanUseWeeklyCheckIns = true,
+        CanUsePerClientCheckInConfig = true,
         Currency = "CZK",
         PriceMinorUnits = 29900,
         BillingInterval = BillingInterval.Monthly,
-        MaxActiveClients = 10,
+        MaxActiveClients = new OptionalField<int?>(10),
         IsActive = true,
     };
 
@@ -68,10 +74,30 @@ public class UpdateSubscriptionPlanValidatorTests
     public void MaxActiveClients_Zero_FailsWithOutOfRangeCode()
     {
         var req = ValidRequest();
-        req.MaxActiveClients = 0;
+        req.MaxActiveClients = new OptionalField<int?>(0);
 
         var result = _validator.TestValidate(req);
-        result.ShouldHaveValidationErrorFor(x => x.MaxActiveClients).WithErrorCode(ErrorCodes.OutOfRange);
+        result.ShouldHaveValidationErrorFor(x => x.MaxActiveClients.Value).WithErrorCode(ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void MaxActiveClients_NotSet_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.MaxActiveClients = default;
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.MaxActiveClients).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void MaxActiveClients_ExplicitNull_PassesValidation()
+    {
+        var req = ValidRequest();
+        req.MaxActiveClients = new OptionalField<int?>(null);
+
+        var result = _validator.TestValidate(req);
+        result.IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -82,5 +108,55 @@ public class UpdateSubscriptionPlanValidatorTests
 
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.NameCs).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void Code_Empty_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.Code = "";
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.Code).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void Code_UppercaseLetters_FailsWithOutOfRangeCode()
+    {
+        var req = ValidRequest();
+        req.Code = "Small";
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.Code).WithErrorCode(ErrorCodes.OutOfRange);
+    }
+
+    [Fact]
+    public void CanCreatePlans_NotSet_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.CanCreatePlans = null;
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.CanCreatePlans).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void IsActive_NotSet_FailsWithRequiredCode()
+    {
+        var req = ValidRequest();
+        req.IsActive = null;
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.IsActive).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
+    public void ExternalPriceId_TooLong_FailsWithOutOfRangeCode()
+    {
+        var req = ValidRequest();
+        req.ExternalPriceId = new string('a', 201);
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.ExternalPriceId).WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

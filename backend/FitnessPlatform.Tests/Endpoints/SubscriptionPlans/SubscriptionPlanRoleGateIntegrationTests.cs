@@ -76,4 +76,52 @@ public class SubscriptionPlanRoleGateIntegrationTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
+
+    [Fact]
+    public async Task List_Unauthenticated_Returns401()
+    {
+        var http = factory.CreateClient();
+
+        var response = await http.GetAsync(
+            "/admin/subscription-plans", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Create_Unauthenticated_Returns401()
+    {
+        var http = factory.CreateClient();
+
+        var response = await http.PostAsJsonAsync(
+            "/admin/subscription-plans",
+            new { Code = UniqueCode() },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Update_Unauthenticated_Returns401()
+    {
+        var http = factory.CreateClient();
+
+        var response = await http.PutAsJsonAsync(
+            $"/admin/subscription-plans/{UniqueCode()}",
+            new { },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Deactivate_Unauthenticated_Returns401()
+    {
+        var http = factory.CreateClient();
+
+        var response = await http.DeleteAsync(
+            $"/admin/subscription-plans/{UniqueCode()}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

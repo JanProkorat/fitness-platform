@@ -140,6 +140,121 @@ public class UpdateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task Update_OmittedMaxActiveClients_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            new
+            {
+                Code = code,
+                NameCs = "Aktualizováno",
+                NameEn = "Updated",
+                NameDe = "Aktualisiert",
+                ApplicableRoles = "Both",
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = true,
+                // MaxActiveClients intentionally omitted — must 400, not silently grant unlimited.
+                PriceMinorUnits = 50000,
+                Currency = "EUR",
+                BillingInterval = "Annual",
+                IsActive = true,
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_OmittedIsActive_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            new
+            {
+                Code = code,
+                NameCs = "Aktualizováno",
+                NameEn = "Updated",
+                NameDe = "Aktualisiert",
+                ApplicableRoles = "Both",
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = true,
+                MaxActiveClients = 20,
+                PriceMinorUnits = 50000,
+                Currency = "EUR",
+                BillingInterval = "Annual",
+                // IsActive intentionally omitted — must 400, not silently deactivate.
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_OmittedCanFlag_Returns400()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            new
+            {
+                Code = code,
+                NameCs = "Aktualizováno",
+                NameEn = "Updated",
+                NameDe = "Aktualisiert",
+                ApplicableRoles = "Both",
+                // CanCreatePlans intentionally omitted — must 400, not silently revoke.
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = true,
+                MaxActiveClients = 20,
+                PriceMinorUnits = 50000,
+                Currency = "EUR",
+                BillingInterval = "Annual",
+                IsActive = true,
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_ExplicitNullMaxActiveClients_MeansUnlimitedAndSucceeds()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var code = await SeedPlanAsync();
+
+        var response = await client.PutAsJsonAsync(
+            $"/admin/subscription-plans/{code}",
+            UpdatedPayload(code) with { MaxActiveClients = null },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.SubscriptionPlans
+            .AsNoTracking()
+            .FirstAsync(p => p.Code == code, TestContext.Current.CancellationToken);
+
+        persisted.MaxActiveClients.Should().BeNull();
+    }
+
     private sealed record UpdatePlanPayload(
         string Code,
         string NameCs,

@@ -127,6 +127,27 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task Create_ConcurrentDuplicateCode_NeverReturns500()
+    {
+        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
+        var payload = ValidPayload(UniqueCode());
+
+        var firstCall = client.PostAsJsonAsync(
+            "/admin/subscription-plans", payload, TestContext.Current.CancellationToken);
+        var secondCall = client.PostAsJsonAsync(
+            "/admin/subscription-plans", payload, TestContext.Current.CancellationToken);
+
+        var responses = await Task.WhenAll(firstCall, secondCall);
+
+        // Whichever request loses the race — caught by the AnyAsync pre-check or by the
+        // unique-constraint catch on SaveChangesAsync — must surface as 409, never 500.
+        responses.Should().OnlyContain(r =>
+            r.StatusCode == HttpStatusCode.Created || r.StatusCode == HttpStatusCode.Conflict);
+        responses.Should().ContainSingle(r => r.StatusCode == HttpStatusCode.Created);
+        responses.Should().ContainSingle(r => r.StatusCode == HttpStatusCode.Conflict);
+    }
+
     private sealed record CreatePlanPayload(
         string Code,
         string NameCs,
