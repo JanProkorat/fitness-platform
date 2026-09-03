@@ -119,7 +119,7 @@ public class GetTodaySessionPhotosTests
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService(), _blobStorage);
+            mongo, db, CreateStubLockService(), _blobStorage, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Read-back: photos saved to SessionLog appear in PhotosBySession

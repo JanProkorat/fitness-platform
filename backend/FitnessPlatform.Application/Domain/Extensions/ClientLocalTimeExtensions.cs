@@ -37,34 +37,39 @@ public static class ClientLocalTimeExtensions
     }
 
     /// <summary>
-    /// Resolves the client's current local calendar date as the midnight-UTC storage value —
-    /// see <see cref="ClientLocalDateResolver.ResolveLocalDateUtcMidnight"/>. Uses
-    /// <see cref="DateTime.UtcNow"/> as the instant.
+    /// Resolves the client's local calendar date at <paramref name="instantUtc"/> as the
+    /// midnight-UTC storage value — see
+    /// <see cref="ClientLocalDateResolver.ResolveLocalDateUtcMidnight"/>. The instant is a
+    /// required parameter (#955) so a caller's injected <see cref="TimeProvider"/> — and,
+    /// symmetrically, a test's fixed clock — controls the "now" this resolves against; there is
+    /// no wall-clock fallback.
     /// </summary>
     public static async Task<DateTime> ResolveClientLocalDateUtcAsync(
         this IApplicationDbContext db,
         Guid clientUserId,
+        DateTime instantUtc,
         CancellationToken ct)
     {
         var timeZone = await db.ResolveClientTimeZoneAsync(clientUserId, ct);
-        return ClientLocalDateResolver.ResolveLocalDateUtcMidnight(DateTime.UtcNow, timeZone);
+        return ClientLocalDateResolver.ResolveLocalDateUtcMidnight(instantUtc, timeZone);
     }
 
     /// <summary>
-    /// Resolves the client's current local calendar day both as the midnight-UTC storage value
-    /// (for <c>LogDate</c>/<c>Date</c>-style fields) and as the local day's
-    /// <c>[startUtc, endUtc)</c> instant window (for <c>EatenAt</c>/<c>CreatedAt</c>-style instant
-    /// fields) — see <see cref="ClientLocalDateResolver.ResolveLocalDayWindowUtc"/>. Uses
-    /// <see cref="DateTime.UtcNow"/> as the instant.
+    /// Resolves the client's local calendar day at <paramref name="instantUtc"/>, both as the
+    /// midnight-UTC storage value (for <c>LogDate</c>/<c>Date</c>-style fields) and as the local
+    /// day's <c>[startUtc, endUtc)</c> instant window (for <c>EatenAt</c>/<c>CreatedAt</c>-style
+    /// instant fields) — see <see cref="ClientLocalDateResolver.ResolveLocalDayWindowUtc"/>. The
+    /// instant is a required parameter (#955); see <see cref="ResolveClientLocalDateUtcAsync"/>
+    /// for the rationale.
     /// </summary>
     public static async Task<(DateTime LocalDateUtc, DateTime WindowStartUtc, DateTime WindowEndUtc)> ResolveClientLocalDayWindowAsync(
         this IApplicationDbContext db,
         Guid clientUserId,
+        DateTime instantUtc,
         CancellationToken ct)
     {
         var timeZone = await db.ResolveClientTimeZoneAsync(clientUserId, ct);
-        var utcNow = DateTime.UtcNow;
-        var localDate = ClientLocalDateResolver.ResolveLocalDate(utcNow, timeZone);
+        var localDate = ClientLocalDateResolver.ResolveLocalDate(instantUtc, timeZone);
         var localDateUtc = localDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var (startUtc, endUtc) = ClientLocalDateResolver.ResolveLocalDayWindowUtc(localDate, timeZone);
 

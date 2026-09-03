@@ -20,7 +20,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 /// <param name="db">Relational database context.</param>
 /// <param name="blobStorage">Blob storage service — converts each meal photo's stored BlobUrl into
 /// a short-lived pre-signed read URL before the response leaves the process (F9).</param>
-public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetTodayLogResponse>
 {
     /// <inheritdoc />
@@ -63,7 +64,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
         // equality checks; windowStartUtc/windowEndUtc anchor the EatenAt instant-range filter
         // so a meal logged near local midnight lands in the correct local day's window rather
         // than the server's UTC day.
-        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Fetch today's meal logs.
         // Matches three cases uniformly:

@@ -38,7 +38,7 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerUserId ?? _clientId, AppRoles.Client))),
-            _imageUpload, mongo, db);
+            _imageUpload, mongo, db, TimeProvider.System);
 
     private static IMongoContext CreateMongoWithActivePlan(Guid clientId, Guid? sessionId = null, bool addSession = true)
     {
@@ -212,7 +212,7 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
         var db = CreateMockDb();
 
         // Create endpoint with no claims principal (unauthenticated)
-        var ep = Factory.Create<GenerateSessionPhotoUploadUrlEndpoint>(_imageUpload, mongo, db);
+        var ep = Factory.Create<GenerateSessionPhotoUploadUrlEndpoint>(_imageUpload, mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(new GenerateSessionPhotoUploadUrlRequest
         {

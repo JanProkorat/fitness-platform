@@ -37,7 +37,7 @@ public class GetClientPlansEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_userId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
     }
 
     // ── Helpers to build mock Mongo contexts ────────────────────────────
@@ -411,7 +411,7 @@ public class GetClientPlansEndpointTests
         var ep = Factory.Create<GetClientPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
 

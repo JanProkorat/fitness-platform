@@ -20,7 +20,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.LogMealEaten;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing SignalR events.</param>
-public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db, IRealtimeNotifier notifier) : Endpoint<LogMealEatenRequest>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db, IRealtimeNotifier notifier, TimeProvider timeProvider) : Endpoint<LogMealEatenRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,7 +62,7 @@ public class LogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db,
         // Resolve the client's local calendar day (#935) — anchors plan-window resolution AND
         // the MealLog.LogDate this endpoint writes below, so a meal logged near local midnight
         // is keyed on the client's local day, not the server's UTC day.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Resolve the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).

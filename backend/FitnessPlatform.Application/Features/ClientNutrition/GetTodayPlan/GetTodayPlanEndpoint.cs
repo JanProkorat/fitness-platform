@@ -17,6 +17,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 /// <remarks>
 /// Active-plan resolution is a two-phase read (ADR-0001 Tier 2a / #838):
 /// <list type="number">
@@ -31,7 +32,7 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayPlan;
 /// The plan's <c>weeks</c> array itself must never be projected away entirely — doing so would
 /// collapse <see cref="PlanWindowResolver"/>'s week-count selector to zero for every plan.
 /// </remarks>
-public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodayPlanResponse>
+public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetTodayPlanResponse>
 {
     /// <summary>
     /// Phase-1 projection: plan-level fields plus per-week metadata only (weekNumber, status,
@@ -99,7 +100,7 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
         // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
         // the day-index calculation below on the client's local "today" rather than the
         // server's UTC day.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).

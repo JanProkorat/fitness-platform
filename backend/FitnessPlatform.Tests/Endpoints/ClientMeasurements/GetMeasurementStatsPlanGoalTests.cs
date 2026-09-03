@@ -79,7 +79,7 @@ public class GetMeasurementStatsPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, mongo);
+            db, mongo, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -114,7 +114,7 @@ public class GetMeasurementStatsPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, mongo);
+            db, mongo, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -154,7 +154,7 @@ public class GetMeasurementStatsPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, mongo);
+            db, mongo, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -187,7 +187,7 @@ public class GetMeasurementStatsPlanGoalTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, mongo);
+            db, mongo, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

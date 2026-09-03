@@ -102,7 +102,7 @@ public class MarkWorkoutIncompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -128,7 +128,7 @@ public class MarkWorkoutIncompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -166,7 +166,7 @@ public class MarkWorkoutIncompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -192,7 +192,7 @@ public class MarkWorkoutIncompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = Guid.NewGuid() },
@@ -226,7 +226,7 @@ public class MarkWorkoutIncompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId, Version = 1 },
@@ -243,7 +243,7 @@ public class MarkWorkoutIncompleteEndpointTests
 
         var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },

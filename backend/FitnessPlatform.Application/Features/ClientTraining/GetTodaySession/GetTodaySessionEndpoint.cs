@@ -40,11 +40,13 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// </remarks>
 /// <param name="blobStorage">Blob storage service — converts each session photo's stored BlobUrl
 /// into a short-lived pre-signed read URL before the response leaves the process (F9).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class GetTodaySessionEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     ISessionLockService lockService,
-    IBlobStorageService blobStorage) : EndpointWithoutRequest<GetTodaySessionResponse>
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider) : EndpointWithoutRequest<GetTodaySessionResponse>
 {
     /// <summary>
     /// Phase-1 projection: plan-level fields plus per-week metadata only (weekNumber, status,
@@ -113,7 +115,7 @@ public class GetTodaySessionEndpoint(
         // Resolve the client's local calendar day (#935) — every "today" comparison below (plan
         // window, current week, day-of-week, and the SessionExecution lookup date) anchors on
         // this rather than the server's UTC day.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Find the Active training plan whose date window contains today — a client may hold
         // several sequential, non-overlapping Active plans (#780).

@@ -67,7 +67,7 @@ public class GetMeasurementStatsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, CreateEmptyMongo());
+            db, CreateEmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -110,7 +110,7 @@ public class GetMeasurementStatsEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            db, CreateEmptyMongo());
+            db, CreateEmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -130,7 +130,7 @@ public class GetMeasurementStatsEndpointTests
         var ep = Factory.Create<GetMeasurementStatsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            db, CreateEmptyMongo());
+            db, CreateEmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

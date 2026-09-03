@@ -25,7 +25,8 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
-public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, ISessionLockService lockService, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetFullTrainingPlanResponse>
 {
     /// <inheritdoc />
@@ -72,7 +73,7 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         // Resolve the client's local calendar day (#935) — anchors the current-week
         // resolution below on the client's local "today" rather than the server's UTC day.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // ── 2. Fetch training plan (ownership check baked into filter) ────────────
         // Filtering on both ExternalId and ClientId means a plan belonging to

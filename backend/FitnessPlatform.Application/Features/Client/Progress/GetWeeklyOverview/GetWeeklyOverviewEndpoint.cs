@@ -14,7 +14,8 @@ namespace FitnessPlatform.Application.Features.Client.Progress.GetWeeklyOverview
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="db">Relational database context.</param>
-public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IApplicationDbContext db, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetWeeklyOverviewResponse>
 {
     /// <inheritdoc />
@@ -56,7 +57,7 @@ public class GetWeeklyOverviewEndpoint(IComplianceService complianceService, IAp
         // Resolve the client's local calendar day (#935) rather than the server's UTC day — a
         // Prague client at 00:30 local Monday (22:30 UTC Sunday) must see the NEW week's overview,
         // not last week's.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Calculate Monday of the current week (handle Sunday as day 0)
         var dayOfWeek = todayLocalUtc.DayOfWeek;

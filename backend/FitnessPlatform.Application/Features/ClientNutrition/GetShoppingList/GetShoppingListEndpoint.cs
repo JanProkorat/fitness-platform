@@ -17,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetShoppingList;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetShoppingListRequest, GetShoppingListResponse>
 {
     /// <inheritdoc />
@@ -65,7 +66,7 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
         var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
