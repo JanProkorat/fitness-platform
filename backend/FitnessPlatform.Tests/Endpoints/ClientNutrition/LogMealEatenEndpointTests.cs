@@ -52,7 +52,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = mealId },
@@ -93,7 +93,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         var photoUrls = new List<string>
         {
@@ -144,7 +144,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         // No PhotoBlobUrls or Note supplied — original quick-log path
         await ep.HandleAsync(
@@ -181,7 +181,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -203,7 +203,7 @@ public class LogMealEatenEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },
@@ -222,7 +222,7 @@ public class LogMealEatenEndpointTests
         var ep = Factory.Create<LogMealEatenEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db, Substitute.For<IRealtimeNotifier>());
+            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
 
         await ep.HandleAsync(
             new LogMealEatenRequest { MealId = Guid.NewGuid() },

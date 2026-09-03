@@ -74,7 +74,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -106,7 +106,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingLinkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingLinkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -134,7 +134,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -168,7 +168,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -193,7 +193,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -234,7 +234,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // exercise1 is already complete — idempotent no-op
         await ep.HandleAsync(
@@ -269,7 +269,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
@@ -312,7 +312,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest
@@ -349,7 +349,7 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // Should NOT throw; the broadcast exception is swallowed
         var act = async () => await ep.HandleAsync(

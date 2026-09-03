@@ -74,7 +74,7 @@ public class SaveSessionPhotosEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path: new log inserted

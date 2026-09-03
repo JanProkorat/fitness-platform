@@ -169,7 +169,7 @@ public class GetTodaySessionLoggedSetsTests
         return Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_userIdGuid, AppRoles.Client))),
-            mongo, db, lockService, new FakeBlobStorageService());
+            mongo, db, lockService, new FakeBlobStorageService(), TimeProvider.System);
     }
 
     private TrainingPlan BuildPlanWithSession(Guid sessionId, Guid exerciseId, int dow)

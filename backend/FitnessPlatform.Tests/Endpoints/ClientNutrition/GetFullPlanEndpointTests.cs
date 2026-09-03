@@ -30,7 +30,7 @@ public class GetFullPlanEndpointTests
         Factory.Create<GetFullPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
     /// <summary>
     /// AC #4 — Client endpoint must surface the Supplements list.

@@ -185,14 +185,14 @@ public class PlanPhotoUploadedSignalRTests
         Factory.Create<SaveMealPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _mealLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _mealLogger, new FakeBlobStorageService(), TimeProvider.System);
 
     private SaveDayPhotosEndpoint CreateSaveDayPhotosEndpoint(
         IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveDayPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _dayLogger, new FakeBlobStorageService());
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _dayLogger, new FakeBlobStorageService(), TimeProvider.System);
 
     // ════════════════════════════════════════════════════════════════════════════
     // FinalizePlanPhoto — nutrition plan

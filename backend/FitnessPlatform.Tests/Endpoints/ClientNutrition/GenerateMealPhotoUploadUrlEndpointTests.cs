@@ -36,7 +36,7 @@ public class GenerateMealPhotoUploadUrlEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerUserId ?? _clientId, AppRoles.Client))),
-            _imageUpload, mongo, db);
+            _imageUpload, mongo, db, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path tests
@@ -190,7 +190,7 @@ public class GenerateMealPhotoUploadUrlEndpointTests
         var db = CreateMockDb();
 
         // Create endpoint with no claims principal (unauthenticated)
-        var ep = Factory.Create<GenerateMealPhotoUploadUrlEndpoint>(_imageUpload, mongo, db);
+        var ep = Factory.Create<GenerateMealPhotoUploadUrlEndpoint>(_imageUpload, mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(new GenerateMealPhotoUploadUrlRequest
         {

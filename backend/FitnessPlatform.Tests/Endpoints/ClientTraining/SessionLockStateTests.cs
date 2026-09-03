@@ -187,7 +187,7 @@ public class SessionLockStateTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, lockService, new FakeBlobStorageService());
+            mongo, db, lockService, new FakeBlobStorageService(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -247,7 +247,7 @@ public class SessionLockStateTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, lockService, new FakeBlobStorageService());
+            mongo, db, lockService, new FakeBlobStorageService(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -374,7 +374,7 @@ public class SessionLockStateTests
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             mongo, db, notifier, compliance, lockService, DefaultLockOptions(),
             EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
-            NullLogger<MarkExerciseCompleteEndpoint>.Instance);
+            NullLogger<MarkExerciseCompleteEndpoint>.Instance, TimeProvider.System);
 
         // Completion now keys on the SessionExercise instance id alone — the parent workout is
         // no longer part of the key. This fixture sets ExerciseId == ExerciseExternalId on the

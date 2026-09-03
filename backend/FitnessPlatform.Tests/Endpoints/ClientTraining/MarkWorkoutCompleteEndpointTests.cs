@@ -109,7 +109,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -148,7 +148,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // Mark section complete again — idempotent
         await ep.HandleAsync(
@@ -181,7 +181,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
@@ -200,7 +200,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = Guid.NewGuid() },
@@ -234,7 +234,7 @@ public class MarkWorkoutCompleteEndpointTests
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest
@@ -256,7 +256,7 @@ public class MarkWorkoutCompleteEndpointTests
 
         var ep = Factory.Create<MarkWorkoutCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWorkoutCompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },

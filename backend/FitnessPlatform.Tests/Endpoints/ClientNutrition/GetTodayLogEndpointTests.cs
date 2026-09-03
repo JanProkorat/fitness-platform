@@ -88,7 +88,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -129,7 +129,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -184,7 +184,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -247,7 +247,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -304,7 +304,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -377,7 +377,7 @@ public class GetTodayLogEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -403,7 +403,7 @@ public class GetTodayLogEndpointTests
         var ep = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

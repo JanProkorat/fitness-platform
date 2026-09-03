@@ -315,7 +315,7 @@ public class GetTodaySessionEndpointTests
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService(), new FakeBlobStorageService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
     // -------------------------------------------------------------------------
     // #780 — date-window-aware plan resolution (multiple Active plans per client)
@@ -747,7 +747,7 @@ public class GetTodaySessionEndpointTests
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, CreateStubLockService(), new FakeBlobStorageService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -764,7 +764,7 @@ public class GetTodaySessionEndpointTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService(), new FakeBlobStorageService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -886,7 +886,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [log]),
-            db, CreateStubLockService(), new FakeBlobStorageService());
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1016,7 +1016,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db, CreateStubLockService(), new FakeBlobStorageService());
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1151,7 +1151,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db, CreateStubLockService(), new FakeBlobStorageService());
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1261,7 +1261,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, completions: [completionDoc]),
-            db, CreateStubLockService(), new FakeBlobStorageService());
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1403,7 +1403,7 @@ public class GetTodaySessionEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
             CreateMongoWithPlan(plan, completions: [completionDoc], workoutLogs: [partialLog]),
-            db, CreateStubLockService(), new FakeBlobStorageService());
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

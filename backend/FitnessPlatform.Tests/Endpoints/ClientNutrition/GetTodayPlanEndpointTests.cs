@@ -56,7 +56,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -78,7 +78,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -95,7 +95,7 @@ public class GetTodayPlanEndpointTests
         var ep = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -123,7 +123,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -149,7 +149,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -207,7 +207,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -239,7 +239,7 @@ public class GetTodayPlanEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 

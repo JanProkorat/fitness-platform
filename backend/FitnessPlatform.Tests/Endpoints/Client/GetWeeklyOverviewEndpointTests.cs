@@ -55,7 +55,7 @@ public class GetWeeklyOverviewEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            _complianceService, db);
+            _complianceService, db, TimeProvider.System);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -82,7 +82,7 @@ public class GetWeeklyOverviewEndpointTests
     {
         // Arrange — no user claims; db is never reached (401 short-circuits before the DB call)
         var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(_complianceService, db);
+        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(_complianceService, db, TimeProvider.System);
 
         // Act
         await ep.HandleAsync(TestContext.Current.CancellationToken);
