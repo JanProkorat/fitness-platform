@@ -164,12 +164,22 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
                 return;
             }
 
-            var totalDays = publishedWeeks.Count * 7;
+            // Dedupe by WeekNumber, keeping the FIRST document-order occurrence of each —
+            // this is exactly the element MongoDB's positional `weeks.$` projection returns
+            // for a given weekNumber in FetchHydratedWeekAsync below. Selecting by array
+            // POSITION here (as before #850) diverges from that key whenever a legacy plan
+            // holds duplicate weekNumber values, since publishedWeeks re-indexes after the
+            // Status filter and has no absolute-index equivalent for the positional match.
+            // Document order is preserved deliberately — do NOT sort by weekNumber, that
+            // would silently change which week a legacy plan resolves to.
+            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
+
+            var totalDays = distinctPublishedWeeks.Count * 7;
             var currentDayIndex = daysSincePublish % totalDays;
             var weekIndex = currentDayIndex / 7;
             dayIndex = currentDayIndex % 7;
 
-            week = publishedWeeks[weekIndex];
+            week = distinctPublishedWeeks[weekIndex];
         }
 
         // Phase 2: hydrate just the resolved week's day content. `week` up to this point only
@@ -178,6 +188,15 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db)
         if (hydratedWeek is null)
         {
             // Plan/week vanished between phase 1 and phase 2 (rare race) — same as "no plan".
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        if (dayIndex >= hydratedWeek.Days.Count)
+        {
+            // Legacy week hydrated with fewer than 7 days — treat as "no plan for today"
+            // rather than throwing IndexOutOfRangeException (matches GetTodayLogEndpoint's
+            // bounds-guarded day lookup).
             await Send.NotFoundAsync(ct);
             return;
         }

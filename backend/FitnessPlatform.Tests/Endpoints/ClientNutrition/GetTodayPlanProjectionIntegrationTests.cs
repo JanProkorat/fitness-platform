@@ -235,6 +235,103 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             "sibling weeks' meal content must never leak into the hydrated response");
     }
 
+    /// <summary>
+    /// Regression guard for #850. Seeds a legacy no-<c>StartDate</c> plan whose published weeks
+    /// carry a DUPLICATE weekNumber in document order — <c>wn=1 "A"</c>, <c>wn=1 "B"</c>,
+    /// <c>wn=2 "C"</c> — and asserts the legacy selection branch (<c>GetTodayPlanEndpoint</c>
+    /// lines ~157-183) and the phase-2 <c>weeks.$</c> hydration step resolve to the SAME week:
+    /// the FIRST document-order element with the matching weekNumber. Before the fix, the
+    /// selection branch picked <c>publishedWeeks[weekIndex]</c> by POSITION (would land on the
+    /// wn=1 "B" duplicate for day 0-6) while hydration always resolved wn=1 "A" — a silent
+    /// content mismatch, invisible to the mocked unit tests.
+    /// </summary>
+    [Fact]
+    public async Task GetTodayPlan_LegacyPlanWithDuplicateWeekNumbers_SelectionAndHydrationResolveSameWeek()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Dup", "Week", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            // GetTodayPlanEndpoint filters NutritionPlan.ClientId on ClientProfile.UserId (#840)
+            // — seed the plan with UserId, not PublicId.
+            clientUserId = user.Id;
+        }
+
+        // Legacy plan: no StartDate, published today so daysSincePublish == 0 — the legacy
+        // branch's dayIndex is `daysSincePublish % totalDays`, i.e. tied to days-elapsed-
+        // since-publish rather than calendar day-of-week, so day index 0 is the target here
+        // regardless of today's actual weekday. currentDayIndex == 0, weekIndex == 0 — the
+        // FIRST published week (document order) must be the one both the selector and the
+        // hydration step resolve to.
+        var datePublished = DateTime.UtcNow.Date;
+        const int targetDayIndex = 0;
+
+        var weekOneAMealId = Guid.NewGuid();
+        var weekOneBMealId = Guid.NewGuid();
+        var weekTwoMealId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+
+        var plan = new NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            NutritionistId = Guid.NewGuid(),
+            Name = "Legacy Duplicate Week Plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = null,
+            DatePublished = datePublished,
+            Version = 1,
+            DateCreated = datePublished,
+            Weeks =
+            [
+                BuildWeek(1, targetDayIndex, weekOneAMealId, "Week 1 Food A (target — first document-order wn=1)", datePublished),
+                BuildWeek(1, targetDayIndex, weekOneBMealId, "Week 1 Food B (duplicate — must never appear)", datePublished),
+                BuildWeek(2, targetDayIndex, weekTwoMealId, "Week 2 Food (must never appear)", datePublished)
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/nutrition/plan/today", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var body = await response.Content.ReadFromJsonAsync<TodayPlanResponseDto>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
+        body.WeekNumber.Should().Be(1);
+        body.DayOfWeek.Should().Be(1, "day index 0 (targetDayIndex) maps to BuildWeek's DayOfWeek=1");
+        body.Meals.Should().ContainSingle();
+
+        var hydratedMeal = body.Meals[0];
+        hydratedMeal.MealId.Should().Be(weekOneAMealId,
+            "selection and hydration must both resolve the FIRST document-order week with weekNumber=1 — " +
+            "the duplicate wn=1 sibling and wn=2 must never leak into the response");
+        hydratedMeal.Foods.Should().ContainSingle();
+        hydratedMeal.Foods[0].FoodName.Should().Be("Week 1 Food A (target — first document-order wn=1)");
+    }
+
     // ── Local response DTOs (per slice rules — not shared across features) ────────
 
     private record TodayPlanResponseDto(
