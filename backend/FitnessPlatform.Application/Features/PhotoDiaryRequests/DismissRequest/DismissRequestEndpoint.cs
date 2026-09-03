@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.PhotoDiaryRequests.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -51,7 +52,7 @@ public class DismissRequestEndpoint(
             .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
         // 404 if not found — do not leak existence for IDOR
-        if (request is null || !IsOwnedByClient(request, clientUserId, emailClaim))
+        if (request is null || !PhotoDiaryRequestOwnership.IsOwnedByClient(request, clientUserId, emailClaim))
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -101,21 +102,6 @@ public class DismissRequestEndpoint(
             Status = request.Status,
             DismissReason = request.DismissReason,
         }, ct);
-    }
-
-    private static bool IsOwnedByClient(
-        Domain.Entities.PhotoDiaryRequest request,
-        Guid clientUserId,
-        string? clientEmail)
-    {
-        if (request.Link is not null)
-            return request.Link.ClientProfile.UserId == clientUserId && request.Link.IsActive;
-
-        if (request.PendingInvite is not null && clientEmail is not null)
-            return string.Equals(request.PendingInvite.Email, clientEmail,
-                StringComparison.OrdinalIgnoreCase);
-
-        return false;
     }
 
     /// <summary>
