@@ -817,6 +817,155 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// #879 — both placements of the dual-placement fixture must carry prescribed sets so the
+    /// planned-vs-actual view has concrete prescription values, and so per-instance completion
+    /// (see <see cref="SeedAsync_DualPlacementCompletion_MarksOnlyStandaloneInstanceComplete"/>)
+    /// is observable rather than falling back to the pre-#877 set-based-only completion check.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementSession_BothInstancesHavePrescribedSets()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaDualPlacementSessionId);
+
+        var standaloneExercise = session.StandaloneExercises.Single(
+            e => e.ExerciseId == QaSeedRunner.QaDualPlacementStandaloneInstanceId);
+        standaloneExercise.Sets.Should().NotBeEmpty("the standalone placement must carry prescribed sets (#879)");
+
+        var workout = session.Workouts.Single(w => w.WorkoutId == QaSeedRunner.QaDualPlacementWorkoutId);
+        var nestedExercise = workout.Exercises.Single(e => e.ExerciseId == QaSeedRunner.QaDualPlacementNestedInstanceId);
+        nestedExercise.Sets.Should().NotBeEmpty("the nested placement must carry prescribed sets (#879)");
+    }
+
+    /// <summary>
+    /// #879 — a SessionExecution for the dual-placement fixture marks ONLY the standalone
+    /// instance complete, leaving the nested instance (sharing the same catalog exercise)
+    /// incomplete. This is what makes GetFullTrainingPlanEndpoint's per-instance completion
+    /// lookup (CompletedExerciseInstanceIds) observably distinguish the two placements.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementCompletion_MarksOnlyStandaloneInstanceComplete()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var execution = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaSeedRunner.QaDualPlacementSessionExecutionId)
+            .FirstOrDefaultAsync(ct);
+
+        execution.Should().NotBeNull("the #879 dual-placement completion fixture must be seeded");
+        execution!.ClientId.Should().Be(QaSeedRunner.ClientUserId);
+        execution.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
+        execution.SessionId.Should().Be(QaSeedRunner.QaDualPlacementSessionId);
+        execution.CompletedExerciseInstanceIds.Should().ContainSingle()
+            .Which.Should().Be(QaSeedRunner.QaDualPlacementStandaloneInstanceId,
+                "only the standalone instance must be marked complete");
+        execution.CompletedExerciseInstanceIds.Should().NotContain(QaSeedRunner.QaDualPlacementNestedInstanceId,
+            "the nested instance must remain incomplete so the two placements are distinguishable");
+    }
+
+    /// <summary>
+    /// Seeding twice must not duplicate the #879 dual-placement completion SessionExecution.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementCompletion_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var count = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, QaSeedRunner.QaDualPlacementSessionExecutionId),
+            cancellationToken: ct);
+        count.Should().Be(1, "the dual-placement completion SessionExecution must not be duplicated on re-seed");
+    }
+
+    /// <summary>
+    /// #946 — the QA client-nutritionist link must carry at least two PhotoDiaryRequest rows:
+    /// one scoped to the seeded QA nutrition plan, one deliberately plan-less. Both must be
+    /// Status=Accepted (reachable from the client app's active-request list, which filters
+    /// {Accepted, InProgress}) with a non-null Mode/AcceptedAt as the CHECK constraints require.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PhotoDiaryRequestFixture_HasWithPlanAndPlanlessAcceptedRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == QaSeedRunner.ClientUserId, ct);
+        var nutriProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == QaSeedRunner.NutriUserId, ct);
+        var nutriLink = await db.ClientProfessionalLinks.FirstAsync(
+            l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id, ct);
+
+        var withPlanRequest = await db.PhotoDiaryRequests
+            .FirstOrDefaultAsync(r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId, ct);
+        withPlanRequest.Should().NotBeNull("the with-plan PhotoDiaryRequest fixture must be seeded");
+        withPlanRequest!.LinkId.Should().Be(nutriLink.Id);
+        withPlanRequest.PendingInviteId.Should().BeNull("LinkId/PendingInviteId is an XOR CHECK constraint");
+        withPlanRequest.PlanId.Should().Be(QaSeedRunner.QaNutritionPlanExternalId);
+        withPlanRequest.Status.Should().Be(PhotoDiaryStatus.Accepted);
+        withPlanRequest.Mode.Should().NotBeNull("Mode must be non-null when Status=Accepted (CHECK constraint)");
+        withPlanRequest.AcceptedAt.Should().NotBeNull("AcceptedAt must be non-null when Status=Accepted (CHECK constraint)");
+
+        var planlessRequest = await db.PhotoDiaryRequests
+            .FirstOrDefaultAsync(r => r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId, ct);
+        planlessRequest.Should().NotBeNull("the plan-less PhotoDiaryRequest fixture must be seeded");
+        planlessRequest!.LinkId.Should().Be(nutriLink.Id);
+        planlessRequest.PendingInviteId.Should().BeNull("LinkId/PendingInviteId is an XOR CHECK constraint");
+        planlessRequest.PlanId.Should().BeNull(
+            "a plan-less request is a legitimate backend state per PhotoDiaryRequest.PlanId's own doc comment");
+        planlessRequest.Status.Should().Be(PhotoDiaryStatus.Accepted);
+        planlessRequest.Mode.Should().NotBeNull("Mode must be non-null when Status=Accepted (CHECK constraint)");
+        planlessRequest.AcceptedAt.Should().NotBeNull("AcceptedAt must be non-null when Status=Accepted (CHECK constraint)");
+    }
+
+    /// <summary>
+    /// Seeding twice must not duplicate the #946 PhotoDiaryRequest fixture rows.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PhotoDiaryRequestFixture_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var count = await db.PhotoDiaryRequests.CountAsync(
+            r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId || r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId,
+            ct);
+        count.Should().Be(2, "the two PhotoDiaryRequest fixture rows must not be duplicated on re-seed");
+    }
+
+    /// <summary>
     /// The completed SessionExecution seeded for the main QA plan must exercise all four
     /// planned-vs-actual set cases in a single session:
     ///

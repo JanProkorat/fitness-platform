@@ -1914,12 +1914,13 @@ public class GetFullTrainingPlanIntegrationTests(FitnessApiFactory factory)
 
     /// <summary>
     /// #877 (set-less exercise gap): builds a dual-placement session — one catalog exercise both
-    /// standalone and nested in a workout — where BOTH placements have ZERO prescribed sets,
-    /// mirroring the QA fixture's shape (<c>QaSeedRunner.QaDualPlacementSessionId</c>). Before
-    /// #877, <c>isCompleted</c> required <c>setDtos.Count &gt; 0</c>, so a set-less
-    /// checkbox-completed exercise could never report complete — this test would have failed
-    /// (both instances always false) under that logic. Only the standalone instance is
-    /// checkbox-completed here; the nested instance must stay incomplete.
+    /// standalone and nested in a workout — where BOTH placements have ZERO prescribed sets, the
+    /// shape the QA fixture (<c>QaSeedRunner.QaDualPlacementSessionId</c>) had before #879 gave it
+    /// prescribed sets of its own. Before #877, <c>isCompleted</c> required
+    /// <c>setDtos.Count &gt; 0</c>, so a set-less checkbox-completed exercise could never report
+    /// complete — this test would have failed (both instances always false) under that logic.
+    /// Only the standalone instance is checkbox-completed here; the nested instance must stay
+    /// incomplete.
     /// </summary>
     [Fact]
     public async Task GetFullPlan_DualPlacementSetlessExercise_OnlyStandaloneCheckboxCompleted_OnlyThatInstanceReportsCompleted()
