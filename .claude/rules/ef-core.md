@@ -4,15 +4,11 @@ description: EF Core rules for entities, DbContext, and queries
 
 # EF Core Rules
 
-> Partially reconciled against the codebase. #entities, #primary-keys and
-> #date-types were measured in #937 (on `develop` at `dc990021`);
-> #enum-storage was measured and rewritten in #593, where the previous
-> version of that section — which prescribed a global string-enum convention
-> this codebase has never had — nearly produced a destructive ~30-table
-> migration. Those four describe what
-> `backend/FitnessPlatform.Application` actually does. The remaining sections
-> have not been audited against the code; treat them as guidance, not as
-> verified description.
+> Partially reconciled against the codebase in #937 — #entities,
+> #primary-keys and #date-types now describe what
+> `backend/FitnessPlatform.Application/Domain` actually does (measured on
+> `develop` at `dc990021`). The remaining sections have not been audited
+> against the code; treat them as guidance, not as verified description.
 
 ## Entities
 
@@ -86,63 +82,11 @@ builder.HasIndex(x => new { x.Status, x.CreatedAt });
 
 Descriptive name (rules/naming.md#migrations). Review generated SQL before committing — check for destructive ops (column drops, renames EF translates as drop+recreate).
 
-## Enum storage
+## Enums as strings
 
-> **Descriptive.** Measured against `backend/FitnessPlatform.Application` while
-> implementing #593. This section previously prescribed a global
-> string-conversion convention the codebase has never had; it was reconciled
-> after the stale rule nearly produced a destructive migration.
-
-**There is no global enum convention.** `ApplicationDbContext` has no
-`ConfigureConventions` override, and `HaveConversion` appears **0** times in
-the backend. The rule this section used to give —
-`configurationBuilder.Properties<Enum>().HaveConversion<string>()` — was never
-in force here.
-
-**Integer is the default, and what you get by omission.** An enum property with
-no explicit configuration is stored by EF Core as `integer`, and that is how
-the large majority of enum columns in this schema are stored — e.g.
-`ProfessionalProfile.ProfessionalRole` and `ClientRequest.Status` both appear
-as `b.Property<int>(...)` with `HasColumnType("integer")` in
-`ApplicationDbContextModelSnapshot.cs`.
-
-**String is a deliberate per-property opt-in**, used in exactly these places
-(all in `Infrastructure/Data/ApplicationDbContext.cs`):
-
-| Property | Line |
-|---|---|
-| `WeeklyCheckInSetting.Profession` | 190 |
-| `WeeklyCheckInClientOverride.Profession` | 202 |
-| `WeeklyCheckIn.Profession` | 217 |
-| `WeeklyCheckIn.Status` (+ `HasDefaultValue`) | 218 |
-| `PlanPhoto.Category` | 253 |
-| `PlanPhoto.PlanType` | 254 |
-
-`WeeklyCheckIn.Flags` (:229) is a third form — a custom `ValueConverter`
-serialising `List<CheckInFlag>` to a `jsonb` array of flag-name strings.
-
-Two properties pin `integer` explicitly instead of relying on the default:
-`PhotoDiaryRequestConfiguration.cs:32` and `:36`. Both forms are fine.
-
-### What to do for a new enum
-
-Default to **integer** — declare the property, add no conversion. Opt into
-`HasConversion<string>()` per property only when the column's readability in
-raw SQL genuinely matters, and say why.
-
-**Never add a global `Properties<Enum>().HaveConversion<string>()`
-convention.** It rewrites every existing integer enum column in a single
-migration — a destructive, data-losing `AlterColumn` sweep across roughly 30
-entities, and easy to miss inside a migration diff. If one is ever genuinely
-wanted, it is its own issue with its own data-migration plan, never a side
-effect of adding an entity.
-
-Changing an existing enum column's storage is likewise a destructive
-migration, not a style fix.
-
-**Always read the generated `Up()` after `dotnet ef migrations add`.** If it
-contains an `AlterColumn` on a table you did not touch, an unintended
-convention change has slipped in — stop and fix it before committing.
+```csharp
+configurationBuilder.Properties<Enum>().HaveConversion<string>(); // globally in ConfigureConventions
+```
 
 ## Asnotracking
 
