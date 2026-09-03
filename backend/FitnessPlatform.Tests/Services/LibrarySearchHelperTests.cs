@@ -144,6 +144,36 @@ public class LibrarySearchHelperTests : IAsyncLifetime
         ep.HttpContext.Response.Headers["X-Total-Count"].ToString().Should().Be("2");
     }
 
+    /// <summary>
+    /// Mirrors <see cref="LibraryAccessGuardTests.CanRead_EmptyCallerIdMatchingEmptyOwnerId_ReturnsFalse"/>
+    /// at the query level (issue #904). A document whose <c>ownerId</c> field is absent
+    /// deserializes to <see cref="Guid.Empty"/> — but a Mongo equality match on a non-null value
+    /// does NOT match a document whose <c>ownerId</c> field is merely absent, so this entry must
+    /// explicitly store <see cref="Guid.Empty"/> as its owner id to exercise the hazard the
+    /// helper defends against (an omitted <c>ownerId</c> would pass before the fix too and prove
+    /// nothing). A caller id of <see cref="Guid.Empty"/> must not match this Private entry, while
+    /// still seeing an unrelated Public entry.
+    /// </summary>
+    [Fact]
+    public async Task SearchAsync_EmptyCallerId_ExcludesPrivateEntryWithZeroUuidOwner_ButIncludesPublic()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var zeroOwnerPrivate = MakeEntry(Guid.Empty, "Zero Owner Private");
+        var othersPublic = MakeEntry(Guid.NewGuid(), "Others Public", LibraryVisibility.Public);
+
+        await _collection.InsertManyAsync([zeroOwnerPrivate, othersPublic], cancellationToken: ct);
+
+        var ep = Factory.Create<LibrarySearchProbeEndpoint>();
+
+        var (items, totalCount) = await ep.SearchAsync(
+            _collection, Guid.Empty, d => d.Name, search: null,
+            page: 1, pageSize: 20, extraFilter: null, ct: ct);
+
+        totalCount.Should().Be(1);
+        items.Select(i => i.Name).Should().BeEquivalentTo(["Others Public"]);
+    }
+
     [Fact]
     public async Task SearchAsync_SearchTermWithRegexMetacharacters_MatchesOnlyLiteralText()
     {
