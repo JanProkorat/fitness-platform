@@ -361,4 +361,14 @@ public static class ErrorCodes
 
     /// <summary>Training plan template version mismatch (optimistic concurrency).</summary>
     public const string TrainingPlanTemplateVersionConflict = "TRAINING_PLAN_TEMPLATE_VERSION_CONFLICT";
+
+    // ── Subscription Plans (#595) ───────────────────────────────────
+    /// <summary>A subscription plan with this Code already exists.</summary>
+    public const string SubscriptionPlanCodeAlreadyExists = "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS";
+
+    /// <summary>Subscription plan not found for the given Code.</summary>
+    public const string SubscriptionPlanNotFound = "SUBSCRIPTION_PLAN_NOT_FOUND";
+
+    /// <summary>Currency is not one of the platform's supported billing currencies.</summary>
+    public const string UnsupportedCurrency = "UNSUPPORTED_CURRENCY";
 }
