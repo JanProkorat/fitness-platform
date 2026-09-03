@@ -36,7 +36,12 @@ public class GetClientPhotoDiaryRequestEndpoint(IApplicationDbContext db)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         var emailClaim = User.FindFirstValue(AppClaims.Email);
-        if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
         var clientUserId = Guid.Parse(userId);
 
         var request = await db.PhotoDiaryRequests

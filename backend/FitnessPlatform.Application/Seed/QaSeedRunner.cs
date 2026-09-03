@@ -2517,11 +2517,17 @@ public static class QaSeedRunner
     /// <summary>
     /// #946 — seeds two <see cref="PhotoDiaryRequest"/> rows on the nutritionist↔client link
     /// (created by <see cref="EnsureNutritionistQuestionnaireFixtureAsync"/>, which MUST run
-    /// first) so every photo-diary screen (bulk/workflow/finalize/index/dismiss) has a
-    /// navigable requestId: one scoped to the seeded QA nutrition plan, one deliberately
-    /// plan-less — a legitimate backend state per <see cref="PhotoDiaryRequest.PlanId"/>'s own
-    /// doc comment, not a synthetic edge case. Both rows are Status=Accepted so they surface
-    /// on the client app's active-request list (mobile filters {Accepted, InProgress}).
+    /// first) so a navigable requestId exists for the index/detail (list, get-by-id) and the
+    /// finalize (photo upload) screens: one scoped to the seeded QA nutrition plan, one
+    /// deliberately plan-less — a legitimate backend state per
+    /// <see cref="PhotoDiaryRequest.PlanId"/>'s own doc comment, not a synthetic edge case. Both
+    /// rows are Status=Accepted so they surface on the client app's active-request list (mobile
+    /// filters {Accepted, InProgress}) and are eligible for FinalizePlanPhotoEndpoint (Accepted or
+    /// InProgress). This does NOT make the accept screen (either PhotoDiaryMode — bulk or
+    /// workflow) or the dismiss screen drivable: both AcceptRequestEndpoint and
+    /// DismissRequestEndpoint reject any request whose Status isn't Pending, so an
+    /// already-Accepted row 409s on both. Driving those two screens needs a third, Pending-status
+    /// fixture row — not attempted here.
     /// Re-resolves the nutritionist↔client link by (clientProfile.Id, nutriProfile.Id) — its
     /// Id is DB-generated and only ever held as a local inside
     /// EnsureNutritionistQuestionnaireFixtureAsync, never published as a Qa* constant.
