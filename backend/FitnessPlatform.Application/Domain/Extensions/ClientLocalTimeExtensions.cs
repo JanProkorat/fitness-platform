@@ -42,7 +42,7 @@ public static class ClientLocalTimeExtensions
     /// <see cref="ClientLocalDateResolver.ResolveLocalDateUtcMidnight"/>. The instant is a
     /// required parameter (#955) so a caller's injected <see cref="TimeProvider"/> — and,
     /// symmetrically, a test's fixed clock — controls the "now" this resolves against; there is
-    /// no <see cref="DateTime.UtcNow"/> fallback.
+    /// no wall-clock fallback.
     /// </summary>
     public static async Task<DateTime> ResolveClientLocalDateUtcAsync(
         this IApplicationDbContext db,

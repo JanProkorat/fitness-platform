@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Client.Progress.GetWeeklyOverview;
 using FitnessPlatform.Tests.Builders;
 using NSubstitute;
@@ -89,5 +90,60 @@ public class GetWeeklyOverviewEndpointTests
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(401);
+    }
+
+    /// <summary>
+    /// #955 boundary case: a Prague client at 00:30 LOCAL time Monday (22:30 UTC Sunday) must see
+    /// the CURRENT local week (weekStart = that Monday), not the previous week. The pinned instant
+    /// is deliberately a summer (CEST, UTC+2) Sunday — under a winter (CET, UTC+1) instant the same
+    /// UTC-derived weekday is still Sunday and the test would pass under the pre-#955 broken code
+    /// too, proving nothing. Under the OLD <c>DateTime.UtcNow</c>-based derivation, the UTC day is
+    /// still Sunday, so <c>daysToMonday</c> resolves to 6 and weekStart lands on the PREVIOUS
+    /// Monday (2026-06-29) — this test fails under that code.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_PragueClientAt0030LocalMonday_ReturnsCurrentWeekNotPrevious()
+    {
+        // 2026-07-05 22:30 UTC == 2026-07-06 00:30 in Europe/Prague (CEST, UTC+2 in July).
+        var fixedInstantUtc = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc);
+        var fixedTimeProvider = new FixedTimeProvider(fixedInstantUtc);
+        var pragueTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Prague");
+
+        // Precondition sanity check: the chosen instant genuinely straddles the local-midnight
+        // boundary — proves this isn't a winter date that would neuter the test (see remarks).
+        ClientLocalDateResolver.ResolveLocalDateUtcMidnight(fixedInstantUtc, pragueTimeZone)
+            .Should().Be(new DateTime(2026, 7, 6, 0, 0, 0, DateTimeKind.Utc),
+                "22:30 UTC in July is already past midnight in Europe/Prague (CEST, UTC+2)");
+
+        _complianceService.CalculateComplianceAsync(
+                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 0m });
+        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
+            .Returns(0);
+        _complianceService.CalculateAverageMacrosAsync(
+                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new NutrientTotals());
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .With(new ApplicationUser { Id = _clientId, TimeZone = "Europe/Prague" })
+            .Build();
+
+        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            _complianceService, db, fixedTimeProvider);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // Fixed (correct): the CURRENT local week's Monday. Reverted (broken, UTC-derived): the
+        // PREVIOUS Monday, 2026-06-29.
+        ep.Response.WeekStart.Should().Be(new DateTime(2026, 7, 6, 0, 0, 0, DateTimeKind.Utc));
+        ep.Response.WeekEnd.Should().Be(new DateTime(2026, 7, 12, 0, 0, 0, DateTimeKind.Utc));
+
+        await _complianceService.Received(1).CalculateStreakAsync(
+            _clientId, new DateOnly(2026, 7, 6), Arg.Any<CancellationToken>());
     }
 }
