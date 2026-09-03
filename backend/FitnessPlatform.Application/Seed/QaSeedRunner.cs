@@ -221,6 +221,18 @@ public static class QaSeedRunner
     public static readonly Guid QaDualPlacementStandaloneInstanceId  = new("00000000-0000-0001-cccc-000000000004");
     public static readonly Guid QaDualPlacementNestedInstanceId      = new("00000000-0000-0001-cccc-000000000005");
 
+    // #879 — SessionExecution marking ONLY the standalone occurrence of the dual-placement
+    // fixture complete, so the two instance placements are observably distinguishable via
+    // GET /client/training/plans/{planId} instead of requiring an interactive drive.
+    public static readonly Guid QaDualPlacementSessionExecutionId = new("00000000-0000-0001-cccc-000000000006");
+
+    // #946 — Photo diary request fixtures on the nutritionist<->client link. Both are
+    // Status=Accepted so they surface on the client app's active-request list. One is
+    // scoped to the seeded QA nutrition plan; the other is deliberately plan-less — a
+    // legitimate backend state per PhotoDiaryRequest.PlanId's own doc comment.
+    public static readonly Guid QaPhotoDiaryRequestWithPlanId  = new("00000000-0000-0000-9999-000000000001");
+    public static readonly Guid QaPhotoDiaryRequestPlanlessId  = new("00000000-0000-0000-9999-000000000002");
+
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
     // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
@@ -406,6 +418,10 @@ public static class QaSeedRunner
             // Main-plan completed WorkoutLog — exercises four planned-vs-actual set cases (#457).
             await EnsureMainPlanWorkoutLogAsync(mongo, logger);
 
+            // #879 — completion flag on the dual-placement fixture (QaDualPlacementSessionId)
+            // so the standalone instance's completion is distinguishable from the nested one's.
+            await EnsureDualPlacementCompletionAsync(mongo, logger);
+
             // Past-dated training plan — three sessions in distinct completion states for #326.
             await EnsurePastTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
@@ -431,6 +447,11 @@ public static class QaSeedRunner
             // by the QA nutritionist, linked to the nutrition plan created
             // above (replacing the trainer-owned link #715 used to set there).
             await EnsureNutritionistQuestionnaireFixtureAsync(db, mongo, logger);
+
+            // #946 — Photo diary request fixtures on the nutritionist<->client link. Must
+            // run AFTER EnsureNutritionistQuestionnaireFixtureAsync, which is what creates
+            // that link.
+            await EnsurePhotoDiaryRequestsFixtureAsync(db, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
@@ -855,6 +876,13 @@ public static class QaSeedRunner
                                                 ExerciseName       = "QA Wall Ball",
                                                 Order              = 1,
                                                 MovementType       = MovementType.Reps,
+                                                // #879 — prescribed sets so per-instance completion
+                                                // (via EnsureDualPlacementCompletionAsync) is observable.
+                                                Sets =
+                                                [
+                                                    new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                                    new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                                ],
                                             },
                                         ],
                                     },
@@ -868,6 +896,13 @@ public static class QaSeedRunner
                                         ExerciseName       = "QA Wall Ball",
                                         Order              = 1,
                                         MovementType       = MovementType.Reps,
+                                        // #879 — prescribed sets so per-instance completion
+                                        // (via EnsureDualPlacementCompletionAsync) is observable.
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                            new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                        ],
                                     },
                                 ],
                             },
@@ -2431,5 +2466,131 @@ public static class QaSeedRunner
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
         return ms.ToArray();
+    }
+
+    /// <summary>
+    /// #879 — seeds a completed <see cref="SessionExecution"/> for
+    /// <see cref="QaDualPlacementSessionId"/> that marks ONLY the standalone occurrence
+    /// (<see cref="QaDualPlacementStandaloneInstanceId"/>) complete, leaving the nested
+    /// occurrence (<see cref="QaDualPlacementNestedInstanceId"/>) incomplete. Both share the
+    /// same catalog exercise (<see cref="QaDualPlacementExerciseId"/>) but carry distinct
+    /// instance ids (#857 phase 3b), so <c>GetFullTrainingPlanEndpoint</c>'s per-instance
+    /// completion lookup (<c>CompletedExerciseInstanceIds</c>) must report the two placements
+    /// differently — this fixture makes that distinction observable via
+    /// GET /client/training/plans/{planId} instead of requiring an interactive drive.
+    /// Gated to the Rich seed path only; never created for the Minimal kind.
+    /// </summary>
+    private static async Task EnsureDualPlacementCompletionAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaDualPlacementSessionExecutionId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA DualPlacement SessionExecution already present: externalId={ExternalId}", QaDualPlacementSessionExecutionId);
+            return;
+        }
+
+        var completedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(9);
+        var execution = new SessionExecution
+        {
+            ExternalId  = QaDualPlacementSessionExecutionId,
+            // ClientId = ApplicationUser.Id — mirrors EnsureMainPlanWorkoutLogAsync's convention.
+            ClientId    = ClientUserId,
+            PlanId      = QaTrainingPlanExternalId,
+            SessionId   = QaDualPlacementSessionId,
+            Date        = SessionExecution.ToCompletionDateUtc(completedAt),
+            Status      = SessionExecutionStatus.Partial,
+            DateCreated = completedAt,
+            DateUpdated = completedAt,
+            CompletedExerciseInstanceIds = [QaDualPlacementStandaloneInstanceId],
+        };
+
+        await mongo.SessionExecutions.InsertOneAsync(execution);
+        logger.LogInformation(
+            "QA DualPlacement SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId} completedInstanceId={CompletedInstanceId}",
+            QaDualPlacementSessionExecutionId, QaTrainingPlanExternalId, QaDualPlacementSessionId, QaDualPlacementStandaloneInstanceId);
+    }
+
+    /// <summary>
+    /// #946 — seeds two <see cref="PhotoDiaryRequest"/> rows on the nutritionist↔client link
+    /// (created by <see cref="EnsureNutritionistQuestionnaireFixtureAsync"/>, which MUST run
+    /// first) so every photo-diary screen (bulk/workflow/finalize/index/dismiss) has a
+    /// navigable requestId: one scoped to the seeded QA nutrition plan, one deliberately
+    /// plan-less — a legitimate backend state per <see cref="PhotoDiaryRequest.PlanId"/>'s own
+    /// doc comment, not a synthetic edge case. Both rows are Status=Accepted so they surface
+    /// on the client app's active-request list (mobile filters {Accepted, InProgress}).
+    /// Re-resolves the nutritionist↔client link by (clientProfile.Id, nutriProfile.Id) — its
+    /// Id is DB-generated and only ever held as a local inside
+    /// EnsureNutritionistQuestionnaireFixtureAsync, never published as a Qa* constant.
+    /// Gated to the Rich seed path only; never created for the Minimal kind.
+    /// </summary>
+    private static async Task EnsurePhotoDiaryRequestsFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(cp => cp.UserId == ClientUserId)
+            ?? throw new InvalidOperationException("QA ClientProfile must be seeded before the photo diary requests fixture.");
+        var nutriProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(pp => pp.UserId == NutriUserId)
+            ?? throw new InvalidOperationException("QA nutri ProfessionalProfile must be seeded before the photo diary requests fixture.");
+
+        var nutriLink = await db.ClientProfessionalLinks
+            .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id)
+            ?? throw new InvalidOperationException(
+                "QA nutritionist<->client link must be seeded before the photo diary requests fixture — " +
+                "EnsureNutritionistQuestionnaireFixtureAsync must run first.");
+
+        var requestIds = new[] { QaPhotoDiaryRequestWithPlanId, QaPhotoDiaryRequestPlanlessId };
+
+        var existingIds = (await db.PhotoDiaryRequests
+            .Where(r => requestIds.Contains(r.Id))
+            .Select(r => r.Id)
+            .ToListAsync())
+            .ToHashSet();
+
+        if (existingIds.Count == requestIds.Length)
+        {
+            logger.LogInformation("QA PhotoDiaryRequest fixtures already present ({Count}), skipping.", existingIds.Count);
+            return;
+        }
+
+        var acceptedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        var requests = new List<PhotoDiaryRequest>
+        {
+            new()
+            {
+                Id             = QaPhotoDiaryRequestWithPlanId,
+                ProfessionalId = NutriUserId,
+                LinkId         = nutriLink.Id,
+                PlanId         = QaNutritionPlanExternalId,
+                DurationDays   = 7,
+                Mode           = PhotoDiaryMode.Bulk,
+                Status         = PhotoDiaryStatus.Accepted,
+                AcceptedAt     = acceptedAt,
+                CreatedAt      = acceptedAt,
+                UpdatedAt      = acceptedAt,
+            },
+            new()
+            {
+                Id             = QaPhotoDiaryRequestPlanlessId,
+                ProfessionalId = NutriUserId,
+                LinkId         = nutriLink.Id,
+                PlanId         = null,
+                DurationDays   = 7,
+                Mode           = PhotoDiaryMode.Workflow,
+                Status         = PhotoDiaryStatus.Accepted,
+                AcceptedAt     = acceptedAt,
+                CreatedAt      = acceptedAt,
+                UpdatedAt      = acceptedAt,
+            },
+        };
+
+        var toInsert = requests.Where(r => !existingIds.Contains(r.Id)).ToList();
+        db.PhotoDiaryRequests.AddRange(toInsert);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA PhotoDiaryRequest fixtures created: {Count} inserted, linkId={LinkId}", toInsert.Count, nutriLink.Id);
     }
 }
