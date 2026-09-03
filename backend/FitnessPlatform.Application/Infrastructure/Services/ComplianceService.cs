@@ -353,10 +353,8 @@ public class ComplianceService : IComplianceService
             return false;
         }
 
-        var dateUtc = date.Date == date ? date : date.Date;
-
         var filter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
-                     & Builders<SessionExecution>.Filter.Eq(c => c.Date, dateUtc)
+                     & Builders<SessionExecution>.Filter.Eq(c => c.Date, date.Date)
                      & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, session.SessionId);
 
         using var cursor = await _mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);

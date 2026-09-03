@@ -22,7 +22,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayDayLog;
 /// <param name="db">Relational database context.</param>
 /// <param name="blobStorage">Blob storage service — converts each photo's stored BlobUrl into a
 /// short-lived pre-signed read URL before the response leaves the process (F9).</param>
-public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
     : EndpointWithoutRequest<GetTodayDayLogResponse>
 {
     /// <inheritdoc />
@@ -67,7 +68,7 @@ public class GetTodayDayLogEndpoint(IMongoContext mongo, IApplicationDbContext d
         // Resolve the client's local calendar day (#935) — todayUtc anchors LogDate-style
         // equality checks; windowStartUtc/windowEndUtc anchor the legacy EatenAt instant-range
         // filter so a meal logged near local midnight lands in the correct local day's window.
-        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Resolve the client's Active plan whose date window contains today to scope the lookup —
         // a client may hold several sequential, non-overlapping Active plans (#780).

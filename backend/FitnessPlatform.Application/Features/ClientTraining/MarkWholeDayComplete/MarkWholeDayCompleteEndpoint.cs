@@ -31,6 +31,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkWholeDayComple
 /// <param name="lockOptions">Training lock TTL configuration.</param>
 /// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class MarkWholeDayCompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
@@ -39,7 +40,8 @@ public class MarkWholeDayCompleteEndpoint(
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
     IClientLinkAuthorizationService linkAuthorizationService,
-    ILogger<MarkWholeDayCompleteEndpoint> logger)
+    ILogger<MarkWholeDayCompleteEndpoint> logger,
+    TimeProvider timeProvider)
     : Endpoint<MarkWholeDayCompleteRequest, MarkWholeDayCompleteResponse>
 {
     /// <inheritdoc />
@@ -79,7 +81,7 @@ public class MarkWholeDayCompleteEndpoint(
 
         // req.Date is never populated by the client in practice — the fallback resolves the
         // CLIENT's local calendar day (#935) rather than the server's UTC day.
-        var targetDateOnly = req.Date ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, ct));
+        var targetDateOnly = req.Date ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct));
         var targetDate = targetDateOnly.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Find the Active training plan whose date window contains the target date — a client

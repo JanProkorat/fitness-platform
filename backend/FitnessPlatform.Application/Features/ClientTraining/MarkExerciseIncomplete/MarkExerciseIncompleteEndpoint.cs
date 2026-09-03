@@ -24,13 +24,15 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomp
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
 /// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class MarkExerciseIncompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
     IClientLinkAuthorizationService linkAuthorizationService,
-    ILogger<MarkExerciseIncompleteEndpoint> logger)
+    ILogger<MarkExerciseIncompleteEndpoint> logger,
+    TimeProvider timeProvider)
     : Endpoint<MarkExerciseIncompleteRequest, MarkExerciseIncompleteResponse>
 {
     /// <inheritdoc />
@@ -70,7 +72,7 @@ public class MarkExerciseIncompleteEndpoint(
 
         // req.CompletedOn is never populated by the client in practice — the fallback resolves
         // the CLIENT's local calendar day (#935) rather than the server's UTC day.
-        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, ct)))
+        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct)))
             .ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
         // Validate the session belongs to the client's Active plan whose date window contains

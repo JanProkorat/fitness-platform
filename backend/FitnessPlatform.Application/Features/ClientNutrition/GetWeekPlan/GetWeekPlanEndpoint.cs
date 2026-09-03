@@ -17,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetWeekPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetWeekPlanResponse>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetWeekPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -58,7 +59,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
         // the week calculation below on the client's local "today" rather than the server's
         // UTC day.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).

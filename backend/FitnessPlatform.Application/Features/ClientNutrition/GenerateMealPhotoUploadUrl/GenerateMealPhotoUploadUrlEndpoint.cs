@@ -21,10 +21,12 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GenerateMealPhoto
 /// <param name="imageUpload">Image upload service — validates content type and size, then issues the signed URL.</param>
 /// <param name="mongo">MongoDB context for ownership verification.</param>
 /// <param name="db">Relational database context for client profile lookup.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class GenerateMealPhotoUploadUrlEndpoint(
     IImageUploadService imageUpload,
     IMongoContext mongo,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    TimeProvider timeProvider)
     : Endpoint<GenerateMealPhotoUploadUrlRequest, GenerateMealPhotoUploadUrlResponse>
 {
     /// <inheritdoc />
@@ -75,7 +77,7 @@ public class GenerateMealPhotoUploadUrlEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
         var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)

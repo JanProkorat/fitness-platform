@@ -18,7 +18,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.UnlogMealEaten;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing SignalR events.</param>
-public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db, IRealtimeNotifier notifier) : Endpoint<UnlogMealEatenRequest>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext db, IRealtimeNotifier notifier, TimeProvider timeProvider) : Endpoint<UnlogMealEatenRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -63,7 +64,7 @@ public class UnlogMealEatenEndpoint(IMongoContext mongo, IApplicationDbContext d
         // Uses the same OR pattern as GetTodayLog and SaveMealPhotos to find all log
         // variants: modern records (LogDate == today), photo-only records (EatenAt null,
         // LogDate == today), and legacy records (LogDate = default, EatenAt in today's window).
-        var (today, windowStart, windowEnd) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var (today, windowStart, windowEnd) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         var filter = Builders<MealLog>.Filter.And(
             Builders<MealLog>.Filter.Eq(l => l.ClientId, clientId),

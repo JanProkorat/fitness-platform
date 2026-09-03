@@ -14,7 +14,8 @@ namespace FitnessPlatform.Application.Features.Client.Progress.GetComplianceScor
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="db">Relational database context.</param>
-public class GetComplianceScoreEndpoint(IComplianceService complianceService, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetComplianceScoreEndpoint(IComplianceService complianceService, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetComplianceScoreRequest, GetComplianceScoreResponse>
 {
     /// <inheritdoc />
@@ -55,7 +56,7 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
 
         // Resolve the client's local calendar day (#935) rather than the server's UTC day for the
         // default range and the streak anchor — see GetWeeklyOverviewEndpoint for the same fix.
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
         var from = req.From ?? todayLocalUtc.AddDays(-7);
         var to = req.To ?? todayLocalUtc.AddDays(1).AddTicks(-1);
 

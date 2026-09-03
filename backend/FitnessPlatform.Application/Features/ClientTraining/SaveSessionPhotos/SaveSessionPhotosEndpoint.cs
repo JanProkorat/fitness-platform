@@ -36,13 +36,15 @@ namespace FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
 /// permanently stored value (F9 follow-up).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveSessionPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveSessionPhotosEndpoint> logger,
-    IBlobStorageService blobStorage)
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider)
     : Endpoint<SaveSessionPhotosRequest>
 {
     /// <inheritdoc />
@@ -94,7 +96,7 @@ public class SaveSessionPhotosEndpoint(
 
         var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
         var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)

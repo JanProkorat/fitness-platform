@@ -36,13 +36,15 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 /// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
 /// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
 /// permanently stored value (F9 follow-up).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveDayPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IClientLinkAuthorizationService linkAuthorizationService,
     ILogger<SaveDayPhotosEndpoint> logger,
-    IBlobStorageService blobStorage)
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider)
     : Endpoint<SaveDayPhotosRequest>
 {
     /// <inheritdoc />
@@ -98,7 +100,7 @@ public class SaveDayPhotosEndpoint(
         // Resolve the client's local calendar day (#935) once — todayUtc anchors LogDate-style
         // equality checks and plan-window resolution; windowStartUtc/windowEndUtc anchor the
         // CreatedAt instant-range filter below so it isn't skewed by the client's UTC offset.
-        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, ct);
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
         var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         if (plan is null)

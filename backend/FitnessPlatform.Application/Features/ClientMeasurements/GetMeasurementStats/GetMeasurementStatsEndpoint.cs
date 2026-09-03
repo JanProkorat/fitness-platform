@@ -17,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientMeasurements.GetMeasurement
 /// </summary>
 /// <param name="db">Database context.</param>
 /// <param name="mongo">MongoDB context for reading target weight from the active nutrition plan.</param>
-public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext mongo) : EndpointWithoutRequest<MeasurementStatsResponse>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext mongo, TimeProvider timeProvider) : EndpointWithoutRequest<MeasurementStatsResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -77,7 +78,7 @@ public class GetMeasurementStatsEndpoint(IApplicationDbContext db, IMongoContext
 
             using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
             var activePlans = await planCursor.ToListAsync(ct);
-            var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientProfile.UserId, ct);
+            var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientProfile.UserId, timeProvider.GetUtcNow().UtcDateTime, ct);
             var activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
             planTargetWeightKg = activePlan?.TargetWeightKg;
         }

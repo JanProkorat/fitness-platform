@@ -19,7 +19,8 @@ namespace FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetClientPlansRequest, GetClientPlansResponse>
 {
     /// <inheritdoc />
@@ -61,7 +62,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
         // Resolve the client's local calendar day (#935) — anchors current-week resolution,
         // plan-window disambiguation, and the day-of-week HasTodaySession check below on the
         // client's local "today" rather than the server's UTC day.
-        var now = await db.ResolveClientLocalDateUtcAsync(clientId, ct);
+        var now = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Parse status filter
         NutritionPlanStatus? nutritionStatus = null;
