@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.Trainers.GetDashboardSummary;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -361,5 +362,132 @@ public class GetDashboardSummaryEndpointTests
         ep.Response.Clients[0].LastActivityAt.Should().Be(clientANewerMeasurement);
         ep.Response.Clients[1].LastActivityAt.Should().Be(clientBMeasurement);
         ep.Response.Clients[2].LastActivityAt.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Regression guard for #850: this endpoint's legacy (no-<c>StartDate</c>) week-cycle branch
+    /// must dedupe by <c>WeekNumber</c> before cycling, keeping the FIRST document-order
+    /// occurrence, the same way <c>GetTodayPlanEndpoint</c>/<c>GetTodayLogEndpoint</c>/
+    /// <c>GetWeekPlanEndpoint</c> do for the same plan shape. Before #850 no test in this file
+    /// exercised the legacy branch at all — every existing fact leaves <c>DatePublished</c> unset.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LegacyPlanWithDuplicateWeekNumbers_ResolvesDedupedWeekCycle()
+    {
+        // Arrange
+        var clientUser = EntityBuilder.User
+            .WithEmail("legacy-dup-week@test.com").WithFirstName("Dana").WithLastName("D").Build();
+
+        var trainerProfile = EntityBuilder.ProfessionalProfile
+            .WithId(200)
+            .WithUserId(_trainerUserId)
+            .Build();
+
+        var clientProfile = EntityBuilder.ClientProfile.WithId(201).WithUser(clientUser).Build();
+
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        // Legacy plan: no StartDate, anchored on plan-level DatePublished, 14 days ago.
+        var datePublished = DateTime.UtcNow.Date.AddDays(-14);
+
+        var plan = PlanTestHelpers.CreatePlan(
+            clientId: clientProfile.UserId,
+            status: NutritionPlanStatus.Active,
+            weekCount: 0);
+        plan.StartDate = null;
+        plan.DatePublished = datePublished;
+        plan.Weeks =
+        [
+            BuildLegacyWeek(1, datePublished, dayZeroKcal: 999m), // wn=1 "A" — first document-order occurrence
+            BuildLegacyWeek(1, datePublished, dayZeroKcal: 777m), // wn=1 "B" — duplicate, must be ignored
+            BuildLegacyWeek(2, datePublished, dayZeroKcal: 555m)  // wn=2 "C"
+        ];
+
+        var mongo = CreateMongoWithNutritionPlan(plan);
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var ep = CreateEndpoint(db, mongo: mongo);
+
+        // Act
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        // Assert — a 14-day offset over the DEDUPED 2-distinct-week cycle (totalDays=14) lands
+        // exactly back on day 0 of week 1 ("A", 999m). The raw, non-deduped 3-week cycle
+        // (totalDays=21) would land on day 0 of the third document-order week ("C", 555m)
+        // instead — that mismatch is exactly what #850 fixed at the other five call sites.
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Clients.Should().ContainSingle();
+        ep.Response.Clients[0].KcalGoal.Should().Be(999m,
+            "the deduped 2-week cycle must resolve wn=1 \"A\" (999m) — a raw 3-week cycle would " +
+            "resolve wn=2 \"C\" (555m) instead");
+    }
+
+    /// <summary>
+    /// Builds a legacy <see cref="PlanWeek"/> with a single day carrying a distinguishing
+    /// <see cref="NutrientTotals.Kcal"/> value at day-of-week index 0 — mirrors
+    /// <c>GetTodayLogEndpointTests.BuildLegacyWeek</c>.
+    /// </summary>
+    private static PlanWeek BuildLegacyWeek(int weekNumber, DateTime datePublished, decimal dayZeroKcal)
+    {
+        var days = Enumerable.Range(1, 7).Select(d => new PlanDay { DayOfWeek = d, Meals = [] }).ToList();
+        days[0].DayTotals = new NutrientTotals { Kcal = dayZeroKcal };
+
+        return new PlanWeek
+        {
+            WeekNumber = weekNumber,
+            Status = WeekStatus.Published,
+            DatePublished = datePublished,
+            Days = days
+        };
+    }
+
+    /// <summary>
+    /// Builds on <see cref="CreateEmptyMongo"/>, replacing only the <c>NutritionPlans</c>
+    /// collection so it returns <paramref name="plan"/> for both the active-plan lookup and
+    /// the active-plan-count lookup this endpoint issues.
+    /// </summary>
+    private static IMongoContext CreateMongoWithNutritionPlan(NutritionPlan plan)
+    {
+        var mongo = CreateEmptyMongo();
+
+        var cursor = Substitute.For<IAsyncCursor<NutritionPlan>>();
+        var moved = false;
+        cursor.Current.Returns(new List<NutritionPlan> { plan });
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return true;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return true;
+        });
+
+        var nutritionCollection = Substitute.For<IMongoCollection<NutritionPlan>>();
+        nutritionCollection.FindAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<FindOptions<NutritionPlan, NutritionPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => cursor);
+        nutritionCollection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(1L);
+
+        mongo.NutritionPlans.Returns(nutritionCollection);
+
+        return mongo;
     }
 }
