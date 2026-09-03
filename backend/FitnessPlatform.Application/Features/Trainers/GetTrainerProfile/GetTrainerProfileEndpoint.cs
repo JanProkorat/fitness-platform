@@ -54,7 +54,6 @@ public class GetProfessionalProfileEndpoint(IApplicationDbContext db) : Endpoint
             Certificates = profile.Certificates,
             Languages = profile.Languages,
             CollaborationType = profile.CollaborationType,
-            MaxClients = profile.MaxClients,
             LinkedIn = profile.LinkedIn,
             Instagram = profile.Instagram,
             Website = profile.Website,

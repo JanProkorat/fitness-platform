@@ -36,10 +36,6 @@ public class UpdateProfessionalProfileValidator : AbstractValidator<UpdateProfes
             .Must(x => x is null or "both" or "online" or "inperson")
             .WithMessage("CollaborationType must be 'both', 'online', or 'inperson'.");
 
-        RuleFor(x => x.MaxClients)
-            .InclusiveBetween(1, 200)
-            .When(x => x.MaxClients.HasValue);
-
         RuleFor(x => x.LinkedIn)
             .MaximumLength(200);
 

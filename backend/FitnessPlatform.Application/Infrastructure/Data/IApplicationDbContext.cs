@@ -151,6 +151,16 @@ public interface IApplicationDbContext
     DbSet<SocialLoginNonce> SocialLoginNonces { get; set; }
 
     /// <summary>
+    /// Coach subscription tiers: pricing, billing cadence, and feature flags/limits.
+    /// </summary>
+    DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    /// <summary>
+    /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
+    /// </summary>
+    DbSet<CoachSubscription> CoachSubscriptions { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
