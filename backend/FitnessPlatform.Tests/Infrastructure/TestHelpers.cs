@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -125,6 +126,33 @@ public static class TestHelpers
         await db.SaveChangesAsync(ct);
 
         return user.Id;
+    }
+
+    /// <summary>
+    /// Registers a user with a publicly-registerable role, then promotes it to
+    /// <see cref="UserRole.Admin"/> out-of-band via <see cref="RoleManager{TRole}"/> (Admin is
+    /// intentionally excluded from public self-registration — see <c>RegisterValidator</c>), and
+    /// finally logs in so the JWT carries the Admin role claim. Registration must happen before
+    /// promotion and login after — the access token is minted at login time from the roles the
+    /// user holds then, not merely at time of registration.
+    /// </summary>
+    public static async Task<HttpClient> RegisterAdminAsync(FitnessApiFactory factory, CancellationToken ct)
+    {
+        var httpClient = factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@admin-fixture.com";
+        await RegisterAsync(httpClient, email, "TestPass1!", "Admin", "Fixture", "Trainer");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.FindByEmailAsync(email);
+            await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
+        }
+
+        var (accessToken, _) = await LoginAsync(httpClient, email, "TestPass1!");
+        SetBearerToken(httpClient, accessToken);
+
+        return httpClient;
     }
 
     private record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);
