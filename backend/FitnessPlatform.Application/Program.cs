@@ -297,6 +297,10 @@ builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 // mutation endpoints (Update, Publish, Complete, LinkQuestionnaire).
 builder.Services.AddScoped<PlanConcurrencyGuard>();
 
+// Resolves a coach's effective feature entitlements + client-count limit from their
+// subscription (#593). No endpoint gates on this yet — see #594.
+builder.Services.AddScoped<EntitlementService>();
+
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
 

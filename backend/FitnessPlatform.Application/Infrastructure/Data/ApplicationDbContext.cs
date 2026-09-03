@@ -145,6 +145,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<SocialLoginNonce> SocialLoginNonces { get; set; } = null!;
 
+    /// <summary>
+    /// Coach subscription tiers: pricing, billing cadence, and feature flags/limits.
+    /// </summary>
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
+
+    /// <summary>
+    /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
+    /// </summary>
+    public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

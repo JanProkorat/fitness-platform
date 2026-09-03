@@ -60,11 +60,6 @@ public class ProfessionalProfile : PublicTimestampableEntity
     public string? CollaborationType { get; set; }
 
     /// <summary>
-    /// Maximum number of clients the professional can handle.
-    /// </summary>
-    public int? MaxClients { get; set; }
-
-    /// <summary>
     /// LinkedIn profile URL or handle.
     /// </summary>
     [MaxLength(200)]
@@ -118,4 +113,10 @@ public class ProfessionalProfile : PublicTimestampableEntity
     /// Collection of pending invites sent by this professional.
     /// </summary>
     public ICollection<PendingInvite> PendingInvites { get; set; } = [];
+
+    /// <summary>
+    /// The professional's subscription, if one exists. The foreign key lives on
+    /// <see cref="CoachSubscription"/> — a professional has zero or one subscription.
+    /// </summary>
+    public CoachSubscription? CoachSubscription { get; set; }
 }
