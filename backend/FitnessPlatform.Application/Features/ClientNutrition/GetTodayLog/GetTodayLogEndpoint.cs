@@ -127,11 +127,19 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, 
                     var daysSincePublish = (int)(todayUtc - plan.DatePublished.Value.Date).TotalDays;
                     if (daysSincePublish >= 0)
                     {
-                        var totalDays = publishedWeeks.Count * 7;
+                        // Dedupe by WeekNumber, keeping the FIRST document-order occurrence of
+                        // each — matches GetTodayPlanEndpoint's legacy-branch resolution so both
+                        // endpoints select the same week for a legacy plan whose weeks carry a
+                        // duplicate WeekNumber. Document order is preserved deliberately — do
+                        // NOT sort by weekNumber, that would silently change which week a legacy
+                        // plan resolves to.
+                        var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
+
+                        var totalDays = distinctPublishedWeeks.Count * 7;
                         var currentDayIndex = daysSincePublish % totalDays;
                         var weekIdx = currentDayIndex / 7;
                         var dayIdx = currentDayIndex % 7;
-                        var todayWeek = publishedWeeks[weekIdx];
+                        var todayWeek = distinctPublishedWeeks[weekIdx];
                         if (dayIdx < todayWeek.Days.Count)
                             todayPlanDay = todayWeek.Days[dayIdx];
                     }

@@ -135,14 +135,21 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
         }
         else if (plan.DatePublished.HasValue)
         {
-            // Legacy: cycle through published weeks based on publish date
+            // Legacy: cycle through published weeks based on publish date.
+            // Dedupe by WeekNumber, keeping the FIRST occurrence of each — matches
+            // GetTodayPlanEndpoint's legacy-branch resolution so both endpoints select the same
+            // week for a legacy plan whose weeks carry a duplicate WeekNumber. publishedWeeks is
+            // already sorted by WeekNumber above via a stable OrderBy, so the first occurrence
+            // after dedupe still corresponds to the earliest document-order duplicate.
+            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
+
             var daysSincePublish = (int)(today - plan.DatePublished.Value.Date).TotalDays;
-            var totalDays = publishedWeeks.Count * 7;
+            var totalDays = distinctPublishedWeeks.Count * 7;
             var currentDayIndex = daysSincePublish % totalDays;
             var weekIndex = currentDayIndex / 7;
             var dayIndex = currentDayIndex % 7;
 
-            currentWeek = publishedWeeks[Math.Max(0, weekIndex)].WeekNumber;
+            currentWeek = distinctPublishedWeeks[Math.Max(0, weekIndex)].WeekNumber;
             currentDayOfWeek = dayIndex + 1;
         }
 

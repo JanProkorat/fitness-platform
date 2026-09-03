@@ -111,11 +111,18 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 return;
             }
 
-            var totalDays = publishedWeeks.Count * 7;
+            // Dedupe by WeekNumber, keeping the FIRST document-order occurrence of each —
+            // matches GetTodayPlanEndpoint's legacy-branch resolution so both endpoints select
+            // the same week for a legacy plan whose weeks carry a duplicate WeekNumber.
+            // Document order is preserved deliberately — do NOT sort by weekNumber, that would
+            // silently change which week a legacy plan resolves to.
+            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
+
+            var totalDays = distinctPublishedWeeks.Count * 7;
             var currentDayIndex = daysSincePublish % totalDays;
             var weekIndex = currentDayIndex / 7;
 
-            week = publishedWeeks[weekIndex];
+            week = distinctPublishedWeeks[weekIndex];
         }
 
         await Send.OkAsync(new GetWeekPlanResponse

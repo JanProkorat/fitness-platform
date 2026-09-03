@@ -501,7 +501,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound,
             "dayIndex 6 exceeds the truncated week's 3 days — the endpoint must guard this as 404, " +
-            "not let an IndexOutOfRangeException surface as a 500");
+            "not let an ArgumentOutOfRangeException surface as a 500");
     }
 
     // ── Local response DTOs (per slice rules — not shared across features) ────────
