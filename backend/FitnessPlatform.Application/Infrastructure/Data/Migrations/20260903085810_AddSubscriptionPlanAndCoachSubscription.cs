@@ -12,10 +12,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "max_clients",
-                table: "professional_profiles");
-
             migrationBuilder.CreateTable(
                 name: "subscription_plans",
                 columns: table => new
@@ -105,12 +101,6 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "subscription_plans");
-
-            migrationBuilder.AddColumn<int>(
-                name: "max_clients",
-                table: "professional_profiles",
-                type: "integer",
-                nullable: true);
         }
     }
 }

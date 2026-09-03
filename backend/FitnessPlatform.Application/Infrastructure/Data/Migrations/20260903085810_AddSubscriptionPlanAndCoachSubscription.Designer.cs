@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260903082930_AddSubscriptionPlanAndCoachSubscription")]
+    [Migration("20260903085810_AddSubscriptionPlanAndCoachSubscription")]
     partial class AddSubscriptionPlanAndCoachSubscription
     {
         /// <inheritdoc />
@@ -1492,6 +1492,10 @@ namespace FitnessPlatform.Application.Infrastructure.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("linked_in");
+
+                    b.Property<int?>("MaxClients")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_clients");
 
                     b.Property<Guid>("PublicId")
                         .HasColumnType("uuid")
