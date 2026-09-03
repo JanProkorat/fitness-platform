@@ -149,7 +149,7 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Get_TrainerRole_Returns403()
+    public async Task Get_NutritionistRole_Returns403()
     {
         var (http, _) = await SetupProfessionalAsync();
         var response = await http.GetAsync(
