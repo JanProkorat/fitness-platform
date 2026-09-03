@@ -239,12 +239,25 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     /// Regression guard for #850. Seeds a legacy no-<c>StartDate</c> plan whose published weeks
     /// carry a DUPLICATE weekNumber in document order — <c>wn=1 "A"</c>, <c>wn=1 "B"</c>,
     /// <c>wn=2 "C"</c> — and asserts the legacy selection branch (<c>GetTodayPlanEndpoint</c>
-    /// lines ~157-183) and the phase-2 <c>weeks.$</c> hydration step resolve to the SAME week:
-    /// the FIRST document-order element with the matching weekNumber. Before the fix, the
-    /// selection branch picked <c>publishedWeeks[weekIndex]</c> by POSITION (would land on the
-    /// wn=1 "B" duplicate for day 0-6) while hydration always resolved wn=1 "A" — a silent
-    /// content mismatch, invisible to the mocked unit tests.
+    /// lines ~157-183) and the phase-2 <c>weeks.$</c> hydration step resolve to the SAME week.
     /// </summary>
+    /// <remarks>
+    /// Publish date is 7 days ago so <c>daysSincePublish == 7</c>, landing on <c>weekIndex == 1</c>
+    /// — NOT day 0, which always resolves <c>weekIndex == 0</c>, where the buggy positional lookup
+    /// and the fixed weekNumber-keyed lookup coincidentally agree (both land on "A") and so cannot
+    /// distinguish pre-fix from post-fix behavior. At <c>weekIndex == 1</c>:
+    /// <list type="bullet">
+    /// <item>PRE-FIX (position-based, <c>publishedWeeks[weekIndex]</c> over the raw 3-element
+    /// list) selects the <c>wn=1 "B"</c> duplicate, but hydration's
+    /// <c>Eq("weeks.weekNumber", 1)</c> always resolves the FIRST document-order match —
+    /// <c>wn=1 "A"</c> — a silent content mismatch: the response reports <c>weekNumber=1</c> and
+    /// "A"'s meal, never "B"'s.</item>
+    /// <item>POST-FIX (weekNumber-keyed, <c>distinctPublishedWeeks[weekIndex]</c> over the deduped
+    /// 2-element list) selects <c>wn=2 "C"</c>, and hydration for <c>weekNumber=2</c> also
+    /// resolves "C" — selection and hydration agree, and the response reports <c>weekNumber=2</c>
+    /// with "C"'s meal.</item>
+    /// </list>
+    /// </remarks>
     [Fact]
     public async Task GetTodayPlan_LegacyPlanWithDuplicateWeekNumbers_SelectionAndHydrationResolveSameWeek()
     {
@@ -265,13 +278,9 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             clientUserId = user.Id;
         }
 
-        // Legacy plan: no StartDate, published today so daysSincePublish == 0 — the legacy
-        // branch's dayIndex is `daysSincePublish % totalDays`, i.e. tied to days-elapsed-
-        // since-publish rather than calendar day-of-week, so day index 0 is the target here
-        // regardless of today's actual weekday. currentDayIndex == 0, weekIndex == 0 — the
-        // FIRST published week (document order) must be the one both the selector and the
-        // hydration step resolve to.
-        var datePublished = DateTime.UtcNow.Date;
+        // Legacy plan: no StartDate, published 7 days ago so daysSincePublish == 7 — see the
+        // <remarks> above for why day 0 cannot distinguish pre-fix from post-fix behavior.
+        var datePublished = DateTime.UtcNow.Date.AddDays(-7);
         const int targetDayIndex = 0;
 
         var weekOneAMealId = Guid.NewGuid();
@@ -292,7 +301,104 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             DateCreated = datePublished,
             Weeks =
             [
-                BuildWeek(1, targetDayIndex, weekOneAMealId, "Week 1 Food A (target — first document-order wn=1)", datePublished),
+                BuildWeek(1, targetDayIndex, weekOneAMealId, "Week 1 Food A (duplicate — must never appear)", datePublished),
+                BuildWeek(1, targetDayIndex, weekOneBMealId, "Week 1 Food B (duplicate — must never appear)", datePublished),
+                BuildWeek(2, targetDayIndex, weekTwoMealId, "Week 2 Food (target)", datePublished)
+            ]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/nutrition/plan/today", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var body = await response.Content.ReadFromJsonAsync<TodayPlanResponseDto>(
+            jsonOptions,
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        body.Should().NotBeNull();
+        body!.PlanId.Should().Be(planId);
+        body.WeekNumber.Should().Be(2,
+            "weekIndex 1 over the DEDUPED 2-element week list (wn=1, wn=2) must resolve wn=2 — " +
+            "the pre-fix position-based lookup over the raw 3-element list would instead report weekNumber=1");
+        body.DayOfWeek.Should().Be(1, "day index 0 (targetDayIndex) maps to BuildWeek's DayOfWeek=1");
+        body.Meals.Should().ContainSingle();
+
+        var hydratedMeal = body.Meals[0];
+        hydratedMeal.MealId.Should().Be(weekTwoMealId,
+            "selection and hydration must both resolve wn=2 \"C\" — neither wn=1 duplicate " +
+            "(\"A\" nor \"B\") may leak into the response");
+        hydratedMeal.Foods.Should().ContainSingle();
+        hydratedMeal.Foods[0].FoodName.Should().Be("Week 2 Food (target)");
+    }
+
+    /// <summary>
+    /// Regression guard for #850. The legacy branch's cycle length (<c>totalDays</c>) must derive
+    /// from the DEDUPED published-week count, not the raw count including duplicates — otherwise
+    /// a legacy plan with duplicate <c>weekNumber</c> values cycles back to week 1 too late,
+    /// re-reading a week that was already deduped away instead of wrapping.
+    /// </summary>
+    /// <remarks>
+    /// Same 3-element duplicate seed as the sibling test (<c>wn=1 "A"</c>, <c>wn=1 "B"</c>,
+    /// <c>wn=2 "C"</c>), but with <c>daysSincePublish == 14</c> — exactly one full cycle of the
+    /// DEDUPED 2-week (14-day) list, landing back on <c>weekIndex == 0</c> ("A"). Under the
+    /// pre-fix <c>totalDays = publishedWeeks.Count * 7 == 21</c> (raw 3-element count), 14 days
+    /// falls short of a full cycle: <c>weekIndex = 14 / 7 == 2</c>, resolving the raw list's
+    /// third element ("C", weekNumber=2) instead. This is the specific gap qa-tester flagged: the
+    /// prior duplicate-week test's <c>daysSincePublish == 7</c> is index-identical whether
+    /// <c>totalDays</c> is 14 or 21, so it cannot catch a regression back to the raw count.
+    /// </remarks>
+    [Fact]
+    public async Task GetTodayPlan_LegacyPlanWithDuplicateWeekNumbers_CyclesOnDedupedWeekCount()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Cyc", "Week", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            clientUserId = user.Id;
+        }
+
+        var datePublished = DateTime.UtcNow.Date.AddDays(-14);
+        const int targetDayIndex = 0;
+
+        var weekOneAMealId = Guid.NewGuid();
+        var weekOneBMealId = Guid.NewGuid();
+        var weekTwoMealId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+
+        var plan = new NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            NutritionistId = Guid.NewGuid(),
+            Name = "Legacy Duplicate Week Cycle Plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = null,
+            DatePublished = datePublished,
+            Version = 1,
+            DateCreated = datePublished,
+            Weeks =
+            [
+                BuildWeek(1, targetDayIndex, weekOneAMealId, "Week 1 Food A (target — cycle wraps back here)", datePublished),
                 BuildWeek(1, targetDayIndex, weekOneBMealId, "Week 1 Food B (duplicate — must never appear)", datePublished),
                 BuildWeek(2, targetDayIndex, weekTwoMealId, "Week 2 Food (must never appear)", datePublished)
             ]
@@ -320,16 +426,82 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
 
         body.Should().NotBeNull();
         body!.PlanId.Should().Be(planId);
-        body.WeekNumber.Should().Be(1);
-        body.DayOfWeek.Should().Be(1, "day index 0 (targetDayIndex) maps to BuildWeek's DayOfWeek=1");
+        body.WeekNumber.Should().Be(1,
+            "a 14-day cycle over the DEDUPED 2-week list must wrap back to wn=1 — a regression " +
+            "to the raw 3-element count would instead resolve wn=2 at this offset");
         body.Meals.Should().ContainSingle();
 
         var hydratedMeal = body.Meals[0];
         hydratedMeal.MealId.Should().Be(weekOneAMealId,
-            "selection and hydration must both resolve the FIRST document-order week with weekNumber=1 — " +
-            "the duplicate wn=1 sibling and wn=2 must never leak into the response");
+            "the wrapped cycle must resolve the FIRST document-order wn=1 week (\"A\"), not \"B\" or \"C\"");
         hydratedMeal.Foods.Should().ContainSingle();
-        hydratedMeal.Foods[0].FoodName.Should().Be("Week 1 Food A (target — first document-order wn=1)");
+        hydratedMeal.Foods[0].FoodName.Should().Be("Week 1 Food A (target — cycle wraps back here)");
+    }
+
+    /// <summary>
+    /// Regression guard for #850. The legacy branch's <c>dayIndex</c> bounds guard
+    /// (<c>GetTodayPlanEndpoint.cs</c> ~lines 195-202) must return 404 instead of letting an
+    /// out-of-range index into <c>hydratedWeek.Days</c> surface as an unhandled exception, when a
+    /// legacy week was hydrated with fewer than 7 days.
+    /// </summary>
+    [Fact]
+    public async Task GetTodayPlan_LegacyPlanWithTruncatedWeek_DayIndexOutOfRange_Returns404()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Trunc", "Week", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(
+                u => u.Email == email,
+                TestContext.Current.CancellationToken);
+            clientUserId = user.Id;
+        }
+
+        // Published 6 days ago, single published week — daysSincePublish == 6, totalDays == 7,
+        // weekIndex == 0, dayIndex == 6. The week itself only carries 3 days, so index 6 is out
+        // of range and must be treated as "no plan for today" rather than throwing.
+        var datePublished = DateTime.UtcNow.Date.AddDays(-6);
+        var planId = Guid.NewGuid();
+
+        var truncatedWeek = new PlanWeek
+        {
+            WeekNumber = 1,
+            Status = WeekStatus.Published,
+            DatePublished = datePublished,
+            Days = Enumerable.Range(1, 3).Select(d => new PlanDay { DayOfWeek = d, Meals = [] }).ToList()
+        };
+
+        var plan = new NutritionPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            NutritionistId = Guid.NewGuid(),
+            Name = "Legacy Truncated Week Plan",
+            Status = NutritionPlanStatus.Active,
+            StartDate = null,
+            DatePublished = datePublished,
+            Version = 1,
+            DateCreated = datePublished,
+            Weeks = [truncatedWeek]
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/nutrition/plan/today", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "dayIndex 6 exceeds the truncated week's 3 days — the endpoint must guard this as 404, " +
+            "not let an IndexOutOfRangeException surface as a 500");
     }
 
     // ── Local response DTOs (per slice rules — not shared across features) ────────
