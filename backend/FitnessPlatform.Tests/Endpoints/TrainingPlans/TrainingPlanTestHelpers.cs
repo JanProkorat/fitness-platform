@@ -146,8 +146,7 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
-    /// Test-only mirror of <c>MongoIndexInitializer.MigrateSessionExecutionsAsync</c>'s per-key
-    /// merge (#841): joins <paramref name="workoutLogs"/> and <paramref name="trainingCompletions"/>
+    /// Test-only fixture merge (#841): joins <paramref name="workoutLogs"/> and <paramref name="trainingCompletions"/>
     /// on (ClientId, SessionId, Date), producing one <see cref="SessionExecution"/> per key
     /// (Performance from the log when present, completion flags from the completion when present).
     /// Ad-hoc (no SessionId) logs migrate 1:1. Lets existing GetTrainingPlan* test fixtures (built
