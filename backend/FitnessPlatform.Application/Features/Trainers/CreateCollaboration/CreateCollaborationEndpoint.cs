@@ -189,8 +189,16 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
         // the most direct violator this guard closes — CreateCollaboration previously
         // minted a link to a DIFFERENT professional with no profession check at all;
         // the guard ladder above only ever checked the CALLER's own capabilities.
+        //
+        // Both the caller AND the collaborator are excluded from the collision check:
+        // the collaborator's flags are clamped to what the caller's own link already
+        // grants (see above), so the caller's link necessarily already carries every
+        // flag this collaboration could grant. Only a genuinely unrelated THIRD
+        // professional (onboarded via one of the other three link-creation paths)
+        // should block a collaboration.
         if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
-                db.ClientProfessionalLinks, clientProfile.Id, collaboratorProfile.Id,
+                db.ClientProfessionalLinks, clientProfile.Id,
+                [professionalProfile.Id, collaboratorProfile.Id],
                 canViewNutritionPlans, canViewTrainingPlans, ct))
         {
             this.ThrowErrorWithCode(

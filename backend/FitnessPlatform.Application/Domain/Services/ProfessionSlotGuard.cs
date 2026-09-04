@@ -23,12 +23,9 @@ namespace FitnessPlatform.Application.Domain.Services;
 public static class ProfessionSlotGuard
 {
     /// <summary>
-    /// Whether granting <paramref name="wantsNutritionPlans"/> / <paramref name="wantsTrainingPlans"/>
-    /// on a link for <paramref name="professionalProfileId"/> would collide with a
-    /// profession slot another active professional already holds for the same client.
-    /// The professional's own existing link (same <paramref name="professionalProfileId"/>)
-    /// is always excluded, so this correctly allows both a brand-new link and a
-    /// reactivation of that professional's own previously-deactivated link.
+    /// Single-exclusion overload for the three accept/invite paths, where exactly one
+    /// professional (the one whose link is being created or reactivated) needs excluding
+    /// from the collision check. See the collection overload for details.
     /// </summary>
     /// <param name="links">The client-professional links to check against.</param>
     /// <param name="clientProfileId">The client whose profession slots are being checked.</param>
@@ -39,10 +36,38 @@ public static class ProfessionSlotGuard
     /// <param name="wantsNutritionPlans">Whether the resulting link would grant nutrition-plan visibility.</param>
     /// <param name="wantsTrainingPlans">Whether the resulting link would grant training-plan visibility.</param>
     /// <param name="ct">Cancellation token.</param>
-    public static async Task<bool> IsSlotTakenByAnotherProfessionalAsync(
+    public static Task<bool> IsSlotTakenByAnotherProfessionalAsync(
         IQueryable<ClientProfessionalLink> links,
         long clientProfileId,
         long professionalProfileId,
+        bool wantsNutritionPlans,
+        bool wantsTrainingPlans,
+        CancellationToken ct) =>
+        IsSlotTakenByAnotherProfessionalAsync(
+            links, clientProfileId, [professionalProfileId], wantsNutritionPlans, wantsTrainingPlans, ct);
+
+    /// <summary>
+    /// Whether granting <paramref name="wantsNutritionPlans"/> / <paramref name="wantsTrainingPlans"/>
+    /// for this client would collide with a profession slot an active professional
+    /// OTHER than one of <paramref name="excludedProfessionalProfileIds"/> already holds.
+    /// </summary>
+    /// <remarks>
+    /// CreateCollaborationEndpoint needs TWO exclusions, not one: the caller's own active
+    /// link is what the collaborator's flags are clamped to (a collaborator can never be
+    /// granted a capability the caller's own link does not hold), so the caller's link
+    /// necessarily already carries every flag the collaboration could ever grant. Excluding
+    /// only the collaborator would mean the caller's own pre-existing occupancy permanently
+    /// blocks every successful collaboration — collaboration is deliberately a shared/
+    /// delegated relationship between the caller and the collaborator, not a claim to
+    /// exclusivity between the two of them. Only a genuinely unrelated THIRD professional
+    /// (onboarded via one of the other three paths, entirely outside this collaboration)
+    /// should trip this guard for CreateCollaboration. The three accept/invite paths only
+    /// ever mint one link at a time and use the single-exclusion overload above instead.
+    /// </remarks>
+    public static async Task<bool> IsSlotTakenByAnotherProfessionalAsync(
+        IQueryable<ClientProfessionalLink> links,
+        long clientProfileId,
+        IReadOnlyCollection<long> excludedProfessionalProfileIds,
         bool wantsNutritionPlans,
         bool wantsTrainingPlans,
         CancellationToken ct)
@@ -54,7 +79,7 @@ public static class ProfessionSlotGuard
 
         return await links.AnyAsync(l =>
             l.ClientProfileId == clientProfileId &&
-            l.ProfessionalProfileId != professionalProfileId &&
+            !excludedProfessionalProfileIds.Contains(l.ProfessionalProfileId) &&
             l.IsActive &&
             ((wantsNutritionPlans && l.CanViewNutritionPlans) ||
              (wantsTrainingPlans && l.CanViewTrainingPlans)),
