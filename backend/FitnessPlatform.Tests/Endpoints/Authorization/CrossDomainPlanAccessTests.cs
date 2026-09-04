@@ -149,8 +149,10 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             Name = "Cross-Domain Nutrition Plan",
             Status = NutritionPlanStatus.Active,
             StartDate = start,
-            DatePublished = start,
-            Weeks = [],
+            // #1014: publish never writes the plan-level DatePublished field — only
+            // weeks[].datePublished. The timeline's plan-publish derivation reads a published
+            // week, so this fixture must carry one instead of the plan-level field.
+            Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = start }],
             Version = 1,
             DateCreated = start,
         }, cancellationToken: TestContext.Current.CancellationToken);
@@ -164,8 +166,7 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             Name = "Cross-Domain Training Plan",
             Status = TrainingPlanStatus.Active,
             StartDate = start,
-            DatePublished = start,
-            Weeks = [],
+            Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = start, Days = [] }],
             Version = 1,
             DateCreated = start,
         }, cancellationToken: TestContext.Current.CancellationToken);

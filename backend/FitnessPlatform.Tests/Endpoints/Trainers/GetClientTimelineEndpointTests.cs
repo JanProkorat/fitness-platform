@@ -764,9 +764,20 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
 
         var nutritionEvents = body!.Items.Where(i => i.Type == "nutrition_plan_published").ToList();
         nutritionEvents.Should().HaveCount(1, "one event per plan regardless of how many weeks are published");
-        nutritionEvents[0].OccurredAt.Should().BeCloseTo(
-            week3PublishedAt, TimeSpan.FromSeconds(1),
+
+        // Exact equality, not a proximity window: week3PublishedAt and week1PublishedAt are two
+        // back-to-back HTTP calls, so their real-world gap can be a few milliseconds — far
+        // narrower than a 1-second tolerance could ever discriminate. OccurredAt is derived as
+        // Min() over the same persisted values FetchNutritionPlanAsync reads, so it must be
+        // bit-identical to week3PublishedAt and must NOT equal week1PublishedAt. This is what
+        // actually catches a regression to OrderBy(WeekNumber).First() (the lowest-week-number
+        // form GetClientPlansEndpoint uses, which does not apply here).
+        nutritionEvents[0].OccurredAt.Should().Be(
+            week3PublishedAt,
             "OccurredAt must be the EARLIEST published week's date — week 3 was published before week 1");
+        nutritionEvents[0].OccurredAt.Should().NotBe(
+            week1PublishedAt,
+            "a regression to the lowest-week-number form would wrongly report week 1's date");
     }
 
     /// <summary>
