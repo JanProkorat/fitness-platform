@@ -14,6 +14,7 @@ namespace FitnessPlatform.Tests.Domain;
 public class ProfessionSlotGuardTests
 {
     private const long ClientId = 1;
+    private const long OtherClientId = 2;
     private const long NewProfessionalId = 10;
     private const long OtherProfessionalId = 20;
 
@@ -48,6 +49,33 @@ public class ProfessionSlotGuardTests
             TestContext.Current.CancellationToken);
 
         result.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// The active link occupying the nutrition slot belongs to a DIFFERENT client than the
+    /// one the guard is asked about. Every other fixture in this class shares one ClientId
+    /// constant, so a mutant that deletes the <c>l.ClientProfileId == clientProfileId</c>
+    /// term from the guard's predicate stays green against them — this is the one case that
+    /// requires the client-scoping term to reach the correct answer.
+    /// </summary>
+    [Fact]
+    public async Task IsSlotTakenByAnotherProfessionalAsync_ActiveLinkOccupiesSlotForDifferentClient_ReturnsFalse()
+    {
+        var otherClientsLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfileId(OtherClientId)
+            .WithProfessionalProfileId(OtherProfessionalId)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var links = new List<ClientProfessionalLink> { otherClientsLink }.BuildMockDbSet();
+
+        var result = await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+            links, ClientId, NewProfessionalId,
+            wantsNutritionPlans: true, wantsTrainingPlans: false,
+            TestContext.Current.CancellationToken);
+
+        result.Should().BeFalse();
     }
 
     /// <summary>
