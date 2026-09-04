@@ -325,6 +325,130 @@ public class PhotoDiaryPhotoUploadedSignalRTests
         ep.HttpContext.Response.StatusCode.Should().Be(201);
     }
 
+    /// <summary>
+    /// Falsifiability anchor for #989: proves the moved
+    /// <c>PhotoDiaryRequestOwnership.IsOwnedByClient</c> predicate still enforces the link's
+    /// <c>IsActive</c> flag after the promotion to <c>Domain/Extensions</c>. A diary request whose
+    /// link has been deactivated must not be finalizable even though the link still points at the
+    /// caller's own client profile — mirrors <c>IsDiaryRequestOwnedByClient</c>'s original
+    /// <c>&amp;&amp; request.Link.IsActive</c> term. Verified falsifiable by mutation: dropping that
+    /// term from the shared predicate turns this red.
+    /// </summary>
+    [Fact]
+    public async Task Upload_WithDiaryRequest_DeactivatedLink_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var clientUser = MakeClientUser();
+        var clientProfile = MakeClientProfile(clientUser);
+        var link = new ClientProfessionalLink
+        {
+            Id = 1,
+            ProfessionalProfileId = 2,
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            IsActive = false,
+            ProfessionalRole = UserRole.Nutritionist,
+            PublicId = Guid.NewGuid(),
+            DateCreated = DateTime.UtcNow,
+        };
+        var diaryReq = MakeDiaryRequest(link.Id, link);
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(clientProfile)
+            .With(link)
+            .With(diaryReq)
+            .Build();
+
+        var mongo = CreateMongoWithNutritionPlan(planId);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body,
+            DiaryRequestId = diaryReq.Id,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "photodiaryphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Confirms the moved predicate preserves the other-client branch: a diary request whose link
+    /// points at a different client's profile must 404, without leaking whether the request itself
+    /// exists.
+    /// </summary>
+    [Fact]
+    public async Task Upload_WithDiaryRequest_LinkedToDifferentClient_Returns404()
+    {
+        var planId = Guid.NewGuid();
+        var clientUser = MakeClientUser();
+        var clientProfile = MakeClientProfile(clientUser);
+
+        var otherClientUser = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Jana",
+            LastName = "Svobodova",
+            Email = "jana@example.com",
+            UserName = "jana@example.com",
+        };
+        var otherClientProfile = new ClientProfile
+        {
+            Id = 2,
+            UserId = otherClientUser.Id,
+            PublicId = otherClientUser.Id,
+            User = otherClientUser,
+        };
+        var link = new ClientProfessionalLink
+        {
+            Id = 1,
+            ProfessionalProfileId = 2,
+            ClientProfileId = otherClientProfile.Id,
+            ClientProfile = otherClientProfile,
+            IsActive = true,
+            ProfessionalRole = UserRole.Nutritionist,
+            PublicId = Guid.NewGuid(),
+            DateCreated = DateTime.UtcNow,
+        };
+        var diaryReq = MakeDiaryRequest(link.Id, link);
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(clientProfile)
+            .With(otherClientUser)
+            .With(otherClientProfile)
+            .With(link)
+            .With(diaryReq)
+            .Build();
+
+        var mongo = CreateMongoWithNutritionPlan(planId);
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(new FinalizePlanPhotoRequest
+        {
+            PlanId = planId,
+            BlobUrl = $"plan-photos/{planId}/{Guid.NewGuid()}.jpg",
+            Category = PlanPhotoCategory.Body,
+            DiaryRequestId = diaryReq.Id,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "photodiaryphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Upload_WithDiaryRequest_ProfessionalLacksCapability_DoesNotEmitPhotoDiaryPhotoUploaded()
     {

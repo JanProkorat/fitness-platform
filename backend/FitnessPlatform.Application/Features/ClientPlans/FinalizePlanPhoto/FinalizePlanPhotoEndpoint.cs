@@ -133,7 +133,7 @@ public class FinalizePlanPhotoEndpoint(
                 .FirstOrDefaultAsync(r => r.Id == req.DiaryRequestId.Value, ct);
 
             // 404 if not found or owned by another client — don't leak existence
-            if (diaryRequest is null || !IsDiaryRequestOwnedByClient(diaryRequest, callerUserId, emailClaim))
+            if (diaryRequest is null || !PhotoDiaryRequestOwnership.IsOwnedByClient(diaryRequest, callerUserId, emailClaim))
             {
                 await Send.NotFoundAsync(ct);
                 return;
@@ -333,26 +333,6 @@ public class FinalizePlanPhotoEndpoint(
         UploadedByUserId = photo.UploadedByUserId,
         DiaryRequestId = photo.DiaryRequestId
     };
-
-    /// <summary>
-    /// Returns true when the diary request is owned by the calling client —
-    /// either via a link (ClientProfile.UserId match) or via a pending invite
-    /// (email match). Mirrors the ownership check in the other diary-request endpoints.
-    /// </summary>
-    private static bool IsDiaryRequestOwnedByClient(
-        PhotoDiaryRequest request,
-        Guid clientUserId,
-        string? clientEmail)
-    {
-        if (request.Link is not null)
-            return request.Link.ClientProfile.UserId == clientUserId && request.Link.IsActive;
-
-        if (request.PendingInvite is not null && clientEmail is not null)
-            return string.Equals(request.PendingInvite.Email, clientEmail,
-                StringComparison.OrdinalIgnoreCase);
-
-        return false;
-    }
 
     /// <summary>
     /// Resolves a display name for the client from the diary request's navigation properties.
