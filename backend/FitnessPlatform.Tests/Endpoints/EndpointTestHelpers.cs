@@ -79,7 +79,7 @@ public static class EndpointTestHelpers
 /// dependency was introduced for this — <c>Microsoft.Extensions.TimeProvider.Testing</c> is
 /// explicitly out of scope, so this is a minimal <see cref="TimeProvider"/> override. Promoted
 /// here (#955) from a private nested class in <c>StartWorkoutEndpointTests</c> so read-path
-/// (<c>Endpoints/Client/</c>, <c>Endpoints/ClientNutrition/</c>, <c>Endpoints/ClientTraining/</c>)
+/// (<c>Endpoints/Client/</c>, <c>Endpoints/WorkoutLogs/</c>, <c>Endpoints/ClientNutrition/</c>)
 /// tests can share it too.
 /// </summary>
 public sealed class FixedTimeProvider(DateTimeOffset fixedUtcNow) : TimeProvider

@@ -34,16 +34,6 @@ public class StartWorkoutEndpointTests
 
     private static IApplicationDbContext CreateMockDb() => new MockDbBuilder().Build();
 
-    /// <summary>
-    /// Hand-rolled fixed-instant clock for deterministic day-boundary tests (#935). No new
-    /// dependency was introduced for this — <c>Microsoft.Extensions.TimeProvider.Testing</c>
-    /// is explicitly out of scope, so this is a minimal <see cref="TimeProvider"/> override.
-    /// </summary>
-    private sealed class FixedTimeProvider(DateTimeOffset fixedUtcNow) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => fixedUtcNow;
-    }
-
     private StartWorkoutEndpoint CreateEndpointWithUser(IMongoContext mongo, IApplicationDbContext? db = null) =>
         Factory.Create<StartWorkoutEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
