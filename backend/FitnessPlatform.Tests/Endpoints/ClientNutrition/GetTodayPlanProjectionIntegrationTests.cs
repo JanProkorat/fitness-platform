@@ -9,6 +9,8 @@ using FitnessPlatform.Application.Features.ClientNutrition.GetTodayPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
@@ -30,13 +32,54 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@today-plan-projection-test.com";
 
     /// <summary>
-    /// Returns the Monday of the current week (UTC).
+    /// The single instant every fixture in this file is pinned to: 2026-03-11 23:30 UTC.
+    /// Europe/Prague is CET (UTC+1) at this date — 2026 DST starts 2026-03-29 — so the local
+    /// instant is 2026-03-12 00:30 (a Thursday), and the endpoint's client-local "today"
+    /// resolves to exactly 2026-03-12T00:00:00Z. Every fixture date below is an ABSOLUTE
+    /// literal derived from that 2026-03-12 local day, never a relative offset off this field —
+    /// a relative offset would silently reintroduce the wall-clock coupling #994 exists to kill.
     /// </summary>
-    private static DateTime StartOfCurrentWeek()
+    private static readonly DateTimeOffset PinnedInstantUtc = new(2026, 3, 11, 23, 30, 0, TimeSpan.Zero);
+
+    private static WebApplicationFactory<Program>? _pinnedFactory;
+
+    /// <summary>
+    /// A host derived from the shared <c>factory</c> collection fixture via
+    /// <c>WithWebHostBuilder</c>, pinning <see cref="TimeProvider"/> to
+    /// <see cref="PinnedInstantUtc"/> for every test in this class. Composition runs the
+    /// parent's <c>ConfigureWebHost</c> first, so this derived host reuses the already-started
+    /// Testcontainers, the seeded DB, and <c>RemoveBackgroundHostedServices()</c> — no new
+    /// containers, no reintroduction of the #726 zombie-scheduler flake.
+    /// </summary>
+    /// <remarks>
+    /// Memoized in a STATIC field, not an instance field: xunit constructs a new instance of
+    /// this test class per <c>[Fact]</c>, so an instance field would boot four separate hosts.
+    /// <c>TestAssemblyConfig</c>'s <c>MaxParallelThreads = 1</c> serializes the whole assembly,
+    /// so the lazy-init check below needs no lock.
+    ///
+    /// NEVER disposed — no <c>using</c>, no explicit <c>DisposeAsync</c> call.
+    /// <c>RefreshTokenReuseDetectionConcurrencyTests</c> (lines 135-160) documents the measured
+    /// incident this avoids: disposing an extra host mid-run repoints FastEndpoints' process-
+    /// global <c>ServiceResolver.Provider</c> at a disposed provider, producing 51 scattered
+    /// <see cref="ObjectDisposedException"/> failures in unrelated tests.
+    /// </remarks>
+    private WebApplicationFactory<Program> PinnedFactory => _pinnedFactory ??= factory.WithWebHostBuilder(builder =>
     {
-        var today = DateTime.UtcNow.Date;
-        return today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
-    }
+        builder.ConfigureServices(services =>
+        {
+            // AddIdentityCore (Program.cs) internally does a TryAddSingleton(TimeProvider.System)
+            // of its own, ahead of Program.cs's own explicit AddSingleton(TimeProvider.System) —
+            // so TWO descriptors for TimeProvider exist by this point, not one. Remove every
+            // matching descriptor rather than assuming a single registration.
+            var descriptors = services.Where(d => d.ServiceType == typeof(TimeProvider)).ToList();
+            foreach (var descriptor in descriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddSingleton<TimeProvider>(new FixedTimeProvider(PinnedInstantUtc));
+        });
+    });
 
     /// <summary>
     /// Builds a published <see cref="PlanWeek"/> with 7 days; only <paramref name="targetDayIndex"/>
@@ -92,7 +135,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetTodayPlan_MultiWeekPlan_TodayInNonFirstWeek_HydratesExactWeekContent_RealMongoProjection()
     {
-        var httpClient = factory.CreateClient();
+        var httpClient = PinnedFactory.CreateClient();
         var email = UniqueEmail();
         await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Proj", "Plan", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
@@ -110,12 +153,14 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             clientUserId = user.Id;
         }
 
-        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
-        todayDow = todayDow == 0 ? 7 : todayDow;
-        var targetDayIndex = todayDow - 1; // 0-based, Monday=0
+        // PinnedInstantUtc's local day (2026-03-12) is a Thursday: DayOfWeek.Thursday == 4,
+        // and 0-based Monday=0 gives targetDayIndex 3.
+        const int todayDow = 4;
+        const int targetDayIndex = 3;
 
-        // Plan started 2 full weeks ago (Monday) — today resolves to week 3.
-        var startDate = StartOfCurrentWeek().AddDays(-14);
+        // 2026-02-23 (Monday) is 17 days before the pinned local day (2026-03-12) — daysSinceStart
+        // 17 resolves weekNum 3 (17/7 + 1), dayIndex 3 (17 % 7), landing in a non-index-0 week.
+        var startDate = new DateTime(2026, 2, 23, 0, 0, 0, DateTimeKind.Utc);
 
         var week1MealId = Guid.NewGuid();
         var week2MealId = Guid.NewGuid();
@@ -261,7 +306,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetTodayPlan_LegacyPlanWithDuplicateWeekNumbers_SelectionAndHydrationResolveSameWeek()
     {
-        var httpClient = factory.CreateClient();
+        var httpClient = PinnedFactory.CreateClient();
         var email = UniqueEmail();
         await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Dup", "Week", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
@@ -278,9 +323,10 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             clientUserId = user.Id;
         }
 
-        // Legacy plan: no StartDate, published 7 days ago so daysSincePublish == 7 — see the
-        // <remarks> above for why day 0 cannot distinguish pre-fix from post-fix behavior.
-        var datePublished = DateTime.UtcNow.Date.AddDays(-7);
+        // Legacy plan: no StartDate. 2026-03-05 is 7 days before the pinned local day
+        // (2026-03-12) so daysSincePublish == 7 — see the <remarks> above for why day 0 cannot
+        // distinguish pre-fix from post-fix behavior.
+        var datePublished = new DateTime(2026, 3, 5, 0, 0, 0, DateTimeKind.Utc);
         const int targetDayIndex = 0;
 
         var weekOneAMealId = Guid.NewGuid();
@@ -362,7 +408,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetTodayPlan_LegacyPlanWithDuplicateWeekNumbers_CyclesOnDedupedWeekCount()
     {
-        var httpClient = factory.CreateClient();
+        var httpClient = PinnedFactory.CreateClient();
         var email = UniqueEmail();
         await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Cyc", "Week", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
@@ -377,7 +423,9 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             clientUserId = user.Id;
         }
 
-        var datePublished = DateTime.UtcNow.Date.AddDays(-14);
+        // 2026-02-26 is 14 days before the pinned local day (2026-03-12) — exactly one full
+        // cycle of the deduped 2-week (14-day) list, wrapping back to weekIndex 0.
+        var datePublished = new DateTime(2026, 2, 26, 0, 0, 0, DateTimeKind.Utc);
         const int targetDayIndex = 0;
 
         var weekOneAMealId = Guid.NewGuid();
@@ -447,7 +495,7 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task GetTodayPlan_LegacyPlanWithTruncatedWeek_DayIndexOutOfRange_Returns404()
     {
-        var httpClient = factory.CreateClient();
+        var httpClient = PinnedFactory.CreateClient();
         var email = UniqueEmail();
         await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Trunc", "Week", "Client");
         var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
@@ -462,10 +510,10 @@ public class GetTodayPlanProjectionIntegrationTests(FitnessApiFactory factory)
             clientUserId = user.Id;
         }
 
-        // Published 6 days ago, single published week — daysSincePublish == 6, totalDays == 7,
-        // weekIndex == 0, dayIndex == 6. The week itself only carries 3 days, so index 6 is out
-        // of range and must be treated as "no plan for today" rather than throwing.
-        var datePublished = DateTime.UtcNow.Date.AddDays(-6);
+        // 2026-03-06 is 6 days before the pinned local day (2026-03-12) — daysSincePublish == 6,
+        // totalDays == 7, weekIndex == 0, dayIndex == 6. The week itself only carries 3 days, so
+        // index 6 is out of range and must be treated as "no plan for today" rather than throwing.
+        var datePublished = new DateTime(2026, 3, 6, 0, 0, 0, DateTimeKind.Utc);
         var planId = Guid.NewGuid();
 
         var truncatedWeek = new PlanWeek
