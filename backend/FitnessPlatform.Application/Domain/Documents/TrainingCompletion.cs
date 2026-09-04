@@ -21,10 +21,10 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <remarks>
 /// <b>Deprecated (#841).</b> Superseded by <see cref="SessionExecution"/>, which unifies this
 /// document with <see cref="WorkoutLog"/>. The <c>trainingCompletions</c> collection is kept
-/// read-only (no new writes) for one release as the rollback path for the
-/// <c>--migrate-session-executions</c> data migration — do not add new write sites against this
-/// type. Scheduled for removal in a follow-up chore once production has soaked on the merged
-/// model.
+/// read-only (no new writes) — do not add new write sites against this type. The one-shot
+/// migration that would have folded these documents into <see cref="SessionExecution"/> was
+/// deleted in #848 (there was no data to migrate), so nothing writes here at all any more.
+/// Scheduled for removal in a follow-up chore.
 /// </remarks>
 public class TrainingCompletion
 {
