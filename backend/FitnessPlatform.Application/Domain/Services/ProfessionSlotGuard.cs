@@ -9,7 +9,8 @@ namespace FitnessPlatform.Application.Domain.Services;
 /// and at most one may carry <c>CanViewTrainingPlans</c>. A single dual-role
 /// professional holding both flags on ONE link legitimately occupies both slots — this
 /// guard only rejects a DIFFERENT professional claiming a slot another active link
-/// already holds.
+/// already holds. A collaboration is a deliberately exempt, different mechanism (see the
+/// two-exclusion overload's remarks below) — not a second independent coach claiming a slot.
 /// </summary>
 /// <remarks>
 /// Occupancy is derived from the link's own <c>CanViewNutritionPlans</c> /
@@ -52,17 +53,18 @@ public static class ProfessionSlotGuard
     /// OTHER than one of <paramref name="excludedProfessionalProfileIds"/> already holds.
     /// </summary>
     /// <remarks>
-    /// CreateCollaborationEndpoint needs TWO exclusions, not one: the caller's own active
-    /// link is what the collaborator's flags are clamped to (a collaborator can never be
-    /// granted a capability the caller's own link does not hold), so the caller's link
-    /// necessarily already carries every flag the collaboration could ever grant. Excluding
-    /// only the collaborator would mean the caller's own pre-existing occupancy permanently
-    /// blocks every successful collaboration — collaboration is deliberately a shared/
-    /// delegated relationship between the caller and the collaborator, not a claim to
-    /// exclusivity between the two of them. Only a genuinely unrelated THIRD professional
-    /// (onboarded via one of the other three paths, entirely outside this collaboration)
-    /// should trip this guard for CreateCollaboration. The three accept/invite paths only
-    /// ever mint one link at a time and use the single-exclusion overload above instead.
+    /// The one-active-coach-per-profession rule governs INDEPENDENT coach links. A
+    /// collaboration is a deliberately EXEMPT, different mechanism — a shared/delegated
+    /// grant between the caller and a collaborator, not a second coach competing for the
+    /// caller's own slot — so CreateCollaborationEndpoint needs TWO exclusions, not one:
+    /// the collaborator's flags are clamped to what the caller's own link already grants,
+    /// so the caller's link necessarily already carries every flag the collaboration could
+    /// grant. Excluding only the collaborator would mean the caller's own pre-existing
+    /// occupancy permanently blocks every successful collaboration. Only a genuinely
+    /// unrelated THIRD professional (onboarded via one of the other three paths, entirely
+    /// outside this collaboration) should trip this guard for CreateCollaboration — do not
+    /// "fix" this back to a single exclusion. The three accept/invite paths only ever mint
+    /// one link at a time and use the single-exclusion overload above instead.
     /// </remarks>
     public static async Task<bool> IsSlotTakenByAnotherProfessionalAsync(
         IQueryable<ClientProfessionalLink> links,
