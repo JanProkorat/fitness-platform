@@ -44,10 +44,10 @@ public class SessionExecution
     /// Public-facing identifier used in API requests and responses.
     /// </summary>
     /// <remarks>
-    /// When a document is produced by the one-time <c>--migrate-session-executions</c> migration
-    /// from a source <c>WorkoutLog</c>, this is set to that <c>WorkoutLog.ExternalId</c> — NOT a
-    /// freshly-generated Guid — so <c>PersonalRecord.WorkoutLogId</c> (and its idempotency index)
-    /// continue to resolve without any PersonalRecord data migration.
+    /// Every execution now gets a freshly-generated Guid. The migration that used to carry a
+    /// source <c>WorkoutLog.ExternalId</c> over into this field — so that
+    /// <c>PersonalRecord.WorkoutLogId</c> kept resolving without a PersonalRecord data
+    /// migration — was deleted in #848, so no document is produced that way any more.
     /// </remarks>
     [BsonElement("externalId")]
     public Guid ExternalId { get; set; }
@@ -119,15 +119,19 @@ public class SessionExecution
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Known divergence (#857 finding 2).</b> Resolving a catalog id to the correct
-    /// per-instance <see cref="SessionExercise.ExerciseId"/> requires the parent plan's session
-    /// definition. <c>MongoIndexInitializer.ApplyCompletionFlags</c> — the only
-    /// site that ever populates this field, and only for the deprecated one-shot
-    /// <c>--migrate-session-executions</c> CLI path — is a pure copy from
-    /// <see cref="TrainingCompletion.CompletedSets"/> with no such plan/session access, so it
-    /// cannot perform that resolution. The reader in <c>GetFullTrainingPlanEndpoint</c> is written
-    /// to match this reality: it looks the key up against a lookup keyed by
-    /// <see cref="SessionExercise.ExerciseExternalId"/>, not <see cref="SessionExercise.ExerciseId"/>.
+    /// <b>No writer since #848 — see #1007.</b> The only site that ever populated this field was
+    /// <c>MongoIndexInitializer.ApplyCompletionFlags</c>, which copied it verbatim from
+    /// <see cref="TrainingCompletion.CompletedSets"/> during the one-shot migration deleted in
+    /// #848. Nothing writes it now, so it is always empty and the read branch in
+    /// <c>GetFullTrainingPlanEndpoint</c> never fires.
+    /// </para>
+    /// <para>
+    /// <b>Known divergence (#857 finding 2), retained for context.</b> That copy was catalog-keyed:
+    /// resolving a catalog id to the correct per-instance <see cref="SessionExercise.ExerciseId"/>
+    /// needs the parent plan's session definition, which <c>ApplyCompletionFlags</c> did not have.
+    /// The reader in <c>GetFullTrainingPlanEndpoint</c> is therefore written to look the key up
+    /// against a lookup keyed by <see cref="SessionExercise.ExerciseExternalId"/>, not
+    /// <see cref="SessionExercise.ExerciseId"/>.
     /// </para>
     /// <para>
     /// This means two placements of the same catalog exercise within one session (standalone AND
