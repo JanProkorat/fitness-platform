@@ -22,7 +22,7 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 /// <summary>
 /// Dedicated factory for WorkoutLog uniqueness tests. Runs in its own Testcontainers
 /// to avoid polluting the shared Integration collection's MongoDB instance with
-/// the dedup/backfill scenarios that modify existing data.
+/// scenarios that modify existing data.
 /// </summary>
 public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -143,7 +143,7 @@ public class WorkoutLogUniquenessCollection;
 /// on the same day would create duplicate completed logs.
 ///
 /// Runs in its own collection + factory (separate Testcontainers) to isolate
-/// the backfill/dedup scenarios from the shared Integration collection.
+/// these index scenarios from the shared Integration collection.
 /// </summary>
 [Collection("WorkoutLogUniqueness")]
 public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
@@ -359,140 +359,6 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         completedCount.Should().Be(2, "one completed execution per distinct day is valid");
     }
 
-    // ── (4) Backfill populates CompletedDate on existing logs ─────────────────
-
-    /// <summary>
-    /// When MongoIndexInitializer runs on a collection that already has completed logs
-    /// without CompletedDate, the backfill step must set CompletedDate from CompletedAt.
-    ///
-    /// We seed a legacy-style completed log (no CompletedDate), then restart the
-    /// MongoIndexInitializer directly against the same collection and verify the field
-    /// was populated.
-    /// </summary>
-    [Fact]
-    public async Task Backfill_SetsCompletedDateOnExistingCompletedLogs()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var completedAt = DateTime.UtcNow.AddDays(-3);
-
-        // Use a fresh, empty MongoDB collection via a new Mongo Testcontainer.
-        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
-        await mongoContainer.StartAsync(ct);
-
-        var mongoClient = new MongoClient(mongoContainer.GetConnectionString());
-        var db = mongoClient.GetDatabase("backfill_test");
-        var logsColl = db.GetCollection<WorkoutLog>("workoutLogs");
-
-        // Insert a legacy completed log without CompletedDate.
-        var legacyLog = new WorkoutLog
-        {
-            ExternalId  = Guid.NewGuid(),
-            ClientId    = Guid.NewGuid(),
-            PlanId      = Guid.NewGuid(),
-            SessionId   = Guid.NewGuid(),
-            StartedAt   = completedAt.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = completedAt,
-            CompletedDate = null, // simulates legacy document
-            Workouts    = [],
-            DateCreated = completedAt.AddMinutes(-30),
-            DateUpdated = completedAt
-        };
-        await logsColl.InsertOneAsync(legacyLog, cancellationToken: ct);
-
-        // Run MongoIndexInitializer directly.
-        var mockContext = new BackfillTestMongoContext(db);
-        var initializer = new MongoIndexInitializer(
-            mockContext, NullLogger<MongoIndexInitializer>.Instance);
-
-        await initializer.StartAsync(ct);
-
-        // Verify backfill set CompletedDate.
-        var updated = await logsColl
-            .Find(Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, legacyLog.ExternalId))
-            .FirstOrDefaultAsync(ct);
-
-        updated.Should().NotBeNull();
-        updated!.CompletedDate.Should().NotBeNull("backfill must set CompletedDate from CompletedAt");
-
-        var expectedDate = WorkoutLog.ToCompletionDateUtc(completedAt);
-        updated.CompletedDate.Should().Be(expectedDate,
-            "backfill must derive CompletedDate via WorkoutLog.ToCompletionDateUtc(CompletedAt)");
-    }
-
-    // ── (5) Dedup collapses same-day dupes; index creates on clean data ────────
-
-    /// <summary>
-    /// When existing data has duplicate completed logs for the same
-    /// (PlanId, SessionId, CompletedDate) triplet, the dedup step must retain only
-    /// the most-recent (by CompletedAt) and delete the rest. The subsequent unique
-    /// index creation must then succeed.
-    /// </summary>
-    [Fact]
-    public async Task Dedup_CollapsesExistingDuplicates_ThenIndexCreatesSuccessfully()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var planId    = Guid.NewGuid();
-        var sessionId = Guid.NewGuid();
-        var day       = DateTime.UtcNow.AddDays(-2);
-        var midnight  = Midnight(day);
-
-        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
-        await mongoContainer.StartAsync(ct);
-
-        var mongoClient = new MongoClient(mongoContainer.GetConnectionString());
-        var db = mongoClient.GetDatabase("dedup_test");
-        var logsColl = db.GetCollection<WorkoutLog>("workoutLogs");
-
-        // Insert two duplicate completed logs (same triplet) — simulates dirty prod data.
-        var earlier = new WorkoutLog
-        {
-            ExternalId    = Guid.NewGuid(),
-            ClientId      = Guid.NewGuid(),
-            PlanId        = planId,
-            SessionId     = sessionId,
-            StartedAt     = day.AddMinutes(-60),
-            IsCompleted   = true,
-            CompletedAt   = day.AddMinutes(-30),
-            CompletedDate = midnight,
-            Workouts      = [],
-            DateCreated   = day.AddMinutes(-60)
-        };
-        var later = new WorkoutLog
-        {
-            ExternalId    = Guid.NewGuid(),
-            ClientId      = Guid.NewGuid(),
-            PlanId        = planId,
-            SessionId     = sessionId,
-            StartedAt     = day.AddMinutes(-45),
-            IsCompleted   = true,
-            CompletedAt   = day,
-            CompletedDate = midnight,
-            Workouts      = [],
-            DateCreated   = day.AddMinutes(-45)
-        };
-        await logsColl.InsertManyAsync([earlier, later], cancellationToken: ct);
-
-        // Run MongoIndexInitializer — must not throw despite duplicate data.
-        var mockContext = new BackfillTestMongoContext(db);
-        var initializer = new MongoIndexInitializer(
-            mockContext, NullLogger<MongoIndexInitializer>.Instance);
-
-        var act = async () => await initializer.StartAsync(ct);
-        await act.Should().NotThrowAsync("dedup must remove duplicates before creating the unique index");
-
-        // Only the most-recent (later) log must remain.
-        var remaining = await logsColl.Find(
-            Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, planId)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, sessionId)
-            & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true))
-            .ToListAsync(ct);
-
-        remaining.Should().HaveCount(1, "dedup must collapse duplicates to the most-recent");
-        remaining[0].ExternalId.Should().Be(later.ExternalId,
-            "the most-recent (by CompletedAt) log must be kept");
-    }
-
     // ── (6) Logs with null PlanId/SessionId don't trip the index ─────────────
 
     /// <summary>
@@ -526,7 +392,7 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         await logsColl.InsertManyAsync([log1, log2, log3], cancellationToken: ct);
 
         // Index init must succeed — Exists guards exclude null-key logs.
-        var mockContext = new BackfillTestMongoContext(db);
+        var mockContext = new WorkoutLogOnlyMongoContext(db);
         var initializer = new MongoIndexInitializer(
             mockContext, NullLogger<MongoIndexInitializer>.Instance);
 
@@ -536,17 +402,17 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     }
 }
 
-// ── Minimal IMongoContext for backfill/dedup tests ────────────────────────────
+// ── Minimal IMongoContext for index-creation tests ────────────────────────────
 
 /// <summary>
-/// Minimal <see cref="IMongoContext"/> implementation for backfill/dedup tests that
+/// Minimal <see cref="IMongoContext"/> implementation for index-creation tests that
 /// only need the WorkoutLogs collection. All other collections return empty mocks.
 /// </summary>
-internal sealed class BackfillTestMongoContext : IMongoContext
+internal sealed class WorkoutLogOnlyMongoContext : IMongoContext
 {
     private readonly IMongoDatabase _db;
 
-    public BackfillTestMongoContext(IMongoDatabase db) => _db = db;
+    public WorkoutLogOnlyMongoContext(IMongoDatabase db) => _db = db;
 
     public IMongoCollection<WorkoutLog> WorkoutLogs =>
         _db.GetCollection<WorkoutLog>("workoutLogs");

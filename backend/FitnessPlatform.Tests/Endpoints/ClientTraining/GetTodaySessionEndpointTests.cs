@@ -216,8 +216,7 @@ public class GetTodaySessionEndpointTests
         // exclusively; the retired TrainingCompletions/WorkoutLogs collections stubbed
         // above are no longer consulted by the endpoint (kept for legacy call-site
         // compatibility only). Merge the completions + workoutLogs fixtures into the
-        // unified per-(sessionId, date) documents the real --migrate-session-executions
-        // migration would have produced.
+        // unified per-(sessionId, date) documents the app writes directly.
         var executionDocs = BuildSessionExecutions(completions, workoutLogs);
         var executionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
         executionCollection.FindAsync(
@@ -251,7 +250,7 @@ public class GetTodaySessionEndpointTests
     /// <summary>
     /// Merges legacy <see cref="TrainingCompletion"/> (checkbox) and <see cref="WorkoutLog"/>
     /// (Performance) fixtures into the unified <see cref="SessionExecution"/> shape, keyed by
-    /// (SessionId, Date) — mirroring the real <c>--migrate-session-executions</c> merge (#841).
+    /// (SessionId, Date) — the unified shape introduced by #841.
     /// A fixture set containing two documents for the SAME (SessionId, Date) key is not a valid
     /// input here: the partial-unique index on <c>SessionExecutions</c> guarantees at most one
     /// execution per planned session per calendar day in production, so tests exercising that
