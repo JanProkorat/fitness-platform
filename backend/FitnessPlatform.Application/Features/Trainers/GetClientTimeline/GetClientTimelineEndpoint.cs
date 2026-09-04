@@ -26,6 +26,29 @@ public class GetClientTimelineEndpoint(
     IAuditService audit)
     : Endpoint<GetClientTimelineRequest, GetClientTimelineResponse>
 {
+    /// <summary>
+    /// Projection for locating a nutrition plan's plan-publish event: externalId, name, and
+    /// per-week status/datePublished only — excludes the heavy <c>weeks[].days</c> sub-tree
+    /// entirely. Same idiom as
+    /// <see cref="Application.Features.ClientNutrition.GetTodayPlan.GetTodayPlanEndpoint.LightPlanProjection"/>.
+    /// </summary>
+    internal static readonly ProjectionDefinition<NutritionPlan> NutritionPlanPublishProjection =
+        Builders<NutritionPlan>.Projection.Combine(
+            Builders<NutritionPlan>.Projection.Include(p => p.ExternalId),
+            Builders<NutritionPlan>.Projection.Include(p => p.Name),
+            Builders<NutritionPlan>.Projection.Include("weeks.status"),
+            Builders<NutritionPlan>.Projection.Include("weeks.datePublished"));
+
+    /// <summary>
+    /// Same idiom as <see cref="NutritionPlanPublishProjection"/>, for training plans.
+    /// </summary>
+    internal static readonly ProjectionDefinition<TrainingPlan> TrainingPlanPublishProjection =
+        Builders<TrainingPlan>.Projection.Combine(
+            Builders<TrainingPlan>.Projection.Include(p => p.ExternalId),
+            Builders<TrainingPlan>.Projection.Include(p => p.Name),
+            Builders<TrainingPlan>.Projection.Include("weeks.status"),
+            Builders<TrainingPlan>.Projection.Include("weeks.datePublished"));
+
     /// <inheritdoc />
     public override void Configure()
     {
@@ -212,21 +235,47 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 5. Nutrition & training plan publish events ──
+        // Exactly one event per plan: the plan-level DatePublished field is never written by
+        // application code (#1014) — publish only sets weeks[].datePublished. OccurredAt is
+        // therefore derived as the EARLIEST datePublished among the plan's published weeks, not
+        // the lowest week number's date (a trainer/nutritionist may publish week 3 before week
+        // 1). A plan with zero published weeks emits no event.
         // Nutrition-domain: gated on CanViewNutritionPlans.
         if (link.CanViewNutritionPlans)
         {
             var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
-                & Builders<NutritionPlan>.Filter.Gte(p => p.DatePublished, from);
+                & Builders<NutritionPlan>.Filter.ElemMatch(p => p.Weeks, w => w.Status == WeekStatus.Published);
 
-            using var cursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct);
+            using var cursor = await mongo.NutritionPlans.FindAsync(
+                nutritionPlanFilter,
+                new FindOptions<NutritionPlan, NutritionPlan> { Projection = NutritionPlanPublishProjection },
+                ct);
             var plans = await cursor.ToListAsync(ct);
-            foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
+
+            foreach (var plan in plans)
             {
+                var publishedDates = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue)
+                    .Select(w => w.DatePublished!.Value)
+                    .ToList();
+
+                if (publishedDates.Count == 0)
+                {
+                    continue;
+                }
+
+                var occurredAt = publishedDates.Min();
+
+                if (occurredAt < from)
+                {
+                    continue;
+                }
+
                 items.Add(new ClientTimelineItem
                 {
                     Id = $"nutrition_plan:{plan.ExternalId}",
                     Type = "nutrition_plan_published",
-                    OccurredAt = plan.DatePublished!.Value,
+                    OccurredAt = occurredAt,
                     Title = "Zveřejněn jídelníček",
                     Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
                     Icon = "🥗",
@@ -238,17 +287,38 @@ public class GetClientTimelineEndpoint(
         if (link.CanViewTrainingPlans)
         {
             var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
-                & Builders<TrainingPlan>.Filter.Gte(p => p.DatePublished, from);
+                & Builders<TrainingPlan>.Filter.ElemMatch(p => p.Weeks, w => w.Status == WeekStatus.Published);
 
-            using var cursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
+            using var cursor = await mongo.TrainingPlans.FindAsync(
+                trainingPlanFilter,
+                new FindOptions<TrainingPlan, TrainingPlan> { Projection = TrainingPlanPublishProjection },
+                ct);
             var plans = await cursor.ToListAsync(ct);
-            foreach (var plan in plans.Where(p => p.DatePublished.HasValue))
+
+            foreach (var plan in plans)
             {
+                var publishedDates = plan.Weeks
+                    .Where(w => w.Status == WeekStatus.Published && w.DatePublished.HasValue)
+                    .Select(w => w.DatePublished!.Value)
+                    .ToList();
+
+                if (publishedDates.Count == 0)
+                {
+                    continue;
+                }
+
+                var occurredAt = publishedDates.Min();
+
+                if (occurredAt < from)
+                {
+                    continue;
+                }
+
                 items.Add(new ClientTimelineItem
                 {
                     Id = $"training_plan:{plan.ExternalId}",
                     Type = "training_plan_published",
-                    OccurredAt = plan.DatePublished!.Value,
+                    OccurredAt = occurredAt,
                     Title = "Zveřejněn tréninkový plán",
                     Description = string.IsNullOrWhiteSpace(plan.Name) ? null : plan.Name,
                     Icon = "🏋",
