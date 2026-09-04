@@ -62,10 +62,30 @@ jobs:
       # `dotnet build`); #887/#889/#923 hit it as a wrong-field-at-runtime bug
       # via the client's numerically-suffixed type. Runs before any .NET step
       # is set up since it is pure grep with no build dependency.
+      # Matches `internal`/`internal sealed` as well as `public` (#979). The
+      # original pattern saw only `public`, so the 29 `internal sealed` types
+      # under Features/ were invisible to it — a duplicate among them would
+      # have reached app boot undetected.
+      #
+      # `static` is deliberately NOT in the alternation. Adding it surfaces
+      # three pre-existing same-name pairs (TemplateContentCloner,
+      # TemplateRequestMapper, TemplateWeekRuleSet — each in both
+      # TrainingPlanTemplates/Shared/ and NutritionPlanTemplates/Shared/) that
+      # are false positives for BOTH failure modes this guard exists to catch:
+      # a static class is never a FastEndpoints endpoint (so no ShortNames
+      # boot crash) and an internal type never reaches the Swagger document
+      # (so no NSwag numeric-suffix drift).
+      #
+      # awk prints $NF, not $3: with the widened pattern, field 3 of
+      # `internal sealed class Foo` is the literal word `class`, which would
+      # collapse every internal sealed type onto one bogus name and fail the
+      # step. `grep -o` output ends at the type name, so $NF is the name for
+      # every modifier shape — and $NF == $3 for all existing `public class`
+      # lines, so the covered set is unchanged.
       - name: Check for duplicate public type names under Features/
         run: |
-          duplicates=$(grep -rhoE "^public (class|record|enum|interface) [A-Za-z0-9_]+" \
-            FitnessPlatform.Application/Features/ | awk '{print $3}' | sort | uniq -d)
+          duplicates=$(grep -rhoE "^(public|internal)( sealed)? (class|record|enum|interface) [A-Za-z0-9_]+" \
+            FitnessPlatform.Application/Features/ | awk '{print $NF}' | sort | uniq -d)
           if [ -n "$duplicates" ]; then
             echo "::error::Duplicate public type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge."
             echo "Colliding type name(s):"
