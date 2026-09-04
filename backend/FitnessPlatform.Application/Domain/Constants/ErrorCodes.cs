@@ -371,4 +371,17 @@ public static class ErrorCodes
 
     /// <summary>Currency is not one of the platform's supported billing currencies.</summary>
     public const string UnsupportedCurrency = "UNSUPPORTED_CURRENCY";
+
+    // ── Client-Professional Links (#980) ─────────────────────────────
+    /// <summary>
+    /// Accepting/creating this link would give the client a second ACTIVE link holding
+    /// a profession slot (CanViewNutritionPlans or CanViewTrainingPlans) that a
+    /// different active professional already occupies. A client may hold at most one
+    /// active coach per profession — ending the existing link first (see
+    /// EndCollaborationEndpoint) frees the slot. A single dual-role professional
+    /// legitimately occupies both slots through one link; this fires only when a
+    /// different professional would claim a slot already held. See
+    /// <see cref="FitnessPlatform.Application.Domain.Services.ProfessionSlotGuard"/>.
+    /// </summary>
+    public const string ProfessionAlreadyOccupied = "PROFESSION_ALREADY_OCCUPIED";
 }

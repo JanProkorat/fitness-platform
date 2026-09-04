@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -181,6 +182,26 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             this.ThrowErrorWithCode(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        // A client may hold at most one active coach per profession (#980), but that
+        // rule governs INDEPENDENT coach links only — a collaboration is a deliberately
+        // exempt, different mechanism (a shared/delegated grant, not a competing claim),
+        // so both the caller AND the collaborator are excluded from the collision check:
+        // the collaborator's flags are clamped to what the caller's own link already
+        // grants (see above), so the caller's link necessarily already carries every
+        // flag this collaboration could grant. Only a genuinely unrelated THIRD
+        // professional (onboarded via one of the other three link-creation paths)
+        // should block a collaboration. Do not reduce this to a single exclusion.
+        if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                db.ClientProfessionalLinks, clientProfile.Id,
+                [professionalProfile.Id, collaboratorProfile.Id],
+                canViewNutritionPlans, canViewTrainingPlans, ct))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
             return;
         }
 

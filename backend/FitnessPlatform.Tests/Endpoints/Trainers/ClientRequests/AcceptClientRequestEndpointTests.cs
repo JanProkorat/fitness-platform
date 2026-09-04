@@ -305,4 +305,188 @@ public class AcceptClientRequestEndpointTests
             f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
         db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
+
+    /// <summary>
+    /// Insert branch (#980): accepting would give the client a SECOND active
+    /// nutritionist — a different professional already holds an active link with
+    /// CanViewNutritionPlans. A client may hold at most one active coach per profession.
+    /// </summary>
+    [Fact]
+    public async Task Accept_ClientHasActiveNutritionistLink_AnotherNutritionistAccepts_Returns400WithErrorCode()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var otherNutritionistUser = EntityBuilder.User.WithEmail("other-nutritionist@test.com")
+            .WithFirstName("O").WithLastName("N").Build();
+        var otherNutritionistProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(otherNutritionistUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-occupied@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var occupyingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(otherNutritionistProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(otherNutritionistProfile)
+            .With(clientProfile)
+            .With(occupyingLink)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Nutritionist);
+
+        var act = () => ep.HandleAsync(
+            new AcceptClientRequestRequest { PublicId = clientRequest.PublicId },
+            TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
+        clientRequest.Status.Should().Be(ClientRequestStatus.Pending);
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+    }
+
+    /// <summary>
+    /// Reactivation branch (#980): an inactive link belonging to the ACCEPTING
+    /// professional already exists, but a different professional now holds the
+    /// training slot the reactivation would re-claim. Must be rejected too — not just
+    /// the insert branch above.
+    /// </summary>
+    [Fact]
+    public async Task Accept_ReactivatingOwnInactiveLink_ClientHasActiveTrainerLink_Returns400WithErrorCode()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var otherTrainerUser = EntityBuilder.User.WithEmail("other-trainer@test.com")
+            .WithFirstName("O").WithLastName("T").Build();
+        var otherTrainerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(otherTrainerUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-reactivate@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // The accepting professional's own link already exists but is inactive.
+        var ownInactiveLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(professionalProfile)
+            .WithCanViewTrainingPlans(true)
+            .WithCanViewNutritionPlans(false)
+            .Inactive()
+            .Build();
+
+        // A DIFFERENT trainer now holds the training slot.
+        var occupyingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(otherTrainerProfile)
+            .WithCanViewTrainingPlans(true)
+            .WithCanViewNutritionPlans(false)
+            .Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(otherTrainerProfile)
+            .With(clientProfile)
+            .With(ownInactiveLink)
+            .With(occupyingLink)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Trainer);
+
+        var act = () => ep.HandleAsync(
+            new AcceptClientRequestRequest { PublicId = clientRequest.PublicId },
+            TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
+        ownInactiveLink.IsActive.Should().BeFalse(
+            "the reactivation must not go through when the slot is already occupied by another professional");
+    }
+
+    /// <summary>
+    /// Negative control (#980): a client already has an active TRAINER link; accepting
+    /// a NUTRITIONIST-only request for a DIFFERENT professional must succeed — the two
+    /// profession slots are independent and do not block each other.
+    /// </summary>
+    [Fact]
+    public async Task Accept_ClientHasActiveTrainerLink_NutritionistOnlyAccept_Returns204()
+    {
+        var professionalUser = CreateProfessionalUser();
+        var professionalProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(professionalUser).Build();
+
+        var trainerUser = EntityBuilder.User.WithEmail("trainer-coexist@test.com")
+            .WithFirstName("T").WithLastName("R").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-coexist@test.com")
+            .WithFirstName("C").WithLastName("Lient").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var trainerLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .WithCanViewTrainingPlans(true)
+            .WithCanViewNutritionPlans(false)
+            .Build();
+
+        var clientRequest = new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ClientProfile = clientProfile,
+            ProfessionalProfileId = professionalProfile.Id,
+            ProfessionalProfile = professionalProfile,
+            Status = ClientRequestStatus.Pending
+        };
+
+        var db = new MockDbBuilder()
+            .With(professionalUser)
+            .With(professionalProfile)
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(trainerLink)
+            .With(clientRequest)
+            .Build();
+
+        var ep = CreateEndpoint(db, AppRoles.Nutritionist);
+
+        await ep.HandleAsync(
+            new AcceptClientRequestRequest { PublicId = clientRequest.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.CanViewNutritionPlans && !l.CanViewTrainingPlans));
+    }
 }

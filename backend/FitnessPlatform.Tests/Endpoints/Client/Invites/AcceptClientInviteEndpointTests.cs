@@ -234,6 +234,69 @@ public class AcceptClientInviteEndpointTests
             l => l.CanViewNutritionPlans && !l.CanViewTrainingPlans));
     }
 
+    /// <summary>
+    /// A client may hold at most one active coach per profession (#980). A different
+    /// professional already holds an active link with CanViewNutritionPlans — accepting
+    /// this invite would occupy the same slot with a second nutritionist.
+    /// </summary>
+    [Fact]
+    public async Task Accept_ClientHasActiveNutritionistLink_AnotherNutritionistInviteAccepted_Returns400WithErrorCode()
+    {
+        var clientId = Guid.NewGuid();
+        var inviteId = Guid.NewGuid();
+        var clientUser = CreateUser(clientId, "client-occupied@example.com");
+
+        var occupyingProfessionalUserId = Guid.NewGuid();
+        var occupyingProfessionalProfile = new ProfessionalProfile
+        {
+            Id = 1, PublicId = Guid.NewGuid(), UserId = occupyingProfessionalUserId
+        };
+        var clientProfile = new ClientProfile { Id = 1, UserId = clientId };
+        var occupyingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(occupyingProfessionalProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var invitingProfessionalUserId = Guid.NewGuid();
+        var invitingProfessionalUser = CreateUser(invitingProfessionalUserId, "inviting-nutritionist@example.com");
+        var invitingProfessionalProfile = new ProfessionalProfile
+        {
+            Id = 2, PublicId = Guid.NewGuid(), UserId = invitingProfessionalUserId, User = invitingProfessionalUser
+        };
+        var invite = new PendingInvite
+        {
+            PublicId = inviteId,
+            ProfessionalProfileId = invitingProfessionalProfile.Id,
+            ProfessionalProfile = invitingProfessionalProfile,
+            Email = "client-occupied@example.com",
+            IsAccepted = false
+        };
+
+        var db = new MockDbBuilder()
+            .With(clientUser)
+            .With(clientProfile)
+            .With(occupyingProfessionalProfile)
+            .With(invitingProfessionalProfile)
+            .With(occupyingLink)
+            .With(invite)
+            .Build();
+
+        _userManager.FindByIdAsync(invitingProfessionalUserId.ToString()).Returns(invitingProfessionalUser);
+        _userManager.GetRolesAsync(invitingProfessionalUser).Returns(["Nutritionist"]);
+
+        var ep = CreateEndpoint(clientId, db);
+
+        var act = () => ep.HandleAsync(new AcceptClientInviteRequest { Id = inviteId }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
+        invite.IsAccepted.Should().BeFalse();
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+    }
+
     [Fact]
     public async Task Accept_UnknownOrAlreadyAcceptedInvite_Returns404()
     {

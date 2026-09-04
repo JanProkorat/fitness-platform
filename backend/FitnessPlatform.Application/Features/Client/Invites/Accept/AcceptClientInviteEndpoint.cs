@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -114,6 +116,17 @@ public class AcceptClientInviteEndpoint(
                 LinkCapabilityScope.NutritionOnly => false,
                 _ => profIsTrainer
             };
+
+            // A client may hold at most one active coach per profession (#980).
+            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                    db.ClientProfessionalLinks, clientProfile.Id, invite.ProfessionalProfileId,
+                    canViewNutritionPlans, canViewTrainingPlans, ct))
+            {
+                this.ThrowErrorWithCode(
+                    ErrorCodes.ProfessionAlreadyOccupied,
+                    "The client already has an active professional occupying this profession slot.");
+                return;
+            }
 
             newLink = new ClientProfessionalLink
             {

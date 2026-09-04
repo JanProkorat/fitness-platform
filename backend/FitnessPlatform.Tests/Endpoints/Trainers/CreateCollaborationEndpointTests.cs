@@ -372,6 +372,75 @@ public class CreateCollaborationEndpointTests
             l => l.CanViewTrainingPlans && !l.CanViewNutritionPlans));
     }
 
+    /// <summary>
+    /// A client may hold at most one active coach per profession (#980). The
+    /// collaborator would gain CanViewNutritionPlans, but a THIRD professional (not the
+    /// caller, not the collaborator) already holds an active link with that flag —
+    /// CreateCollaboration previously had no profession check at all, only a check on
+    /// the caller's own capabilities.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ThirdProfessionalOccupiesNutritionSlot_Returns400WithErrorCode()
+    {
+        var trainerBUser = EntityBuilder.User.WithId(_trainerBId).WithEmail("b@test.com")
+            .WithFirstName("B").WithLastName("Trainer").Build();
+        var trainerAProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerAId).Build();
+        var trainerBProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(trainerBUser).Build();
+
+        var occupyingUser = EntityBuilder.User.WithEmail("occupying-nutritionist@test.com")
+            .WithFirstName("O").WithLastName("N").Build();
+        var occupyingProfile = EntityBuilder.ProfessionalProfile.WithId(3).WithUser(occupyingUser).Build();
+
+        var clientUser = EntityBuilder.User.WithEmail("client-third@test.com")
+            .WithFirstName("C").WithLastName("U").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // Caller's own link grants both capabilities — nothing to clamp the delegation.
+        var callerLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerAProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(true)
+            .Build();
+
+        // A different, third professional already occupies the nutrition slot.
+        var occupyingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(occupyingProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerAProfile)
+            .With(trainerBProfile)
+            .With(occupyingProfile)
+            .With(clientProfile)
+            .With(callerLink)
+            .With(occupyingLink)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.GetRolesAsync(trainerBUser).Returns(["Trainer", "Nutritionist"]);
+
+        var ep = Factory.Create<CreateCollaborationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerAId, AppRoles.Trainer))),
+            db, userManager);
+
+        var act = () => ep.HandleAsync(new CreateCollaborationRequest
+        {
+            ClientPublicId = clientProfile.PublicId,
+            CollaboratorPublicId = trainerBProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+    }
+
     [Fact]
     public async Task HandleAsync_NoActiveLink_ThrowsError()
     {
