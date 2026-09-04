@@ -47,10 +47,15 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
 
         var filterBuilder = Builders<Recipe>.Filter;
 
-        // Visibility filter: caller's own recipes (any visibility) OR other nutritionists' public recipes.
-        var filter = filterBuilder.Or(
-            filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
-            filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
+        // Visibility filter: caller's own recipes (any visibility) OR other nutritionists' public
+        // recipes. Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the
+        // ownership term is suppressed entirely for an empty caller id, so a document that
+        // explicitly stores a zero-uuid owner can't be matched as "owned by the caller" below.
+        var filter = nutritionistId == Guid.Empty
+            ? filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public)
+            : filterBuilder.Or(
+                filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
+                filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
