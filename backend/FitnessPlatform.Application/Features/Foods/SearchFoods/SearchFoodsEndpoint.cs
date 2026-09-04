@@ -44,9 +44,8 @@ public class SearchFoodsEndpoint(
         var filterBuilder = Builders<Food>.Filter;
 
         // Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the ownership term
-        // is suppressed entirely for an empty caller id rather than compared against it, since a
-        // document whose nutritionistId field is absent deserializes to Guid.Empty and would
-        // otherwise match via the Eq disjunct below.
+        // is suppressed entirely for an empty caller id, so a document that explicitly stores a
+        // zero-uuid owner can't be matched as "owned by the caller" below.
         var visibilityFilter = currentUserId == Guid.Empty
             ? filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public)
             : filterBuilder.Or(
