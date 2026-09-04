@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -125,6 +126,20 @@ public class AcceptClientRequestEndpoint(
             LinkCapabilityScope.NutritionOnly => false,
             _ => isTrainer
         };
+
+        // A client may hold at most one active coach per profession (#980). This
+        // covers BOTH the reactivate branch and the insert branch below — a
+        // reactivation re-occupying a slot another active professional holds is
+        // rejected too, not just a brand-new link.
+        if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                db.ClientProfessionalLinks, clientRequest.ClientProfileId, professionalProfile.Id,
+                canViewNutritionPlans, canViewTrainingPlans, ct))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
+            return;
+        }
 
         // Update request status
         clientRequest.Status = ClientRequestStatus.Accepted;

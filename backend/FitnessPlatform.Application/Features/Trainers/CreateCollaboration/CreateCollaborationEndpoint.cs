@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -181,6 +182,20 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             this.ThrowErrorWithCode(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        // A client may hold at most one active coach per profession (#980). This is
+        // the most direct violator this guard closes — CreateCollaboration previously
+        // minted a link to a DIFFERENT professional with no profession check at all;
+        // the guard ladder above only ever checked the CALLER's own capabilities.
+        if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                db.ClientProfessionalLinks, clientProfile.Id, collaboratorProfile.Id,
+                canViewNutritionPlans, canViewTrainingPlans, ct))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
             return;
         }
 
