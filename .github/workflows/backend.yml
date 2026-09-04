@@ -67,32 +67,44 @@ jobs:
       # under Features/ were invisible to it — a duplicate among them would
       # have reached app boot undetected.
       #
-      # `static` is deliberately NOT in the alternation. Adding it surfaces
-      # three pre-existing same-name pairs (TemplateContentCloner,
-      # TemplateRequestMapper, TemplateWeekRuleSet — each in both
-      # TrainingPlanTemplates/Shared/ and NutritionPlanTemplates/Shared/) that
-      # are false positives for BOTH failure modes this guard exists to catch:
-      # a static class is never a FastEndpoints endpoint (so no ShortNames
-      # boot crash) and an internal type never reaches the Swagger document
-      # (so no NSwag numeric-suffix drift).
+      # Two modifiers are deliberately NOT in the alternation, each for its own
+      # reason:
+      #
+      #   `static` — adding it surfaces three pre-existing same-name pairs
+      #   (TemplateContentCloner, TemplateRequestMapper, TemplateWeekRuleSet,
+      #   each in both TrainingPlanTemplates/Shared/ and
+      #   NutritionPlanTemplates/Shared/) that are false positives for BOTH
+      #   failure modes this guard catches: a static class is never a
+      #   FastEndpoints endpoint (no ShortNames boot crash) and never a DTO
+      #   in the Swagger document (no NSwag numeric-suffix drift). That holds
+      #   for `public static` as well as `internal static`.
+      #
+      #   `partial` — a partial type legitimately spans several files, so each
+      #   declaration would emit the same name and `uniq -d` would report a
+      #   FALSE duplicate. There are 0 partial declarations under Features/
+      #   today; the trade-off is that an `internal sealed partial class`
+      #   endpoint collision would slip past this guard.
       #
       # awk prints $NF, not $3: with the widened pattern, field 3 of
       # `internal sealed class Foo` is the literal word `class`, which would
       # collapse every internal sealed type onto one bogus name and fail the
-      # step. `grep -o` output ends at the type name, so $NF is the name for
-      # every modifier shape — and $NF == $3 for all existing `public class`
-      # lines, so the covered set is unchanged.
-      - name: Check for duplicate public type names under Features/
+      # step. `grep -o` output ends at the type name, so $NF is the identifier
+      # for every shape this pattern admits — and $NF == $3 for all 765
+      # existing `public class` lines (verified byte-identical), so the covered
+      # set is unchanged. Note $NF would NOT be the name for `record struct`,
+      # which matches only as far as `struct`; there are none under Features/,
+      # and the previous $3 form had the same limitation.
+      - name: Check for duplicate type names under Features/
         run: |
           duplicates=$(grep -rhoE "^(public|internal)( sealed)? (class|record|enum|interface) [A-Za-z0-9_]+" \
             FitnessPlatform.Application/Features/ | awk '{print $NF}' | sort | uniq -d)
           if [ -n "$duplicates" ]; then
-            echo "::error::Duplicate public type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge."
+            echo "::error::Duplicate type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge. Covers public and internal declarations."
             echo "Colliding type name(s):"
             echo "$duplicates"
             exit 1
           fi
-          echo "No duplicate public type names found under Features/."
+          echo "No duplicate type names found under Features/."
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
