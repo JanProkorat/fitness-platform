@@ -476,7 +476,7 @@ public class GetTodayLogEndpointTests
         var todayPlanEp = Factory.Create<GetTodayPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
         await todayPlanEp.HandleAsync(TestContext.Current.CancellationToken);
 
         todayPlanEp.Response.Should().NotBeNull();
@@ -488,7 +488,7 @@ public class GetTodayLogEndpointTests
         var weekPlanEp = Factory.Create<GetWeekPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
         await weekPlanEp.HandleAsync(TestContext.Current.CancellationToken);
 
         weekPlanEp.Response.Should().NotBeNull();
@@ -499,7 +499,7 @@ public class GetTodayLogEndpointTests
         var todayLogEp = Factory.Create<GetTodayLogEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _blobStorage);
+            mongo, db, _blobStorage, TimeProvider.System);
         await todayLogEp.HandleAsync(TestContext.Current.CancellationToken);
 
         todayLogEp.Response.Should().NotBeNull();
