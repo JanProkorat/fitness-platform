@@ -44,7 +44,7 @@ public class GetTodayPlanEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow.Date;
+        plan.StartDate = DateTime.UtcNow.Date;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
@@ -112,7 +112,6 @@ public class GetTodayPlanEndpointTests
             status: NutritionPlanStatus.Active,
             weekCount: 2);
         plan.StartDate = DateTime.UtcNow.Date.AddDays(-14);
-        plan.DatePublished = plan.StartDate;
         plan.Weeks[0].Status = WeekStatus.Published; // week 1 published
         // week 2 remains Draft — week 3 doesn't exist at all
 
@@ -128,34 +127,6 @@ public class GetTodayPlanEndpointTests
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
-    }
-
-    [Fact]
-    public async Task HandleAsync_CyclesWeeks_ReturnsCorrectDay()
-    {
-        var plan = PlanTestHelpers.CreatePlan(
-            clientId: _clientId,
-            status: NutritionPlanStatus.Active,
-            weekCount: 1);
-        // 1-week plan published 8 days ago => day index = 8 % 7 = 1 => week 0, day index 1 => DayOfWeek=2
-        plan.DatePublished = DateTime.UtcNow.Date.AddDays(-8);
-        foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
-
-        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetTodayPlanEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.Response.Should().NotBeNull();
-        ep.Response.DayOfWeek.Should().Be(2);
-        ep.Response.WeekNumber.Should().Be(1);
     }
 
     // -------------------------------------------------------------------------
@@ -180,13 +151,11 @@ public class GetTodayPlanEndpointTests
         // Past plan: fully elapsed window (ended well before today).
         var pastPlan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: 2, name: "Past Plan");
         pastPlan.StartDate = todayStart.AddDays(-60);
-        pastPlan.DatePublished = pastPlan.StartDate;
         foreach (var w in pastPlan.Weeks) w.Status = WeekStatus.Published;
 
         // Current plan: window contains today (started this week).
         var currentPlan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: 2, name: "Current Plan");
         currentPlan.StartDate = todayStart;
-        currentPlan.DatePublished = todayStart;
         foreach (var w in currentPlan.Weeks) w.Status = WeekStatus.Published;
         var food = PlanTestHelpers.CreateMealFood(foodName: "Current Plan Food");
         var meal = PlanTestHelpers.CreateMeal(mealId: currentPlanMealId, kind: MealKind.Lunch, foods: food);
@@ -229,7 +198,6 @@ public class GetTodayPlanEndpointTests
     {
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, weekCount: 1);
         plan.StartDate = DateTime.UtcNow.Date.AddDays(30);
-        plan.DatePublished = plan.StartDate;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

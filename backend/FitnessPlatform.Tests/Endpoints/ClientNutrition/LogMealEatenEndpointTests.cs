@@ -37,7 +37,7 @@ public class LogMealEatenEndpointTests
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
             status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -79,7 +79,7 @@ public class LogMealEatenEndpointTests
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
             status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -130,7 +130,7 @@ public class LogMealEatenEndpointTests
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
             status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -169,7 +169,7 @@ public class LogMealEatenEndpointTests
         var plan = PlanTestHelpers.CreatePlan(
             clientId: _clientId,
             status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
         var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();

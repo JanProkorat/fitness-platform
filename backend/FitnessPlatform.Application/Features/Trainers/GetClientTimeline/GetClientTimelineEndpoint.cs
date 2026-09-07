@@ -235,8 +235,9 @@ public class GetClientTimelineEndpoint(
         }
 
         // ── 5. Nutrition & training plan publish events ──
-        // Exactly one event per plan: the plan-level DatePublished field is never written by
-        // application code (#1014) — publish only sets weeks[].datePublished. OccurredAt is
+        // Exactly one event per plan. There is no plan-level DatePublished field — publish only
+        // ever set weeks[].datePublished (#1014), and the unwritten plan-level one was deleted in
+        // #1015. OccurredAt is
         // therefore derived as the EARLIEST datePublished among the plan's published weeks, not
         // the lowest week number's date (a trainer/nutritionist may publish week 3 before week
         // 1). A plan with zero published weeks emits no event.
