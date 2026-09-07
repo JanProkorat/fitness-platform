@@ -118,7 +118,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -171,7 +171,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Pre-existing log: 2 photos + an old note
@@ -231,7 +231,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var existingLog = new MealLog
@@ -285,7 +285,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Pre-existing log with a note
@@ -337,7 +337,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string urlA = "https://minio.local/bucket/photoA.jpg";
@@ -429,7 +429,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var originalEatenAt = DateTime.UtcNow.AddMinutes(-45);
@@ -490,7 +490,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -544,7 +544,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string urlA = "https://minio.local/bucket/pasta.jpg";
@@ -644,7 +644,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Legacy record: LogDate is the default (0001-01-01), EatenAt is today
@@ -705,7 +705,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -749,7 +749,7 @@ public class SaveMealPhotosEndpointTests
 
         var planExternalId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, externalId: planExternalId);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string blobUrl = "https://minio.local/bucket/existing-photo.jpg";
@@ -831,7 +831,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -879,7 +879,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -925,7 +925,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -991,7 +991,7 @@ public class SaveMealPhotosEndpointTests
     public async Task HandleAsync_InvalidMealId_Returns404()
     {
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         // No meals added — any mealId will be unknown
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

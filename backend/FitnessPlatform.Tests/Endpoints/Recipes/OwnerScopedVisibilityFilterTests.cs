@@ -4,6 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Foods.GetFood;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
@@ -85,6 +86,30 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
             IsDeleted = false,
             DateCreated = DateTime.UtcNow,
         };
+
+    // NutritionistId is explicitly null — a system/seed food with no owning nutritionist.
+    // Food.NutritionistId carries no [BsonIgnoreIfNull], so this stores an explicit BSON null
+    // rather than omitting the element.
+    private static Food MakeOwnerlessFood(string name, FoodVisibility visibility) =>
+        new()
+        {
+            ExternalId = Guid.NewGuid(),
+            Name = name,
+            NutritionistId = null,
+            Visibility = visibility,
+            IsDeleted = false,
+            DateCreated = DateTime.UtcNow,
+        };
+
+    // A nutritionist whose user-id claim cannot be parsed as a Guid, so GetFoodEndpoint's
+    // Guid.TryParse leaves currentUserId null. Built inline rather than via
+    // EndpointTestHelpers.FakeUserClaims, which only takes a well-formed Guid.
+    private static Claim[] UnparsableCallerClaims() =>
+    [
+        new Claim(AppClaims.UserId, "not-a-guid"),
+        new Claim(AppClaims.Email, "test@test.com"),
+        new Claim(ClaimTypes.Role, AppRoles.Nutritionist)
+    ];
 
     // ── tests ─────────────────────────────────────────────────────────────────
 
@@ -174,5 +199,123 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
             new GetRecipeRequest { RecipeId = othersPublic.ExternalId }, ct);
 
         publicEp.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// #1010 error path: the fourth member of the own-or-public family. A Private food with NO
+    /// owner must 404 for a nutritionist whose id claim could not be parsed. Before the fix the
+    /// gate ran in memory as <c>food.NutritionistId != currentUserId</c> with both sides
+    /// <see langword="null"/>, which evaluated false and returned the food as "owned by the
+    /// caller".
+    /// </summary>
+    [Fact]
+    public async Task GetFood_UnparsableCallerId_PrivateOwnerlessFood_Returns404()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var ownerlessPrivate = MakeOwnerlessFood("Ownerless Private", FoodVisibility.Private);
+        await _foods.InsertOneAsync(ownerlessPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(UnparsableCallerClaims())),
+            _mongoContext);
+
+        await ep.HandleAsync(new GetFoodRequest { FoodId = ownerlessPrivate.ExternalId }, ct);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// #1010 success path, so the test above cannot pass by blanket-denying an unparsable caller:
+    /// a Public ownerless food still resolves for the same caller.
+    /// </summary>
+    [Fact]
+    public async Task GetFood_UnparsableCallerId_PublicOwnerlessFood_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var ownerlessPublic = MakeOwnerlessFood("Ownerless Public", FoodVisibility.Public);
+        await _foods.InsertOneAsync(ownerlessPublic, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(UnparsableCallerClaims())),
+            _mongoContext);
+
+        await ep.HandleAsync(new GetFoodRequest { FoodId = ownerlessPublic.ExternalId }, ct);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// #1010 regression guard: a nutritionist still reads their OWN Private food. Pins that the
+    /// move from an in-memory post-filter to a Mongo-level Or clause did not narrow the reachable
+    /// own-or-public behaviour.
+    /// </summary>
+    [Fact]
+    public async Task GetFood_OwningNutritionist_PrivateOwnFood_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var ownerId = Guid.NewGuid();
+        var ownPrivate = MakeFood(ownerId, "Own Private", FoodVisibility.Private);
+        await _foods.InsertOneAsync(ownPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(new GetFoodRequest { FoodId = ownPrivate.ExternalId }, ct);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// Moved here from <c>GetFoodEndpointTests.HandleAsync_PrivateFood_OtherNutritionistGets404</c>
+    /// by #1010. That test ran against <c>FoodTestHelpers.CreateMockMongo</c>, whose
+    /// <c>FindAsync</c> stub returns every seeded food without evaluating the
+    /// <c>FilterDefinition</c>, so it could only observe a gate applied AFTER the read. Once the
+    /// gate moved into the query it became structurally blind — it belongs on a real collection.
+    /// </summary>
+    [Fact]
+    public async Task GetFood_OtherNutritionist_OthersPrivateFood_Returns404()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private 404", FoodVisibility.Private);
+        await _foods.InsertOneAsync(othersPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(new GetFoodRequest { FoodId = othersPrivate.ExternalId }, ct);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+    }
+
+    /// <summary>
+    /// #1010 regression guard: a Client reading a Private food referenced by their plan is still
+    /// exempt from the visibility gate — the behaviour the endpoint's summary promises.
+    /// </summary>
+    [Fact]
+    public async Task GetFood_ClientCaller_OthersPrivateFood_Returns200()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private", FoodVisibility.Private);
+        await _foods.InsertOneAsync(othersPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Client))),
+            _mongoContext);
+
+        await ep.HandleAsync(new GetFoodRequest { FoodId = othersPrivate.ExternalId }, ct);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
     }
 }

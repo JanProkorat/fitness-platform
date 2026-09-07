@@ -31,27 +31,35 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
     /// <inheritdoc />
     public override async Task HandleAsync(GetFoodRequest req, CancellationToken ct)
     {
-        var filter = Builders<Food>.Filter.Eq(f => f.ExternalId, req.FoodId)
-            & Builders<Food>.Filter.Eq(f => f.IsDeleted, false);
+        var userIdClaim = User.FindFirstValue(AppClaims.UserId);
+        Guid? currentUserId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : null;
+
+        var filterBuilder = Builders<Food>.Filter;
+
+        var filter = filterBuilder.Eq(f => f.ExternalId, req.FoodId)
+            & filterBuilder.Eq(f => f.IsDeleted, false);
+
+        // Private foods are hidden from other nutritionists. Gated in the query rather than after
+        // the read, matching the three own-or-public sites #992 guarded. Non-nutritionists (e.g. a
+        // client consuming a plan) are exempt, so foods a nutrition plan references stay readable.
+        // FoodVisibility is Public|Private only, so Eq(Public) is the exact complement of the
+        // previous "not Private" test.
+        if (User.IsInRole(AppRoles.Nutritionist))
+        {
+            // The ownership term is suppressed entirely for an absent or zero-uuid caller id, so a
+            // food storing no owner can no longer match as "owned by the caller" — which is what
+            // the in-memory null != null comparison silently allowed (#1010).
+            filter &= currentUserId is null || currentUserId == Guid.Empty
+                ? filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public)
+                : filterBuilder.Or(
+                    filterBuilder.Eq(f => f.NutritionistId, currentUserId),
+                    filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public));
+        }
 
         using var cursor = await mongo.Foods.FindAsync(filter, cancellationToken: ct);
         var food = await cursor.FirstOrDefaultAsync(ct);
 
         if (food is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        var userIdClaim = User.FindFirstValue(AppClaims.UserId);
-        Guid? currentUserId = Guid.TryParse(userIdClaim, out var parsed) ? parsed : null;
-
-        // Enforce Private visibility: hide from other nutritionists.
-        // Non-nutritionists (e.g. clients consuming a plan) are allowed regardless of visibility,
-        // so that foods referenced from a nutrition plan remain readable downstream.
-        if (food.Visibility == FoodVisibility.Private
-            && User.IsInRole(AppRoles.Nutritionist)
-            && food.NutritionistId != currentUserId)
         {
             await Send.NotFoundAsync(ct);
             return;

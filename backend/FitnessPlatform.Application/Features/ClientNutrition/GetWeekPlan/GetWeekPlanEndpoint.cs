@@ -85,46 +85,29 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
             return;
         }
 
-        Domain.Documents.PlanWeek week;
-
-        if (plan.StartDate.HasValue)
+        // publishedWeeks is non-empty here, which implies StartDate is set: PublishWeekEndpoint
+        // refuses to publish a week without one (START_DATE_REQUIRED) and UpdatePlanEndpoint
+        // refuses to clear one while any week is published (START_DATE_LOCKED), and publishing is
+        // the only route to WeekStatus.Published. The legacy plan-level DatePublished cycling
+        // branch this replaced was therefore unreachable (#1015).
+        if (!plan.StartDate.HasValue)
         {
-            var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
-            if (daysSinceStart < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
+        var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
 
-            var weekNum = daysSinceStart / 7 + 1;
+        if (daysSinceStart < 0)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
-            week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
+        var weekNum = daysSinceStart / 7 + 1;
+
+        var week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
                    ?? publishedWeeks[^1];
-        }
-        else
-        {
-            var daysSincePublish = (int)(todayLocalUtc - plan.DatePublished!.Value.Date).TotalDays;
-
-            if (daysSincePublish < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            // Dedupe by WeekNumber, keeping the FIRST document-order occurrence of each —
-            // matches GetTodayPlanEndpoint's legacy-branch resolution so both endpoints select
-            // the same week for a legacy plan whose weeks carry a duplicate WeekNumber.
-            // Document order is preserved deliberately — do NOT sort by weekNumber, that would
-            // silently change which week a legacy plan resolves to.
-            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
-
-            var totalDays = distinctPublishedWeeks.Count * 7;
-            var currentDayIndex = daysSincePublish % totalDays;
-            var weekIndex = currentDayIndex / 7;
-
-            week = distinctPublishedWeeks[weekIndex];
-        }
 
         await Send.OkAsync(new GetWeekPlanResponse
         {
