@@ -142,15 +142,12 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
         // path (UpdateWorkoutEndpoint / FinishSessionEndpoint) carries a WorkoutId per logged
         // workout but no per-instance exercise id, so WorkoutId is the only signal available to
         // disambiguate two placements of the same catalog exercise within one session — one
-        // standalone and one nested, or nested in two different workouts (#885). Backs three
+        // standalone and one nested, or nested in two different workouts (#885). Backs two
         // needs below: (a) recognizing whether a Performance-side LoggedWorkout.WorkoutId
         // corresponds to a real nested workout in a given session (vs. a fallback id
         // UpdateWorkoutEndpoint's legacy single-workout path assigns when the client sends no
-        // WorkoutId — the shape a standalone exercise's log takes), (b) resolving a specific
-        // checkbox-completed exercise INSTANCE back to its containing workout, and (c) fanning the
-        // deliberately catalog-keyed legacy CompletedSets field out to every placement sharing
-        // that catalog id, preserving its documented ambiguous-sharing behavior (see
-        // SessionExecution.CompletedSets remarks).
+        // WorkoutId — the shape a standalone exercise's log takes), and (b) resolving a specific
+        // checkbox-completed exercise INSTANCE back to its containing workout.
         var placementsBySession = plan.Weeks
             .SelectMany(w => w.Days)
             .SelectMany(d => d.Sessions)
@@ -173,12 +170,6 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             kv => kv.Value
                 .GroupBy(p => p.Instance.ExerciseId)
                 .ToDictionary(g => g.Key, g => g.First()));
-
-        var placementWorkoutIdsByExternalIdBySession = placementsBySession.ToDictionary(
-            kv => kv.Key,
-            kv => kv.Value
-                .GroupBy(p => p.Instance.ExerciseExternalId)
-                .ToDictionary(g => g.Key, g => g.Select(p => p.WorkoutId).Distinct().ToList()));
 
         // Resolves a Performance-side LoggedWorkout.WorkoutId to the key used below: the real
         // WorkoutId when it matches a nested TrainingWorkout in this session, else null (treated
@@ -271,8 +262,9 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
 
         // Per-instance completion lookup (#877): CompletedExerciseInstanceIds already holds raw
         // SessionExercise.ExerciseId values, so no resolution against the plan tree is needed —
-        // unlike completedSets/loggedSets above (which key on WorkoutId + ExerciseExternalId, see
-        // their remarks), this lookup drives BuildExerciseDto's instance-resolved IsCompleted below.
+        // unlike the Performance-side loggedSets above (which keys on WorkoutId +
+        // ExerciseExternalId), this lookup drives BuildExerciseDto's instance-resolved
+        // IsCompleted below.
         var completedInstanceIdsBySession = executions
             .Where(e => e.SessionId.HasValue)
             .GroupBy(e => e.SessionId!.Value)
@@ -304,36 +296,6 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                     var key = (sessionId, placement.WorkoutId, placement.Instance.ExerciseExternalId, set.SetNumber);
                     if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
                         completedSets[key] = stampedAt;
-                }
-            }
-
-            // Partially-completed exercises: mark only the listed set numbers.
-            //
-            // Deliberately keyed by ExerciseExternalId (catalog id) alone — no instance id, no
-            // WorkoutId (#857 finding 2). See SessionExecution.CompletedSets' remarks for why this
-            // is a documented, harmless divergence: the field has no live write path, and its sole
-            // populator (MongoIndexInitializer.ApplyCompletionFlags) has no plan context to resolve
-            // instance ids. Fans the write out to every placement (every WorkoutId variant,
-            // including the standalone one) sharing that catalog id in this session, preserving
-            // the field's pre-existing ambiguous-sharing behavior rather than silently attributing
-            // it to only one placement.
-            if (execution.CompletedSets is not null &&
-                placementWorkoutIdsByExternalIdBySession.TryGetValue(sessionId, out var workoutIdsByExternalId))
-            {
-                foreach (var (externalIdString, setNumbers) in execution.CompletedSets)
-                {
-                    if (!Guid.TryParse(externalIdString, out var exerciseExternalId)) continue;
-                    if (!workoutIdsByExternalId.TryGetValue(exerciseExternalId, out var placementWorkoutIds)) continue;
-
-                    foreach (var placementWorkoutId in placementWorkoutIds)
-                    {
-                        foreach (var setNumber in setNumbers)
-                        {
-                            var key = (sessionId, placementWorkoutId, exerciseExternalId, setNumber);
-                            if (!completedSets.ContainsKey(key) || stampedAt < completedSets[key])
-                                completedSets[key] = stampedAt;
-                        }
-                    }
                 }
             }
         }
