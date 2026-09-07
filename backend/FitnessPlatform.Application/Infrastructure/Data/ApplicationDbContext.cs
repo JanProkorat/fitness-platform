@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
@@ -352,6 +353,43 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         await transaction.CommitAsync(cancellationToken);
         return rowsAffected;
     }
+
+    /// <inheritdoc />
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+        Database.BeginTransactionAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default)
+    {
+        // FOR NO KEY UPDATE rather than FOR UPDATE: the stronger mode would also block the
+        // FOR KEY SHARE lock that any concurrent insert of a row referencing this client takes
+        // on its FK parent, which is unrelated traffic this lock has no business serializing.
+        //
+        // The table and key-column identifiers come from the EF model rather than being spelled
+        // out, so a rename cannot silently desync this string from the schema. They are also the
+        // only parts spliced into the SQL, and can never originate from request input —
+        // clientProfileId is passed as a real parameter, never concatenated.
+        //
+        // Assembled by concatenation rather than interpolation to keep EF1002 honest: the
+        // ExecuteSqlAsync overload that warning recommends would parameterize the identifiers
+        // too, and an identifier cannot be a bind parameter.
+        var entityType = Model.FindEntityType(typeof(ClientProfile))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT " + keyColumn + " FROM " + table
+                  + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
+
+        return Database.ExecuteSqlRawAsync(sql, [clientProfileId], cancellationToken);
+    }
+
+    /// <summary>
+    /// Wraps a schema identifier in double quotes, doubling any embedded quote.
+    /// </summary>
+    private static string QuoteIdentifier(string identifier) =>
+        "\"" + identifier.Replace("\"", "\"\"") + "\"";
 
     /// <inheritdoc />
     public Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default)

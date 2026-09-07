@@ -71,7 +71,7 @@ public class GetProfileEndpoint(UserManager<ApplicationUser> userManager, IAppli
                 // when the professional is entitled to both. CanViewTrainingPlans /
                 // CanViewNutritionPlans are independently granted per role held (see
                 // AcceptClientInviteEndpoint / AcceptClientRequestEndpoint /
-                // AcceptInvitationEndpoint / CreateCollaborationEndpoint), so they are the
+                // AcceptInvitationEndpoint), so they are the
                 // correct source for "which tabs should this client unlock".
                 var activeLinks = await dbContext.ClientProfessionalLinks
                     .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)

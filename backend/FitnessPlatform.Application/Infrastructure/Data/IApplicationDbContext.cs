@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
 
@@ -200,4 +201,19 @@ public interface IApplicationDbContext
     /// number of rows revoked.
     /// </summary>
     Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Opens a database transaction, for a read and a dependent write that must be serialized
+    /// against a concurrent request. Pair it with <see cref="LockClientProfileAsync"/>.
+    /// </summary>
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Takes a row-level <c>FOR NO KEY UPDATE</c> lock on one client-profile row, serializing
+    /// every link-creation path that must first check that client's profession slots (#1009).
+    /// Call it inside a transaction from <see cref="BeginTransactionAsync"/>, and after any
+    /// find-or-create save that produces the row — locking a row that does not exist yet is a
+    /// no-op.
+    /// </summary>
+    Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default);
 }
