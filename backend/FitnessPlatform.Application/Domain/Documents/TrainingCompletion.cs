@@ -87,16 +87,10 @@ public class TrainingCompletion
 
     /// <summary>
     /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseExternalId"/>
-    /// (serialized as a lowercase Guid string) — <b>NOT</b> rekeyed onto the per-instance
-    /// <see cref="SessionExercise.ExerciseId"/> the way <see cref="CompletedExerciseInstanceIds"/>
-    /// was. This document type is frozen/read-only (see class remarks) with no live write path,
-    /// so no migration step exists (or ever ran) to resolve a catalog id against a specific plan
-    /// session's instance ids here — see
-    /// <see cref="SessionExecution.CompletedSets"/> for the full explanation and the matching
-    /// reader in <c>GetFullTrainingPlanEndpoint</c>, which keys its lookup the same way.
-    /// Each entry is the set of 1-based set numbers that were completed.
-    /// Only populated when the client uses set-level tracking; absence means the
-    /// exercise was marked complete at the exercise level only.
+    /// (serialized as a lowercase Guid string), each entry holding the 1-based set numbers that
+    /// were completed. This document type is frozen/read-only (see class remarks), and no
+    /// application code reads this field any more — the <c>SessionExecution</c> twin it used to
+    /// be copied into was removed in #1007 along with its only reader.
     /// </summary>
     [BsonElement("completedSets")]
     [BsonIgnoreIfNull]

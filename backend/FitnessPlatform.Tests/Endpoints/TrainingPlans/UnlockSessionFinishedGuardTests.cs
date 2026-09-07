@@ -112,7 +112,6 @@ public class UnlockSessionFinishedGuardTests
                 Status = SessionExecutionStatus.Partial,
                 CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds,
                 CompletedWorkoutIds = completion.CompletedWorkoutIds,
-                CompletedSets = completion.CompletedSets,
                 DateCreated = completion.DateCreated,
                 Version = completion.Version
             });
