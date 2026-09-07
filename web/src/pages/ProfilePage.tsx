@@ -107,7 +107,6 @@ export default function ProfilePage() {
   const [certificates, setCertificates] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [collaborationType, setCollaborationType] = useState('both');
-  const [maxClients, setMaxClients] = useState(15);
   const [linkedin, setLinkedin] = useState('');
   const [instagram, setInstagram] = useState('');
   const [website, setWebsite] = useState('');
@@ -128,7 +127,7 @@ export default function ProfilePage() {
 
   const getCurrentSnapshot = () => JSON.stringify({
     phone, bio, city, estimatedPrice, specializations, certificates,
-    languages, collaborationType, maxClients, linkedin, instagram,
+    languages, collaborationType, linkedin, instagram,
     website, showInSearch, acceptNewClients,
   });
 
@@ -189,7 +188,6 @@ export default function ProfilePage() {
       const certificatesVal = parseJsonArray(tp?.certificates);
       const languagesVal = parseJsonArray(tp?.languages);
       const collaborationTypeVal = tp?.collaborationType ?? 'both';
-      const maxClientsVal = tp?.maxClients ?? 15;
       const linkedinVal = tp?.linkedIn ?? '';
       const instagramVal = tp?.instagram ?? '';
       const websiteVal = tp?.website ?? '';
@@ -205,7 +203,6 @@ export default function ProfilePage() {
       setCertificates(certificatesVal);
       setLanguages(languagesVal);
       setCollaborationType(collaborationTypeVal);
-      setMaxClients(maxClientsVal);
       setLinkedin(linkedinVal);
       setInstagram(instagramVal);
       setWebsite(websiteVal);
@@ -216,7 +213,7 @@ export default function ProfilePage() {
         phone: phoneVal, bio: bioVal, city: cityVal, estimatedPrice: estimatedPriceVal,
         specializations: specializationsVal, certificates: certificatesVal,
         languages: languagesVal, collaborationType: collaborationTypeVal,
-        maxClients: maxClientsVal, linkedin: linkedinVal, instagram: instagramVal,
+        linkedin: linkedinVal, instagram: instagramVal,
         website: websiteVal, showInSearch: showInSearchVal, acceptNewClients: acceptNewClientsVal,
       }));
     }
@@ -309,7 +306,6 @@ export default function ProfilePage() {
           certificates: JSON.stringify(certificates.filter(Boolean)),
           languages: JSON.stringify(languages.filter(Boolean)),
           collaborationType: collaborationType || null,
-          maxClients,
           linkedIn: linkedin || null,
           instagram: instagram || null,
           website: website || null,
@@ -492,8 +488,6 @@ export default function ProfilePage() {
               setLanguages={setLanguages}
               collaborationType={collaborationType}
               setCollaborationType={setCollaborationType}
-              maxClients={maxClients}
-              setMaxClients={setMaxClients}
               linkedin={linkedin}
               setLinkedin={setLinkedin}
               instagram={instagram}

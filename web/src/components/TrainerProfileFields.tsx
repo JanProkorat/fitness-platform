@@ -17,8 +17,6 @@ interface TrainerProfileFieldsProps {
   setLanguages: (values: string[]) => void;
   collaborationType: string;
   setCollaborationType: (value: string) => void;
-  maxClients: number;
-  setMaxClients: (value: number) => void;
   linkedin: string;
   setLinkedin: (value: string) => void;
   instagram: string;
@@ -62,8 +60,6 @@ export function TrainerProfileFields({
   setLanguages,
   collaborationType,
   setCollaborationType,
-  maxClients,
-  setMaxClients,
   linkedin,
   setLinkedin,
   instagram,
@@ -166,18 +162,6 @@ export function TrainerProfileFields({
               <option value="online">{t('profile.collaborationOnline')}</option>
               <option value="inperson">{t('profile.collaborationInPerson')}</option>
             </select>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label htmlFor="trainer-max-clients" className="form-label">{t('profile.maxClients')}</label>
-            <input
-              id="trainer-max-clients"
-              className="form-input"
-              type="number"
-              min={1}
-              max={200}
-              value={maxClients}
-              onChange={(e) => setMaxClients(Number(e.target.value))}
-            />
           </div>
         </div>
       </div>

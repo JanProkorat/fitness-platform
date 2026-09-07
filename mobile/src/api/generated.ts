@@ -27,7 +27,7 @@ export class ApiClient {
     /**
      * Update workout template
      * @param templateId The template's public identifier (route parameter).
-     * @return Success
+     * @return Updated workout template
      */
     updateWorkoutTemplateEndpoint(templateId: string, updateWorkoutTemplateRequest: UpdateWorkoutTemplateRequest, signal?: AbortSignal): Promise<WorkoutTemplateResponse> {
         let url_ = this.baseUrl + "/training/workout-templates/{templateId}";
@@ -102,7 +102,7 @@ export class ApiClient {
     /**
      * Get workout template
      * @param templateId The template's public identifier (route parameter).
-     * @return Success
+     * @return Workout template detail
      */
     getWorkoutTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<WorkoutTemplateResponse> {
         let url_ = this.baseUrl + "/training/workout-templates/{templateId}";
@@ -166,7 +166,7 @@ export class ApiClient {
     /**
      * Delete workout template
      * @param templateId The template's public identifier (route parameter).
-     * @return No Content
+     * @return Workout template deleted
      */
     deleteWorkoutTemplateEndpoint(templateId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/training/workout-templates/{templateId}";
@@ -4550,77 +4550,6 @@ export class ApiClient {
     }
 
     /**
-     * Create collaboration
-     * @return Success
-     */
-    createCollaborationEndpoint(createCollaborationRequest: CreateCollaborationRequest, signal?: AbortSignal): Promise<CreateCollaborationResponse> {
-        let url_ = this.baseUrl + "/trainer/collaborations";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(createCollaborationRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreateCollaborationEndpoint(_response);
-        });
-    }
-
-    protected processCreateCollaborationEndpoint(response: AxiosResponse): Promise<CreateCollaborationResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<CreateCollaborationResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<CreateCollaborationResponse>(null as any);
-    }
-
-    /**
      * Reject a client request
      * @param publicId Public identifier of the client request (from route).
      * @return No Content
@@ -5227,6 +5156,279 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Update subscription plan
+     * @param code Route-bound identifier of the plan to update. Not itself updatable.
+     * @return Subscription plan updated
+     */
+    updateSubscriptionPlanEndpoint(code: string, updateSubscriptionPlanRequest: UpdateSubscriptionPlanRequest, signal?: AbortSignal): Promise<SubscriptionPlanDto> {
+        let url_ = this.baseUrl + "/admin/subscription-plans/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateSubscriptionPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateSubscriptionPlanEndpoint(_response);
+        });
+    }
+
+    protected processUpdateSubscriptionPlanEndpoint(response: AxiosResponse): Promise<SubscriptionPlanDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SubscriptionPlanDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SubscriptionPlanDto>(null as any);
+    }
+
+    /**
+     * Deactivate subscription plan
+     * @param code Route-bound identifier of the plan to deactivate.
+     * @return Plan deactivated (or was already inactive)
+     */
+    deactivateSubscriptionPlanEndpoint(code: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/admin/subscription-plans/{code}";
+        if (code === undefined || code === null)
+            throw new globalThis.Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeactivateSubscriptionPlanEndpoint(_response);
+        });
+    }
+
+    protected processDeactivateSubscriptionPlanEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List subscription plans
+     * @return All subscription plans
+     */
+    getSubscriptionPlansEndpoint(signal?: AbortSignal): Promise<GetSubscriptionPlansResponse> {
+        let url_ = this.baseUrl + "/admin/subscription-plans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetSubscriptionPlansEndpoint(_response);
+        });
+    }
+
+    protected processGetSubscriptionPlansEndpoint(response: AxiosResponse): Promise<GetSubscriptionPlansResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetSubscriptionPlansResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetSubscriptionPlansResponse>(null as any);
+    }
+
+    /**
+     * Create subscription plan
+     * @return Success
+     */
+    createSubscriptionPlanEndpoint(createSubscriptionPlanRequest: CreateSubscriptionPlanRequest, signal?: AbortSignal): Promise<SubscriptionPlanDto> {
+        let url_ = this.baseUrl + "/admin/subscription-plans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createSubscriptionPlanRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateSubscriptionPlanEndpoint(_response);
+        });
+    }
+
+    protected processCreateSubscriptionPlanEndpoint(response: AxiosResponse): Promise<SubscriptionPlanDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<SubscriptionPlanDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not an Admin", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<SubscriptionPlanDto>(null as any);
     }
 
     /**
@@ -7924,6 +8126,69 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<LinkPlanResponse>(null as any);
+    }
+
+    /**
+     * Get a photo diary request (client view)
+     * @return Photo diary request detail
+     */
+    getClientPhotoDiaryRequestEndpoint(id: string, signal?: AbortSignal): Promise<ClientPhotoDiaryRequestSummary> {
+        let url_ = this.baseUrl + "/client/photo-diary-requests/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientPhotoDiaryRequestEndpoint(_response);
+        });
+    }
+
+    protected processGetClientPhotoDiaryRequestEndpoint(response: AxiosResponse): Promise<ClientPhotoDiaryRequestSummary> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientPhotoDiaryRequestSummary>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid bearer token", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Caller is not a client", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientPhotoDiaryRequestSummary>(null as any);
     }
 
     /**
@@ -16487,9 +16752,9 @@ export interface CheckInOverrideDto {
     deadlineOffsetHours?: number | undefined;
 }
 
-/** Response for GET /client/weekly-check-ins/current. Returns 0–2 active (not responded, not dismissed) check-ins for the current ISO week. */
+/** Response for GET /client/weekly-check-ins/current. Returns 0–2 active check-ins (not responded, not dismissed, not expired, still within the response deadline) — at most one per profession. If more than one active check-in exists for the same profession, only the one with the newest SentAt is returned. */
 export interface GetCurrentClientCheckInsResponse {
-    /** Active check-ins for the current ISO week. */
+    /** Active check-ins, at most one per profession, ordered alphabetically by profession. */
     checkIns?: CheckInSummary[];
 }
 
@@ -17115,6 +17380,39 @@ Retained for backward compatibility. */
 ExerciseExternalIds within that workout. Populated via read-time backfill so legacy
 completion documents are transparently migrated. */
     completedExerciseIdsByWorkout?: { [key: string]: string[]; };
+    /** Completed exercise INSTANCE ids for this session/date, raw
+ExerciseId values. Unlike CompletedExerciseIds
+and CompletedExerciseIdsByWorkout (both keyed on the catalog
+ExerciseExternalId), this field lets a client (the trainer
+web editor) lock a specific placement of an exercise when the same catalog exercise
+appears twice in one session — standalone AND nested, or nested twice — including a
+standalone-only session, which the catalog-keyed fields above cannot express at all (#884).
+Mirrors CompletedExerciseInstanceIdsBySession
+(#877) both in shape and in the union rule below — read that type's remarks
+(GetTodaySessionResponse.cs:161-198) for the full rationale; this field applies the
+same rule to a single (session, date) completion record instead of a session-keyed
+dictionary, because TrainingPlanCompletionDto is already one entry per
+completion.
+Union of two sources — read this before consuming the field.
+Every id in the underlying SessionExecution.CompletedExerciseInstanceIds,
+carried verbatim — these already identify a single placement, and are carried through
+even when the session lookup below misses (a completion whose SessionId is not part of
+this plan projects cleanly with empty catalog-keyed fields rather than throwing).
+Performance-derived completion, fanned out to every sibling instance sharing the
+same catalog id. The live-training-assistant path carries only
+ExerciseExternalId — no instance id — so a fully-logged
+catalog exercise cannot be attributed to one specific placement. Concretely: if a session
+holds catalog exercise X both standalone and nested, and the client fully logs X via the
+live-training assistant, BOTH instance ids appear here — the write path cannot distinguish
+which placement was actually performed, so both are reported complete rather than neither.
+This is deliberate: over-locking is the fail-safe direction for a trainer editor (the
+alternative — reporting neither — would render a live-training-assistant-finished session
+with no locks at all, the exact failure mode #877 rejected).
+Empty list (never null) when no exercise instance has been completed for this session/date.
+Additive alongside CompletedExerciseIds and
+CompletedExerciseIdsByWorkout, which keep their existing catalog-keyed
+semantics unchanged. */
+    completedExerciseInstanceIds?: string[];
     completedWorkoutIds?: string[];
     version?: number;
 }
@@ -17491,8 +17789,6 @@ export interface UpdateProfessionalProfileRequest {
     languages?: string | undefined;
     /** Collaboration type: "both", "online", or "inperson". */
     collaborationType?: string | undefined;
-    /** Maximum number of clients. */
-    maxClients?: number | undefined;
     /** LinkedIn profile URL or handle. */
     linkedIn?: string | undefined;
     /** Instagram handle. */
@@ -17625,7 +17921,7 @@ Trainer-only professional cannot request NutritionOnly. */
     requestedScope?: LinkCapabilityScope | undefined;
 }
 
-/** Explicit per-relationship domain scope a professional can request when forming or reactivating a ClientProfessionalLink. Narrows the CanViewNutritionPlans / CanViewTrainingPlans flags stamped on that link relative to the full set implied by the relevant professional's held identity roles — it can only narrow, never widen, beyond what those roles already allow. */
+/** Which link-capability domain(s) an operation cares about. Used in two places: (1) on the write side, the explicit per-relationship domain scope a professional can request when forming or reactivating a ClientProfessionalLink — narrowing the CanViewNutritionPlans / CanViewTrainingPlans flags stamped on that link relative to the full set implied by the relevant professional's held identity roles (it can only narrow, never widen, beyond what those roles already allow); (2) on the read side, the domain predicate a batch query such as GetAccessibleClientsAsync pushes down into its WHERE clause to scope which active links qualify. */
 export enum LinkCapabilityScope {
     Both = "Both",
     NutritionOnly = "NutritionOnly",
@@ -17724,8 +18020,6 @@ export interface GetProfessionalProfileResponse {
     languages?: string | undefined;
     /** Collaboration type. */
     collaborationType?: string | undefined;
-    /** Maximum number of clients. */
-    maxClients?: number | undefined;
     /** LinkedIn profile URL or handle. */
     linkedIn?: string | undefined;
     /** Instagram handle. */
@@ -18083,26 +18377,6 @@ export interface OnboardingDataDto {
 export interface GetClientDashboardRequest {
 }
 
-/** Response model for a successfully created collaboration. */
-export interface CreateCollaborationResponse {
-    /** A message describing the result of the operation. */
-    message?: string;
-}
-
-/** Request model for creating a collaboration between a trainer and another professional for a shared client. */
-export interface CreateCollaborationRequest {
-    /** The public ID of the client to share with the collaborator. */
-    clientPublicId: string;
-    /** The public ID of the collaborator's ProfessionalProfile. */
-    collaboratorPublicId: string;
-    /** Optional explicit domain scope for the collaborator's new link. When omitted,
-defaults to every domain implied by the collaborator's held identity roles
-(existing behavior — unchanged). When supplied, it must be a subset of the
-collaborator's actually-held roles; e.g. a Trainer-only collaborator cannot be
-granted NutritionOnly. */
-    requestedScope?: LinkCapabilityScope | undefined;
-}
-
 export interface RejectClientRequestRequest {
     /** Optional statement from the professional (saved for future display in chat). */
     statement?: string | undefined;
@@ -18179,6 +18453,146 @@ export interface CancelQuestionnaireRequest {
 export interface AssignQuestionnaireRequest {
     /** Public identifier of the questionnaire to assign. */
     questionnairePublicId?: string;
+}
+
+/** Full wire representation of a SubscriptionPlan for the Admin CRUD surface — reused by the list, create, and update actions (#595). */
+export interface SubscriptionPlanDto {
+    /** Stable identifier for the plan (entitlement/Stripe mapping key). */
+    code?: string;
+    /** Czech plan name. */
+    nameCs?: string;
+    /** English plan name. */
+    nameEn?: string;
+    /** German plan name. */
+    nameDe?: string;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
+    /** Whether the plan allows creating nutrition/training plans. */
+    canCreatePlans?: boolean;
+    /** Whether the plan allows messaging clients. */
+    canMessage?: boolean;
+    /** Whether the plan allows sending questionnaires. */
+    canSendQuestionnaires?: boolean;
+    /** Whether the plan allows using weekly check-ins. */
+    canUseWeeklyCheckIns?: boolean;
+    /** Whether the plan allows per-client check-in configuration. */
+    canUsePerClientCheckInConfig?: boolean;
+    /** Maximum number of active clients allowed under this plan. Null means unlimited. */
+    maxActiveClients?: number | undefined;
+    /** Plan price, expressed in the smallest unit of Currency. */
+    priceMinorUnits?: number;
+    /** ISO 4217 currency code for PriceMinorUnits. */
+    currency?: string;
+    /** Billing cadence for this plan. */
+    billingInterval?: BillingInterval;
+    /** External payment-provider price identifier, once billing integration ships. */
+    externalPriceId?: string | undefined;
+    /** Whether the plan is currently offered/selectable. */
+    isActive?: boolean;
+}
+
+/** Which professional role(s) a SubscriptionPlan applies to. */
+export enum ApplicableRoles {
+    Trainer = "Trainer",
+    Nutritionist = "Nutritionist",
+    Both = "Both",
+}
+
+/** Billing cadence for a SubscriptionPlan. */
+export enum BillingInterval {
+    Monthly = "Monthly",
+    Annual = "Annual",
+}
+
+/** Request model for updating an existing subscription tier. Code is bound from the route and identifies which plan to update — it is not an updatable field (immutable after create; see Code). */
+export interface UpdateSubscriptionPlanRequest {
+    /** Czech plan name. */
+    nameCs: string;
+    /** English plan name. */
+    nameEn: string;
+    /** German plan name. */
+    nameDe: string;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
+    /** Whether the plan allows creating nutrition/training plans. Required. */
+    canCreatePlans: boolean;
+    /** Whether the plan allows messaging clients. Required. */
+    canMessage: boolean;
+    /** Whether the plan allows sending questionnaires. Required. */
+    canSendQuestionnaires: boolean;
+    /** Whether the plan allows using weekly check-ins. Required. */
+    canUseWeeklyCheckIns: boolean;
+    /** Whether the plan allows per-client check-in configuration. Required. */
+    canUsePerClientCheckInConfig: boolean;
+    /** Maximum number of active clients allowed under this plan. Required — must be present
+in the body. An explicit null means unlimited; omitting the field entirely 400s. */
+    maxActiveClients?: OptionalFieldOfNullableOfInt32;
+    /** Plan price, expressed in the smallest unit of Currency. */
+    priceMinorUnits?: number;
+    /** ISO 4217 currency code for PriceMinorUnits. */
+    currency?: string;
+    /** Billing cadence for this plan. */
+    billingInterval?: BillingInterval;
+    /** External payment-provider price identifier, once billing integration ships. */
+    externalPriceId?: string | undefined;
+    /** Whether the plan is currently offered/selectable. Required — reactivation/deactivation
+happens through this field, and an omitted value must not silently deactivate a live
+tier. There is no separate "reactivate" endpoint. */
+    isActive: boolean;
+}
+
+/** Wraps a value so JSON binding can distinguish "the request body omitted this field" (IsSet is false) from "the field was explicitly present, including an explicit null" (IsSet is true). System.Text.Json only invokes a property's converter when the payload actually contains that key, so OptionalFieldConverter`1 (see OptionalFieldConverter.cs) never runs for a genuinely-omitted field, leaving IsSet at its default (false). */
+export interface OptionalFieldOfNullableOfInt32 {
+    /** Whether the field was present in the request body (even if its value was null). */
+    isSet?: boolean;
+    /** The bound value. Meaningless when IsSet is false. */
+    value?: number | undefined;
+}
+
+/** Response for listing every subscription tier. */
+export interface GetSubscriptionPlansResponse {
+    /** All subscription plans, including inactive ones. */
+    plans?: SubscriptionPlanDto[];
+}
+
+/** Request model for deactivating a subscription tier. */
+export interface DeactivateSubscriptionPlanRequest {
+}
+
+/** Request model for creating a new subscription tier. */
+export interface CreateSubscriptionPlanRequest {
+    /** Stable identifier for the plan (entitlement/Stripe mapping key). Immutable after create. */
+    code: string;
+    /** Czech plan name. */
+    nameCs: string;
+    /** English plan name. */
+    nameEn: string;
+    /** German plan name. */
+    nameDe: string;
+    /** Which professional role(s) this plan applies to. */
+    applicableRoles?: ApplicableRoles;
+    /** Whether the plan allows creating nutrition/training plans. */
+    canCreatePlans?: boolean;
+    /** Whether the plan allows messaging clients. */
+    canMessage?: boolean;
+    /** Whether the plan allows sending questionnaires. */
+    canSendQuestionnaires?: boolean;
+    /** Whether the plan allows using weekly check-ins. */
+    canUseWeeklyCheckIns?: boolean;
+    /** Whether the plan allows per-client check-in configuration. */
+    canUsePerClientCheckInConfig?: boolean;
+    /** Maximum number of active clients allowed under this plan. Null means unlimited. */
+    maxActiveClients?: number | undefined;
+    /** Plan price, expressed in the smallest unit of Currency. */
+    priceMinorUnits?: number;
+    /** ISO 4217 currency code for PriceMinorUnits. */
+    currency?: string;
+    /** Billing cadence for this plan. */
+    billingInterval?: BillingInterval;
+    /** External payment-provider price identifier, once billing integration ships. */
+    externalPriceId?: string | undefined;
+    /** Whether the plan is currently offered/selectable. Defaults to true on create. */
+    isActive?: boolean;
 }
 
 /** Full session template detail returned by get, create, update, copy, and from-plan endpoints. */
@@ -18922,7 +19336,7 @@ export interface ListClientRequestsResponse {
     items?: ClientPhotoDiaryRequestSummary[];
 }
 
-/** Summary DTO for a photo diary request in the client list view. */
+/** Summary DTO for a photo diary request in the client-facing views (list and get-by-id). */
 export interface ClientPhotoDiaryRequestSummary {
     id?: string;
     professionalId?: string;
@@ -18970,6 +19384,10 @@ export interface LinkPlanRequest {
     /** MongoDB external identifier of the nutrition or training plan to link.
 Must belong to the same client the diary request is attached to. */
     planId: string;
+}
+
+/** Route-bound request for GET /client/photo-diary-requests/{Id}. */
+export interface GetClientPhotoDiaryRequestRequest {
 }
 
 /** Response returned after a client dismisses a photo diary request. */
