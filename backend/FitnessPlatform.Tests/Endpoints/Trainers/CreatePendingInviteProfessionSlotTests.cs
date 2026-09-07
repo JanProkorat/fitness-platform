@@ -6,9 +6,9 @@ using FluentAssertions;
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
-/// End-to-end coverage for the profession-occupancy pre-check on
-/// POST /trainer/pending-invites: a professional may only invite a client who has no active
-/// coach in the profession the invite would grant.
+/// End-to-end coverage for the profession-occupancy pre-check on BOTH coach-initiated invite
+/// paths — POST /trainer/pending-invites and POST /trainer/clients/invite: a professional may
+/// only invite a client who has no active coach in the profession the invite would grant.
 /// </summary>
 /// <remarks>
 /// The authoritative occupancy check is the one at accept time — it runs inside the row lock
@@ -16,6 +16,10 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 /// invite and accept. This pre-check exists so the inviting professional is told immediately
 /// instead of the client hitting a 400 days later on a link they were never able to form.
 /// These tests therefore pin *when* the rejection happens, not just that it happens.
+///
+/// Both paths are covered deliberately. They are separate endpoints with separate accept flows
+/// (a PendingInvite redeemed by AcceptClientInviteEndpoint, and an InvitationToken redeemed by
+/// AcceptInvitationEndpoint), and a rule enforced on only one of them is not enforced at all.
 /// </remarks>
 [Collection(TestCollection.Name)]
 public class CreatePendingInviteProfessionSlotTests(FitnessApiFactory factory)
@@ -40,6 +44,12 @@ public class CreatePendingInviteProfessionSlotTests(FitnessApiFactory factory)
         {
             FirstName = "Slot",
             LastName = "Client",
+            Email = clientEmail
+        }, TestContext.Current.CancellationToken);
+
+    private static async Task<HttpResponseMessage> InviteViaTokenAsync(HttpClient coach, string clientEmail) =>
+        await coach.PostAsJsonAsync("/trainer/clients/invite", new
+        {
             Email = clientEmail
         }, TestContext.Current.CancellationToken);
 
@@ -144,6 +154,58 @@ public class CreatePendingInviteProfessionSlotTests(FitnessApiFactory factory)
 
         response.StatusCode.Should().Be(HttpStatusCode.OK,
             "the profile exists but occupies no profession slot");
+    }
+
+    /// <summary>
+    /// The token-based invite path (<c>POST /trainer/clients/invite</c>) must refuse the same
+    /// case. It is a separate endpoint feeding a separate accept flow, so leaving it unguarded
+    /// would leave the rule enforceable only at accept time on that route.
+    /// </summary>
+    [Fact]
+    public async Task InviteViaToken_ClientAlreadyHasNutritionist_SecondNutritionistIsRejected()
+    {
+        var clientEmail = await RegisterClientAsync("token-slot-taken-client");
+        await EstablishLinkAsync(clientEmail, "Nutritionist");
+
+        var secondNutritionist = await RegisterCoachAsync("Nutritionist");
+        var response = await InviteViaTokenAsync(secondNutritionist, clientEmail);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "the nutrition slot is occupied, so the token could never be redeemed");
+
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        body.Should().Contain("PROFESSION_ALREADY_OCCUPIED",
+            "both invite paths must emit the same coded error");
+    }
+
+    /// <summary>
+    /// Per-profession on the token path too — a client with a trainer is still invitable by a
+    /// nutritionist.
+    /// </summary>
+    [Fact]
+    public async Task InviteViaToken_ClientHasTrainerOnly_NutritionistInviteIsAllowed()
+    {
+        var clientEmail = await RegisterClientAsync("token-slot-trainer-client");
+        await EstablishLinkAsync(clientEmail, "Trainer");
+
+        var nutritionist = await RegisterCoachAsync("Nutritionist");
+        var response = await InviteViaTokenAsync(nutritionist, clientEmail);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "the training slot being taken says nothing about the nutrition slot");
+    }
+
+    /// <summary>
+    /// The common case on the token path: a prospective client with no account at all.
+    /// </summary>
+    [Fact]
+    public async Task InviteViaToken_InviteeHasNoAccountYet_IsAllowed()
+    {
+        var coach = await RegisterCoachAsync("Nutritionist");
+        var response = await InviteViaTokenAsync(coach, UniqueEmail("token-slot-prospective"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK,
+            "a prospective client has no links to collide with");
     }
 
     private record CreatePendingInviteResult(Guid PublicId);
