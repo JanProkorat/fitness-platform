@@ -24,6 +24,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// <param name="db">Relational database context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
 /// <remarks>
+/// <para>
 /// Active-plan resolution is a two-phase read (ADR-0001 Tier 2a / #838):
 /// <list type="number">
 /// <item>A lightweight Mongo projection fetches every candidate Active plan with per-week
@@ -37,6 +38,38 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// </list>
 /// The plan's <c>weeks</c> array itself must never be projected away entirely — doing so would
 /// collapse <see cref="PlanWindowResolver"/>'s week-count selector to zero for every plan.
+/// </para>
+/// <para>
+/// #938 AC4 note: this file is 626 lines, down only slightly from 649 pre-#938, and the reduction
+/// is genuinely small. AC2 is satisfied — the completion-instance resolution now calls
+/// <see cref="Domain.Extensions.SessionExecutionExtensions.ResolveMatchedPlacements"/> /
+/// <c>ResolveLoggedWorkoutKey</c> instead of the old inline single-valued lookup — but the
+/// remainder does not reduce further under AC3's own test ("cross-store assembly ... used by more
+/// than one endpoint"), because nothing else here has a second caller:
+/// <list type="bullet">
+/// <item>The two-phase <see cref="LightPlanProjection"/> read and its phase-2 hydration in
+/// <see cref="FetchHydratedWeekAsync"/> are a documented, endpoint-unique perf optimisation
+/// (ADR-0001 Tier 2a / #838) — this file's own agreed-out-of-scope decision, unchanged here.</item>
+/// <item>The week/day resolution with gap-skip (the block finding exactly which published week
+/// and which day is "today", including the "trainer published 1, 2, 4" fallback) has no analogue
+/// in <c>GetFullTrainingPlanEndpoint</c> or <c>GetTrainingPlanEndpoint</c> — both return every
+/// published week, never resolve a single "today", so there is no second caller to extract for.</item>
+/// <item>The SessionExecution fold-in (checkbox flags ∪ Performance, ~lines 264-499) is the
+/// single largest block and is *conceptually* the same job <c>GetFullTrainingPlanEndpoint</c> and
+/// <c>GetTrainingPlanEndpoint</c> each do — but each builds a structurally different response
+/// shape (this endpoint's flat per-session dictionaries vs. their nested week/session/workout/
+/// exercise DTOs or per-date completion records). Forcing one shared function across three
+/// genuinely different output shapes would need enough parameters/branches to stop being a
+/// simplification — the "rule of three" architecture.md sets for <c>Domain/Services</c>
+/// promotion isn't met by three DIFFERENT shapes, only by three IDENTICAL needs.</item>
+/// <item>One genuine, small duplication exists: the muscle-group batch-fetch here (~18 lines) and
+/// <c>GetFullTrainingPlanEndpoint</c>'s equivalent block are near-identical Mongo-to-Mongo
+/// (plan → Exercise catalog) lookups. Left alone deliberately — it is not the Postgres-link →
+/// Mongo-plan → execution-docs assembly AC3 describes, and pulling in an unrelated dedup here
+/// would be scope creep in the other direction. Flagged as a candidate follow-up issue, not done
+/// in this PR.</item>
+/// </list>
+/// </para>
 /// </remarks>
 /// <param name="blobStorage">Blob storage service — converts each session photo's stored BlobUrl
 /// into a short-lived pre-signed read URL before the response leaves the process (F9).</param>

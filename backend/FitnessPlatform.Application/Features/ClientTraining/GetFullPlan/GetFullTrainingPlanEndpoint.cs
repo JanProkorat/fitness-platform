@@ -22,6 +22,22 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
 /// Also enriches each session DTO with its current lock state (Stable/Editing/Live)
 /// and holder (Coach/Client/null) via a single batch <c>GetStateAsync</c> call.
 /// </summary>
+/// <remarks>
+/// #938 AC4 note: this file grew by ~19 lines (551 vs. the pre-#938 532) despite the stated goal
+/// being extraction, not addition. The growth is entirely the cost of AC2 (stop inlining the
+/// completion rule): <c>completedInstanceIdsBySession</c> now calls the shared
+/// <see cref="Domain.Extensions.SessionExecutionExtensions.ResolveCompletedInstanceIds"/>, which
+/// needs the owning <see cref="Domain.Documents.TrainingSession"/> to resolve placements — the
+/// old one-line <c>SelectMany(...).ToHashSet()</c> needed no session context at all, since it was
+/// a raw-id passthrough with no placement resolution. That required (a) a new
+/// <c>sessionLookup</c> dictionary (7 lines) the old code had no use for, and (b) turning the
+/// per-session projection from a single LINQ expression into a multi-statement loop that unions
+/// <c>ResolveCompletedInstanceIds</c> across every execution in the group (in place of one
+/// <c>SelectMany</c> call). Cross-store assembly "has to live somewhere" (#938's own words); here
+/// it now lives in one named, shared place instead of a bespoke one-liner — the extra lines buy
+/// correctness (this endpoint no longer silently disagrees with <c>GetTodaySession</c> on a
+/// dual-placement exercise), not more code doing the same thing.
+/// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
