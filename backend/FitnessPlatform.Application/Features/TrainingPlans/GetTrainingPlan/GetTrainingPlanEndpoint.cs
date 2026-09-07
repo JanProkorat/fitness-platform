@@ -113,12 +113,14 @@ public class GetTrainingPlanEndpoint(
             .SelectMany(d => d.Sessions)
             .ToDictionary(s => s.SessionId);
 
-        // #857 phase 3b / #938: SessionExecution.CompletedExerciseInstanceIds is a flat list of
+        // #857 phase 3b: SessionExecution.CompletedExerciseInstanceIds is a flat list of
         // SessionExercise.ExerciseId instance values. Reconstruct the wire-compatible
         // (ExerciseExternalId-keyed) shape by mapping each completed instance back to its
         // catalog external id and containing workout via the session definition — preserves
-        // the pre-#857-phase-3b response contract. The per-instance field now comes from the
-        // shared canonical completion rule instead of a local reimplementation.
+        // the pre-#857-phase-3b response contract. See GetTrainingPlanCompletionBuilders'
+        // remarks for why this stays on its own over-report rule rather than the #938 canonical
+        // placement-exact one — CompletedExerciseInstanceIds here also feeds the web edit-lock
+        // derivation, a business gate #938 does not touch.
         response.Completions = GetTrainingPlanCompletionBuilders.BuildCompletions(executions, sessionLookup);
 
         // ── 2. Performance fold-in — builds SessionExecutionDto entries ──────────

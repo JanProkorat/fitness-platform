@@ -17,11 +17,22 @@ internal static class GetTrainingPlanCompletionBuilders
 {
     /// <summary>
     /// Builds the per-session, per-date completion DTOs for the response's <c>Completions</c>
-    /// field. #857 phase 3b / #938: the per-instance field comes from the shared canonical
-    /// completion rule (<see cref="SessionExecutionExtensions.ResolveCompletedInstanceIds"/>); the
-    /// catalog-external-id-keyed fields stay sourced from the raw checkbox path only, matching
-    /// their pre-#938 semantics — Performance-derived completion is not reflected there.
+    /// field. #857 phase 3b: reconstructs the wire-compatible (ExerciseExternalId-keyed) shape by
+    /// mapping each completed instance back to its catalog external id and containing workout.
     /// </summary>
+    /// <remarks>
+    /// <b>Deliberately NOT routed through <see cref="SessionExecutionExtensions.ResolveCompletedInstanceIds"/>
+    /// (#938 scope boundary).</b> Per this file's class-level remarks and
+    /// <c>GetTrainingPlanStandaloneCompletionTests</c>, <c>CompletedExerciseInstanceIds</c> here
+    /// also feeds the web trainer-portal's edit-lock derivation fallback (which side of a
+    /// dual-placement catalog exercise to lock) — a business gate, not just a display tick, so it
+    /// stays on the pre-#938 "carry raw ids verbatim, then fan Performance out to EVERY sibling
+    /// sharing the catalog id" over-report rule. Over-locking is the intentionally-preserved
+    /// fail-safe direction for a trainer editor; narrowing it to placement-exact here (as the
+    /// CLIENT-facing <c>GetTodaySession</c>/<c>GetFullTrainingPlan</c> read models now do) would
+    /// silently under-lock a field the client is mid-edit on — the same class of "moved business
+    /// gate" #938 explicitly keeps <c>IsSessionComplete</c>'s consumers away from.
+    /// </remarks>
     internal static List<TrainingPlanCompletionDto> BuildCompletions(
         List<SessionExecution> executions,
         Dictionary<Guid, TrainingSession> sessionLookup)
@@ -35,12 +46,14 @@ internal static class GetTrainingPlanCompletionBuilders
                 var completedExternalIds = new List<Guid>();
                 var byWorkout = new Dictionary<Guid, List<Guid>>();
 
-                // Canonical placement-exact completion rule (#938) — supersedes the old ad hoc
-                // "carry raw ids verbatim, then fan Performance out to every sibling sharing the
-                // catalog id" loop.
-                var instanceIds = session is not null
-                    ? c.ResolveCompletedInstanceIds(session)
-                    : new HashSet<Guid>(c.CompletedExerciseInstanceIds);
+                // Additive per-instance completion ids (#884) — mirrors
+                // GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession (#877, pre-#938
+                // shape). Source 1: carried verbatim from the execution document regardless of
+                // whether the session lookup below succeeds — these are already instance ids and
+                // need no session context to resolve. Source 2 (inside the session-found branch)
+                // is Performance-derived and DOES need the session's exercise instances to
+                // attribute a fully-logged catalog exercise to its sibling placement(s).
+                var instanceIds = new HashSet<Guid>(c.CompletedExerciseInstanceIds);
 
                 if (session is not null)
                 {
@@ -61,6 +74,34 @@ internal static class GetTrainingPlanCompletionBuilders
                     completedExternalIds.AddRange(session.StandaloneExercises
                         .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
                         .Select(e => e.ExerciseExternalId));
+
+                    // Source 2: Performance carries no instance id (see WorkoutExercise), so a
+                    // fully-logged catalog exercise fans out to EVERY SessionExercise instance in
+                    // this session sharing that catalog id — deliberate over-report, mirrors
+                    // #877's GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession remarks.
+                    // The write path cannot attribute a fully-logged catalog exercise to one
+                    // placement, so over-reporting is chosen over under-reporting: over-locking is
+                    // the fail-safe direction for a trainer editor.
+                    if (c.Performance is not null)
+                    {
+                        foreach (var workout in c.Performance.Workouts)
+                        {
+                            foreach (var ex in workout.Exercises)
+                            {
+                                if (ex.Sets.Count == 0 || !ex.Sets.All(s => s.CompletedAt is not null))
+                                {
+                                    continue;
+                                }
+
+                                foreach (var matchingInstanceId in session.AllExercises
+                                             .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
+                                             .Select(sessionExercise => sessionExercise.ExerciseId))
+                                {
+                                    instanceIds.Add(matchingInstanceId);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 return new TrainingPlanCompletionDto

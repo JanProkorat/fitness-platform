@@ -113,18 +113,69 @@ public class SessionExecutionExtensionsTests
     [Fact]
     public void ResolveCompletedInstanceIds_Unattributable_FansOutToEverySiblingSharingTheCatalogId()
     {
+        // Deliberately NOT the standalone+nested dual-placement fixture: a logged workoutId that
+        // matches no real nested workout resolves workoutKey=null, and a STANDALONE placement
+        // lives exactly at (null, catalogId) — that is a placement-exact match to the standalone,
+        // not "unattributable" (see ResolveLoggedWorkoutKey_NoMatchingWorkout_ReturnsNull and the
+        // GetTodaySessionProjectionIntegrationTests "StandaloneCompletedViaLiveLog" test, both of
+        // which pin that case). Genuine unattributability needs the catalog exercise nested under
+        // TWO DIFFERENT real workouts, with the logged workoutId matching NEITHER.
         var catalogExerciseId = Guid.NewGuid();
-        var standaloneInstanceId = Guid.NewGuid();
-        var nestedInstanceId = Guid.NewGuid();
-        var workoutId = Guid.NewGuid();
+        var firstWorkoutInstanceId = Guid.NewGuid();
+        var secondWorkoutInstanceId = Guid.NewGuid();
+        var firstWorkoutId = Guid.NewGuid();
+        var secondWorkoutId = Guid.NewGuid();
 
-        var session = BuildDualPlacementSession(catalogExerciseId, standaloneInstanceId, nestedInstanceId, workoutId);
-        // Logged workoutId matches NO real nested workout in the session.
+        var session = new TrainingSession
+        {
+            SessionId = Guid.NewGuid(),
+            Name = "Unattributable Placement Session",
+            Order = 1,
+            Workouts =
+            [
+                new TrainingWorkout
+                {
+                    WorkoutId = firstWorkoutId,
+                    Order = 0,
+                    Name = "Workout A",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseId = firstWorkoutInstanceId,
+                            ExerciseExternalId = catalogExerciseId,
+                            ExerciseName = "Wall Ball",
+                            Order = 1,
+                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                        }
+                    ]
+                },
+                new TrainingWorkout
+                {
+                    WorkoutId = secondWorkoutId,
+                    Order = 1,
+                    Name = "Workout B",
+                    Exercises =
+                    [
+                        new SessionExercise
+                        {
+                            ExerciseId = secondWorkoutInstanceId,
+                            ExerciseExternalId = catalogExerciseId,
+                            ExerciseName = "Wall Ball",
+                            Order = 1,
+                            Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Logged workoutId matches NEITHER real nested workout in the session.
         var execution = BuildFullyLoggedExecution(catalogExerciseId, loggedWorkoutId: Guid.NewGuid());
 
         var result = execution.ResolveCompletedInstanceIds(session);
 
-        result.Should().BeEquivalentTo([standaloneInstanceId, nestedInstanceId],
+        result.Should().BeEquivalentTo([firstWorkoutInstanceId, secondWorkoutInstanceId],
             "attribution is genuinely impossible, so both siblings sharing the catalog id are reported complete");
     }
 
