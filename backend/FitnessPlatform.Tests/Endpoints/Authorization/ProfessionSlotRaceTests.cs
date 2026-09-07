@@ -26,6 +26,11 @@ namespace FitnessPlatform.Tests.Endpoints.Authorization;
 /// it commits). The second pins the OUTCOME through the HTTP surface. Only the first is
 /// timing-independent; the second can serialize by luck on a given run, which is why it is not
 /// the only coverage here.
+///
+/// A third test covered the same race on CreateCollaborationEndpoint. That endpoint let a coach
+/// mint an active link for another professional to their client with no client consent, which
+/// contradicts the rule that only the client chooses their coaches — it was deleted, and its
+/// race test with it.
 /// </remarks>
 [Collection(TestCollection.Name)]
 public class ProfessionSlotRaceTests(FitnessApiFactory factory)
@@ -186,103 +191,6 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
         activeNutritionLinks.Should().Be(1,
             "the invariant is about stored state, not just the status codes — two links carrying "
             + "the nutrition flag is the forbidden state regardless of what the responses said");
-    }
-
-    /// <summary>
-    /// The collaboration path races the same way and is covered by the same lock. Coach A, who
-    /// legitimately occupies the client's nutrition slot, fires two concurrent collaborations for
-    /// two different collaborators. The two-exclusion guard excludes only the caller and THAT
-    /// call's own collaborator, so without serialization neither request sees the other's
-    /// delegate and both succeed — leaving two delegates in one slot.
-    /// </summary>
-    [Fact]
-    public async Task ConcurrentCollaborationsIntoOneSlot_ExactlyOneSucceeds_OtherGets400()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
-        var clientEmail = UniqueEmail("collab-race-client");
-        var coachEmail = UniqueEmail("collab-race-coach");
-
-        var clientUserId = await RegisterAndResolveUserIdAsync(clientEmail, "Client");
-        var coachUserId = await RegisterAndResolveUserIdAsync(coachEmail, "Nutritionist");
-        var collaboratorOneUserId = await RegisterAndResolveUserIdAsync(
-            UniqueEmail("collab-race-b"), "Nutritionist");
-        var collaboratorTwoUserId = await RegisterAndResolveUserIdAsync(
-            UniqueEmail("collab-race-d"), "Nutritionist");
-
-        Guid clientPublicId;
-        Guid collaboratorOnePublicId;
-        Guid collaboratorTwoPublicId;
-        long clientProfileId;
-
-        using (var seedScope = factory.Services.CreateScope())
-        {
-            var db = seedScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == clientUserId, ct);
-            var coachProfile = await db.ProfessionalProfiles
-                .FirstAsync(pp => pp.UserId == coachUserId, ct);
-
-            clientPublicId = clientProfile.PublicId;
-            clientProfileId = clientProfile.Id;
-            collaboratorOnePublicId = (await db.ProfessionalProfiles.AsNoTracking()
-                .FirstAsync(pp => pp.UserId == collaboratorOneUserId, ct)).PublicId;
-            collaboratorTwoPublicId = (await db.ProfessionalProfiles.AsNoTracking()
-                .FirstAsync(pp => pp.UserId == collaboratorTwoUserId, ct)).PublicId;
-
-            // The caller's own legitimate occupancy of the nutrition slot — seeded directly
-            // rather than driven through invite+accept, which is a different endpoint's subject.
-            db.ClientProfessionalLinks.Add(new ClientProfessionalLink
-            {
-                ClientProfileId = clientProfile.Id,
-                ProfessionalProfileId = coachProfile.Id,
-                ProfessionalRole = Application.Domain.Enums.UserRole.Nutritionist,
-                IsActive = true,
-                CanViewNutritionPlans = true,
-                CanViewTrainingPlans = false
-            });
-            await db.SaveChangesAsync(ct);
-        }
-
-        var callerOne = factory.CreateClient();
-        var callerTwo = factory.CreateClient();
-        var (coachToken, _) = await TestHelpers.LoginAsync(callerOne, coachEmail, "TestPass1!");
-        TestHelpers.SetBearerToken(callerOne, coachToken);
-        TestHelpers.SetBearerToken(callerTwo, coachToken);
-
-        var responses = await Task.WhenAll(
-            callerOne.PostAsJsonAsync("/trainer/collaborations", new
-            {
-                ClientPublicId = clientPublicId,
-                CollaboratorPublicId = collaboratorOnePublicId
-            }, ct),
-            callerTwo.PostAsJsonAsync("/trainer/collaborations", new
-            {
-                ClientPublicId = clientPublicId,
-                CollaboratorPublicId = collaboratorTwoPublicId
-            }, ct));
-
-        var statuses = responses.Select(r => r.StatusCode).ToList();
-        var observed = string.Join(", ", statuses);
-
-        statuses.Should().NotContain(HttpStatusCode.InternalServerError,
-            "the lock must never surface as a 500 (got {0})", observed);
-        statuses.Count(s => s == HttpStatusCode.Created).Should().Be(1,
-            "only one collaborator may be delegated into the nutrition slot (got {0})", observed);
-        statuses.Count(s => s == HttpStatusCode.BadRequest).Should().Be(1,
-            "the loser must get the coded PROFESSION_ALREADY_OCCUPIED 400 (got {0})", observed);
-
-        using var verifyScope = factory.Services.CreateScope();
-        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var activeNutritionLinks = await verifyDb.ClientProfessionalLinks.AsNoTracking()
-            .CountAsync(l => l.ClientProfileId == clientProfileId
-                             && l.IsActive
-                             && l.CanViewNutritionPlans, ct);
-
-        activeNutritionLinks.Should().Be(2,
-            "the caller's own link plus exactly one delegate — a third would be the forbidden "
-            + "state the two-exclusion guard cannot catch on its own");
     }
 
     /// <summary>

@@ -24,8 +24,6 @@ export type {
   GetClientDashboardRequest,
   GetClientDashboardResponse,
   LatestMeasurementDto,
-  CreateCollaborationRequest,
-  CreateCollaborationResponse,
   AcceptInvitationRequest,
   AcceptInvitationResponse,
   RequestPasswordResetRequest,
