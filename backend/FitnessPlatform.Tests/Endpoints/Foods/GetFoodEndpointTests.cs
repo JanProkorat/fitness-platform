@@ -9,8 +9,16 @@ using FitnessPlatform.Tests.Endpoints;
 namespace FitnessPlatform.Tests.Endpoints.Foods;
 
 /// <summary>
-/// Tests for <see cref="GetFoodEndpoint"/>.
+/// Response-mapping tests for <see cref="GetFoodEndpoint"/>.
 /// </summary>
+/// <remarks>
+/// The own-or-public visibility gate itself is NOT covered here. It lives in the Mongo filter
+/// since #1010, and <see cref="FoodTestHelpers.CreateMockMongo"/> returns every seeded food
+/// without evaluating the filter — so a gate assertion written against this harness cannot fail.
+/// Those cases live in
+/// <see cref="FitnessPlatform.Tests.Endpoints.Recipes.OwnerScopedVisibilityFilterTests"/>, which
+/// boots a real collection. What the tests below still prove is the response projection.
+/// </remarks>
 public class GetFoodEndpointTests
 {
     [Fact]
@@ -63,29 +71,6 @@ public class GetFoodEndpointTests
         ep.Response.Name.Should().Be("Private Note");
         ep.Response.IsOwnedByCurrentUser.Should().BeTrue();
         ep.Response.Visibility.Should().Be(FoodVisibility.Private);
-    }
-
-    [Fact]
-    public async Task HandleAsync_PrivateFood_OtherNutritionistGets404()
-    {
-        var ownerId = Guid.NewGuid();
-        var otherNutritionistId = Guid.NewGuid();
-        var foodId = Guid.NewGuid();
-        var food = FoodTestHelpers.CreateFood(
-            externalId: foodId,
-            nutritionistId: ownerId,
-            visibility: FoodVisibility.Private);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<GetFoodEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(otherNutritionistId, AppRoles.Nutritionist))),
-            mongo);
-
-        await ep.HandleAsync(new GetFoodRequest { FoodId = foodId }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
     [Fact]
