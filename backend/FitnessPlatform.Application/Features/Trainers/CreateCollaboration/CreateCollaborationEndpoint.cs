@@ -185,6 +185,16 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
             return;
         }
 
+        // Serialize the slot check below against a concurrent link creation for the SAME client
+        // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so
+        // there is nothing on the link side to lock — the client's own already-committed profile
+        // row is the one row both racers must touch, so that is what gets locked.
+        // The collaboration path needs the same lock as the three accept paths: its guard is a
+        // different (two-exclusion) query, but it is the same check-then-act shape and races the
+        // same way against them.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockClientProfileAsync(clientProfile.Id, ct);
+
         // A client may hold at most one active coach per profession (#980), but that
         // rule governs INDEPENDENT coach links only — a collaboration is a deliberately
         // exempt, different mechanism (a shared/delegated grant, not a competing claim),
@@ -218,6 +228,7 @@ public class CreateCollaborationEndpoint(IApplicationDbContext db, UserManager<A
 
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         await Send.ResponseAsync(new CreateCollaborationResponse
         {

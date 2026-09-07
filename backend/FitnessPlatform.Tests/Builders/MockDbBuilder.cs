@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Storage;
 using MockQueryable.NSubstitute;
 using NSubstitute;
 
@@ -156,6 +157,9 @@ public class MockDbBuilder
         var conversationsSet = _conversations.BuildMockDbSet();
         var chatMessagesSet = _chatMessages.BuildMockDbSet();
 
+        // Built before the Returns() below, per the same NSubstitute pitfall noted above.
+        var transaction = Substitute.For<IDbContextTransaction>();
+
         var db = Substitute.For<IApplicationDbContext>();
 
         db.Users.Returns(usersSet);
@@ -195,6 +199,13 @@ public class MockDbBuilder
             .Returns(1);
         db.RevokeRefreshTokenFamilyAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(0);
+
+        // The link-creation endpoints wrap their profession-slot check in a transaction (#1009).
+        // Without this, NSubstitute hands back a Task whose result is null and the endpoint NREs
+        // on CommitAsync. A no-op transaction is the right stub here: what the lock actually
+        // serializes is only observable against a real Postgres container, so that is where it is
+        // tested (ProfessionSlotRaceTests), not in these single-threaded unit tests.
+        db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
 
         return db;
     }

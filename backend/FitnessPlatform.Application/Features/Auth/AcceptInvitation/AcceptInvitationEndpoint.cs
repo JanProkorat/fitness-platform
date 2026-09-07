@@ -96,6 +96,14 @@ public class AcceptInvitationEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
+        // Serialize the slot check below against a concurrent link creation for the SAME client
+        // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so
+        // there is nothing on the link side to lock — the client's own already-committed profile
+        // row is the one row both racers must touch, so that is what gets locked.
+        // Taken AFTER the find-or-create save above, or the row would not exist yet.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockClientProfileAsync(clientProfile.Id, ct);
+
         // Check if a link already exists between this client and professional
         var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
@@ -188,6 +196,7 @@ public class AcceptInvitationEndpoint(
         }
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // If the invite carried a personal message, surface it as the first message
         // in the client-professional conversation so it shows up on the client's

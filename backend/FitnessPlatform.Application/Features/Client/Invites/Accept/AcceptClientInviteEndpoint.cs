@@ -75,6 +75,16 @@ public class AcceptClientInviteEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
+        // Serialize the slot check below against a concurrent link creation for the SAME client
+        // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so
+        // there is nothing on the link side to lock — the client's own already-committed profile
+        // row is the one row both racers must touch, so that is what gets locked.
+        // Reachable by a single actor: this endpoint is Roles(Client), so a client holding two
+        // pending invites from two professionals can accept both inside one request duration.
+        // The lock is taken AFTER the find-or-create save above, or the row would not exist yet.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockClientProfileAsync(clientProfile.Id, ct);
+
         // Check for existing link
         var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
@@ -155,6 +165,7 @@ public class AcceptClientInviteEndpoint(
 
         // Save link first so it gets a generated Id for the questionnaire response
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // If the invite included a questionnaire, create a pending response
         // so the web portal immediately shows the "waiting" state.
