@@ -1,13 +1,18 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Domain.Extensions;
 
 /// <summary>
-/// Plan-addressed authorization for the professional-facing nutrition and training plan routes.
+/// Plan-addressed loading and authorization for the professional-facing and client-facing
+/// training/nutrition plan routes.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -118,5 +123,72 @@ public static class PlanLinkAuthorizationExtensions
         }
 
         return plan;
+    }
+
+    /// <summary>
+    /// Resolves the calling CLIENT's own Active training plan whose date window contains the
+    /// resolved as-of date — the repeated Postgres-link → Mongo-plan → <see cref="PlanWindowResolver"/>
+    /// sequence duplicated across <c>GetTodaySession</c>'s Mark*/photo siblings (#938). Unlike the
+    /// professional-facing <c>LoadOwned...IfAllowedAsync</c> helpers above, there is no link/capability
+    /// check here — the caller is resolving their OWN data by <c>ApplicationUser.Id</c>, not a
+    /// professional's access to someone else's.
+    /// </summary>
+    /// <remarks>
+    /// Writes the route's usual bodiless 404 and returns <c>null</c> only when NO
+    /// <see cref="Entities.ClientProfile"/> exists for <paramref name="callerUserId"/> — the caller
+    /// must return immediately in that case. A missing/expired ACTIVE PLAN is a distinct, endpoint-
+    /// specific outcome (some routes reply with a bare 404, some with a coded
+    /// <c>NoActiveTrainingPlan</c> Problem Details, one folds it into a <c>HasSession=false</c> body)
+    /// so it is surfaced as <c>Plan: null</c> in the returned tuple instead of being written here.
+    /// </remarks>
+    /// <param name="endpoint">The endpoint instance.</param>
+    /// <param name="db">Relational database context.</param>
+    /// <param name="mongo">MongoDB context.</param>
+    /// <param name="callerUserId">The caller's <c>ApplicationUser.Id</c> from JWT.</param>
+    /// <param name="explicitAsOfDate">
+    /// An explicit as-of date supplied by the request (e.g. <c>Mark*</c> endpoints' optional
+    /// backdating field), taking precedence over <paramref name="nowUtc"/> when present. Passing
+    /// this through explicitly — rather than the helper always resolving "today" — is what keeps
+    /// backdated marking working; hard-coding "now" here would silently break it.
+    /// </param>
+    /// <param name="nowUtc">
+    /// The current instant (from the caller's injected <see cref="TimeProvider"/>), used to resolve
+    /// the client's local calendar day when <paramref name="explicitAsOfDate"/> is <c>null</c>.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    public static async Task<(Guid ClientId, DateTime AsOfDate, TrainingPlan? Plan)?> LoadActiveTrainingPlanForClientAsync(
+        this IEndpoint endpoint,
+        IApplicationDbContext db,
+        IMongoContext mongo,
+        Guid callerUserId,
+        DateTime? explicitAsOfDate,
+        DateTime nowUtc,
+        CancellationToken ct)
+    {
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.UserId == callerUserId, ct);
+
+        if (clientProfile is null)
+        {
+            await endpoint.HttpContext.Response.SendNotFoundAsync(ct);
+            return null;
+        }
+
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        var asOfDate = explicitAsOfDate ?? await db.ResolveClientLocalDateUtcAsync(clientId, nowUtc, ct);
+
+        // A client may hold several sequential, non-overlapping Active plans (#780) — resolve the
+        // one whose date window actually contains asOfDate rather than the most recently created.
+        var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
+                          & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+
+        using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
+        var activePlans = await planCursor.ToListAsync(ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, asOfDate);
+
+        return (clientId, asOfDate, plan);
     }
 }

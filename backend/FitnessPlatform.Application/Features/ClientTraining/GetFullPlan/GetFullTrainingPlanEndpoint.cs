@@ -127,6 +127,13 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
             .Select(s => s.SessionId)
             .ToList();
 
+        // Session lookup by SessionId — feeds the canonical placement-exact completion rule
+        // (SessionExecutionExtensions.ResolveCompletedInstanceIds) below (#938).
+        var sessionLookup = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
+            .ToDictionary(s => s.SessionId);
+
         var executionFilter = Builders<SessionExecution>.Filter.And(
             Builders<SessionExecution>.Filter.Eq(l => l.ClientId, clientId),
             Builders<SessionExecution>.Filter.In(l => l.SessionId, planSessionIds.Cast<Guid?>()));
@@ -260,17 +267,29 @@ public class GetFullTrainingPlanEndpoint(IMongoContext mongo, IApplicationDbCont
                 g => g.Key,
                 g => g.SelectMany(e => e.CompletedWorkoutIds ?? new List<Guid>()).ToHashSet());
 
-        // Per-instance completion lookup (#877): CompletedExerciseInstanceIds already holds raw
-        // SessionExercise.ExerciseId values, so no resolution against the plan tree is needed —
-        // unlike the Performance-side loggedSets above (which keys on WorkoutId +
-        // ExerciseExternalId), this lookup drives BuildExerciseDto's instance-resolved
-        // IsCompleted below.
+        // Per-instance completion lookup, via the canonical placement-exact rule (#938):
+        // SessionExecutionExtensions.ResolveCompletedInstanceIds unions the raw checkbox path
+        // (CompletedExerciseInstanceIds, already instance-precise) with Performance-derived
+        // completion attributed placement-exact / tied-instance / session-wide-fallback — no
+        // longer a separate, endpoint-local reimplementation of that rule. Drives
+        // BuildExerciseDto's instance-resolved IsCompleted below.
         var completedInstanceIdsBySession = executions
-            .Where(e => e.SessionId.HasValue)
+            .Where(e => e.SessionId.HasValue && sessionLookup.ContainsKey(e.SessionId!.Value))
             .GroupBy(e => e.SessionId!.Value)
             .ToDictionary(
                 g => g.Key,
-                g => g.SelectMany(e => e.CompletedExerciseInstanceIds).ToHashSet());
+                g =>
+                {
+                    var session = sessionLookup[g.Key];
+                    var completedInstanceIds = new HashSet<Guid>();
+
+                    foreach (var execution in g)
+                    {
+                        completedInstanceIds.UnionWith(execution.ResolveCompletedInstanceIds(session));
+                    }
+
+                    return completedInstanceIds;
+                });
 
         foreach (var execution in executions.Where(e => e.SessionId.HasValue))
         {

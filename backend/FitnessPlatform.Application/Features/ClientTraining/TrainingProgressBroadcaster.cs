@@ -11,7 +11,11 @@ namespace FitnessPlatform.Application.Features.ClientTraining;
 /// <summary>
 /// Shared helper that builds and broadcasts the <c>trainingprogressupdated</c>
 /// SignalR event to the trainer who owns the completing client.
-/// Called by all five Mark*Complete / Mark*Incomplete endpoints after a successful Mongo write.
+/// Called by all seven Mark*Complete / Mark*Incomplete endpoints after a successful Mongo write —
+/// six via <see cref="BroadcastSessionAsync"/>, <c>MarkWholeDayComplete</c> via
+/// <see cref="BroadcastWholeDayAsync"/>. Every caller now passes the canonical placement-exact
+/// completion count (<see cref="SessionExecutionExtensions.ResolveCompletedInstanceIds"/>, #938/#849)
+/// rather than a hand-computed <c>CompletedExerciseInstanceIds.Count</c>.
 ///
 /// Design notes:
 /// - The trainer's UserId is read from <see cref="TrainingPlan.TrainerId"/>, which is set when

@@ -592,15 +592,21 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
     }
 
     /// <summary>
-    /// #877 AC5 (performance-derived source): the client fully logs the catalog exercise via the
-    /// live-training assistant — <see cref="WorkoutExercise"/> carries only
-    /// <see cref="WorkoutExercise.ExerciseExternalId"/>, no instance id, so the write path cannot
-    /// attribute completion to one specific placement. Per the documented fan-out rule, BOTH
-    /// sibling instances sharing that catalog id must appear in the per-instance field — omitting
-    /// either would regress vs. the catalog-keyed field this one supersedes.
+    /// #938 — AMENDED (was #877 AC5's "session-wide fan-out" characterisation, deliberately
+    /// changed). The client fully logs the catalog exercise via the live-training assistant with
+    /// <see cref="LoggedWorkout.WorkoutId"/> matching the session's REAL nested
+    /// <see cref="TrainingWorkout"/>. <see cref="WorkoutExercise"/> carries no instance id, but the
+    /// containing workout id IS enough to attribute the completion to that ONE nested placement —
+    /// the new placement-exact rule (<c>SessionExecutionExtensions.ResolveMatchedPlacements</c>)
+    /// resolves <c>(workoutId, catalogId)</c> to exactly the nested instance, a DIFFERENT key from
+    /// the standalone placement's <c>(null, catalogId)</c>. Session-wide fan-out is now reserved
+    /// for the genuinely-unattributable case (no workout in the session matches at all) — see the
+    /// unattributable-fallback test below. Pre-#938 this test asserted BOTH instances ticked; that
+    /// was the exact over-reporting bug #938's Context section documents as an accepted,
+    /// deliberate behaviour change.
     /// </summary>
     [Fact]
-    public async Task GetTodaySession_DualPlacementSession_PerformanceCompletesCatalogExercise_FansOutToBothInstances()
+    public async Task GetTodaySession_DualPlacementSession_PerformanceCompletesCatalogExerciseInRealWorkout_AttributesOnlyNestedInstance()
     {
         var httpClient = factory.CreateClient();
         var email = UniqueEmail();
@@ -682,8 +688,168 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         body.Should().NotBeNull($"raw response was: {rawBody}");
         body!.CompletedExerciseInstanceIdsBySession.Should().ContainKey(sessionId, $"raw response was: {rawBody}");
         body.CompletedExerciseInstanceIdsBySession[sessionId].Should().BeEquivalentTo(
-            [standaloneInstanceId, nestedInstanceId],
-            "Performance carries no instance id, so a fully-logged catalog exercise must fan out to every sibling instance sharing that catalog id");
+            [nestedInstanceId],
+            "the logged workoutId matches the REAL nested workout, so attribution is placement-exact " +
+            "(#938) — the standalone placement at a different (null, catalogId) key must NOT be " +
+            "ticked just because it shares the catalog id");
+    }
+
+    /// <summary>
+    /// #938 branch 2 (tied-instance fan-out): the SAME catalog exercise is placed TWICE inside the
+    /// SAME workout — genuinely unresolvable, since <see cref="WorkoutExercise"/> carries neither
+    /// an instance id nor an order. Both tied instance ids must appear in
+    /// <c>CompletedExerciseInstanceIdsBySession</c> AND both must carry the same per-instance
+    /// logged-sets entry (<c>CompletedSetsByExerciseInstanceBySession</c>) — this is exactly what
+    /// <c>GetFullTrainingPlanEndpoint</c> already does for the same scenario (its
+    /// <c>(sessionId, workoutId, exerciseExternalId, setNumber)</c> key collapses both placements
+    /// onto one shared set-key), so this test is what makes the two read models agree.
+    /// </summary>
+    [Fact]
+    public async Task GetTodaySession_TiedPlacementInSameWorkout_PerformanceCompletesCatalogExercise_FansOutToBothTiedInstances()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Tied", "Perf", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+            clientUserId = user.Id;
+        }
+
+        var todayDow = TodayDow();
+        var startDate = StartOfCurrentWeek();
+        var catalogExerciseId = Guid.NewGuid();
+        var firstTiedInstanceId = Guid.NewGuid();
+        var secondTiedInstanceId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var workoutId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Tied Placement Today Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Version = 1,
+            DateCreated = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Tied Placement Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = workoutId,
+                                Order = 1,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = firstTiedInstanceId,
+                                        ExerciseExternalId = catalogExerciseId,
+                                        ExerciseName = "Wall Ball",
+                                        Order = 1,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                    },
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = secondTiedInstanceId,
+                                        ExerciseExternalId = catalogExerciseId,
+                                        ExerciseName = "Wall Ball",
+                                        Order = 2,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
+                }
+            ]
+        };
+
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = plan.ExternalId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [],
+            DateCreated = DateTime.UtcNow,
+            Version = 1,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = DateTime.UtcNow.AddMinutes(-10),
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = workoutId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = catalogExerciseId,
+                                ExerciseName = "Wall Ball",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 20, CompletedAt = DateTime.UtcNow }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/training/plan/today", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<TodaySessionResponseDto>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        body!.CompletedExerciseInstanceIdsBySession.Should().ContainKey(sessionId, $"raw response was: {rawBody}");
+        body.CompletedExerciseInstanceIdsBySession[sessionId].Should().BeEquivalentTo(
+            [firstTiedInstanceId, secondTiedInstanceId],
+            "both tied instances share the same (workoutId, catalogId) key and are genuinely unresolvable, so both must be reported complete");
+
+        body.CompletedSetsByExerciseInstanceBySession.Should().ContainKey(sessionId, $"raw response was: {rawBody}");
+        var completedByInstance = body.CompletedSetsByExerciseInstanceBySession[sessionId];
+        completedByInstance.Should().ContainKey(firstTiedInstanceId,
+            "the per-instance sets map must fan out to every tied instance too, or a tied placement would render ticked with an empty set list");
+        completedByInstance.Should().ContainKey(secondTiedInstanceId,
+            "the per-instance sets map must fan out to every tied instance too, or a tied placement would render ticked with an empty set list");
     }
 
     /// <summary>
@@ -696,6 +862,12 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
     /// the nested instance — the standalone instance sharing the same catalog id must have no
     /// entry. Before the #885 fix, the (only) catalog-keyed fields could not represent this
     /// distinction at all.
+    /// <para>
+    /// Reviewed under #938: this scenario is placement-exact (workoutId resolves to exactly ONE
+    /// instance, the nested one — the standalone placement sits at a different (null, catalogId)
+    /// key) and the sets maps were already gated on a single matched instance pre-#938, so this
+    /// test's assertions are unchanged by the new <c>ResolveMatchedPlacements</c> rule.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task GetTodaySession_DualPlacementPerformance_NestedCompletedViaLiveLog_InstanceFieldAttributesOnlyNested()
@@ -804,6 +976,13 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
     /// <c>UpdateWorkoutEndpoint</c>'s legacy single-workout fallback path assigns when logging a
     /// standalone exercise (which has no WorkoutId of its own to send). The per-instance field
     /// must attribute the logged set ONLY to the standalone instance.
+    /// <para>
+    /// Reviewed under #938: a non-matching WorkoutId resolves to workoutKey = null, and the
+    /// standalone placement is exactly the (null, catalogId) entry — a placement-exact match, not
+    /// the session-wide unattributable fallback (that fallback only fires when NO instance shares
+    /// the exact key at all). This test's assertions are unchanged by the new
+    /// <c>ResolveMatchedPlacements</c> rule.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task GetTodaySession_DualPlacementPerformance_StandaloneCompletedViaLiveLog_InstanceFieldAttributesOnlyStandalone()
@@ -897,6 +1076,167 @@ public class GetTodaySessionProjectionIntegrationTests(FitnessApiFactory factory
         completedByInstance.Should().NotContainKey(nestedInstanceId,
             $"the nested placement was never logged — the per-instance field must not leak the " +
             $"standalone placement's completion onto it. raw: {rawBody}");
+    }
+
+    /// <summary>
+    /// #938 branch 3 (unattributable session-wide fan-out): the catalog exercise is placed twice,
+    /// nested in two DIFFERENT real workouts (not tied — different containers, so each has its own
+    /// unambiguous (workoutId, catalogId) key). The Performance log's <see cref="LoggedWorkout.WorkoutId"/>
+    /// matches NEITHER real nested workout (a legacy/corrupted log) — attribution is genuinely
+    /// impossible, so the session-wide catalog fan-out fires and BOTH placements are reported
+    /// complete, exactly today's pre-#938 behaviour for this specific case.
+    /// </summary>
+    [Fact]
+    public async Task GetTodaySession_CatalogExerciseInTwoRealWorkouts_PerformanceLogMatchesNeither_FansOutToBothPlacements()
+    {
+        var httpClient = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(httpClient, email, "TestPass1!", "Unattrib", "Perf", "Client");
+        var (accessToken, _) = await TestHelpers.LoginAsync(httpClient, email, "TestPass1!");
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+            clientUserId = user.Id;
+        }
+
+        var todayDow = TodayDow();
+        var startDate = StartOfCurrentWeek();
+        var catalogExerciseId = Guid.NewGuid();
+        var firstWorkoutInstanceId = Guid.NewGuid();
+        var secondWorkoutInstanceId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
+        var firstWorkoutId = Guid.NewGuid();
+        var secondWorkoutId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = planId,
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Unattributable Placement Today Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Version = 1,
+            DateCreated = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Unattributable Placement Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = firstWorkoutId,
+                                Order = 1,
+                                Name = "Workout A",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = firstWorkoutInstanceId,
+                                        ExerciseExternalId = catalogExerciseId,
+                                        ExerciseName = "Wall Ball",
+                                        Order = 1,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                    }
+                                ]
+                            },
+                            new TrainingWorkout
+                            {
+                                WorkoutId = secondWorkoutId,
+                                Order = 2,
+                                Name = "Workout B",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = secondWorkoutInstanceId,
+                                        ExerciseExternalId = catalogExerciseId,
+                                        ExerciseName = "Wall Ball",
+                                        Order = 1,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 20 }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
+                }
+            ]
+        };
+
+        var execution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = plan.ExternalId,
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow),
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [],
+            DateCreated = DateTime.UtcNow,
+            Version = 1,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = DateTime.UtcNow.AddMinutes(-10),
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        // Matches NEITHER firstWorkoutId nor secondWorkoutId — the legacy fallback
+                        // shape UpdateWorkoutEndpoint's single-workout path assigns.
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = catalogExerciseId,
+                                ExerciseName = "Wall Ball",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 20, CompletedAt = DateTime.UtcNow }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        TestHelpers.SetBearerToken(httpClient, accessToken);
+        var response = await httpClient.GetAsync("/client/training/plan/today", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+        var rawBody = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = JsonSerializer.Deserialize<TodaySessionResponseDto>(rawBody, jsonOptions);
+
+        body.Should().NotBeNull($"raw response was: {rawBody}");
+        body!.CompletedExerciseInstanceIdsBySession.Should().ContainKey(sessionId, $"raw response was: {rawBody}");
+        body.CompletedExerciseInstanceIdsBySession[sessionId].Should().BeEquivalentTo(
+            [firstWorkoutInstanceId, secondWorkoutInstanceId],
+            "attribution is genuinely impossible (the logged workoutId matches no real nested workout), so the session-wide catalog fan-out fires for both placements");
     }
 
     // ── Local response DTOs (per slice rules — not shared across features) ────────

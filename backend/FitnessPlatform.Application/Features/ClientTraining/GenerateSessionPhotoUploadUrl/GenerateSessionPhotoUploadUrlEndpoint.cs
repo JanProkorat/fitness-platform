@@ -5,11 +5,8 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GenerateSessionPhotoUploadUrl;
 
@@ -55,30 +52,19 @@ public class GenerateSessionPhotoUploadUrlEndpoint(
             return;
         }
 
-        // Resolve the caller's client profile
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // Resolve the client's Active training plan whose date window contains today — a client
+        // may hold several sequential, non-overlapping Active plans (#780) — via the shared
+        // cross-store assembly (#938), which also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId), explicitAsOfDate: null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
-        var clientId = clientProfile.UserId;
-
-        // Resolve the client's Active training plan whose date window contains today — a client
-        // may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.And(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
-
-        var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        var (_, _, plan) = loadResult.Value;
 
         if (plan is null)
         {

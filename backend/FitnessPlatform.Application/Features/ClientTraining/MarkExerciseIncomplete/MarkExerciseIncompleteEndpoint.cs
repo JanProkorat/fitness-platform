@@ -2,13 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -57,32 +54,22 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // req.CompletedOn is never populated by the client in practice — the fallback resolves
+        // the CLIENT's local calendar day (#935) rather than the server's UTC day. Resolves the
+        // client's Active training plan whose date window contains that date (a client may hold
+        // several sequential, non-overlapping Active plans, #780) — the shared cross-store
+        // assembly (#938) also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId),
+            req.CompletedOn?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
-        var clientId = clientProfile.UserId;
-
-        // req.CompletedOn is never populated by the client in practice — the fallback resolves
-        // the CLIENT's local calendar day (#935) rather than the server's UTC day.
-        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct)))
-            .ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-        // Validate the session belongs to the client's Active plan whose date window contains
-        // today — a client may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
-                         & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
-
-        using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDate);
+        var (clientId, targetDate, plan) = loadResult.Value;
 
         if (plan is null)
         {
@@ -123,8 +110,9 @@ public class MarkExerciseIncompleteEndpoint(
 
         if (existing is null || !isComplete)
         {
-            // Not complete — nothing to remove
-            var completedCount = existing?.CompletedExerciseInstanceIds.Count ?? 0;
+            // Not complete — nothing to remove. Canonical placement-exact rule (#938/#849)
+            // replaces the hand-computed CompletedExerciseInstanceIds.Count.
+            var completedCount = existing?.ResolveCompletedInstanceIds(session).Count ?? 0;
             await Send.OkAsync(new MarkExerciseIncompleteResponse
             {
                 SessionId = req.SessionId,
@@ -184,19 +172,25 @@ public class MarkExerciseIncompleteEndpoint(
             return;
         }
 
+        // Reflect the post-mutation state (raw ids updated, Performance sets cleared above) before
+        // resolving the canonical completion count (#938/#849) — supersedes the hand-computed
+        // newInstanceIds.Count, which was blind to any OTHER exercise's Performance data.
+        existing.CompletedExerciseInstanceIds = newInstanceIds;
+        var completedExerciseCount = existing.ResolveCompletedInstanceIds(session).Count;
+
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
             notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            newInstanceIds.Count, session.AllExercises.Count,
+            completedExerciseCount, session.AllExercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkExerciseIncompleteResponse
         {
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
-            CompletedExerciseCount = newInstanceIds.Count,
+            CompletedExerciseCount = completedExerciseCount,
             TotalExerciseCount = session.AllExercises.Count,
-            SessionComplete = newInstanceIds.Count >= session.AllExercises.Count,
+            SessionComplete = completedExerciseCount >= session.AllExercises.Count,
             Version = newVersion
         }, ct);
     }

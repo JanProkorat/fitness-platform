@@ -565,6 +565,89 @@ public class MarkExerciseCompleteEndpointTests
     }
 
     /// <summary>
+    /// #849 repro. Both exercises in a 2-exercise session are already fully logged via the
+    /// live-training assistant (<c>Performance</c> populated, every set's <c>CompletedAt</c> set),
+    /// <c>Status</c> still <c>Partial</c>. The client then taps the Today-card checkbox for ONE of
+    /// them. Before the fix, <c>MarkExerciseComplete</c> reported 1 of 2 (hand-computed from the
+    /// raw <c>CompletedExerciseInstanceIds</c> list alone, blind to Performance); after the fix it
+    /// must report 2 of 2 — the same count <c>GetTodaySession</c> already derives from the same
+    /// document via the canonical placement-exact rule.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_BothExercisesAlreadyCompleteViaPerformance_ReportsBothComplete_NotJustTheCheckedOne()
+    {
+        var plan = TrainingCompletionTestHelpers.CreateActivePlan(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            exerciseIds: [_exercise1, _exercise2],
+            sectionId: _sectionId);
+
+        var existingExecution = new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            PlanId = plan.ExternalId,
+            SessionId = _sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [],
+            DateCreated = DateTime.UtcNow,
+            Version = 1,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = DateTime.UtcNow.AddMinutes(-20),
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = _sectionId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exercise1,
+                                ExerciseName = "Exercise 1",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = DateTime.UtcNow }]
+                            },
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exercise2,
+                                ExerciseName = "Exercise 2",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = DateTime.UtcNow }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+            plan: plan,
+            existingCompletion: existingExecution);
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
+
+        // The client taps the checkbox for exercise1 — exercise2 was never checkbox-tapped, only
+        // Performance-completed.
+        await ep.HandleAsync(
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        ep.Response.CompletedExerciseCount.Should().Be(2,
+            "both exercises are complete via Performance, not just the one checkbox-tapped");
+        ep.Response.TotalExerciseCount.Should().Be(2);
+        ep.Response.SessionComplete.Should().BeTrue();
+    }
+
+    /// <summary>
     /// Builds a mock <see cref="IMongoCollection{TrainingPlan}"/> that returns several plans
     /// from a single <c>FindAsync</c> call — used to exercise
     /// <see cref="FitnessPlatform.Application.Domain.Services.PlanWindowResolver"/>
