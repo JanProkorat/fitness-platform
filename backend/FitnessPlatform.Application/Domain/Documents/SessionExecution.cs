@@ -112,43 +112,6 @@ public class SessionExecution
     public List<Guid>? CompletedWorkoutIds { get; set; }
 
     /// <summary>
-    /// Optional per-set completion data, keyed by <see cref="SessionExercise.ExerciseExternalId"/>
-    /// (serialized as a lowercase Guid string) — deliberately <b>NOT</b> rekeyed onto the
-    /// per-instance <see cref="SessionExercise.ExerciseId"/> the way
-    /// <see cref="CompletedExerciseInstanceIds"/> and <see cref="CompletedWorkoutIds"/> are.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <b>No writer since #848 — see #1007.</b> The only site that ever populated this field was
-    /// <c>MongoIndexInitializer.ApplyCompletionFlags</c>, which copied it verbatim from
-    /// <see cref="TrainingCompletion.CompletedSets"/> during the one-shot migration deleted in
-    /// #848. Nothing writes it now, so it is always empty and the read branch in
-    /// <c>GetFullTrainingPlanEndpoint</c> never fires.
-    /// </para>
-    /// <para>
-    /// <b>Known divergence (#857 finding 2), retained for context.</b> That copy was catalog-keyed:
-    /// resolving a catalog id to the correct per-instance <see cref="SessionExercise.ExerciseId"/>
-    /// needs the parent plan's session definition, which <c>ApplyCompletionFlags</c> did not have.
-    /// The reader in <c>GetFullTrainingPlanEndpoint</c> is therefore written to look the key up
-    /// against a lookup keyed by <see cref="SessionExercise.ExerciseExternalId"/>, not
-    /// <see cref="SessionExercise.ExerciseId"/>.
-    /// </para>
-    /// <para>
-    /// This means two placements of the same catalog exercise within one session (standalone AND
-    /// nested, or nested twice) share set-completion state under this field — the exact ambiguity
-    /// the per-instance id exists to remove elsewhere. In practice this is a latent gap rather
-    /// than an active bug: <see cref="TrainingCompletion"/> is frozen/read-only with no live write
-    /// path (see its class remarks), so no current endpoint ever populates this dictionary for a
-    /// standalone-plus-nested session. If set-level completion tracking is revived on a live write
-    /// path, that path must key on <see cref="SessionExercise.ExerciseId"/> directly (bypassing
-    /// this legacy field/migration entirely) rather than perpetuating the catalog-id keying here.
-    /// </para>
-    /// </remarks>
-    [BsonElement("completedSets")]
-    [BsonIgnoreIfNull]
-    public Dictionary<string, List<int>>? CompletedSets { get; set; }
-
-    /// <summary>
     /// Optional detailed set-by-set performance data. Present only when the client ran the
     /// live-training-assistant flow, or a trainer retroactively finished the session.
     /// Null for executions created purely via the lightweight Today-card checkboxes.

@@ -217,7 +217,6 @@ public static class TrainingPlanTestHelpers
             {
                 execution.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;
                 execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
-                execution.CompletedSets = completion.CompletedSets;
             }
 
             execution.Status = (log?.IsCompleted ?? false)
