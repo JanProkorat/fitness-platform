@@ -114,11 +114,10 @@ public static class LibrarySearchHelper
         var filterBuilder = Builders<TDoc>.Filter;
 
         // Mirrors LibraryAccessGuard.CanRead's Guid.Empty refusal: the ownership term is
-        // suppressed entirely for an empty caller id, rather than compared against it. A
-        // document whose ownerId field is absent deserializes to Guid.Empty, so without this
-        // suppression an empty callerId would match every such document via the Eq disjunct
-        // below. This is a pure boolean-term drop, not a throw — an empty caller id still sees
-        // every Public entry, exactly as CanRead(Guid.Empty, _, Public) == true.
+        // suppressed entirely for an empty caller id, so a document that explicitly stores a
+        // zero-uuid owner can't be matched as "owned by the caller" via the Eq disjunct below.
+        // A pure boolean-term drop, not a throw — an empty caller id still sees every Public
+        // entry, exactly as CanRead(Guid.Empty, _, Public) == true.
         FilterDefinition<TDoc> visibilityFilter = callerId == Guid.Empty
             ? filterBuilder.Eq(d => d.Visibility, LibraryVisibility.Public)
             : filterBuilder.Or(
