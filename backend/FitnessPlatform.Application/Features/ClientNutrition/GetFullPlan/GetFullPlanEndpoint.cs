@@ -92,9 +92,10 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
 
         var today = todayLocalUtc;
 
-        // Determine the anchor date used for computing week start/end dates
-        // Prefer StartDate; fall back to DatePublished for legacy plans
-        DateTime? anchorDate = plan.StartDate ?? plan.DatePublished;
+        // Anchor date for the per-week start/end dates below. publishedWeeks is non-empty
+        // here, which implies StartDate is set (#1015 — see the reachability note below), so the
+        // plan-level DatePublished fallback this used to carry was unreachable.
+        DateTime? anchorDate = plan.StartDate;
 
         // Determine currentWeek and currentDayOfWeek
         int? currentWeek = null;
@@ -134,25 +135,13 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, 
                 }
             }
         }
-        else if (plan.DatePublished.HasValue)
-        {
-            // Legacy: cycle through published weeks based on publish date.
-            // Dedupe by WeekNumber, keeping the FIRST occurrence of each — matches
-            // GetTodayPlanEndpoint's legacy-branch resolution so both endpoints select the same
-            // week for a legacy plan whose weeks carry a duplicate WeekNumber. publishedWeeks is
-            // already sorted by WeekNumber above via a stable OrderBy, so the first occurrence
-            // after dedupe still corresponds to the earliest document-order duplicate.
-            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
 
-            var daysSincePublish = (int)(today - plan.DatePublished.Value.Date).TotalDays;
-            var totalDays = distinctPublishedWeeks.Count * 7;
-            var currentDayIndex = daysSincePublish % totalDays;
-            var weekIndex = currentDayIndex / 7;
-            var dayIndex = currentDayIndex % 7;
-
-            currentWeek = distinctPublishedWeeks[Math.Max(0, weekIndex)].WeekNumber;
-            currentDayOfWeek = dayIndex + 1;
-        }
+        // No else: publishedWeeks is non-empty here, which implies StartDate is set —
+        // PublishWeekEndpoint refuses to publish a week without one (START_DATE_REQUIRED) and
+        // UpdatePlanEndpoint refuses to clear one while any week is published
+        // (START_DATE_LOCKED), and publishing is the only route to WeekStatus.Published. The
+        // legacy plan-level DatePublished cycling branch that stood here was unreachable, and
+        // the field it read has had no writer since 8d39e113 (#1015).
 
         // Build week list with pre-computed date ranges
         var fullPlanWeeks = publishedWeeks.Select(w =>

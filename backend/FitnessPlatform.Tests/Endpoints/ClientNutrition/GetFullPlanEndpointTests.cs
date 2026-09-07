@@ -47,7 +47,7 @@ public class GetFullPlanEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow.Date;
+        plan.StartDate = DateTime.UtcNow.Date;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
         plan.Supplements =
         [
@@ -81,7 +81,7 @@ public class GetFullPlanEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow.Date;
+        plan.StartDate = DateTime.UtcNow.Date;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

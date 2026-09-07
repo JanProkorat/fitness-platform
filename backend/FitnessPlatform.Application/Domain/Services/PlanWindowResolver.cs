@@ -70,8 +70,12 @@ public static class PlanWindowResolver
     /// (enforced by the publish auto-archive), so an unranged legacy plan was unambiguously "the"
     /// current plan. To avoid regressing that historical data, when <paramref name="plans"/>
     /// contains exactly one candidate AND it is unranged (no <c>StartDate</c>), that plan is
-    /// returned as-is — callers already have their own legacy <c>DatePublished</c>-based cycling
-    /// logic downstream for this case (see e.g. <c>GetTodayPlanEndpoint</c>). This fallback is
+    /// returned as-is. Note the callers no longer do anything useful with such a plan: the
+    /// legacy <c>DatePublished</c>-based cycling they used to apply to it was removed in #1015 as
+    /// unreachable, and every caller gates on the plan having at least one Published week, which
+    /// an unranged plan cannot have. So this fallback now resolves a plan the caller will 404 on
+    /// regardless; it is kept because retiring it is its own decision, not a side effect of
+    /// #1015. This fallback is
     /// intentionally restricted to the single-candidate case: once a client has more than one
     /// same-type plan (the #780 scenario this resolver exists for), an unranged plan has no window
     /// to disambiguate against a sibling that DOES have one, so it must not be favoured by default.

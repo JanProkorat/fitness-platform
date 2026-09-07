@@ -222,7 +222,6 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             weekCount: 1,
             name: "Adhered Nutrition Plan");
         plan.Id = ObjectId.GenerateNewId();
-        plan.DatePublished = mondayThisWeek;
         plan.StartDate = mondayThisWeek;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = mondayThisWeek;

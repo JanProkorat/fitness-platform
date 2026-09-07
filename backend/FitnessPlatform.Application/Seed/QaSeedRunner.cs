@@ -692,7 +692,6 @@ public static class QaSeedRunner
             Status          = TrainingPlanStatus.Active,
             StartDate       = startDate,
             DateCreated     = now,
-            DatePublished   = now,
             Version         = 1,
             Weeks =
             [
@@ -1285,7 +1284,6 @@ public static class QaSeedRunner
                 Status        = TrainingPlanStatus.Active,
                 StartDate     = startDate,
                 DateCreated   = startDate.AddDays(-3),
-                DatePublished = startDate.AddDays(-1),
                 Version       = 1,
                 Weeks =
                 [
@@ -1528,7 +1526,6 @@ public static class QaSeedRunner
             Name          = "QA Multi-Section Plan — shared-exercise section-keying fixture",
             Status        = TrainingPlanStatus.Active,
             DateCreated   = now,
-            DatePublished = now,
             Version       = 1,
             Weeks =
             [
@@ -1965,7 +1962,6 @@ public static class QaSeedRunner
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
             DateCreated    = now,
-            DatePublished  = now,
             Version        = 1,
             Weeks =
             [

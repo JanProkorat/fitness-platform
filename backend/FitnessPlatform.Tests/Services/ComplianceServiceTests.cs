@@ -134,7 +134,6 @@ public class ComplianceServiceTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = mondayThisWeek;
         plan.StartDate = mondayThisWeek;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = mondayThisWeek;
@@ -660,7 +659,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 1);
         plan.StartDate = startDate;
-        plan.DatePublished = startDate;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = startDate;
 
@@ -699,7 +697,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
@@ -756,7 +753,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
@@ -815,7 +811,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
