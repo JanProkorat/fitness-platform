@@ -95,12 +95,14 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
 
     /// <summary>
     /// Resolves the source <see cref="TrainingSession"/> addressed by <paramref name="req"/>,
-    /// checking plan ownership and week/day/session presence. Failure to resolve the plan itself
-    /// (missing, or owned by another trainer) returns <see cref="ErrorCodes.PlanNotFound"/> —
-    /// never a 403, per the existence-non-disclosure rule. Failure to resolve the addressed
-    /// week/day/session returns <see cref="ErrorCodes.TrainingSessionNotFound"/>. These are
-    /// distinct codes because <see cref="TrainingPlan"/> is not an <c>ILibraryDocument</c> and
-    /// each failure leg names the resource that actually failed to resolve.
+    /// checking plan ownership and week/day/session presence. Every failure — missing plan,
+    /// unowned plan, denied collaboration, or an absent week/day/session — writes the identical
+    /// shaped 404 via <see cref="SessionTemplateErrors.Denial"/> (#939), matching the
+    /// <c>MealTemplates</c> sibling (<c>SaveMealTemplateFromPlanEndpoint</c>), which collapses its
+    /// own equivalent chain onto one shared code the same way. <see cref="TrainingPlan"/> is not an
+    /// <c>ILibraryDocument</c>, so <see cref="Domain.Extensions.LibraryDenialExtensions.SendLibraryNotFoundAsync"/>
+    /// is used directly with this feature's own <see cref="LibraryDenial"/> rather than via the
+    /// <c>Load*OrRespondAsync</c> helpers, which require one.
     /// </summary>
     private async Task<TrainingSession?> LoadSourceSessionOrRespondAsync(
         SaveSessionTemplateFromPlanRequest req, Guid trainerId, CancellationToken ct)
@@ -111,7 +113,7 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
 
         if (plan is null || plan.TrainerId != trainerId)
         {
-            await this.SendProblemAsync(404, ErrorCodes.PlanNotFound, "Training plan not found.", ct);
+            await this.SendLibraryNotFoundAsync(SessionTemplateErrors.Denial, ct);
             return null;
         }
 
@@ -124,7 +126,7 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
 
         if (capabilities is not { CanViewTrainingPlans: true })
         {
-            await this.SendProblemAsync(404, ErrorCodes.PlanNotFound, "Training plan not found.", ct);
+            await this.SendLibraryNotFoundAsync(SessionTemplateErrors.Denial, ct);
             return null;
         }
 
@@ -134,7 +136,11 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
 
         if (session is null)
         {
-            await this.SendProblemAsync(404, ErrorCodes.TrainingSessionNotFound, "Training session not found.", ct);
+            // #939: moved onto the same shared denial as the plan-resolution legs above, rather
+            // than keeping the distinct TrainingSessionNotFound code — matching the MealTemplates
+            // sibling, which does not distinguish "meal not found within an owned plan" from the
+            // plan-resolution failures either.
+            await this.SendLibraryNotFoundAsync(SessionTemplateErrors.Denial, ct);
             return null;
         }
 

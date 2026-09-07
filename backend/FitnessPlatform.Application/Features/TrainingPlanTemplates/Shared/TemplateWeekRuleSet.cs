@@ -1,23 +1,34 @@
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
+using FitnessPlatform.Application.Domain.Services;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.TrainingPlanTemplates.Shared;
 
 /// <summary>
 /// Validation rules for a single <see cref="TrainingPlanTemplateWeekRequest"/>, including its nested days,
-/// sessions, workouts, standalone exercises, and sets. Mirrors
-/// <c>UpdateTrainingPlanValidator</c>'s structure — same content tree, same
-/// duplicate-<c>Order</c>-across-workouts-and-standalone-exercises hazard
-/// (<see cref="ErrorCodes.TrainingDuplicateSessionOrder"/>), and — at all three format-bearing
-/// levels (session, workout, exercise) — the same inner <c>WodConfig</c> invariants via
-/// <see cref="UpdateTrainingPlanValidator.ApplyFormatConfigRules{T}"/>. A template that skipped
-/// these would let <c>instantiate</c> clone an invalid <c>WodConfig</c> verbatim into a real
-/// plan the plan's own write path would otherwise reject.
+/// sessions, workouts, standalone exercises, and sets. Mirrors <c>UpdateTrainingPlanValidator</c>'s
+/// structure — same content tree, same duplicate-<c>Order</c>-across-workouts-and-standalone-exercises
+/// hazard (<see cref="ErrorCodes.TrainingDuplicateSessionOrder"/>), and — at all three format-bearing
+/// levels (session, workout, exercise) — the same inner <c>WodConfig</c> invariants, all now shared via
+/// <see cref="TrainingContentRuleSet"/> (#892) rather than reached cross-namespace into
+/// <c>UpdateTrainingPlanValidator</c>.
 /// </summary>
 internal static class TemplateWeekRuleSet
 {
+    private static readonly SessionExerciseAccessors<TemplateSessionExerciseRequest, TemplateExerciseSetRequest> ExerciseAccessors = new(
+        ExerciseExternalId: e => e.ExerciseExternalId,
+        ExerciseName: e => e.ExerciseName,
+        Order: e => e.Order,
+        RestSeconds: e => e.RestSeconds,
+        Format: e => e.Format,
+        FormatConfig: e => e.FormatConfig,
+        Sets: e => e.Sets,
+        SetNumber: s => s.SetNumber,
+        Reps: s => s.Reps,
+        WeightKg: s => s.WeightKg,
+        Rpe: s => s.Rpe);
+
     /// <summary>
     /// Configures validation rules for a single template week onto an inline child validator.
     /// </summary>
@@ -64,16 +75,8 @@ internal static class TemplateWeekRuleSet
                 // Standalone exercises and workouts share ONE ordering sequence within a session —
                 // a duplicate Order across either list (or both) is rejected with the stable
                 // TRAINING_DUPLICATE_SESSION_ORDER code.
-                session.RuleFor(s => s)
-                    .Must(s =>
-                    {
-                        var orders = s.Workouts.Select(w => w.Order)
-                            .Concat(s.StandaloneExercises.Select(ex => ex.Order))
-                            .ToList();
-                        return orders.Distinct().Count() == orders.Count;
-                    })
-                    .WithErrorCode(ErrorCodes.TrainingDuplicateSessionOrder)
-                    .WithName("Order");
+                TrainingContentRuleSet.ApplyCombinedOrderRule(
+                    session, s => s.Workouts, w => w.Order, s => s.StandaloneExercises, e => e.Order);
 
                 session.RuleFor(s => s.FormatConfig)
                     .Null()
@@ -85,94 +88,21 @@ internal static class TemplateWeekRuleSet
                     .When(s => s.Format.HasValue && s.Format != WorkoutFormat.Standard)
                     .WithErrorCode(ErrorCodes.OutOfRange);
 
-                UpdateTrainingPlanValidator.ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
+                TrainingContentRuleSet.ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
 
                 session.RuleFor(s => s.Workouts)
                     .Must(workouts => workouts.Count <= 14).WithErrorCode(ErrorCodes.OutOfRange);
 
                 session.RuleForEach(s => s.Workouts).ChildRules(workout =>
-                {
-                    workout.RuleFor(w => w.Name)
-                        .NotEmpty().WithErrorCode(ErrorCodes.Required)
-                        .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange);
-
-                    workout.RuleFor(w => w.Exercises)
-                        .Must(exercises => exercises.Count <= 30).WithErrorCode(ErrorCodes.OutOfRange);
-
-                    workout.RuleFor(w => w.FormatConfig)
-                        .Null()
-                        .When(w => w.Format == WorkoutFormat.Standard)
-                        .WithErrorCode(ErrorCodes.OutOfRange);
-
-                    workout.RuleFor(w => w.FormatConfig)
-                        .NotNull()
-                        .When(w => w.Format.HasValue && w.Format != WorkoutFormat.Standard)
-                        .WithErrorCode(ErrorCodes.OutOfRange);
-
-                    UpdateTrainingPlanValidator.ApplyFormatConfigRules(workout, w => w.Format, w => w.FormatConfig, "Workout");
-
-                    workout.RuleForEach(w => w.Exercises).ChildRules(ApplyExerciseChildRules);
-                });
+                    TrainingContentRuleSet.ApplyWorkoutRules(
+                        workout, w => w.Name, w => w.Format, w => w.FormatConfig, w => w.Exercises, ExerciseAccessors));
 
                 session.RuleFor(s => s.StandaloneExercises)
                     .Must(exercises => exercises.Count <= 30).WithErrorCode(ErrorCodes.OutOfRange);
 
-                session.RuleForEach(s => s.StandaloneExercises).ChildRules(ApplyExerciseChildRules);
+                session.RuleForEach(s => s.StandaloneExercises).ChildRules(exercise =>
+                    TrainingContentRuleSet.ApplyExerciseChildRules(exercise, ExerciseAccessors));
             });
-        });
-    }
-
-    /// <summary>
-    /// Validation rules shared by a workout's nested exercises and a session's standalone
-    /// exercises — both are <see cref="TemplateSessionExerciseRequest"/> lists with identical
-    /// invariants.
-    /// </summary>
-    private static void ApplyExerciseChildRules(InlineValidator<TemplateSessionExerciseRequest> exercise)
-    {
-        exercise.RuleFor(e => e.ExerciseExternalId)
-            .NotEmpty().WithErrorCode(ErrorCodes.Required);
-
-        exercise.RuleFor(e => e.ExerciseName)
-            .NotEmpty().WithErrorCode(ErrorCodes.Required);
-
-        exercise.RuleFor(e => e.Order)
-            .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);
-
-        exercise.RuleFor(e => e.RestSeconds)
-            .InclusiveBetween(0, 600).WithErrorCode(ErrorCodes.OutOfRange)
-            .When(e => e.RestSeconds.HasValue);
-
-        exercise.RuleFor(e => e.FormatConfig)
-            .Null()
-            .When(e => e.Format == WorkoutFormat.Standard)
-            .WithErrorCode(ErrorCodes.OutOfRange);
-
-        exercise.RuleFor(e => e.FormatConfig)
-            .NotNull()
-            .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
-            .WithErrorCode(ErrorCodes.OutOfRange);
-
-        UpdateTrainingPlanValidator.ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
-
-        exercise.RuleFor(e => e.Sets)
-            .Must(sets => sets.Count <= 20).WithErrorCode(ErrorCodes.OutOfRange);
-
-        exercise.RuleForEach(e => e.Sets).ChildRules(set =>
-        {
-            set.RuleFor(s => s.SetNumber)
-                .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange);
-
-            set.RuleFor(s => s.Reps)
-                .InclusiveBetween(1, 1000).WithErrorCode(ErrorCodes.OutOfRange)
-                .When(s => s.Reps.HasValue);
-
-            set.RuleFor(s => s.WeightKg)
-                .GreaterThanOrEqualTo(0).WithErrorCode(ErrorCodes.OutOfRange)
-                .When(s => s.WeightKg.HasValue);
-
-            set.RuleFor(s => s.Rpe)
-                .InclusiveBetween(1, 10).WithErrorCode(ErrorCodes.OutOfRange)
-                .When(s => s.Rpe.HasValue);
         });
     }
 }

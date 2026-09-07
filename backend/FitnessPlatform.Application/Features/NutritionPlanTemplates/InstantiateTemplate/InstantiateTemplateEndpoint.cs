@@ -73,8 +73,10 @@ public class InstantiateTemplateEndpoint(
 
         if (capabilities is not { CanViewNutritionPlans: true })
         {
-            // 404, never 403 — a 403 would confirm the client exists to an unlinked coach.
-            await Send.NotFoundAsync(ct);
+            // 404 via the shared library helper, never a bare 404 and never 403 — a 403 would
+            // confirm the client exists to an unlinked coach. Matches the TrainingPlanTemplates
+            // sibling (#939).
+            await this.SendLibraryNotFoundAsync(NutritionPlanTemplateLibrary.Denial, ct);
             return;
         }
 
@@ -84,7 +86,7 @@ public class InstantiateTemplateEndpoint(
 
         if (clientProfile is null)
         {
-            await Send.NotFoundAsync(ct);
+            await this.SendLibraryNotFoundAsync(NutritionPlanTemplateLibrary.Denial, ct);
             return;
         }
 
