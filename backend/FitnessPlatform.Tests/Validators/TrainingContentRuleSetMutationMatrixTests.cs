@@ -125,7 +125,14 @@ public class TrainingContentRuleSetMutationMatrixTests
             // which differs by nesting depth across the plan/Create/Update call sites. Assert the
             // pinned suffix, not exact equality.
             result.Errors.Should().Contain(
-                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.Ordinal),
+                // Case-insensitive: the global camelCasing PropertyNameResolver (active once the
+                // app host boots elsewhere in the same test process) lowercases the FIRST
+                // character of each resolved path segment. Whether that resolver has already been
+                // installed when THIS validator runs is a process-wide race — reproduced by
+                // running this namespace alongside an app-booting one — so the pinned suffix must
+                // match regardless of casing. An empty/lost PropertyName (the actual #276 failure
+                // mode) still fails this check either way.
+                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.OrdinalIgnoreCase),
                 $"{name} must pin PropertyName ending in '{expectedName}' via the #276 WithName override");
         }
     }
@@ -364,7 +371,14 @@ public class TrainingContentRuleSetMutationMatrixTests
         if (expectedName is not null)
         {
             result.Errors.Should().Contain(
-                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.Ordinal),
+                // Case-insensitive: the global camelCasing PropertyNameResolver (active once the
+                // app host boots elsewhere in the same test process) lowercases the FIRST
+                // character of each resolved path segment. Whether that resolver has already been
+                // installed when THIS validator runs is a process-wide race — reproduced by
+                // running this namespace alongside an app-booting one — so the pinned suffix must
+                // match regardless of casing. An empty/lost PropertyName (the actual #276 failure
+                // mode) still fails this check either way.
+                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.OrdinalIgnoreCase),
                 $"{name} must pin PropertyName ending in '{expectedName}' via the #276 WithName override on Create");
         }
     }
@@ -384,7 +398,14 @@ public class TrainingContentRuleSetMutationMatrixTests
         if (expectedName is not null)
         {
             result.Errors.Should().Contain(
-                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.Ordinal),
+                // Case-insensitive: the global camelCasing PropertyNameResolver (active once the
+                // app host boots elsewhere in the same test process) lowercases the FIRST
+                // character of each resolved path segment. Whether that resolver has already been
+                // installed when THIS validator runs is a process-wide race — reproduced by
+                // running this namespace alongside an app-booting one — so the pinned suffix must
+                // match regardless of casing. An empty/lost PropertyName (the actual #276 failure
+                // mode) still fails this check either way.
+                e => e.ErrorCode == expectedCode && e.PropertyName.EndsWith(expectedName, StringComparison.OrdinalIgnoreCase),
                 $"{name} must pin PropertyName ending in '{expectedName}' via the #276 WithName override on Update");
         }
     }
