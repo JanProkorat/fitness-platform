@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -114,6 +115,60 @@ public class CreatePendingInviteEndpoint(
             await this.SendProblemAsync(429, ErrorCodes.TooManyPendingInvites,
                 "Maximum number of outstanding pending invites reached.", ct);
             return;
+        }
+
+        // Refuse to invite a client who already has an active coach in the profession this
+        // invite would grant. The authoritative check stays at accept time — that one runs
+        // inside the row lock (#1009) and is what actually protects the invariant, since the
+        // client's links can change between invite and accept. This one exists so the inviting
+        // professional finds out now rather than the client discovering it as a 400 days later
+        // on a link they were never able to form.
+        //
+        // Note this necessarily tells the inviting professional that the address they typed
+        // belongs to an account whose slot is taken. That is a deliberate trade-off for the
+        // earlier feedback, and it is narrow: only for an email they already knew, and it
+        // reveals that the slot is occupied, never by whom.
+        //
+        // Skipped entirely when the invitee has no account yet — the common case for a
+        // prospective client, and there is no ClientProfile or link to check.
+        var normalizedInviteeEmail = req.Email.ToUpper();
+        var inviteeClientProfileId = await db.Users
+            .AsNoTracking()
+            .Where(u => u.NormalizedEmail == normalizedInviteeEmail)
+            .Join(db.ClientProfiles.AsNoTracking(),
+                u => u.Id,
+                cp => cp.UserId,
+                (_, cp) => cp.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (inviteeClientProfileId != 0)
+        {
+            // Same derivation the accept paths use: the professional's held roles narrowed by
+            // the scope they requested. Kept in step with AcceptClientInviteEndpoint — if that
+            // derivation changes, this must change with it or the two verdicts diverge.
+            var wantsNutritionPlans = req.RequestedScope switch
+            {
+                LinkCapabilityScope.NutritionOnly => true,
+                LinkCapabilityScope.TrainingOnly => false,
+                _ => User.IsInRole(AppRoles.Nutritionist)
+            };
+
+            var wantsTrainingPlans = req.RequestedScope switch
+            {
+                LinkCapabilityScope.TrainingOnly => true,
+                LinkCapabilityScope.NutritionOnly => false,
+                _ => User.IsInRole(AppRoles.Trainer)
+            };
+
+            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                    db.ClientProfessionalLinks, inviteeClientProfileId, professionalProfile.Id,
+                    wantsNutritionPlans, wantsTrainingPlans, ct))
+            {
+                this.ThrowErrorWithCode(
+                    ErrorCodes.ProfessionAlreadyOccupied,
+                    "The client already has an active professional occupying this profession slot.");
+                return;
+            }
         }
 
         // Resolve optional questionnaire
