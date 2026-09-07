@@ -960,7 +960,6 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             Name = "Dashboard Gate Nutrition Plan",
             Status = NutritionPlanStatus.Active,
             StartDate = monday,
-            DatePublished = monday,
             GlobalSettings = new GlobalNutritionSettings { DailyKcal = 2200m },
             Weeks =
             [
@@ -1008,7 +1007,6 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             Name = "Verdict-Scalar Nutrition Plan",
             Status = NutritionPlanStatus.Active,
             StartDate = monday,
-            DatePublished = monday,
             Weeks =
             [
                 new PlanWeek
@@ -1067,7 +1065,6 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
             Name = "Verdict-Scalar Training Plan",
             Status = TrainingPlanStatus.Active,
             StartDate = monday,
-            DatePublished = monday,
             Weeks =
             [
                 new TrainingWeek

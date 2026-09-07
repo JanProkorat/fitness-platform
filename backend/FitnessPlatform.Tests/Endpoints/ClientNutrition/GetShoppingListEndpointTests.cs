@@ -39,7 +39,7 @@ public class GetShoppingListEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal1);
         plan.Weeks[0].Days[1].Meals.Add(meal2);
 

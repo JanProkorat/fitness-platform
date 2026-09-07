@@ -55,7 +55,6 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db,
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.Status),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.StartDate),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.DateCreated),
-            Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.DatePublished),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include(p => p.GlobalSettings),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include("weeks.weekNumber"),
             Builders<Domain.Documents.NutritionPlan>.Projection.Include("weeks.status"),
@@ -130,62 +129,34 @@ public class GetTodayPlanEndpoint(IMongoContext mongo, IApplicationDbContext db,
             return;
         }
 
-        Domain.Documents.PlanWeek week;
-        int dayIndex;
-
-        if (plan.StartDate.HasValue)
+        // publishedWeeks is non-empty here, which implies StartDate is set: PublishWeekEndpoint
+        // refuses to publish a week without one (START_DATE_REQUIRED) and UpdatePlanEndpoint
+        // refuses to clear one while any week is published (START_DATE_LOCKED), and publishing is
+        // the only route to WeekStatus.Published. The legacy plan-level DatePublished cycling
+        // branch this replaced was therefore unreachable (#1015).
+        if (!plan.StartDate.HasValue)
         {
-            var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
-
-            if (daysSinceStart < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            var weekNum = daysSinceStart / 7 + 1;
-            dayIndex = daysSinceStart % 7;
-
-            var matchedWeek = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum);
-            if (matchedWeek is null)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            week = matchedWeek;
+            await Send.NotFoundAsync(ct);
+            return;
         }
-        else
+
+        var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
+
+        if (daysSinceStart < 0)
         {
-            var daysSincePublish = (int)(todayLocalUtc - plan.DatePublished!.Value.Date).TotalDays;
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
-            if (daysSincePublish < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
+        var weekNum = daysSinceStart / 7 + 1;
+        var dayIndex = daysSinceStart % 7;
 
-            // Dedupe by WeekNumber, keeping the FIRST document-order occurrence of each — this
-            // matches the element MongoDB's positional `weeks.$` projection returns for a given
-            // weekNumber in FetchHydratedWeekAsync below, PROVIDED the first document-order
-            // occurrence of that weekNumber is itself the Published one being selected here.
-            // That does not hold if an earlier, non-Published duplicate shares the same
-            // weekNumber (e.g. a Draft wn=1 before a Published wn=1) — FetchHydratedWeekAsync's
-            // filter has no Status predicate, so Mongo's positional match would resolve the
-            // Draft duplicate instead. That gap is tracked separately, not fixed here. Selecting
-            // by array POSITION here (as before #850) diverges from the weekNumber key whenever
-            // a legacy plan holds duplicate weekNumber values, since publishedWeeks re-indexes
-            // after the Status filter and has no absolute-index equivalent for the positional
-            // match. Document order is preserved deliberately — do NOT sort by weekNumber, that
-            // would silently change which week a legacy plan resolves to.
-            var distinctPublishedWeeks = publishedWeeks.DistinctBy(w => w.WeekNumber).ToList();
+        var week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum);
 
-            var totalDays = distinctPublishedWeeks.Count * 7;
-            var currentDayIndex = daysSincePublish % totalDays;
-            var weekIndex = currentDayIndex / 7;
-            dayIndex = currentDayIndex % 7;
-
-            week = distinctPublishedWeeks[weekIndex];
+        if (week is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
         }
 
         // Phase 2: hydrate just the resolved week's day content. `week` up to this point only

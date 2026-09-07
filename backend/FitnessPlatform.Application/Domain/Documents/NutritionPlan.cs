@@ -103,12 +103,6 @@ public class NutritionPlan
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
-    /// When this plan was published (status changed to Active).
-    /// </summary>
-    [BsonElement("datePublished")]
-    public DateTime? DatePublished { get; set; }
-
-    /// <summary>
     /// When this plan was marked as completed by the professional.
     /// </summary>
     [BsonElement("dateCompleted")]
