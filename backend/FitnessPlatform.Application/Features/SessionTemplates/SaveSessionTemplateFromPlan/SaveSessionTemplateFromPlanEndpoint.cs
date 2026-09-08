@@ -66,6 +66,17 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
             return;
         }
 
+        // TrainingSession.Format is nullable and its own doc comment says "Null when Format is
+        // null or Standard" — an invariant the plan write path's own guard does not actually
+        // enforce (UpdateTrainingPlanValidator's Null()/NotNull() rules both skip via When() when
+        // Format is null), so a plan session with a null Format and a non-null FormatConfig is a
+        // reachable, plan-valid state. Coalescing that null to Standard while copying FormatConfig
+        // verbatim would persist a template SessionTemplateRuleSet rejects (OUT_OF_RANGE:
+        // FormatConfig must be null for Standard) on every subsequent UpdateSessionTemplate call —
+        // a permanent lockout on a template this same POST just returned 201 for (#892 review).
+        // Deriving FormatConfig from the coalesced format, not the source session, closes it.
+        var format = sourceSession.Format ?? WorkoutFormat.Standard;
+
         var template = new SessionTemplate
         {
             ExternalId = Guid.NewGuid(),
@@ -76,8 +87,8 @@ internal sealed class SaveSessionTemplateFromPlanEndpoint(
             // CLR default (Beginner) rather than guess a value the source data doesn't have.
             // The trainer can edit it afterwards via UpdateSessionTemplate.
             Difficulty = default,
-            Format = sourceSession.Format ?? WorkoutFormat.Standard,
-            FormatConfig = sourceSession.FormatConfig,
+            Format = format,
+            FormatConfig = format == WorkoutFormat.Standard ? null : sourceSession.FormatConfig,
             Workouts = sourceSession.Workouts,
             StandaloneExercises = sourceSession.StandaloneExercises,
             Visibility = req.Visibility,

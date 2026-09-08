@@ -1,34 +1,10 @@
+using System.Linq.Expressions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Domain.Services;
-
-/// <summary>
-/// Bundles the field accessors <see cref="TrainingContentRuleSet.ApplyExerciseChildRules{TExercise,TSet}"/>
-/// needs to validate an exercise-and-its-sets subtree, regardless of the concrete DTO/document
-/// shape carrying that data. An interface was considered and rejected here: the three call sites'
-/// exercise/set types disagree on nullability (<c>CreateSessionTemplateRequest.Format</c> is
-/// non-nullable <see cref="WorkoutFormat"/>; the plan write path's is <c>WorkoutFormat?</c>) and on
-/// set element type (<see cref="Documents.ExerciseSet"/> vs the plan path's
-/// <c>UpdateExerciseSetRequest</c>) — a shared interface would force edits to three request DTOs
-/// and two Mongo documents just to satisfy a validator. A bundle of <see cref="Func{T,TResult}"/>
-/// members composes over the existing shapes with zero DTO/document changes. In-repo precedent for
-/// a <c>readonly record struct</c> carrying a bundle of related values: <see cref="CoachEntitlements"/>.
-/// </summary>
-public readonly record struct SessionExerciseAccessors<TExercise, TSet>(
-    Func<TExercise, Guid> ExerciseExternalId,
-    Func<TExercise, string> ExerciseName,
-    Func<TExercise, int> Order,
-    Func<TExercise, int?> RestSeconds,
-    Func<TExercise, WorkoutFormat?> Format,
-    Func<TExercise, WodConfig?> FormatConfig,
-    Func<TExercise, List<TSet>> Sets,
-    Func<TSet, int> SetNumber,
-    Func<TSet, int?> Reps,
-    Func<TSet, decimal?> WeightKg,
-    Func<TSet, decimal?> Rpe);
 
 /// <summary>
 /// The training-content validation rules shared by the plan write path
@@ -68,7 +44,10 @@ public static class TrainingContentRuleSet
         // resolution of that pattern is JIT-dependent and produces an empty string
         // on Linux/x64 while resolving correctly on macOS/ARM64 (issue #276).
         // WithName() pins the property name explicitly and WithMessage() ensures
-        // the field name appears in the error message on every platform.
+        // the field name appears in the error message on every platform. This whole-object
+        // form has no real property to bind PropertyName to in the first place — pinning it here
+        // is not the #892-review defect (that was root-level scalar rules losing an expression
+        // tree they COULD have kept; see ApplyExerciseChildRules/ApplyWorkoutRules below).
 
         validator.RuleFor(x => x)
             .Must(x => configSelector(x)?.IntervalSeconds is > 0)
@@ -119,69 +98,76 @@ public static class TrainingContentRuleSet
     /// path, the training-plan-template week, and both session-template validators each feed this
     /// their own exercise/set DTO. Every rule here emits both a code and a message (#892 A1b) —
     /// additive on the plan write path, which previously emitted only the message.
-    /// <para>
-    /// Every <c>RuleFor</c> below reads through a delegate (<c>accessors.Field(e)</c>), not a
-    /// direct member expression, so each rule pins its own <c>WithName(...)</c> explicitly rather
-    /// than relying on FluentValidation's expression-based name inference — the same defensive
-    /// reasoning as <see cref="ApplyFormatConfigRules{T}"/>'s pinned names (issue #276).
-    /// </para>
     /// </summary>
     public static void ApplyExerciseChildRules<TExercise, TSet>(
         AbstractValidator<TExercise> exercise,
         SessionExerciseAccessors<TExercise, TSet> accessors)
     {
-        exercise.RuleFor(e => accessors.ExerciseExternalId(e))
-            .NotEmpty().WithErrorCode(ErrorCodes.Required).WithName("ExerciseExternalId")
+        var formatFunc = accessors.Format.Compile();
+        var formatConfigFunc = accessors.FormatConfig.Compile();
+        var restSecondsFunc = accessors.RestSeconds.Compile();
+
+        exercise.RuleFor(accessors.ExerciseExternalId)
+            .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .WithMessage("ExerciseExternalId must not be empty.");
 
-        exercise.RuleFor(e => accessors.ExerciseName(e))
-            .NotEmpty().WithErrorCode(ErrorCodes.Required).WithName("ExerciseName")
+        exercise.RuleFor(accessors.ExerciseName)
+            .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .WithMessage("ExerciseName must not be empty.");
 
-        exercise.RuleFor(e => accessors.Order(e))
-            .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange).WithName("Order")
+        exercise.RuleFor(accessors.Order)
+            .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage("Exercise Order must be >= 1.");
 
-        exercise.RuleFor(e => accessors.RestSeconds(e))
-            .InclusiveBetween(0, 600).WithErrorCode(ErrorCodes.OutOfRange).WithName("RestSeconds")
-            .When(e => accessors.RestSeconds(e).HasValue)
+        exercise.RuleFor(accessors.RestSeconds)
+            .InclusiveBetween(0, 600).WithErrorCode(ErrorCodes.OutOfRange)
+            .When(e => restSecondsFunc(e).HasValue)
             .WithMessage("RestSeconds must be between 0 and 600.");
 
-        exercise.RuleFor(e => accessors.FormatConfig(e))
-            .Null().WithErrorCode(ErrorCodes.OutOfRange).WithName("FormatConfig")
-            .When(e => accessors.Format(e) == WorkoutFormat.Standard)
+        exercise.RuleFor(accessors.FormatConfig)
+            .Null().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(e => formatFunc(e) == WorkoutFormat.Standard)
             .WithMessage("Exercise FormatConfig must be null for Standard format.");
 
-        exercise.RuleFor(e => accessors.FormatConfig(e))
-            .NotNull().WithErrorCode(ErrorCodes.OutOfRange).WithName("FormatConfig")
-            .When(e => accessors.Format(e).HasValue && accessors.Format(e) != WorkoutFormat.Standard)
+        exercise.RuleFor(accessors.FormatConfig)
+            .NotNull().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(e => formatFunc(e).HasValue && formatFunc(e) != WorkoutFormat.Standard)
             .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
 
-        ApplyFormatConfigRules(exercise, accessors.Format, accessors.FormatConfig, "Exercise");
+        ApplyFormatConfigRules(exercise, formatFunc, formatConfigFunc, "Exercise");
 
+        // Sets stays a compiled delegate wrapped in a fresh lambda: RuleForEach requires an
+        // IEnumerable<TElement>-shaped expression, and a pre-built
+        // Expression<Func<TExercise,List<TSet>>> member has no variance to satisfy that without a
+        // fresh lambda at the call site — OverridePropertyName keeps the resolved name correct
+        // despite the resulting delegate-invoke wrapper.
         exercise.RuleFor(e => accessors.Sets(e))
             .Must(sets => sets.Count <= 20).WithErrorCode(ErrorCodes.OutOfRange).WithName("Sets")
             .WithMessage("An exercise may not have more than 20 sets.");
 
         exercise.RuleForEach(e => accessors.Sets(e)).ChildRules(set =>
         {
-            set.RuleFor(s => accessors.SetNumber(s))
-                .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange).WithName("SetNumber")
+            var repsFunc = accessors.Reps.Compile();
+            var weightKgFunc = accessors.WeightKg.Compile();
+            var rpeFunc = accessors.Rpe.Compile();
+
+            set.RuleFor(accessors.SetNumber)
+                .GreaterThanOrEqualTo(1).WithErrorCode(ErrorCodes.OutOfRange)
                 .WithMessage("SetNumber must be >= 1.");
 
-            set.RuleFor(s => accessors.Reps(s))
-                .InclusiveBetween(1, 1000).WithErrorCode(ErrorCodes.OutOfRange).WithName("Reps")
-                .When(s => accessors.Reps(s).HasValue)
+            set.RuleFor(accessors.Reps)
+                .InclusiveBetween(1, 1000).WithErrorCode(ErrorCodes.OutOfRange)
+                .When(s => repsFunc(s).HasValue)
                 .WithMessage("Reps must be between 1 and 1000.");
 
-            set.RuleFor(s => accessors.WeightKg(s))
-                .GreaterThanOrEqualTo(0).WithErrorCode(ErrorCodes.OutOfRange).WithName("WeightKg")
-                .When(s => accessors.WeightKg(s).HasValue)
+            set.RuleFor(accessors.WeightKg)
+                .GreaterThanOrEqualTo(0).WithErrorCode(ErrorCodes.OutOfRange)
+                .When(s => weightKgFunc(s).HasValue)
                 .WithMessage("WeightKg must be >= 0.");
 
-            set.RuleFor(s => accessors.Rpe(s))
-                .InclusiveBetween(1, 10).WithErrorCode(ErrorCodes.OutOfRange).WithName("Rpe")
-                .When(s => accessors.Rpe(s).HasValue)
+            set.RuleFor(accessors.Rpe)
+                .InclusiveBetween(1, 10).WithErrorCode(ErrorCodes.OutOfRange)
+                .When(s => rpeFunc(s).HasValue)
                 .WithMessage("RPE must be between 1 and 10.");
         }).OverridePropertyName("Sets");
     }
@@ -192,38 +178,45 @@ public static class TrainingContentRuleSet
     /// <see cref="ApplyExerciseChildRules{TExercise,TSet}"/>. Generic over the workout type so the
     /// plan write path's <c>UpdateTrainingWorkoutRequest</c>, the training-plan-template's
     /// <c>TemplateWorkoutRequest</c>, and the session-template libraries' verbatim
-    /// <see cref="TrainingWorkout"/> snapshot can all share it.
+    /// <see cref="TrainingWorkout"/> snapshot can all share it. <paramref name="nameSelector"/>,
+    /// <paramref name="formatSelector"/> and <paramref name="configSelector"/> are
+    /// <see cref="Expression{TDelegate}"/> so <c>RuleFor</c> resolves <c>PropertyName</c> from the
+    /// caller's real member access; <paramref name="exercisesSelector"/> stays a compiled delegate
+    /// for the same <c>RuleForEach</c> variance reason documented on <see cref="SessionExerciseAccessors{TExercise,TSet}.Sets"/>.
     /// </summary>
     public static void ApplyWorkoutRules<TWorkout, TExercise, TSet>(
         AbstractValidator<TWorkout> workout,
-        Func<TWorkout, string> nameSelector,
-        Func<TWorkout, WorkoutFormat?> formatSelector,
-        Func<TWorkout, WodConfig?> configSelector,
+        Expression<Func<TWorkout, string>> nameSelector,
+        Expression<Func<TWorkout, WorkoutFormat?>> formatSelector,
+        Expression<Func<TWorkout, WodConfig?>> configSelector,
         Func<TWorkout, List<TExercise>> exercisesSelector,
         SessionExerciseAccessors<TExercise, TSet> exerciseAccessors)
     {
-        workout.RuleFor(w => nameSelector(w))
-            .NotEmpty().WithErrorCode(ErrorCodes.Required).WithName("Name")
+        var formatFunc = formatSelector.Compile();
+        var configFunc = configSelector.Compile();
+
+        workout.RuleFor(nameSelector)
+            .NotEmpty().WithErrorCode(ErrorCodes.Required)
             .WithMessage("Workout Name must not be empty.");
 
-        workout.RuleFor(w => nameSelector(w))
-            .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange).WithName("Name");
+        workout.RuleFor(nameSelector)
+            .MaximumLength(200).WithErrorCode(ErrorCodes.OutOfRange);
 
         workout.RuleFor(w => exercisesSelector(w))
             .Must(exercises => exercises.Count <= 30).WithErrorCode(ErrorCodes.OutOfRange).WithName("Exercises")
             .WithMessage("A workout may not have more than 30 exercises.");
 
-        workout.RuleFor(w => configSelector(w))
-            .Null().WithErrorCode(ErrorCodes.OutOfRange).WithName("FormatConfig")
-            .When(w => formatSelector(w) == WorkoutFormat.Standard)
+        workout.RuleFor(configSelector)
+            .Null().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(w => formatFunc(w) == WorkoutFormat.Standard)
             .WithMessage("Workout FormatConfig must be null for Standard format.");
 
-        workout.RuleFor(w => configSelector(w))
-            .NotNull().WithErrorCode(ErrorCodes.OutOfRange).WithName("FormatConfig")
-            .When(w => formatSelector(w).HasValue && formatSelector(w) != WorkoutFormat.Standard)
+        workout.RuleFor(configSelector)
+            .NotNull().WithErrorCode(ErrorCodes.OutOfRange)
+            .When(w => formatFunc(w).HasValue && formatFunc(w) != WorkoutFormat.Standard)
             .WithMessage("Workout FormatConfig is required for non-Standard formats.");
 
-        ApplyFormatConfigRules(workout, formatSelector, configSelector, "Workout");
+        ApplyFormatConfigRules(workout, formatFunc, configFunc, "Workout");
 
         workout.RuleForEach(w => exercisesSelector(w))
             .ChildRules(exercise => ApplyExerciseChildRules(exercise, exerciseAccessors))
@@ -239,7 +232,9 @@ public static class TrainingContentRuleSet
     /// documented 0-based and carries no minimum-value rule of its own, the exercise order
     /// selector is validated <c>&gt;= 1</c> elsewhere (via <see cref="ApplyExerciseChildRules{TExercise,TSet}"/>),
     /// and the two bases are never normalised or offset against each other here — only checked
-    /// for cross-list uniqueness.
+    /// for cross-list uniqueness. Whole-object rule — there is no single real property to bind
+    /// PropertyName to, so the pinned <c>WithName("Order")</c> is genuinely required, not a
+    /// workaround for a lost expression tree.
     /// </summary>
     public static void ApplyCombinedOrderRule<TSession, TWorkout, TExercise>(
         AbstractValidator<TSession> session,

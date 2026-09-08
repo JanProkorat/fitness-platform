@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FluentAssertions;
+using FluentValidation.TestHelper;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -268,6 +269,11 @@ public class SessionTemplateRoundTripTests
             Version = 1,
             Weeks = [new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [MapToUpdateSessionRequest(response)] }]
         };
+
+        // FluentValidation runs in FastEndpoints' ExecAsync, NOT in a direct HandleAsync() call —
+        // so without this line, ep.HttpContext.Response.StatusCode below can never fail on a
+        // validator rejection, and the test would prove nothing about the shared fragment.
+        new UpdateTrainingPlanValidator().TestValidate(request).IsValid.Should().BeTrue();
 
         var replaceResult = Substitute.For<ReplaceOneResult>();
         replaceResult.ModifiedCount.Returns(1L);
