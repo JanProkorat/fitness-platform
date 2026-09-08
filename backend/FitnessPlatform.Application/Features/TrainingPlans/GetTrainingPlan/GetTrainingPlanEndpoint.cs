@@ -2,11 +2,8 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.ClientTraining;
-using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -22,6 +19,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 /// This gives the trainer plan editor the initial lock state on page load, so the Live
 /// in-progress badge and unlock affordance are correct before any SignalR events arrive.
 /// </summary>
+/// <remarks>
+/// The cross-store assembly (Postgres link → Mongo plan → execution docs) that builds the
+/// response's <c>Completions</c>, <c>SessionExecutions</c> and finished-state fields lives in
+/// <see cref="GetTrainingPlanCompletionBuilders"/> (#938) — this class stays the thin HTTP
+/// orchestrator: authorize, fetch, delegate, respond.
+/// </remarks>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
 /// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
@@ -114,249 +117,21 @@ public class GetTrainingPlanEndpoint(
         // SessionExercise.ExerciseId instance values. Reconstruct the wire-compatible
         // (ExerciseExternalId-keyed) shape by mapping each completed instance back to its
         // catalog external id and containing workout via the session definition — preserves
-        // the exact pre-#857-phase-3b response contract with no client-visible change.
-        response.Completions = executions
-            .Where(e => e.SessionId.HasValue)
-            .Select(c =>
-            {
-                sessionLookup.TryGetValue(c.SessionId!.Value, out var session);
-
-                var completedExternalIds = new List<Guid>();
-                var byWorkout = new Dictionary<Guid, List<Guid>>();
-
-                // Additive per-instance completion ids (#884) — mirrors
-                // GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession (#877). Source 1:
-                // carried verbatim from the execution document regardless of whether the session
-                // lookup below succeeds — these are already instance ids and need no session
-                // context to resolve. Source 2 (inside the session-found branch) is
-                // Performance-derived and DOES need the session's exercise instances to attribute
-                // a fully-logged catalog exercise to its sibling placement(s).
-                var instanceIds = new HashSet<Guid>(c.CompletedExerciseInstanceIds);
-
-                if (session is not null)
-                {
-                    foreach (var workout in session.Workouts)
-                    {
-                        var completedInWorkout = workout.Exercises
-                            .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
-                            .Select(e => e.ExerciseExternalId)
-                            .ToList();
-
-                        if (completedInWorkout.Count > 0)
-                        {
-                            byWorkout[workout.WorkoutId] = completedInWorkout;
-                            completedExternalIds.AddRange(completedInWorkout);
-                        }
-                    }
-
-                    completedExternalIds.AddRange(session.StandaloneExercises
-                        .Where(e => c.CompletedExerciseInstanceIds.Contains(e.ExerciseId))
-                        .Select(e => e.ExerciseExternalId));
-
-                    // Source 2: Performance carries no instance id (see WorkoutExercise), so a
-                    // fully-logged catalog exercise fans out to EVERY SessionExercise instance in
-                    // this session sharing that catalog id — deliberate over-report, mirrors
-                    // #877's GetTodaySessionResponse.CompletedExerciseInstanceIdsBySession remarks
-                    // (GetTodaySessionResponse.cs:180-198). The write path cannot attribute a
-                    // fully-logged catalog exercise to one placement, so over-reporting is chosen
-                    // over under-reporting: over-locking is the fail-safe direction for a trainer
-                    // editor.
-                    if (c.Performance is not null)
-                    {
-                        foreach (var workout in c.Performance.Workouts)
-                        {
-                            foreach (var ex in workout.Exercises)
-                            {
-                                if (ex.Sets.Count == 0 || !ex.Sets.All(s => s.CompletedAt is not null))
-                                {
-                                    continue;
-                                }
-
-                                foreach (var matchingInstanceId in session.AllExercises
-                                             .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
-                                             .Select(sessionExercise => sessionExercise.ExerciseId))
-                                {
-                                    instanceIds.Add(matchingInstanceId);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                return new TrainingPlanCompletionDto
-                {
-                    Date = DateOnly.FromDateTime(c.Date),
-                    SessionId = c.SessionId!.Value,
-                    CompletedExerciseIds = completedExternalIds.Distinct().ToList(),
-                    CompletedExerciseIdsByWorkout = byWorkout,
-                    CompletedExerciseInstanceIds = instanceIds.ToList(),
-                    CompletedWorkoutIds = c.CompletedWorkoutIds ?? [],
-                    Version = c.Version
-                };
-            })
-            .ToList();
+        // the pre-#857-phase-3b response contract. See GetTrainingPlanCompletionBuilders'
+        // remarks for why this stays on its own over-report rule rather than the #938 canonical
+        // placement-exact one — CompletedExerciseInstanceIds here also feeds the web edit-lock
+        // derivation, a business gate #938 does not touch.
+        response.Completions = GetTrainingPlanCompletionBuilders.BuildCompletions(executions, sessionLookup);
 
         // ── 2. Performance fold-in — builds SessionExecutionDto entries ──────────
-        // Only executions that carry Performance data (a live-training-assistant log) — a
-        // checkbox-only execution has nothing to build set-level DTOs from.
-        var executionsWithPerformance = executions.Where(e => e.Performance is not null).ToList();
-
-        if (executionsWithPerformance.Count > 0)
-        {
-            // Deduplicate per sessionId:
-            //   - Prefer the most-recently-updated FINALISED execution (Status == Completed).
-            //   - Fall back to the most recent in-progress execution.
-            //   This mirrors the precedence rule in the client GetFullPlan endpoint.
-            var bestLogBySession = executionsWithPerformance
-                .Where(l => l.SessionId.HasValue)
-                .GroupBy(l => l.SessionId!.Value)
-                .Select(g =>
-                {
-                    var finalised = g
-                        .Where(l => l.Status == SessionExecutionStatus.Completed)
-                        .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
-                        .FirstOrDefault();
-
-                    return finalised ?? g
-                        .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
-                        .First();
-                })
-                .ToList();
-
-            response.SessionExecutions = bestLogBySession
-                .Select(log =>
-                {
-                    // Build the per-exercise maps of completed set numbers and logged set data.
-                    // A set is "completed" iff its WorkoutSet.CompletedAt is non-null.
-                    //
-                    // We populate both the legacy flat maps (keyed by ExerciseExternalId alone)
-                    // and the new workout-aware maps (keyed by "{workoutId}:{exerciseId}").
-                    // The flat maps are kept for backward compatibility but are unreliable when
-                    // the same exercise appears in two workouts — in that case the last-encountered
-                    // workout wins in the flat map. The workout-aware maps are authoritative.
-                    var completedSetsByExercise = new Dictionary<Guid, List<int>>();
-                    var completedSetsByWorkoutAndExercise = new Dictionary<string, List<int>>();
-                    var loggedSetsByExercise = new Dictionary<Guid, List<LoggedSetDto>>();
-                    var loggedSetsByWorkoutAndExercise = new Dictionary<string, List<LoggedSetDto>>();
-                    var sessionHasModifications = false;
-
-                    foreach (var workout in log.Performance!.Workouts)
-                    {
-                        foreach (var ex in workout.Exercises)
-                        {
-                            var workoutKey = $"{workout.WorkoutId}:{ex.ExerciseExternalId}";
-
-                            var completedSetNumbers = ex.Sets
-                                .Where(s => s.CompletedAt.HasValue)
-                                .Select(s => s.SetNumber)
-                                .OrderBy(n => n)
-                                .ToList();
-
-                            if (completedSetNumbers.Count > 0)
-                            {
-                                // Flat map (last-write-wins for same exercise across workouts).
-                                completedSetsByExercise[ex.ExerciseExternalId] = completedSetNumbers;
-                                // Workout-aware map.
-                                completedSetsByWorkoutAndExercise[workoutKey] = completedSetNumbers;
-                            }
-
-                            // Build value-bearing LoggedSetDto list for every set in this exercise.
-                            var loggedSetDtos = ex.Sets.Select(s => new LoggedSetDto
-                            {
-                                SetNumber = s.SetNumber,
-                                ActualReps = s.Reps,
-                                ActualWeightKg = s.WeightKg,
-                                ActualRpe = s.Rpe,
-                                ActualDurationSeconds = s.DurationSeconds,
-                                ActualDistanceMeters = s.DistanceMeters,
-                                PlannedReps = s.PlannedReps,
-                                PlannedWeightKg = s.PlannedWeightKg,
-                                PlannedRpe = s.PlannedRpe,
-                                PlannedDurationSeconds = s.PlannedDurationSeconds,
-                                PlannedDistanceMeters = s.PlannedDistanceMeters,
-                                IsModified = s.IsModified
-                            }).ToList();
-
-                            if (loggedSetDtos.Count > 0)
-                            {
-                                // Flat map (last-write-wins for same exercise across workouts).
-                                loggedSetsByExercise[ex.ExerciseExternalId] = loggedSetDtos;
-                                // Workout-aware map.
-                                loggedSetsByWorkoutAndExercise[workoutKey] = loggedSetDtos;
-                            }
-
-                            if (loggedSetDtos.Any(s => s.IsModified))
-                                sessionHasModifications = true;
-                        }
-                    }
-
-                    return new SessionExecutionDto
-                    {
-                        SessionId = log.SessionId!.Value,
-                        IsSessionFinished = log.Status == SessionExecutionStatus.Completed,
-                        CompletedSetsByExercise = completedSetsByExercise,
-                        CompletedSetsByWorkoutAndExercise = completedSetsByWorkoutAndExercise,
-                        LoggedSetsByExercise = loggedSetsByExercise,
-                        LoggedSetsByWorkoutAndExercise = loggedSetsByWorkoutAndExercise,
-                        HasModifications = sessionHasModifications
-                    };
-                })
-                .ToList();
-        }
+        response.SessionExecutions = GetTrainingPlanCompletionBuilders.BuildSessionExecutions(executions);
 
         // ── 3. Checkbox-completion-based finished state fold-in ──────────────────
         // The mobile "mark whole day complete" checkbox writes completion flags but may leave
         // Performance null. Without this step, sessions finished via that path would never
         // appear as IsSessionFinished=true on the trainer portal (fix for issue #429).
-        //
-        // For each session that has at least one fully-complete execution (any date), ensure a
-        // SessionExecutionDto entry exists with IsSessionFinished=true. "Fully complete" is
-        // IsSessionComplete() — the same logic as the MarkSessionComplete idempotency check.
-        //
-        // Date-scoping: we match the most-complete execution per session regardless of date,
-        // mirroring the Performance dedup which also collapses across dates. The finished-state
-        // is a permanent property of the session — it does not reset between scheduled
-        // occurrences for the same session definition.
         var completions = executions.Where(e => e.SessionId.HasValue).ToList();
-
-        if (completions.Count > 0)
-        {
-            // Find sessions whose execution is fully done (any date — finished state is permanent).
-            var finishedByCompletion = completions
-                .Where(c => sessionLookup.TryGetValue(c.SessionId!.Value, out var s) && c.IsSessionComplete(s))
-                .Select(c => c.SessionId!.Value)
-                .ToHashSet();
-
-            if (finishedByCompletion.Count > 0)
-            {
-                // Index existing SessionExecutions by SessionId for O(1) lookup.
-                var executionsBySession = response.SessionExecutions
-                    .ToDictionary(e => e.SessionId);
-
-                foreach (var sessionId in finishedByCompletion)
-                {
-                    if (executionsBySession.TryGetValue(sessionId, out var existing))
-                    {
-                        // Session already has a Performance-backed entry — OR-in the
-                        // completion-based flag (covers the edge case where Performance isn't
-                        // finalised but the home-checkbox completion says it's done).
-                        if (!existing.IsSessionFinished)
-                            existing.IsSessionFinished = true;
-                    }
-                    else
-                    {
-                        // No Performance entry for this session — emit a synthetic entry so the
-                        // trainer portal renders the session as finished and hides the unlock affordance.
-                        response.SessionExecutions.Add(new SessionExecutionDto
-                        {
-                            SessionId = sessionId,
-                            IsSessionFinished = true,
-                            CompletedSetsByExercise = new Dictionary<Guid, List<int>>()
-                        });
-                    }
-                }
-            }
-        }
+        GetTrainingPlanCompletionBuilders.FoldInCheckboxFinishedState(response, completions, sessionLookup);
 
         // ── 3b. Per-workout finished state fold-in ───────────────────────────────
         // For each session that has execution data, project per-workout finished state into
@@ -364,55 +139,7 @@ public class GetTrainingPlanEndpoint(
         // label per workout and gate the edit-lock unlock affordance at workout granularity
         // (issue #465). IsWorkoutComplete() already folds in both signals (finished Performance,
         // checkbox completion flags) since #841 merged them onto one document.
-        if (completions.Count > 0 || response.SessionExecutions.Any(e => e.IsSessionFinished))
-        {
-            var bestCompletionBySession = completions
-                .GroupBy(c => c.SessionId!.Value)
-                .ToDictionary(g => g.Key,
-                    g => g.OrderByDescending(c => c.DateUpdated ?? c.DateCreated).First());
-
-            var executionIndex = response.SessionExecutions.ToDictionary(e => e.SessionId);
-
-            foreach (var (sessionId, session) in sessionLookup)
-            {
-                if (session.Workouts.Count == 0) continue;
-
-                var hasFinishedLog = executionIndex.TryGetValue(sessionId, out var exec) && exec.IsSessionFinished;
-                bestCompletionBySession.TryGetValue(sessionId, out var bestCompletion);
-
-                // Skip this session if there is nothing to project.
-                if (!hasFinishedLog && bestCompletion is null) continue;
-
-                var finishedWorkouts = session.Workouts
-                    .Select(workout => new WorkoutFinishedStateDto
-                    {
-                        WorkoutId = workout.WorkoutId,
-                        IsFinished = bestCompletion.IsWorkoutComplete(session, workout)
-                    })
-                    .Where(dto => dto.IsFinished)
-                    .ToList();
-
-                if (finishedWorkouts.Count > 0)
-                {
-                    if (exec is not null)
-                    {
-                        exec.FinishedWorkouts = finishedWorkouts;
-                    }
-                    else
-                    {
-                        // No execution entry yet (partial completion with no Performance) —
-                        // add a synthetic entry so FinishedWorkouts is visible to the web layer.
-                        response.SessionExecutions.Add(new SessionExecutionDto
-                        {
-                            SessionId = sessionId,
-                            IsSessionFinished = false,
-                            CompletedSetsByExercise = new Dictionary<Guid, List<int>>(),
-                            FinishedWorkouts = finishedWorkouts
-                        });
-                    }
-                }
-            }
-        }
+        GetTrainingPlanCompletionBuilders.FoldInWorkoutFinishedState(response, completions, sessionLookup);
 
         // ── 4. Batch-fetch session lock state ────────────────────────────────────
         // Single Mongo round-trip — not one per session. Mirrors the pattern used

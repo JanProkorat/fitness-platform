@@ -6,7 +6,6 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -75,29 +74,19 @@ public class SaveSessionPhotosEndpoint(
             return;
         }
 
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // Resolve the client's Active training plan whose date window contains today — a client
+        // may hold several sequential, non-overlapping Active plans (#780) — via the shared
+        // cross-store assembly (#938), which also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId), explicitAsOfDate: null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
-        var clientId = clientProfile.UserId;
-
-        // Resolve the client's Active training plan whose date window contains today — a client
-        // may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.And(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
-
-        var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
+        var (clientId, todayLocalUtc, plan) = loadResult.Value;
 
         if (plan is null)
         {
@@ -198,7 +187,7 @@ public class SaveSessionPhotosEndpoint(
         // Dual-write: mirror photos into PlanPhoto table so unified read paths see training photos.
         // Returns only the newly-inserted PlanPhoto rows so we can emit events for them.
         var newPhotos = await DualWritePlanPhotosAsync(
-            clientProfile,
+            clientId,
             plan.ExternalId,
             req.SessionId,
             replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
@@ -308,7 +297,7 @@ public class SaveSessionPhotosEndpoint(
     /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows (used for SignalR events).
     /// </summary>
     private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
-        ClientProfile clientProfile,
+        Guid clientUserId,
         Guid planExternalId,
         Guid sessionId,
         IReadOnlyList<(string BlobUrl, string? Note)> photos,
@@ -318,10 +307,19 @@ public class SaveSessionPhotosEndpoint(
         if (photos.Count == 0)
             return [];
 
+        // Resolve the internal ClientProfile.Id (PlanPhoto's FK) — distinct from the
+        // ApplicationUser.Id-keyed clientId the shared cross-store assembly (#938) already
+        // resolved above, which Mongo documents key on but PlanPhoto (Postgres) does not.
+        var clientProfileId = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.UserId == clientUserId)
+            .Select(cp => cp.Id)
+            .FirstAsync(ct);
+
         // Load existing PlanPhoto rows for this client + plan + session (Training category).
         var existingRows = await db.PlanPhotos
             .Where(p =>
-                p.ClientProfileId == clientProfile.Id &&
+                p.ClientProfileId == clientProfileId &&
                 p.PlanId == planExternalId &&
                 p.Category == PlanPhotoCategory.Training &&
                 p.LinkId == sessionId)
@@ -332,7 +330,6 @@ public class SaveSessionPhotosEndpoint(
             p => p,
             StringComparer.OrdinalIgnoreCase);
 
-        var callerUserId = clientProfile.UserId;
         var inserted = new List<PlanPhoto>();
 
         foreach (var (blobUrl, note) in photos)
@@ -351,7 +348,7 @@ public class SaveSessionPhotosEndpoint(
             var photo = new PlanPhoto
             {
                 PublicId = Guid.NewGuid(),
-                ClientProfileId = clientProfile.Id,
+                ClientProfileId = clientProfileId,
                 PlanId = planExternalId,
                 PlanType = PlanPhotoType.Training,
                 LinkId = sessionId,
@@ -360,7 +357,7 @@ public class SaveSessionPhotosEndpoint(
                 Description = note,
                 MealLogId = null,
                 TakenAt = now,
-                UploadedByUserId = callerUserId,
+                UploadedByUserId = clientUserId,
                 DateCreated = now,
                 DateUpdated = now
             };

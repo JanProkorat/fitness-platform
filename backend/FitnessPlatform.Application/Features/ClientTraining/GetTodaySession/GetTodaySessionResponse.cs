@@ -173,20 +173,22 @@ public class GetTodaySessionResponse
     /// <list type="number">
     /// <item>Every id in the session's <see cref="SessionExecution.CompletedExerciseInstanceIds"/>,
     /// carried verbatim — these already identify a single placement.</item>
-    /// <item><b>Performance-derived completion, fanned out to every sibling instance sharing the
-    /// same catalog id.</b> <see cref="WorkoutExercise"/> (the live-training-assistant side of
-    /// <see cref="SessionExecution.Performance"/>) carries only <see cref="WorkoutExercise.ExerciseExternalId"/>
-    /// — it has NO instance id, so a fully-logged exercise from a live workout cannot be
-    /// attributed to one specific placement. Rather than silently omitting it (which would make
-    /// this field strictly LESS complete than the catalog-keyed fields it supersedes, and a
-    /// session finished through the live-training assistant would render with no ticks at all),
-    /// every <see cref="SessionExercise.ExerciseId"/> in the session whose
-    /// <see cref="SessionExercise.ExerciseExternalId"/> matches a fully-logged Performance
-    /// exercise is added here too. Concretely: if a session holds catalog exercise X both
-    /// standalone and nested in a workout, and the client fully logs X via the live-training
-    /// assistant, BOTH instance ids appear in this field — the write path cannot distinguish
-    /// which placement was actually performed, so both are reported complete rather than
-    /// neither.</item>
+    /// <item><b>Performance-derived completion, attributed placement-exact (#938).</b>
+    /// <see cref="WorkoutExercise"/> (the live-training-assistant side of
+    /// <see cref="SessionExecution.Performance"/>) carries only
+    /// <see cref="WorkoutExercise.ExerciseExternalId"/> plus its containing
+    /// <see cref="LoggedWorkout.WorkoutId"/> — no instance id — so attribution goes through
+    /// <see cref="Domain.Extensions.SessionExecutionExtensions.ResolveMatchedPlacements"/>: a
+    /// fully-logged exercise is attributed to the ONE placement its containing workout resolves to
+    /// when unambiguous; fanned out across every TIED instance when the same catalog exercise is
+    /// placed twice under the same workout (or twice standalone) — genuinely unresolvable, since
+    /// <see cref="WorkoutExercise"/> carries neither an instance id nor an order; and fanned out
+    /// across every sibling instance sharing the catalog id ONLY when attribution is genuinely
+    /// impossible (no workout in the session matches the logged placement at all). Concretely: if a
+    /// session holds catalog exercise X both standalone and nested in a REAL workout, and the
+    /// client fully logs X against that real workout via the live-training assistant, only the
+    /// NESTED instance id appears here — the standalone placement is a different, unambiguous
+    /// container and is not reported complete.</item>
     /// </list>
     /// <para>
     /// Empty dictionary when no active plan exists or no session has any completed exercise for

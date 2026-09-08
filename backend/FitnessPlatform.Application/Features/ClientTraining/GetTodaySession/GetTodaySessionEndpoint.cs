@@ -24,6 +24,7 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// <param name="db">Relational database context.</param>
 /// <param name="lockService">Session lock service — used to batch-fetch lock state.</param>
 /// <remarks>
+/// <para>
 /// Active-plan resolution is a two-phase read (ADR-0001 Tier 2a / #838):
 /// <list type="number">
 /// <item>A lightweight Mongo projection fetches every candidate Active plan with per-week
@@ -37,6 +38,14 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 /// </list>
 /// The plan's <c>weeks</c> array itself must never be projected away entirely — doing so would
 /// collapse <see cref="PlanWindowResolver"/>'s week-count selector to zero for every plan.
+/// </para>
+/// <para>
+/// This file stays large by design: the two-phase <see cref="LightPlanProjection"/> read above,
+/// with its phase-2 hydration in <see cref="FetchHydratedWeekAsync"/>, is a deliberate
+/// per-endpoint perf optimisation (ADR-0001 Tier 2a / #838) and must not be flattened into the
+/// generic B4 cross-store helper — that is the one a future refactorer would otherwise "fix" and
+/// regress. See #938 for the full line-count accounting.
+/// </para>
 /// </remarks>
 /// <param name="blobStorage">Blob storage service — converts each session photo's stored BlobUrl
 /// into a short-lived pre-signed read URL before the response leaves the process (F9).</param>
@@ -297,30 +306,6 @@ public class GetTodaySessionEndpoint(
             // Build a lookup for sessions by sessionId so backfill can resolve workout membership.
             var sessionLookup = todaySessions.ToDictionary(s => s.SessionId);
 
-            // Per-session (workoutId?, exerciseExternalId) → the specific SessionExercise
-            // instance placement, so Performance-derived per-set data (which carries the
-            // containing LoggedWorkout.WorkoutId but no instance id) can be attributed to the
-            // correct placement when the same catalog exercise appears both standalone and
-            // nested in one session (#885). workoutId is null for a standalone placement.
-            // GroupBy+First (not a plain ToDictionary) defensively collapses the one case this
-            // cannot disambiguate — the same catalog exercise nested twice in the SAME workout —
-            // to a first-occurrence-wins read rather than throwing on the duplicate key.
-            var placementLookupBySession = todaySessions.ToDictionary(
-                s => s.SessionId,
-                s => s.Workouts
-                    .SelectMany(w => w.Exercises.Select(e => (Key: ((Guid?)w.WorkoutId, e.ExerciseExternalId), Instance: e)))
-                    .Concat(s.StandaloneExercises.Select(e => (Key: ((Guid?)null, e.ExerciseExternalId), Instance: e)))
-                    .GroupBy(x => x.Key)
-                    .ToDictionary(g => g.Key, g => g.First().Instance));
-
-            // Per-session set of real nested TrainingWorkout ids — used to tell a Performance-side
-            // LoggedWorkout.WorkoutId that matches a real nested workout apart from the fallback id
-            // UpdateWorkoutEndpoint's legacy single-workout path assigns when the client sends no
-            // WorkoutId (the shape a standalone exercise's log takes).
-            var nestedWorkoutIdsBySession = todaySessions.ToDictionary(
-                s => s.SessionId,
-                s => s.Workouts.Select(w => w.WorkoutId).ToHashSet());
-
             foreach (var doc in executionDocs)
             {
                 var sessionId = doc.SessionId!.Value;
@@ -400,48 +385,49 @@ public class GetTodaySessionEndpoint(
                 var loggedSetsForExercise = new Dictionary<Guid, List<LoggedSetDto>>();
                 var sessionHasModifications = false;
 
-                // Per-instance accumulators (#885) — additive alongside the catalog-keyed ones
-                // above; populated only when the containing WorkoutId (or its absence) resolves
-                // to exactly one known placement.
+                // Per-instance accumulators (#885/#938) — additive alongside the catalog-keyed ones
+                // above; fanned out via the shared placement-exact resolution rule (placement-exact,
+                // tied-instance, or session-wide-fallback — see
+                // SessionExecutionExtensions.ResolveMatchedPlacements) rather than unconditionally
+                // to every sibling sharing the catalog id.
                 var completedSetsByInstance = new Dictionary<Guid, List<int>>();
                 var loggedSetsByInstance = new Dictionary<Guid, List<LoggedSetDto>>();
 
-                placementLookupBySession.TryGetValue(log.SessionId.Value, out var placementLookup);
-                nestedWorkoutIdsBySession.TryGetValue(log.SessionId.Value, out var nestedWorkoutIds);
+                sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession);
 
                 foreach (var workout in log.Performance!.Workouts)
                 {
-                    var workoutKey = nestedWorkoutIds is not null && nestedWorkoutIds.Contains(workout.WorkoutId)
-                        ? workout.WorkoutId
-                        : (Guid?)null;
+                    var workoutKey = performanceSession?.ResolveLoggedWorkoutKey(workout.WorkoutId);
 
                     foreach (var ex in workout.Exercises)
                     {
                         if (ex.Sets.Count == 0) continue;
 
-                        SessionExercise? matchedInstance = null;
-                        placementLookup?.TryGetValue((workoutKey, ex.ExerciseExternalId), out matchedInstance);
+                        IReadOnlyList<SessionExercise> matchedInstances = performanceSession is not null
+                            ? performanceSession.ResolveMatchedPlacements(workoutKey, ex.ExerciseExternalId)
+                            : [];
 
                         if (ex.Sets.All(s => s.CompletedAt is not null))
                         {
                             set.Add(ex.ExerciseExternalId);
 
-                            // Source 2 of the per-instance field (#877): Performance carries no
-                            // instance id (see WorkoutExercise), so a fully-logged catalog exercise
-                            // fans out to EVERY SessionExercise instance in this session sharing that
-                            // catalog id — documented on GetTodaySessionResponse's XML docs above.
-                            if (sessionLookup.TryGetValue(log.SessionId.Value, out var performanceSession))
+                            // Source 2 of the per-instance field (#877, placement-exact since #938):
+                            // Performance carries no instance id (see WorkoutExercise), so a
+                            // fully-logged catalog exercise is attributed to the placement(s)
+                            // resolved above — exactly one for an unambiguous placement, every tied
+                            // instance when the same catalog exercise is placed twice under the same
+                            // container, or a session-wide catalog fan-out only when attribution is
+                            // genuinely impossible. See GetTodaySessionResponse's XML docs above.
+                            if (matchedInstances.Count > 0)
                             {
                                 if (!completedInstancesBySession.TryGetValue(log.SessionId.Value, out var instanceSet))
                                 {
                                     completedInstancesBySession[log.SessionId.Value] = instanceSet = [];
                                 }
 
-                                foreach (var matchingInstanceId in performanceSession.AllExercises
-                                             .Where(sessionExercise => sessionExercise.ExerciseExternalId == ex.ExerciseExternalId)
-                                             .Select(sessionExercise => sessionExercise.ExerciseId))
+                                foreach (var matchedInstance in matchedInstances)
                                 {
-                                    instanceSet.Add(matchingInstanceId);
+                                    instanceSet.Add(matchedInstance.ExerciseId);
                                 }
                             }
                         }
@@ -475,11 +461,11 @@ public class GetTodaySessionEndpoint(
                         if (loggedSetDtos.Any(s => s.IsModified))
                             sessionHasModifications = true;
 
-                        // Per-instance attribution (#885): only when this Performance entry
-                        // resolves to a single known placement — precise, unlike the
-                        // catalog-keyed writes above which apply regardless of how many
-                        // placements share the catalog id.
-                        if (matchedInstance is not null)
+                        // Per-instance attribution (#885/#938): fans out across every placement
+                        // resolved above so a tied or session-wide-fallback placement never renders
+                        // ticked with an empty set list — the same resolution feeds
+                        // completedInstancesBySession above, so the two stay in agreement.
+                        foreach (var matchedInstance in matchedInstances)
                         {
                             if (completedSetNumbers.Count > 0)
                                 completedSetsByInstance[matchedInstance.ExerciseId] = completedSetNumbers;
