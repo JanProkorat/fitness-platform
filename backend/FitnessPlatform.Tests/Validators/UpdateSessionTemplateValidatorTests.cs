@@ -9,9 +9,10 @@ namespace FitnessPlatform.Tests.Validators;
 
 /// <summary>
 /// Tests for <see cref="UpdateSessionTemplateValidator"/> — mirrors
-/// <see cref="CreateSessionTemplateValidatorTests"/>'s ordering-rule coverage; the two validators
-/// intentionally duplicate the same small rule set rather than sharing a generic helper (below
-/// the project's rule-of-three threshold for extraction).
+/// <see cref="CreateSessionTemplateValidatorTests"/>'s ordering-rule coverage. Both validators now
+/// share their full rule set via <c>SessionTemplateRuleSet</c> (#892); the mutation matrix in
+/// <see cref="TrainingContentRuleSetMutationMatrixTests"/> covers the rule families this class does
+/// not (WOD bounds, RestSeconds, set caps and per-set bounds).
 /// </summary>
 public class UpdateSessionTemplateValidatorTests
 {

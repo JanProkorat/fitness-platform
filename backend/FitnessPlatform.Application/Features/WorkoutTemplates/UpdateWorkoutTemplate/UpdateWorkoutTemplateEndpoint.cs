@@ -28,6 +28,7 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
             s.Description = "Replaces name, format, and default exercises. Uses optimistic concurrency via the Version field. Another trainer's template returns 404, identical to a genuinely missing template, and is checked before the version comparison.";
             s.Responses[StatusCodes.Status200OK] = "Updated workout template";
             s.Responses[StatusCodes.Status404NotFound] = "Workout template not found, or not owned by the caller";
+            s.Responses[StatusCodes.Status409Conflict] = "Version conflict — the template was modified by another request";
         });
     }
 
@@ -59,10 +60,12 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
             return;
         }
 
-        // Optimistic concurrency — check version before mutating
+        // Optimistic concurrency — check version before mutating. 409, not the 400
+        // ThrowErrorWithCode hardcodes — every sibling library slice returns 409 for the
+        // equivalent conflict (#939).
         if (template.Version != req.Version)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateVersionConflict, "Version conflict. The template was modified by another request.");
+            await this.SendProblemAsync(409, ErrorCodes.WorkoutTemplateVersionConflict, "Version conflict. The template was modified by another request.", ct);
             return;
         }
 
@@ -104,7 +107,7 @@ public class UpdateWorkoutTemplateEndpoint(IMongoContext mongo)
 
         if (result.ModifiedCount == 0)
         {
-            this.ThrowErrorWithCode(ErrorCodes.WorkoutTemplateVersionConflict, "Version conflict. The template was modified by another request.");
+            await this.SendProblemAsync(409, ErrorCodes.WorkoutTemplateVersionConflict, "Version conflict. The template was modified by another request.", ct);
             return;
         }
 
