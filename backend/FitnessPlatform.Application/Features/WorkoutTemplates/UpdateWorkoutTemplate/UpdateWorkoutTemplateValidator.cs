@@ -1,7 +1,7 @@
 using FastEndpoints;
 using FluentValidation;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTemplate;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.UpdateWorkoutTemplate;
 
@@ -38,7 +38,7 @@ public class UpdateWorkoutTemplateValidator : Validator<UpdateWorkoutTemplateReq
             .When(x => x.DefaultFormat.HasValue && x.DefaultFormat != WorkoutFormat.Standard)
             .WithMessage("DefaultFormatConfig is required for non-Standard formats.");
 
-        CreateWorkoutTemplateValidator.ApplyFormatConfigRules(this, x => x.DefaultFormat, x => x.DefaultFormatConfig);
+        TrainingContentRuleSet.ApplyFormatConfigRules(this, x => x.DefaultFormat, x => x.DefaultFormatConfig, "Workout");
 
         RuleFor(x => x.DefaultExercises)
             .Must(exercises => exercises.Count <= 30).WithMessage("A template may not have more than 30 exercises.");
@@ -68,7 +68,7 @@ public class UpdateWorkoutTemplateValidator : Validator<UpdateWorkoutTemplateReq
                 .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
                 .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
 
-            CreateWorkoutTemplateValidator.ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig);
+            TrainingContentRuleSet.ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
 
             exercise.RuleFor(e => e.Sets)
                 .Must(sets => sets.Count <= 20).WithMessage("An exercise may not have more than 20 sets.");

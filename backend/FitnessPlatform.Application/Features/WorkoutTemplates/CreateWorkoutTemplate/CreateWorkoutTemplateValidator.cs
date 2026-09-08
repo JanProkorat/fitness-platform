@@ -1,7 +1,7 @@
 using FastEndpoints;
 using FluentValidation;
-using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.WorkoutTemplates.CreateWorkoutTemplate;
 
@@ -34,7 +34,7 @@ public class CreateWorkoutTemplateValidator : Validator<CreateWorkoutTemplateReq
             .When(x => x.DefaultFormat.HasValue && x.DefaultFormat != WorkoutFormat.Standard)
             .WithMessage("DefaultFormatConfig is required for non-Standard formats.");
 
-        ApplyFormatConfigRules(this, x => x.DefaultFormat, x => x.DefaultFormatConfig);
+        TrainingContentRuleSet.ApplyFormatConfigRules(this, x => x.DefaultFormat, x => x.DefaultFormatConfig, "Workout");
 
         RuleFor(x => x.DefaultExercises)
             .Must(exercises => exercises.Count <= 30).WithMessage("A template may not have more than 30 exercises.");
@@ -64,7 +64,7 @@ public class CreateWorkoutTemplateValidator : Validator<CreateWorkoutTemplateReq
                 .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
                 .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
 
-            ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig);
+            TrainingContentRuleSet.ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
 
             exercise.RuleFor(e => e.Sets)
                 .Must(sets => sets.Count <= 20).WithMessage("An exercise may not have more than 20 sets.");
@@ -87,41 +87,5 @@ public class CreateWorkoutTemplateValidator : Validator<CreateWorkoutTemplateReq
                     .WithMessage("RPE must be between 1 and 10.");
             });
         });
-    }
-
-    internal static void ApplyFormatConfigRules<T>(
-        AbstractValidator<T> validator,
-        Func<T, WorkoutFormat?> formatSelector,
-        Func<T, WodConfig?> configSelector)
-    {
-        validator.RuleFor(x => configSelector(x)!.IntervalSeconds)
-            .NotNull().GreaterThan(0)
-            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
-            .WithMessage("EMOM requires IntervalSeconds > 0.");
-
-        validator.RuleFor(x => configSelector(x)!.TotalRounds)
-            .NotNull().GreaterThan(0)
-            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
-            .WithMessage("EMOM requires TotalRounds > 0.");
-
-        validator.RuleFor(x => configSelector(x)!.TimeCapSeconds)
-            .NotNull().GreaterThan(0)
-            .When(x => (formatSelector(x) == WorkoutFormat.AMRAP || formatSelector(x) == WorkoutFormat.ForTime) && configSelector(x) != null)
-            .WithMessage("AMRAP and ForTime require TimeCapSeconds > 0.");
-
-        validator.RuleFor(x => configSelector(x)!.WorkSeconds)
-            .NotNull().GreaterThan(0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithMessage("Tabata requires WorkSeconds > 0.");
-
-        validator.RuleFor(x => configSelector(x)!.RestSeconds)
-            .NotNull().GreaterThan(0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithMessage("Tabata requires RestSeconds > 0.");
-
-        validator.RuleFor(x => configSelector(x)!.TotalRounds)
-            .NotNull().GreaterThan(0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithMessage("Tabata requires TotalRounds > 0.");
     }
 }
