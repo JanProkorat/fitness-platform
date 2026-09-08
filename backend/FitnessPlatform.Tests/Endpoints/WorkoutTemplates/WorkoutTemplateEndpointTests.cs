@@ -340,14 +340,15 @@ public class WorkoutTemplateEndpointTests
             .Should().Be(ErrorCodes.WorkoutTemplateNotFound);
     }
 
-    // Renamed from "Returns409" — ThrowErrorWithCode hardcodes 400, unchanged by this issue
-    // (see WorkoutTemplateErrors remarks: only the not-found/not-owned collapse is in scope).
+    // #939: converted from 400 (ThrowErrorWithCode) to 409, matching every sibling library
+    // slice's equivalent conflict.
     [Fact]
-    public async Task Update_WrongVersion_Returns400()
+    public async Task Update_WrongVersion_Returns409()
     {
         var template = MakeTemplate(version: 2);
+        using var responseBody = new MemoryStream();
         var mongo = CreateMockMongo([template]);
-        var ep = CreateUpdateEndpoint(mongo);
+        var ep = CreateUpdateEndpoint(mongo, responseBody);
 
         var req = new UpdateWorkoutTemplateRequest
         {
@@ -357,9 +358,14 @@ public class WorkoutTemplateEndpointTests
             DefaultExercises = []
         };
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        await act.Should().ThrowAsync<Exception>();
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateVersionConflict);
     }
 
     [Fact]
@@ -397,9 +403,10 @@ public class WorkoutTemplateEndpointTests
             Arg.Any<CancellationToken>());
     }
 
-    // Renamed from "Returns409" — ThrowErrorWithCode hardcodes 400, unchanged by this issue.
+    // #939: converted from 400 (ThrowErrorWithCode) to 409, matching every sibling library
+    // slice's equivalent conflict.
     [Fact]
-    public async Task Update_DbVersionConflict_Returns400()
+    public async Task Update_DbVersionConflict_Returns409()
     {
         // Version matches in-memory but DB ReplaceOne returns ModifiedCount=0 (concurrent writer won)
         var template = MakeTemplate(version: 1);
@@ -409,7 +416,8 @@ public class WorkoutTemplateEndpointTests
         var mongo = Substitute.For<IMongoContext>();
         mongo.WorkoutTemplates.Returns(collection);
 
-        var ep = CreateUpdateEndpoint(mongo);
+        using var responseBody = new MemoryStream();
+        var ep = CreateUpdateEndpoint(mongo, responseBody);
 
         var req = new UpdateWorkoutTemplateRequest
         {
@@ -419,9 +427,14 @@ public class WorkoutTemplateEndpointTests
             DefaultExercises = []
         };
 
-        var act = async () => await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
 
-        await act.Should().ThrowAsync<Exception>();
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.WorkoutTemplateVersionConflict);
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────

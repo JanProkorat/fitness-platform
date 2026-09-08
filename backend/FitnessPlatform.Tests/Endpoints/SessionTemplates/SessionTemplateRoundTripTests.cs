@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FluentAssertions;
+using FluentValidation.TestHelper;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -204,5 +205,87 @@ public class SessionTemplateRoundTripTests
         session.Workouts.Should().HaveCount(1);
         session.Workouts[0].Exercises.Should().HaveCount(2);
         session.Workouts[0].Exercises.Select(e => e.ExerciseName).Should().Equal("Back Squat", "Leg Press");
+    }
+
+    /// <summary>
+    /// #892: a non-Standard workout format with a valid <see cref="WodConfig"/> must still
+    /// round-trip cleanly now that <c>UpdateTrainingPlanValidator</c> and the session-template
+    /// validators share the exact same WOD inner-field bounds via
+    /// <see cref="Domain.Services.TrainingContentRuleSet"/> — the shared fragment must accept the
+    /// SAME valid payload on both sides, not just reject the same invalid one.
+    /// </summary>
+    [Fact]
+    public async Task SessionTemplate_WithEmomWorkout_EmbeddedIntoPlan_RoundTripsSuccessfully()
+    {
+        var workout = new TrainingWorkout
+        {
+            WorkoutId = Guid.NewGuid(),
+            Order = 0,
+            Name = "EMOM Block",
+            Format = WorkoutFormat.EMOM,
+            FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
+            Exercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseExternalId = Guid.NewGuid(),
+                    ExerciseName = "Kettlebell Swing",
+                    Order = 1,
+                    Sets = [new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15 }]
+                }
+            ]
+        };
+
+        var template = new SessionTemplate
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerId = _trainerId,
+            Name = "EMOM Session",
+            Difficulty = ExerciseDifficulty.Intermediate,
+            Workouts = [workout],
+            StandaloneExercises = [],
+            Visibility = LibraryVisibility.Private,
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+
+        var response = SessionTemplateDetailResponse.FromDocument(template, _trainerId);
+
+        var planId = Guid.NewGuid();
+        var plan = TrainingPlanTestHelpers.CreatePlan(externalId: planId, trainerId: _trainerId, weekCount: 1);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+
+        var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, StubLockService(), Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
+
+        var request = new UpdateTrainingPlanRequest
+        {
+            PlanId = planId,
+            Name = "Plan From EMOM Template",
+            Version = 1,
+            Weeks = [new UpdateTrainingWeekRequest { WeekNumber = 1, Sessions = [MapToUpdateSessionRequest(response)] }]
+        };
+
+        // FluentValidation runs in FastEndpoints' ExecAsync, NOT in a direct HandleAsync() call —
+        // so without this line, ep.HttpContext.Response.StatusCode below can never fail on a
+        // validator rejection, and the test would prove nothing about the shared fragment.
+        new UpdateTrainingPlanValidator().TestValidate(request).IsValid.Should().BeTrue();
+
+        var replaceResult = Substitute.For<ReplaceOneResult>();
+        replaceResult.ModifiedCount.Returns(1L);
+        mongo.TrainingPlans.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<TrainingPlan>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(replaceResult);
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
     }
 }
