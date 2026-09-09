@@ -345,10 +345,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the multi-section training plan (#474)");
-        (await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Empty,
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Empty,
             cancellationToken: ct))
-            .Should().Be(0, "minimal seed skips all workout logs");
+            .Should().Be(0, "minimal seed skips all session executions");
         (await mongo.Foods.CountDocumentsAsync(
             Builders<Food>.Filter.Empty,
             cancellationToken: ct))

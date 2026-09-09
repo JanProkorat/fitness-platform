@@ -325,18 +325,16 @@ public static class TrainingCompletionTestHelpers
     /// <summary>
     /// Creates a mock <see cref="IMongoContext"/> with configured collections for training plans
     /// and (#841) the unified SessionExecutions collection. <paramref name="existingCompletion"/>
-    /// is a checkbox-flag-only <see cref="SessionExecution"/> (see <see cref="CreateCompletion"/>);
-    /// <paramref name="workoutLogs"/> is retained for call-site compatibility with tests written
-    /// against the retired dual-collection model — Performance-bearing fixtures passed here are
-    /// converted to SessionExecution documents and merged into the SAME stubbed collection, since
-    /// every Mark*/GetTodaySession endpoint under test now reads exclusively
+    /// is a checkbox-flag-only <see cref="SessionExecution"/> (see <see cref="CreateCompletion"/>).
+    /// Performance-bearing fixtures are built as <see cref="SessionExecution"/> documents directly
+    /// by the calling test and passed through the same parameter, since every
+    /// Mark*/GetTodaySession endpoint under test reads exclusively
     /// <see cref="IMongoContext.SessionExecutions"/>.
     /// </summary>
     public static (IMongoContext Mongo, IMongoCollection<SessionExecution> ExecutionCollection)
         CreateMockMongo(
             TrainingPlan? plan = null,
-            SessionExecution? existingCompletion = null,
-            IReadOnlyList<WorkoutLog>? workoutLogs = null)
+            SessionExecution? existingCompletion = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -345,48 +343,14 @@ public static class TrainingCompletionTestHelpers
         var planCollection = CreateMockPlanCollection(plans);
         mongo.TrainingPlans.Returns(planCollection);
 
-        // SessionExecutions (#841) — checkbox-flag fixture plus any Performance-bearing
-        // WorkoutLog fixtures translated to SessionExecution documents.
         var executions = new List<SessionExecution>();
         if (existingCompletion is not null)
             executions.Add(existingCompletion);
-        foreach (var log in workoutLogs ?? [])
-            executions.Add(ToSessionExecution(log));
 
         var executionCollection = CreateMockSessionExecutionCollection(executions);
         mongo.SessionExecutions.Returns(executionCollection);
 
         return (mongo, executionCollection);
-    }
-
-    /// <summary>
-    /// Converts a legacy <see cref="WorkoutLog"/> fixture into a Performance-bearing
-    /// <see cref="SessionExecution"/> — the shape every ClientTraining endpoint under test now
-    /// reads instead of the retired WorkoutLog document (#841).
-    /// </summary>
-    public static SessionExecution ToSessionExecution(WorkoutLog log)
-    {
-        return new SessionExecution
-        {
-            ExternalId = log.ExternalId,
-            ClientId = log.ClientId,
-            PlanId = log.PlanId,
-            SessionId = log.SessionId,
-            Date = log.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(log.StartedAt),
-            Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial,
-            Performance = new SessionExecutionPerformance
-            {
-                StartedAt = log.StartedAt,
-                CompletedAt = log.CompletedAt,
-                Mood = log.Mood,
-                Notes = log.Notes,
-                WodResult = log.WodResult,
-                Workouts = log.Workouts
-            },
-            DateCreated = log.DateCreated,
-            DateUpdated = log.DateUpdated,
-            Version = 1
-        };
     }
 
     /// <summary>

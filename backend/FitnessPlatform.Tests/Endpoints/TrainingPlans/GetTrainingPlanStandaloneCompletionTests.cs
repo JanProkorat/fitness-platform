@@ -33,13 +33,11 @@ public class GetTrainingPlanStandaloneCompletionTests
 
     private async Task<GetTrainingPlanResponse?> ExecuteAsync(
         TrainingPlan plan,
-        WorkoutLog[]? workoutLogs = null,
-        TrainingCompletion[]? completions = null)
+        List<SessionExecution>? executions = null)
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
             plans: [plan],
-            workoutLogs: workoutLogs ?? [],
-            trainingCompletions: completions ?? []);
+            executions: executions ?? []);
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -61,57 +59,70 @@ public class GetTrainingPlanStandaloneCompletionTests
         return ep.Response;
     }
 
-    private TrainingCompletion BuildCompletion(Guid sessionId, DateTime date, params Guid[] completedInstanceIds)
+    /// <summary>
+    /// Builds the checkbox-path (Status=Partial) <see cref="SessionExecution"/> a TrainingCompletion
+    /// fixture with no matching live-session document would have produced.
+    /// </summary>
+    private SessionExecution BuildCompletionExecution(Guid sessionId, DateTime date, params Guid[] completedInstanceIds)
     {
-        return new TrainingCompletion
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             SessionId = sessionId,
             Date = date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseInstanceIds = completedInstanceIds.ToList(),
             DateCreated = _now,
             Version = 1
         };
     }
 
-    private WorkoutLog BuildFullyLoggedWorkoutLog(Guid sessionId, DateTime date, params Guid[] catalogExerciseExternalIds)
+    /// <summary>
+    /// Builds the live-session-path (Status=Completed) <see cref="SessionExecution"/> a fully-logged
+    /// WorkoutLog fixture with no matching checkbox document would have produced.
+    /// </summary>
+    private SessionExecution BuildLoggedExecution(Guid sessionId, DateTime date, params Guid[] catalogExerciseExternalIds)
     {
-        return new WorkoutLog
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             PlanId = _planId,
             SessionId = sessionId,
-            StartedAt = date.AddMinutes(-30),
-            CompletedDate = date,
-            IsCompleted = true,
-            CompletedAt = date,
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Live",
-                    Exercises = catalogExerciseExternalIds.Select(externalId => new WorkoutExercise
+            Date = date,
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = date.AddMinutes(-30),
+                CompletedAt = date,
+                Workouts =
+                [
+                    new LoggedWorkout
                     {
-                        ExerciseExternalId = externalId,
-                        ExerciseName = "Logged exercise",
-                        Sets =
-                        [
-                            new WorkoutSet
-                            {
-                                SetNumber = 1,
-                                Reps = 10,
-                                WeightKg = 50m,
-                                CompletedAt = date.AddMinutes(-10)
-                            }
-                        ]
-                    }).ToList()
-                }
-            ],
-            DateCreated = _now
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Live",
+                        Exercises = catalogExerciseExternalIds.Select(externalId => new WorkoutExercise
+                        {
+                            ExerciseExternalId = externalId,
+                            ExerciseName = "Logged exercise",
+                            Sets =
+                            [
+                                new WorkoutSet
+                                {
+                                    SetNumber = 1,
+                                    Reps = 10,
+                                    WeightKg = 50m,
+                                    CompletedAt = date.AddMinutes(-10)
+                                }
+                            ]
+                        }).ToList()
+                    }
+                ]
+            },
+            DateCreated = _now,
+            Version = 1
         };
     }
 
@@ -146,9 +157,9 @@ public class GetTrainingPlanStandaloneCompletionTests
         };
 
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var completion = BuildCompletion(_sessionId, _now.Date, standaloneInstanceId);
+        var execution = BuildCompletionExecution(_sessionId, _now.Date, standaloneInstanceId);
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.Completions.Should().ContainSingle();
@@ -170,9 +181,9 @@ public class GetTrainingPlanStandaloneCompletionTests
 
         var session = BuildDualPlacementSession(catalogId, standaloneInstanceId, nestedInstanceId);
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var completion = BuildCompletion(_sessionId, _now.Date, nestedInstanceId);
+        var execution = BuildCompletionExecution(_sessionId, _now.Date, nestedInstanceId);
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();
@@ -193,9 +204,9 @@ public class GetTrainingPlanStandaloneCompletionTests
 
         var session = BuildDualPlacementSession(catalogId, standaloneInstanceId, nestedInstanceId);
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var completion = BuildCompletion(_sessionId, _now.Date, standaloneInstanceId);
+        var execution = BuildCompletionExecution(_sessionId, _now.Date, standaloneInstanceId);
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();
@@ -235,9 +246,9 @@ public class GetTrainingPlanStandaloneCompletionTests
 
         var session = BuildDualPlacementSession(catalogId, standaloneInstanceId, nestedInstanceId);
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var log = BuildFullyLoggedWorkoutLog(_sessionId, _now.Date, catalogId);
+        var execution = BuildLoggedExecution(_sessionId, _now.Date, catalogId);
 
-        var response = await ExecuteAsync(plan, workoutLogs: [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();
@@ -275,9 +286,9 @@ public class GetTrainingPlanStandaloneCompletionTests
         };
 
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var log = BuildFullyLoggedWorkoutLog(_sessionId, _now.Date, catalogId);
+        var execution = BuildLoggedExecution(_sessionId, _now.Date, catalogId);
 
-        var response = await ExecuteAsync(plan, workoutLogs: [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.Completions.Single().CompletedExerciseInstanceIds.Should().ContainSingle()
@@ -315,12 +326,15 @@ public class GetTrainingPlanStandaloneCompletionTests
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
 
         // Both signals agree on the SAME instance — the checkbox flag directly, the live-training
-        // assistant indirectly (fan-out from the fully-logged catalog exercise).
+        // assistant indirectly (fan-out from the fully-logged catalog exercise). Both signals share
+        // the same (ClientId, SessionId, Date) key, so — matching the pre-#847
+        // MergeToSessionExecutions merge behaviour — they fold into ONE document: the live-session
+        // execution with the checkbox's CompletedExerciseInstanceIds overlaid, rather than two.
         var date = _now.Date;
-        var completion = BuildCompletion(_sessionId, date, standaloneInstanceId);
-        var log = BuildFullyLoggedWorkoutLog(_sessionId, date, catalogId);
+        var execution = BuildLoggedExecution(_sessionId, date, catalogId);
+        execution.CompletedExerciseInstanceIds = [standaloneInstanceId];
 
-        var response = await ExecuteAsync(plan, workoutLogs: [log], completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.Completions.Should().ContainSingle();
@@ -356,9 +370,9 @@ public class GetTrainingPlanStandaloneCompletionTests
 
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
         // Completion doc exists (so a Completions entry is projected) but marks nothing complete.
-        var completion = BuildCompletion(_sessionId, _now.Date);
+        var execution = BuildCompletionExecution(_sessionId, _now.Date);
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();
@@ -399,12 +413,12 @@ public class GetTrainingPlanStandaloneCompletionTests
 
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
         // Completion references a session the plan does not contain.
-        var completion = BuildCompletion(foreignSessionId, _now.Date, foreignInstanceId);
+        var execution = BuildCompletionExecution(foreignSessionId, _now.Date, foreignInstanceId);
 
-        var act = async () => await ExecuteAsync(plan, completions: [completion]);
+        var act = async () => await ExecuteAsync(plan, [execution]);
         await act.Should().NotThrowAsync();
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
         response.Should().NotBeNull();
 
         var dto = response!.Completions.Single(c => c.SessionId == foreignSessionId);
@@ -456,9 +470,9 @@ public class GetTrainingPlanStandaloneCompletionTests
         };
 
         var plan = TrainingPlanTestHelpers.CreatePlanWithSession(session, _planId, _clientId, _trainerId);
-        var completion = BuildCompletion(_sessionId, _now.Date, nestedInstanceId);
+        var execution = BuildCompletionExecution(_sessionId, _now.Date, nestedInstanceId);
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();
@@ -504,18 +518,19 @@ public class GetTrainingPlanStandaloneCompletionTests
         // Legacy-shaped completion: CompletedExerciseInstanceIds left at its default (empty list,
         // as it would deserialize from a field-absent Mongo document); only the workout-level
         // completion flag is set (the ForTime "Running" workout with no exercises).
-        var completion = new TrainingCompletion
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             SessionId = _sessionId,
             Date = _now.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedWorkoutIds = [workoutId],
             DateCreated = _now,
             Version = 1
         };
 
-        var response = await ExecuteAsync(plan, completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var dto = response!.Completions.Single();

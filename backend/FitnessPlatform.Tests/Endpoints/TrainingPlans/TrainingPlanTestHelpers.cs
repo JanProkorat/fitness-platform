@@ -107,191 +107,28 @@ public static class TrainingPlanTestHelpers
     /// Creates a mocked <see cref="IMongoContext"/> with training plans collection.
     /// </summary>
     public static IMongoContext CreateMockMongo(params TrainingPlan[] plans)
-        => CreateMockMongoWithLogs(plans: plans, workoutLogs: []);
+        => CreateMockMongoWithLogs(plans: plans, executions: []);
 
     /// <summary>
-    /// Creates a mocked <see cref="IMongoContext"/> with training plans + workout logs +
-    /// an optional list of training completions. Completions default to an empty collection.
-    /// #841: <see cref="GetTrainingPlan.GetTrainingPlanEndpoint"/> (and friends) now read
-    /// exclusively from the unified <see cref="IMongoContext.SessionExecutions"/> collection, so
-    /// this also merges <paramref name="workoutLogs"/> + <paramref name="trainingCompletions"/>
-    /// into <see cref="SessionExecution"/> documents via <see cref="MergeToSessionExecutions"/>
-    /// and stubs that collection — existing test fixtures (built as WorkoutLog/TrainingCompletion)
-    /// keep working unchanged against the new read site. The legacy collections are still stubbed
-    /// too (harmless — no production code under test reads them any more, but some tests still
-    /// assert against them directly for the retired write paths).
+    /// Creates a mocked <see cref="IMongoContext"/> with training plans + an optional list of
+    /// <see cref="SessionExecution"/> documents. #841:
+    /// <see cref="GetTrainingPlan.GetTrainingPlanEndpoint"/> (and friends) read exclusively from
+    /// the unified <see cref="IMongoContext.SessionExecutions"/> collection.
     /// </summary>
     public static IMongoContext CreateMockMongoWithLogs(
         TrainingPlan[] plans,
-        WorkoutLog[] workoutLogs,
-        TrainingCompletion[]? trainingCompletions = null)
+        List<SessionExecution> executions)
     {
         var mongo = Substitute.For<IMongoContext>();
-
-        var completions = (trainingCompletions ?? []).ToList();
 
         // Pre-create collections BEFORE calling .Returns() to avoid NSubstitute
         // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
         var plansCollection = CreateMockCollection(plans.ToList());
-        var logsCollection = CreateMockWorkoutLogCollection(workoutLogs.ToList());
-        var completionsCollection = CreateMockCompletionCollection(completions);
-        var executions = MergeToSessionExecutions(workoutLogs.ToList(), completions);
         var executionsCollection = CreateMockSessionExecutionCollection(executions);
 
         mongo.TrainingPlans.Returns(plansCollection);
-        mongo.WorkoutLogs.Returns(logsCollection);
-        mongo.TrainingCompletions.Returns(completionsCollection);
         mongo.SessionExecutions.Returns(executionsCollection);
         return mongo;
-    }
-
-    /// <summary>
-    /// Test-only fixture merge (#841): joins <paramref name="workoutLogs"/> and <paramref name="trainingCompletions"/>
-    /// on (ClientId, SessionId, Date), producing one <see cref="SessionExecution"/> per key
-    /// (Performance from the log when present, completion flags from the completion when present).
-    /// Ad-hoc (no SessionId) logs migrate 1:1. Lets existing GetTrainingPlan* test fixtures (built
-    /// as WorkoutLog/TrainingCompletion) keep exercising the same scenarios against the endpoint's
-    /// new SessionExecutions read site without rewriting every fixture.
-    /// </summary>
-    public static List<SessionExecution> MergeToSessionExecutions(
-        List<WorkoutLog> workoutLogs,
-        List<TrainingCompletion> trainingCompletions)
-    {
-        var results = new List<SessionExecution>();
-
-        var logsByKey = workoutLogs
-            .Where(l => l.SessionId.HasValue)
-            .GroupBy(l => (l.ClientId, SessionId: l.SessionId!.Value, Date: l.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(l.StartedAt)))
-            .ToDictionary(
-                g => g.Key,
-                g => g.OrderByDescending(l => l.IsCompleted).ThenByDescending(l => l.DateUpdated ?? l.DateCreated).First());
-
-        var completionsByKey = trainingCompletions
-            .GroupBy(c => (c.ClientId, c.SessionId, c.Date))
-            .ToDictionary(g => g.Key, g => g.First());
-
-        var allKeys = logsByKey.Keys
-            .Select(k => (k.ClientId, k.SessionId, k.Date))
-            .Union(completionsByKey.Keys.Select(k => (k.ClientId, k.SessionId, k.Date)))
-            .Distinct()
-            .ToList();
-
-        foreach (var (clientId, sessionId, date) in allKeys)
-        {
-            logsByKey.TryGetValue((clientId, sessionId, date), out var log);
-            completionsByKey.TryGetValue((clientId, sessionId, date), out var completion);
-
-            SessionExecution execution = log is not null
-                ? new SessionExecution
-                {
-                    ExternalId = log.ExternalId,
-                    ClientId = clientId,
-                    PlanId = log.PlanId,
-                    SessionId = sessionId,
-                    Date = date,
-                    Performance = new SessionExecutionPerformance
-                    {
-                        StartedAt = log.StartedAt,
-                        CompletedAt = log.CompletedAt,
-                        Mood = log.Mood,
-                        Notes = log.Notes,
-                        WodResult = log.WodResult,
-                        Workouts = log.Workouts
-                    },
-                    DateCreated = log.DateCreated,
-                    DateUpdated = log.DateUpdated,
-                    Version = 1
-                }
-                : new SessionExecution
-                {
-                    ExternalId = Guid.NewGuid(),
-                    ClientId = clientId,
-                    SessionId = sessionId,
-                    Date = date,
-                    DateCreated = completion!.DateCreated,
-                    DateUpdated = completion.DateUpdated,
-                    Version = completion.Version
-                };
-
-            if (completion is not null)
-            {
-                execution.CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds;
-                execution.CompletedWorkoutIds = completion.CompletedWorkoutIds;
-            }
-
-            execution.Status = (log?.IsCompleted ?? false)
-                ? SessionExecutionStatus.Completed
-                : SessionExecutionStatus.Partial;
-
-            results.Add(execution);
-        }
-
-        // Ad-hoc (no SessionId) workout logs — 1:1 migration, identity = ExternalId.
-        foreach (var log in workoutLogs.Where(l => !l.SessionId.HasValue))
-        {
-            results.Add(new SessionExecution
-            {
-                ExternalId = log.ExternalId,
-                ClientId = log.ClientId,
-                PlanId = log.PlanId,
-                SessionId = null,
-                Date = log.CompletedDate ?? WorkoutLog.ToCompletionDateUtc(log.StartedAt),
-                Status = log.IsCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial,
-                Performance = new SessionExecutionPerformance
-                {
-                    StartedAt = log.StartedAt,
-                    CompletedAt = log.CompletedAt,
-                    Mood = log.Mood,
-                    Notes = log.Notes,
-                    WodResult = log.WodResult,
-                    Workouts = log.Workouts
-                },
-                DateCreated = log.DateCreated,
-                DateUpdated = log.DateUpdated,
-                Version = 1
-            });
-        }
-
-        return results;
-    }
-
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{TrainingCompletion}"/> that returns the given
-    /// completions from FindAsync.
-    /// </summary>
-    public static IMongoCollection<TrainingCompletion> CreateMockCompletionCollection(
-        List<TrainingCompletion> completions)
-    {
-        var collection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ => CreateCompletionCursor(completions));
-
-        return collection;
-    }
-
-    private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(
-        List<TrainingCompletion> completions)
-    {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-        var moved = false;
-        cursor.Current.Returns(completions);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return Task.FromResult(false);
-            moved = true;
-            return Task.FromResult(completions.Count > 0);
-        });
-        return cursor;
     }
 
     /// <summary>
@@ -367,66 +204,6 @@ public static class TrainingPlanTestHelpers
             if (moved) return Task.FromResult(false);
             moved = true;
             return Task.FromResult(executions.Count > 0);
-        });
-        return cursor;
-    }
-
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> that returns the given logs from FindAsync(),
-    /// and stubs InsertOneAsync and ReplaceOneAsync so they succeed without mutating state.
-    /// Retained for legacy-collection tests (e.g. the #841 migration-merge Testcontainers suite);
-    /// no production endpoint under Features/WorkoutLogs/** reads this collection any more.
-    /// </summary>
-    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(List<WorkoutLog> logs)
-    {
-        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        var cursor = CreateWorkoutLogCursor(logs);
-        // Pre-wrap in a completed Task BEFORE calling .Returns() to avoid NSubstitute
-        // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
-        var cursorTask = Task.FromResult(cursor);
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(cursorTask);
-
-        // InsertOneAsync — no-op stub so the endpoint can materialize new logs.
-        collection.InsertOneAsync(
-                Arg.Any<WorkoutLog>(),
-                Arg.Any<InsertOneOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(Task.CompletedTask);
-
-        // ReplaceOneAsync stub
-        var replaceResult = Substitute.For<ReplaceOneResult>();
-        replaceResult.ModifiedCount.Returns(1L);
-        collection.ReplaceOneAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<WorkoutLog>(),
-                Arg.Any<ReplaceOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(replaceResult);
-
-        return collection;
-    }
-
-    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
-    {
-        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-        var moved = false;
-        cursor.Current.Returns(logs);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return logs.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return Task.FromResult(false);
-            moved = true;
-            return Task.FromResult(logs.Count > 0);
         });
         return cursor;
     }

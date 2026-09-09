@@ -95,88 +95,94 @@ public class GetTrainingPlanSectionKeyingTests
         };
     }
 
-    private WorkoutLog BuildTwoSectionLog(
+    private SessionExecution BuildTwoSectionExecution(
         Guid standardSectionId,
         Guid amrapSectionId,
         Guid exerciseId,
         decimal standardWeight,
         decimal amrapWeight)
     {
-        return new WorkoutLog
+        var startedAt = _now.AddMinutes(-30);
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = standardSectionId,
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 5,
-                                    WeightKg = standardWeight,
-                                    PlannedReps = 5,
-                                    PlannedWeightKg = 100m,
-                                    CompletedAt = _now.AddMinutes(-20)
-                                }
-                            ]
-                        }
-                    ]
-                },
-                new LoggedWorkout
-                {
-                    WorkoutId = amrapSectionId,
-                    Order = 1,
-                    Name = "AMRAP",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 3,
-                                    WeightKg = amrapWeight,
-                                    PlannedReps = 3,
-                                    PlannedWeightKg = 60m,
-                                    CompletedAt = _now.AddMinutes(-10)
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = _now
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = standardSectionId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 5,
+                                        WeightKg = standardWeight,
+                                        PlannedReps = 5,
+                                        PlannedWeightKg = 100m,
+                                        CompletedAt = _now.AddMinutes(-20)
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    new LoggedWorkout
+                    {
+                        WorkoutId = amrapSectionId,
+                        Order = 1,
+                        Name = "AMRAP",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 3,
+                                        WeightKg = amrapWeight,
+                                        PlannedReps = 3,
+                                        PlannedWeightKg = 60m,
+                                        CompletedAt = _now.AddMinutes(-10)
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now,
+            Version = 1
         };
     }
 
     private async Task<GetTrainingPlanResponse?> ExecuteAsync(
         TrainingPlan plan,
-        WorkoutLog[] logs)
+        SessionExecution[] executions)
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
             plans: [plan],
-            workoutLogs: logs);
+            executions: executions.ToList());
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -212,10 +218,10 @@ public class GetTrainingPlanSectionKeyingTests
 
         var plan = BuildPlanWithTwoSections(standardSectionId, amrapSectionId, exerciseId);
         // Standard section: 100 kg (as planned); AMRAP section: 60 kg (as planned)
-        var log = BuildTwoSectionLog(standardSectionId, amrapSectionId, exerciseId,
+        var execution = BuildTwoSectionExecution(standardSectionId, amrapSectionId, exerciseId,
             standardWeight: 100m, amrapWeight: 60m);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -245,11 +251,11 @@ public class GetTrainingPlanSectionKeyingTests
 
         var plan = BuildPlanWithTwoSections(standardSectionId, amrapSectionId, exerciseId);
         // Standard: heavier than planned (IsModified=true); AMRAP: as planned (IsModified=false)
-        var log = BuildTwoSectionLog(standardSectionId, amrapSectionId, exerciseId,
+        var execution = BuildTwoSectionExecution(standardSectionId, amrapSectionId, exerciseId,
             standardWeight: 120m,   // diverges from PlannedWeightKg=100
             amrapWeight: 60m);      // matches PlannedWeightKg=60
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.Single();
@@ -311,34 +317,40 @@ public class GetTrainingPlanSectionKeyingTests
             DateCreated = _now
         };
 
-        var log = new WorkoutLog
+        var startedAt = _now.AddMinutes(-30);
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = sectionId,
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise { ExerciseExternalId = exA, ExerciseName = "Squat", Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 100m, PlannedReps = 10, PlannedWeightKg = 100m, CompletedAt = _now.AddMinutes(-25) }] },
-                        new WorkoutExercise { ExerciseExternalId = exB, ExerciseName = "Press",  Sets = [new WorkoutSet { SetNumber = 1, Reps = 8,  WeightKg = 80m,  PlannedReps = 8,  PlannedWeightKg = 80m,  CompletedAt = _now.AddMinutes(-20) }] },
-                        new WorkoutExercise { ExerciseExternalId = exC, ExerciseName = "Pull",   Sets = [new WorkoutSet { SetNumber = 1, Reps = 12, WeightKg = 60m,  PlannedReps = 10, PlannedWeightKg = 60m,  CompletedAt = _now.AddMinutes(-15) }] }
-                    ]
-                }
-            ],
-            DateCreated = _now
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = sectionId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise { ExerciseExternalId = exA, ExerciseName = "Squat", Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 100m, PlannedReps = 10, PlannedWeightKg = 100m, CompletedAt = _now.AddMinutes(-25) }] },
+                            new WorkoutExercise { ExerciseExternalId = exB, ExerciseName = "Press",  Sets = [new WorkoutSet { SetNumber = 1, Reps = 8,  WeightKg = 80m,  PlannedReps = 8,  PlannedWeightKg = 80m,  CompletedAt = _now.AddMinutes(-20) }] },
+                            new WorkoutExercise { ExerciseExternalId = exC, ExerciseName = "Pull",   Sets = [new WorkoutSet { SetNumber = 1, Reps = 12, WeightKg = 60m,  PlannedReps = 10, PlannedWeightKg = 60m,  CompletedAt = _now.AddMinutes(-15) }] }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now,
+            Version = 1
         };
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.Single();
@@ -410,43 +422,49 @@ public class GetTrainingPlanSectionKeyingTests
             DateCreated = _now
         };
 
-        // Collapsed historical log: only one section even though the workout had two.
-        var collapsedLog = new WorkoutLog
+        // Collapsed historical execution: only one section even though the workout had two.
+        var collapsedStartedAt = _now.AddMinutes(-30);
+        var collapsedExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = sectionId,
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = _now.AddMinutes(-20) }]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = _now
+            Date = SessionExecution.ToCompletionDateUtc(collapsedStartedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = collapsedStartedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = sectionId,
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = _now.AddMinutes(-20) }]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now,
+            Version = 1
         };
 
-        // Must not throw — historical logs render gracefully even if section boundaries
-        // cannot be recovered.
-        var act = async () => await ExecuteAsync(plan, [collapsedLog]);
+        // Must not throw — historical executions render gracefully even if section
+        // boundaries cannot be recovered.
+        var act = async () => await ExecuteAsync(plan, [collapsedExecution]);
         await act.Should().NotThrowAsync();
 
-        var response = await ExecuteAsync(plan, [collapsedLog]);
+        var response = await ExecuteAsync(plan, [collapsedExecution]);
         response.Should().NotBeNull();
 
         var exec = response!.SessionExecutions.Single();

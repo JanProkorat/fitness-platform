@@ -87,37 +87,7 @@ public class SessionLockStateTests
             });
         mongo.Exercises.Returns(exerciseCollection);
 
-        // TrainingCompletions (empty)
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-        completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-                cursor.Current.Returns(new List<TrainingCompletion>());
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(false);
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(false);
-                return cursor;
-            });
-        mongo.TrainingCompletions.Returns(completionCollection);
 
-        // WorkoutLogs (empty)
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-                cursor.Current.Returns(new List<WorkoutLog>());
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(false);
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(false);
-                return cursor;
-            });
-        mongo.WorkoutLogs.Returns(logCollection);
 
         return mongo;
     }
@@ -344,20 +314,6 @@ public class SessionLockStateTests
         mongo.TrainingPlans.Returns(planCollection);
 
         // Completions cursor (empty — triggers InsertOneAsync)
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-        completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-                cursor.Current.Returns(new List<TrainingCompletion>());
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(false);
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(false);
-                return cursor;
-            });
-        mongo.TrainingCompletions.Returns(completionCollection);
 
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
