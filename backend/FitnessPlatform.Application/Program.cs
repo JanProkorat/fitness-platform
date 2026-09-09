@@ -303,7 +303,7 @@ builder.Services.AddScoped<PlanConcurrencyGuard>();
 builder.Services.AddScoped<EntitlementService>();
 
 // One-shot CLI backfills, resolved by CliCommandDispatcher — never `new`-ed
-// directly. Scoped: both take IApplicationDbContext, which is scoped (see :55).
+// directly. Scoped: both take IApplicationDbContext, which is scoped (see :56).
 builder.Services.AddScoped<PhotoDescriptionBackfillService>();
 builder.Services.AddScoped<PlanGoalBackfillService>();
 
