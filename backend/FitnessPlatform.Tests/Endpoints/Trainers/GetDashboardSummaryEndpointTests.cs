@@ -95,14 +95,6 @@ public class GetDashboardSummaryEndpointTests
         mongo.MealLogs.Returns(mealLogCollection);
 
         // Workout logs — empty (projected to DateTime)
-        var emptyWorkoutCursor = CreateEmptyCursor<DateTime>();
-        var workoutLogCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        workoutLogCollection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, DateTime>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(emptyWorkoutCursor);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
 
         return mongo;
     }

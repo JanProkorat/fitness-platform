@@ -59,18 +59,17 @@ public class UnlockSessionFinishedGuardTests
         };
 
     /// <summary>
-    /// Creates an IMongoContext whose SessionExecutions collection reflects the legacy
-    /// WorkoutLog/TrainingCompletion fixture shape this test file was written against.
+    /// Creates an IMongoContext whose SessionExecutions collection carries an optional
+    /// completed-live-session document (<paramref name="completedLogCount"/> &gt; 0) plus any
+    /// caller-supplied checkbox-path (Status=Partial) documents.
     /// #841: UnlockTrainingSessionEndpoint reads exclusively mongo.SessionExecutions and calls
-    /// IsSessionComplete() on each returned document — a completed-log fixture becomes one
-    /// Status=Completed execution; each TrainingCompletion fixture becomes a Status=Partial
-    /// execution carrying the same completion flags (session-level completeness is then derived
-    /// by the same IsSessionComplete()/IsWorkoutComplete() extension the endpoint calls).
+    /// IsSessionComplete() on each returned document — session-level completeness is derived by
+    /// the same IsSessionComplete()/IsWorkoutComplete() extension the endpoint calls.
     /// </summary>
     private IMongoContext CreateMockMongo(
         TrainingPlan plan,
         long completedLogCount,
-        List<TrainingCompletion>? completions = null)
+        List<SessionExecution>? completionExecutions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -101,21 +100,7 @@ public class UnlockSessionFinishedGuardTests
             });
         }
 
-        foreach (var completion in completions ?? [])
-        {
-            executions.Add(new SessionExecution
-            {
-                ExternalId = Guid.NewGuid(),
-                ClientId = completion.ClientId,
-                SessionId = completion.SessionId,
-                Date = completion.Date,
-                Status = SessionExecutionStatus.Partial,
-                CompletedExerciseInstanceIds = completion.CompletedExerciseInstanceIds,
-                CompletedWorkoutIds = completion.CompletedWorkoutIds,
-                DateCreated = completion.DateCreated,
-                Version = completion.Version
-            });
-        }
+        executions.AddRange(completionExecutions ?? []);
 
         var executionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection(executions);
         mongo.SessionExecutions.Returns(executionCollection);
@@ -297,20 +282,21 @@ public class UnlockSessionFinishedGuardTests
             }
         ];
 
-        // Fully-complete TrainingCompletion for that session (all exercises marked done).
-        var completion = new TrainingCompletion
+        // Fully-complete SessionExecution (checkbox path) for that session (all exercises marked done).
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
@@ -366,18 +352,19 @@ public class UnlockSessionFinishedGuardTests
         ];
 
         // Only exerciseId1 done — partial completion.
-        var partialCompletion = new TrainingCompletion
+        var partialCompletionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseInstanceIds = [exerciseId1],  // exerciseId2 missing → NOT complete
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [partialCompletion]);
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [partialCompletionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
@@ -455,19 +442,20 @@ public class UnlockSessionFinishedGuardTests
 
         // Client completed section A's instance but NOT section B's — CompletedExerciseInstanceIds
         // only contains sectionAInstanceId.
-        var completion = new TrainingCompletion
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseInstanceIds = [sectionAInstanceId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
@@ -535,19 +523,20 @@ public class UnlockSessionFinishedGuardTests
 
         // Both workouts fully done — every exercise instance across both workouts is present in
         // the flat CompletedExerciseInstanceIds list.
-        var completion = new TrainingCompletion
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
             CompletedExerciseInstanceIds = [exerciseId1, exerciseId2],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 

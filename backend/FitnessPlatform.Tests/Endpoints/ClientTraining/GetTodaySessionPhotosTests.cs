@@ -91,16 +91,12 @@ public class GetTodaySessionPhotosTests
         // Build all collections BEFORE calling .Returns() to avoid NSubstitute nesting issues
         var planCollection = TrainingPhotoTestHelpers.CreateCollection([plan]);
         var exerciseCollection = TrainingPhotoTestHelpers.CreateCollection<Exercise>([]);
-        var completionCollection = TrainingPhotoTestHelpers.CreateCollection<TrainingCompletion>([]);
-        var workoutLogCollection = TrainingPhotoTestHelpers.CreateCollection<WorkoutLog>([]);
         var sessionLockCollection = TrainingPhotoTestHelpers.CreateCollection<SessionLock>([]);
         var sessionLogCollection = TrainingPhotoTestHelpers.CreateSessionLogCollection(sessionLogs ?? []);
 
         // Assign after all substitutes are created
         mongo.TrainingPlans.Returns(planCollection);
         mongo.Exercises.Returns(exerciseCollection);
-        mongo.TrainingCompletions.Returns(completionCollection);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
         mongo.SessionLocks.Returns(sessionLockCollection);
         mongo.SessionLogs.Returns(sessionLogCollection);
 

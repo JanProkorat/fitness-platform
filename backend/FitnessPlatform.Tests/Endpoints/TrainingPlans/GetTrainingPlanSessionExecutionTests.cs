@@ -86,57 +86,63 @@ public class GetTrainingPlanSessionExecutionTests
         };
     }
 
-    private WorkoutLog BuildLog(
+    private SessionExecution BuildExecution(
         bool isCompleted,
         List<(int setNumber, DateTime? completedAt)> setStamps,
         DateTime? dateUpdated = null)
     {
-        return new WorkoutLog
+        var startedAt = _now.AddMinutes(-30);
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = Guid.NewGuid(), // ApplicationUser.Id — irrelevant for the trainer endpoint
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = isCompleted,
-            CompletedAt = isCompleted ? _now : null,
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Main",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = _exerciseId,
-                            ExerciseName = "Squat",
-                            Sets = setStamps
-                                .Select(s => new WorkoutSet
-                                {
-                                    SetNumber = s.setNumber,
-                                    Reps = 10,
-                                    CompletedAt = s.completedAt
-                                })
-                                .ToList()
-                        }
-                    ]
-                }
-            ],
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = isCompleted ? SessionExecutionStatus.Completed : SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = isCompleted ? _now : null,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Main",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exerciseId,
+                                ExerciseName = "Squat",
+                                Sets = setStamps
+                                    .Select(s => new WorkoutSet
+                                    {
+                                        SetNumber = s.setNumber,
+                                        Reps = 10,
+                                        CompletedAt = s.completedAt
+                                    })
+                                    .ToList()
+                            }
+                        ]
+                    }
+                ]
+            },
             DateCreated = _now.AddMinutes(-35),
-            DateUpdated = dateUpdated
+            DateUpdated = dateUpdated,
+            Version = 1
         };
     }
 
     private async Task<GetTrainingPlanResponse?> ExecuteAsync(
         TrainingPlan plan,
-        WorkoutLog[] logs)
+        SessionExecution[] executions)
     {
         var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
             plans: [plan],
-            workoutLogs: logs);
+            executions: executions.ToList());
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -183,7 +189,7 @@ public class GetTrainingPlanSessionExecutionTests
     public async Task SessionExecutions_LogInProgress_IsSessionFinishedFalse()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
             isCompleted: false,
             setStamps:
             [
@@ -192,7 +198,7 @@ public class GetTrainingPlanSessionExecutionTests
                 (3, null)                  // set 3 not yet done
             ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -213,7 +219,7 @@ public class GetTrainingPlanSessionExecutionTests
     public async Task SessionExecutions_AllSetsStamped_AllAppearInCompleted()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
             isCompleted: true,
             setStamps:
             [
@@ -222,7 +228,7 @@ public class GetTrainingPlanSessionExecutionTests
                 (3, _now.AddMinutes(-15))
             ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -244,7 +250,7 @@ public class GetTrainingPlanSessionExecutionTests
     public async Task SessionExecutions_SomeSetsSkipped_OnlyStampedSetsInCompleted()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
             isCompleted: true,
             setStamps:
             [
@@ -253,7 +259,7 @@ public class GetTrainingPlanSessionExecutionTests
                 (3, null)  // set 3 skipped — no CompletedAt
             ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -277,8 +283,8 @@ public class GetTrainingPlanSessionExecutionTests
     {
         var plan = BuildPlan();
 
-        // Finalised log — all three sets stamped.
-        var finalisedLog = BuildLog(
+        // Finalised execution — all three sets stamped.
+        var finalisedExecution = BuildExecution(
             isCompleted: true,
             setStamps:
             [
@@ -288,13 +294,13 @@ public class GetTrainingPlanSessionExecutionTests
             ],
             dateUpdated: _now.AddMinutes(-10));
 
-        // Newer in-progress log (e.g. client re-opened session after finalising).
-        var inProgressLog = BuildLog(
+        // Newer in-progress execution (e.g. client re-opened session after finalising).
+        var inProgressExecution = BuildExecution(
             isCompleted: false,
             setStamps: [(1, _now.AddMinutes(-5))],
             dateUpdated: null);
 
-        var response = await ExecuteAsync(plan, [inProgressLog, finalisedLog]);
+        var response = await ExecuteAsync(plan, [inProgressExecution, finalisedExecution]);
 
         response.Should().NotBeNull();
         // One SessionExecution entry — not two.
@@ -318,7 +324,7 @@ public class GetTrainingPlanSessionExecutionTests
 
         var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
             plans: [plan],
-            workoutLogs: []);
+            executions: []);
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(

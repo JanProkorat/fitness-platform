@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Infrastructure;
@@ -233,44 +234,52 @@ public class PersonalRecordDetectionTests(FitnessApiFactory factory)
         var (http, clientId, logId) = await SetupClientWithLogAsync();
         var exerciseId = Guid.NewGuid();
 
-        // Seed a prior completed log with 100 kg × 5 as the existing best
+        // Seed a prior completed SessionExecution with 100 kg × 5 as the existing best.
+        // PersonalRecord.WorkoutLogId is a live wire contract keyed on the producing
+        // SessionExecution.ExternalId (SessionExecution.cs remarks) — NOT tied to the retired
+        // WorkoutLog document any more, so priorLogId is reused as-is.
         var priorLogId = Guid.NewGuid();
-        var priorLog = new WorkoutLog
+        var priorExecution = new SessionExecution
         {
             ExternalId = priorLogId,
             ClientId = clientId,
-            StartedAt = DateTime.UtcNow.AddDays(-1),
-            IsCompleted = true,
-            CompletedAt = DateTime.UtcNow.AddDays(-1).AddHours(1),
+            Date = SessionExecution.ToCompletionDateUtc(DateTime.UtcNow.AddDays(-1)),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = DateTime.UtcNow.AddDays(-1),
+                CompletedAt = DateTime.UtcNow.AddDays(-1).AddHours(1),
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Deadlift",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 5,
+                                        WeightKg = 100m,
+                                        CompletedAt = DateTime.UtcNow.AddDays(-1).AddMinutes(10),
+                                        IsPR = true
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
             DateCreated = DateTime.UtcNow.AddDays(-1),
-            Workouts =
-            [
-                new LoggedWorkout
-                {
-                    WorkoutId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Deadlift",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 5,
-                                    WeightKg = 100m,
-                                    CompletedAt = DateTime.UtcNow.AddDays(-1).AddMinutes(10),
-                                    IsPR = true
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            Version = 1
         };
 
         // Seed the PersonalRecord representing the prior best
@@ -292,8 +301,8 @@ public class PersonalRecordDetectionTests(FitnessApiFactory factory)
         using (var setupScope = factory.Services.CreateScope())
         {
             var setupMongo = setupScope.ServiceProvider.GetRequiredService<IMongoContext>();
-            await setupMongo.WorkoutLogs.InsertOneAsync(
-                priorLog, cancellationToken: TestContext.Current.CancellationToken);
+            await setupMongo.SessionExecutions.InsertOneAsync(
+                priorExecution, cancellationToken: TestContext.Current.CancellationToken);
             await setupMongo.PersonalRecords.InsertOneAsync(
                 existingPr, cancellationToken: TestContext.Current.CancellationToken);
         }
