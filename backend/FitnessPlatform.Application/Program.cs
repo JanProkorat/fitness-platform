@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Infrastructure.Cli;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.HealthChecks;
@@ -301,6 +302,11 @@ builder.Services.AddScoped<PlanConcurrencyGuard>();
 // subscription (#593). No endpoint gates on this yet — see #594.
 builder.Services.AddScoped<EntitlementService>();
 
+// One-shot CLI backfills, resolved by CliCommandDispatcher — never `new`-ed
+// directly. Scoped: both take IApplicationDbContext, which is scoped (see :56).
+builder.Services.AddScoped<PhotoDescriptionBackfillService>();
+builder.Services.AddScoped<PlanGoalBackfillService>();
+
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
 
@@ -338,86 +344,14 @@ if (testingEnabled)
         "A production deploy with this flag set has no further protection.");
 }
 
-// Seed data
-if (args.Contains("--seed"))
+// One-shot CLI commands (--seed, --qa-seed, --backfill-photo-descriptions,
+// --backfill-plan-goals). CliCommandDispatcher.TryHandleAsync's own doc
+// comment states the contract: a `true` return means one of them ran, and
+// this process must exit right here — never falling through to the
+// unconditional MongoIndexInitializer.StartAsync call near app.Run() below,
+// nor to app.Run() itself.
+if (await CliCommandDispatcher.TryHandleAsync(app, args))
 {
-    // This branch `return`s before the unconditional MongoIndexInitializer.StartAsync call
-    // further down this file, so the unique indexes (e.g. externalId) need to be created
-    // explicitly here BEFORE MongoSeeder inserts anything — otherwise the seeded catalog has
-    // no uniqueness guarantee, and a stray duplicate in seed data would go unnoticed instead
-    // of failing loudly. Calling StartAsync explicitly here is the only invocation for this
-    // process run (the branch returns before reaching the later call), so it never double-runs
-    // within one process; index creation is idempotent, so re-running --seed against an
-    // already-indexed database is safe too.
-    using (var seedMigrationScope = app.Services.CreateScope())
-    {
-        var seedMigrationInitializer = seedMigrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
-        await seedMigrationInitializer.StartAsync(CancellationToken.None);
-    }
-
-    await ApplicationDbContextSeed.SeedAsync(app.Services);
-    await MongoSeeder.SeedAsync(app.Services);
-    return;
-}
-
-// QA fixture for the docker-compose end-to-end harness. Order matters:
-// roles first (QaSeedRunner assigns roles to its users), then the QA users
-// themselves, then Mongo. Note (#809): MongoSeeder's catalog recipes/workout
-// templates no longer gate on a nutritionist existing — the old per-nutritionist
-// private-recipe cloning was removed; catalog recipes are public and owned by
-// the system admin user regardless of which (if any) nutritionists exist.
-// QaSeedRunner still runs before MongoSeeder here so the QA fixture users/plans
-// and the public catalog land in one deterministic pass on cold boot. Idempotent
-// across reruns.
-if (args.Contains("--qa-seed"))
-{
-    // Same index-creation-before-seeders requirement as --seed above — the docker-compose
-    // e2e harness boots with --qa-seed, so this path is reachable in our own tooling, not
-    // just a theoretical prod scenario. See the --seed branch's remarks for why this cannot
-    // double-run and is safe to repeat.
-    using (var qaSeedMigrationScope = app.Services.CreateScope())
-    {
-        var qaSeedMigrationInitializer = qaSeedMigrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
-        await qaSeedMigrationInitializer.StartAsync(CancellationToken.None);
-    }
-
-    await ApplicationDbContextSeed.SeedAsync(app.Services);
-    await QaSeedRunner.SeedAsync(app.Services);
-    await MongoSeeder.SeedAsync(app.Services);
-    return;
-}
-
-// One-shot backfill: copy per-photo notes from MongoDB into PlanPhoto.Description in Postgres.
-// Usage: dotnet run -- --backfill-photo-descriptions
-if (args.Contains("--backfill-photo-descriptions"))
-{
-    using var scope = app.Services.CreateScope();
-    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-    var svc = new FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService(
-        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService>());
-    var (mealCount, dayCount) = await svc.BackfillAsync();
-    Console.WriteLine($"Meal photos updated: {mealCount}");
-    Console.WriteLine($"Day photos updated:  {dayCount}");
-    return;
-}
-
-// One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
-// NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
-// goal fields were introduced.
-// Usage: dotnet run -- --backfill-plan-goals
-if (args.Contains("--backfill-plan-goals"))
-{
-    using var scope = app.Services.CreateScope();
-    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-    var svc = new FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService(
-        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService>());
-    var (nutritionCount, trainingCount) = await svc.BackfillAsync();
-    Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
-    Console.WriteLine($"Training plans updated:  {trainingCount}");
     return;
 }
 
