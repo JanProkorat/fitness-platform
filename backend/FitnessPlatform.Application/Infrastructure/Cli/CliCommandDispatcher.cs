@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -6,24 +5,7 @@ using FitnessPlatform.Application.Seed;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
-[assembly: InternalsVisibleTo("FitnessPlatform.Tests")]
-
 namespace FitnessPlatform.Application.Infrastructure.Cli;
-
-/// <summary>
-/// The one-shot CLI operations that run instead of the web host:
-/// <c>--seed</c>, <c>--qa-seed</c>, <c>--backfill-photo-descriptions</c>, and
-/// <c>--backfill-plan-goals</c>.
-/// </summary>
-internal enum CliCommand
-{
-    /// <summary>No one-shot flag present — proceed to normal web-host startup.</summary>
-    None,
-    Seed,
-    QaSeed,
-    BackfillPhotoDescriptions,
-    BackfillPlanGoals,
-}
 
 /// <summary>
 /// Dispatches the four one-shot CLI commands. This is the only place these
