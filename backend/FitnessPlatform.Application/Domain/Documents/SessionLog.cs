@@ -8,7 +8,7 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// Keyed by <c>(ClientId, PlanId, SessionId, LogDate)</c> — one document per client per session per calendar day.
 /// <para>
 /// <b>ClientId</b> stores <c>ApplicationUser.Id</c> (#840) — the same convention every other
-/// Mongo document's clientId field uses, including <see cref="WorkoutLog"/>.
+/// Mongo document's clientId field uses, including <see cref="SessionExecution"/>.
 /// </para>
 /// </summary>
 public class SessionLog

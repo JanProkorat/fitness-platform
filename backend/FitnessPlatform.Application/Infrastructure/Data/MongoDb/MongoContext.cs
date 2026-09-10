@@ -21,8 +21,6 @@ public class MongoContext : IMongoContext
         Recipes = database.GetCollection<Recipe>(MongoCollections.Recipes);
         Exercises = database.GetCollection<Exercise>(MongoCollections.Exercises);
         TrainingPlans = database.GetCollection<TrainingPlan>(MongoCollections.TrainingPlans);
-        WorkoutLogs = database.GetCollection<WorkoutLog>(MongoCollections.WorkoutLogs);
-        TrainingCompletions = database.GetCollection<TrainingCompletion>(MongoCollections.TrainingCompletions);
         PersonalRecords = database.GetCollection<PersonalRecord>(MongoCollections.PersonalRecords);
         DayLogs = database.GetCollection<DayLog>(MongoCollections.DayLogs);
         WorkoutTemplates = database.GetCollection<WorkoutTemplate>(MongoCollections.WorkoutTemplates);
@@ -53,12 +51,6 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<TrainingPlan> TrainingPlans { get; }
-
-    /// <inheritdoc />
-    public IMongoCollection<WorkoutLog> WorkoutLogs { get; }
-
-    /// <inheritdoc />
-    public IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
 
     /// <inheritdoc />
     public IMongoCollection<PersonalRecord> PersonalRecords { get; }

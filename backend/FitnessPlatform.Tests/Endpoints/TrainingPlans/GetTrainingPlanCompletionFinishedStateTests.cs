@@ -12,7 +12,7 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
 /// <summary>
 /// Tests for the <see cref="GetTrainingPlanEndpoint"/> <c>SessionExecutions</c> fold-in
-/// using <see cref="TrainingCompletion"/> documents (the mobile home-checkbox path).
+/// using checkbox-only <see cref="SessionExecution"/> documents (the mobile home-checkbox path).
 ///
 /// The live path (WorkoutLog.IsCompleted=true) is already covered by
 /// <see cref="GetTrainingPlanSessionExecutionTests"/>. This class covers the checkbox path.

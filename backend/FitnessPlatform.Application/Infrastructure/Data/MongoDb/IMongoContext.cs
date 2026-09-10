@@ -40,16 +40,6 @@ public interface IMongoContext
     IMongoCollection<TrainingPlan> TrainingPlans { get; }
 
     /// <summary>
-    /// Workout log entries collection.
-    /// </summary>
-    IMongoCollection<WorkoutLog> WorkoutLogs { get; }
-
-    /// <summary>
-    /// Training completion records collection.
-    /// </summary>
-    IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
-
-    /// <summary>
     /// Personal record documents collection.
     /// </summary>
     IMongoCollection<PersonalRecord> PersonalRecords { get; }
@@ -90,10 +80,11 @@ public interface IMongoContext
     IMongoCollection<SessionTemplate> SessionTemplates { get; }
 
     /// <summary>
-    /// Session execution documents (#841) — unifies <see cref="WorkoutLogs"/> and
-    /// <see cref="TrainingCompletions"/>. Both legacy collections are retained read-only
-    /// (no new writes) for one release as the rollback path; this is the single
-    /// live source of truth for training-session execution state.
+    /// Session execution documents (#841) — one record per (client, session, date), unifying
+    /// what used to be the separate <c>workoutLogs</c> and <c>trainingCompletions</c>
+    /// collections. Those two were retained read-only for one release as a rollback path and
+    /// were dropped in #847; this is the single source of truth for training-session
+    /// execution state.
     /// </summary>
     IMongoCollection<SessionExecution> SessionExecutions { get; }
 

@@ -16,8 +16,8 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GetFullPlan;
 /// <summary>
 /// Returns the full structure of a specific training plan for the authenticated client.
 /// Enriches each exercise with muscle-group data (batch-fetched from the Exercise collection)
-/// and per-set completion state (derived from <see cref="WorkoutLog"/> documents AND
-/// <see cref="TrainingCompletion"/> documents — the former is populated by the live-workout
+/// and per-set completion state (derived from <see cref="SessionExecution"/> documents, whose
+/// Performance side is populated by the live-workout
 /// assistant, the latter by the lightweight mark-complete toggles on the Today card).
 /// Also enriches each session DTO with its current lock state (Stable/Editing/Live)
 /// and holder (Coach/Client/null) via a single batch <c>GetStateAsync</c> call.

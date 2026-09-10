@@ -356,7 +356,7 @@ public static class TrainingCompletionTestHelpers
     /// <summary>
     /// Creates a mock <see cref="IMongoCollection{SessionExecution}"/> backed by the supplied list.
     /// FindAsync/CountDocumentsAsync return-value semantics mirror the pre-#841
-    /// CreateMockCompletionCollection; InsertOneAsync/UpdateOneAsync/ReplaceOneAsync are stubbed to
+    /// two-collection mocks this replaced; InsertOneAsync/UpdateOneAsync/ReplaceOneAsync are stubbed to
     /// succeed without mutating the seeded list (tests inspect the in-memory objects directly or
     /// assert on ReceivedCalls()).
     /// </summary>
@@ -425,61 +425,6 @@ public static class TrainingCompletionTestHelpers
         return cursor;
     }
 
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> backed by the supplied list.
-    /// <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> is stubbed to return success
-    /// without mutating the list (the test inspects the in-memory objects directly).
-    /// </summary>
-    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(
-        IReadOnlyList<WorkoutLog> logs)
-    {
-        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ => CreateWorkoutLogCursor(logs.ToList()));
-
-        var replaceResult = Substitute.For<ReplaceOneResult>();
-        replaceResult.ModifiedCount.Returns(1L);
-        collection.ReplaceOneAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<WorkoutLog>(),
-                Arg.Any<ReplaceOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(replaceResult);
-
-        return collection;
-    }
-
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{TrainingCompletion}"/> with basic operations.
-    /// </summary>
-    public static IMongoCollection<TrainingCompletion> CreateMockCompletionCollection(
-        List<TrainingCompletion> completions,
-        bool updateSucceeds = true)
-    {
-        var collection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ci => CreateCompletionCursor(completions));
-
-        var updateResult = Substitute.For<UpdateResult>();
-        updateResult.ModifiedCount.Returns(updateSucceeds ? 1L : 0L);
-        collection.UpdateOneAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(updateResult);
-
-        return collection;
-    }
-
     private static IMongoCollection<TrainingPlan> CreateMockPlanCollection(List<TrainingPlan> plans)
     {
         var collection = Substitute.For<IMongoCollection<TrainingPlan>>();
@@ -534,45 +479,5 @@ public static class TrainingCompletionTestHelpers
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(0);
         return svc;
-    }
-
-    private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(List<TrainingCompletion> completions)
-    {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-        var moved = false;
-        cursor.Current.Returns(completions);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        return cursor;
-    }
-
-    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
-    {
-        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-        var moved = false;
-        cursor.Current.Returns(logs);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return logs.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return logs.Count > 0;
-        });
-        return cursor;
     }
 }
