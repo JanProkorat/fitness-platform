@@ -56,32 +56,36 @@ backend is **not** a features-only tree.
 | `Domain/Common/` | Entity base classes (`BaseEntity`, `TimestampableEntity`, `PublicTimestampableEntity`) and their interfaces | — |
 | `Domain/Constants/` | `AppRoles`, `AppClaims`, `ErrorCodes`, `MongoCollections` | — |
 | `Domain/Entities/` | EF Core / PostgreSQL entities | 30 files |
-| `Domain/Documents/` | MongoDB document classes | 46 files |
+| `Domain/Documents/` | MongoDB document classes | 44 files |
 | `Domain/Enums/` | Domain enums | — |
 | `Domain/Extensions/` | Endpoint extension methods (`SendProblemAsync`, library-denial and plan-load helpers) | — |
 | `Domain/Interfaces/` | Service interfaces | 18 files |
-| `Domain/Services/` | Cross-feature domain helpers — `PlanConcurrencyGuard`, `PlanWindowResolver`, `ClientVerdictService`, `LibraryAccessGuard`, `LibrarySearchHelper` | 5 files |
+| `Domain/Services/` | Cross-feature domain helpers — `PlanConcurrencyGuard`, `PlanWindowResolver`, `ClientVerdictService`, `LibraryAccessGuard`, `LibrarySearchHelper` | 12 files |
 | `Infrastructure/Data/` | `ApplicationDbContext`, `MongoContext`, EF migrations | — |
 | `Infrastructure/Services/` | External integrations and background work — email, push, blob, macro calculation, schedulers | 33 files |
 | `Infrastructure/Hubs/` | SignalR `NotificationHub`, presence tracking | — |
 | `Middleware/` | Global exception handler, locale capture | — |
 | `Seed/` | Seed data + runners | — |
 
-### The template libraries and the one deliberate exception
+### WorkoutTemplate is outside the library contract
 
-Four of the five template document types implement `ILibraryDocument` and get
-the shared visibility contract — `LibraryVisibility`, own-plus-public search
-via `LibrarySearchHelper`, an ownership check via `LibraryAccessGuard`, and a
-cross-owner `Copy*` action: `MealTemplate`, `SessionTemplate`,
-`NutritionPlanTemplate`, `TrainingPlanTemplate`.
+`ILibraryDocument`'s own summary is the source of truth for **which** documents
+are in the shared library contract. Do not re-enumerate them here — a fifth
+library would leave this copy stale while nothing failed.
 
-`WorkoutTemplate` deliberately does **not**. It is keyed on `OwnerTrainerId`
-with no visibility field, and `Features/WorkoutTemplates/` is plain per-owner
-CRUD with no `Copy*` or `Search*` action — a workout block is personal
-shorthand, so cross-trainer sharing has little value. Reusing the library
-*error shape* (see `Features/WorkoutTemplates/Shared/WorkoutTemplateErrors.cs`)
-is not contract membership. Do not file this asymmetry as an inconsistency and
-do not "complete" it without a product decision (#1034).
+`WorkoutTemplate` is the one template document deliberately **outside** it. It
+is keyed on `OwnerTrainerId` with no visibility field, and
+`Features/WorkoutTemplates/` is plain per-owner CRUD with no `Copy*` or
+`Search*` action — a workout block is personal shorthand, so cross-trainer
+sharing has little value. Reusing the library *error shape* (see
+`Features/WorkoutTemplates/Shared/WorkoutTemplateErrors.cs`) is not contract
+membership. Do not file this asymmetry as an inconsistency, and do not
+"complete" it without a product decision.
+
+Being outside the contract is not unique to templates: `SearchFoodsEndpoint`
+and `SearchRecipesEndpoint` hand-roll the same own-plus-public filter without
+implementing the interface. "Owner plus public" therefore does not imply
+`LibrarySearchHelper`. Measured at `4d74b8d0` (#1034).
 
 ## No horizontal layers
 
