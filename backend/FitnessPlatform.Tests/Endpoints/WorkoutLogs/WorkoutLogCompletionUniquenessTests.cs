@@ -420,9 +420,6 @@ internal sealed class IndexInitMongoContext : IMongoContext
 
     public IndexInitMongoContext(IMongoDatabase db) => _db = db;
 
-    public IMongoCollection<WorkoutLog> WorkoutLogs =>
-        _db.GetCollection<WorkoutLog>("workoutLogs");
-
     // The following collections are required by IMongoContext but unused in these tests.
     // They point at the same DB so index creation on those collections is harmless.
     public IMongoCollection<Food> Foods               => _db.GetCollection<Food>("foods");
@@ -431,7 +428,6 @@ internal sealed class IndexInitMongoContext : IMongoContext
     public IMongoCollection<Exercise> Exercises       => _db.GetCollection<Exercise>("exercises");
     public IMongoCollection<Recipe> Recipes           => _db.GetCollection<Recipe>("recipes");
     public IMongoCollection<TrainingPlan> TrainingPlans => _db.GetCollection<TrainingPlan>("trainingPlans");
-    public IMongoCollection<TrainingCompletion> TrainingCompletions => _db.GetCollection<TrainingCompletion>("trainingCompletions");
     public IMongoCollection<SessionExecution> SessionExecutions => _db.GetCollection<SessionExecution>("sessionExecutions");
     public IMongoCollection<PersonalRecord> PersonalRecords => _db.GetCollection<PersonalRecord>("personalRecords");
     public IMongoCollection<DayLog> DayLogs               => _db.GetCollection<DayLog>("dayLogs");

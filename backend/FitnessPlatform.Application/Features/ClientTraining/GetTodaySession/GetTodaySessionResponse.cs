@@ -101,7 +101,7 @@ public class GetTodaySessionResponse
     /// Per-session, per-exercise completed set numbers for today. Keyed by
     /// SessionId → ExerciseExternalId → list of 1-based SetNumbers whose
     /// <see cref="WorkoutSet.CompletedAt"/> is non-null in the latest
-    /// <see cref="WorkoutLog"/> for that session on today's date.
+    /// <see cref="SessionExecution"/> for that session on today's date.
     /// Empty when no live-training progress has been logged for today.
     /// Keeps per-set state out of the planning-document tree (Sessions) which
     /// represents prescription, not actuals.

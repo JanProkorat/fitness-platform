@@ -52,8 +52,6 @@ public class MongoIndexInitializer : IHostedService
         await CreateMealLogIndexes(cancellationToken);
         await CreateExerciseIndexes(cancellationToken);
         await CreateTrainingPlanIndexes(cancellationToken);
-        await CreateWorkoutLogIndexes(cancellationToken);
-        await CreateTrainingCompletionIndexes(cancellationToken);
         await CreatePersonalRecordIndexes(cancellationToken);
         await CreateWorkoutTemplateIndexes(cancellationToken);
         await CreateSessionLockIndexes(cancellationToken);
@@ -213,86 +211,6 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_trainingplan_trainerId" });
 
         await indexes.CreateManyAsync([clientStatusIndex, externalIdIndex, trainerIndex], ct);
-    }
-
-    private async Task CreateWorkoutLogIndexes(CancellationToken ct)
-    {
-        var indexes = _mongo.WorkoutLogs.Indexes;
-
-        // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys.Ascending(w => w.ExternalId),
-            new CreateIndexOptions { Name = "idx_workoutlog_externalId", Unique = true });
-
-        // Compound index on clientId + startedAt for history queries
-        var clientDateIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.ClientId)
-                .Descending(w => w.StartedAt),
-            new CreateIndexOptions { Name = "idx_workoutlog_clientId_startedAt" });
-
-        // Index on clientId + sessionId for finding logs by session
-        var clientSessionIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.ClientId)
-                .Ascending(w => w.SessionId),
-            new CreateIndexOptions { Name = "idx_workoutlog_clientId_sessionId", Sparse = true });
-
-        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientSessionIndex], ct);
-
-        // ── Partial unique index: one completed log per (planId, sessionId, completedDate) ─
-        //
-        // Partial filter: isCompleted==true AND all three key fields exist.
-        // The Exists guards exclude in-progress logs (IsCompleted=false) and legacy logs
-        // with null PlanId/SessionId/CompletedDate from the uniqueness constraint.
-        // Registered as a SEPARATE CreateOneAsync after the batch above (design-review
-        // finding: adding it to the existing CreateManyAsync batch would throw on dirty data).
-        var partialFilter =
-            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate);
-
-        var uniqueCompletionIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.PlanId)
-                .Ascending(w => w.SessionId)
-                .Ascending(w => w.CompletedDate),
-            new CreateIndexOptions<WorkoutLog>
-            {
-                Name = "idx_workoutlog_planId_sessionId_completedDate_unique",
-                Unique = true,
-                PartialFilterExpression = partialFilter
-            });
-
-        await indexes.CreateOneAsync(uniqueCompletionIndex, cancellationToken: ct);
-    }
-
-    private async Task CreateTrainingCompletionIndexes(CancellationToken ct)
-    {
-        var indexes = _mongo.TrainingCompletions.Indexes;
-
-        // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys.Ascending(c => c.ExternalId),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_externalId", Unique = true });
-
-        // Primary query index: clientId + date for compliance roll-ups
-        var clientDateIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys
-                .Ascending(c => c.ClientId)
-                .Ascending(c => c.Date),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date" });
-
-        // Unique compound index to enforce one document per (clientId, date, sessionId)
-        var clientDateSessionIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys
-                .Ascending(c => c.ClientId)
-                .Ascending(c => c.Date)
-                .Ascending(c => c.SessionId),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date_sessionId", Unique = true });
-
-        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientDateSessionIndex], ct);
     }
 
     private async Task CreatePersonalRecordIndexes(CancellationToken ct)

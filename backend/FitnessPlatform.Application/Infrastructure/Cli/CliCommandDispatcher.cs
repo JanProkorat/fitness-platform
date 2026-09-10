@@ -4,11 +4,13 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Application.Seed;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Cli;
 
 /// <summary>
-/// Dispatches the four one-shot CLI commands. This is the only place these
+/// Dispatches the one-shot CLI commands. This is the only place these
 /// commands are parsed and executed — <see cref="TryHandleAsync"/> is called
 /// once from <c>Program.cs</c>, before <c>app.Run()</c>. A <c>true</c> return
 /// means one of the commands ran and <c>Program.cs</c> MUST return
@@ -51,6 +53,11 @@ internal static class CliCommandDispatcher
             return CliCommand.BackfillPlanGoals;
         }
 
+        if (args.Contains("--drop-legacy-training-collections"))
+        {
+            return CliCommand.DropLegacyTrainingCollections;
+        }
+
         return CliCommand.None;
     }
 
@@ -78,6 +85,10 @@ internal static class CliCommandDispatcher
 
             case CliCommand.BackfillPlanGoals:
                 await RunBackfillPlanGoalsAsync(app);
+                return true;
+
+            case CliCommand.DropLegacyTrainingCollections:
+                await RunDropLegacyTrainingCollectionsAsync(app);
                 return true;
 
             case CliCommand.None:
@@ -146,6 +157,55 @@ internal static class CliCommandDispatcher
         var (mealCount, dayCount) = await service.BackfillAsync();
         Console.WriteLine($"Meal photos updated: {mealCount}");
         Console.WriteLine($"Day photos updated:  {dayCount}");
+    }
+
+    private static async Task RunDropLegacyTrainingCollectionsAsync(WebApplication app)
+    {
+        // One-shot cleanup: drop the workoutLogs / trainingCompletions collections that
+        // #841 superseded with sessionExecutions and #847 removed from the code entirely.
+        // Usage: dotnet run -- --drop-legacy-training-collections
+        //
+        // Reports the resolved database, per-collection existence, pre-drop counts and a
+        // post-drop re-check, because the failure this command can actually suffer is a
+        // SILENT one: DropCollectionAsync on a collection that isn't there succeeds without
+        // throwing, so pointing at the wrong database would otherwise print nothing and exit
+        // successfully having removed nothing at all.
+        //
+        // Deliberately no confirmation prompt or --yes guard. The precedent for destructive
+        // operations here is ResetTestStateEndpoint, which drops the entire schema gated only
+        // on a config flag; and ParseCommand is a pure string[] -> CliCommand function that a
+        // modifier flag does not fit. Nobody reaches a flag this long by accident.
+        string[] legacyCollections = ["workoutLogs", "trainingCompletions"];
+
+        using var scope = app.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
+
+        Console.WriteLine($"Database: {database.DatabaseNamespace.DatabaseName}");
+
+        using var nameCursor = await database.ListCollectionNamesAsync();
+        var existing = await nameCursor.ToListAsync();
+
+        foreach (var name in legacyCollections)
+        {
+            if (!existing.Contains(name))
+            {
+                Console.WriteLine($"  {name}: not present, nothing to drop");
+                continue;
+            }
+
+            var count = await database.GetCollection<BsonDocument>(name)
+                .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+
+            await database.DropCollectionAsync(name);
+            Console.WriteLine($"  {name}: dropped ({count} document(s))");
+        }
+
+        using var verifyCursor = await database.ListCollectionNamesAsync();
+        var remaining = (await verifyCursor.ToListAsync()).Intersect(legacyCollections).ToList();
+
+        Console.WriteLine(remaining.Count == 0
+            ? "Verified: neither legacy collection remains."
+            : $"WARNING: still present after drop: {string.Join(", ", remaining)}");
     }
 
     private static async Task RunBackfillPlanGoalsAsync(WebApplication app)

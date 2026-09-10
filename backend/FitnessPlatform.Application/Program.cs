@@ -345,7 +345,8 @@ if (testingEnabled)
 }
 
 // One-shot CLI commands (--seed, --qa-seed, --backfill-photo-descriptions,
-// --backfill-plan-goals). CliCommandDispatcher.TryHandleAsync's own doc
+// --backfill-plan-goals, --drop-legacy-training-collections).
+// CliCommandDispatcher.TryHandleAsync's own doc
 // comment states the contract: a `true` return means one of them ran, and
 // this process must exit right here — never falling through to the
 // unconditional MongoIndexInitializer.StartAsync call near app.Run() below,

@@ -2,8 +2,8 @@ namespace FitnessPlatform.Application.Infrastructure.Cli;
 
 /// <summary>
 /// The one-shot CLI operations that run instead of the web host:
-/// <c>--seed</c>, <c>--qa-seed</c>, <c>--backfill-photo-descriptions</c>, and
-/// <c>--backfill-plan-goals</c>.
+/// <c>--seed</c>, <c>--qa-seed</c>, <c>--backfill-photo-descriptions</c>,
+/// <c>--backfill-plan-goals</c>, and <c>--drop-legacy-training-collections</c>.
 /// </summary>
 internal enum CliCommand
 {
@@ -13,4 +13,5 @@ internal enum CliCommand
     QaSeed,
     BackfillPhotoDescriptions,
     BackfillPlanGoals,
+    DropLegacyTrainingCollections,
 }

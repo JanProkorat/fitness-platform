@@ -7,7 +7,7 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// An ordered logged workout within a workout log — mirrors <see cref="TrainingWorkout"/> but
 /// contains completed <see cref="WorkoutExercise"/> entries instead of planned ones.
-/// Embedded sub-document inside <see cref="WorkoutLog.Workouts"/>.
+/// Embedded sub-document inside <see cref="SessionExecutionPerformance.Workouts"/>.
 /// </summary>
 public class LoggedWorkout
 {

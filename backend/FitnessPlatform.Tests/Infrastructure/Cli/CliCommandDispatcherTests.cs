@@ -62,6 +62,25 @@ public class CliCommandDispatcherTests
     }
 
     [Fact]
+    public void ParseCommand_DropLegacyTrainingCollectionsFlag_ReturnsDropLegacyTrainingCollections()
+    {
+        var result = CliCommandDispatcher.ParseCommand(["--drop-legacy-training-collections"]);
+
+        result.Should().Be(CliCommand.DropLegacyTrainingCollections);
+    }
+
+    [Fact]
+    public void ParseCommand_NoFlag_DoesNotTriggerTheDestructiveDrop()
+    {
+        // The only destructive command in the seam must never be selected by a boot with
+        // no flags (the WebApplicationFactory<Program> test host boots with an empty array)
+        // nor by an unrelated flag.
+        CliCommandDispatcher.ParseCommand([]).Should().Be(CliCommand.None);
+        CliCommandDispatcher.ParseCommand(["--seed"]).Should().Be(CliCommand.Seed);
+        CliCommandDispatcher.ParseCommand(["--drop-legacy"]).Should().Be(CliCommand.None);
+    }
+
+    [Fact]
     public void ParseCommand_QaSeedFlag_DoesNotTriggerSeed()
     {
         // --qa-seed must NOT be treated as --seed via a substring/prefix match —

@@ -59,7 +59,7 @@ public class SessionLockStateDto
 /// <list type="bullet">
 ///   <item><description>
 ///     <b>completed</b> — set number is present in <see cref="CompletedSetsByExercise"/> (meaning
-///     the corresponding <see cref="WorkoutSet.CompletedAt"/> was non-null in the <see cref="WorkoutLog"/>).
+///     the corresponding <see cref="WorkoutSet.CompletedAt"/> was non-null in the <see cref="SessionExecution"/>).
 ///   </description></item>
 ///   <item><description>
 ///     <b>skipped</b> — set number is absent <em>and</em> <see cref="IsSessionFinished"/> is <c>true</c>.
@@ -78,14 +78,14 @@ public class SessionExecutionDto
     public Guid SessionId { get; set; }
 
     /// <summary>
-    /// Whether the workout was finalised by the client (<see cref="WorkoutLog.IsCompleted"/> was true).
+    /// Whether the workout was finalised by the client (<see cref="SessionExecution.Status"/> was Completed).
     /// </summary>
     public bool IsSessionFinished { get; set; }
 
     /// <summary>
     /// Per-exercise map of which set numbers were completed (i.e. had a non-null
     /// <see cref="WorkoutSet.CompletedAt"/>). Key = ExerciseExternalId; value = sorted list
-    /// of 1-based set numbers that were stamped as complete in the <see cref="WorkoutLog"/>.
+    /// of 1-based set numbers that were stamped as complete in the <see cref="SessionExecution"/>.
     /// An absent key means no sets for that exercise were logged.
     /// An empty list should not occur but is treated identically to an absent key.
     /// <para>
@@ -304,7 +304,7 @@ public class GetTrainingPlanResponse
 
     /// <summary>
     /// Per-session workout-log execution data for the plan's client.
-    /// One entry per session that has at least one <see cref="WorkoutLog"/> record.
+    /// One entry per session that has at least one <see cref="SessionExecution"/> record.
     /// Sessions with no log entry are absent (equivalent to all sets being not-yet-reached).
     /// The web layer uses this together with <see cref="Completions"/> to render per-set,
     /// per-exercise, and per-session completed/skipped/unreached state indicators.

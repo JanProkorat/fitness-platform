@@ -36,16 +36,6 @@ public static class MongoCollections
     public const string TrainingPlans = "trainingPlans";
 
     /// <summary>
-    /// Workout log entries collection.
-    /// </summary>
-    public const string WorkoutLogs = "workoutLogs";
-
-    /// <summary>
-    /// Training completion records collection.
-    /// </summary>
-    public const string TrainingCompletions = "trainingCompletions";
-
-    /// <summary>
     /// Personal record documents collection.
     /// </summary>
     public const string PersonalRecords = "personalRecords";
@@ -84,8 +74,9 @@ public static class MongoCollections
     public const string SessionTemplates = "sessionTemplates";
 
     /// <summary>
-    /// Session execution documents (#841) — unifies the legacy <see cref="WorkoutLogs"/> and
-    /// <see cref="TrainingCompletions"/> collections into one per-(client, session, date) record.
+    /// Session execution documents (#841) — one per (client, session, date), unifying the
+    /// legacy <c>workoutLogs</c> and <c>trainingCompletions</c> collections, both dropped
+    /// in #847.
     /// </summary>
     public const string SessionExecutions = "sessionExecutions";
 
