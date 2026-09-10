@@ -67,6 +67,22 @@ backend is **not** a features-only tree.
 | `Middleware/` | Global exception handler, locale capture | — |
 | `Seed/` | Seed data + runners | — |
 
+### The template libraries and the one deliberate exception
+
+Four of the five template document types implement `ILibraryDocument` and get
+the shared visibility contract — `LibraryVisibility`, own-plus-public search
+via `LibrarySearchHelper`, an ownership check via `LibraryAccessGuard`, and a
+cross-owner `Copy*` action: `MealTemplate`, `SessionTemplate`,
+`NutritionPlanTemplate`, `TrainingPlanTemplate`.
+
+`WorkoutTemplate` deliberately does **not**. It is keyed on `OwnerTrainerId`
+with no visibility field, and `Features/WorkoutTemplates/` is plain per-owner
+CRUD with no `Copy*` or `Search*` action — a workout block is personal
+shorthand, so cross-trainer sharing has little value. Reusing the library
+*error shape* (see `Features/WorkoutTemplates/Shared/WorkoutTemplateErrors.cs`)
+is not contract membership. Do not file this asymmetry as an inconsistency and
+do not "complete" it without a product decision (#1034).
+
 ## No horizontal layers
 
 Scoped rule, not a blanket ban. **Feature logic** does not get its own
