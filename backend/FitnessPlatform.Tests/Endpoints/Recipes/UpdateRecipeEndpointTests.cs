@@ -45,6 +45,7 @@ public class UpdateRecipeEndpointTests
         var request = new UpdateRecipeRequest
         {
             RecipeId = recipeId,
+            Version = 1,
             Name = "Same Name",
             Visibility = RecipeVisibility.Private,
             Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 100 }]
@@ -85,6 +86,7 @@ public class UpdateRecipeEndpointTests
         var request = new UpdateRecipeRequest
         {
             RecipeId = recipeId,
+            Version = 1,
             Name = "Same Name",
             // Visibility intentionally omitted — should preserve the existing Private value.
             Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 100 }]
@@ -95,6 +97,49 @@ public class UpdateRecipeEndpointTests
         await mongo.Recipes.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<Recipe>>(),
             Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private),
+            Arg.Any<ReplaceOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_StaleVersion_Returns409()
+    {
+        var recipeId = Guid.NewGuid();
+        var foodId = Guid.NewGuid();
+        // Recipe is currently at version 3; the caller still holds a stale version 1 copy.
+        var recipe = RecipeTestHelpers.CreateRecipe(
+            externalId: recipeId,
+            nutritionistId: _nutritionistId,
+            visibility: RecipeVisibility.Public,
+            version: 3);
+        var food = new Food
+        {
+            ExternalId = foodId,
+            Name = "Chicken",
+            NutrientValue = new NutrientValue { Kcal = 100, Protein = 20, Carbs = 0, Fat = 2 }
+        };
+        var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
+
+        var ep = Factory.Create<UpdateRecipeEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo);
+
+        var request = new UpdateRecipeRequest
+        {
+            RecipeId = recipeId,
+            Version = 1,
+            Name = "Stale Update",
+            Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 100 }]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+        await mongo.Recipes.DidNotReceive().ReplaceOneAsync(
+            Arg.Any<FilterDefinition<Recipe>>(),
+            Arg.Any<Recipe>(),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }

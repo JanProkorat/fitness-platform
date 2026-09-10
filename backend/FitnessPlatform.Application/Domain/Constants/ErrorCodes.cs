@@ -73,6 +73,9 @@ public static class ErrorCodes
     /// <summary>Recipe gallery is at its 6-entry cap; no further images can be added.</summary>
     public const string RecipeGalleryFull = "RECIPE_GALLERY_FULL";
 
+    /// <summary>The recipe version is stale; another write occurred first (optimistic concurrency).</summary>
+    public const string RecipeVersionConflict = "RECIPE_VERSION_CONFLICT";
+
     // ── Exercises ──────────────────────────────────────────────────
     /// <summary>User can only edit/delete their own custom exercises.</summary>
     public const string ExerciseNotOwned = "EXERCISE_NOT_OWNED";

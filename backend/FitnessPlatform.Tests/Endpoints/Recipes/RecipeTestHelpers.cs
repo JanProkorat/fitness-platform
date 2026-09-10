@@ -19,7 +19,8 @@ public static class RecipeTestHelpers
         Guid? nutritionistId = null,
         string name = "Test Recipe",
         RecipeVisibility visibility = RecipeVisibility.Public,
-        List<MealFood>? foods = null)
+        List<MealFood>? foods = null,
+        int version = 1)
     {
         return new Recipe
         {
@@ -29,7 +30,8 @@ public static class RecipeTestHelpers
             Foods = foods ?? [],
             TotalNutrients = new NutrientTotals(),
             Visibility = visibility,
-            DateCreated = DateTime.UtcNow
+            DateCreated = DateTime.UtcNow,
+            Version = version
         };
     }
 

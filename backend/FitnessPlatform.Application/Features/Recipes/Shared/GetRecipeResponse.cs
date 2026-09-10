@@ -81,6 +81,11 @@ public class GetRecipeResponse
     public DateTime? DateUpdated { get; set; }
 
     /// <summary>
+    /// Optimistic concurrency version. Clients must echo this value back on update.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
@@ -101,7 +106,8 @@ public class GetRecipeResponse
         GalleryImageUrls = recipe.GalleryImageUrls,
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
-        DateUpdated = recipe.DateUpdated
+        DateUpdated = recipe.DateUpdated,
+        Version = recipe.Version
     };
 
     /// <summary>
@@ -139,6 +145,7 @@ public class GetRecipeResponse
         GalleryImageUrls = recipe.GalleryImageUrls,
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
-        DateUpdated = recipe.DateUpdated
+        DateUpdated = recipe.DateUpdated,
+        Version = recipe.Version
     };
 }

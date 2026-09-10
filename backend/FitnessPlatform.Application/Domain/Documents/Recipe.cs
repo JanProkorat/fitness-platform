@@ -115,9 +115,20 @@ public class Recipe
     /// <summary>
     /// Meal types this recipe is suited for (e.g. "breakfast", "lunch", "dinner", "dessert").
     /// Additive/optional — absent on legacy documents, no backfill needed. No UI consumes this
-    /// yet (follow-up issue); Recipe has no <c>Version</c> field so there is no CAS concern.
+    /// yet (follow-up issue).
     /// </summary>
     [BsonElement("mealTypes")]
     [BsonIgnoreIfNull]
     public List<string>? MealTypes { get; set; }
+
+    /// <summary>
+    /// Optimistic concurrency version. Incremented on each update.
+    /// Legacy documents missing this BSON field deserialize to 1 — MongoDB.Driver 3.x
+    /// preserves the C# property initializer value (= 1) when the field is absent.
+    /// The CAS write filter in UpdateRecipeEndpoint handles this by also matching field-absent
+    /// documents when the client echoes back Version = 1 (the value it receives for
+    /// a legacy doc). After the first such write the field is stored and normal CAS applies.
+    /// </summary>
+    [BsonElement("version")]
+    public int Version { get; set; } = 1;
 }

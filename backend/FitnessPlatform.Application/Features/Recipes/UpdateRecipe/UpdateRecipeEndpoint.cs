@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -10,6 +11,7 @@ namespace FitnessPlatform.Application.Features.Recipes.UpdateRecipe;
 
 /// <summary>
 /// Updates an existing recipe with new food data and recalculated nutrient totals.
+/// Uses optimistic concurrency — the client must supply the current Version and it is bumped on each write.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class UpdateRecipeEndpoint(IMongoContext mongo)
@@ -23,7 +25,8 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         Summary(s =>
         {
             s.Summary = "Update recipe";
-            s.Description = "Updates an existing recipe's name, description, and food items.";
+            s.Description = "Updates an existing recipe's name, description, and food items. " +
+                            "Uses optimistic concurrency via the Version field.";
         });
     }
 
@@ -50,6 +53,14 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
         if (recipe is null)
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // Early optimistic concurrency check (in-memory, before the DB write)
+        if (recipe.Version != req.Version)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.RecipeVersionConflict,
+                "Version conflict. The recipe was modified by another request.", ct);
             return;
         }
 
@@ -107,10 +118,39 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             recipe.Visibility = req.Visibility.Value;
         }
         recipe.DateUpdated = DateTime.UtcNow;
+        recipe.Version = req.Version + 1;
 
-        await mongo.Recipes.ReplaceOneAsync(
-            Builders<Recipe>.Filter.Eq(r => r.ExternalId, recipe.ExternalId),
-            recipe, cancellationToken: ct);
+        // Version-guarded write: filter includes the pre-mutation version to prevent concurrent writes.
+        //
+        // Legacy documents (created before optimistic concurrency was added) have no
+        // "version" field stored in BSON. The MongoDB.Driver deserializes them using the
+        // C# property initializer (= 1), so clients receive Version = 1. However,
+        // Eq(version, 1) does NOT match a field-absent BSON document — the equality
+        // filter requires the field to exist. To allow the first write on legacy docs
+        // to succeed, the filter also matches when: (a) the field is absent AND
+        // (b) req.Version == 1 (the only value a client can receive for a legacy doc).
+        // After this first write the version field is stored and all subsequent writes
+        // use normal CAS (clause (a) is never true again for this document).
+        var normalVersionMatch = Builders<Recipe>.Filter.Eq(r => r.Version, req.Version);
+        var legacyFieldAbsent = req.Version == 1
+            ? Builders<Recipe>.Filter.Not(Builders<Recipe>.Filter.Exists(r => r.Version))
+            : null;
+        var versionClause = legacyFieldAbsent is not null
+            ? Builders<Recipe>.Filter.Or(normalVersionMatch, legacyFieldAbsent)
+            : normalVersionMatch;
+
+        var versionFilter = Builders<Recipe>.Filter.Eq(r => r.ExternalId, recipe.ExternalId)
+            & versionClause;
+
+        var result = await mongo.Recipes.ReplaceOneAsync(versionFilter, recipe, cancellationToken: ct);
+
+        // Double-guard: if ModifiedCount == 0 a concurrent write beat us
+        if (result.ModifiedCount == 0)
+        {
+            await this.SendProblemAsync(409, ErrorCodes.RecipeVersionConflict,
+                "Version conflict. The recipe was modified concurrently.", ct);
+            return;
+        }
 
         await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, currentUserId: nutritionistId), ct);
     }
