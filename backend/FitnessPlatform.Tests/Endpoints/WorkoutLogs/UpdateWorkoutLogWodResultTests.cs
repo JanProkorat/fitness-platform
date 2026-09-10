@@ -5,7 +5,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.WorkoutLogs.UpdateWorkout;
+using FitnessPlatform.Application.Features.SessionExecutions.UpdateWorkout;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;

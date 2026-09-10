@@ -2,7 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Features.WorkoutLogs.GetWorkoutLog;
+using FitnessPlatform.Application.Features.SessionExecutions.GetWorkoutLog;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;

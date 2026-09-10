@@ -3,7 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
-using FitnessPlatform.Application.Features.WorkoutLogs.GetExerciseProgress;
+using FitnessPlatform.Application.Features.SessionExecutions.GetExerciseProgress;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;

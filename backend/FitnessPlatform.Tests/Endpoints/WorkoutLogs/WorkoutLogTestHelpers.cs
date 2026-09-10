@@ -13,7 +13,7 @@ namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
 /// <summary>
 /// Test helpers for workout log endpoint tests.
 ///
-/// #841: every <c>Features/WorkoutLogs/**</c> endpoint now reads/writes exclusively
+/// #841: every <c>Features/SessionExecutions/**</c> endpoint now reads/writes exclusively
 /// <see cref="IMongoContext.SessionExecutions"/> (the retired <c>WorkoutLogs</c> collection is
 /// read-only for one release, per the design ruling). <see cref="CreateLog"/> therefore builds a
 /// <see cref="SessionExecution"/> (with a populated <see cref="SessionExecutionPerformance"/>,

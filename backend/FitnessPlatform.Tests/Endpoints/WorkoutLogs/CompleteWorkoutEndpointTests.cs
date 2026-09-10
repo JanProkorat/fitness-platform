@@ -7,7 +7,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining;
-using FitnessPlatform.Application.Features.WorkoutLogs.CompleteWorkout;
+using FitnessPlatform.Application.Features.SessionExecutions.CompleteWorkout;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;

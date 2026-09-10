@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.WorkoutLogs.GoLive;
+using FitnessPlatform.Application.Features.SessionExecutions.GoLive;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Options;
