@@ -49,11 +49,6 @@ internal static class CliCommandDispatcher
             return CliCommand.BackfillPhotoDescriptions;
         }
 
-        if (args.Contains("--backfill-plan-goals"))
-        {
-            return CliCommand.BackfillPlanGoals;
-        }
-
         if (args.Contains("--drop-legacy-training-collections"))
         {
             return CliCommand.DropLegacyTrainingCollections;
@@ -87,10 +82,6 @@ internal static class CliCommandDispatcher
 
             case CliCommand.BackfillPhotoDescriptions:
                 await RunBackfillPhotoDescriptionsAsync(app);
-                return true;
-
-            case CliCommand.BackfillPlanGoals:
-                await RunBackfillPlanGoalsAsync(app);
                 return true;
 
             case CliCommand.DropLegacyTrainingCollections:
@@ -239,19 +230,6 @@ internal static class CliCommandDispatcher
         var (mealCount, dayCount) = await service.BackfillAsync();
         Console.WriteLine($"Meal photos updated: {mealCount}");
         Console.WriteLine($"Day photos updated:  {dayCount}");
-    }
-
-    private static async Task RunBackfillPlanGoalsAsync(WebApplication app)
-    {
-        // One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
-        // NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
-        // goal fields were introduced.
-        // Usage: dotnet run -- --backfill-plan-goals
-        using var scope = app.Services.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<PlanGoalBackfillService>();
-        var (nutritionCount, trainingCount) = await service.BackfillAsync();
-        Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
-        Console.WriteLine($"Training plans updated:  {trainingCount}");
     }
 
     private static async Task RunDropLegacyTrainingCollectionsAsync(WebApplication app)

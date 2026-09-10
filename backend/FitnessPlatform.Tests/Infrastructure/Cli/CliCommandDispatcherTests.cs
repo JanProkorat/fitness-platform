@@ -54,14 +54,6 @@ public class CliCommandDispatcherTests
     }
 
     [Fact]
-    public void ParseCommand_BackfillPlanGoalsFlag_ReturnsBackfillPlanGoals()
-    {
-        var result = CliCommandDispatcher.ParseCommand(["--backfill-plan-goals"]);
-
-        result.Should().Be(CliCommand.BackfillPlanGoals);
-    }
-
-    [Fact]
     public void ParseCommand_DropLegacyTrainingCollectionsFlag_ReturnsDropLegacyTrainingCollections()
     {
         var result = CliCommandDispatcher.ParseCommand(["--drop-legacy-training-collections"]);
@@ -103,18 +95,18 @@ public class CliCommandDispatcherTests
     public void ParseCommand_FlagNotFirstElement_StillMatches()
     {
         // Matching is position-independent — args.Contains(...) over the whole array.
-        var result = CliCommandDispatcher.ParseCommand(["--verbose", "--backfill-plan-goals"]);
+        var result = CliCommandDispatcher.ParseCommand(["--verbose", "--drop-legacy-training-collections"]);
 
-        result.Should().Be(CliCommand.BackfillPlanGoals);
+        result.Should().Be(CliCommand.DropLegacyTrainingCollections);
     }
 
     [Fact]
     public void ParseCommand_MultipleFlagsPresent_FirstInFixedOrderWins()
     {
         // Fixed precedence: --seed > --qa-seed > --backfill-photo-descriptions >
-        // --backfill-plan-goals, regardless of array order.
+        // --drop-legacy-training-collections, regardless of array order.
         var result = CliCommandDispatcher.ParseCommand(
-            ["--backfill-plan-goals", "--backfill-photo-descriptions", "--qa-seed", "--seed"]);
+            ["--drop-legacy-training-collections", "--backfill-photo-descriptions", "--qa-seed", "--seed"]);
 
         result.Should().Be(CliCommand.Seed);
     }
@@ -123,7 +115,7 @@ public class CliCommandDispatcherTests
     public void ParseCommand_QaSeedAndBackfillFlags_QaSeedWins()
     {
         var result = CliCommandDispatcher.ParseCommand(
-            ["--backfill-plan-goals", "--qa-seed"]);
+            ["--backfill-photo-descriptions", "--qa-seed"]);
 
         result.Should().Be(CliCommand.QaSeed);
     }
