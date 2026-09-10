@@ -76,17 +76,31 @@ A deterministic training plan is seeded for the QA client on every `/test/reset`
 | Constant                          | Value                                  | What it maps to                                    |
 | --------------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `QaTrainingPlanExternalId`        | `dddddddd-dddd-dddd-dddd-dddddddddddd` | The plan's `ExternalId` (used in API responses)    |
-| `ClientProfilePublicId`           | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `TrainingPlan.ClientId` (NOT the user id — see note) |
+| `ClientUserId`                    | `11111111-1111-1111-1111-111111111111` | `TrainingPlan.ClientId` (ApplicationUser.Id — see note) |
+| `ClientProfilePublicId`           | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `ClientProfile.PublicId` — trainer-facing routes only, NOT any Mongo `ClientId` |
 | `TrainerUserId`                   | `22222222-2222-2222-2222-222222222222` | `TrainingPlan.TrainerId` (ApplicationUser.Id — see note) |
 | `ForTimeSectionId`                | `eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee` | `TrainingSection.SectionId` for Section 1          |
 | `AmrapSectionId`                  | `ffffffff-ffff-ffff-ffff-ffffffffffff` | `TrainingSection.SectionId` for Section 2          |
 | `StandardSectionId`               | `00000000-0000-0000-aaaa-000000000001` | `TrainingSection.SectionId` for Section 3          |
 | `QaSessionId`                     | `00000000-0000-0000-bbbb-000000000001` | `TrainingSession.SessionId`                        |
 
-> **Note on ClientId.** `TrainingPlan.ClientId` is keyed on `ClientProfile.PublicId`
-> (the profile's public identifier, `aaaaaaaa-...`), **not** on `ApplicationUser.Id`
-> (`11111111-...`). `GET /client/plans` filters by `ClientProfile.PublicId`. Using the
-> user id directly would make the plan invisible to that endpoint.
+> **Note on ClientId.** `TrainingPlan.ClientId` is keyed on `ApplicationUser.Id`
+> (`11111111-...`), **not** on `ClientProfile.PublicId` (`aaaaaaaa-...`), since the #840
+> migration. `GetClientPlansEndpoint.cs:59` resolves `var clientId = clientProfile.UserId`
+> and filters on that, so seeding the profile `PublicId` would make the plan invisible.
+> Every Mongo document keys the same way — `SessionExecution`, `SessionLog`,
+> `PersonalRecord`, `MealLog`.
+>
+> The profile `PublicId` is still the right value in **API query parameters** on
+> trainer-facing routes: `GET /training/plans?clientId=<ClientProfilePublicId>` resolves
+> `cp.PublicId == req.ClientId` and only then filters `TrainingPlan.ClientId` by that
+> profile's `UserId` (`GetTrainingPlansEndpoint.cs:85-87`). Query parameter = `PublicId`,
+> stored Mongo field = `ApplicationUser.Id`; conflating the two is what this note
+> originally got wrong.
+>
+> This note asserted the exact opposite before #847. The old wording was correct only
+> before #840, and a join by `PublicId` now matches zero documents silently rather than
+> failing, so treat any surviving copy of the old claim as stale.
 >
 > **Note on TrainerId.** `TrainingPlan.TrainerId` is keyed on `ApplicationUser.Id`
 > (`22222222-...`), **not** on `ProfessionalProfile.PublicId` (`bbbbbbbb-...`).
@@ -231,7 +245,7 @@ All three recipes are owned by the QA Nutri, visibility `Public`.
 | Constant                     | Value                                  | What it maps to                                    |
 | ---------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `QaNutritionPlanExternalId`  | `dddddddd-eeee-ffff-0000-111111111111` | The plan's `ExternalId`                            |
-| `ClientProfilePublicId`      | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `NutritionPlan.ClientId` (profile public id)       |
+| `ClientUserId`               | `11111111-1111-1111-1111-111111111111` | `NutritionPlan.ClientId` (ApplicationUser.Id, #840) |
 | `NutriUserId`                | `33333333-3333-3333-3333-333333333333` | `NutritionPlan.NutritionistId` (nutritionist user id) |
 
 Plan shape:
@@ -265,7 +279,7 @@ A third training plan is seeded for the **second** QA client/trainer pair. Its p
 - Client: `qa.client2@fitnessplatform.test` (`Client2UserId = 55555555-5555-5555-5555-555555555555`)
 - Trainer: `qa.trainer2@fitnessplatform.test` (`Trainer2UserId = 66666666-6666-6666-6666-666666666666`)
 - `TrainingPlan.TrainerId` = `Trainer2UserId` (ApplicationUser.Id — same rule as all other plans)
-- `TrainingPlan.ClientId` = `Client2ProfilePublicId = 55555555-5555-5555-aaaa-000000000001` (ClientProfile.PublicId — same rule as all other plans)
+- `TrainingPlan.ClientId` = `Client2UserId = 55555555-5555-5555-5555-555555555555` (ApplicationUser.Id — same rule as all other plans, per #840)
 
 ### Stable GUIDs
 
