@@ -121,7 +121,7 @@ public class GetTrainingPlanLoggedSetsTests
         TrainingPlan plan,
         SessionExecution[] executions)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
             executions: executions.ToList());
 

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="CompleteWorkoutEndpoint"/>.

@@ -159,6 +159,19 @@ internal static class CliCommandDispatcher
         Console.WriteLine($"Day photos updated:  {dayCount}");
     }
 
+    private static async Task RunBackfillPlanGoalsAsync(WebApplication app)
+    {
+        // One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
+        // NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
+        // goal fields were introduced.
+        // Usage: dotnet run -- --backfill-plan-goals
+        using var scope = app.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<PlanGoalBackfillService>();
+        var (nutritionCount, trainingCount) = await service.BackfillAsync();
+        Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
+        Console.WriteLine($"Training plans updated:  {trainingCount}");
+    }
+
     private static async Task RunDropLegacyTrainingCollectionsAsync(WebApplication app)
     {
         // One-shot cleanup: drop the workoutLogs / trainingCompletions collections that
@@ -206,18 +219,5 @@ internal static class CliCommandDispatcher
         Console.WriteLine(remaining.Count == 0
             ? "Verified: neither legacy collection remains."
             : $"WARNING: still present after drop: {string.Join(", ", remaining)}");
-    }
-
-    private static async Task RunBackfillPlanGoalsAsync(WebApplication app)
-    {
-        // One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
-        // NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
-        // goal fields were introduced.
-        // Usage: dotnet run -- --backfill-plan-goals
-        using var scope = app.Services.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<PlanGoalBackfillService>();
-        var (nutritionCount, trainingCount) = await service.BackfillAsync();
-        Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
-        Console.WriteLine($"Training plans updated:  {trainingCount}");
     }
 }

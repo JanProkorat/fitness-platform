@@ -10,7 +10,7 @@ using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Regression tests for the StartWorkout ownership check (issue #382).

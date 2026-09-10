@@ -1255,7 +1255,7 @@ public class GetTodaySessionEndpointTests
 
         // Live session: only set #1 stamped — sets #2 and #3 are null. The Today-card checkbox
         // tick (below) lands on the SAME (sessionId, date) key, so — matching the pre-#847
-        // BuildSessionExecutions merge behaviour — it is folded into this ONE document rather
+        // the pre-#847 fixture fold — it is folded into this ONE document rather
         // than seeded as a second one.
         var startedAt = DateTime.UtcNow;
         var execution = new SessionExecution

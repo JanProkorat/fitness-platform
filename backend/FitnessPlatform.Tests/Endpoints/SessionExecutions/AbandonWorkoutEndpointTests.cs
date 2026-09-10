@@ -10,7 +10,7 @@ using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="AbandonWorkoutEndpoint"/> (issue #401 — Defect 3 fix).

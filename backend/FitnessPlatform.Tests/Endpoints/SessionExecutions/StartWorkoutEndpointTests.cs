@@ -14,7 +14,7 @@ using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="StartWorkoutEndpoint"/>.

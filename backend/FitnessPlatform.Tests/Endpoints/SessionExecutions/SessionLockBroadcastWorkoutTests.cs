@@ -17,7 +17,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests that verify the <c>sessioneditlockchanged</c> SignalR broadcast behaviour

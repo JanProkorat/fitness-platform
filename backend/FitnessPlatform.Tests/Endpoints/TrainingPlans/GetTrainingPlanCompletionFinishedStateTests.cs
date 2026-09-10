@@ -14,7 +14,7 @@ namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 /// Tests for the <see cref="GetTrainingPlanEndpoint"/> <c>SessionExecutions</c> fold-in
 /// using checkbox-only <see cref="SessionExecution"/> documents (the mobile home-checkbox path).
 ///
-/// The live path (WorkoutLog.IsCompleted=true) is already covered by
+/// The live path (SessionExecutionStatus.Completed) is already covered by
 /// <see cref="GetTrainingPlanSessionExecutionTests"/>. This class covers the checkbox path.
 ///
 /// Issue #429 follow-up: sessions finished via the mobile "mark whole day complete" checkbox
@@ -107,7 +107,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
         TrainingPlan plan,
         List<SessionExecution> executions)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
             executions: executions);
 
@@ -189,7 +189,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
 
         // Live session, seeded by a DIFFERENT ClientId than the completion (mirrors the
         // pre-#847 fixture, where WorkoutLog.ClientId was a fresh random Guid rather than
-        // _clientId) — MergeToSessionExecutions grouped log/completion documents by their
+        // _clientId) — the pre-#847 fixture fold grouped log/completion documents by their
         // OWN ClientId, so this produces a second, independent SessionExecution rather than
         // merging into the completion's document.
         var liveStartedAt = _now.AddMinutes(-30);

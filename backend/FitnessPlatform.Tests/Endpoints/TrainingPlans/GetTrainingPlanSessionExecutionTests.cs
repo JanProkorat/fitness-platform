@@ -140,7 +140,7 @@ public class GetTrainingPlanSessionExecutionTests
         TrainingPlan plan,
         SessionExecution[] executions)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
             executions: executions.ToList());
 
@@ -322,7 +322,7 @@ public class GetTrainingPlanSessionExecutionTests
         var plan = BuildPlan(); // plan.TrainerId == _trainerId
         var otherTrainerId = Guid.NewGuid();
 
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
             executions: []);
 

@@ -94,8 +94,6 @@ public class GetDashboardSummaryEndpointTests
             .Returns(emptyMealCursor);
         mongo.MealLogs.Returns(mealLogCollection);
 
-        // Workout logs — empty (projected to DateTime)
-
         return mongo;
     }
 

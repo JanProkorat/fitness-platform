@@ -87,8 +87,6 @@ public class SessionLockStateTests
             });
         mongo.Exercises.Returns(exerciseCollection);
 
-
-
         return mongo;
     }
 
@@ -312,8 +310,6 @@ public class SessionLockStateTests
                 return cursor;
             });
         mongo.TrainingPlans.Returns(planCollection);
-
-        // Completions cursor (empty — triggers InsertOneAsync)
 
         var db = new MockDbBuilder()
             .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
