@@ -5,7 +5,7 @@ namespace FitnessPlatform.Tests.Infrastructure.Cli;
 
 /// <summary>
 /// Unit tests for <see cref="CliCommandDispatcher.ParseCommand"/> — the pure
-/// argument-matching function that replaced four independent
+/// argument-matching function that replaced the per-flag
 /// <c>args.Contains(...)</c> checks. Covers the one behaviour-change vector
 /// identified in review: precedence order, position independence, exact
 /// element matching, and the empty-args case the
@@ -104,7 +104,8 @@ public class CliCommandDispatcherTests
     public void ParseCommand_MultipleFlagsPresent_FirstInFixedOrderWins()
     {
         // Fixed precedence: --seed > --qa-seed > --backfill-photo-descriptions >
-        // --drop-legacy-training-collections, regardless of array order.
+        // --drop-legacy-training-collections > --rename-trainer-notes-collection,
+        // regardless of array order. This case passes the first four.
         var result = CliCommandDispatcher.ParseCommand(
             ["--drop-legacy-training-collections", "--backfill-photo-descriptions", "--qa-seed", "--seed"]);
 
