@@ -7,6 +7,12 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document representing a training plan assigned to a client by a trainer.
 /// </summary>
+/// <remarks>
+/// Tolerates a legacy root-level <c>datePublished</c> element: commit e2a62a6c (#1015)
+/// removed this property from both plan documents, so any TrainingPlan written before
+/// that change carries the same orphaned element as NutritionPlan.
+/// </remarks>
+[BsonIgnoreExtraElements]
 public class TrainingPlan
 {
     /// <summary>

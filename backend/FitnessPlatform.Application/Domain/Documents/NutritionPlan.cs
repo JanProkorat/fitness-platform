@@ -7,6 +7,11 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document representing a nutrition plan assigned to a client by a nutritionist.
 /// </summary>
+/// <remarks>
+/// Tolerates a legacy root-level <c>datePublished</c> element left over on documents
+/// written before its property was deleted by #1015 (see git commit e2a62a6c).
+/// </remarks>
+[BsonIgnoreExtraElements]
 public class NutritionPlan
 {
     /// <summary>

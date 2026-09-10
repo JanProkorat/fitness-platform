@@ -302,10 +302,9 @@ builder.Services.AddScoped<PlanConcurrencyGuard>();
 // subscription (#593). No endpoint gates on this yet — see #594.
 builder.Services.AddScoped<EntitlementService>();
 
-// One-shot CLI backfills, resolved by CliCommandDispatcher — never `new`-ed
-// directly. Scoped: both take IApplicationDbContext, which is scoped (see :56).
+// One-shot CLI backfill, resolved by CliCommandDispatcher — never `new`-ed
+// directly. Scoped: takes IApplicationDbContext, which is scoped (see :56).
 builder.Services.AddScoped<PhotoDescriptionBackfillService>();
-builder.Services.AddScoped<PlanGoalBackfillService>();
 
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
@@ -345,7 +344,7 @@ if (testingEnabled)
 }
 
 // One-shot CLI commands (--seed, --qa-seed, --backfill-photo-descriptions,
-// --backfill-plan-goals, --drop-legacy-training-collections).
+// --drop-legacy-training-collections).
 // CliCommandDispatcher.TryHandleAsync's own doc
 // comment states the contract: a `true` return means one of them ran, and
 // this process must exit right here — never falling through to the
