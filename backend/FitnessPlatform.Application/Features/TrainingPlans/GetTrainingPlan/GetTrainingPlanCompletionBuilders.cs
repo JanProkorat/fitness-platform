@@ -2,7 +2,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.ClientTraining;
-using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Features.SessionExecutions.Shared;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 

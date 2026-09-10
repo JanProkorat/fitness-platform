@@ -4,7 +4,7 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.WorkoutLogs.StartWorkout;
+using FitnessPlatform.Application.Features.SessionExecutions.StartWorkout;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;

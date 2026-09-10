@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.WorkoutLogs.AbandonWorkout;
+using FitnessPlatform.Application.Features.SessionExecutions.AbandonWorkout;
 using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;

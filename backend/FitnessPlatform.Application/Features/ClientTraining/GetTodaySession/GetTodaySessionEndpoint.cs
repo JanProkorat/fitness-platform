@@ -7,7 +7,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
-using FitnessPlatform.Application.Features.WorkoutLogs.Shared;
+using FitnessPlatform.Application.Features.SessionExecutions.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
