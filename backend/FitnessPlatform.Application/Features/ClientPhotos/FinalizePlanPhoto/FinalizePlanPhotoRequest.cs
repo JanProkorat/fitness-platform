@@ -1,6 +1,6 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
+namespace FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 
 /// <summary>
 /// Request model for finalizing a plan photo upload by inserting a <see cref="Domain.Entities.PlanPhoto"/> row.

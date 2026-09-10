@@ -5,13 +5,13 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
+using FitnessPlatform.Application.Features.ClientPhotos.GetPlanPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
+namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
 /// <summary>
 /// Tests for <see cref="GetPlanPhotosEndpoint"/>.

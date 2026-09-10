@@ -9,7 +9,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.GeneratePlanPhotoUploadUrl;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GeneratePlanPhotoUploadUrl;
 
 /// <summary>
 /// Generates a pre-signed URL for the client to upload a plan photo directly to blob storage.

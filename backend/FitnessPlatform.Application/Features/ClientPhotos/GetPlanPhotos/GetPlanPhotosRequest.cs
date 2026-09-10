@@ -1,6 +1,6 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GetPlanPhotos;
 
 /// <summary>
 /// Request model for listing plan photos with optional category filter and pagination.

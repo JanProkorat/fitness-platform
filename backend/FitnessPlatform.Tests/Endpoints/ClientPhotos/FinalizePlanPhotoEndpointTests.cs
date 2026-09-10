@@ -7,7 +7,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
+using FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
+namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
 /// <summary>
 /// Tests for <see cref="FinalizePlanPhotoEndpoint"/>.

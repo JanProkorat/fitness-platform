@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -13,7 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
+namespace FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 
 /// <summary>
 /// Finalizes a plan photo upload by inserting a <see cref="PlanPhoto"/> row in PostgreSQL.

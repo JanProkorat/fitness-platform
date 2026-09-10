@@ -6,7 +6,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.DeletePlanPhoto;
+namespace FitnessPlatform.Application.Features.ClientPhotos.DeletePlanPhoto;
 
 /// <summary>
 /// Deletes a plan photo. Only the user who uploaded the photo may delete it.

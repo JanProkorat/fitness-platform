@@ -3,7 +3,7 @@ using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
+namespace FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 
 /// <summary>
 /// Validator for <see cref="FinalizePlanPhotoRequest"/>.

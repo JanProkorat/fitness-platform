@@ -10,7 +10,7 @@ using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
+namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
 /// <summary>
 /// Integration tests for the diary-request linking feature of POST /client/plans/{planId}/photos.
