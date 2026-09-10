@@ -70,6 +70,14 @@ public class CliCommandDispatcherTests
     }
 
     [Fact]
+    public void ParseCommand_RenameTrainerNotesCollectionFlag_ReturnsRenameTrainerNotesCollection()
+    {
+        var result = CliCommandDispatcher.ParseCommand(["--rename-trainer-notes-collection"]);
+
+        result.Should().Be(CliCommand.RenameTrainerNotesCollection);
+    }
+
+    [Fact]
     public void ParseCommand_NoFlag_DoesNotTriggerTheDestructiveDrop()
     {
         // The only destructive command in the seam must never be selected by a boot with
@@ -78,6 +86,7 @@ public class CliCommandDispatcherTests
         CliCommandDispatcher.ParseCommand([]).Should().Be(CliCommand.None);
         CliCommandDispatcher.ParseCommand(["--seed"]).Should().Be(CliCommand.Seed);
         CliCommandDispatcher.ParseCommand(["--drop-legacy"]).Should().Be(CliCommand.None);
+        CliCommandDispatcher.ParseCommand(["--rename-trainer-notes"]).Should().Be(CliCommand.None);
     }
 
     [Fact]

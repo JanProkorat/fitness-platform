@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -58,6 +59,11 @@ internal static class CliCommandDispatcher
             return CliCommand.DropLegacyTrainingCollections;
         }
 
+        if (args.Contains("--rename-trainer-notes-collection"))
+        {
+            return CliCommand.RenameTrainerNotesCollection;
+        }
+
         return CliCommand.None;
     }
 
@@ -91,10 +97,86 @@ internal static class CliCommandDispatcher
                 await RunDropLegacyTrainingCollectionsAsync(app);
                 return true;
 
+            case CliCommand.RenameTrainerNotesCollection:
+                await RunRenameTrainerNotesCollectionAsync(app);
+                return true;
+
             case CliCommand.None:
             default:
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Renames the legacy snake_case <c>trainer_notes</c> collection to the camelCase
+    /// <see cref="MongoCollections.TrainerNotes"/> name every other collection constant in this
+    /// backend uses (#1033). Uses <c>renameCollection</c> rather than drop+recreate: MongoDB
+    /// auto-creates a collection lazily on first write, so an environment that received this
+    /// code change but never ran this command would otherwise lose its trainer notes with no
+    /// error in any log the moment a write landed under the new name.
+    /// </summary>
+    /// <remarks>
+    /// Split out from the thin <see cref="RunRenameTrainerNotesCollectionAsync"/> host wrapper —
+    /// unlike <see cref="RunDropLegacyTrainingCollectionsAsync"/>, which resolves its own scope
+    /// and is therefore untestable, this method takes <see cref="IMongoDatabase"/> directly so
+    /// <c>FitnessPlatform.Tests</c> (see the assembly's <c>InternalsVisibleTo</c>) can drive all
+    /// four rename cases against a real Testcontainers Mongo instance.
+    /// </remarks>
+    internal static async Task RenameTrainerNotesCollectionAsync(IMongoDatabase database)
+    {
+        const string legacyName = "trainer_notes";
+        var targetName = MongoCollections.TrainerNotes;
+
+        Console.WriteLine($"Database: {database.DatabaseNamespace.DatabaseName}");
+
+        using var nameCursor = await database.ListCollectionNamesAsync();
+        var existing = await nameCursor.ToListAsync();
+
+        var legacyExists = existing.Contains(legacyName);
+        var targetExists = existing.Contains(targetName);
+
+        if (!legacyExists && !targetExists)
+        {
+            Console.WriteLine($"  {legacyName}: not present, nothing to do");
+            return;
+        }
+
+        if (!legacyExists && targetExists)
+        {
+            Console.WriteLine($"  {targetName}: already renamed, nothing to do");
+            return;
+        }
+
+        if (legacyExists && targetExists)
+        {
+            await PrintBothCollectionsExistWarningAsync(database, legacyName, targetName);
+            return;
+        }
+
+        var count = await database.GetCollection<BsonDocument>(legacyName)
+            .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+
+        try
+        {
+            // Deliberately no dropTarget: true — see this method's doc comment. If targetName
+            // was created between the ListCollectionNamesAsync check above and this call, Mongo
+            // raises NamespaceExists (code 48) instead of silently destroying it; the catch below
+            // reports that race the same way as the "both exist" case, rather than letting the
+            // exception escape unhandled.
+            await database.RenameCollectionAsync(legacyName, targetName);
+        }
+        catch (MongoCommandException ex) when (ex.Code == 48)
+        {
+            await PrintBothCollectionsExistWarningAsync(database, legacyName, targetName);
+            return;
+        }
+
+        using var verifyCursor = await database.ListCollectionNamesAsync();
+        var remaining = await verifyCursor.ToListAsync();
+
+        Console.WriteLine(remaining.Contains(targetName) && !remaining.Contains(legacyName)
+            ? $"  {legacyName}: renamed to {targetName} ({count} document(s))"
+            : $"WARNING: rename did not verify as expected. Names present after rename: {string.Join(", ", remaining.Where(name => name == legacyName || name == targetName))}");
     }
 
     private static async Task RunSeedAsync(WebApplication app)
@@ -219,5 +301,34 @@ internal static class CliCommandDispatcher
         Console.WriteLine(remaining.Count == 0
             ? "Verified: neither legacy collection remains."
             : $"WARNING: still present after drop: {string.Join(", ", remaining)}");
+    }
+
+    private static async Task RunRenameTrainerNotesCollectionAsync(WebApplication app)
+    {
+        // One-shot rename: trainer_notes (the original snake_case name) -> trainerNotes, matching
+        // every other MongoCollections constant (#1033). Usage:
+        // dotnet run -- --rename-trainer-notes-collection
+        using var scope = app.Services.CreateScope();
+        var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
+
+        await RenameTrainerNotesCollectionAsync(database);
+    }
+
+    /// <summary>
+    /// Prints the manual-merge warning for the "both collections exist" case — a partial prior
+    /// run of <see cref="RenameTrainerNotesCollectionAsync"/>, or a race against a concurrent
+    /// writer. Never resolved automatically: dropping either collection risks destroying whichever
+    /// one holds the real notes, so both are left untouched.
+    /// </summary>
+    private static async Task PrintBothCollectionsExistWarningAsync(IMongoDatabase database, string legacyName, string targetName)
+    {
+        var legacyCount = await database.GetCollection<BsonDocument>(legacyName)
+            .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+        var targetCount = await database.GetCollection<BsonDocument>(targetName)
+            .CountDocumentsAsync(FilterDefinition<BsonDocument>.Empty);
+
+        Console.WriteLine(
+            $"WARNING: both '{legacyName}' ({legacyCount} document(s)) and '{targetName}' ({targetCount} document(s)) exist. " +
+            "Refusing to rename or drop either collection automatically -- merge them manually before re-running this command.");
     }
 }
