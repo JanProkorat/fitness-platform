@@ -310,7 +310,7 @@ TrainingPlan (ExternalId = 55555555-5555-5555-dddd-000000000001)
 
 ```
 SessionExecution (ExternalId = 55555555-5555-5555-4455-000000000001)
-  IsCompleted: true
+  Status: Completed
   ClientId: 55555555-5555-5555-5555-555555555555  (Client2UserId — ApplicationUser.Id)
 
   Section "Standard work" (SectionId = 55555555-5555-5555-aaaa-000000000001)
