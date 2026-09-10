@@ -165,6 +165,57 @@ public class UpdateRecipeEndpointTests
     }
 
     [Fact]
+    public async Task HandleAsync_ConcurrentWrite_DoubleGuard_Returns409()
+    {
+        // Recipe is at version 1, request carries version 1 (matches in memory, so the early
+        // pre-check passes and control reaches the write) — but ReplaceOneAsync returns
+        // ModifiedCount = 0 (a concurrent write beat us between the fetch and this write).
+        var recipeId = Guid.NewGuid();
+        var foodId = Guid.NewGuid();
+        var recipe = RecipeTestHelpers.CreateRecipe(
+            externalId: recipeId,
+            nutritionistId: _nutritionistId,
+            visibility: RecipeVisibility.Public,
+            version: 1);
+        var food = new Food
+        {
+            ExternalId = foodId,
+            Name = "Chicken",
+            NutrientValue = new NutrientValue { Kcal = 100, Protein = 20, Carbs = 0, Fat = 2 }
+        };
+        var mongo = RecipeTestHelpers.CreateMockMongo(
+            recipes: [recipe], foods: [food], modifiedCount: 0);
+
+        using var responseBody = new MemoryStream();
+        var ep = Factory.Create<UpdateRecipeEndpoint>(
+            ctx =>
+            {
+                ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)));
+                ctx.Request.HttpContext.Response.Body = responseBody;
+            },
+            mongo);
+
+        var request = new UpdateRecipeRequest
+        {
+            RecipeId = recipeId,
+            Version = 1,
+            Name = "Concurrent Update",
+            Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 100 }]
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody, cancellationToken: TestContext.Current.CancellationToken);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.RecipeVersionConflict);
+    }
+
+    [Fact]
     public async Task HandleAsync_NotOwner_Returns404()
     {
         var recipeId = Guid.NewGuid();
