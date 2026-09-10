@@ -7,6 +7,15 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document representing a training plan assigned to a client by a trainer.
 /// </summary>
+/// <remarks>
+/// Tolerates a legacy root-level <c>datePublished</c> element: commit e2a62a6c (#1015)
+/// removed this property from both plan documents, so any TrainingPlan written before
+/// that change carries the same orphaned element as NutritionPlan. Cost: a mistyped or
+/// renamed root <c>[BsonElement]</c> also stops throwing and silently reads its property's
+/// initializer instead — for <see cref="Version"/> (<c>= 1</c>) that turns a loud
+/// <see cref="FormatException"/> into a permanent optimistic-concurrency 409.
+/// </remarks>
+[BsonIgnoreExtraElements]
 public class TrainingPlan
 {
     /// <summary>
