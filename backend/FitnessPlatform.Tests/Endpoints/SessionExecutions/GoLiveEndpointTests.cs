@@ -11,7 +11,7 @@ using FitnessPlatform.Tests.Endpoints;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="GoLiveEndpoint"/> (issue #401 — Defect 1 fix).

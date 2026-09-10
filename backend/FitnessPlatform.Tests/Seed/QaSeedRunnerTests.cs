@@ -453,7 +453,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         // COMPLETED session — SessionExecution with Status=Completed.
         var completedLog = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedWorkoutLogId)
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedExecutionId)
             .FirstOrDefaultAsync(ct);
 
         completedLog.Should().NotBeNull("completed SessionExecution must be seeded");
@@ -474,7 +474,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         // SKIPPED session — SessionExecution with Status=Partial.
         var skippedLog = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedWorkoutLogId)
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedExecutionId)
             .FirstOrDefaultAsync(ct);
 
         skippedLog.Should().NotBeNull("skipped SessionExecution must be seeded");
@@ -600,12 +600,12 @@ public class QaSeedRunnerTests : IAsyncLifetime
         planCount.Should().Be(1, "past training plan must not be duplicated on re-seed");
 
         var completedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedWorkoutLogId),
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedExecutionId),
             cancellationToken: ct);
         completedLogCount.Should().Be(1, "completed SessionExecution must not be duplicated on re-seed");
 
         var skippedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedWorkoutLogId),
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedExecutionId),
             cancellationToken: ct);
         skippedLogCount.Should().Be(1, "skipped SessionExecution must not be duplicated on re-seed");
     }
@@ -988,7 +988,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
         var log = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedWorkoutLogId)
+            .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedExecutionId)
             .FirstOrDefaultAsync(ct);
 
         log.Should().NotBeNull("main-plan completed SessionExecution must be seeded");
@@ -1055,7 +1055,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
         var count = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedWorkoutLogId),
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedExecutionId),
             cancellationToken: ct);
 
         count.Should().Be(1, "main-plan SessionExecution must not be duplicated on re-seed");
@@ -1109,7 +1109,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         // SessionExecution must exist with SectionId populated on both sections.
         var log = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionWorkoutLogId)
+            .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionExecutionId)
             .FirstOrDefaultAsync(ct);
 
         log.Should().NotBeNull("multi-section SessionExecution must be seeded");
@@ -1188,7 +1188,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
         planCount.Should().Be(1, "multi-section plan must not be duplicated on re-seed");
 
         var logCount = await mongo.SessionExecutions.CountDocumentsAsync(
-            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionWorkoutLogId),
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionExecutionId),
             cancellationToken: ct);
         logCount.Should().Be(1, "multi-section SessionExecution must not be duplicated on re-seed");
     }

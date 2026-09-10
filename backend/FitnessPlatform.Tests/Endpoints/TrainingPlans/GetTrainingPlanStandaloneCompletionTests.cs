@@ -35,7 +35,7 @@ public class GetTrainingPlanStandaloneCompletionTests
         TrainingPlan plan,
         List<SessionExecution>? executions = null)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
             executions: executions ?? []);
 
@@ -328,7 +328,7 @@ public class GetTrainingPlanStandaloneCompletionTests
         // Both signals agree on the SAME instance — the checkbox flag directly, the live-training
         // assistant indirectly (fan-out from the fully-logged catalog exercise). Both signals share
         // the same (ClientId, SessionId, Date) key, so — matching the pre-#847
-        // MergeToSessionExecutions merge behaviour — they fold into ONE document: the live-session
+        // the pre-#847 fixture fold — they fold into ONE document: the live-session
         // execution with the checkbox's CompletedExerciseInstanceIds overlaid, rather than two.
         var date = _now.Date;
         var execution = BuildLoggedExecution(_sessionId, date, catalogId);

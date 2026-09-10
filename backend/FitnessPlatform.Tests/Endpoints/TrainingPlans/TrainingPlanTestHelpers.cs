@@ -107,7 +107,7 @@ public static class TrainingPlanTestHelpers
     /// Creates a mocked <see cref="IMongoContext"/> with training plans collection.
     /// </summary>
     public static IMongoContext CreateMockMongo(params TrainingPlan[] plans)
-        => CreateMockMongoWithLogs(plans: plans, executions: []);
+        => CreateMockMongoWithExecutions(plans: plans, executions: []);
 
     /// <summary>
     /// Creates a mocked <see cref="IMongoContext"/> with training plans + an optional list of
@@ -115,7 +115,7 @@ public static class TrainingPlanTestHelpers
     /// <see cref="GetTrainingPlan.GetTrainingPlanEndpoint"/> (and friends) read exclusively from
     /// the unified <see cref="IMongoContext.SessionExecutions"/> collection.
     /// </summary>
-    public static IMongoContext CreateMockMongoWithLogs(
+    public static IMongoContext CreateMockMongoWithExecutions(
         TrainingPlan[] plans,
         List<SessionExecution> executions)
     {

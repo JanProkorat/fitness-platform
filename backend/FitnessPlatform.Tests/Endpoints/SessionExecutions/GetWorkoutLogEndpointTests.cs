@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.SessionExecutions.GetWorkoutLog;
 using FitnessPlatform.Tests.Endpoints;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="GetWorkoutLogEndpoint"/>.

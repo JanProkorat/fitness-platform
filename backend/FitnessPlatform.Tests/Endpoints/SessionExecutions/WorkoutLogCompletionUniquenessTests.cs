@@ -15,7 +15,7 @@ using MongoDB.Driver;
 using Testcontainers.MongoDb;
 using Testcontainers.PostgreSql;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 // ── Test factory ─────────────────────────────────────────────────────────────
 

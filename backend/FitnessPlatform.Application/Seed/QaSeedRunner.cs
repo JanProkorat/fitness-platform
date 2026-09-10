@@ -88,8 +88,8 @@ public static class QaSeedRunner
     public static readonly Guid QaPastSessionUntouchedId = new("11111111-1111-1111-2222-000000000004");
 
     // Stable WorkoutLog ExternalIds.
-    public static readonly Guid QaPastCompletedWorkoutLogId = new("11111111-1111-1111-2222-000000000005");
-    public static readonly Guid QaPastSkippedWorkoutLogId   = new("11111111-1111-1111-2222-000000000006");
+    public static readonly Guid QaPastCompletedExecutionId = new("11111111-1111-1111-2222-000000000005");
+    public static readonly Guid QaPastSkippedExecutionId   = new("11111111-1111-1111-2222-000000000006");
 
     // -------------------------------------------------------------------------
     // #457 — Main plan (dddd...) WorkoutLog with four-case planned-vs-actual sets.
@@ -103,7 +103,7 @@ public static class QaSeedRunner
     ///   Exercise 1 (QA Squat) — Set 1: modified (actual != planned), Set 2: as-prescribed.
     ///   Exercise 2 (QA Deadlift) — Set 1: skipped (planned present, actual null), Set 2: extra (no planned snapshot).
     /// </summary>
-    public static readonly Guid QaMainPlanCompletedWorkoutLogId = new("11111111-1111-1111-4455-000000000001");
+    public static readonly Guid QaMainPlanCompletedExecutionId = new("11111111-1111-1111-4455-000000000001");
 
     // -------------------------------------------------------------------------
     // #474 — Multi-section fixture: second client/trainer pair with a session
@@ -138,7 +138,7 @@ public static class QaSeedRunner
     public static readonly Guid SharedExerciseId = new("55555555-5555-5555-cccc-000000000001");
 
     // WorkoutLog for the completed multi-section session.
-    public static readonly Guid QaMultiSectionWorkoutLogId = new("55555555-5555-5555-4455-000000000001");
+    public static readonly Guid QaMultiSectionExecutionId = new("55555555-5555-5555-4455-000000000001");
 
     // Section ID within the main-plan completed WorkoutLog (mirrors StandardSectionId).
     public static readonly Guid MainPlanCompletedWorkoutId = new("11111111-1111-1111-4455-000000000002");
@@ -416,7 +416,7 @@ public static class QaSeedRunner
             await EnsureTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
             // Main-plan completed WorkoutLog — exercises four planned-vs-actual set cases (#457).
-            await EnsureMainPlanWorkoutLogAsync(mongo, logger);
+            await EnsureMainPlanExecutionAsync(mongo, logger);
 
             // #879 — completion flag on the dual-placement fixture (QaDualPlacementSessionId)
             // so the standalone instance's completion is distinguishable from the nested one's.
@@ -427,7 +427,7 @@ public static class QaSeedRunner
 
             // #474 — Multi-section plan + completed WorkoutLog for section-keying coach-detail fixture.
             await EnsureMultiSectionTrainingPlanAsync(mongo, Client2UserId, Trainer2UserId, logger);
-            await EnsureMultiSectionWorkoutLogAsync(mongo, logger);
+            await EnsureMultiSectionExecutionAsync(mongo, logger);
 
             // Foods + Recipes + NutritionPlan.
             // NutriUserId (not nutriProfile.PublicId) — ownership guards in UploadFoodImageUrlEndpoint
@@ -998,25 +998,25 @@ public static class QaSeedRunner
     /// CompleteWorkoutEndpoint's filter on AppClaims.UserId.
     /// Gated to the Rich seed path only; never created for the Minimal kind.
     /// </summary>
-    private static async Task EnsureMainPlanWorkoutLogAsync(
+    private static async Task EnsureMainPlanExecutionAsync(
         IMongoContext mongo,
         ILogger logger)
     {
         var existing = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaMainPlanCompletedWorkoutLogId)
+            .Find(l => l.ExternalId == QaMainPlanCompletedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existing is not null)
         {
             logger.LogInformation(
-                "QA MainPlan SessionExecution already present: externalId={ExternalId}", QaMainPlanCompletedWorkoutLogId);
+                "QA MainPlan SessionExecution already present: externalId={ExternalId}", QaMainPlanCompletedExecutionId);
             return;
         }
 
         var completedAt = DateTime.UtcNow.Date.AddDays(-3).AddHours(11); // 11:00 UTC, 3 days ago.
         var log = new SessionExecution
         {
-            ExternalId  = QaMainPlanCompletedWorkoutLogId,
+            ExternalId  = QaMainPlanCompletedExecutionId,
             // ClientId = ApplicationUser.Id — CompleteWorkoutEndpoint scopes SessionExecutions by
             // Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, NOT ClientProfile.PublicId.
             ClientId      = ClientUserId,
@@ -1108,7 +1108,7 @@ public static class QaSeedRunner
         await mongo.SessionExecutions.InsertOneAsync(log);
         logger.LogInformation(
             "QA MainPlan SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
-            QaMainPlanCompletedWorkoutLogId, QaTrainingPlanExternalId, QaSessionId);
+            QaMainPlanCompletedExecutionId, QaTrainingPlanExternalId, QaSessionId);
     }
 
     /// <summary>
@@ -1326,7 +1326,7 @@ public static class QaSeedRunner
         // SessionExecution: COMPLETED — Status=Completed, all sets stamped CompletedAt.
         // ---------------------------------------------------------------------------
         var existingCompletedLog = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaPastCompletedWorkoutLogId)
+            .Find(l => l.ExternalId == QaPastCompletedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existingCompletedLog is null)
@@ -1334,7 +1334,7 @@ public static class QaSeedRunner
             var completedAt = completedSessionDate.AddHours(10); // 10:00 UTC on session day.
             var completedLog = new SessionExecution
             {
-                ExternalId  = QaPastCompletedWorkoutLogId,
+                ExternalId  = QaPastCompletedExecutionId,
                 // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) —
                 // CompleteWorkoutEndpoint (live client finish) filters SessionExecutions by
                 // ClientId == Guid.Parse(AppClaims.UserId), which is ApplicationUser.Id.
@@ -1396,12 +1396,12 @@ public static class QaSeedRunner
             await mongo.SessionExecutions.InsertOneAsync(completedLog);
             logger.LogInformation(
                 "QA SessionExecution COMPLETED created: externalId={ExternalId} sessionId={SessionId}",
-                QaPastCompletedWorkoutLogId, QaPastSessionCompletedId);
+                QaPastCompletedExecutionId, QaPastSessionCompletedId);
         }
         else
         {
             logger.LogInformation(
-                "QA SessionExecution COMPLETED already present: externalId={ExternalId}", QaPastCompletedWorkoutLogId);
+                "QA SessionExecution COMPLETED already present: externalId={ExternalId}", QaPastCompletedExecutionId);
         }
 
         // ---------------------------------------------------------------------------
@@ -1409,7 +1409,7 @@ public static class QaSeedRunner
         // The client started but did not finish the session.
         // ---------------------------------------------------------------------------
         var existingSkippedLog = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaPastSkippedWorkoutLogId)
+            .Find(l => l.ExternalId == QaPastSkippedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existingSkippedLog is null)
@@ -1417,7 +1417,7 @@ public static class QaSeedRunner
             var skippedStartedAt = skippedSessionDate.AddHours(9); // started at 09:00 UTC.
             var skippedLog = new SessionExecution
             {
-                ExternalId  = QaPastSkippedWorkoutLogId,
+                ExternalId  = QaPastSkippedExecutionId,
                 // ClientId = ApplicationUser.Id — same reasoning as the completed log above.
                 ClientId    = ClientUserId,
                 PlanId      = QaPastTrainingPlanExternalId,
@@ -1465,12 +1465,12 @@ public static class QaSeedRunner
             await mongo.SessionExecutions.InsertOneAsync(skippedLog);
             logger.LogInformation(
                 "QA SessionExecution SKIPPED created: externalId={ExternalId} sessionId={SessionId}",
-                QaPastSkippedWorkoutLogId, QaPastSessionSkippedId);
+                QaPastSkippedExecutionId, QaPastSessionSkippedId);
         }
         else
         {
             logger.LogInformation(
-                "QA SessionExecution SKIPPED already present: externalId={ExternalId}", QaPastSkippedWorkoutLogId);
+                "QA SessionExecution SKIPPED already present: externalId={ExternalId}", QaPastSkippedExecutionId);
         }
 
         // PAST-UNTOUCHED: deliberately no SessionExecution for QaPastSessionUntouchedId.
@@ -1627,25 +1627,25 @@ public static class QaSeedRunner
     ///
     /// SectionId is set on each logged section so the section-keying read path works (#472).
     /// </summary>
-    private static async Task EnsureMultiSectionWorkoutLogAsync(
+    private static async Task EnsureMultiSectionExecutionAsync(
         IMongoContext mongo,
         ILogger logger)
     {
         var existing = await mongo.SessionExecutions
-            .Find(l => l.ExternalId == QaMultiSectionWorkoutLogId)
+            .Find(l => l.ExternalId == QaMultiSectionExecutionId)
             .FirstOrDefaultAsync();
 
         if (existing is not null)
         {
             logger.LogInformation(
-                "QA MultiSection SessionExecution already present: externalId={ExternalId}", QaMultiSectionWorkoutLogId);
+                "QA MultiSection SessionExecution already present: externalId={ExternalId}", QaMultiSectionExecutionId);
             return;
         }
 
         var completedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(14); // 14:00 UTC, yesterday.
         var log = new SessionExecution
         {
-            ExternalId    = QaMultiSectionWorkoutLogId,
+            ExternalId    = QaMultiSectionExecutionId,
             // ClientId = ApplicationUser.Id — same contract as all other SessionExecutions.
             ClientId      = Client2UserId,
             PlanId        = QaMultiSectionPlanExternalId,
@@ -1744,7 +1744,7 @@ public static class QaSeedRunner
         await mongo.SessionExecutions.InsertOneAsync(log);
         logger.LogInformation(
             "QA MultiSection SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
-            QaMultiSectionWorkoutLogId, QaMultiSectionPlanExternalId, QaMultiSectionSessionId);
+            QaMultiSectionExecutionId, QaMultiSectionPlanExternalId, QaMultiSectionSessionId);
     }
 
     private static async Task EnsureFoodsAsync(
@@ -2493,7 +2493,7 @@ public static class QaSeedRunner
         var execution = new SessionExecution
         {
             ExternalId  = QaDualPlacementSessionExecutionId,
-            // ClientId = ApplicationUser.Id — mirrors EnsureMainPlanWorkoutLogAsync's convention.
+            // ClientId = ApplicationUser.Id — mirrors EnsureMainPlanExecutionAsync's convention.
             ClientId    = ClientUserId,
             PlanId      = QaTrainingPlanExternalId,
             SessionId   = QaDualPlacementSessionId,

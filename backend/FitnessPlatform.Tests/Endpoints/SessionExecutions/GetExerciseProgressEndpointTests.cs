@@ -9,7 +9,7 @@ using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Tests for <see cref="GetExerciseProgressEndpoint"/>.

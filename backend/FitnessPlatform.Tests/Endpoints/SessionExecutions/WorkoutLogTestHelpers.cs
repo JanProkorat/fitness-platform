@@ -8,7 +8,7 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using MongoDB.Driver;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.WorkoutLogs;
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 /// <summary>
 /// Test helpers for workout log endpoint tests.

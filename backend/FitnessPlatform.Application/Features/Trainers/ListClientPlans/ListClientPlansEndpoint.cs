@@ -173,7 +173,7 @@ public class ListClientPlansEndpoint(
         // totalTrainings = count of completed SessionExecutions (with Performance) with matching PlanId
         // prCount = count of PersonalRecords with AchievedAt in [plan.StartDate .. plan.DateCompleted ?? now]
         var trainingPlanIds = trainingPlans.Select(p => p.ExternalId).ToList();
-        var workoutLogs = await mongo.SessionExecutions
+        var completedExecutions = await mongo.SessionExecutions
             .Find(Builders<Domain.Documents.SessionExecution>.Filter.And(
                 Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.ClientId, clientUserId),
                 Builders<Domain.Documents.SessionExecution>.Filter.Eq(l => l.Status, Domain.Enums.SessionExecutionStatus.Completed),
@@ -188,7 +188,7 @@ public class ListClientPlansEndpoint(
 
         var items = trainingPlans.Select(plan =>
         {
-            var planLogCount = workoutLogs.Count(l => l.PlanId == plan.ExternalId);
+            var planLogCount = completedExecutions.Count(l => l.PlanId == plan.ExternalId);
 
             // PR window: [plan.StartDate .. plan.DateCompleted ?? now]
             int? prCount = null;
