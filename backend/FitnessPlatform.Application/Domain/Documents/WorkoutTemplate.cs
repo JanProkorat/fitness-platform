@@ -6,7 +6,10 @@ namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
 /// MongoDB root aggregate for a reusable training workout template.
-/// Belongs to a specific trainer; not shared across tenants.
+/// Belongs to a specific trainer; not shared across tenants. Deliberately
+/// does not implement <see cref="ILibraryDocument"/> — keyed on
+/// <see cref="OwnerTrainerId"/> with no visibility field, since a workout
+/// block is personal shorthand and cross-trainer sharing has little value.
 /// </summary>
 public class WorkoutTemplate
 {
