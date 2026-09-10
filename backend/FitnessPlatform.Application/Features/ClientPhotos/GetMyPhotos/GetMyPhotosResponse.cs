@@ -1,4 +1,4 @@
-using FitnessPlatform.Application.Features.ClientPhotos.Common;
+using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 
 namespace FitnessPlatform.Application.Features.ClientPhotos.GetMyPhotos;
 

@@ -1,4 +1,4 @@
-namespace FitnessPlatform.Application.Features.ClientPhotos.Common;
+namespace FitnessPlatform.Application.Features.ClientPhotos.Shared;
 
 /// <summary>
 /// Represents a calendar-month bucket of plan photos returned when
