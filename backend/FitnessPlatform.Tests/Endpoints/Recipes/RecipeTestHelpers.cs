@@ -37,13 +37,18 @@ public static class RecipeTestHelpers
 
     /// <summary>
     /// Creates a mocked <see cref="IMongoContext"/> whose Recipes and Foods collections
-    /// return the provided documents from FindAsync/CountDocumentsAsync.
+    /// return the provided documents from FindAsync/CountDocumentsAsync. <paramref name="modifiedCount"/>
+    /// controls the <see cref="ReplaceOneResult.ModifiedCount"/> the Recipes collection's
+    /// <c>ReplaceOneAsync</c> reports — an unstubbed <c>ReplaceOneAsync</c> auto-substitutes a result
+    /// whose <c>ModifiedCount</c> is 0, which silently takes UpdateRecipeEndpoint's 409 branch (see
+    /// the precedent at <c>WorkoutTemplateEndpointTests.CreateMockCollection</c>).
     /// </summary>
-    public static IMongoContext CreateMockMongo(Recipe[]? recipes = null, Food[]? foods = null)
+    public static IMongoContext CreateMockMongo(
+        Recipe[]? recipes = null, Food[]? foods = null, long modifiedCount = 1)
     {
         // Configure each collection FULLY before wiring it into the context — NSubstitute cannot
         // track lastCall state across nested substitute setup.
-        var recipeCollection = CreateRecipeCollection((recipes ?? []).ToList());
+        var recipeCollection = CreateRecipeCollection((recipes ?? []).ToList(), modifiedCount);
         var foodCollection = CreateFoodCollection((foods ?? []).ToList());
 
         var mongo = Substitute.For<IMongoContext>();
@@ -52,7 +57,8 @@ public static class RecipeTestHelpers
         return mongo;
     }
 
-    private static IMongoCollection<Recipe> CreateRecipeCollection(List<Recipe> recipes)
+    private static IMongoCollection<Recipe> CreateRecipeCollection(
+        List<Recipe> recipes, long modifiedCount = 1)
     {
         var collection = Substitute.For<IMongoCollection<Recipe>>();
 
@@ -67,6 +73,15 @@ public static class RecipeTestHelpers
                 Arg.Any<CountOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(recipes.Count);
+
+        var replaceResult = Substitute.For<ReplaceOneResult>();
+        replaceResult.ModifiedCount.Returns(modifiedCount);
+        collection.ReplaceOneAsync(
+                Arg.Any<FilterDefinition<Recipe>>(),
+                Arg.Any<Recipe>(),
+                Arg.Any<ReplaceOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(replaceResult);
 
         return collection;
     }

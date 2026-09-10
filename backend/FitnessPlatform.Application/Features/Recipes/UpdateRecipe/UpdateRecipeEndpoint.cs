@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.Recipes.UpdateRecipe;
@@ -27,6 +28,7 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             s.Summary = "Update recipe";
             s.Description = "Updates an existing recipe's name, description, and food items. " +
                             "Uses optimistic concurrency via the Version field.";
+            s.Responses[StatusCodes.Status409Conflict] = "Version conflict — the recipe was modified by another request";
         });
     }
 

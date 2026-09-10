@@ -84,12 +84,11 @@ public class RecipeVersionLegacyIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Verifies the FIX: a CAS filter that also matches field-absent documents
-    /// (when <c>req.Version == 1</c>, the value a client receives for a legacy doc)
-    /// correctly updates the document on the first write.
-    ///
-    /// RED before the endpoint fix (a bare <c>Eq(version, 1)</c> filter matches zero
-    /// documents here), GREEN after.
+    /// Pins the MongoDB driver's semantics for <see cref="BuildLegacyAwareCasFilter"/>'s filter
+    /// shape (the standalone helper below, not <c>UpdateRecipeEndpoint</c> itself — see
+    /// <c>UpdateRecipeEndpointIntegrationTests</c> for the endpoint-level red/green proof): a CAS
+    /// filter that also matches field-absent documents (when <c>req.Version == 1</c>, the value a
+    /// client receives for a legacy doc) correctly updates the document on the first write.
     /// </summary>
     [Fact]
     public async Task LegacyRecipe_FixedCasFilter_ReplaceWithVersion1_Succeeds()
@@ -129,8 +128,12 @@ public class RecipeVersionLegacyIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Verifies a stale version on a real (already-versioned) document is rejected —
-    /// the fix must not weaken CAS for non-legacy documents.
+    /// Pins <see cref="BuildLegacyAwareCasFilter"/>'s filter shape against a real (already-
+    /// versioned) document with a stale requested version. Not reachable through
+    /// <c>UpdateRecipeEndpoint</c> itself: its in-memory <c>recipe.Version != req.Version</c>
+    /// pre-check already returns 409 before the write-time filter is ever consumed, so this test
+    /// exists to pin the filter definition's own correctness (it must not weaken CAS for
+    /// non-legacy documents), not to simulate a state the endpoint can actually reach.
     /// </summary>
     [Fact]
     public async Task RealVersionedRecipe_StaleVersion_FixedFilter_MatchesZeroDocs()
@@ -166,9 +169,13 @@ public class RecipeVersionLegacyIntegrationTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// A field-absent legacy document with a caller-supplied version other than 1 must NOT
-    /// match — only <c>req.Version == 1</c> is a value a client can legitimately have received
-    /// for a legacy doc (see <see cref="Domain.Documents.Recipe.Version"/>'s doc comment).
+    /// Pins <see cref="BuildLegacyAwareCasFilter"/>'s filter shape against a field-absent legacy
+    /// document with a caller-supplied version other than 1 — the filter must NOT match. Not
+    /// reachable through <c>UpdateRecipeEndpoint</c> itself: a legacy doc always deserializes to
+    /// <c>Version == 1</c> (per the driver semantics documented above), so the endpoint's
+    /// in-memory pre-check already rejects any <c>req.Version != 1</c> against it before the
+    /// write-time filter is consumed. This test exists to pin the filter definition's own
+    /// correctness, not to simulate a state the endpoint can actually reach.
     /// </summary>
     [Fact]
     public async Task LegacyRecipe_FieldAbsent_NonOneRequestedVersion_DoesNotMatch()

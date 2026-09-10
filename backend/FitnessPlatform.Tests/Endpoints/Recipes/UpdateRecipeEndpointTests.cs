@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
@@ -53,6 +54,10 @@ public class UpdateRecipeEndpointTests
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "an unstubbed ReplaceOneAsync auto-substitutes ModifiedCount = 0, which would " +
+            "silently take the 409 branch instead of Send.OkAsync — this assertion is what " +
+            "makes that regression visible");
         await mongo.Recipes.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<Recipe>>(),
             Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private),
@@ -94,6 +99,10 @@ public class UpdateRecipeEndpointTests
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "an unstubbed ReplaceOneAsync auto-substitutes ModifiedCount = 0, which would " +
+            "silently take the 409 branch instead of Send.OkAsync — this assertion is what " +
+            "makes that regression visible");
         await mongo.Recipes.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<Recipe>>(),
             Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private),
@@ -120,10 +129,15 @@ public class UpdateRecipeEndpointTests
         };
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe], foods: [food]);
 
+        using var responseBody = new MemoryStream();
         var ep = Factory.Create<UpdateRecipeEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            ctx =>
+            {
+                ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist)));
+                ctx.Request.HttpContext.Response.Body = responseBody;
+            },
             mongo);
 
         var request = new UpdateRecipeRequest
@@ -137,6 +151,12 @@ public class UpdateRecipeEndpointTests
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(409);
+
+        responseBody.Seek(0, SeekOrigin.Begin);
+        using var doc = await JsonDocument.ParseAsync(responseBody, cancellationToken: TestContext.Current.CancellationToken);
+        doc.RootElement.GetProperty("errorCode").GetString()
+            .Should().Be(ErrorCodes.RecipeVersionConflict);
+
         await mongo.Recipes.DidNotReceive().ReplaceOneAsync(
             Arg.Any<FilterDefinition<Recipe>>(),
             Arg.Any<Recipe>(),

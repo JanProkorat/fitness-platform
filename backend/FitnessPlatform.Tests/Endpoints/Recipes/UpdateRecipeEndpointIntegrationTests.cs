@@ -102,7 +102,13 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
             "a legacy recipe with no stored version element must be updatable on its first " +
             "write when the client echoes back Version = 1 — the Not(Exists(Version)) clause " +
             "in UpdateRecipeEndpoint's CAS filter is what makes this succeed");
+
+        var body = await response.Content.ReadFromJsonAsync<RecipeVersionRef>(cancellationToken: ct);
+        body!.Version.Should().Be(2,
+            "the version field is stored for the first time on this write and bumped to 2");
     }
 
     private record FoodRef(Guid FoodId);
+
+    private record RecipeVersionRef(int Version);
 }
