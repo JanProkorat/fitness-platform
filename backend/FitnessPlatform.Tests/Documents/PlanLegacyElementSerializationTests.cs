@@ -15,9 +15,9 @@ namespace FitnessPlatform.Tests.Documents;
 /// in-memory documents.
 ///
 /// <para>
-/// The negative test proves the tolerance is root-level only: this backend
-/// registers no global <c>IgnoreExtraElements</c> convention, so a stray element on
-/// a nested type (not annotated) must still throw. That absence is the load-bearing
+/// The negative tests (one per plan type) prove the tolerance is root-level only: this
+/// backend registers no global <c>IgnoreExtraElements</c> convention, so a stray element
+/// on a nested type (not annotated) must still throw. That absence is the load-bearing
 /// fact — genuine schema drift anywhere else in the document tree still fails loudly.
 /// </para>
 /// </summary>
@@ -93,6 +93,34 @@ public class PlanLegacyElementSerializationTests
         act.Should().Throw<FormatException>()
             .WithMessage("*legacyWeekArchived*",
                 "[BsonIgnoreExtraElements] on NutritionPlan must not cascade to nested PlanWeek — " +
+                "no global convention pack is registered, so genuine schema drift anywhere else " +
+                "in the document tree must still fail loudly");
+    }
+
+    [Fact]
+    public void Deserialize_TrainingPlanWithStrayElementOnNestedTrainingWeek_StillThrows()
+    {
+        // datePublished is a LIVE, mapped element on TrainingWeek (same trap as PlanWeek) —
+        // using it here would pass for the wrong reason. legacyWeekArchived is a synthetic
+        // name genuinely unmapped on TrainingWeek.
+        var original = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = Guid.NewGuid(),
+            TrainerId = Guid.NewGuid(),
+            Name = "Training Plan With Nested Drift",
+            DateCreated = DateTime.UtcNow,
+            Weeks = [new TrainingWeek { WeekNumber = 1 }]
+        };
+
+        var bsonDoc = original.ToBsonDocument();
+        bsonDoc["weeks"].AsBsonArray[0].AsBsonDocument["legacyWeekArchived"] = BsonBoolean.True;
+
+        var act = () => BsonSerializer.Deserialize<TrainingPlan>(bsonDoc);
+
+        act.Should().Throw<FormatException>()
+            .WithMessage("*legacyWeekArchived*",
+                "[BsonIgnoreExtraElements] on TrainingPlan must not cascade to nested TrainingWeek — " +
                 "no global convention pack is registered, so genuine schema drift anywhere else " +
                 "in the document tree must still fail loudly");
     }

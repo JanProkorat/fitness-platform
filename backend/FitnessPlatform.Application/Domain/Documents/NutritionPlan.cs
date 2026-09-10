@@ -9,7 +9,10 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// </summary>
 /// <remarks>
 /// Tolerates a legacy root-level <c>datePublished</c> element left over on documents
-/// written before its property was deleted by #1015 (see git commit e2a62a6c).
+/// written before its property was deleted by #1015 (see git commit e2a62a6c). Cost: a
+/// mistyped or renamed root <c>[BsonElement]</c> also stops throwing and silently reads
+/// its property's initializer instead — for <see cref="Version"/> (<c>= 1</c>) that turns
+/// a loud <see cref="FormatException"/> into a permanent optimistic-concurrency 409.
 /// </remarks>
 [BsonIgnoreExtraElements]
 public class NutritionPlan
