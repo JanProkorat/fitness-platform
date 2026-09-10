@@ -106,6 +106,15 @@ The agent never merges these — user does it manually:
   seed overrides, reprocessing jobs under `backend/**/Scripts/` or
   `backend/**/DataMigrations/`, or `db.*.update`/`bulkWrite`/
   `deleteMany` calls in MongoContext / Services). Same — both tiers.
+- PRs that add or modify a **one-shot data-mutation command**: any routine
+  dispatched from the CLI or from startup that writes, renames, drops or
+  bulk-modifies stored data, in either database, wherever the file sits. This
+  bullet is deliberately phrased by what the code *does*, because the two
+  bullets above are phrased by directory and by method name — and a command
+  registered in `backend/**/Infrastructure/Cli/**` matches neither while being
+  exactly as destructive. Two already exist:
+  `RunDropLegacyTrainingCollectionsAsync` (#847) drops two collections, and
+  the rename command in #1033 moves a third. Same — both tiers.
 - Any PR where the user has said in the current turn "I'll merge this
   one myself".
 
