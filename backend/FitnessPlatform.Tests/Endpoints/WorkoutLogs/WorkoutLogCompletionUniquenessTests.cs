@@ -164,39 +164,17 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static WorkoutLog BuildLog(
-        Guid? planId = null,
-        Guid? sessionId = null,
-        bool isCompleted = false,
-        DateTime? completedAt = null,
-        DateTime? completedDate = null)
-    {
-        var now = DateTime.UtcNow;
-        var log = new WorkoutLog
-        {
-            ExternalId  = Guid.NewGuid(),
-            ClientId    = Guid.NewGuid(),
-            PlanId      = planId,
-            SessionId   = sessionId,
-            StartedAt   = now.AddMinutes(-30),
-            IsCompleted = isCompleted,
-            CompletedAt = completedAt,
-            CompletedDate = completedDate,
-            Workouts    = [],
-            DateCreated = now.AddMinutes(-30)
-        };
-        return log;
-    }
-
     private static DateTime Midnight(DateTime instant) =>
-        WorkoutLog.ToCompletionDateUtc(instant);
+        SessionExecution.ToCompletionDateUtc(instant);
 
     /// <summary>
     /// Builds a test <see cref="SessionExecution"/> for the unified-index tests (#841).
+    /// <paramref name="sessionId"/> is nullable so the ad-hoc (no-session) shape can be
+    /// built — see <see cref="PartialIndex_NullSessionId_DoesNotTripIndex"/>.
     /// </summary>
     private static SessionExecution BuildExecution(
         Guid clientId,
-        Guid sessionId,
+        Guid? sessionId,
         bool isCompleted,
         DateTime date,
         DateTime? completedAt = null)
@@ -223,9 +201,15 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     // ── (3) Index exists after startup init ───────────────────────────────────
 
     /// <summary>
-    /// The partial unique index must be present in the WorkoutLogs collection
+    /// The partial unique index must be present in the SessionExecutions collection
     /// after MongoIndexInitializer.StartAsync() runs on host startup.
     /// </summary>
+    /// <remarks>
+    /// This is the only assertion anywhere that any <c>idx_sessionexecution_*</c> index is
+    /// actually created at boot. The two CompleteAsync tests below exercise the uniqueness
+    /// <em>constraint</em> behaviourally, which is a different property — they would still
+    /// pass if the index were created under a different name, or by a different code path.
+    /// </remarks>
     [Fact]
     public async Task PartialUniqueIndex_ExistsAfterInit()
     {
@@ -240,10 +224,10 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var indexCursor = await mongo.WorkoutLogs.Indexes.ListAsync(cancellationToken: ct);
+        var indexCursor = await mongo.SessionExecutions.Indexes.ListAsync(cancellationToken: ct);
         var indexes = await indexCursor.ToListAsync(ct);
 
-        var expectedName = "idx_workoutlog_planId_sessionId_completedDate_unique";
+        var expectedName = "idx_sessionexecution_clientId_sessionId_date_unique";
         indexes.Should().Contain(
             idx => idx["name"].AsString == expectedName,
             $"the partial unique index '{expectedName}' must be created at startup");
@@ -362,13 +346,21 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
     // ── (6) Logs with null PlanId/SessionId don't trip the index ─────────────
 
     /// <summary>
-    /// WorkoutLogs with null PlanId or SessionId (e.g. ad-hoc free workouts) must
-    /// not be affected by the partial unique index. The Exists guards in the partial
-    /// filter exclude them from the uniqueness constraint, so index creation and
-    /// completion succeed without conflict even for multiple such logs.
+    /// Ad-hoc executions (no SessionId — a free workout not tied to a planned session) must
+    /// stay outside the partial unique index, so a client can log more than one of them on
+    /// the same calendar day.
     /// </summary>
+    /// <remarks>
+    /// This pins a load-bearing single-attribute invariant. The partial filter is
+    /// <c>Exists(sessionId) &amp; Exists(date)</c>, and ad-hoc executions escape it only because
+    /// <see cref="SessionExecution.SessionId"/> carries <c>[BsonIgnoreIfNull]</c> — a null
+    /// SessionId is omitted from the stored document entirely, so <c>Exists(sessionId)</c> is
+    /// false. Drop that one attribute and the field would serialise as an explicit null,
+    /// <c>Exists</c> would become true, and a client's second free workout of the day would be
+    /// rejected as a duplicate. Nothing else in the suite asserts this.
+    /// </remarks>
     [Fact]
-    public async Task PartialIndex_NullPlanOrSessionId_DoesNotTripIndex()
+    public async Task PartialIndex_NullSessionId_DoesNotTripIndex()
     {
         var ct = TestContext.Current.CancellationToken;
         var today = DateTime.UtcNow;
@@ -378,41 +370,55 @@ public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
 
         var mongoClient = new MongoClient(mongoContainer.GetConnectionString());
         var db = mongoClient.GetDatabase("null_key_test");
-        var logsColl = db.GetCollection<WorkoutLog>("workoutLogs");
+        var executionsColl = db.GetCollection<SessionExecution>("sessionExecutions");
 
-        // Insert multiple completed logs with null PlanId/SessionId.
-        var log1 = BuildLog(planId: null, sessionId: null,
-            isCompleted: true, completedAt: today, completedDate: Midnight(today));
-        var log2 = BuildLog(planId: null, sessionId: null,
-            isCompleted: true, completedAt: today, completedDate: Midnight(today));
-        // Also one with only PlanId but no SessionId.
-        var log3 = BuildLog(planId: Guid.NewGuid(), sessionId: null,
-            isCompleted: true, completedAt: today, completedDate: Midnight(today));
+        var clientId = Guid.NewGuid();
+        var date = Midnight(today);
 
-        await logsColl.InsertManyAsync([log1, log2, log3], cancellationToken: ct);
+        // Two pre-existing ad-hoc executions on the same (clientId, date).
+        await executionsColl.InsertManyAsync(
+            [
+                BuildExecution(clientId, sessionId: null, isCompleted: true, date: date, completedAt: today),
+                BuildExecution(clientId, sessionId: null, isCompleted: true, date: date, completedAt: today)
+            ],
+            cancellationToken: ct);
 
-        // Index init must succeed — Exists guards exclude null-key logs.
-        var mockContext = new WorkoutLogOnlyMongoContext(db);
+        // Index init must succeed over that data — the Exists guard excludes them.
         var initializer = new MongoIndexInitializer(
-            mockContext, NullLogger<MongoIndexInitializer>.Instance);
+            new IndexInitMongoContext(db), NullLogger<MongoIndexInitializer>.Instance);
 
         var act = async () => await initializer.StartAsync(ct);
         await act.Should().NotThrowAsync(
-            "completed logs with null PlanId/SessionId must not trigger the partial unique index");
+            "ad-hoc executions with no SessionId must not trigger the partial unique index");
+
+        // Stronger than index creation alone: the constraint must stay off them once the
+        // index EXISTS. A third ad-hoc execution on the same (clientId, date) must insert.
+        var insertThird = async () => await executionsColl.InsertOneAsync(
+            BuildExecution(clientId, sessionId: null, isCompleted: true, date: date, completedAt: today),
+            cancellationToken: ct);
+
+        await insertThird.Should().NotThrowAsync(
+            "the Exists(sessionId) guard must keep ad-hoc executions outside the unique index");
+
+        (await executionsColl.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(e => e.ClientId, clientId),
+            cancellationToken: ct))
+            .Should().Be(3, "all three ad-hoc executions coexist on the same calendar day");
     }
 }
 
 // ── Minimal IMongoContext for index-creation tests ────────────────────────────
 
 /// <summary>
-/// Minimal <see cref="IMongoContext"/> implementation for index-creation tests that
-/// only need the WorkoutLogs collection. All other collections return empty mocks.
+/// Minimal <see cref="IMongoContext"/> implementation for index-creation tests. Every
+/// collection points at the same throwaway database, so running the full index initializer
+/// against it is harmless.
 /// </summary>
-internal sealed class WorkoutLogOnlyMongoContext : IMongoContext
+internal sealed class IndexInitMongoContext : IMongoContext
 {
     private readonly IMongoDatabase _db;
 
-    public WorkoutLogOnlyMongoContext(IMongoDatabase db) => _db = db;
+    public IndexInitMongoContext(IMongoDatabase db) => _db = db;
 
     public IMongoCollection<WorkoutLog> WorkoutLogs =>
         _db.GetCollection<WorkoutLog>("workoutLogs");
