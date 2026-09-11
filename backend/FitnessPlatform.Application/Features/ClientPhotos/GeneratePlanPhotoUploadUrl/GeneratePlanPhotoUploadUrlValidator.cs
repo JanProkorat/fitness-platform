@@ -1,7 +1,7 @@
 using FastEndpoints;
 using FluentValidation;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.GeneratePlanPhotoUploadUrl;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GeneratePlanPhotoUploadUrl;
 
 /// <summary>
 /// Validator for <see cref="GeneratePlanPhotoUploadUrlRequest"/>.

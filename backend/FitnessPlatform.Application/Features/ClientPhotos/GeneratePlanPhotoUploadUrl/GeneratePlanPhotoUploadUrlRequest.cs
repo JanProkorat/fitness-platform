@@ -1,4 +1,4 @@
-namespace FitnessPlatform.Application.Features.ClientPlans.GeneratePlanPhotoUploadUrl;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GeneratePlanPhotoUploadUrl;
 
 /// <summary>
 /// Request model for generating a pre-signed plan photo upload URL.

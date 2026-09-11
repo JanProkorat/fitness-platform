@@ -6,7 +6,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.ClientPlans.GeneratePlanPhotoUploadUrl;
+using FitnessPlatform.Application.Features.ClientPhotos.GeneratePlanPhotoUploadUrl;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
@@ -14,7 +14,7 @@ using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
+namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
 /// <summary>
 /// Tests for <see cref="GeneratePlanPhotoUploadUrlEndpoint"/>.

@@ -4,10 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GetPlanPhotos;
 
 /// <summary>
 /// Returns a paginated list of <see cref="PlanPhoto"/> records for the given plan.

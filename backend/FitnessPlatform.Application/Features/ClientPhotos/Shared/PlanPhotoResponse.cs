@@ -1,11 +1,11 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPlans;
+namespace FitnessPlatform.Application.Features.ClientPhotos.Shared;
 
 /// <summary>
 /// Response shape for a single <see cref="Domain.Entities.PlanPhoto"/> record.
-/// Shared across the FinalizePlanPhoto and GetPlanPhotos slices within the
-/// ClientPlans feature area — both surfaces expose the same projection.
+/// Shared across the FinalizePlanPhoto and GetPlanPhotos slices — both surfaces
+/// expose the same projection.
 /// </summary>
 public class PlanPhotoResponse
 {

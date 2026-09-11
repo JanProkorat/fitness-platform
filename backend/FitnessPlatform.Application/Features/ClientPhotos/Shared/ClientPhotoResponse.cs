@@ -1,7 +1,7 @@
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPhotos.Common;
+namespace FitnessPlatform.Application.Features.ClientPhotos.Shared;
 
 /// <summary>
 /// DTO representing a single plan photo returned by the aggregation endpoints.

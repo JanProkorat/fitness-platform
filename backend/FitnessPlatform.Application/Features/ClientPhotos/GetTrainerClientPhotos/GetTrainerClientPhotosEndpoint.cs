@@ -3,7 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Features.ClientPhotos.Common;
+using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 

@@ -7,7 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
-using FitnessPlatform.Application.Features.ClientPlans;
+using FitnessPlatform.Application.Features.ClientPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;

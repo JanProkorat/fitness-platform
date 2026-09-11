@@ -1,6 +1,6 @@
 using FitnessPlatform.Application.Domain.Enums;
 
-namespace FitnessPlatform.Application.Features.ClientPlans;
+namespace FitnessPlatform.Application.Features.ClientPhotos;
 
 /// <summary>
 /// Payload for the <c>planPhotoUploaded</c> SignalR event broadcast to the owning professional

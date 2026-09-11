@@ -8,8 +8,8 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 using FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
-using FitnessPlatform.Application.Features.ClientPlans;
-using FitnessPlatform.Application.Features.ClientPlans.FinalizePlanPhoto;
+using FitnessPlatform.Application.Features.ClientPhotos;
+using FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -21,7 +21,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
 
-namespace FitnessPlatform.Tests.Endpoints.ClientPlans;
+namespace FitnessPlatform.Tests.Endpoints.ClientPhotos;
 
 /// <summary>
 /// Verifies the <c>planPhotoUploaded</c> SignalR broadcast behaviour across the three

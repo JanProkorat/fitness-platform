@@ -1,7 +1,7 @@
 using FastEndpoints;
 using FluentValidation;
 
-namespace FitnessPlatform.Application.Features.ClientPlans.GetPlanPhotos;
+namespace FitnessPlatform.Application.Features.ClientPhotos.GetPlanPhotos;
 
 /// <summary>
 /// Validator for <see cref="GetPlanPhotosRequest"/>.

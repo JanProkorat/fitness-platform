@@ -1,4 +1,4 @@
-namespace FitnessPlatform.Application.Features.ClientPlans.DeletePlanPhoto;
+namespace FitnessPlatform.Application.Features.ClientPhotos.DeletePlanPhoto;
 
 /// <summary>
 /// Request model for deleting a plan photo by its public identifier.
