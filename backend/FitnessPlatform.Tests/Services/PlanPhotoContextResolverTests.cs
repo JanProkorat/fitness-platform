@@ -57,7 +57,7 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private static NutritionPlan MakeNutritionPlan(Guid externalId, Guid clientId, Guid nutritionistId = default) =>
+    private static NutritionPlan MakeNutritionPlan(Guid externalId, Guid clientId, Guid nutritionistId) =>
         new()
         {
             ExternalId = externalId,
@@ -67,7 +67,7 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
             DateCreated = DateTime.UtcNow,
         };
 
-    private static TrainingPlan MakeTrainingPlan(Guid externalId, Guid clientId, Guid trainerId = default) =>
+    private static TrainingPlan MakeTrainingPlan(Guid externalId, Guid clientId, Guid trainerId) =>
         new()
         {
             ExternalId = externalId,
@@ -82,7 +82,8 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
     /// <summary>
     /// Cross-client isolation (round-2 design gate's core AC): the plan id exists, but under a
     /// DIFFERENT client id. Must resolve to null — the case that catches a dropped
-    /// <c>Eq(ClientId)</c> clause, which the mock Mongo harness cannot.
+    /// <c>Eq(ClientId)</c> clause on the NUTRITION filter (resolver line 40), which the mock
+    /// Mongo harness cannot.
     /// </summary>
     [Fact]
     public async Task ResolveAsync_PlanIdExistsUnderDifferentClientId_ReturnsNull()
@@ -94,6 +95,31 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
 
         await _nutritionPlans.InsertOneAsync(
             MakeNutritionPlan(planId, ownerClientId, Guid.NewGuid()), cancellationToken: ct);
+
+        var result = await PlanPhotoContextResolver.ResolveAsync(_mongoContext, planId, callerClientId, ct);
+
+        result.PlanType.Should().BeNull();
+        result.LinkId.Should().BeNull();
+        result.ProfessionalUserId.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Training-side companion to <see cref="ResolveAsync_PlanIdExistsUnderDifferentClientId_ReturnsNull"/>.
+    /// Nothing is seeded in nutrition, so this exercises the TRAINING filter's <c>Eq(ClientId)</c>
+    /// clause (resolver line 53) in isolation — a nutrition-only test cannot catch a dropped
+    /// clause on the fallback filter, since the nutrition miss is what reaches it in the first
+    /// place.
+    /// </summary>
+    [Fact]
+    public async Task ResolveAsync_TrainingPlanIdExistsUnderDifferentClientId_ReturnsNull()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var planId = Guid.NewGuid();
+        var ownerClientId = Guid.NewGuid();
+        var callerClientId = Guid.NewGuid();
+
+        await _trainingPlans.InsertOneAsync(
+            MakeTrainingPlan(planId, ownerClientId, Guid.NewGuid()), cancellationToken: ct);
 
         var result = await PlanPhotoContextResolver.ResolveAsync(_mongoContext, planId, callerClientId, ct);
 
@@ -177,8 +203,9 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// A <see cref="Guid.Empty"/> owner field must collapse to a null professional id, on both
-    /// plan types — not just an artifact of the default-parameter shortcuts the other tests use.
+    /// A <see cref="Guid.Empty"/> <c>NutritionistId</c> must collapse to a null professional id.
+    /// Nutrition-side only — the resolver applies the identical <c>!= Guid.Empty</c> collapse to
+    /// <c>TrainerId</c>, but that branch has no dedicated test here.
     /// </summary>
     [Fact]
     public async Task ResolveAsync_NutritionistIdIsGuidEmpty_ProfessionalUserIdIsNull()
