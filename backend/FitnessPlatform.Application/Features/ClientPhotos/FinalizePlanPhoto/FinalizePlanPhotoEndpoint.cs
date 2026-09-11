@@ -1,18 +1,17 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientPhotos.Shared;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientPhotos.FinalizePlanPhoto;
 
@@ -114,7 +113,8 @@ public class FinalizePlanPhotoEndpoint(
         var clientId = clientProfile.UserId;
 
         // Resolve plan type, link, and owning professional: nutrition first, training fallback
-        var (planType, linkId, professionalUserId) = await ResolvePlanAsync(req.PlanId, clientId, ct);
+        var (planType, linkId, professionalUserId) =
+            await PlanPhotoContextResolver.ResolveAsync(mongo, req.PlanId, clientId, ct);
 
         if (planType is null)
         {
@@ -288,36 +288,6 @@ public class FinalizePlanPhotoEndpoint(
         HttpContext.Response.Headers.Location =
             $"/client/plans/{req.PlanId}/photos/{photo.PublicId}";
         await Send.ResponseAsync(response, StatusCodes.Status201Created, ct);
-    }
-
-    private async Task<(PlanPhotoType? planType, Guid? linkId, Guid? professionalUserId)> ResolvePlanAsync(
-        Guid planId, Guid clientId, CancellationToken ct)
-    {
-        // Try nutrition plan
-        var nutritionFilter = Builders<NutritionPlan>.Filter.And(
-            Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, planId),
-            Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId));
-
-        var nutritionCursor = await mongo.NutritionPlans.FindAsync(nutritionFilter, cancellationToken: ct);
-        var nutritionPlan = await nutritionCursor.FirstOrDefaultAsync(ct);
-
-        if (nutritionPlan is not null)
-            return (PlanPhotoType.Nutrition, nutritionPlan.ExternalId,
-                nutritionPlan.NutritionistId != Guid.Empty ? nutritionPlan.NutritionistId : null);
-
-        // Fall back to training plan
-        var trainingFilter = Builders<TrainingPlan>.Filter.And(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, planId),
-            Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId));
-
-        var trainingCursor = await mongo.TrainingPlans.FindAsync(trainingFilter, cancellationToken: ct);
-        var trainingPlan = await trainingCursor.FirstOrDefaultAsync(ct);
-
-        if (trainingPlan is not null)
-            return (PlanPhotoType.Training, trainingPlan.ExternalId,
-                trainingPlan.TrainerId != Guid.Empty ? trainingPlan.TrainerId : null);
-
-        return (null, null, null);
     }
 
     private static PlanPhotoResponse MapToResponse(PlanPhoto photo) => new()
