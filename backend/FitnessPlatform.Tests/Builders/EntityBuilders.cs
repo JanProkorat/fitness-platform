@@ -44,6 +44,11 @@ public static class EntityBuilder
     public static ClientOnboardingDataBuilder ClientOnboardingData => new();
 
     /// <summary>
+    /// Creates a new <see cref="ClientNutritionTargetsBuilder"/>.
+    /// </summary>
+    public static ClientNutritionTargetsBuilder ClientNutritionTargets => new();
+
+    /// <summary>
     /// Creates a new <see cref="PendingInviteBuilder"/>.
     /// </summary>
     public static PendingInviteBuilder PendingInvite => new();
@@ -513,4 +518,34 @@ public class ClientOnboardingDataBuilder
     /// Builds the <see cref="ClientOnboardingData"/> instance.
     /// </summary>
     public ClientOnboardingData Build() => _entity;
+}
+
+/// <summary>
+/// Builder for <see cref="ClientNutritionTargets"/> test entities.
+/// </summary>
+public class ClientNutritionTargetsBuilder
+{
+    private readonly ClientNutritionTargets _entity = new()
+    {
+        Id = 1,
+        ClientOnboardingDataId = 1,
+        DerivedActivityLevel = ActivityLevel.ModeratelyActive,
+        DerivedNutritionGoal = NutritionGoal.Bulk,
+        Bmr = 1800,
+        Tdee = 2500,
+        AdjustedKcal = 2750,
+        ProteinGrams = 206,
+        CarbsGrams = 309,
+        FatGrams = 76,
+    };
+
+    /// <summary>
+    /// Sets the client onboarding data ID.
+    /// </summary>
+    public ClientNutritionTargetsBuilder WithClientOnboardingDataId(long id) { _entity.ClientOnboardingDataId = id; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="ClientNutritionTargets"/> instance.
+    /// </summary>
+    public ClientNutritionTargets Build() => _entity;
 }

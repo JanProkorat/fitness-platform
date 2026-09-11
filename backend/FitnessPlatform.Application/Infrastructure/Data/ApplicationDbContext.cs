@@ -64,6 +64,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<ClientOnboardingData> ClientOnboardingData { get; set; } = null!;
 
+    /// <summary>
+    /// Computed nutrition targets derived from client onboarding data.
+    /// </summary>
+    public virtual DbSet<ClientNutritionTargets> ClientNutritionTargets { get; set; } = null!;
+
     /// <inheritdoc />
     public virtual DbSet<Notification> Notifications { get; set; } = null!;
 

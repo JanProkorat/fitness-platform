@@ -55,6 +55,7 @@ public class UpdateClientDataEndpoint(
 
         var clientProfile = await db.ClientProfiles
             .Include(cp => cp.OnboardingData)
+            .ThenInclude(od => od!.NutritionTargets)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
         if (clientProfile is null) { await Send.NotFoundAsync(ct); return; }
 
@@ -121,15 +122,40 @@ public class UpdateClientDataEndpoint(
             {
                 od.DateOfBirth = new DateTime(DateTime.UtcNow.Year - req.Age.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             }
-            if (req.DerivedActivityLevel != null) od.DerivedActivityLevel = Enum.Parse<ActivityLevel>(req.DerivedActivityLevel, true);
-            if (req.DerivedNutritionGoal != null) od.DerivedNutritionGoal = Enum.Parse<NutritionGoal>(req.DerivedNutritionGoal, true);
-            if (req.Bmr.HasValue) od.Bmr = req.Bmr.Value;
-            if (req.Tdee.HasValue) od.Tdee = req.Tdee.Value;
-            if (req.AdjustedKcal.HasValue) od.AdjustedKcal = req.AdjustedKcal.Value;
-            if (req.ProteinGrams.HasValue) od.ProteinGrams = req.ProteinGrams.Value;
-            if (req.CarbsGrams.HasValue) od.CarbsGrams = req.CarbsGrams.Value;
-            if (req.FatGrams.HasValue) od.FatGrams = req.FatGrams.Value;
-            if (req.MealDistribution != null) od.MealDistribution = req.MealDistribution;
+            // Nutrition targets live on their own child row (split from OnboardingData) —
+            // create it on demand so a patch touching only one target field is never
+            // silently dropped when the row does not yet exist.
+            var hasTargetPatch = req.DerivedActivityLevel != null
+                || req.DerivedNutritionGoal != null
+                || req.Bmr.HasValue
+                || req.Tdee.HasValue
+                || req.AdjustedKcal.HasValue
+                || req.ProteinGrams.HasValue
+                || req.CarbsGrams.HasValue
+                || req.FatGrams.HasValue
+                || req.MealDistribution != null;
+
+            if (hasTargetPatch)
+            {
+                var isNewTargets = od.NutritionTargets is null;
+                od.NutritionTargets ??= new ClientNutritionTargets();
+                var targets = od.NutritionTargets;
+
+                if (req.DerivedActivityLevel != null) targets.DerivedActivityLevel = Enum.Parse<ActivityLevel>(req.DerivedActivityLevel, true);
+                if (req.DerivedNutritionGoal != null) targets.DerivedNutritionGoal = Enum.Parse<NutritionGoal>(req.DerivedNutritionGoal, true);
+                if (req.Bmr.HasValue) targets.Bmr = req.Bmr.Value;
+                if (req.Tdee.HasValue) targets.Tdee = req.Tdee.Value;
+                if (req.AdjustedKcal.HasValue) targets.AdjustedKcal = req.AdjustedKcal.Value;
+                if (req.ProteinGrams.HasValue) targets.ProteinGrams = req.ProteinGrams.Value;
+                if (req.CarbsGrams.HasValue) targets.CarbsGrams = req.CarbsGrams.Value;
+                if (req.FatGrams.HasValue) targets.FatGrams = req.FatGrams.Value;
+                if (req.MealDistribution != null) targets.MealDistribution = req.MealDistribution;
+
+                if (isNewTargets)
+                {
+                    db.ClientNutritionTargets.Add(targets);
+                }
+            }
         }
 
         await db.SaveChangesAsync(ct);
