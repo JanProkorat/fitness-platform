@@ -5,7 +5,7 @@ namespace FitnessPlatform.Tests.Infrastructure.Cli;
 
 /// <summary>
 /// Unit tests for <see cref="CliCommandDispatcher.ParseCommand"/> — the pure
-/// argument-matching function that replaced four independent
+/// argument-matching function that replaced the per-flag
 /// <c>args.Contains(...)</c> checks. Covers the one behaviour-change vector
 /// identified in review: precedence order, position independence, exact
 /// element matching, and the empty-args case the
@@ -62,6 +62,14 @@ public class CliCommandDispatcherTests
     }
 
     [Fact]
+    public void ParseCommand_RenameTrainerNotesCollectionFlag_ReturnsRenameTrainerNotesCollection()
+    {
+        var result = CliCommandDispatcher.ParseCommand(["--rename-trainer-notes-collection"]);
+
+        result.Should().Be(CliCommand.RenameTrainerNotesCollection);
+    }
+
+    [Fact]
     public void ParseCommand_NoFlag_DoesNotTriggerTheDestructiveDrop()
     {
         // The only destructive command in the seam must never be selected by a boot with
@@ -70,6 +78,7 @@ public class CliCommandDispatcherTests
         CliCommandDispatcher.ParseCommand([]).Should().Be(CliCommand.None);
         CliCommandDispatcher.ParseCommand(["--seed"]).Should().Be(CliCommand.Seed);
         CliCommandDispatcher.ParseCommand(["--drop-legacy"]).Should().Be(CliCommand.None);
+        CliCommandDispatcher.ParseCommand(["--rename-trainer-notes"]).Should().Be(CliCommand.None);
     }
 
     [Fact]
@@ -95,7 +104,8 @@ public class CliCommandDispatcherTests
     public void ParseCommand_MultipleFlagsPresent_FirstInFixedOrderWins()
     {
         // Fixed precedence: --seed > --qa-seed > --backfill-photo-descriptions >
-        // --drop-legacy-training-collections, regardless of array order.
+        // --drop-legacy-training-collections > --rename-trainer-notes-collection,
+        // regardless of array order. This case passes the first four.
         var result = CliCommandDispatcher.ParseCommand(
             ["--drop-legacy-training-collections", "--backfill-photo-descriptions", "--qa-seed", "--seed"]);
 
