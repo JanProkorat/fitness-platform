@@ -63,9 +63,8 @@ public static class MongoCollections
 
     /// <summary>
     /// Trainer notes — private notes written by a trainer about a client.
-    /// Collection name is snake_case per issue #492 specification.
     /// </summary>
-    public const string TrainerNotes = "trainer_notes";
+    public const string TrainerNotes = "trainerNotes";
 
     /// <summary>
     /// Reusable full-session templates collection (#857) — a whole reusable training-session
