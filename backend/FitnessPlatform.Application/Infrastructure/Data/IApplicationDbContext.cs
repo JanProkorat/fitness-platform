@@ -61,6 +61,11 @@ public interface IApplicationDbContext
     DbSet<ClientOnboardingData> ClientOnboardingData { get; set; }
 
     /// <summary>
+    /// Computed nutrition targets derived from client onboarding data.
+    /// </summary>
+    DbSet<ClientNutritionTargets> ClientNutritionTargets { get; set; }
+
+    /// <summary>
     /// Notifications.
     /// </summary>
     DbSet<Notification> Notifications { get; set; }

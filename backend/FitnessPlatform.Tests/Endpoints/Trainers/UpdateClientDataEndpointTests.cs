@@ -167,4 +167,76 @@ public class UpdateClientDataEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         await userManager.DidNotReceive().SetEmailAsync(Arg.Any<ApplicationUser>(), Arg.Any<string>());
     }
+
+    /// <summary>
+    /// The highest-risk path in the #1036 nutrition-targets split: a client whose
+    /// <see cref="ClientOnboardingData"/> row exists but whose <see cref="ClientNutritionTargets"/>
+    /// child row does not. A patch touching a single target field (Bmr) must create the row
+    /// on demand and actually persist the value — not silently no-op, which would be
+    /// indistinguishable from success to the caller.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_BmrOnlyPatch_NutritionTargetsRowAbsent_CreatesRowAndPersistsValue()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        var onboardingData = new ClientOnboardingData { Id = 10, ClientProfileId = clientProfile.Id };
+        clientProfile.OnboardingData = onboardingData;
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var ep = CreateEndpoint(db, userManager);
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            Bmr = 1900m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        onboardingData.NutritionTargets.Should().NotBeNull(
+            "a Bmr-only patch must create the child row rather than silently no-op");
+        onboardingData.NutritionTargets!.Bmr.Should().Be(1900m);
+        db.ClientNutritionTargets.Received(1).Add(Arg.Is<ClientNutritionTargets>(t => t.Bmr == 1900m));
+    }
+
+    /// <summary>
+    /// Complements the row-absent case above: when the child row already exists, a target
+    /// patch must mutate it in place, not create (and stage for insert) a second one — that
+    /// would violate the unique index on <c>ClientOnboardingDataId</c> at save time.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_BmrOnlyPatch_NutritionTargetsRowExists_MutatesInPlace_DoesNotAddDuplicate()
+    {
+        var (trainerProfile, clientProfile, link) = BuildLinkedPair(_trainerId, _clientUserId);
+        var onboardingData = new ClientOnboardingData { Id = 11, ClientProfileId = clientProfile.Id };
+        var existingTargets = EntityBuilder.ClientNutritionTargets
+            .WithClientOnboardingDataId(onboardingData.Id)
+            .Build();
+        onboardingData.NutritionTargets = existingTargets;
+        clientProfile.OnboardingData = onboardingData;
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile).With(clientProfile).With(link).With(existingTargets)
+            .Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        var ep = CreateEndpoint(db, userManager);
+
+        await ep.HandleAsync(new UpdateClientDataRequest
+        {
+            ClientId = clientProfile.PublicId,
+            Bmr = 2000m,
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        existingTargets.Bmr.Should().Be(2000m);
+        onboardingData.NutritionTargets.Should().BeSameAs(existingTargets,
+            "the existing row must be mutated in place, not replaced with a new instance");
+        db.ClientNutritionTargets.DidNotReceive().Add(Arg.Any<ClientNutritionTargets>());
+    }
 }

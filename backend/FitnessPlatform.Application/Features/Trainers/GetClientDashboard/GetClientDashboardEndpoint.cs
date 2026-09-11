@@ -63,6 +63,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             .AsNoTracking()
             .Include(cp => cp.User)
             .Include(cp => cp.OnboardingData)
+            .ThenInclude(od => od!.NutritionTargets)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 
         if (clientProfile is null)
@@ -240,15 +241,15 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
-                DerivedActivityLevel = od.DerivedActivityLevel.ToString(),
-                DerivedNutritionGoal = od.DerivedNutritionGoal.ToString(),
-                Bmr = od.Bmr,
-                Tdee = od.Tdee,
-                AdjustedKcal = od.AdjustedKcal,
-                ProteinGrams = od.ProteinGrams,
-                CarbsGrams = od.CarbsGrams,
-                FatGrams = od.FatGrams,
-                MealDistribution = od.MealDistribution,
+                DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString(),
+                DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString(),
+                Bmr = od.NutritionTargets?.Bmr,
+                Tdee = od.NutritionTargets?.Tdee,
+                AdjustedKcal = od.NutritionTargets?.AdjustedKcal,
+                ProteinGrams = od.NutritionTargets?.ProteinGrams,
+                CarbsGrams = od.NutritionTargets?.CarbsGrams,
+                FatGrams = od.NutritionTargets?.FatGrams,
+                MealDistribution = od.NutritionTargets?.MealDistribution,
             };
         }
 
