@@ -16,6 +16,9 @@ public class UpdateRecipeValidator : Validator<UpdateRecipeRequest>
         RuleFor(x => x.RecipeId)
             .NotEmpty();
 
+        RuleFor(x => x.Version)
+            .GreaterThanOrEqualTo(1);
+
         RuleFor(x => x.Name)
             .NotEmpty()
             .MaximumLength(200);
