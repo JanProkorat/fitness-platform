@@ -6,6 +6,7 @@ import { getMyRequests, type ClientRequestDto } from '../api/professionals'
 import { getCollaborations, endCollaboration, type CollaborationDto } from '../api/profile'
 import { useAuthStore, type ActiveCollaborator, type PendingRequest } from '../stores/auth'
 import { useAcceptInvite } from './useAcceptInvite'
+import { Toast } from '../lib/toast'
 
 function collabToActiveCollaborator(c: CollaborationDto): ActiveCollaborator {
   // Generated types make all fields optional; use nullish coalescing to guard
@@ -97,6 +98,7 @@ export function useCollaboration() {
     onSuccess: () => {
       store.setPendingInvite(null)
       invalidateAll()
+      Toast.show('Invitation declined')
     },
   })
 
@@ -174,6 +176,7 @@ export function useCollaboration() {
     onSuccess: () => {
       invalidateAll()
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      Toast.show('Request sent')
     },
     onError: (_err, { trainerId }) => {
       store.removePendingRequest(`temp-${trainerId}`)
@@ -197,6 +200,7 @@ export function useCollaboration() {
     },
     onSuccess: () => {
       invalidateAll()
+      Toast.show('Request cancelled')
     },
   })
 
@@ -207,6 +211,7 @@ export function useCollaboration() {
       acceptInviteMutation.mutate(id, {
         onSuccess: () => {
           store.setPendingInvite(null)
+          Toast.show('Invitation accepted')
         },
       }),
     declineInvite: declineInviteMutation.mutate,
