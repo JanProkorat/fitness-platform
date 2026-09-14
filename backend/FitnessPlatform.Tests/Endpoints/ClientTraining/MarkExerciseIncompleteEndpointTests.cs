@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkExerciseIncomplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -27,6 +28,7 @@ public class MarkExerciseIncompleteEndpointTests
     private readonly Guid _exercise2 = Guid.NewGuid();
     private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private readonly ILogger<MarkExerciseIncompleteEndpoint> _logger = Substitute.For<ILogger<MarkExerciseIncompleteEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
@@ -43,11 +45,7 @@ public class MarkExerciseIncompleteEndpointTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1, _exercise2],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1, _exercise2]
-            });
+            version: 1);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -63,18 +61,18 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // The update should have been called removing exercise1
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -88,11 +86,7 @@ public class MarkExerciseIncompleteEndpointTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise2],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise2]
-            });
+            version: 1);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -108,22 +102,22 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // No insert or update should have occurred
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -137,11 +131,7 @@ public class MarkExerciseIncompleteEndpointTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 3,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 3);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -157,14 +147,13 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 1  // client thinks it's version 1, server is at 3
             },
             TestContext.Current.CancellationToken);
@@ -181,11 +170,7 @@ public class MarkExerciseIncompleteEndpointTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 2,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 2);
 
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
@@ -197,23 +182,22 @@ public class MarkExerciseIncompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -235,10 +219,10 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(wrongClientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         // No active plan → 404 with NoActiveTrainingPlan code
@@ -260,10 +244,10 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = Guid.NewGuid(), ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = Guid.NewGuid(), ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -284,11 +268,11 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // _exercise2 is NOT in the plan's session exercises
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise2, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise2 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -302,32 +286,42 @@ public class MarkExerciseIncompleteEndpointTests
 
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
 
+    /// <summary>
+    /// #841: the endpoint no longer syncs a separate WorkoutLog document — the set-by-set
+    /// Performance data lives on the SAME SessionExecution as the checkbox completion flags.
+    /// Un-marking an exercise clears its Performance sets' CompletedAt in-place on the loaded
+    /// document (mutated before the versioned UpdateOneAsync call), no cross-collection write.
+    /// </summary>
     [Fact]
-    public async Task HandleAsync_ClearsWorkoutLogCompletedAtForExerciseOnly()
+    public async Task HandleAsync_ClearsPerformanceCompletedAtForExerciseOnly()
     {
-        // Arrange — a WorkoutLog with two exercises, both fully completed
+        // Arrange — a single SessionExecution carrying BOTH the checkbox flags AND Performance
+        // (set-by-set) data for two fully-completed exercises.
         var now = DateTime.UtcNow;
-        var workoutLog = new Application.Domain.Documents.WorkoutLog
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            date: now.Date,
+            completedExerciseIds: [_exercise1, _exercise2],
+            version: 1);
+        existingCompletion.Performance = new SessionExecutionPerformance
         {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,         // auth user id — matches the JWT claim
-            SessionId = _sessionId,
             StartedAt = now.Date.AddHours(9),
-            IsCompleted = true,
-            Sections =
+            CompletedAt = now,
+            Workouts =
             [
-                new Application.Domain.Documents.WorkoutSection
+                new Application.Domain.Documents.LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = _sectionId,
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -356,59 +350,46 @@ public class MarkExerciseIncompleteEndpointTests
             ]
         };
 
-        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
-            clientId: _clientId,
-            sessionId: _sessionId,
-            date: now.Date,
-            completedExerciseIds: [_exercise1, _exercise2],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1, _exercise2]
-            });
-
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
             sessionId: _sessionId,
             exerciseIds: [_exercise1, _exercise2],
             sectionId: _sectionId);
 
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+        var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
             plan: plan,
-            existingCompletion: existingCompletion,
-            workoutLogs: [workoutLog]);
+            existingCompletion: existingCompletion);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // Act — unmark exercise1 only
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // Exercise A (exercise1): all sets cleared
-        var exerciseA = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise1);
+        // Exercise A (exercise1): all sets cleared, mutated in-place on the same document the
+        // mock's FindAsync returned.
+        var exerciseA = existingCompletion.Performance.Exercises.First(e => e.ExerciseExternalId == _exercise1);
         exerciseA.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().BeNull());
 
         // Exercise B (exercise2): sets still have CompletedAt
-        var exerciseB = workoutLog.Exercises.First(e => e.ExerciseExternalId == _exercise2);
+        var exerciseB = existingCompletion.Performance.Exercises.First(e => e.ExerciseExternalId == _exercise2);
         exerciseB.Sets.Should().AllSatisfy(s => s.CompletedAt.Should().NotBeNull());
 
-        // IsCompleted remains true because exercise B still has completed sets
-        workoutLog.IsCompleted.Should().BeTrue();
-
-        // ReplaceOneAsync was called for the log
-        await mongo.WorkoutLogs.Received(1).ReplaceOneAsync(
-            Arg.Any<FilterDefinition<Application.Domain.Documents.WorkoutLog>>(),
-            Arg.Any<Application.Domain.Documents.WorkoutLog>(),
-            Arg.Any<ReplaceOptions>(),
+        // UpdateOneAsync was called for the unified SessionExecutions collection — no separate
+        // WorkoutLogs write.
+        await completionCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
+            Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -427,10 +408,13 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
+        // #857 phase 3b: an unknown exercise INSTANCE id (no such id in the section — the
+        // pre-3b "unknown section" concept no longer exists once ExerciseId is the sole
+        // disambiguator) must still 404.
         await ep.HandleAsync(
-            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = Guid.NewGuid() },
+            new MarkExerciseIncompleteRequest { SessionId = _sessionId, ExerciseId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
@@ -439,25 +423,22 @@ public class MarkExerciseIncompleteEndpointTests
     [Fact]
     public async Task HandleAsync_SameExerciseInTwoSections_UnmarkInOneSection_LeavesOtherSectionIntact()
     {
-        // The core bug scenario: same catalog exercise in two sections, both marked complete.
-        // Un-marking in section1 must NOT remove the exercise from section2's completion state.
+        // The core bug scenario: same catalog exercise in two workouts, both instances marked
+        // complete. Un-marking the section1 instance (by its distinct ExerciseId) must NOT clear
+        // the section2 instance's completion state, even though both share the same catalog
+        // ExerciseExternalId.
         var sharedExerciseId = Guid.NewGuid();
-        var (plan, section1Id, section2Id) =
+        var (plan, _, _, workout1ExerciseId, workout2ExerciseId) =
             TrainingCompletionTestHelpers.CreateActivePlanWithDuplicateExerciseAcrossSections(
                 _clientId, _sessionId, sharedExerciseId);
 
-        // Completion has the exercise in both sections
+        // Completion has both instances complete
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
             clientId: _clientId,
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
-            completedExerciseIds: [sharedExerciseId],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [section1Id.ToString()] = [sharedExerciseId],
-                [section2Id.ToString()] = [sharedExerciseId]
-            });
+            completedExerciseIds: [workout1ExerciseId, workout2ExerciseId],
+            version: 1);
 
         var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
             plan: plan,
@@ -467,33 +448,30 @@ public class MarkExerciseIncompleteEndpointTests
         var ep = Factory.Create<MarkExerciseIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
-        // Un-mark in section1 only
+        // Un-mark the section1 instance only
         await ep.HandleAsync(
             new MarkExerciseIncompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = sharedExerciseId,
-                SectionId = section1Id
+                ExerciseId = workout1ExerciseId
             },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // The update must be called. The section-aware dict should only remove section1's entry.
+        // The update must be called.
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
 
-        // The in-memory doc still has section2's entry for the exercise.
-        existingCompletion.CompletedExerciseIdsBySection.Should().NotContainKey(section1Id.ToString());
-        existingCompletion.CompletedExerciseIdsBySection.Should().ContainKey(section2Id.ToString());
-        existingCompletion.CompletedExerciseIdsBySection![section2Id.ToString()].Should().Contain(sharedExerciseId);
-
-        // The legacy flat list should still contain sharedExerciseId (section2 still has it).
-        existingCompletion.CompletedExerciseIds.Should().Contain(sharedExerciseId);
+        // Only the section1 instance was removed — the session still has 2 exercise instances
+        // total (both workouts' occurrences of the shared catalog exercise), and exactly 1
+        // (the section2 instance) remains complete.
+        ep.Response.TotalExerciseCount.Should().Be(2);
+        ep.Response.CompletedExerciseCount.Should().Be(1);
     }
 }

@@ -1,4 +1,4 @@
-import type { NutritionPlanDetail, MealLogDto } from '@/api/plan-types';
+import type { NutritionPlanDetail, MealEatenStatusDto } from '@/api/plan-types';
 import { deriveMealCompletionState } from '@/lib/completionState';
 
 /**
@@ -36,11 +36,11 @@ export function dayLockKey(weekNumber: number, dayOfWeek: number): string {
  * Pure function — no React, no side effects.
  *
  * @param plan      The NutritionPlanDetail (drives the meal list to check)
- * @param mealLogs  The MealLogDto[] from the same response
+ * @param mealLogs  The MealEatenStatusDto[] from the same response
  */
 export function computeNutritionPlanLocks(
   plan: NutritionPlanDetail | null,
-  mealLogs: MealLogDto[],
+  mealLogs: MealEatenStatusDto[],
 ): NutritionPlanLocks {
   if (!plan || mealLogs.length === 0) return EMPTY_LOCKS;
 

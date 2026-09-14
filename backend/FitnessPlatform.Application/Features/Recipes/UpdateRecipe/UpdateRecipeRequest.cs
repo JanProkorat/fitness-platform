@@ -14,6 +14,11 @@ public class UpdateRecipeRequest
     public Guid RecipeId { get; set; }
 
     /// <summary>
+    /// Optimistic concurrency version. Must match the current document version.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Updated name of the recipe.
     /// </summary>
     public string Name { get; set; } = string.Empty;

@@ -36,16 +36,6 @@ public static class MongoCollections
     public const string TrainingPlans = "trainingPlans";
 
     /// <summary>
-    /// Workout log entries collection.
-    /// </summary>
-    public const string WorkoutLogs = "workoutLogs";
-
-    /// <summary>
-    /// Training completion records collection.
-    /// </summary>
-    public const string TrainingCompletions = "trainingCompletions";
-
-    /// <summary>
     /// Personal record documents collection.
     /// </summary>
     public const string PersonalRecords = "personalRecords";
@@ -56,9 +46,10 @@ public static class MongoCollections
     public const string DayLogs = "dayLogs";
 
     /// <summary>
-    /// Section template documents (per-trainer reusable training section templates).
+    /// Reusable workout templates collection (#857) — a single reusable workout per trainer
+    /// (formerly the "section template" concept).
     /// </summary>
-    public const string SectionTemplates = "sectionTemplates";
+    public const string WorkoutTemplates = "workoutTemplates";
 
     /// <summary>
     /// Active session lock documents (Editing or Live state; absence = Stable).
@@ -72,12 +63,34 @@ public static class MongoCollections
 
     /// <summary>
     /// Trainer notes — private notes written by a trainer about a client.
-    /// Collection name is snake_case per issue #492 specification.
     /// </summary>
-    public const string TrainerNotes = "trainer_notes";
+    public const string TrainerNotes = "trainerNotes";
 
     /// <summary>
-    /// Reusable workout templates collection.
+    /// Reusable full-session templates collection (#857) — a whole reusable training-session
+    /// skeleton (formerly misnamed "workout templates").
     /// </summary>
-    public const string WorkoutTemplates = "workoutTemplates";
+    public const string SessionTemplates = "sessionTemplates";
+
+    /// <summary>
+    /// Session execution documents (#841) — one per (client, session, date), unifying the
+    /// legacy <c>workoutLogs</c> and <c>trainingCompletions</c> collections, both dropped
+    /// in #847.
+    /// </summary>
+    public const string SessionExecutions = "sessionExecutions";
+
+    /// <summary>
+    /// Reusable meal templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string MealTemplates = "mealTemplates";
+
+    /// <summary>
+    /// Reusable nutrition plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string NutritionPlanTemplates = "nutritionPlanTemplates";
+
+    /// <summary>
+    /// Reusable training plan templates collection (#858 sharing-library foundation).
+    /// </summary>
+    public const string TrainingPlanTemplates = "trainingPlanTemplates";
 }

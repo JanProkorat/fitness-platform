@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -43,17 +44,13 @@ public class GetTrainingPlanLockStateTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            Name = "Push Day",
-                            DayOfWeek = 1,
-                            Order = 1,
-                            Sections = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ],
             Version = 1,
@@ -86,7 +83,9 @@ public class GetTrainingPlanLockStateTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            lockService);
+            lockService,
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },

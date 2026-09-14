@@ -44,17 +44,14 @@ public class UnlockSessionFinishedGuardTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Test Session",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -62,13 +59,17 @@ public class UnlockSessionFinishedGuardTests
         };
 
     /// <summary>
-    /// Creates an IMongoContext where WorkoutLogs.CountDocumentsAsync returns the given count
-    /// and TrainingCompletions.FindAsync returns the given completions (default empty).
+    /// Creates an IMongoContext whose SessionExecutions collection carries an optional
+    /// completed-live-session document (<paramref name="completedLogCount"/> &gt; 0) plus any
+    /// caller-supplied checkbox-path (Status=Partial) documents.
+    /// #841: UnlockTrainingSessionEndpoint reads exclusively mongo.SessionExecutions and calls
+    /// IsSessionComplete() on each returned document — session-level completeness is derived by
+    /// the same IsSessionComplete()/IsWorkoutComplete() extension the endpoint calls.
     /// </summary>
     private IMongoContext CreateMockMongo(
         TrainingPlan plan,
         long completedLogCount,
-        List<TrainingCompletion>? completions = null)
+        List<SessionExecution>? completionExecutions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -76,19 +77,33 @@ public class UnlockSessionFinishedGuardTests
         var planCollection = TrainingPlanTestHelpers.CreateMockCollection([plan]);
         mongo.TrainingPlans.Returns(planCollection);
 
-        // WorkoutLogs — CountDocumentsAsync returns the given count (0 or 1)
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.CountDocumentsAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<CountOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(completedLogCount);
-        mongo.WorkoutLogs.Returns(logCollection);
+        var sessionId = plan.Weeks
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
+            .Select(s => s.SessionId)
+            .FirstOrDefault();
+        var executions = new List<SessionExecution>();
 
-        // TrainingCompletions — FindAsync returns the given completions (empty by default)
-        var completionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection(
-            completions ?? []);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        if (completedLogCount > 0)
+        {
+            var now = DateTime.UtcNow;
+            executions.Add(new SessionExecution
+            {
+                ExternalId = Guid.NewGuid(),
+                ClientId = plan.ClientId,
+                SessionId = sessionId,
+                Date = SessionExecution.ToCompletionDateUtc(now),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance { StartedAt = now, CompletedAt = now, Workouts = [] },
+                DateCreated = now,
+                Version = 1
+            });
+        }
+
+        executions.AddRange(completionExecutions ?? []);
+
+        var executionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection(executions);
+        mongo.SessionExecutions.Returns(executionCollection);
 
         return mongo;
     }
@@ -132,7 +147,8 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -172,7 +188,8 @@ public class UnlockSessionFinishedGuardTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -203,22 +220,15 @@ public class UnlockSessionFinishedGuardTests
         var emptyPlanCollection = TrainingPlanTestHelpers.CreateMockCollection([]);
         mongo.TrainingPlans.Returns(emptyPlanCollection);
 
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.CountDocumentsAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<CountOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(0L);
-        mongo.WorkoutLogs.Returns(logCollection);
-
-        // TrainingCompletions not reached (404 fires first) but stub to avoid null ref.
-        var emptyCompletionCollection = TrainingPlanTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(emptyCompletionCollection);
+        // SessionExecutions not reached (404 fires first) but stub to avoid null ref.
+        var emptyExecutionCollection = TrainingPlanTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(emptyExecutionCollection);
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(otherTrainer, AppRoles.Trainer))),
-            mongo, Substitute.For<ISessionLockService>(), DefaultOptions(), Substitute.For<IRealtimeNotifier>());
+            mongo, Substitute.For<ISessionLockService>(), DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -228,10 +238,10 @@ public class UnlockSessionFinishedGuardTests
         // Assert: 404 — ownership guard fires before finished-guard
         ep.HttpContext.Response.StatusCode.Should().Be(404);
 
-        // WorkoutLogs.CountDocumentsAsync must NOT be called (404 short-circuits before finished-guard)
-        await logCollection.DidNotReceive().CountDocumentsAsync(
-            Arg.Any<FilterDefinition<WorkoutLog>>(),
-            Arg.Any<CountOptions>(),
+        // SessionExecutions.FindAsync must NOT be called (404 short-circuits before finished-guard)
+        await emptyExecutionCollection.DidNotReceive().FindAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -251,17 +261,18 @@ public class UnlockSessionFinishedGuardTests
         // Use a plan with one exercise in a section to make the test realistic.
         var sectionId = Guid.NewGuid();
         var exerciseId = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
                 [
                     new SessionExercise
                     {
+                        ExerciseId = exerciseId,
                         ExerciseExternalId = exerciseId,
                         ExerciseName = "Squat",
                         Order = 0,
@@ -271,27 +282,29 @@ public class UnlockSessionFinishedGuardTests
             }
         ];
 
-        // Fully-complete TrainingCompletion for that session (all exercises marked done).
-        var completion = new TrainingCompletion
+        // Fully-complete SessionExecution (checkbox path) for that session (all exercises marked done).
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -323,41 +336,43 @@ public class UnlockSessionFinishedGuardTests
         var sectionId = Guid.NewGuid();
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionId,
+                WorkoutId = sectionId,
                 Order = 0,
                 Name = "Hlavní",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] },
-                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Press", Order = 1, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId1, ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] },
+                    new SessionExercise { ExerciseId = exerciseId2, ExerciseExternalId = exerciseId2, ExerciseName = "Press", Order = 1, Sets = [] }
                 ]
             }
         ];
 
         // Only exerciseId1 done — partial completion.
-        var partialCompletion = new TrainingCompletion
+        var partialCompletionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId1],  // exerciseId2 missing → NOT complete
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [exerciseId1],  // exerciseId2 missing → NOT complete
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [partialCompletion]);
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [partialCompletionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -377,15 +392,16 @@ public class UnlockSessionFinishedGuardTests
     // ── Per-section path tests (Defect 1 regression) ────────────────────────────
 
     /// <summary>
-    /// Regression test for Defect 1: the same exercise id appears in two different sections
-    /// (e.g. "Bench Press" scheduled in both AMRAP block A and AMRAP block B).
-    /// The client completed it in only one section — the <c>CompletedExerciseIdsBySection</c> dict
-    /// contains it only for section A.
+    /// Regression test for Defect 1: the same catalog exercise (<c>ExerciseExternalId</c>) appears
+    /// in two different workouts (e.g. "Bench Press" scheduled in both AMRAP block A and AMRAP
+    /// block B), but each occurrence has its own distinct <c>ExerciseId</c> instance identifier
+    /// (#857 phase 3b). The client completed only section A's instance.
     ///
-    /// The old flat-list check (CompletedExerciseIds.Contains) would see the exercise id once and
-    /// treat BOTH sections as done → false-positive "session complete" → wrong 409 on unlock.
-    ///
-    /// The per-section check must see section B as NOT done and allow the unlock to proceed (204).
+    /// Before instance ids existed, a flat catalog-id check (CompletedExerciseIds.Contains) would
+    /// see the shared exercise id once and treat BOTH sections as done → false-positive "session
+    /// complete" → wrong 409 on unlock. Now that CompletedExerciseInstanceIds holds instance ids,
+    /// a flat membership check is inherently per-occurrence-correct — no per-section dictionary
+    /// is needed to disambiguate.
     /// </summary>
     [Fact]
     public async Task Unlock_DuplicateExerciseAcrossSections_CompletedInOnlyOneSection_Returns204()
@@ -396,62 +412,58 @@ public class UnlockSessionFinishedGuardTests
 
         var sectionIdA = Guid.NewGuid();
         var sectionIdB = Guid.NewGuid();
-        var sharedExerciseId = Guid.NewGuid(); // same exercise in both sections
+        var sharedExerciseId = Guid.NewGuid(); // same catalog exercise in both sections
+        var sectionAInstanceId = Guid.NewGuid();
+        var sectionBInstanceId = Guid.NewGuid();
 
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionIdA,
+                WorkoutId = sectionIdA,
                 Order = 0,
                 Name = "AMRAP A",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = sectionAInstanceId, ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
                 ]
             },
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionIdB,
+                WorkoutId = sectionIdB,
                 Order = 1,
                 Name = "AMRAP B",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = sectionBInstanceId, ExerciseExternalId = sharedExerciseId, ExerciseName = "Bench Press", Order = 0, Sets = [] }
                 ]
             }
         ];
 
-        // Client completed section A's exercise but NOT section B's copy.
-        // CompletedExerciseIdsBySection is authoritative — only section A is populated.
-        var completion = new TrainingCompletion
+        // Client completed section A's instance but NOT section B's — CompletedExerciseInstanceIds
+        // only contains sectionAInstanceId.
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            // Flat list includes the id once — the OLD code used this and would incorrectly
-            // consider section B complete.
-            CompletedExerciseIds = [sharedExerciseId],
-            // Per-section: only section A done.
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionIdA.ToString()] = [sharedExerciseId]
-                // sectionIdB intentionally absent
-            },
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [sectionAInstanceId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -469,8 +481,9 @@ public class UnlockSessionFinishedGuardTests
     }
 
     /// <summary>
-    /// A completion populated via <c>CompletedExerciseIdsBySection</c> where every section is
-    /// fully done should be treated as complete and must block the unlock with 409.
+    /// A completion whose flat <c>CompletedExerciseInstanceIds</c> covers every workout's exercise
+    /// instance across both workouts should be treated as complete and must block the unlock
+    /// with 409.
     /// </summary>
     [Fact]
     public async Task Unlock_AllSectionsCompleteViaBySection_Returns409()
@@ -484,66 +497,63 @@ public class UnlockSessionFinishedGuardTests
         var exerciseId1 = Guid.NewGuid();
         var exerciseId2 = Guid.NewGuid();
 
-        plan.Weeks[0].Sessions[0].Sections =
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts =
         [
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionIdA,
+                WorkoutId = sectionIdA,
                 Order = 0,
                 Name = "Section A",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId1, ExerciseExternalId = exerciseId1, ExerciseName = "Squat", Order = 0, Sets = [] }
                 ]
             },
-            new TrainingSection
+            new TrainingWorkout
             {
-                SectionId = sectionIdB,
+                WorkoutId = sectionIdB,
                 Order = 1,
                 Name = "Section B",
                 Exercises =
                 [
-                    new SessionExercise { ExerciseExternalId = exerciseId2, ExerciseName = "Deadlift", Order = 0, Sets = [] }
+                    new SessionExercise { ExerciseId = exerciseId2, ExerciseExternalId = exerciseId2, ExerciseName = "Deadlift", Order = 0, Sets = [] }
                 ]
             }
         ];
 
-        // Both sections fully done — populated via CompletedExerciseIdsBySection only
-        // (no flat CompletedExerciseIds — as new writes would produce).
-        var completion = new TrainingCompletion
+        // Both workouts fully done — every exercise instance across both workouts is present in
+        // the flat CompletedExerciseInstanceIds list.
+        var completionExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [], // flat list empty — new-write shape
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [sectionIdA.ToString()] = [exerciseId1],
-                [sectionIdB.ToString()] = [exerciseId2]
-            },
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [exerciseId1, exerciseId2],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
 
-        // No completed WorkoutLog.
-        var mongo = CreateMockMongo(plan, completedLogCount: 0, completions: [completion]);
+        // No completed live session.
+        var mongo = CreateMockMongo(plan, completedLogCount: 0, completionExecutions: [completionExecution]);
         var lockService = LockServiceAcquired(sessionId, planId);
         var notifier = Substitute.For<IRealtimeNotifier>();
 
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), notifier);
+            mongo, lockService, DefaultOptions(), notifier,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
             new UnlockTrainingSessionRequest { PlanId = planId, SessionId = sessionId },
             TestContext.Current.CancellationToken);
 
-        // Assert: all sections done via CompletedExerciseIdsBySection → 409
+        // Assert: both workouts done via the flat instance list → 409
         ep.HttpContext.Response.StatusCode.Should().Be(409,
-            "a fully-complete CompletedExerciseIdsBySection completion must block the unlock");
+            "a fully-complete CompletedExerciseInstanceIds completion must block the unlock");
 
         // Lock must NOT be acquired
         await lockService.DidNotReceive().AcquireAsync(

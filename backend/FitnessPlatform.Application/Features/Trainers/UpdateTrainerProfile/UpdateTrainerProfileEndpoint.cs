@@ -58,7 +58,6 @@ public class UpdateProfessionalProfileEndpoint(IApplicationDbContext db, IAuditS
         profile.Certificates = req.Certificates;
         profile.Languages = req.Languages;
         profile.CollaborationType = req.CollaborationType;
-        profile.MaxClients = req.MaxClients;
         profile.LinkedIn = req.LinkedIn;
         profile.Instagram = req.Instagram;
         profile.Website = req.Website;

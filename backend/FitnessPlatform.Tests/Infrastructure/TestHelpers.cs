@@ -1,5 +1,12 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FluentAssertions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Infrastructure;
 
@@ -64,6 +71,92 @@ public static class TestHelpers
     public static void SetBearerToken(HttpClient client, string token)
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    /// <summary>
+    /// Registers a client and gives the named professional an active
+    /// <see cref="ClientProfessionalLink"/> to them carrying both plan capabilities. Returns the
+    /// client's <c>ApplicationUser.Id</c> — the key every Mongo plan document's <c>ClientId</c>
+    /// carries since #840.
+    /// </summary>
+    /// <remarks>
+    /// Plan-addressed routes authorize on the caller's live link, not on the plan document's
+    /// author field, so a fixture that seeds a plan against a fabricated
+    /// <c>ClientId = Guid.NewGuid()</c> now gets a 404 before its own subject is reached. Such
+    /// fixtures call this instead: the link is what the endpoint asks about, so the link is what
+    /// the fixture must provide.
+    /// </remarks>
+    public static Task<Guid> RegisterLinkedClientAsync(
+        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct) =>
+        RegisterLinkedClientAsync(
+            factory, professionalUserId, ct, canViewNutritionPlans: true, canViewTrainingPlans: true);
+
+    /// <summary>
+    /// Overload allowing the caller to pin the link's per-domain capability flags — used by
+    /// mirror-site regression tests that must prove a link granting only one domain is denied on
+    /// the other domain's route (a trainer-only link on a nutrition route, and vice versa).
+    /// </summary>
+    public static async Task<Guid> RegisterLinkedClientAsync(
+        FitnessApiFactory factory, Guid professionalUserId, CancellationToken ct,
+        bool canViewNutritionPlans, bool canViewTrainingPlans)
+    {
+        var httpClient = factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@linked-client-fixture.com";
+        await RegisterAsync(httpClient, email, "TestPass1!", "Linked", "Client", "Client");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var user = await db.Users.FirstAsync(u => u.Email == email, ct);
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == user.Id, ct);
+        var professionalProfile = await db.ProfessionalProfiles.FirstAsync(
+            pp => pp.UserId == professionalUserId, ct);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewNutritionPlans = canViewNutritionPlans,
+            CanViewTrainingPlans = canViewTrainingPlans,
+            DateCreated = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync(ct);
+
+        return user.Id;
+    }
+
+    /// <summary>
+    /// Registers a user with a publicly-registerable role, then promotes it to
+    /// <see cref="UserRole.Admin"/> out-of-band via <see cref="RoleManager{TRole}"/> (Admin is
+    /// intentionally excluded from public self-registration — see <c>RegisterValidator</c>), and
+    /// finally logs in so the JWT carries the Admin role claim. Registration must happen before
+    /// promotion and login after — the access token is minted at login time from the roles the
+    /// user holds then, not merely at time of registration.
+    /// </summary>
+    public static async Task<HttpClient> RegisterAdminAsync(FitnessApiFactory factory, CancellationToken ct)
+    {
+        var httpClient = factory.CreateClient();
+        var email = $"{Guid.NewGuid():N}@admin-fixture.com";
+        await RegisterAsync(httpClient, email, "TestPass1!", "Admin", "Fixture", "Trainer");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.FindByEmailAsync(email);
+            var roleResult = await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
+
+            roleResult.Succeeded.Should().BeTrue(
+                $"AddToRoleAsync failed: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+        }
+
+        var (accessToken, _) = await LoginAsync(httpClient, email, "TestPass1!");
+        SetBearerToken(httpClient, accessToken);
+
+        return httpClient;
     }
 
     private record LoginResult(string AccessToken, string RefreshToken, DateTime ExpiresAt);

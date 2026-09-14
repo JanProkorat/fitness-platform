@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.ClientRequests.AcceptClientRequest;
 
 /// <summary>
@@ -19,4 +21,13 @@ public class AcceptClientRequestRequest
     /// Optional statement from the professional (saved for future display in chat).
     /// </summary>
     public string? Statement { get; set; }
+
+    /// <summary>
+    /// Optional explicit domain scope for the resulting client-professional link. When
+    /// omitted, defaults to every domain implied by the caller's held identity roles
+    /// (existing behavior — unchanged). When supplied, it must be a subset of the
+    /// caller's actually-held roles; e.g. a Trainer-only professional cannot request
+    /// <see cref="LinkCapabilityScope.NutritionOnly"/>.
+    /// </summary>
+    public LinkCapabilityScope? RequestedScope { get; set; }
 }

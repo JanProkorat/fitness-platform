@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -20,10 +21,12 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GenerateMealPhoto
 /// <param name="imageUpload">Image upload service — validates content type and size, then issues the signed URL.</param>
 /// <param name="mongo">MongoDB context for ownership verification.</param>
 /// <param name="db">Relational database context for client profile lookup.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class GenerateMealPhotoUploadUrlEndpoint(
     IImageUploadService imageUpload,
     IMongoContext mongo,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    TimeProvider timeProvider)
     : Endpoint<GenerateMealPhotoUploadUrlRequest, GenerateMealPhotoUploadUrlResponse>
 {
     /// <inheritdoc />
@@ -63,7 +66,8 @@ public class GenerateMealPhotoUploadUrlEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Resolve the client's Active nutrition plan whose date window contains today — a client
         // may hold several sequential, non-overlapping Active plans (#780).
@@ -73,7 +77,8 @@ public class GenerateMealPhotoUploadUrlEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {

@@ -1,12 +1,29 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
 /// <summary>
-/// Hosted service that creates MongoDB indexes at application startup.
+/// Creates MongoDB indexes at application startup.
 /// </summary>
+/// <remarks>
+/// Registered in <c>Program.cs</c> as a plain <c>AddSingleton</c>, NOT
+/// <c>AddHostedService</c>. <see cref="StartAsync"/> is invoked explicitly and
+/// awaited immediately before <c>app.Run()</c> — deliberately NOT via the
+/// <see cref="IHostedService"/> pipeline. Hosted services start sequentially in
+/// registration order, and the framework's own web-hosting service (which starts
+/// Kestrel listening) is registered ahead of anything user code adds afterwards —
+/// so wiring this class via <c>AddHostedService</c> would let Kestrel begin
+/// accepting requests before the unique indexes created below exist, opening a
+/// window for a duplicate-key race those indexes exist to prevent. This class
+/// still exposes the <see cref="StartAsync"/>/<see cref="StopAsync"/> shape (and
+/// tests still construct it directly, e.g. <c>new MongoIndexInitializer(mongo, logger)</c>)
+/// purely for familiarity/consistency — it is not resolved as an <c>IHostedService</c>
+/// anywhere in this codebase.
+/// </remarks>
 public class MongoIndexInitializer : IHostedService
 {
     private readonly IMongoContext _mongo;
@@ -22,7 +39,9 @@ public class MongoIndexInitializer : IHostedService
     }
 
     /// <summary>
-    /// Creates all required MongoDB indexes.
+    /// Creates all required MongoDB indexes. Must be awaited to completion before the
+    /// app serves any request — see the class-level remarks and the explicit call site
+    /// in <c>Program.cs</c>.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -33,12 +52,14 @@ public class MongoIndexInitializer : IHostedService
         await CreateMealLogIndexes(cancellationToken);
         await CreateExerciseIndexes(cancellationToken);
         await CreateTrainingPlanIndexes(cancellationToken);
-        await CreateWorkoutLogIndexes(cancellationToken);
-        await CreateTrainingCompletionIndexes(cancellationToken);
         await CreatePersonalRecordIndexes(cancellationToken);
-        await CreateSectionTemplateIndexes(cancellationToken);
-        await CreateSessionLockIndexes(cancellationToken);
         await CreateWorkoutTemplateIndexes(cancellationToken);
+        await CreateSessionLockIndexes(cancellationToken);
+        await CreateSessionTemplateIndexes(cancellationToken);
+        await CreateSessionExecutionIndexes(cancellationToken);
+        await CreateMealTemplateIndexes(cancellationToken);
+        await CreateNutritionPlanTemplateIndexes(cancellationToken);
+        await CreateTrainingPlanTemplateIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -88,7 +109,7 @@ public class MongoIndexInitializer : IHostedService
             ct);
     }
 
-    private static async Task TryDropIndexAsync(IMongoIndexManager<Food> indexes, string name, CancellationToken ct)
+    private static async Task TryDropIndexAsync<T>(IMongoIndexManager<T> indexes, string name, CancellationToken ct)
     {
         try
         {
@@ -96,7 +117,8 @@ public class MongoIndexInitializer : IHostedService
         }
         catch (MongoCommandException ex) when (ex.CodeName == "IndexNotFound" || ex.Code == 27)
         {
-            // Index did not exist — first boot on a fresh database. Fine.
+            // Index did not exist — first boot on a fresh database, or already dropped
+            // by a previous boot. Fine.
         }
     }
 
@@ -191,202 +213,6 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([clientStatusIndex, externalIdIndex, trainerIndex], ct);
     }
 
-    private async Task CreateWorkoutLogIndexes(CancellationToken ct)
-    {
-        var indexes = _mongo.WorkoutLogs.Indexes;
-
-        // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys.Ascending(w => w.ExternalId),
-            new CreateIndexOptions { Name = "idx_workoutlog_externalId", Unique = true });
-
-        // Compound index on clientId + startedAt for history queries
-        var clientDateIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.ClientId)
-                .Descending(w => w.StartedAt),
-            new CreateIndexOptions { Name = "idx_workoutlog_clientId_startedAt" });
-
-        // Index on clientId + sessionId for finding logs by session
-        var clientSessionIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.ClientId)
-                .Ascending(w => w.SessionId),
-            new CreateIndexOptions { Name = "idx_workoutlog_clientId_sessionId", Sparse = true });
-
-        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientSessionIndex], ct);
-
-        // ── Backfill + dedup, BEFORE creating the partial unique index ──────────────
-        //
-        // Both operations are idempotent: safe on every boot.
-        // They MUST run before the unique index creation or E11000 will fire on
-        // existing duplicate / missing-CompletedDate documents.
-
-        // (a) Backfill: for completed logs that have PlanId + SessionId but no
-        //     CompletedDate, derive CompletedDate from CompletedAt (fall back to
-        //     DateCreated when CompletedAt is null — shouldn't happen, but defensive).
-        var missingDateFilter =
-            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate, exists: false);
-
-        using var backfillCursor = await _mongo.WorkoutLogs.FindAsync(
-            missingDateFilter, cancellationToken: ct);
-
-        var backfillBatch = await backfillCursor.ToListAsync(ct);
-        var backfillCount = 0;
-
-        foreach (var log in backfillBatch)
-        {
-            var sourceInstant = log.CompletedAt ?? log.DateCreated;
-            var completedDate = WorkoutLog.ToCompletionDateUtc(sourceInstant);
-
-            await _mongo.WorkoutLogs.UpdateOneAsync(
-                Builders<WorkoutLog>.Filter.Eq(w => w.ExternalId, log.ExternalId),
-                Builders<WorkoutLog>.Update.Set(w => w.CompletedDate, completedDate),
-                cancellationToken: ct);
-
-            backfillCount++;
-        }
-
-        if (backfillCount > 0)
-        {
-            _logger.LogInformation(
-                "WorkoutLog backfill: set CompletedDate on {Count} completed log(s)",
-                backfillCount);
-        }
-
-        // (b) Dedup: for completed logs with duplicate (PlanId, SessionId, CompletedDate)
-        //     triplets keep the most-recent by CompletedAt (tiebreak DateUpdated ?? DateCreated)
-        //     and delete the rest.
-        //
-        //     Pre-check: run a server-side $group aggregation to find duplicate triplets
-        //     before pulling any documents into memory. This avoids a full collection scan
-        //     on every boot when — as is almost always the case — there are no duplicates.
-        var completedWithKeyFilter =
-            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate);
-
-        // Server-side aggregation: $match → $group by triplet with count → $match count > 1.
-        // Stops after the first duplicate found ($limit 1) so the pre-check is cheap even on
-        // large collections.  Result type is BsonDocument — we only need to know the count.
-        var dupCheckResult = await _mongo.WorkoutLogs
-            .Aggregate()
-            .Match(completedWithKeyFilter)
-            .Group(new BsonDocument
-            {
-                { "_id", new BsonDocument
-                    {
-                        { "planId",        "$planId" },
-                        { "sessionId",     "$sessionId" },
-                        { "completedDate", "$completedDate" }
-                    }
-                },
-                { "count", new BsonDocument("$sum", 1) }
-            })
-            .Match(new BsonDocument("count", new BsonDocument("$gt", 1)))
-            .Limit(1)
-            .ToListAsync(ct);
-
-        var hasDuplicates = dupCheckResult.Count > 0;
-
-        var deleteCount = 0;
-
-        if (hasDuplicates)
-        {
-            // At least one duplicate triplet exists — load only the affected documents.
-            using var dedupCursor = await _mongo.WorkoutLogs.FindAsync(
-                completedWithKeyFilter, cancellationToken: ct);
-
-            var allCompleted = await dedupCursor.ToListAsync(ct);
-
-            var groups = allCompleted
-                .GroupBy(l => (l.PlanId, l.SessionId, l.CompletedDate))
-                .Where(g => g.Count() > 1);
-
-            foreach (var group in groups)
-            {
-                var logsInGroup = group
-                    .OrderByDescending(l => l.CompletedAt ?? DateTime.MinValue)
-                    .ThenByDescending(l => l.DateUpdated ?? l.DateCreated)
-                    .ToList();
-
-                // Keep the first (most recent); delete the rest.
-                var toDelete = logsInGroup.Skip(1).Select(l => l.ExternalId).ToList();
-
-                await _mongo.WorkoutLogs.DeleteManyAsync(
-                    Builders<WorkoutLog>.Filter.In(w => w.ExternalId, toDelete),
-                    cancellationToken: ct);
-
-                deleteCount += toDelete.Count;
-            }
-        }
-
-        if (deleteCount > 0)
-        {
-            _logger.LogWarning(
-                "WorkoutLog dedup: deleted {Count} duplicate completed log(s) before creating partial unique index",
-                deleteCount);
-        }
-
-        // ── Partial unique index: one completed log per (planId, sessionId, completedDate) ─
-        //
-        // Partial filter: isCompleted==true AND all three key fields exist.
-        // The Exists guards exclude in-progress logs (IsCompleted=false) and legacy logs
-        // with null PlanId/SessionId/CompletedDate from the uniqueness constraint.
-        // Registered as a SEPARATE CreateOneAsync after the batch above (design-review
-        // finding: adding it to the existing CreateManyAsync batch would throw on dirty data).
-        var partialFilter =
-            Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.PlanId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.SessionId)
-            & Builders<WorkoutLog>.Filter.Exists(w => w.CompletedDate);
-
-        var uniqueCompletionIndex = new CreateIndexModel<WorkoutLog>(
-            Builders<WorkoutLog>.IndexKeys
-                .Ascending(w => w.PlanId)
-                .Ascending(w => w.SessionId)
-                .Ascending(w => w.CompletedDate),
-            new CreateIndexOptions<WorkoutLog>
-            {
-                Name = "idx_workoutlog_planId_sessionId_completedDate_unique",
-                Unique = true,
-                PartialFilterExpression = partialFilter
-            });
-
-        await indexes.CreateOneAsync(uniqueCompletionIndex, cancellationToken: ct);
-    }
-
-    private async Task CreateTrainingCompletionIndexes(CancellationToken ct)
-    {
-        var indexes = _mongo.TrainingCompletions.Indexes;
-
-        // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys.Ascending(c => c.ExternalId),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_externalId", Unique = true });
-
-        // Primary query index: clientId + date for compliance roll-ups
-        var clientDateIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys
-                .Ascending(c => c.ClientId)
-                .Ascending(c => c.Date),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date" });
-
-        // Unique compound index to enforce one document per (clientId, date, sessionId)
-        var clientDateSessionIndex = new CreateIndexModel<TrainingCompletion>(
-            Builders<TrainingCompletion>.IndexKeys
-                .Ascending(c => c.ClientId)
-                .Ascending(c => c.Date)
-                .Ascending(c => c.SessionId),
-            new CreateIndexOptions { Name = "idx_trainingcompletion_clientId_date_sessionId", Unique = true });
-
-        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex, clientDateSessionIndex], ct);
-    }
-
     private async Task CreatePersonalRecordIndexes(CancellationToken ct)
     {
         var indexes = _mongo.PersonalRecords.Indexes;
@@ -421,19 +247,19 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([clientDateIndex, clientExerciseIndex, idempotencyIndex], ct);
     }
 
-    private async Task CreateSectionTemplateIndexes(CancellationToken ct)
+    private async Task CreateWorkoutTemplateIndexes(CancellationToken ct)
     {
-        var indexes = _mongo.SectionTemplates.Indexes;
+        var indexes = _mongo.WorkoutTemplates.Indexes;
 
         // Unique index on externalId for API lookups
-        var externalIdIndex = new CreateIndexModel<SectionTemplate>(
-            Builders<SectionTemplate>.IndexKeys.Ascending(t => t.ExternalId),
-            new CreateIndexOptions { Name = "idx_sectiontemplate_externalId", Unique = true });
+        var externalIdIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_externalId", Unique = true });
 
         // Index on ownerTrainerId for per-trainer list queries
-        var ownerIndex = new CreateIndexModel<SectionTemplate>(
-            Builders<SectionTemplate>.IndexKeys.Ascending(t => t.OwnerTrainerId),
-            new CreateIndexOptions { Name = "idx_sectiontemplate_ownerTrainerId" });
+        var ownerIndex = new CreateIndexModel<WorkoutTemplate>(
+            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.OwnerTrainerId),
+            new CreateIndexOptions { Name = "idx_workouttemplate_ownerTrainerId" });
 
         await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
     }
@@ -473,20 +299,170 @@ public class MongoIndexInitializer : IHostedService
         await indexes.CreateManyAsync([sessionIdIndex, ttlIndex, clientIdIndex, planIdIndex], ct);
     }
 
-    private async Task CreateWorkoutTemplateIndexes(CancellationToken ct)
+    /// <summary>
+    /// Creates the SessionTemplate indexes: ExternalId (unique, the sole lookup key
+    /// <c>LibraryDenialExtensions</c>' loaders depend on for correctness), OwnerId (per-trainer
+    /// list queries, mirrors <c>WorkoutTemplate</c>'s ownerTrainerId), and
+    /// DateCreated+ExternalId (the <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>
+    /// default sort, mandated by <see cref="ILibraryDocument"/> — see #859's
+    /// <c>idx_mealtemplate_dateCreated_externalId</c> precedent).
+    /// </summary>
+    private async Task CreateSessionTemplateIndexes(CancellationToken ct)
     {
-        var indexes = _mongo.WorkoutTemplates.Indexes;
+        var indexes = _mongo.SessionTemplates.Indexes;
 
         // Unique index on externalId for API lookups and MongoSeeder's per-document dedupe.
-        var externalIdIndex = new CreateIndexModel<WorkoutTemplate>(
-            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.ExternalId),
-            new CreateIndexOptions { Name = "idx_workouttemplate_externalId", Unique = true });
+        var externalIdIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_externalId", Unique = true });
 
-        // Index on ownerId for per-trainer list queries (mirrors SectionTemplate's ownerTrainerId).
-        var ownerIndex = new CreateIndexModel<WorkoutTemplate>(
-            Builders<WorkoutTemplate>.IndexKeys.Ascending(t => t.OwnerId),
-            new CreateIndexOptions { Name = "idx_workouttemplate_ownerId" });
+        // Index on ownerId for per-trainer list queries (mirrors WorkoutTemplate's ownerTrainerId).
+        var ownerIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Ascending(t => t.OwnerId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_ownerId" });
 
-        await indexes.CreateManyAsync([externalIdIndex, ownerIndex], ct);
+        // Matches LibrarySearchHelper's default sort — mandated by ILibraryDocument for every
+        // sharing-library collection so paged search doesn't collection-scan.
+        var dateCreatedIndex = new CreateIndexModel<SessionTemplate>(
+            Builders<SessionTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessiontemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, ownerIndex, dateCreatedIndex], ct);
+    }
+
+    /// <summary>
+    /// Required indexes for the nutrition-plan-template sharing library (#856/#861) — see
+    /// <see cref="ILibraryDocument"/>'s remarks: <c>{ externalId: 1 }</c> unique is a
+    /// correctness requirement (the sole lookup key for
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> /
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/>), and
+    /// <c>{ dateCreated: -1, externalId: 1 }</c> matches
+    /// <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>'s sort.
+    /// </summary>
+    private async Task CreateNutritionPlanTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.NutritionPlanTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<NutritionPlanTemplate>(
+            Builders<NutritionPlanTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_nutritionplantemplate_externalId", Unique = true });
+
+        var searchIndex = new CreateIndexModel<NutritionPlanTemplate>(
+            Builders<NutritionPlanTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_nutritionplantemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, searchIndex], ct);
+    }
+
+    // ── #862: TrainingPlanTemplate sharing-library indexes ─────────────────────────
+    //
+    // Per ILibraryDocument's remarks, every sharing-library collection must carry a unique
+    // externalId index (the sole lookup key LibraryDenialExtensions' loaders depend on for
+    // correctness — a duplicate would make the ownership/visibility guard judge the wrong
+    // document) plus the LibrarySearchHelper default-sort index.
+    /// <summary>
+    /// Creates the TrainingPlanTemplate indexes: ExternalId (unique) — the correctness
+    /// requirement (the sole lookup key for
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> /
+    /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/>), and
+    /// <c>{ dateCreated: -1, externalId: 1 }</c> matches
+    /// <see cref="FitnessPlatform.Application.Domain.Services.LibrarySearchHelper"/>'s sort.
+    /// </summary>
+    private async Task CreateTrainingPlanTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.TrainingPlanTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<TrainingPlanTemplate>(
+            Builders<TrainingPlanTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingplantemplate_externalId", Unique = true });
+
+        var searchIndex = new CreateIndexModel<TrainingPlanTemplate>(
+            Builders<TrainingPlanTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_trainingplantemplate_dateCreated_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, searchIndex], ct);
+    }
+
+    // ── #859: MealTemplate sharing-library indexes ────────────────────────────────
+    //
+    // Per ILibraryDocument's remarks, every sharing-library collection must carry a unique
+    // externalId index (the sole lookup key LibraryDenialExtensions' loaders depend on for
+    // correctness — a duplicate would make the ownership/visibility guard judge the wrong
+    // document) plus the LibrarySearchHelper default-sort index. The meal library's default sort
+    // is calories descending (design §5.1), not DateCreated, so it also carries the
+    // totalNutrients.kcal index the flagship search needs to avoid a collection scan; the
+    // dateCreated index is retained anyway per the interface's blanket per-library mandate.
+    /// <summary>
+    /// Creates the MealTemplate indexes: ExternalId (unique), DateCreated+ExternalId (the
+    /// <c>LibrarySearchHelper</c> default sort, mandated by <see cref="ILibraryDocument"/>
+    /// even though this library's search does not use it as its primary sort), and
+    /// TotalNutrients.Kcal+ExternalId (this library's actual default sort).
+    /// </summary>
+    private async Task CreateMealTemplateIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.MealTemplates.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_externalId", Unique = true });
+
+        var dateCreatedIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Descending(t => t.DateCreated).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_dateCreated_externalId" });
+
+        var kcalIndex = new CreateIndexModel<MealTemplate>(
+            Builders<MealTemplate>.IndexKeys.Descending(t => t.TotalNutrients.Kcal).Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_mealtemplate_kcal_externalId" });
+
+        await indexes.CreateManyAsync([externalIdIndex, dateCreatedIndex, kcalIndex], ct);
+    }
+
+    // ── #841: SessionExecution — unified WorkoutLog + TrainingCompletion indexes ─────
+    //
+    // Reconciles two prior constraints into one:
+    //   - WorkoutLog's partial-unique (planId, sessionId, completedDate | isCompleted==true)
+    //   - TrainingCompletion's unconditional unique (clientId, date, sessionId)
+    // into a single partial-unique (clientId, sessionId, date) index, active whenever BOTH
+    // sessionId and date are present (i.e. NOT limited to completed executions — the whole
+    // point of the merge is that a session has exactly one execution per day, draft or done).
+    // Ad-hoc (unplanned) executions have a null SessionId and are exempt.
+    /// <summary>
+    /// Creates the SessionExecution indexes (ExternalId unique, ClientId+Date, and the
+    /// partial-unique ClientId+SessionId+Date).
+    /// </summary>
+    private async Task CreateSessionExecutionIndexes(CancellationToken ct)
+    {
+        var indexes = _mongo.SessionExecutions.Indexes;
+
+        var externalIdIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys.Ascending(e => e.ExternalId),
+            new CreateIndexOptions { Name = "idx_sessionexecution_externalId", Unique = true });
+
+        var clientDateIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions { Name = "idx_sessionexecution_clientId_date" });
+
+        await indexes.CreateManyAsync([externalIdIndex, clientDateIndex], ct);
+
+        // ── Partial unique index: one execution per (clientId, sessionId, date) ──────
+        var partialFilter =
+            Builders<SessionExecution>.Filter.Exists(e => e.SessionId)
+            & Builders<SessionExecution>.Filter.Exists(e => e.Date);
+
+        var uniqueIndex = new CreateIndexModel<SessionExecution>(
+            Builders<SessionExecution>.IndexKeys
+                .Ascending(e => e.ClientId)
+                .Ascending(e => e.SessionId)
+                .Ascending(e => e.Date),
+            new CreateIndexOptions<SessionExecution>
+            {
+                Name = "idx_sessionexecution_clientId_sessionId_date_unique",
+                Unique = true,
+                PartialFilterExpression = partialFilter
+            });
+
+        await indexes.CreateOneAsync(uniqueIndex, cancellationToken: ct);
     }
 }

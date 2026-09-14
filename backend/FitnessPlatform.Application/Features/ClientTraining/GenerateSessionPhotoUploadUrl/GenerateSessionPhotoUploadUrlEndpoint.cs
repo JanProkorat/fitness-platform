@@ -3,12 +3,10 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.ClientTraining.GenerateSessionPhotoUploadUrl;
 
@@ -20,10 +18,12 @@ namespace FitnessPlatform.Application.Features.ClientTraining.GenerateSessionPho
 /// <param name="imageUpload">Image upload service — validates content type and size, then issues the signed URL.</param>
 /// <param name="mongo">MongoDB context for ownership verification.</param>
 /// <param name="db">Relational database context for client profile lookup.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class GenerateSessionPhotoUploadUrlEndpoint(
     IImageUploadService imageUpload,
     IMongoContext mongo,
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    TimeProvider timeProvider)
     : Endpoint<GenerateSessionPhotoUploadUrlRequest, GenerateSessionPhotoUploadUrlResponse>
 {
     /// <inheritdoc />
@@ -52,28 +52,19 @@ public class GenerateSessionPhotoUploadUrlEndpoint(
             return;
         }
 
-        // Resolve the caller's client profile
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // Resolve the client's Active training plan whose date window contains today — a client
+        // may hold several sequential, non-overlapping Active plans (#780) — via the shared
+        // cross-store assembly (#938), which also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId), explicitAsOfDate: null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-
-        // Resolve the client's Active training plan whose date window contains today — a client
-        // may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.And(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
-
-        var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var (_, _, plan) = loadResult.Value;
 
         if (plan is null)
         {
@@ -83,7 +74,8 @@ public class GenerateSessionPhotoUploadUrlEndpoint(
 
         // Verify the SessionId belongs to the active plan
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)

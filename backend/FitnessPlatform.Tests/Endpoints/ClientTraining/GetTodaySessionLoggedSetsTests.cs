@@ -10,6 +10,8 @@ using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -44,7 +46,7 @@ public class GetTodaySessionLoggedSetsTests
 
     private IMongoContext CreateMongoWithPlanAndLog(
         TrainingPlan plan,
-        List<WorkoutLog>? workoutLogs = null)
+        List<SessionExecution>? executions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -83,40 +85,23 @@ public class GetTodaySessionLoggedSetsTests
             });
         mongo.Exercises.Returns(exerciseCollection);
 
-        // TrainingCompletions collection (empty for these tests)
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-        completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+        // SessionExecutions (#841) — GetTodaySessionEndpoint reads this collection exclusively.
+        var executionDocs = executions ?? [];
+        var executionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
+        executionCollection.FindAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
                 Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
-                var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
+                var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
                 var moved = false;
-                cursor.Current.Returns(new List<TrainingCompletion>());
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ => false);
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ => false);
+                cursor.Current.Returns(executionDocs);
+                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return executionDocs.Count > 0; });
+                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return executionDocs.Count > 0; });
                 return cursor;
             });
-        mongo.TrainingCompletions.Returns(completionCollection);
-
-        // WorkoutLogs collection
-        var logDocs = workoutLogs ?? [];
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-                var moved = false;
-                cursor.Current.Returns(logDocs);
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return logDocs.Count > 0; });
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ => { if (moved) return false; moved = true; return logDocs.Count > 0; });
-                return cursor;
-            });
-        mongo.WorkoutLogs.Returns(logCollection);
+        mongo.SessionExecutions.Returns(executionCollection);
 
         // SessionLogs collection (empty)
         var sessionLogCollection = Substitute.For<IMongoCollection<SessionLog>>();
@@ -147,7 +132,7 @@ public class GetTodaySessionLoggedSetsTests
         return Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_userIdGuid, AppRoles.Client))),
-            mongo, db, lockService);
+            mongo, db, lockService, new FakeBlobStorageService(), TimeProvider.System);
     }
 
     private TrainingPlan BuildPlanWithSession(Guid sessionId, Guid exerciseId, int dow)
@@ -168,39 +153,35 @@ public class GetTodaySessionLoggedSetsTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = dow,
-                            Name = "Test Session",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Squat",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 80m },
-                                                new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 80m }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((dow, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Test Session",
+                        Order = 1,
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = Guid.NewGuid(),
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseExternalId = exerciseId,
+                                        ExerciseName = "Squat",
+                                        Order = 1,
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Reps = 10, WeightKg = 80m },
+                                            new ExerciseSet { SetNumber = 2, Reps = 10, WeightKg = 80m }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -219,55 +200,61 @@ public class GetTodaySessionLoggedSetsTests
         var plan = BuildPlanWithSession(sessionId, exerciseId, todayDow);
         var db = CreateMockDb();
 
-        var workoutLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _userIdGuid,
             SessionId = sessionId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 10,
-                                    WeightKg = 80m,
-                                    PlannedReps = 10,
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt = DateTime.UtcNow
-                                },
-                                new WorkoutSet
-                                {
-                                    SetNumber = 2,
-                                    Reps = 8,            // actual differs from plan
-                                    WeightKg = 80m,
-                                    PlannedReps = 10,    // planned was 10
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt = DateTime.UtcNow
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = DateTime.UtcNow
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 10,
+                                        WeightKg = 80m,
+                                        PlannedReps = 10,
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt = DateTime.UtcNow
+                                    },
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 2,
+                                        Reps = 8,            // actual differs from plan
+                                        WeightKg = 80m,
+                                        PlannedReps = 10,    // planned was 10
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt = DateTime.UtcNow
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = DateTime.UtcNow,
+            Version = 1
         };
 
-        var mongo = CreateMongoWithPlanAndLog(plan, [workoutLog]);
+        var mongo = CreateMongoWithPlanAndLog(plan, [execution]);
         var ep = CreateEndpoint(mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -306,46 +293,52 @@ public class GetTodaySessionLoggedSetsTests
         var plan = BuildPlanWithSession(sessionId, exerciseId, todayDow);
         var db = CreateMockDb();
 
-        var workoutLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _userIdGuid,
             SessionId = sessionId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 7,         // actual differs
-                                    WeightKg = 80m,
-                                    PlannedReps = 10, // planned
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt = DateTime.UtcNow
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = DateTime.UtcNow
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 7,         // actual differs
+                                        WeightKg = 80m,
+                                        PlannedReps = 10, // planned
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt = DateTime.UtcNow
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = DateTime.UtcNow,
+            Version = 1
         };
 
-        var mongo = CreateMongoWithPlanAndLog(plan, [workoutLog]);
+        var mongo = CreateMongoWithPlanAndLog(plan, [execution]);
         var ep = CreateEndpoint(mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -365,46 +358,52 @@ public class GetTodaySessionLoggedSetsTests
         var plan = BuildPlanWithSession(sessionId, exerciseId, todayDow);
         var db = CreateMockDb();
 
-        var workoutLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _userIdGuid,
             SessionId = sessionId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 10,
-                                    WeightKg = 80m,
-                                    PlannedReps = 10,     // matches actual
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt = DateTime.UtcNow
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = DateTime.UtcNow
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 10,
+                                        WeightKg = 80m,
+                                        PlannedReps = 10,     // matches actual
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt = DateTime.UtcNow
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = DateTime.UtcNow,
+            Version = 1
         };
 
-        var mongo = CreateMongoWithPlanAndLog(plan, [workoutLog]);
+        var mongo = CreateMongoWithPlanAndLog(plan, [execution]);
         var ep = CreateEndpoint(mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -426,45 +425,51 @@ public class GetTodaySessionLoggedSetsTests
         var plan = BuildPlanWithSession(sessionId, exerciseId, todayDow);
         var db = CreateMockDb();
 
-        var workoutLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _userIdGuid,
             SessionId = sessionId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet
-                                {
-                                    SetNumber = 1,
-                                    Reps = 10,
-                                    WeightKg = 80m,
-                                    // No planned fields — simulates legacy document
-                                    CompletedAt = DateTime.UtcNow
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = DateTime.UtcNow
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet
+                                    {
+                                        SetNumber = 1,
+                                        Reps = 10,
+                                        WeightKg = 80m,
+                                        // No planned fields — simulates legacy document
+                                        CompletedAt = DateTime.UtcNow
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = DateTime.UtcNow,
+            Version = 1
         };
 
-        var mongo = CreateMongoWithPlanAndLog(plan, [workoutLog]);
+        var mongo = CreateMongoWithPlanAndLog(plan, [execution]);
         var ep = CreateEndpoint(mongo, db);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
@@ -491,6 +496,7 @@ public class GetTodaySessionLoggedSetsTests
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
+        // No SessionExecution seeded — LoggedSetsBySessionExercise must stay empty.
         ep.Response.LoggedSetsBySessionExercise.Should().BeEmpty();
         ep.Response.HasModificationsBySession.Should().BeEmpty();
     }

@@ -55,15 +55,22 @@ namespace FitnessPlatform.Tests.Infrastructure;
 /// per-host singleton instance instead of a process-global static store (see
 /// <c>FakeEmailService</c>'s remarks).
 ///
-/// <see cref="MongoIndexInitializer"/> is intentionally NOT included in the
-/// removal set either. It is a one-shot <see cref="IHostedService"/> (not a
-/// <see cref="BackgroundService"/>) whose <c>StartAsync</c> runs to completion
-/// during host startup — the generic host awaits it before the host is
-/// considered started, so it can never "keep running" and tick against a
-/// disposed container later. It is also a hard dependency for tests asserting
-/// Mongo index/uniqueness behavior (e.g. the partial unique index
-/// <c>WorkoutLogCompletionUniquenessTests</c> exercises) — removing it would
-/// silently break those tests without addressing the flake.
+/// <see cref="MongoIndexInitializer"/> was never a candidate for this removal
+/// set to begin with, and (post-#837 pass-2 review) no longer even could be:
+/// it is registered as a plain <c>AddSingleton</c> in <c>Program.cs</c>, NOT
+/// <c>AddHostedService</c>, so it never appears in the <see cref="IHostedService"/>
+/// registrations this method filters. It is invoked explicitly and awaited to
+/// completion BEFORE <c>app.Run()</c> — a deliberate fix for a real bug where the
+/// prior <c>AddHostedService</c> wiring let Kestrel start accepting requests
+/// before (or concurrently with) its data-migration backfill, racing a
+/// <c>BsonSerializationException</c> on legacy documents. Because
+/// <c>WebApplicationFactory&lt;Program&gt;</c> runs the same top-level
+/// <c>Program.cs</c> statements — including that pre-`app.Run()` call — this
+/// explicit invocation also runs once per test host here, well before any test
+/// in this file gets a chance to race it. It is also a hard dependency for tests
+/// asserting Mongo index/uniqueness behavior (e.g. the partial unique index
+/// <c>WorkoutLogCompletionUniquenessTests</c> exercises) — never remove its
+/// invocation without addressing that dependency.
 /// </summary>
 public static class TestHostedServiceExtensions
 {

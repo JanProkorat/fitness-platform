@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.PublishTrainingWeek;
@@ -28,7 +29,8 @@ public class PublishTrainingWeekEndpoint(
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     ISessionLockService lockService,
-    PlanConcurrencyGuard guard) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
+    PlanConcurrencyGuard guard,
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<PublishTrainingWeekRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -57,63 +59,110 @@ public class PublishTrainingWeekEndpoint(
 
         var lookupFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
                      & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
-        var replaceFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                            & Builders<TrainingPlan>.Filter.Eq(p => p.Version, req.Version);
 
-        // Computed inside the mutate delegate BEFORE the mutation (reflects pre-publish state);
-        // consumed after a confirmed successful replace to decide whether to archive siblings.
+        // Computed inside the validate delegate BEFORE the write (reflects pre-publish state);
+        // consumed after a confirmed successful update to decide whether to archive siblings.
         var hadPublishedWeeks = false;
 
-        var guardResult = await guard.ReplaceWithVersionGuardAsync(
+        // The lookup filter proved authorship, which is permanent. Access is not — require the
+        // caller's link to the plan's client to still grant training access.
+        async Task<bool> Authorize(TrainingPlan plan, CancellationToken authorizeCt)
+        {
+            // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+            var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                trainerId, plan.ClientId, authorizeCt);
+
+            if (capabilities is { CanViewTrainingPlans: true })
+            {
+                return true;
+            }
+
+            await Send.NotFoundAsync(authorizeCt);
+            return false;
+        }
+
+        Task<bool> Validate(TrainingPlan plan, CancellationToken validateCt)
+        {
+            var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
+            if (week is null)
+            {
+                ThrowError($"Week {req.WeekNumber} not found in plan.");
+                return Task.FromResult(false);
+            }
+
+            if (week.Status == WeekStatus.Published)
+            {
+                ThrowError($"Week {req.WeekNumber} is already published.");
+                return Task.FromResult(false);
+            }
+
+            // Start date must be set before publishing
+            if (!plan.StartDate.HasValue)
+            {
+                ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
+                return Task.FromResult(false);
+            }
+
+            // The target week's Monday must not be in the past
+            var weekStartDate = DateOnly.FromDateTime(plan.StartDate.Value.AddDays((req.WeekNumber - 1) * 7));
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (weekStartDate < today)
+            {
+                ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
+                return Task.FromResult(false);
+            }
+
+            // Check if this is the first published week — if so, archive other active plans
+            // afterward. Computed BEFORE the write below so it reflects pre-publish state.
+            hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
+
+            return Task.FromResult(true);
+        }
+
+        var now = DateTime.UtcNow;
+
+        // Targeted $set on the matched week only (#839 — replaces the previous full-document
+        // ReplaceOneAsync). The write filter's ElemMatch gates on the TARGET WEEK still being
+        // unpublished — NOT on the document's Version — so a concurrent edit to an unrelated
+        // week/field never produces a false 409 (AC#4), while a genuine race that publishes the
+        // SAME week between our fetch and this write causes zero documents to match (AC#2/#7).
+        // The Ne(Archived) predicate is a security guard, not a state check. This update sets
+        // Status = Active unconditionally, and this path has no version comparison, so the
+        // Version bump on an archival is invisible to it. Without this predicate a publish that
+        // passed its link check microseconds before the plan was archived — by an ending
+        // collaboration, or by a sibling plan superseding this one — would still match here and
+        // set the plan back to Active, resurrecting a plan whose author no longer has a live
+        // link and which the client would then be served.
+        var writeFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
+            & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId)
+            & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Archived)
+            & Builders<TrainingPlan>.Filter.ElemMatch(p => p.Weeks,
+                w => w.WeekNumber == req.WeekNumber && w.Status != WeekStatus.Published);
+
+        var update = Builders<TrainingPlan>.Update
+            .Set("weeks.$[w].status", WeekStatus.Published.ToString())
+            .Set("weeks.$[w].datePublished", now)
+            .Set(p => p.Status, TrainingPlanStatus.Active)
+            .Set(p => p.DateUpdated, now)
+            .Inc(p => p.Version, 1);
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument
+            {
+                { "w.weekNumber", req.WeekNumber },
+                { "w.status", new BsonDocument("$ne", WeekStatus.Published.ToString()) }
+            })
+        };
+
+        var guardResult = await guard.UpdateWithArrayFilterGuardAsync(
             mongo.TrainingPlans,
             lookupFilter,
-            replaceFilter,
-            req.Version,
-            p => p.Version,
-            (plan, _) =>
-            {
-                var week = plan.Weeks.FirstOrDefault(w => w.WeekNumber == req.WeekNumber);
-                if (week is null)
-                {
-                    ThrowError($"Week {req.WeekNumber} not found in plan.");
-                    return Task.FromResult(false);
-                }
-
-                if (week.Status == WeekStatus.Published)
-                {
-                    ThrowError($"Week {req.WeekNumber} is already published.");
-                    return Task.FromResult(false);
-                }
-
-                // Start date must be set before publishing
-                if (!plan.StartDate.HasValue)
-                {
-                    ThrowError(ErrorCodes.StartDateRequired, "Start date must be set before publishing a week.");
-                    return Task.FromResult(false);
-                }
-
-                // The target week's Monday must not be in the past
-                var weekStartDate = DateOnly.FromDateTime(plan.StartDate.Value.AddDays((req.WeekNumber - 1) * 7));
-                var today = DateOnly.FromDateTime(DateTime.UtcNow);
-                if (weekStartDate < today)
-                {
-                    ThrowError(ErrorCodes.WeekStartInPast, $"Week {req.WeekNumber} starts on {weekStartDate}, which is in the past.");
-                    return Task.FromResult(false);
-                }
-
-                // Check if this is the first published week — if so, archive other active plans
-                // afterward. Computed BEFORE the mutation below so it reflects pre-publish state.
-                hadPublishedWeeks = plan.Weeks.Any(w => w.Status == WeekStatus.Published);
-
-                // Publish the week
-                week.Status = WeekStatus.Published;
-                week.DatePublished = DateTime.UtcNow;
-                plan.Status = TrainingPlanStatus.Active;
-                plan.DateUpdated = DateTime.UtcNow;
-                plan.Version += 1;
-
-                return Task.FromResult(true);
-            },
+            Authorize,
+            Validate,
+            writeFilter,
+            update,
+            arrayFilters,
             ct);
 
         switch (guardResult.Outcome)
@@ -121,16 +170,12 @@ public class PublishTrainingWeekEndpoint(
             case PlanConcurrencyOutcome.NotFound:
                 await Send.NotFoundAsync(ct);
                 return;
-            case PlanConcurrencyOutcome.VersionConflict:
-                await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                    "Version conflict. The plan was modified by another request.", ct);
-                return;
             case PlanConcurrencyOutcome.ReplaceConflict:
                 await this.SendProblemAsync(409, ErrorCodes.PlanVersionConflict,
-                    "Version conflict. The plan was modified by another request.", ct);
+                    "Version conflict. The week was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -145,7 +190,11 @@ public class PublishTrainingWeekEndpoint(
         // OTHER side of the comparison needs the null-guard.
         if (!hadPublishedWeeks)
         {
+            // Only the caller's OWN plans are superseded. Without the author predicate this
+            // archives every overlapping Active plan for the client regardless of who wrote it,
+            // which lets one professional destroy another's live plan.
             var siblingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, plan.ClientId)
+                                & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId)
                                 & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.ExternalId, plan.ExternalId);
 
@@ -163,11 +212,16 @@ public class PublishTrainingWeekEndpoint(
 
             if (overlappingIds.Count > 0)
             {
-                var archiveFilter = Builders<TrainingPlan>.Filter.In(p => p.ExternalId, overlappingIds);
+                var archiveFilter = Builders<TrainingPlan>.Filter.In(p => p.ExternalId, overlappingIds)
+                                    & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
 
+                // The Version bump keeps a concurrent version-gated replace from writing the
+                // pre-archival document back and resurrecting the superseded plan as Active; it
+                // becomes a 409 instead.
                 var archiveUpdate = Builders<TrainingPlan>.Update
                     .Set(p => p.Status, TrainingPlanStatus.Archived)
-                    .Set(p => p.DateUpdated, DateTime.UtcNow);
+                    .Set(p => p.DateUpdated, DateTime.UtcNow)
+                    .Inc(p => p.Version, 1);
 
                 await mongo.TrainingPlans.UpdateManyAsync(archiveFilter, archiveUpdate, cancellationToken: ct);
             }
@@ -179,7 +233,7 @@ public class PublishTrainingWeekEndpoint(
         // Only emit sessioneditlockchanged when ReleaseAsync returns true — emitting Stable
         // for a session that had no lock would be spurious fan-out.
         var week = plan.Weeks.First(w => w.WeekNumber == req.WeekNumber);
-        var weekSessionIds = week.Sessions.Select(s => s.SessionId).ToList();
+        var weekSessionIds = week.Days.SelectMany(d => d.Sessions).Select(s => s.SessionId).ToList();
         foreach (var sessionId in weekSessionIds)
         {
             var released = await lockService.ReleaseAsync(sessionId, LockHolder.Coach, LockType.Editing, ct);
@@ -197,10 +251,11 @@ public class PublishTrainingWeekEndpoint(
             }
         }
 
-        // Notify the client about the published week
+        // Notify the client about the published week — TrainingPlan.ClientId is
+        // ApplicationUser.Id (#840).
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+            .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
         if (clientProfile is not null)
         {
@@ -220,6 +275,9 @@ public class PublishTrainingWeekEndpoint(
             }, ct);
         }
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — reuse the profile already resolved above instead of a second lookup.
+        var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
     }
 }

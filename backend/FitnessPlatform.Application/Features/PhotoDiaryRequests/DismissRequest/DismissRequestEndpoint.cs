@@ -51,7 +51,7 @@ public class DismissRequestEndpoint(
             .FirstOrDefaultAsync(r => r.Id == req.Id, ct);
 
         // 404 if not found — do not leak existence for IDOR
-        if (request is null || !IsOwnedByClient(request, clientUserId, emailClaim))
+        if (request is null || !PhotoDiaryRequestOwnership.IsOwnedByClient(request, clientUserId, emailClaim))
         {
             await Send.NotFoundAsync(ct);
             return;
@@ -101,21 +101,6 @@ public class DismissRequestEndpoint(
             Status = request.Status,
             DismissReason = request.DismissReason,
         }, ct);
-    }
-
-    private static bool IsOwnedByClient(
-        Domain.Entities.PhotoDiaryRequest request,
-        Guid clientUserId,
-        string? clientEmail)
-    {
-        if (request.Link is not null)
-            return request.Link.ClientProfile.UserId == clientUserId;
-
-        if (request.PendingInvite is not null && clientEmail is not null)
-            return string.Equals(request.PendingInvite.Email, clientEmail,
-                StringComparison.OrdinalIgnoreCase);
-
-        return false;
     }
 
     /// <summary>

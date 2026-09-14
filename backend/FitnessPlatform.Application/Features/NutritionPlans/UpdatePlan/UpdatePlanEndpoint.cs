@@ -23,12 +23,15 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.UpdatePlan;
 /// <param name="db">Relational database context used to resolve the client user id for notifications.</param>
 /// <param name="notifier">Realtime notifier used to push the plan-updated event to the client.</param>
 /// <param name="guard">Shared version-gated fetch-check-replace-409 skeleton.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
 public class UpdatePlanEndpoint(
     IMongoContext mongo,
     IMacroCalculatorService macroCalculator,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard)
+    PlanConcurrencyGuard guard,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UpdatePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
@@ -67,6 +70,7 @@ public class UpdatePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
             (plan, _) => MutateAsync(plan, req),
             ct);
 
@@ -84,7 +88,7 @@ public class UpdatePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate always returns true.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
@@ -93,9 +97,10 @@ public class UpdatePlanEndpoint(
         // Notify the client in real-time when published weeks were modified
         if (plan.Weeks.Any(w => w.Status == WeekStatus.Published))
         {
+            // NutritionPlan.ClientId is ApplicationUser.Id (#840).
             var clientProfile = await db.ClientProfiles
                 .AsNoTracking()
-                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+                .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
             if (clientProfile is not null)
             {
@@ -106,7 +111,30 @@ public class UpdatePlanEndpoint(
             }
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract), regardless of whether the published-week notification branch above ran.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
+    {
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewNutritionPlans: true })
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 
     /// <summary>

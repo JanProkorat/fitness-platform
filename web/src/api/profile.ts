@@ -51,7 +51,6 @@ export interface UpdateTrainerProfilePayload {
   certificates: string;
   languages: string;
   collaborationType: string | null;
-  maxClients: number;
   linkedIn: string | null;
   instagram: string | null;
   website: string | null;

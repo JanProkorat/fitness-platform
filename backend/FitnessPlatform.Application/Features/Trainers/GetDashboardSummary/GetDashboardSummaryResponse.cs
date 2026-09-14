@@ -44,26 +44,26 @@ public class ClientDashboardItem
     public int CurrentStreak { get; set; }
 
     /// <summary>Average daily kcal consumed over the last 7 days.</summary>
-    public decimal AvgDailyKcal { get; set; }
+    public decimal? AvgDailyKcal { get; set; }
 
     /// <summary>Kcal consumed today (from meal logs).</summary>
-    public decimal TodayKcal { get; set; }
+    public decimal? TodayKcal { get; set; }
 
     /// <summary>Daily kcal target from the active nutrition plan (null if none).</summary>
     public decimal? KcalGoal { get; set; }
 
     /// <summary>Completed workouts this week (Mon–today).</summary>
-    public int WorkoutsCompleted { get; set; }
+    public int? WorkoutsCompleted { get; set; }
 
     /// <summary>Planned training sessions this week (from active plan's current week).</summary>
-    public int WorkoutsPlanned { get; set; }
+    public int? WorkoutsPlanned { get; set; }
 
     /// <summary>UTC timestamp of the client's most recent activity (meal log, workout, measurement).</summary>
     public DateTime? LastActivityAt { get; set; }
 
     /// <summary>Number of nutrition plans that have started, are not completed, and have at least one published week.</summary>
-    public int ActiveNutritionPlansCount { get; set; }
+    public int? ActiveNutritionPlansCount { get; set; }
 
     /// <summary>Whether the client has an active training plan.</summary>
-    public bool HasActiveTrainingPlan { get; set; }
+    public bool? HasActiveTrainingPlan { get; set; }
 }

@@ -13,6 +13,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
@@ -38,6 +39,7 @@ public class MarkWholeDayCompleteEndpointTests
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
     private readonly ILogger<MarkWholeDayCompleteEndpoint> _logger = Substitute.For<ILogger<MarkWholeDayCompleteEndpoint>>();
     private readonly ISessionLockService _lockService = CreateStubLockService();
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private static readonly IOptions<TrainingLockOptions> LockOptions = Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
 
     private static ISessionLockService CreateStubLockService()
@@ -82,19 +84,17 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = _session1,
-                            DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -103,18 +103,17 @@ public class MarkWholeDayCompleteEndpointTests
                                     ]
                                 }
                             ]
-                        },
-                        new TrainingSession
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = _session2,
-                            DayOfWeek = todayDow,
                             Name = "Session 2",
                             Order = 2,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -123,8 +122,7 @@ public class MarkWholeDayCompleteEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -159,19 +157,17 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Session 1",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises = exerciseIds.Select((id, i) => new SessionExercise
@@ -180,8 +176,7 @@ public class MarkWholeDayCompleteEndpointTests
                                     }).ToList()
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -190,13 +185,13 @@ public class MarkWholeDayCompleteEndpointTests
     }
 
     /// <summary>
-    /// Builds an <see cref="IAsyncCursor{TrainingCompletion}"/> substitute backed by the given list —
+    /// Builds an <see cref="IAsyncCursor{SessionExecution}"/> substitute backed by the given list —
     /// local copy of <see cref="TrainingCompletionTestHelpers"/>'s private cursor helper, needed here
     /// to stage sequential FindAsync return values (batch-read vs. duplicate-key retry-read).
     /// </summary>
-    private static IAsyncCursor<TrainingCompletion> CreateCursor(List<TrainingCompletion> completions)
+    private static IAsyncCursor<SessionExecution> CreateCursor(List<SessionExecution> completions)
     {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
+        var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
         var moved = false;
         cursor.Current.Returns(completions);
         cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
@@ -245,15 +240,15 @@ public class MarkWholeDayCompleteEndpointTests
         mongo.TrainingPlans.Returns(planCollection);
 
         // Completions collection starts empty (returns empty list for FindAsync)
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -263,8 +258,84 @@ public class MarkWholeDayCompleteEndpointTests
 
         // Should have inserted two completion documents (one per session)
         await completionCollection.Received(2).InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── F6 (claude-security review, #962 gap): revoked/narrowed link stops the whole-day
+    // broadcast too. TrainingProgressBroadcaster.BroadcastWholeDayAsync gates on the link's
+    // live CanViewTrainingPlans capability at its own call site (:162) — separate from
+    // BroadcastSessionAsync's gate (:84), which MarkExerciseCompleteBroadcastTests already
+    // covers. A non-empty day is required so summaries.Count > 0 and the gate at
+    // MarkWholeDayCompleteEndpoint.cs:250 is genuinely reached — an empty day would pass
+    // trivially even with the guard deleted.
+
+    [Fact]
+    public async Task HandleAsync_LinkDeniesTrainingAccess_DoesNotBroadcastToTrainer()
+    {
+        var plan = CreateMultiSessionPlan();
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+        var denyingLinkAuthorizationService =
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false);
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingLinkAuthorizationService, _logger, TimeProvider.System);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "the mutation itself must still succeed — only the broadcast is gated");
+        ep.Response.Sessions.Should().NotBeEmpty(
+            "the deny assertion is only meaningful when the whole-day broadcast gate is genuinely reached");
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            plan.TrainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HandleAsync_LinkGrantsTrainingAccess_BroadcastsToTrainer()
+    {
+        var plan = CreateMultiSessionPlan();
+        var mongo = Substitute.For<IMongoContext>();
+        var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
+        mongo.TrainingPlans.Returns(planCollection);
+
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
+
+        var db = CreateMockDb();
+
+        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
+
+        await ep.HandleAsync(
+            new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Sessions.Should().NotBeEmpty();
+
+        await _notifier.Received(1).NotifyAsync(
+            plan.TrainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -289,15 +360,15 @@ public class MarkWholeDayCompleteEndpointTests
         // Completions collection returns the existing completion (for session1)
         // Note: both session queries will return the same existing completion because mock
         // doesn't filter — this tests the "already complete" idempotency branch for session1
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([existingCompletion]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([existingCompletion]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(today) },
@@ -313,15 +384,15 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo().Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),
@@ -338,7 +409,7 @@ public class MarkWholeDayCompleteEndpointTests
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest(),
@@ -361,15 +432,15 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -382,8 +453,8 @@ public class MarkWholeDayCompleteEndpointTests
         // already-batched read for the compliance broadcast. Before #662 this was 3 — one
         // per-session FindAsync (2, one per session) plus the broadcaster's read (1).
         await completionCollection.Received(2).FindAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -411,16 +482,16 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -455,43 +526,39 @@ public class MarkWholeDayCompleteEndpointTests
             completedExerciseIds: [_exercise1],
             version: 1);
 
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
+        var completionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
 
         // Batch read (before the insert race) sees nothing yet; the retry read after the
         // 11000 sees the concurrent winner's doc.
         completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
                 Arg.Any<CancellationToken>())
             .Returns(
                 _ => CreateCursor([]),
                 _ => CreateCursor([winnerCompletion]));
 
         completionCollection
-            .InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>())
+            .InsertOneAsync(Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(CreateDuplicateKeyException()));
 
         var updateResult = Substitute.For<UpdateResult>();
         updateResult.ModifiedCount.Returns(1L);
         completionCollection.UpdateOneAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<UpdateDefinition<SessionExecution>>(),
                 Arg.Any<UpdateOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(updateResult);
 
-        mongo.TrainingCompletions.Returns(completionCollection);
-        // Extracted to a local first — configuring a nested substitute inline inside
-        // another .Returns() call corrupts NSubstitute's "last call" tracking.
-        var workoutLogCollection = TrainingCompletionTestHelpers.CreateMockWorkoutLogCollection([]);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -502,10 +569,10 @@ public class MarkWholeDayCompleteEndpointTests
         // Retried after the duplicate-key error, found the winner's doc (only exercise1
         // complete), and fanned out the remaining exercise via an update — not a second insert.
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
 
@@ -519,7 +586,7 @@ public class MarkWholeDayCompleteEndpointTests
     [Fact]
     public async Task HandleAsync_EmptyDay_ReturnsEmptySummariesWithoutBroadcasting()
     {
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = TrainingCompletionTestHelpers.StartOfCurrentWeekUtc();
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
@@ -535,7 +602,7 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = []
+                    Days = TrainingPlanTestHelpers.MaterializeDays()
                 }
             ],
             Version = 1,
@@ -546,15 +613,15 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -566,26 +633,30 @@ public class MarkWholeDayCompleteEndpointTests
         // No completion read should happen when there's nothing to resolve for the day,
         // and no realtime broadcast should fire.
         await completionCollection.DidNotReceive().FindAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
             Arg.Any<CancellationToken>());
         await _notifier.DidNotReceive().NotifyAsync(
             Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
-    /// Regression test for #739: the whole-day mark must write the per-section
-    /// attribution map (<c>CompletedExerciseIdsBySection</c>), not just the flat
-    /// <c>CompletedExerciseIds</c>. When an exercise is shared across two sections
-    /// (e.g. "Bench" in both a Standard block and an AMRAP), the read-time backfill
-    /// (<c>TrainingCompletionBackfill</c>) would otherwise credit it to only the
-    /// first section — leaving the second section reading as not-done after refresh.
-    /// The written map must credit the shared exercise to EVERY section that contains it.
+    /// Regression test for #739, updated for #857 phase 3b: the whole-day mark must complete
+    /// every exercise INSTANCE (<see cref="SessionExercise.ExerciseId"/>) in the session, not
+    /// just distinct catalog exercises. When the same catalog exercise (e.g. "Bench") appears as
+    /// two separate occurrences — one in a Standard block, one in an AMRAP block — each occurrence
+    /// carries its own distinct <c>ExerciseId</c>, so the flat <c>CompletedExerciseInstanceIds</c>
+    /// list must contain BOTH instance ids. Before #857 phase 3b, a per-section attribution map
+    /// keyed on the shared catalog id could lose one section's copy; the flat instance-id list is
+    /// structurally immune to that loss because every occurrence is enumerated independently via
+    /// <see cref="TrainingSession.AllExercises"/>.
     /// </summary>
     [Fact]
     public async Task HandleAsync_ExerciseSharedAcrossSections_WritesSharedExerciseToEverySection()
     {
         var sharedExercise = Guid.NewGuid();
+        var sharedExerciseInstanceA = Guid.NewGuid();
+        var sharedExerciseInstanceB = Guid.NewGuid();
         var exA = Guid.NewGuid();
         var exB = Guid.NewGuid();
         var sectionA = Guid.NewGuid();
@@ -611,41 +682,38 @@ public class MarkWholeDayCompleteEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = _session1,
-                            DayOfWeek = todayDow,
                             Name = "Shared session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = sectionA,
+                                    WorkoutId = sectionA,
                                     Order = 0,
                                     Name = "Standard",
                                     Exercises =
                                     [
-                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
-                                        new SessionExercise { ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
+                                        new SessionExercise { ExerciseId = sharedExerciseInstanceA, ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseId = exA, ExerciseExternalId = exA, ExerciseName = "Pec deck", Order = 2, Sets = [] }
                                     ]
                                 },
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = sectionB,
+                                    WorkoutId = sectionB,
                                     Order = 1,
                                     Name = "AMRAP",
                                     Exercises =
                                     [
-                                        new SessionExercise { ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
-                                        new SessionExercise { ExerciseExternalId = exB, ExerciseName = "Shyb", Order = 2, Sets = [] }
+                                        new SessionExercise { ExerciseId = sharedExerciseInstanceB, ExerciseExternalId = sharedExercise, ExerciseName = "Bench", Order = 1, Sets = [] },
+                                        new SessionExercise { ExerciseId = exB, ExerciseExternalId = exB, ExerciseName = "Shyb", Order = 2, Sets = [] }
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -656,20 +724,20 @@ public class MarkWholeDayCompleteEndpointTests
         var planCollection = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planCollection);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection([]);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection([]);
+        mongo.SessionExecutions.Returns(completionCollection);
 
-        TrainingCompletion? inserted = null;
+        SessionExecution? inserted = null;
         completionCollection
-            .When(x => x.InsertOneAsync(Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>()))
-            .Do(ci => inserted = ci.Arg<TrainingCompletion>());
+            .When(x => x.InsertOneAsync(Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>()))
+            .Do(ci => inserted = ci.Arg<SessionExecution>());
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkWholeDayCompleteRequest { Date = DateOnly.FromDateTime(DateTime.UtcNow) },
@@ -678,15 +746,10 @@ public class MarkWholeDayCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         inserted.Should().NotBeNull();
-        inserted!.CompletedExerciseIdsBySection.Should().NotBeNull();
-        // Both sections must be present as keys.
-        inserted.CompletedExerciseIdsBySection!.Keys.Should()
-            .BeEquivalentTo([sectionA.ToString(), sectionB.ToString()]);
-        // Section A carries the shared exercise + its own.
-        inserted.CompletedExerciseIdsBySection[sectionA.ToString()].Should()
-            .BeEquivalentTo([sharedExercise, exA]);
-        // Section B ALSO carries the shared exercise (the bug: it used to be lost). + its own.
-        inserted.CompletedExerciseIdsBySection[sectionB.ToString()].Should()
-            .BeEquivalentTo([sharedExercise, exB]);
+        // The flat instance-id list must contain every exercise occurrence in the session —
+        // both instances of the shared catalog exercise (one per section) plus each section's
+        // own exercise. Nothing is lost across the section boundary.
+        inserted!.CompletedExerciseInstanceIds.Should()
+            .BeEquivalentTo([sharedExerciseInstanceA, exA, sharedExerciseInstanceB, exB]);
     }
 }

@@ -12,6 +12,7 @@ using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
@@ -92,8 +93,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
     /// <summary>
     /// Creates an active ClientProfessionalLink between the given trainer and client
     /// profiles, inserted directly into Postgres (bypassing the invite flow).
+    /// Both capability flags are granted by default so the pre-existing tests in this
+    /// file (ordering, PR payload structure, dedup) exercise the merged-timeline behaviour
+    /// without being entangled with the #916 per-domain gating — see
+    /// <see cref="FitnessPlatform.Tests.Endpoints.Authorization.CrossDomainPlanAccessTests"/>
+    /// for the single-flag gating coverage.
     /// </summary>
-    private async Task LinkTrainerToClientAsync(long trainerProfileId, long clientProfileId)
+    private Task LinkTrainerToClientAsync(long trainerProfileId, long clientProfileId) =>
+        LinkTrainerToClientAsync(trainerProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: true);
+
+    /// <summary>
+    /// Overload allowing the caller to pin the link's per-domain capability flags — used by the
+    /// AC#5 gating cases, which must prove a link granting only one domain hides the other
+    /// domain's plan-publish event even though a published plan for it exists.
+    /// </summary>
+    private async Task LinkTrainerToClientAsync(
+        long trainerProfileId, long clientProfileId, bool canViewNutritionPlans, bool canViewTrainingPlans)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -105,8 +120,8 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             ClientProfileId = clientProfileId,
             ProfessionalRole = UserRole.Trainer,
             IsActive = true,
-            CanViewTrainingPlans = true,
-            CanViewNutritionPlans = false,
+            CanViewTrainingPlans = canViewTrainingPlans,
+            CanViewNutritionPlans = canViewNutritionPlans,
             DateCreated = DateTime.UtcNow,
         });
 
@@ -142,6 +157,134 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
 
         await mongo.PersonalRecords.InsertOneAsync(
             pr, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Registers a nutritionist plus a client they are actively linked to (both capability
+    /// flags granted), and resolves the client's <see cref="ClientProfile.PublicId"/>
+    /// — the identifier the timeline route takes, distinct from the <c>ApplicationUser.Id</c>
+    /// that <see cref="TestHelpers.RegisterLinkedClientAsync"/> returns.
+    /// </summary>
+    private async Task<(HttpClient Http, Guid NutritionistUserId, Guid ClientUserId, Guid ClientPublicId)>
+        RegisterNutritionistWithLinkedClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("nutritionist");
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Timeline", "Nutritionist", "Nutritionist");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        Guid nutritionistUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+            nutritionistUserId = user.Id;
+        }
+
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, nutritionistUserId, TestContext.Current.CancellationToken);
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientProfile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == clientUserId, TestContext.Current.CancellationToken);
+            clientPublicId = clientProfile.PublicId;
+        }
+
+        return (http, nutritionistUserId, clientUserId, clientPublicId);
+    }
+
+    /// <summary>
+    /// Trainer-side equivalent of <see cref="RegisterNutritionistWithLinkedClientAsync"/>.
+    /// </summary>
+    private async Task<(HttpClient Http, Guid TrainerUserId, Guid ClientUserId, Guid ClientPublicId)>
+        RegisterTrainerWithLinkedClientAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("timeline-trainer");
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Timeline", "Trainer", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        Guid trainerUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+            trainerUserId = user.Id;
+        }
+
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, trainerUserId, TestContext.Current.CancellationToken);
+
+        Guid clientPublicId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientProfile = await db.ClientProfiles.FirstAsync(
+                cp => cp.UserId == clientUserId, TestContext.Current.CancellationToken);
+            clientPublicId = clientProfile.PublicId;
+        }
+
+        return (http, trainerUserId, clientUserId, clientPublicId);
+    }
+
+    private static NutritionPlan BuildDraftNutritionPlan(
+        Guid nutritionistId, Guid clientId, int weekCount = 2) => new()
+    {
+        ExternalId = Guid.NewGuid(),
+        ClientId = clientId,
+        NutritionistId = nutritionistId,
+        Name = "Timeline HTTP Publish Nutrition Plan",
+        Status = NutritionPlanStatus.Draft,
+        StartDate = DateTime.UtcNow.Date,
+        Version = 1,
+        DateCreated = DateTime.UtcNow.AddDays(-1),
+        Weeks = Enumerable.Range(1, weekCount)
+            .Select(w => new PlanWeek { WeekNumber = w, Status = WeekStatus.Draft })
+            .ToList()
+    };
+
+    private static TrainingPlan BuildDraftTrainingPlan(
+        Guid trainerId, Guid clientId, int weekCount = 2) => new()
+    {
+        ExternalId = Guid.NewGuid(),
+        ClientId = clientId,
+        TrainerId = trainerId,
+        Name = "Timeline HTTP Publish Training Plan",
+        Status = TrainingPlanStatus.Draft,
+        StartDate = DateTime.UtcNow.Date,
+        Version = 1,
+        DateCreated = DateTime.UtcNow.AddDays(-1),
+        Weeks = Enumerable.Range(1, weekCount)
+            .Select(w => new TrainingWeek { WeekNumber = w, Status = WeekStatus.Draft, Days = [] })
+            .ToList()
+    };
+
+    private async Task SeedNutritionPlanAsync(NutritionPlan plan)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedTrainingPlanAsync(TrainingPlan plan)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task<NutritionPlan> FetchNutritionPlanAsync(Guid externalId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        return await mongo.NutritionPlans
+            .Find(p => p.ExternalId == externalId)
+            .FirstAsync(TestContext.Current.CancellationToken);
     }
 
     // ── test cases ────────────────────────────────────────────────────────────
@@ -228,11 +371,11 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
             // Seed a meal log at T1 (MealLog has no ExternalId/Version fields).
-            // MealLog.ClientId is keyed on ClientProfile.PublicId — NOT UserId (see #650).
+            // MealLog.ClientId is keyed on ApplicationUser.Id (#840, previously PublicId — see #650).
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 PlanId = Guid.NewGuid(),
                 MealId = Guid.NewGuid(),
                 EatenAt = t1,
@@ -242,16 +385,22 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             // Seed a PR at T2
             await InsertPersonalRecordAsync(mongo, clientUserId, "Squat", 120m, 3, t2);
 
-            // Seed a completed workout log at T3
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Seed a completed workout at T3. #841: GetClientTimelineEndpoint reads the
+            // unified SessionExecutions collection (filtered to Performance-bearing,
+            // Status=Completed documents) instead of the retired WorkoutLogs collection.
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = t3.AddMinutes(-30),
-                CompletedAt = t3,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(t3),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = t3.AddMinutes(-30),
+                    CompletedAt = t3,
+                    Workouts = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -393,16 +542,15 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// Test 6: Regression guard for #650. MealLog, NutritionPlan, and TrainingPlan all
-    /// key ClientId on ClientProfile.PublicId — NOT ApplicationUser.Id. Prior to the fix,
-    /// GetClientTimelineEndpoint filtered these three collections by clientProfile.UserId,
-    /// so meal_day / nutrition_plan_published / training_plan_published items were always
-    /// silently empty (zero documents, no exception). WorkoutLog stays keyed on UserId and
-    /// must remain visible after the fix — proving the fix only re-keys the three broken
-    /// collections, not the two that were already correct.
+    /// Test 6: Regression guard for #840. MealLog, NutritionPlan, and TrainingPlan are now
+    /// all keyed on ApplicationUser.Id — the same identifier WorkoutLog and PersonalRecord
+    /// already used (previously they were keyed on ClientProfile.PublicId; see #650, now
+    /// superseded). GetClientTimelineEndpoint resolves and filters every Mongo collection by
+    /// clientProfile.UserId, so documents seeded on UserId must appear and the (now-stale)
+    /// PublicId key must NOT match anything.
     /// </summary>
     [Fact]
-    public async Task Timeline_MealNutritionAndTrainingPlanSeededOnPublicId_AllAppear()
+    public async Task Timeline_MealNutritionAndTrainingPlanSeededOnUserId_AllAppear()
     {
         var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
@@ -417,27 +565,30 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
         {
             var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-            // MealLog, NutritionPlan, TrainingPlan — keyed on ClientProfile.PublicId.
+            // MealLog, NutritionPlan, TrainingPlan — keyed on ApplicationUser.Id (#840).
             await mongo.MealLogs.InsertOneAsync(new MealLog
             {
                 Id = ObjectId.GenerateNewId(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 PlanId = Guid.NewGuid(),
                 MealId = Guid.NewGuid(),
                 EatenAt = mealAt,
                 FoodsEaten = [],
             }, cancellationToken: TestContext.Current.CancellationToken);
 
+            // #1014: publish never writes the plan-level DatePublished field — only
+            // weeks[].datePublished. The #840 keying guard below must still hold under the
+            // week-level derivation, so these plans carry a single published week instead of
+            // the plan-level field.
             await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 NutritionistId = Guid.NewGuid(),
                 Name = "Timeline Nutrition Plan",
                 Status = NutritionPlanStatus.Active,
-                DatePublished = nutritionPublishedAt,
-                Weeks = [],
+                Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = nutritionPublishedAt }],
                 Version = 1,
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
@@ -446,26 +597,31 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
-                ClientId = clientPublicId,
+                ClientId = clientUserId,
                 TrainerId = Guid.NewGuid(),
                 Name = "Timeline Training Plan",
                 Status = TrainingPlanStatus.Active,
-                DatePublished = trainingPublishedAt,
-                Weeks = [],
+                Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = trainingPublishedAt, Days = [] }],
                 Version = 1,
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
 
-            // WorkoutLog — keyed on ApplicationUser.Id, must remain unaffected by the fix.
-            await mongo.WorkoutLogs.InsertOneAsync(new WorkoutLog
+            // Workout — keyed on ApplicationUser.Id, unaffected by #840. #841: seeded into the
+            // unified SessionExecutions collection (GetClientTimelineEndpoint reads that
+            // exclusively, filtered to Performance-bearing, Status=Completed documents).
+            await mongo.SessionExecutions.InsertOneAsync(new SessionExecution
             {
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,
-                StartedAt = workoutAt.AddMinutes(-30),
-                CompletedAt = workoutAt,
-                IsCompleted = true,
-                Sections = [],
+                Date = SessionExecution.ToCompletionDateUtc(workoutAt),
+                Status = SessionExecutionStatus.Completed,
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt = workoutAt.AddMinutes(-30),
+                    CompletedAt = workoutAt,
+                    Workouts = [],
+                },
                 DateCreated = DateTime.UtcNow,
             }, cancellationToken: TestContext.Current.CancellationToken);
         }
@@ -481,13 +637,335 @@ public class GetClientTimelineEndpointTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body!.Items.Should().Contain(i => i.Type == "meal_day",
-            "MealLog.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "MealLog.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "nutrition_plan_published",
-            "NutritionPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "NutritionPlan.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "training_plan_published",
-            "TrainingPlan.ClientId is keyed on PublicId — must be found when queried by PublicId");
+            "TrainingPlan.ClientId is keyed on UserId (#840) — must be found when queried by UserId");
         body.Items.Should().Contain(i => i.Type == "workout",
-            "WorkoutLog stays keyed on UserId and must remain visible after the fix");
+            "WorkoutLog was already keyed on UserId and must remain visible after #840");
+    }
+
+    /// <summary>
+    /// Test 7 (#1014): publishing a nutrition plan week over the real HTTP publish endpoint
+    /// must surface exactly one <c>nutrition_plan_published</c> timeline event. This is the
+    /// load-bearing regression proof — the bug this issue fixes is that the timeline read a
+    /// field (the plan-level <c>DatePublished</c>) that publish never writes, so a fixture that
+    /// hand-seeds that same field would repeat the bug's own wrong assumption one level down.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_NutritionWeekPublishedViaHttp_ReturnsNutritionPlanPublishedEvent()
+    {
+        var (nutritionistHttp, nutritionistUserId, clientUserId, clientPublicId) =
+            await RegisterNutritionistWithLinkedClientAsync();
+
+        var plan = BuildDraftNutritionPlan(nutritionistUserId, clientUserId);
+        await SeedNutritionPlanAsync(plan);
+
+        var publishResponse = await nutritionistHttp.PostAsync(
+            $"/nutrition/plans/{plan.ExternalId}/weeks/1/publish",
+            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 1 }),
+            TestContext.Current.CancellationToken);
+
+        publishResponse.StatusCode.Should().Be(
+            HttpStatusCode.OK, "the publish itself must succeed before the timeline can be asserted");
+
+        var response = await nutritionistHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        var item = body!.Items.FirstOrDefault(i => i.Type == "nutrition_plan_published");
+        item.Should().NotBeNull(
+            "publishing a week over the real HTTP publish endpoint must surface exactly one nutrition_plan_published timeline event");
+        item!.Id.Should().Be($"nutrition_plan:{plan.ExternalId}");
+    }
+
+    /// <summary>
+    /// Test 8 (#1014): training-domain equivalent of
+    /// <see cref="Timeline_NutritionWeekPublishedViaHttp_ReturnsNutritionPlanPublishedEvent"/>.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_TrainingWeekPublishedViaHttp_ReturnsTrainingPlanPublishedEvent()
+    {
+        var (trainerHttp, trainerUserId, clientUserId, clientPublicId) =
+            await RegisterTrainerWithLinkedClientAsync();
+
+        var plan = BuildDraftTrainingPlan(trainerUserId, clientUserId);
+        await SeedTrainingPlanAsync(plan);
+
+        var publishResponse = await trainerHttp.PostAsync(
+            $"/training/plans/{plan.ExternalId}/weeks/1/publish",
+            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 1 }),
+            TestContext.Current.CancellationToken);
+
+        publishResponse.StatusCode.Should().Be(
+            HttpStatusCode.OK, "the publish itself must succeed before the timeline can be asserted");
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        var item = body!.Items.FirstOrDefault(i => i.Type == "training_plan_published");
+        item.Should().NotBeNull(
+            "publishing a week over the real HTTP publish endpoint must surface exactly one training_plan_published timeline event");
+        item!.Id.Should().Be($"training_plan:{plan.ExternalId}");
+    }
+
+    /// <summary>
+    /// Test 9 (#1014): a plan whose higher-numbered week was published BEFORE its week 1 must
+    /// still surface exactly one <c>nutrition_plan_published</c> event, dated by the EARLIEST
+    /// published week's date — not the lowest week number's date
+    /// (<c>GetClientPlansEndpoint</c>'s convention, which does not apply here).
+    /// </summary>
+    [Fact]
+    public async Task Timeline_HigherWeekPublishedEarlierThanWeekOne_UsesEarliestDateAsSingleEvent()
+    {
+        var (nutritionistHttp, nutritionistUserId, clientUserId, clientPublicId) =
+            await RegisterNutritionistWithLinkedClientAsync();
+
+        var plan = BuildDraftNutritionPlan(nutritionistUserId, clientUserId, weekCount: 3);
+        await SeedNutritionPlanAsync(plan);
+
+        var publishWeek3 = await nutritionistHttp.PostAsync(
+            $"/nutrition/plans/{plan.ExternalId}/weeks/3/publish",
+            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 3 }),
+            TestContext.Current.CancellationToken);
+        publishWeek3.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var publishWeek1 = await nutritionistHttp.PostAsync(
+            $"/nutrition/plans/{plan.ExternalId}/weeks/1/publish",
+            JsonContent.Create(new { PlanId = plan.ExternalId, WeekNumber = 1 }),
+            TestContext.Current.CancellationToken);
+        publishWeek1.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var persisted = await FetchNutritionPlanAsync(plan.ExternalId);
+        var week3PublishedAt = persisted.Weeks.First(w => w.WeekNumber == 3).DatePublished!.Value;
+        var week1PublishedAt = persisted.Weeks.First(w => w.WeekNumber == 1).DatePublished!.Value;
+        week3PublishedAt.Should().BeBefore(week1PublishedAt, "week 3 was published first in this test, before week 1");
+
+        var response = await nutritionistHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        var nutritionEvents = body!.Items.Where(i => i.Type == "nutrition_plan_published").ToList();
+        nutritionEvents.Should().HaveCount(1, "one event per plan regardless of how many weeks are published");
+
+        // Exact equality, not a proximity window: week3PublishedAt and week1PublishedAt are two
+        // back-to-back HTTP calls, so their real-world gap can be a few milliseconds — far
+        // narrower than a 1-second tolerance could ever discriminate. OccurredAt is derived as
+        // Min() over the same persisted values FetchNutritionPlanAsync reads, so it must be
+        // bit-identical to week3PublishedAt and must NOT equal week1PublishedAt. This is what
+        // actually catches a regression to OrderBy(WeekNumber).First() (the lowest-week-number
+        // form GetClientPlansEndpoint uses, which does not apply here).
+        nutritionEvents[0].OccurredAt.Should().Be(
+            week3PublishedAt,
+            "OccurredAt must be the EARLIEST published week's date — week 3 was published before week 1");
+        nutritionEvents[0].OccurredAt.Should().NotBe(
+            week1PublishedAt,
+            "a regression to the lowest-week-number form would wrongly report week 1's date");
+    }
+
+    /// <summary>
+    /// Test 10 (#1014): a plan with no published weeks at all emits no plan-publish event —
+    /// new behaviour under the derived semantics (previously always zero events regardless, for
+    /// the wrong reason).
+    /// </summary>
+    [Fact]
+    public async Task Timeline_PlanWithNoPublishedWeeks_EmitsNoPlanPublishedEvent()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                NutritionistId = Guid.NewGuid(),
+                Name = "Draft-only nutrition plan",
+                Status = NutritionPlanStatus.Draft,
+                Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Draft }],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+
+            await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                TrainerId = Guid.NewGuid(),
+                Name = "Draft-only training plan",
+                Status = TrainingPlanStatus.Draft,
+                Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Draft, Days = [] }],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Items.Should().NotContain(
+            i => i.Type == "nutrition_plan_published" || i.Type == "training_plan_published",
+            "neither plan has a published week, so no plan-publish event may be emitted");
+    }
+
+    /// <summary>
+    /// Test 11 (#1014, AC bullet 5): a link with <c>CanViewNutritionPlans=false</c> must hide
+    /// the nutrition_plan_published event even though a published nutrition plan exists.
+    /// Week-level Mongo seeding is used here deliberately (not HTTP publish) — a professional
+    /// without the nutrition capability could never publish the plan through the API in the
+    /// first place, so this case must seed directly.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_CanViewNutritionPlansFalse_HidesNutritionPlanPublishedEvent()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(
+            trainerProfileId, clientProfileId, canViewNutritionPlans: false, canViewTrainingPlans: true);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                NutritionistId = Guid.NewGuid(),
+                Name = "Gated Nutrition Plan",
+                Status = NutritionPlanStatus.Active,
+                Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = DateTime.UtcNow.AddDays(-1) }],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Items.Should().NotContain(
+            i => i.Type == "nutrition_plan_published",
+            "CanViewNutritionPlans=false must hide the nutrition_plan_published event even though a published plan exists");
+    }
+
+    /// <summary>
+    /// Test 12 (#1014, AC bullet 5): mirror-site case for
+    /// <see cref="Timeline_CanViewNutritionPlansFalse_HidesNutritionPlanPublishedEvent"/>.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_CanViewTrainingPlansFalse_HidesTrainingPlanPublishedEvent()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(
+            trainerProfileId, clientProfileId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                TrainerId = Guid.NewGuid(),
+                Name = "Gated Training Plan",
+                Status = TrainingPlanStatus.Active,
+                Weeks = [new TrainingWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = DateTime.UtcNow.AddDays(-1), Days = [] }],
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Items.Should().NotContain(
+            i => i.Type == "training_plan_published",
+            "CanViewTrainingPlans=false must hide the training_plan_published event even though a published plan exists");
+    }
+
+    /// <summary>
+    /// Test 13 (#1014): a plan whose earliest published week is older than the endpoint's fixed
+    /// 90-day lookback must be excluded from the timeline.
+    /// </summary>
+    [Fact]
+    public async Task Timeline_PublishOlderThan90Days_ExcludesPlanPublishedEvent()
+    {
+        var (trainerHttp, trainerProfileId, _) = await SetupTrainerAsync();
+        var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
+        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+            await mongo.NutritionPlans.InsertOneAsync(new NutritionPlan
+            {
+                Id = ObjectId.GenerateNewId(),
+                ExternalId = Guid.NewGuid(),
+                ClientId = clientUserId,
+                NutritionistId = Guid.NewGuid(),
+                Name = "Old Nutrition Plan",
+                Status = NutritionPlanStatus.Active,
+                Weeks = [new PlanWeek { WeekNumber = 1, Status = WeekStatus.Published, DatePublished = DateTime.UtcNow.AddDays(-91) }],
+                Version = 1,
+                DateCreated = DateTime.UtcNow.AddDays(-100),
+            }, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        var response = await trainerHttp.GetAsync(
+            $"/trainer/clients/{clientPublicId}/timeline?limit=100",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<TimelineResponse>(
+            JsonOptions, cancellationToken: TestContext.Current.CancellationToken);
+
+        body!.Items.Should().NotContain(
+            i => i.Type == "nutrition_plan_published",
+            "a plan-publish event older than the 90-day lookback must be excluded");
     }
 
     // ── local response DTOs ────────────────────────────────────────────────────

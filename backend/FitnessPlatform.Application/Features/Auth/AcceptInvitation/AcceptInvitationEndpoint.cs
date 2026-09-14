@@ -3,7 +3,9 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -94,6 +96,14 @@ public class AcceptInvitationEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
+        // Serialize the slot check below against a concurrent link creation for the SAME client
+        // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so
+        // there is nothing on the link side to lock — the client's own already-committed profile
+        // row is the one row both racers must touch, so that is what gets locked.
+        // Taken AFTER the find-or-create save above, or the row would not exist yet.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockClientProfileAsync(clientProfile.Id, ct);
+
         // Check if a link already exists between this client and professional
         var existingLink = await db.ClientProfessionalLinks
             .AnyAsync(l => l.ClientProfileId == clientProfile.Id
@@ -123,14 +133,46 @@ public class AcceptInvitationEndpoint(
                     && pi.Email == invitation.Email
                     && !pi.IsAccepted, ct);
 
+            // Honor the scope the professional selected at invite-creation time (already
+            // validated as a subset of their held roles there) rather than re-deriving
+            // from global roles here. Falls back to the full held-role set when the
+            // invite carries no explicit scope — invites created before this field
+            // existed, or where the professional didn't opt in.
+            var requestedScope = invitation.RequestedScope ?? pendingInvite?.RequestedScope;
+
+            var canViewNutritionPlans = requestedScope switch
+            {
+                LinkCapabilityScope.NutritionOnly => true,
+                LinkCapabilityScope.TrainingOnly => false,
+                _ => professionalIsNutritionist
+            };
+
+            var canViewTrainingPlans = requestedScope switch
+            {
+                LinkCapabilityScope.TrainingOnly => true,
+                LinkCapabilityScope.NutritionOnly => false,
+                _ => professionalIsTrainer
+            };
+
+            // A client may hold at most one active coach per profession (#980).
+            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                    db.ClientProfessionalLinks, clientProfile.Id, invitation.ProfessionalProfileId,
+                    canViewNutritionPlans, canViewTrainingPlans, ct))
+            {
+                this.ThrowErrorWithCode(
+                    ErrorCodes.ProfessionAlreadyOccupied,
+                    "The client already has an active professional occupying this profession slot.");
+                return;
+            }
+
             var link = new ClientProfessionalLink
             {
                 ClientProfileId = clientProfile.Id,
                 ProfessionalProfileId = invitation.ProfessionalProfileId,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
-                CanViewNutritionPlans = professionalIsNutritionist,
-                CanViewTrainingPlans = professionalIsTrainer,
+                CanViewNutritionPlans = canViewNutritionPlans,
+                CanViewTrainingPlans = canViewTrainingPlans,
                 QuestionnaireId = pendingInvite?.QuestionnaireId
             };
 
@@ -154,6 +196,7 @@ public class AcceptInvitationEndpoint(
         }
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // If the invite carried a personal message, surface it as the first message
         // in the client-professional conversation so it shows up on the client's

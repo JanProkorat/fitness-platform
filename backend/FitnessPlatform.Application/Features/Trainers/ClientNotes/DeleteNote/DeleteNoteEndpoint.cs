@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,10 @@ namespace FitnessPlatform.Application.Features.Trainers.ClientNotes.DeleteNote;
 /// <summary>
 /// Deletes a trainer note. Only the authoring trainer may delete.
 /// </summary>
-public class DeleteNoteEndpoint(IApplicationDbContext db, IMongoContext mongo)
+public class DeleteNoteEndpoint(
+    IApplicationDbContext db,
+    IMongoContext mongo,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<DeleteNoteRequest>
 {
     /// <inheritdoc />
@@ -50,13 +54,13 @@ public class DeleteNoteEndpoint(IApplicationDbContext db, IMongoContext mongo)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
         if (clientProfile is null) { await Send.NotFoundAsync(ct); return; }
 
-        // Ownership check: trainer must have an active link with the client
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ProfessionalProfileId == trainerProfile.Id
-                        && l.ClientProfileId == clientProfile.Id
-                        && l.IsActive, ct);
-        if (!hasLink) { await Send.ForbiddenAsync(ct); return; }
+        // Ownership check: trainer must have an active link with the client. The professional
+        // and client profiles are already confirmed to exist above, so a null result here can
+        // only mean "no active link" — not "no professional/client profile". No capability flag
+        // is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
+        if (capabilities is null) { await Send.ForbiddenAsync(ct); return; }
 
         // Delete — filter by externalId + trainerId + clientId to prevent cross-trainer delete
         var deleteFilter = Builders<Domain.Documents.TrainerNote>.Filter.And(

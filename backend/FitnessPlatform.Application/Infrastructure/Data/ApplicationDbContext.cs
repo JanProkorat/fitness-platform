@@ -5,6 +5,8 @@ using FitnessPlatform.Application.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
@@ -62,6 +64,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// Client onboarding questionnaire data.
     /// </summary>
     public virtual DbSet<ClientOnboardingData> ClientOnboardingData { get; set; } = null!;
+
+    /// <summary>
+    /// Computed nutrition targets derived from client onboarding data.
+    /// </summary>
+    public virtual DbSet<ClientNutritionTargets> ClientNutritionTargets { get; set; } = null!;
 
     /// <inheritdoc />
     public virtual DbSet<Notification> Notifications { get; set; } = null!;
@@ -145,6 +152,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<SocialLoginNonce> SocialLoginNonces { get; set; } = null!;
 
+    /// <summary>
+    /// Coach subscription tiers: pricing, billing cadence, and feature flags/limits.
+    /// </summary>
+    public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
+
+    /// <summary>
+    /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
+    /// </summary>
+    public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -225,8 +242,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 json => JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null)!
                     .Select(s => Enum.Parse<CheckInFlag>(s)).ToList());
 
+            // Flags is a reference-type (List<T>) property. Without an explicit ValueComparer,
+            // EF's default snapshot for reference types stores the SAME live list instance, so
+            // an in-place Add/Remove/Clear mutation is invisible to change detection — the
+            // snapshot and the current value are literally the same object. The snapshot lambda
+            // (v => v.ToList()) forces a real copy at snapshot time; elements are an enum, so
+            // ToList() is a genuine deep copy here.
+            var flagsComparer = new ValueComparer<List<CheckInFlag>>(
+                (a, b) => a == null || b == null ? a == b : a.SequenceEqual(b),
+                v => v.Aggregate(0, (hash, f) => HashCode.Combine(hash, f.GetHashCode())),
+                v => v.ToList());
+
             e.Property(c => c.Flags)
-                .HasConversion(flagsConverter)
+                .HasConversion(flagsConverter, flagsComparer)
                 .HasColumnType("jsonb");
 
             e.HasIndex(c => new
@@ -342,6 +370,43 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         await transaction.CommitAsync(cancellationToken);
         return rowsAffected;
     }
+
+    /// <inheritdoc />
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default) =>
+        Database.BeginTransactionAsync(cancellationToken);
+
+    /// <inheritdoc />
+    public Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default)
+    {
+        // FOR NO KEY UPDATE rather than FOR UPDATE: the stronger mode would also block the
+        // FOR KEY SHARE lock that any concurrent insert of a row referencing this client takes
+        // on its FK parent, which is unrelated traffic this lock has no business serializing.
+        //
+        // The table and key-column identifiers come from the EF model rather than being spelled
+        // out, so a rename cannot silently desync this string from the schema. They are also the
+        // only parts spliced into the SQL, and can never originate from request input —
+        // clientProfileId is passed as a real parameter, never concatenated.
+        //
+        // Assembled by concatenation rather than interpolation to keep EF1002 honest: the
+        // ExecuteSqlAsync overload that warning recommends would parameterize the identifiers
+        // too, and an identifier cannot be a bind parameter.
+        var entityType = Model.FindEntityType(typeof(ClientProfile))!;
+        var table = entityType.GetSchema() is { } schema
+            ? QuoteIdentifier(schema) + "." + QuoteIdentifier(entityType.GetTableName()!)
+            : QuoteIdentifier(entityType.GetTableName()!);
+        var keyColumn = QuoteIdentifier(entityType.FindPrimaryKey()!.Properties[0].GetColumnName()!);
+
+        var sql = "SELECT " + keyColumn + " FROM " + table
+                  + " WHERE " + keyColumn + " = {0} FOR NO KEY UPDATE";
+
+        return Database.ExecuteSqlRawAsync(sql, [clientProfileId], cancellationToken);
+    }
+
+    /// <summary>
+    /// Wraps a schema identifier in double quotes, doubling any embedded quote.
+    /// </summary>
+    private static string QuoteIdentifier(string identifier) =>
+        "\"" + identifier.Replace("\"", "\"\"") + "\"";
 
     /// <inheritdoc />
     public Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default)

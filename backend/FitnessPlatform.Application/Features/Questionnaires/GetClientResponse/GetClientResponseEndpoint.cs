@@ -2,13 +2,15 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Questionnaires.Dtos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Questionnaires.GetClientResponse;
 
-public class GetClientResponseEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetClientResponseResponse>
+public class GetClientResponseEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+    : EndpointWithoutRequest<GetClientResponseResponse>
 {
     public override void Configure()
     {
@@ -50,13 +52,13 @@ public class GetClientResponseEndpoint(IApplicationDbContext db) : EndpointWitho
             return;
         }
 
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                        && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive, ct);
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile". No
+        // capability flag is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            userGuid, clientPublicId, ct);
 
-        if (!hasLink)
+        if (capabilities is null)
         {
             await Send.NotFoundAsync(ct);
             return;

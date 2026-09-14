@@ -63,6 +63,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             .AsNoTracking()
             .Include(cp => cp.User)
             .Include(cp => cp.OnboardingData)
+            .ThenInclude(od => od!.NutritionTargets)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
 
         if (clientProfile is null)
@@ -82,6 +83,15 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         if (link is null)
         {
             await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // A link that carries neither capability flag grants no dashboard visibility at
+        // all — deny outright (matches the LinkCapabilities.GrantsNothing deny semantics
+        // from #903).
+        if (!link.CanViewNutritionPlans && !link.CanViewTrainingPlans)
+        {
+            await Send.ForbiddenAsync(ct);
             return;
         }
 
@@ -107,18 +117,32 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             })
             .FirstOrDefaultAsync(ct);
 
-        // Calculate compliance data (last 7 days)
+        // Calculate compliance data (last 7 days). Substitute the caller-visible value
+        // into the existing wire fields rather than dropping them — a single-flag caller
+        // gets their own domain's figure (CompliancePercent is the COMBINED weighted
+        // figure per IComplianceService; returning it unfiltered to a single-flag caller
+        // would leak the other domain's adherence by inference).
         decimal? compliancePercent = null;
         var currentStreak = 0;
+
+        // Shared derivation — this endpoint was the only route deriving discipline from the link
+        // rather than from global roles, and it is now one of several. Keeping the rule in
+        // LinkCapabilities stops the copies drifting apart.
+        var discipline = LinkCapabilities.FromLink(link).Discipline;
 
         try
         {
             var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
-                clientProfile.PublicId, complianceFrom, complianceTo, ct);
-            compliancePercent = compliance.CompliancePercent;
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.PublicId, ct);
+                clientProfile.UserId, complianceFrom, complianceTo, ct);
+            compliancePercent = discipline switch
+            {
+                ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
+                ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
+                _ => compliance.CompliancePercent
+            };
+            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, discipline, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -160,24 +184,33 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
         // Query the Active NutritionPlan whose date window contains today to source
         // goal + targetWeightKg plan-first. Fallback to OnboardingData only when the plan
-        // value is null. Key: plan.ClientId == clientProfile.PublicId (the ClientProfile.PublicId
-        // Guid, NOT UserId). A client may hold several sequential, non-overlapping Active plans
-        // (#780), so pick the one whose window contains today rather than the most recent.
+        // value is null. Key: plan.ClientId == clientProfile.UserId — ApplicationUser.Id is
+        // the canonical clientId for Mongo documents (#840). A client may hold several
+        // sequential, non-overlapping Active plans (#780), so pick the one whose window
+        // contains today rather than the most recent.
+        //
+        // Gated on CanViewNutritionPlans: a training-only caller must not trigger this
+        // query at all, otherwise the plan's Goal/TargetWeightKg would win via the ??
+        // fallback below and disclose the existence/values of a plan the caller has no
+        // visibility into (#921).
         NutritionPlan? activePlan = null;
-        try
+        if (link.CanViewNutritionPlans)
         {
-            var planFilter = Builders<NutritionPlan>.Filter.And(
-                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.PublicId),
-                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+            try
+            {
+                var planFilter = Builders<NutritionPlan>.Filter.And(
+                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
-            using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
-            var activePlans = await planCursor.ToListAsync(ct);
-            activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
-        }
-        catch (MongoDB.Driver.MongoException ex)
-        {
-            // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
-            Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
+                using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
+                var activePlans = await planCursor.ToListAsync(ct);
+                activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+            }
+            catch (MongoDB.Driver.MongoException ex)
+            {
+                // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
+                Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
+            }
         }
 
         OnboardingDataDto? onboarding = null;
@@ -208,15 +241,15 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
                 PlanExperience = od.PlanExperience.ToString(),
                 PastBlockers = od.PastBlockers,
                 PrimaryMotivation = od.PrimaryMotivation.ToString(),
-                DerivedActivityLevel = od.DerivedActivityLevel.ToString(),
-                DerivedNutritionGoal = od.DerivedNutritionGoal.ToString(),
-                Bmr = od.Bmr,
-                Tdee = od.Tdee,
-                AdjustedKcal = od.AdjustedKcal,
-                ProteinGrams = od.ProteinGrams,
-                CarbsGrams = od.CarbsGrams,
-                FatGrams = od.FatGrams,
-                MealDistribution = od.MealDistribution,
+                DerivedActivityLevel = od.NutritionTargets?.DerivedActivityLevel.ToString(),
+                DerivedNutritionGoal = od.NutritionTargets?.DerivedNutritionGoal.ToString(),
+                Bmr = od.NutritionTargets?.Bmr,
+                Tdee = od.NutritionTargets?.Tdee,
+                AdjustedKcal = od.NutritionTargets?.AdjustedKcal,
+                ProteinGrams = od.NutritionTargets?.ProteinGrams,
+                CarbsGrams = od.NutritionTargets?.CarbsGrams,
+                FatGrams = od.NutritionTargets?.FatGrams,
+                MealDistribution = od.NutritionTargets?.MealDistribution,
             };
         }
 

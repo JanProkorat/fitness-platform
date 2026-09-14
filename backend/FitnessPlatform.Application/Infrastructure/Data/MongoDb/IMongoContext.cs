@@ -40,16 +40,6 @@ public interface IMongoContext
     IMongoCollection<TrainingPlan> TrainingPlans { get; }
 
     /// <summary>
-    /// Workout log entries collection.
-    /// </summary>
-    IMongoCollection<WorkoutLog> WorkoutLogs { get; }
-
-    /// <summary>
-    /// Training completion records collection.
-    /// </summary>
-    IMongoCollection<TrainingCompletion> TrainingCompletions { get; }
-
-    /// <summary>
     /// Personal record documents collection.
     /// </summary>
     IMongoCollection<PersonalRecord> PersonalRecords { get; }
@@ -60,9 +50,10 @@ public interface IMongoContext
     IMongoCollection<DayLog> DayLogs { get; }
 
     /// <summary>
-    /// Section template documents (per-trainer reusable training section templates).
+    /// Reusable workout template documents (#857) — per-trainer, single reusable workouts
+    /// (formerly the "section template" concept).
     /// </summary>
-    IMongoCollection<SectionTemplate> SectionTemplates { get; }
+    IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
 
     /// <summary>
     /// Active session lock documents.
@@ -72,7 +63,7 @@ public interface IMongoContext
 
     /// <summary>
     /// Session log entries — photos and notes attached to a specific training session diary entry.
-    /// Keyed by (ClientId = ClientProfile.PublicId, PlanId, SessionId, LogDate).
+    /// Keyed by (ClientId = ApplicationUser.Id, PlanId, SessionId, LogDate).
     /// </summary>
     IMongoCollection<SessionLog> SessionLogs { get; }
 
@@ -83,7 +74,33 @@ public interface IMongoContext
     IMongoCollection<TrainerNote> TrainerNotes { get; }
 
     /// <summary>
-    /// Reusable workout templates collection.
+    /// Reusable full-session template documents (#857) — whole reusable training-session
+    /// skeletons (formerly misnamed "workout templates").
     /// </summary>
-    IMongoCollection<WorkoutTemplate> WorkoutTemplates { get; }
+    IMongoCollection<SessionTemplate> SessionTemplates { get; }
+
+    /// <summary>
+    /// Session execution documents (#841) — one record per (client, session, date), unifying
+    /// what used to be the separate <c>workoutLogs</c> and <c>trainingCompletions</c>
+    /// collections. Those two were retained read-only for one release as a rollback path and
+    /// were dropped in #847; this is the single source of truth for training-session
+    /// execution state.
+    /// </summary>
+    IMongoCollection<SessionExecution> SessionExecutions { get; }
+
+    /// <summary>
+    /// Reusable meal template documents (#859 sharing library) — nutritionist-owned saved
+    /// meals (foods + recipes) shareable across nutrition plans.
+    /// </summary>
+    IMongoCollection<MealTemplate> MealTemplates { get; }
+
+    /// <summary>
+    /// Reusable nutrition plan templates collection (#856 sharing-library model, #861).
+    /// </summary>
+    IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates { get; }
+
+    /// <summary>
+    /// Reusable training plan templates collection (#856 sharing-library model, #862).
+    /// </summary>
+    IMongoCollection<TrainingPlanTemplate> TrainingPlanTemplates { get; }
 }

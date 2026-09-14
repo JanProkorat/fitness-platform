@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
@@ -92,6 +93,65 @@ public class AcceptClientRequestEndpoint(
         // CanView* flags below are what actually gate plan access and are independent.
         var professionalRole = isNutritionist ? UserRole.Nutritionist : UserRole.Trainer;
 
+        // A caller-requested scope narrows the CanView* flags below the full set implied
+        // by the caller's held roles — it must never widen them. Reject (400), don't
+        // clamp: silently downgrading a request that asks for more than the caller holds
+        // would mask a client bug and give no signal that the requested scope was denied.
+        if (req.RequestedScope == LinkCapabilityScope.NutritionOnly && !isNutritionist)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        if (req.RequestedScope == LinkCapabilityScope.TrainingOnly && !isTrainer)
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        var canViewNutritionPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.NutritionOnly => true,
+            LinkCapabilityScope.TrainingOnly => false,
+            _ => isNutritionist
+        };
+
+        var canViewTrainingPlans = req.RequestedScope switch
+        {
+            LinkCapabilityScope.TrainingOnly => true,
+            LinkCapabilityScope.NutritionOnly => false,
+            _ => isTrainer
+        };
+
+        // Serialize the slot check below against a concurrent link creation for the SAME client
+        // (#1009). Under READ COMMITTED neither racer can see the other's uncommitted link, so
+        // there is nothing on the link side to lock — the client's own already-committed profile
+        // row is the one row both racers must touch, so that is what gets locked.
+        // The client profile already exists (a request implies one), so no find-or-create
+        // ordering concern here. Only the link-insert save below is inside this transaction —
+        // the questionnaire-response, sibling-auto-cancel and chat-message saves that follow the
+        // commit are unrelated writes and must stay outside it.
+        await using var transaction = await db.BeginTransactionAsync(ct);
+        await db.LockClientProfileAsync(clientRequest.ClientProfileId, ct);
+
+        // A client may hold at most one active coach per profession (#980). This
+        // covers BOTH the reactivate branch and the insert branch below — a
+        // reactivation re-occupying a slot another active professional holds is
+        // rejected too, not just a brand-new link.
+        if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                db.ClientProfessionalLinks, clientRequest.ClientProfileId, professionalProfile.Id,
+                canViewNutritionPlans, canViewTrainingPlans, ct))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.ProfessionAlreadyOccupied,
+                "The client already has an active professional occupying this profession slot.");
+            return;
+        }
+
         // Update request status
         clientRequest.Status = ClientRequestStatus.Accepted;
         clientRequest.RespondedAt = DateTime.UtcNow;
@@ -107,8 +167,8 @@ public class AcceptClientRequestEndpoint(
         {
             link.IsActive = true;
             link.ProfessionalRole = professionalRole;
-            link.CanViewNutritionPlans = isNutritionist;
-            link.CanViewTrainingPlans = isTrainer;
+            link.CanViewNutritionPlans = canViewNutritionPlans;
+            link.CanViewTrainingPlans = canViewTrainingPlans;
         }
         else
         {
@@ -118,8 +178,8 @@ public class AcceptClientRequestEndpoint(
                 ProfessionalProfileId = professionalProfile.Id,
                 ProfessionalRole = professionalRole,
                 IsActive = true,
-                CanViewNutritionPlans = isNutritionist,
-                CanViewTrainingPlans = isTrainer
+                CanViewNutritionPlans = canViewNutritionPlans,
+                CanViewTrainingPlans = canViewTrainingPlans
             };
             db.ClientProfessionalLinks.Add(link);
         }
@@ -140,6 +200,7 @@ public class AcceptClientRequestEndpoint(
         }
 
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // Create QuestionnaireResponse after save so link.Id is generated
         if (questionnaire is not null)

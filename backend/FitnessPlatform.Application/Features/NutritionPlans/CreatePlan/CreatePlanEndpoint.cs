@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -24,9 +24,10 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 /// See the guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates nutritionist-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the nutritionist-client link's CanViewNutritionPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
-public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHelper, IApplicationDbContext db)
+public class CreatePlanEndpoint(
+    IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
     : Endpoint<CreatePlanRequest, PlanSummaryDto>
 {
     /// <inheritdoc />
@@ -54,22 +55,42 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
 
         var nutritionistId = Guid.Parse(userId);
 
-        var hasLink = await authHelper.HasActiveLinkAsync(nutritionistId, req.ClientId, ct);
+        // req.ClientId is the nutritionist-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Nutrition plans require CanViewNutritionPlans specifically.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            nutritionistId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
+        // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
+            // QuestionnaireResponse.ClientId is ApplicationUser.Id (set from the auth user
+            // id), so compare against the already-resolved clientUserId, not req.ClientId
+            // (which is the trainer-facing ClientProfile.PublicId) — see #840.
             var responseExists = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
                                && r.ProfessionalId == nutritionistId
-                               && r.ClientId == req.ClientId
+                               && r.ClientId == clientUserId
                                && r.Status == QuestionnaireResponseStatus.Submitted, ct);
 
             if (!responseExists)
@@ -88,7 +109,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
         {
             var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
 
-            var existingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+            var existingFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Archived)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.Status, NutritionPlanStatus.Completed)
                                 & Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null);
@@ -112,7 +133,7 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
         var plan = new NutritionPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = req.ClientId,
+            ClientId = clientUserId,
             NutritionistId = nutritionistId,
             Name = req.Name,
             Status = NutritionPlanStatus.Draft,
@@ -138,7 +159,9 @@ public class CreatePlanEndpoint(IMongoContext mongo, NutritionAuthHelper authHel
 
         await mongo.NutritionPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        var response = PlanSummaryDto.FromDocument(plan);
+        // req.ClientId is already the client-facing ClientProfile.PublicId (resolved above to
+        // clientUserId for storage) — reuse it directly for the response, no extra lookup needed.
+        var response = PlanSummaryDto.FromDocument(plan, req.ClientId);
         await HttpContext.Response.SendAsync(response, 201, cancellation: ct);
     }
 }

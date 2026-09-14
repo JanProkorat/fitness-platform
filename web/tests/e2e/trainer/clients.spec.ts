@@ -2,14 +2,15 @@
  * Durable spec — trainer clients list (issue #268).
  *
  * This file lives under tests/e2e/trainer/ and is picked up ONLY by the
- * `trainer` project in playwright.config.ts (via testMatch). The project
- * already sets storageState: '.auth/trainer.json', so there is no need for
- * an in-file test.use({ storageState: ... }) override — that would cause the
- * spec to run once per project (trainer + client + nutritionist = 3×), which
- * is wasteful and incorrect.
+ * `trainer` project in playwright.config.ts (via testMatch).
  *
- * Uses the pre-authenticated trainer storage state (set by the `trainer`
- * project in playwright.config.ts) so the login form is bypassed.
+ * Auth comes from the `trainerTest` export in ../fixtures/auth.ts (#897),
+ * which mints a fresh refresh token for THIS test attempt via POST
+ * /auth/login rather than reusing the single shared token that used to live
+ * in .auth/trainer.json — see that file for why. Every trainer spec imports
+ * `trainerTest`, so no two specs (and no two retry attempts of the same
+ * spec) ever share a token.
+ *
  * Hits the REAL compose harness at E2E_API_URL (default: https://localhost:5101).
  * No page.route() mocks — all requests go to the live seeded backend.
  *
@@ -37,7 +38,7 @@
  *   4. Navigating to the client's detail page works (no 404 / error state).
  */
 
-import { test, expect } from '@playwright/test';
+import { trainerTest as test, expect } from '../fixtures/auth';
 
 test('trainer clients list — dashboard loads, QA client visible, count ≥1, detail nav works', async ({ page }) => {
   await page.goto('/dashboard');

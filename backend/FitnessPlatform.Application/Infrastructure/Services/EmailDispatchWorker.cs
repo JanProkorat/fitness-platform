@@ -23,17 +23,28 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 /// <para>
 /// Graceful shutdown drain (#705): on host shutdown, <c>stoppingToken</c> cancelling used
 /// to make <c>ReadAllAsync</c> throw <see cref="OperationCanceledException"/> immediately,
-/// dropping any items still buffered in the channel plus a send that was in flight. Now a
-/// callback registered on <c>stoppingToken</c> calls <see cref="IBackgroundEmailQueue.Complete"/>
-/// so the channel writer closes (new enqueues start failing cleanly — see
-/// <see cref="IBackgroundEmailQueue.Complete"/>), while the read loop itself runs on
-/// <see cref="CancellationToken.None"/> so it keeps draining the already-buffered items
-/// and completes naturally once they're exhausted, instead of being torn down by
-/// cancellation. Each send also runs on <see cref="CancellationToken.None"/> so an
-/// in-flight/drained send finishes rather than being cancelled mid-send. The drain has no
-/// separate timer of its own — it stays bounded by the host's overall
-/// <c>HostOptions.ShutdownTimeout</c>, which governs how long the host waits for this
-/// <see cref="BackgroundService"/>'s <c>ExecuteAsync</c> task before moving on regardless.
+/// dropping any items still buffered in the channel plus a send that was in flight. Now
+/// <see cref="IBackgroundEmailQueue.Complete"/> closes the channel writer on shutdown (new
+/// enqueues start failing cleanly — see <see cref="IBackgroundEmailQueue.Complete"/>), while
+/// the read loop itself runs on <see cref="CancellationToken.None"/> so it keeps draining the
+/// already-buffered items and completes naturally once they're exhausted, instead of being
+/// torn down by cancellation. Each send also runs on <see cref="CancellationToken.None"/> so
+/// an in-flight/drained send finishes rather than being cancelled mid-send.
+/// </para>
+///
+/// <para>
+/// Why the drain is owned by <see cref="StopAsync"/> and not by <c>ExecuteAsync</c> (#866):
+/// <see cref="BackgroundService.StartAsync"/> does not call <c>ExecuteAsync</c> inline — it
+/// schedules it as <c>Task.Run(() =&gt; ExecuteAsync(_stoppingCts.Token), _stoppingCts.Token)</c>.
+/// Passing a cancellation token to <c>Task.Run</c> means that if the token is already cancelled
+/// when the thread pool dequeues the work item, the delegate is <em>discarded</em> and
+/// <c>ExecuteAsync</c> never runs at all — not even a <c>finally</c> inside it. A shutdown that
+/// begins before the pool picks the worker up therefore drops every buffered item, which is
+/// exactly the guarantee #705 set out to make. Placing the drain in <see cref="StopAsync"/>,
+/// which the host always awaits, makes it independent of whether <c>ExecuteAsync</c> ever ran.
+/// The drain still has no timer of its own: it stays bounded by <c>HostOptions.ShutdownTimeout</c>,
+/// which cancels the token handed to <see cref="StopAsync"/> — at which point the drain stops
+/// picking up new items but never cancels a send already under way.
 /// </para>
 /// </summary>
 public class EmailDispatchWorker(
@@ -41,22 +52,62 @@ public class EmailDispatchWorker(
     IServiceScopeFactory scopeFactory,
     ILogger<EmailDispatchWorker> logger) : BackgroundService
 {
+    /// <summary>
+    /// Closes the queue and guarantees the shutdown drain, regardless of whether
+    /// <c>ExecuteAsync</c> ever ran — see the class remarks (#866) for why that is not a
+    /// given.
+    /// </summary>
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Close the writer up front: new enqueues start failing cleanly from this moment, and
+        // the steady-state pump (if it is running) ends by exhausting the channel rather than
+        // having to observe cancellation at all.
+        queue.Complete();
+
+        await base.StopAsync(cancellationToken);
+
+        // base.StopAsync has just awaited the ExecuteAsync task, so a completed — or never
+        // started — task means nothing else is reading the channel. That check is what keeps
+        // the queue's SingleReader contract intact: if the task is still running (the host's
+        // shutdown timeout elapsed while it drained), it is already doing this work and the
+        // host is out of budget either way.
+        if (ExecuteTask is null or { IsCompleted: true })
+        {
+            await DrainAsync(cancellationToken);
+        }
+    }
+
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("EmailDispatchWorker: starting.");
 
-        // Shutdown begins → stop accepting new items immediately, but let the loop below
-        // keep draining whatever is already buffered — see the class remarks (#705).
+        // Backstop for the teardown paths that never call StopAsync — BackgroundService.Dispose
+        // cancels this token directly. Closing the writer is what lets the drain below end.
         using var completeOnShutdown = stoppingToken.Register(queue.Complete);
 
+        await DrainAsync(CancellationToken.None);
+
+        logger.LogInformation("EmailDispatchWorker: stopped.");
+    }
+
+    /// <summary>
+    /// Reads the queue to exhaustion, sending each item in its own DI scope. Shared by the
+    /// steady-state pump in <c>ExecuteAsync</c> (which passes
+    /// <see cref="CancellationToken.None"/> and so runs until the queue is completed) and by
+    /// the shutdown drain in <see cref="StopAsync"/>.
+    /// </summary>
+    /// <param name="stopBeforeNextSend">Checked only <em>between</em> items: once signalled,
+    /// no further item is picked up, but a send already under way is never cancelled. On the
+    /// shutdown path this is the host's <c>HostOptions.ShutdownTimeout</c> budget.</param>
+    private async Task DrainAsync(CancellationToken stopBeforeNextSend)
+    {
         try
         {
-            // Deliberately CancellationToken.None, not stoppingToken: queue.Complete()
-            // (registered above) closes the channel writer on shutdown, so
-            // Channel.Reader.ReadAllAsync finishes naturally once every buffered item has
-            // been yielded rather than throwing OperationCanceledException and abandoning
-            // them mid-drain.
+            // Deliberately CancellationToken.None, not the parameter: Complete() closes the
+            // channel writer on shutdown, so Channel.Reader.ReadAllAsync finishes naturally
+            // once every buffered item has been yielded rather than throwing
+            // OperationCanceledException and abandoning them mid-drain.
             await foreach (var item in queue.ReadAllAsync(CancellationToken.None))
             {
                 try
@@ -70,7 +121,7 @@ public class EmailDispatchWorker(
 
                     // CancellationToken.None: a send picked up during the shutdown drain
                     // (or already in flight when shutdown began) must be allowed to finish
-                    // rather than being cancelled mid-send by stoppingToken.
+                    // rather than being cancelled mid-send.
                     await emailService.SendEmailVerificationAsync(item.Email, item.Token, item.Language, CancellationToken.None);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -87,15 +138,25 @@ public class EmailDispatchWorker(
                 {
                     queue.MarkProcessed();
                 }
+
+                if (stopBeforeNextSend.IsCancellationRequested)
+                {
+                    logger.LogWarning(
+                        "EmailDispatchWorker: shutdown budget exhausted with {PendingCount} email(s) still buffered.",
+                        queue.PendingCount);
+                    return;
+                }
             }
         }
         catch (OperationCanceledException)
         {
-            // Defensive backstop only: the read loop above runs on CancellationToken.None,
-            // so it should never actually throw OCE. Kept in case a future change
-            // reintroduces a cancellable await inside the loop.
+            // Defensive backstop only: the read loop above runs on CancellationToken.None, so
+            // it should never actually throw OCE. Logged rather than swallowed silently —
+            // reaching here means buffered emails were abandoned, which is the whole class of
+            // bug #705/#866 exist to prevent.
+            logger.LogWarning(
+                "EmailDispatchWorker: drain cancelled unexpectedly with {PendingCount} email(s) still buffered.",
+                queue.PendingCount);
         }
-
-        logger.LogInformation("EmailDispatchWorker: stopped.");
     }
 }

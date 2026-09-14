@@ -7,7 +7,7 @@ import type {
   MealRecipe,
   PlanMeal,
   GetTodayPlanResponse,
-  MealLogDto,
+  TodayMealLogDto,
   MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
@@ -19,7 +19,7 @@ import type {
   FullPlanWeek,
   GetFullPlanResponse,
   GetClientPlansResponse,
-  ClientPlanItem,
+  ClientOwnPlanItem,
   DayPhotoInput,
   DayPhotoDto,
   GetTodayDayLogResponse,
@@ -35,7 +35,7 @@ export type {
   MealRecipe,
   PlanMeal,
   GetTodayPlanResponse,
-  MealLogDto,
+  TodayMealLogDto,
   MealPhotoDto,
   GetTodayLogResponse,
   GetWeeklyOverviewResponse,
@@ -47,7 +47,7 @@ export type {
   FullPlanWeek,
   GetFullPlanResponse,
   GetClientPlansResponse,
-  ClientPlanItem,
+  ClientOwnPlanItem,
   DayPhotoInput,
   DayPhotoDto,
   GetTodayDayLogResponse,
@@ -104,9 +104,9 @@ export type FullPlanResponse = GetFullPlanResponse & FullPlanResponseWithSupplem
 export type ClientPlansResponse = GetClientPlansResponse;
 
 /**
- * @deprecated Use `ClientPlanItem` from generated. Kept as alias for backward compatibility.
+ * @deprecated Use `ClientOwnPlanItem` from generated. Kept as alias for backward compatibility.
  */
-export type ClientPlanSummary = ClientPlanItem;
+export type ClientPlanSummary = ClientOwnPlanItem;
 
 /**
  * PlanStatus string union — used as a query parameter for getClientPlans.

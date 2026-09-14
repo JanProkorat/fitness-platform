@@ -10,6 +10,7 @@ using FitnessPlatform.Application.Features.Trainers.GetDashboardSummary;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.NutritionPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -92,16 +93,6 @@ public class GetDashboardSummaryEndpointTests
                 Arg.Any<CancellationToken>())
             .Returns(emptyMealCursor);
         mongo.MealLogs.Returns(mealLogCollection);
-
-        // Workout logs — empty (projected to DateTime)
-        var emptyWorkoutCursor = CreateEmptyCursor<DateTime>();
-        var workoutLogCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        workoutLogCollection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, DateTime>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(emptyWorkoutCursor);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
 
         return mongo;
     }
@@ -300,11 +291,14 @@ public class GetDashboardSummaryEndpointTests
             .With(new BodyMeasurement { ClientProfileId = clientBProfile.Id, MeasuredAt = clientBMeasurement })
             .Build();
 
+        // Keyed on ApplicationUser.Id (#840) — GetDashboardSummaryEndpoint resolves each
+        // client's UserId before calling ComplianceService (Mongo documents are keyed on
+        // UserId, not ClientProfile.PublicId).
         var complianceByClient = new Dictionary<Guid, decimal>
         {
-            [clientAProfile.PublicId] = 10m,
-            [clientBProfile.PublicId] = 20m,
-            [clientCProfile.PublicId] = 30m,
+            [clientAProfile.UserId] = 10m,
+            [clientBProfile.UserId] = 20m,
+            [clientCProfile.UserId] = 30m,
         };
 
         // The test trainer only holds the Trainer role (see FakeUserClaims below),
@@ -358,5 +352,47 @@ public class GetDashboardSummaryEndpointTests
         ep.Response.Clients[0].LastActivityAt.Should().Be(clientANewerMeasurement);
         ep.Response.Clients[1].LastActivityAt.Should().Be(clientBMeasurement);
         ep.Response.Clients[2].LastActivityAt.Should().BeNull();
+    }
+
+    /// <summary>
+    /// Builds on <see cref="CreateEmptyMongo"/>, replacing only the <c>NutritionPlans</c>
+    /// collection so it returns <paramref name="plan"/> for both the active-plan lookup and
+    /// the active-plan-count lookup this endpoint issues.
+    /// </summary>
+    private static IMongoContext CreateMongoWithNutritionPlan(NutritionPlan plan)
+    {
+        var mongo = CreateEmptyMongo();
+
+        var cursor = Substitute.For<IAsyncCursor<NutritionPlan>>();
+        var moved = false;
+        cursor.Current.Returns(new List<NutritionPlan> { plan });
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return true;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return true;
+        });
+
+        var nutritionCollection = Substitute.For<IMongoCollection<NutritionPlan>>();
+        nutritionCollection.FindAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<FindOptions<NutritionPlan, NutritionPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => cursor);
+        nutritionCollection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(1L);
+
+        mongo.NutritionPlans.Returns(nutritionCollection);
+
+        return mongo;
     }
 }

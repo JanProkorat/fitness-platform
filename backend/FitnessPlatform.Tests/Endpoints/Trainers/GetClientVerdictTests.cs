@@ -1,8 +1,10 @@
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Trainers.GetClientVerdict;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
@@ -26,6 +28,7 @@ public class GetClientVerdictTests
             clientProfile.UserId,
             clientProfile.Id,
             Arg.Any<decimal?>(),
+            Arg.Any<LinkCapabilities>(),
             Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
@@ -41,7 +44,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -64,7 +67,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -77,7 +80,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -93,7 +96,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -107,7 +110,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -123,7 +126,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.NeedsAttention,
@@ -136,7 +139,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -155,7 +158,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -168,7 +171,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -184,7 +187,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -195,7 +198,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -210,7 +213,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OffTrack,
@@ -224,7 +227,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -242,7 +245,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OnTrack,
@@ -255,7 +258,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -271,7 +274,7 @@ public class GetClientVerdictTests
 
         _verdictService.ComputeAsync(
             Arg.Any<Guid>(), Arg.Any<long>(),
-            Arg.Any<decimal?>(), Arg.Any<CancellationToken>())
+            Arg.Any<decimal?>(), Arg.Any<LinkCapabilities>(), Arg.Any<CancellationToken>())
             .Returns(new ClientVerdictResult
             {
                 Verdict = ClientVerdict.OnTrack,
@@ -284,7 +287,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -301,7 +304,7 @@ public class GetClientVerdictTests
     {
         var db = new MockDbBuilder().Build();
 
-        var ep = Factory.Create<GetClientVerdictEndpoint>(db, _verdictService);
+        var ep = Factory.Create<GetClientVerdictEndpoint>(db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
@@ -326,7 +329,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = clientProfile.PublicId },
             TestContext.Current.CancellationToken);
@@ -342,7 +345,7 @@ public class GetClientVerdictTests
 
         var ep = Factory.Create<GetClientVerdictEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(_trainerId),
-            db, _verdictService);
+            db, _verdictService, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new GetClientVerdictRequest { ClientId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);

@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 import type {
-  TrainingPlanDetail,
+  RawTrainingPlanDetail,
   GetTrainingPlansResponse,
   CreateTrainingPlanRequest,
   UpdateTrainingPlanRequest,
@@ -19,14 +19,14 @@ export async function getTrainingPlans(params: {
 }
 
 /** Get a single training plan by ID. */
-export async function getTrainingPlan(planId: string): Promise<TrainingPlanDetail> {
-  const { data } = await api.get<TrainingPlanDetail>(`/training/plans/${planId}`);
+export async function getTrainingPlan(planId: string): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.get<RawTrainingPlanDetail>(`/training/plans/${planId}`);
   return data;
 }
 
 /** Create a new training plan. */
-export async function createTrainingPlan(request: CreateTrainingPlanRequest): Promise<TrainingPlanDetail> {
-  const { data } = await api.post<TrainingPlanDetail>('/training/plans', request);
+export async function createTrainingPlan(request: CreateTrainingPlanRequest): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.post<RawTrainingPlanDetail>('/training/plans', request);
   return data;
 }
 
@@ -34,8 +34,8 @@ export async function createTrainingPlan(request: CreateTrainingPlanRequest): Pr
 export async function updateTrainingPlan(
   planId: string,
   request: UpdateTrainingPlanRequest,
-): Promise<TrainingPlanDetail> {
-  const { data } = await api.put<TrainingPlanDetail>(`/training/plans/${planId}`, request);
+): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.put<RawTrainingPlanDetail>(`/training/plans/${planId}`, request);
   return data;
 }
 
@@ -48,8 +48,8 @@ export async function deleteTrainingPlan(planId: string): Promise<void> {
 export async function completeTrainingPlan(
   planId: string,
   version: number,
-): Promise<TrainingPlanDetail> {
-  const { data } = await api.post<TrainingPlanDetail>(
+): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.post<RawTrainingPlanDetail>(
     `/training/plans/${planId}/complete`,
     { version },
   );
@@ -61,8 +61,8 @@ export async function linkTrainingQuestionnaire(
   planId: string,
   questionnaireResponseId: string | null,
   version: number,
-): Promise<TrainingPlanDetail> {
-  const { data } = await api.put<TrainingPlanDetail>(
+): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.put<RawTrainingPlanDetail>(
     `/training/plans/${planId}/link-questionnaire`,
     { questionnaireResponseId, version },
   );
@@ -74,8 +74,8 @@ export async function publishTrainingWeek(
   planId: string,
   weekNumber: number,
   version: number,
-): Promise<TrainingPlanDetail> {
-  const { data } = await api.post<TrainingPlanDetail>(
+): Promise<RawTrainingPlanDetail> {
+  const { data } = await api.post<RawTrainingPlanDetail>(
     `/training/plans/${planId}/weeks/${weekNumber}/publish`,
     { version },
   );

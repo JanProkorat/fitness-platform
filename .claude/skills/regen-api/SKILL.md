@@ -1,143 +1,139 @@
 ---
 name: regen-api
-description: Regenerate TS API client (generated.ts) from running backend Swagger via NSwag. Invoke after any route / request / response / DTO change. Covers /web and /mobile.
+description: Regenerate the typed TS API client from a running backend's OpenAPI/Swagger source — generic over the generator (NSwag, openapi-typescript-codegen, orval, swagger-typescript-api, openapi-generator, etc). Invoke after any route / request / response / DTO change.
+argument-hint: "(no arguments — reads the repo's own generator config)"
 ---
 
-# regen-api — regenerate TypeScript API client
+# regen-api — regenerate the typed API client
 
-Run this after a backend contract change, before updating any web or mobile
-call site. The generated files are write-locked by a PreToolUse hook — you can
-only update them through this regeneration flow.
+Run this after a backend contract change, before updating any call site that
+consumes it. The generated client file is write-locked by a PreToolUse hook
+(`block-generated-client.py`) — you can only update it through this
+regeneration flow, never by hand-editing.
+
+## Which generator does this repo use?
+
+This skill does not assume one generator. Check the repo's own `CLAUDE.md`
+and its `package.json` scripts for which of these (or another) is wired up:
+
+| Generator                     | Typical invocation                                              |
+|--------------------------------|-------------------------------------------------------------------|
+| NSwag                          | `dotnet nswag run nswag.json` (config lives on the backend side)  |
+| `openapi-typescript-codegen`   | `npx openapi-typescript-codegen --input <spec> --output <dir>`    |
+| `orval`                         | `npx orval --config orval.config.ts`                              |
+| `swagger-typescript-api`       | `npx swagger-typescript-api -p <spec> -o <dir>`                   |
+| `openapi-generator-cli`        | `npx @openapitools/openapi-generator-cli generate -i <spec> -g typescript-fetch -o <dir>` |
+
+Whichever it is, the repo almost certainly wraps it in an npm script (e.g.
+`npm run generate-api`) — prefer that script over reconstructing the raw
+generator invocation, so you inherit any post-processing (header injection,
+`// @ts-nocheck` prepending, sed passes) the repo already does.
 
 ## Prerequisites
 
-1. Backend running on `https://localhost:5001` with Swagger enabled:
+1. The backend running with its OpenAPI/Swagger endpoint enabled — confirm
+   the URL the repo's generator config points at (commonly something like
+   `https://localhost:<port>/swagger/v1/swagger.json` or `/openapi.json`).
+   Verify it's reachable before running codegen:
    ```bash
-   cd backend/FitnessPlatform.Application
-   dotnet run
+   curl -sk <swagger-url> | head
    ```
-   Verify: `curl -sk https://localhost:5001/swagger/v1/swagger.json | head`
-2. NSwag tool available via `dotnet tool`. If missing:
-   `dotnet tool restore` in `/backend`.
-3. `node_modules/` already populated — do NOT run `npm install` (see ⚠️ below).
+2. Whatever CLI the chosen generator needs (a `dotnet tool` for NSwag, an
+   `npx`-resolved package for the JS-native generators) is installed.
+3. `node_modules/` already populated — do NOT run `npm install` "to be
+   safe" before or after regen unless the generator genuinely needs a
+   fresh install (see the lockfile warning below).
 
-## ⚠️ Lockfile safety — never run `npm install` during regen
+## Lockfile safety — never run `npm install` as a reflex during regen
 
-**`npm run generate-api` does NOT use npm packages.** The script is pure
-shell: `curl` (fetch Swagger) → `dotnet nswag` (codegen) → `sed`
-(post-process). Zero npm involvement.
-
-**Do NOT run `npm install` "to be safe" before or after regen.** Running
-`npm install` against an existing `package.json` re-resolves the dependency
-tree and rewrites `package-lock.json`, sometimes stripping transitive peer
-deps that npm decides are redundant but `npm ci` still needs.
-
-**Real incident (#329 / #348):** during the #329 web slice, an extraneous
-`npm install` stripped `@floating-ui/dom@1.7.6` from the lockfile. CI then
-broke with `EUSAGE: Missing @floating-ui/dom@1.7.6 from lock file`.
-Recovery in commit `d2e617f` required restoring `web/package-lock.json`
-from `develop`.
+Most codegen scripts need **zero** npm package installation to run — they
+fetch the spec (`curl`), run a code generator (a `dotnet` tool, or an
+already-installed `npx` package), and optionally post-process the output
+(`sed`, a small Node script). Running `npm install` against an existing
+`package.json` re-resolves the whole dependency tree and rewrites
+`package-lock.json` — it can silently strip a transitive dependency npm
+decides is redundant but that `npm ci` still needed, breaking CI on an
+unrelated dependency days later with no connection visible in the diff that
+introduced it.
 
 **Safe rules of thumb:**
 
-- The `generate-api` script needs nothing from `node_modules` — do not
-  `npm install` ahead of it.
-- If you need a fresh `node_modules` (e.g. for `tsc --noEmit` after regen),
-  use **`npm ci`** — it's strictly lockfile-preserving and never modifies
-  `package-lock.json`. Never use `npm install` mid-regen.
+- Don't run `npm install` ahead of a regen "just in case" — the generator
+  script itself does not need it.
+- If you need a fresh `node_modules` for a downstream step (e.g. `tsc
+  --noEmit` after regen), use **`npm ci`** — it's strictly lockfile-
+  preserving and never modifies `package-lock.json`. Never substitute
+  `npm install` for it mid-regen.
 - After regen, **verify the lockfile didn't drift**:
   ```bash
-  git status web/package-lock.json mobile/package-lock.json
+  git status package-lock.json
   ```
-  Both should show no entry. If one shows up, restore it before committing:
-  ```bash
-  git checkout origin/develop -- web/package-lock.json
-  git checkout origin/develop -- mobile/package-lock.json
-  ```
-- `package.json` must NEVER appear in a regen commit. Treat the regen as
-  "client-types only" — `generated.ts` is the entire authoritative diff.
+  It should show no entry. If it shows up, restore it before committing
+  (e.g. `git checkout origin/<base-branch> -- package-lock.json`) and
+  investigate why regen touched it — that's a sign a step you ran (or a
+  postinstall script) did more than codegen.
+- `package.json` should not appear in a regen commit unless the regen
+  script's own version changed. Treat regen as "client-types only" — the
+  generated client file is the entire authoritative diff.
 
-## Web (`/web`) — supported out of the box
-
-The regen pipeline lives in `web/package.json`:
+## Running the regen
 
 ```bash
-cd web
-npm run generate-api
+npm run generate-api    # or whatever script name the repo's own
+                         # package.json defines — read it, don't assume
 ```
 
-Under the hood this:
-1. Fetches `https://localhost:5001/swagger/v1/swagger.json` into `/backend/swagger.json`
-2. Runs `dotnet nswag run nswag.json` (config in `/backend/nswag.json`)
-3. Post-processes `web/src/api/generated.ts` to prepend `// @ts-nocheck`
-
-**Zero npm involvement — `package-lock.json` MUST stay untouched.**
-
-## Mobile (`/mobile`) — manual today
-
-There is no `npm run generate-api` script in mobile yet. Two options:
-
-**Option A — reuse the backend nswag config** (after it has already been run
-for web, or with a mobile-targeted nswag.json):
-```bash
-cd backend
-dotnet nswag run nswag.json   # update nswag.json output path to /mobile/src/api/generated.ts
-```
-
-**Option B — one-shot for mobile** (if the user wants it scripted, add this to
-`mobile/package.json`):
-```json
-"generate-api": "cd ../backend && curl -sk https://localhost:5001/swagger/v1/swagger.json -o swagger.json && dotnet nswag run nswag.json"
-```
-Ask before adding the script — it requires deciding whether web and mobile
-share one `nswag.json` or each has its own output path.
+If the repo has no such script yet and you need one, ask before adding it —
+scripting a raw generator invocation into `package.json` requires deciding
+output paths and generator options the repo owner should confirm.
 
 ## After regeneration
 
-1. **Do NOT hand-edit `generated.ts`.** The PreToolUse hook
-   `block-generated-edits` will reject any attempt.
+1. **Do NOT hand-edit the generated client file.** The PreToolUse hook
+   `block-generated-client.py` rejects Edit/Write on it.
 2. **Lockfile sanity check** (before any other step):
    ```bash
-   git status web/package-lock.json mobile/package-lock.json
+   git status package-lock.json
    ```
-   Both must be untouched. If either drifted, restore from `develop` before
-   proceeding (see "Lockfile safety" warning above).
-3. Type-check the consumer:
-   - web: `cd web && npx tsc --noEmit`
-   - mobile: `cd mobile && npx tsc --noEmit`
-4. Fix breakage in wrapper modules (`src/api/*.ts`) — rename imports,
-   update mapping functions, adjust Zod schemas.
-5. Search for call sites: `grep -rn "<old name>" src/`.
-6. If the regen produced no diff, the contract change did not actually change
-   the Swagger output — double-check the backend work.
+   Must be untouched. If it drifted, restore it from the base branch first
+   (see the lockfile warning above).
+3. Type-check the consumer: `npx tsc --noEmit` (or the repo's typecheck
+   command — see `react-build`).
+4. Fix breakage in wrapper modules (e.g. `src/api/*.ts`) — rename imports,
+   update mapping functions, adjust form-validation schemas that mirrored
+   the old shape.
+5. Search for call sites of anything renamed: `grep -rn "<old name>" src/`.
+6. If the regen produced no diff, the contract change did not actually
+   change the OpenAPI/Swagger output — double-check the backend work before
+   assuming the client is already correct.
 
 ## Who runs this
 
-- **`web-react` sub-agent** runs it for `/web` when a backend contract
-  affects web call sites. The npm script also writes `swagger.json` into
-  `/backend` as a side-effect of curling Swagger — that's expected and not a
-  boundary violation for regen purposes.
-- **`mobile-expo` sub-agent** runs it for `/mobile` when a backend contract
-  affects mobile call sites.
-- **Orchestrator** runs it directly only when the backend change needs no
-  client work afterwards (e.g. a contract tidy-up with no wrapper changes),
-  or when coordinating both clients at once is easier than two handoffs.
+- The client-side dev sub-agent (or the developer working `/web`-equivalent
+  code) runs it when a backend contract change affects call sites it owns.
+  It does not need the orchestrator/backend agent to run it on its behalf —
+  refreshing its own generated client is its job.
+- The orchestrator runs it directly only when the backend change needs no
+  client-side work afterwards, or when coordinating multiple client
+  packages (web + a second frontend) at once is easier than separate
+  dispatches.
 
 ## When NOT to run
 
-- The backend change is internal only (private service, test helper, migration
-  with no API surface change). Skip the regen.
-- The backend hasn't been rebuilt since the change — run `dotnet build` first
-  or restart the backend, otherwise Swagger returns stale output.
+- The backend change is internal only (private service, test helper, a
+  migration with no API-surface change). Skip the regen.
+- The backend hasn't been rebuilt/restarted since the change — rebuild or
+  restart it first, otherwise the OpenAPI/Swagger source returns stale
+  output and the "regen" produces no real diff.
 
 ## Checklist
 
-- [ ] Backend running on :5001 with fresh build
+- [ ] Backend reachable at its OpenAPI/Swagger URL, freshly built
 - [ ] `node_modules/` populated (use `npm ci` if not — never `npm install`)
-- [ ] `npm run generate-api` succeeds in `/web`
-- [ ] Mobile regeneration performed (if the change affects mobile)
-- [ ] **`git status` shows zero diff on `web/package-lock.json` + `mobile/package-lock.json`**
-- [ ] `tsc --noEmit` clean in both clients
+- [ ] The repo's generate-api script (or generator invocation) succeeds
+- [ ] **`git status package-lock.json` shows zero diff**
+- [ ] `npx tsc --noEmit` (or repo's typecheck command) clean
 - [ ] Wrapper modules updated where needed
-- [ ] No hand-edits in `generated.ts` (hook will block these anyway)
-- [ ] `package.json` not in the regen commit (treat regen as client-types only)
+- [ ] No hand-edits in the generated client file (hook blocks these anyway)
+- [ ] `package.json` not in the regen commit unless the generator version
+      itself changed

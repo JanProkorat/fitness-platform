@@ -59,6 +59,11 @@ public class RecipeSummaryDto
     public List<string> FoodCategories { get; set; } = [];
 
     /// <summary>
+    /// Optimistic concurrency version. Clients must echo this value back on update.
+    /// </summary>
+    public int Version { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
@@ -79,6 +84,7 @@ public class RecipeSummaryDto
             .Where(f => !string.IsNullOrEmpty(f.FoodCategory))
             .Select(f => f.FoodCategory!)
             .Distinct()
-            .ToList()
+            .ToList(),
+        Version = recipe.Version
     };
 }

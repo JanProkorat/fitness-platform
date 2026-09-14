@@ -9,7 +9,7 @@ namespace FitnessPlatform.Application.Features.Client.Notifications.MarkRead;
 /// <summary>
 /// Marks a single notification as read.
 /// </summary>
-public class MarkReadEndpoint(IApplicationDbContext db) : Endpoint<MarkReadRequest>
+public class MarkReadEndpoint(IApplicationDbContext db) : Endpoint<MarkNotificationReadRequest>
 {
     public override void Configure()
     {
@@ -22,7 +22,7 @@ public class MarkReadEndpoint(IApplicationDbContext db) : Endpoint<MarkReadReque
         });
     }
 
-    public override async Task HandleAsync(MarkReadRequest req, CancellationToken ct)
+    public override async Task HandleAsync(MarkNotificationReadRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
@@ -45,7 +45,7 @@ public class MarkReadEndpoint(IApplicationDbContext db) : Endpoint<MarkReadReque
     }
 }
 
-public class MarkReadRequest
+public class MarkNotificationReadRequest
 {
     public Guid Id { get; set; }
 }

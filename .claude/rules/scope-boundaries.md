@@ -1,10 +1,3 @@
----
-paths:
-  - "backend/**"
-  - "web/**"
-  - "mobile/**"
-  - "docs/**"
----
 # Rules: Scope boundaries
 
 Universal across the project — every dev sub-agent and `pr-reviewer`
@@ -18,6 +11,22 @@ follow these. Cite anchors; never restate.
 | `web`           | `web-react`      | `/web/**`         |
 | `mobile`        | `mobile-expo`    | `/mobile/**`      |
 | `docs-infra`    | (orchestrator)   | `/docs/**`, `.github/**`, root configs |
+
+## Scope to stack mapping
+
+Used by pack `<stack>-verify`/`<stack>-build` skills to decide which stack
+pack(s) a work item's `files_touched` implicate (see
+[`rules/verification-contract.md`](verification-contract.md)):
+
+| Path glob      | Stack    | Verify skill    | Build-floor skill |
+|-----------------|----------|-----------------|--------------------|
+| `/backend/**`   | `dotnet` | `dotnet-verify`  | `dotnet-build`     |
+| `/web/**`       | `react`  | `react-verify`   | `react-build`      |
+| `/mobile/**`    | `expo`   | `expo-verify`    | `expo-build`       |
+
+A work item spanning more than one glob (rare — cross-package issues are
+sequenced per [#cross-package-coordination](#cross-package-coordination))
+runs every implicated stack's verify skill; all must pass.
 
 ## Package-boundary rule
 

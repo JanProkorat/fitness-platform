@@ -36,7 +36,7 @@ public class GenerateDayPhotoUploadUrlEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(callerUserId ?? _clientId, AppRoles.Client))),
-            _imageUpload, mongo, db);
+            _imageUpload, mongo, db, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Happy-path tests

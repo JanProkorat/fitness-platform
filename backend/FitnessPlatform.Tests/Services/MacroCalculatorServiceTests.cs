@@ -275,6 +275,91 @@ public class MacroCalculatorServiceTests
         meal.MealTotals.Protein.Should().Be(0m);
     }
 
+    // ── CalculateMealTotals(foods, recipes) — #859 shared-surface parity ─
+
+    [Fact]
+    public void CalculateMealTotals_FoodsAndRecipes_MatchesPlanMealSummation()
+    {
+        // Same underlying foods/recipes fed through both the plan write path
+        // (RecalculateTotals -> PlanMeal) and the meal-template write path
+        // (CalculateMealTotals(foods, recipes) directly) must report identical totals —
+        // the #859 BLOCKING AC: exactly one summation implementation, never two.
+        var foods = new List<MealFood>
+        {
+            new()
+            {
+                FoodExternalId = Guid.NewGuid(),
+                FoodName = "Chicken Breast",
+                NutrientValuePer100Grams = new NutrientValue { Kcal = 165, Protein = 31, Carbs = 0, Fat = 3.6m, Fiber = 0 },
+                AmountGrams = 200
+            }
+        };
+        var recipes = new List<MealRecipe>
+        {
+            new()
+            {
+                RecipeId = Guid.NewGuid(),
+                RecipeName = "Overnight Oats",
+                NutrientValuePerServing = new NutrientValue { Kcal = 320, Protein = 12, Carbs = 45, Fat = 8, Fiber = 6 },
+                Servings = 1.5m
+            }
+        };
+
+        var plan = new NutritionPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            Weeks =
+            [
+                new PlanWeek
+                {
+                    WeekNumber = 1,
+                    Days =
+                    [
+                        new PlanDay
+                        {
+                            DayOfWeek = 1,
+                            Meals =
+                            [
+                                new PlanMeal
+                                {
+                                    MealId = Guid.NewGuid(),
+                                    Kind = MealKind.Lunch,
+                                    Order = 1,
+                                    Foods = foods,
+                                    Recipes = recipes
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        _sut.RecalculateTotals(plan);
+        var viaPlanMeal = plan.Weeks[0].Days[0].Meals[0].MealTotals;
+
+        var viaSharedSurface = _sut.CalculateMealTotals(foods, recipes);
+
+        viaPlanMeal.Should().NotBeNull();
+        viaSharedSurface.Kcal.Should().Be(viaPlanMeal!.Kcal);
+        viaSharedSurface.Protein.Should().Be(viaPlanMeal.Protein);
+        viaSharedSurface.Carbs.Should().Be(viaPlanMeal.Carbs);
+        viaSharedSurface.Fat.Should().Be(viaPlanMeal.Fat);
+        viaSharedSurface.Fiber.Should().Be(viaPlanMeal.Fiber);
+    }
+
+    [Fact]
+    public void CalculateMealTotals_EmptyFoodsAndRecipes_ReturnsZeroTotals()
+    {
+        var totals = _sut.CalculateMealTotals([], []);
+
+        totals.Kcal.Should().Be(0m);
+        totals.Protein.Should().Be(0m);
+        totals.Carbs.Should().Be(0m);
+        totals.Fat.Should().Be(0m);
+        totals.Fiber.Should().Be(0m);
+    }
+
     // ── Full Pipeline ────────────────────────────────────────────────────
 
     [Fact]

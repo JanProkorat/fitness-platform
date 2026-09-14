@@ -2,6 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -11,7 +14,12 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 /// Retrieves a single nutrition plan with full detail (weeks, days, meals, foods).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class GetPlanEndpoint(IMongoContext mongo) : Endpoint<GetPlanRequest, GetPlanResponse>
+/// <param name="db">PostgreSQL context — resolves the client's PublicId for the response.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
+public class GetPlanEndpoint(
+    IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<GetPlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,21 +46,22 @@ public class GetPlanEndpoint(IMongoContext mongo) : Endpoint<GetPlanRequest, Get
 
         var nutritionistId = Guid.Parse(userId);
 
-        var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        var plan = await this.LoadOwnedNutritionPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, nutritionistId, ct);
 
-        if (plan is null || plan.NutritionistId != nutritionistId)
+        if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        var response = GetPlanResponse.FromDocument(plan);
+        // plan.ClientId is the internal ApplicationUser.Id storage key (#840); the response's
+        // ClientId must stay the client-facing ClientProfile.PublicId (pre-#840 contract) since
+        // web/mobile feed it into /trainer/clients/{clientId}/... routes.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        var response = GetPlanResponse.FromDocument(plan, clientPublicId);
 
         // ── MealLog fold-in ──────────────────────────────────────────────────────
-        // Query MealLogs by PlanId only. Ownership is already validated above
-        // (plan.NutritionistId == nutritionistId), so there is no IDOR risk here.
+        // Query MealLogs by PlanId only. Authorship AND the caller's live nutrition link to the
+        // plan's client are both validated above, so there is no IDOR risk here.
         //
         // A meal is considered eaten iff MealLog.EatenAt != null.
         // MealLog.EatenAt == null means the log is a photo-only or note-only stub
@@ -62,7 +71,7 @@ public class GetPlanEndpoint(IMongoContext mongo) : Endpoint<GetPlanRequest, Get
         var mealLogs = await logCursor.ToListAsync(ct);
 
         response.MealLogs = mealLogs
-            .Select(l => new MealLogDto
+            .Select(l => new MealEatenStatusDto
             {
                 MealId = l.MealId,
                 LogDate = DateOnly.FromDateTime(l.LogDate),

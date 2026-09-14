@@ -24,7 +24,8 @@ public class CompletePlanEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard) : Endpoint<CompletePlanRequest, GetPlanResponse>
+    PlanConcurrencyGuard guard,
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<CompletePlanRequest, GetPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,6 +62,7 @@ public class CompletePlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, nutritionistId, authorizeCt),
             (plan, _) =>
             {
                 // Only active plans can be completed
@@ -95,16 +97,16 @@ public class CompletePlanEndpoint(
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
         var plan = guardResult.Document!;
 
-        // Notify the client
+        // Notify the client — NutritionPlan.ClientId is ApplicationUser.Id (#840).
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+            .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
         if (clientProfile is not null)
         {
@@ -122,6 +124,29 @@ public class CompletePlanEndpoint(
             }, ct);
         }
 
-        await Send.OkAsync(GetPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — reuse the profile already resolved above instead of a second lookup.
+        var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
+        await Send.OkAsync(GetPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant nutrition access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(NutritionPlan plan, Guid nutritionistId, CancellationToken ct)
+    {
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            nutritionistId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewNutritionPlans: true })
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

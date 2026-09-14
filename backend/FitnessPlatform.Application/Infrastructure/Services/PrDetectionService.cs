@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -11,29 +12,30 @@ namespace FitnessPlatform.Application.Infrastructure.Services;
 public class PrDetectionService(IMongoContext mongo) : IPrDetectionService
 {
     /// <inheritdoc />
-    public async Task<List<string>> DetectAndMarkPRsAsync(WorkoutLog workoutLog, CancellationToken ct)
+    public async Task<List<string>> DetectAndMarkPRsAsync(SessionExecution execution, CancellationToken ct)
     {
-        workoutLog.WithBackfilledSections();
         var prDescriptions = new List<string>();
 
-        foreach (var exercise in workoutLog.Exercises)
+        foreach (var exercise in execution.Exercises)
         {
-            // Get all previous completed workout logs for this client and exercise
-            var filter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, workoutLog.ClientId)
-                         & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-                         & Builders<WorkoutLog>.Filter.Ne(w => w.ExternalId, workoutLog.ExternalId);
+            // Get all previous completed session executions (that actually carry Performance
+            // data — checkbox-only completions have no set-by-set history to compare against)
+            // for this client and exercise.
+            var filter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, execution.ClientId)
+                         & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+                         & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+                         & Builders<SessionExecution>.Filter.Ne(w => w.ExternalId, execution.ExternalId);
 
-            var cursor = await mongo.WorkoutLogs.FindAsync(filter, cancellationToken: ct);
-            var previousLogs = await cursor.ToListAsync(ct);
+            var cursor = await mongo.SessionExecutions.FindAsync(filter, cancellationToken: ct);
+            var previousExecutions = await cursor.ToListAsync(ct);
 
             // Find previous best weight and reps for this exercise
             decimal? bestWeight = null;
             int? bestReps = null;
 
-            foreach (var log in previousLogs)
+            foreach (var prev in previousExecutions)
             {
-                log.WithBackfilledSections();
-                var prevExercise = log.Exercises
+                var prevExercise = prev.Exercises
                     .FirstOrDefault(e => e.ExerciseExternalId == exercise.ExerciseExternalId);
 
                 if (prevExercise is null) continue;
@@ -75,7 +77,7 @@ public class PrDetectionService(IMongoContext mongo) : IPrDetectionService
                 {
                     set.IsPR = true;
                     var weightStr = set.WeightKg.HasValue ? $"{set.WeightKg.Value} kg" : "";
-                    var repsStr = set.Reps.HasValue ? $"\u00d7 {set.Reps.Value}" : "";
+                    var repsStr = set.Reps.HasValue ? $"× {set.Reps.Value}" : "";
                     prDescriptions.Add($"{exercise.ExerciseName}: {weightStr} {repsStr}".Trim());
 
                     // Update best for subsequent sets in the same exercise

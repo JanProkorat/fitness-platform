@@ -17,7 +17,17 @@ namespace FitnessPlatform.Application.Features.Trainers.UpdateClientData;
 /// <param name="db">Database context.</param>
 /// <param name="userManager">ASP.NET Identity user manager — used for the client's identity fields.</param>
 /// <param name="audit">Audit logging service.</param>
-public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<ApplicationUser> userManager, IAuditService audit)
+/// <param name="linkAuthorizationService">
+/// Resolves the caller's link capabilities to the client. Called only after the caller's own
+/// professional profile and the target client profile are separately confirmed to exist (both
+/// still 404 on their own), so a <see langword="null"/> result here can only mean "no active
+/// link" — preserving the endpoint's existing 404 (not 403) for that case.
+/// </param>
+public class UpdateClientDataEndpoint(
+    IApplicationDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IAuditService audit,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UpdateClientDataRequest, UpdateClientDataResponse>
 {
     /// <inheritdoc />
@@ -45,15 +55,15 @@ public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<Appl
 
         var clientProfile = await db.ClientProfiles
             .Include(cp => cp.OnboardingData)
+            .ThenInclude(od => od!.NutritionTargets)
             .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
         if (clientProfile is null) { await Send.NotFoundAsync(ct); return; }
 
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ProfessionalProfileId == professionalProfile.Id
-                        && l.ClientProfileId == clientProfile.Id
-                        && l.IsActive, ct);
-        if (!hasLink) { await Send.NotFoundAsync(ct); return; }
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile".
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            Guid.Parse(userId), req.ClientId, ct);
+        if (capabilities is null) { await Send.NotFoundAsync(ct); return; }
 
         // Update identity fields (#667) — these live on ApplicationUser, not ClientProfile.
         if (req.FirstName != null || req.LastName != null || req.Email != null)
@@ -112,15 +122,40 @@ public class UpdateClientDataEndpoint(IApplicationDbContext db, UserManager<Appl
             {
                 od.DateOfBirth = new DateTime(DateTime.UtcNow.Year - req.Age.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             }
-            if (req.DerivedActivityLevel != null) od.DerivedActivityLevel = Enum.Parse<ActivityLevel>(req.DerivedActivityLevel, true);
-            if (req.DerivedNutritionGoal != null) od.DerivedNutritionGoal = Enum.Parse<NutritionGoal>(req.DerivedNutritionGoal, true);
-            if (req.Bmr.HasValue) od.Bmr = req.Bmr.Value;
-            if (req.Tdee.HasValue) od.Tdee = req.Tdee.Value;
-            if (req.AdjustedKcal.HasValue) od.AdjustedKcal = req.AdjustedKcal.Value;
-            if (req.ProteinGrams.HasValue) od.ProteinGrams = req.ProteinGrams.Value;
-            if (req.CarbsGrams.HasValue) od.CarbsGrams = req.CarbsGrams.Value;
-            if (req.FatGrams.HasValue) od.FatGrams = req.FatGrams.Value;
-            if (req.MealDistribution != null) od.MealDistribution = req.MealDistribution;
+            // Nutrition targets live on their own child row (split from OnboardingData) —
+            // create it on demand so a patch touching only one target field is never
+            // silently dropped when the row does not yet exist.
+            var hasTargetPatch = req.DerivedActivityLevel != null
+                || req.DerivedNutritionGoal != null
+                || req.Bmr.HasValue
+                || req.Tdee.HasValue
+                || req.AdjustedKcal.HasValue
+                || req.ProteinGrams.HasValue
+                || req.CarbsGrams.HasValue
+                || req.FatGrams.HasValue
+                || req.MealDistribution != null;
+
+            if (hasTargetPatch)
+            {
+                var isNewTargets = od.NutritionTargets is null;
+                od.NutritionTargets ??= new ClientNutritionTargets();
+                var targets = od.NutritionTargets;
+
+                if (req.DerivedActivityLevel != null) targets.DerivedActivityLevel = Enum.Parse<ActivityLevel>(req.DerivedActivityLevel, true);
+                if (req.DerivedNutritionGoal != null) targets.DerivedNutritionGoal = Enum.Parse<NutritionGoal>(req.DerivedNutritionGoal, true);
+                if (req.Bmr.HasValue) targets.Bmr = req.Bmr.Value;
+                if (req.Tdee.HasValue) targets.Tdee = req.Tdee.Value;
+                if (req.AdjustedKcal.HasValue) targets.AdjustedKcal = req.AdjustedKcal.Value;
+                if (req.ProteinGrams.HasValue) targets.ProteinGrams = req.ProteinGrams.Value;
+                if (req.CarbsGrams.HasValue) targets.CarbsGrams = req.CarbsGrams.Value;
+                if (req.FatGrams.HasValue) targets.FatGrams = req.FatGrams.Value;
+                if (req.MealDistribution != null) targets.MealDistribution = req.MealDistribution;
+
+                if (isNewTargets)
+                {
+                    db.ClientNutritionTargets.Add(targets);
+                }
+            }
         }
 
         await db.SaveChangesAsync(ct);

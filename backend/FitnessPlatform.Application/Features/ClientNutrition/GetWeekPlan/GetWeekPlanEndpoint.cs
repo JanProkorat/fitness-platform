@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -16,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetWeekPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetWeekPlanResponse>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetWeekPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -51,7 +53,13 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
+        // the week calculation below on the client's local "today" rather than the server's
+        // UTC day.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
@@ -61,7 +69,7 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -77,39 +85,29 @@ public class GetWeekPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        Domain.Documents.PlanWeek week;
-
-        if (plan.StartDate.HasValue)
+        // publishedWeeks is non-empty here, which implies StartDate is set: PublishWeekEndpoint
+        // refuses to publish a week without one (START_DATE_REQUIRED) and UpdatePlanEndpoint
+        // refuses to clear one while any week is published (START_DATE_LOCKED), and publishing is
+        // the only route to WeekStatus.Published. The legacy plan-level DatePublished cycling
+        // branch this replaced was therefore unreachable (#1015).
+        if (!plan.StartDate.HasValue)
         {
-            var daysSinceStart = (int)(DateTime.UtcNow.Date - plan.StartDate.Value.Date).TotalDays;
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
-            if (daysSinceStart < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
+        var daysSinceStart = (int)(todayLocalUtc - plan.StartDate.Value.Date).TotalDays;
 
-            var weekNum = daysSinceStart / 7 + 1;
+        if (daysSinceStart < 0)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
 
-            week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
+        var weekNum = daysSinceStart / 7 + 1;
+
+        var week = publishedWeeks.FirstOrDefault(w => w.WeekNumber == weekNum)
                    ?? publishedWeeks[^1];
-        }
-        else
-        {
-            var daysSincePublish = (int)(DateTime.UtcNow.Date - plan.DatePublished!.Value.Date).TotalDays;
-
-            if (daysSincePublish < 0)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            var totalDays = publishedWeeks.Count * 7;
-            var currentDayIndex = daysSincePublish % totalDays;
-            var weekIndex = currentDayIndex / 7;
-
-            week = publishedWeeks[weekIndex];
-        }
 
         await Send.OkAsync(new GetWeekPlanResponse
         {

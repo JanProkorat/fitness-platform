@@ -7,11 +7,13 @@
  *   - QA client has a Submitted response linked to the main training plan
  *     dddddddd-… via QuestionnaireResponseId.
  *
- * Runs under the `trainer` project (storageState .auth/trainer.json), so the
+ * Runs under the `trainer` project, authenticated via the `trainerTest`
+ * fixture in ../fixtures/auth.ts (#897 — mints a fresh per-attempt refresh
+ * token instead of reusing the shared .auth/trainer.json token), so the
  * caller is the professional who owns the response — GetClientResponses returns
  * it and the tab renders populated.
  */
-import { test, expect } from '@playwright/test';
+import { trainerTest as test, expect } from '../fixtures/auth';
 
 const CLIENT_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const LINKED_PLAN_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';

@@ -30,7 +30,7 @@ public class GetFullPlanEndpointTests
         Factory.Create<GetFullPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
     /// <summary>
     /// AC #4 — Client endpoint must surface the Supplements list.
@@ -47,7 +47,7 @@ public class GetFullPlanEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow.Date;
+        plan.StartDate = DateTime.UtcNow.Date;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
         plan.Supplements =
         [
@@ -81,7 +81,7 @@ public class GetFullPlanEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow.Date;
+        plan.StartDate = DateTime.UtcNow.Date;
         foreach (var w in plan.Weeks) w.Status = WeekStatus.Published;
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

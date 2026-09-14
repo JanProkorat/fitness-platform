@@ -172,21 +172,21 @@ public class PhotoDescriptionBackfillService(
             "Pass B (day photos): found {Count} candidate rows to inspect",
             candidates.Count);
 
-        // Resolve ClientProfile.PublicId (= Mongo DayLog.ClientId) for each unique ClientProfileId.
+        // Resolve ClientProfile.UserId (= Mongo DayLog.ClientId, #840) for each unique ClientProfileId.
         var clientProfileIds = candidates.Select(p => p.ClientProfileId).Distinct().ToList();
-        var publicIdByProfileId = await db.ClientProfiles
+        var userIdByProfileId = await db.ClientProfiles
             .Where(cp => clientProfileIds.Contains(cp.Id))
-            .Select(cp => new { cp.Id, cp.PublicId })
-            .ToDictionaryAsync(cp => cp.Id, cp => cp.PublicId, ct);
+            .Select(cp => new { cp.Id, cp.UserId })
+            .ToDictionaryAsync(cp => cp.Id, cp => cp.UserId, ct);
 
         // Group by (ClientId, PlanId) to minimise Mongo round-trips.
         // Key: (clientMongoId, planExternalId).
         var grouped = candidates
             .Where(p =>
                 p.PlanId.HasValue &&
-                publicIdByProfileId.ContainsKey(p.ClientProfileId))
+                userIdByProfileId.ContainsKey(p.ClientProfileId))
             .GroupBy(p => (
-                ClientId: publicIdByProfileId[p.ClientProfileId],
+                ClientId: userIdByProfileId[p.ClientProfileId],
                 PlanId: p.PlanId!.Value))
             .ToList();
 

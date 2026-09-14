@@ -4,9 +4,9 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
-using FitnessPlatform.Application.Features.ClientPlans;
+using FitnessPlatform.Application.Features.ClientPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -30,12 +30,20 @@ namespace FitnessPlatform.Application.Features.ClientTraining.SaveSessionPhotos;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="linkAuthorizationService">Link capability service — gates the trainer-addressed broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
+/// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
+/// permanently stored value (F9 follow-up).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveSessionPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    ILogger<SaveSessionPhotosEndpoint> logger)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    ILogger<SaveSessionPhotosEndpoint> logger,
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider)
     : Endpoint<SaveSessionPhotosRequest>
 {
     /// <inheritdoc />
@@ -66,27 +74,19 @@ public class SaveSessionPhotosEndpoint(
             return;
         }
 
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // Resolve the client's Active training plan whose date window contains today — a client
+        // may hold several sequential, non-overlapping Active plans (#780) — via the shared
+        // cross-store assembly (#938), which also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId), explicitAsOfDate: null,
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-
-        // Resolve the client's Active training plan whose date window contains today — a client
-        // may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.And(
-            Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId),
-            Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
-
-        var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var (clientId, todayLocalUtc, plan) = loadResult.Value;
 
         if (plan is null)
         {
@@ -96,7 +96,8 @@ public class SaveSessionPhotosEndpoint(
 
         // Verify the SessionId belongs to the active plan
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -105,8 +106,16 @@ public class SaveSessionPhotosEndpoint(
             return;
         }
 
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
         var now = DateTime.UtcNow;
-        var todayUtc = now.Date;
+        // SessionLog.LogDate is the CLIENT's local calendar day (#935), already resolved above
+        // as todayLocalUtc — not now.Date (the server's UTC day).
+        var todayUtc = todayLocalUtc;
 
         // Key: one log per (client, plan, session, calendar day).
         var logFilter = Builders<SessionLog>.Filter.And(
@@ -123,7 +132,7 @@ public class SaveSessionPhotosEndpoint(
         var existingByUrl = (existingLog?.Photos ?? [])
             .ToDictionary(p => p.BlobUrl, p => p);
 
-        var replacementPhotos = req.Photos
+        var replacementPhotos = normalizedPhotos
             .Select(input =>
             {
                 var perPhotoNote = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
@@ -178,7 +187,7 @@ public class SaveSessionPhotosEndpoint(
         // Dual-write: mirror photos into PlanPhoto table so unified read paths see training photos.
         // Returns only the newly-inserted PlanPhoto rows so we can emit events for them.
         var newPhotos = await DualWritePlanPhotosAsync(
-            clientProfile,
+            clientId,
             plan.ExternalId,
             req.SessionId,
             replacementPhotos.Select(p => (p.BlobUrl, p.Note)).ToList(),
@@ -186,7 +195,31 @@ public class SaveSessionPhotosEndpoint(
             ct);
 
         // Emit planPhotoUploaded to the owning trainer for each newly-created row (best-effort).
+        // Gated on the trainer's CURRENT link capability, not mere plan authorship (F6 residual):
+        // plan.TrainerId is permanent, but the underlying ClientProfessionalLink is not — a
+        // professional whose collaboration ended must stop receiving the client's diary photos.
+        // The check is evaluated once (not per photo) and never fails the client's own write —
+        // an exception here only skips the broadcast.
+        var trainerHasAccess = false;
         if (plan.TrainerId != Guid.Empty)
+        {
+            try
+            {
+                // plan.TrainerId / clientId are both ApplicationUser.Id (#840) — the UserId-addressed
+                // overload; the trainer here is the plan's permanent author, not the caller.
+                var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                    plan.TrainerId, clientId, ct);
+                trainerHasAccess = capabilities is { CanViewTrainingPlans: true };
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to verify trainer {TrainerId} link capability for client {ClientId}; planPhotoUploaded events skipped",
+                    plan.TrainerId, clientId);
+            }
+        }
+
+        if (trainerHasAccess)
         {
             foreach (var newPhoto in newPhotos)
             {
@@ -215,11 +248,42 @@ public class SaveSessionPhotosEndpoint(
         else if (newPhotos.Count > 0)
         {
             logger.LogWarning(
-                "Could not resolve owning trainer for PlanId={PlanId}; planPhotoUploaded events skipped",
+                "Could not resolve an accessible owning trainer for PlanId={PlanId}; planPhotoUploaded events skipped",
                 plan.ExternalId);
         }
 
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Normalises every submitted <see cref="SessionPhotoInput.BlobUrl"/> to its canonical stored
+    /// form before it reaches any Mongo/DB write — see
+    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
+    /// short-lived DisplayUrl issued by GetTodaySession (or, from an app build that predates the
+    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
+    /// the signed query string would become the permanently stored value. Returns <c>null</c>
+    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
+    /// been written in that case.
+    /// </summary>
+    private async Task<List<SessionPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
+        List<SessionPhotoInput> inputs, CancellationToken ct)
+    {
+        var normalized = new List<SessionPhotoInput>(inputs.Count);
+
+        foreach (var input in inputs)
+        {
+            var canonicalBlobUrl = blobStorage.NormalizeToCanonicalUrl(input.BlobUrl);
+            if (canonicalBlobUrl is null)
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            normalized.Add(new SessionPhotoInput { BlobUrl = canonicalBlobUrl, Note = input.Note });
+        }
+
+        return normalized;
     }
 
     /// <summary>
@@ -233,7 +297,7 @@ public class SaveSessionPhotosEndpoint(
     /// Returns the list of newly-inserted <see cref="PlanPhoto"/> rows (used for SignalR events).
     /// </summary>
     private async Task<List<PlanPhoto>> DualWritePlanPhotosAsync(
-        ClientProfile clientProfile,
+        Guid clientUserId,
         Guid planExternalId,
         Guid sessionId,
         IReadOnlyList<(string BlobUrl, string? Note)> photos,
@@ -243,10 +307,19 @@ public class SaveSessionPhotosEndpoint(
         if (photos.Count == 0)
             return [];
 
+        // Resolve the internal ClientProfile.Id (PlanPhoto's FK) — distinct from the
+        // ApplicationUser.Id-keyed clientId the shared cross-store assembly (#938) already
+        // resolved above, which Mongo documents key on but PlanPhoto (Postgres) does not.
+        var clientProfileId = await db.ClientProfiles
+            .AsNoTracking()
+            .Where(cp => cp.UserId == clientUserId)
+            .Select(cp => cp.Id)
+            .FirstAsync(ct);
+
         // Load existing PlanPhoto rows for this client + plan + session (Training category).
         var existingRows = await db.PlanPhotos
             .Where(p =>
-                p.ClientProfileId == clientProfile.Id &&
+                p.ClientProfileId == clientProfileId &&
                 p.PlanId == planExternalId &&
                 p.Category == PlanPhotoCategory.Training &&
                 p.LinkId == sessionId)
@@ -257,7 +330,6 @@ public class SaveSessionPhotosEndpoint(
             p => p,
             StringComparer.OrdinalIgnoreCase);
 
-        var callerUserId = clientProfile.UserId;
         var inserted = new List<PlanPhoto>();
 
         foreach (var (blobUrl, note) in photos)
@@ -276,7 +348,7 @@ public class SaveSessionPhotosEndpoint(
             var photo = new PlanPhoto
             {
                 PublicId = Guid.NewGuid(),
-                ClientProfileId = clientProfile.Id,
+                ClientProfileId = clientProfileId,
                 PlanId = planExternalId,
                 PlanType = PlanPhotoType.Training,
                 LinkId = sessionId,
@@ -285,7 +357,7 @@ public class SaveSessionPhotosEndpoint(
                 Description = note,
                 MealLogId = null,
                 TakenAt = now,
-                UploadedByUserId = callerUserId,
+                UploadedByUserId = clientUserId,
                 DateCreated = now,
                 DateUpdated = now
             };

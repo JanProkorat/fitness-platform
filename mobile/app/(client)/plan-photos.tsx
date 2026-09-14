@@ -75,7 +75,11 @@ const WIRE_TO_UI: Partial<Record<PlanPhotoCategory, UiCategory>> = {
 
 interface PhotoItem {
   id: string
+  /** Write-path identity (not directly fetchable) — never rendered. */
   blobUrl: string
+  /** Short-lived signed URL — this is what gets rendered. May be empty when
+   *  the backend fails to re-sign the photo. */
+  displayUrl?: string
   description?: string | null
   uiCategory: UiCategory
   takenAt?: string
@@ -135,6 +139,7 @@ export default function PlanPhotosScreen() {
       .map((p) => ({
         id: p.id,
         blobUrl: p.blobUrl,
+        displayUrl: p.displayUrl,
         description: p.description ?? null,
         uiCategory: p.category != null ? (WIRE_TO_UI[p.category] ?? 'Free') : 'Free',
         takenAt: p.takenAt,
@@ -153,8 +158,10 @@ export default function PlanPhotosScreen() {
     [allPhotos, activeFilter],
   )
 
-  // ── Lightbox images from visible set ──
-  const lightboxImages = useMemo(() => visiblePhotos.map((p) => p.blobUrl), [visiblePhotos])
+  // ── Lightbox images from visible set ── Render `displayUrl` — never
+  // `blobUrl`, which is identity-only and not directly fetchable.
+  // ImageLightbox renders a placeholder for an empty entry.
+  const lightboxImages = useMemo(() => visiblePhotos.map((p) => p.displayUrl ?? ''), [visiblePhotos])
   const lightboxNotes = useMemo(
     () => visiblePhotos.map((p) => p.description ?? null),
     [visiblePhotos],
@@ -208,11 +215,15 @@ export default function PlanPhotosScreen() {
           },
         ]}
       >
-        <Image
-          source={{ uri: item.blobUrl }}
-          style={StyleSheet.absoluteFill}
-          resizeMode="cover"
-        />
+        {item.displayUrl ? (
+          <Image
+            source={{ uri: item.displayUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : (
+          <Ionicons name="image-outline" size={20} color={colors.label3} />
+        )}
         {item.description && item.description.trim().length > 0 && (
           <View style={[styles.tileCaption, { backgroundColor: colors.overlay }]}>
             <Text style={[styles.tileCaptionText, { color: colors.onAccent }]} numberOfLines={2}>
@@ -223,7 +234,7 @@ export default function PlanPhotosScreen() {
       </Pressable>
       )
     },
-    [handleTilePress, tileSize, colors.fill2, colors.overlay, colors.onAccent, t],
+    [handleTilePress, tileSize, colors.fill2, colors.overlay, colors.onAccent, colors.label3, t],
   )
 
   const keyExtractor = useCallback(
@@ -413,6 +424,8 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: Radius.sm,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tileCaption: {
     position: 'absolute',

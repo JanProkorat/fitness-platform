@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
@@ -25,5 +26,8 @@ public class CreatePendingInviteValidator : Validator<CreatePendingInviteRequest
             .NotEmpty()
             .EmailAddress()
             .MaximumLength(100);
+
+        RuleFor(x => x.RequestedScope)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

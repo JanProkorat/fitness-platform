@@ -11,7 +11,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for POST /trainer/weekly-check-ins/{id}/mark-reviewed.
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)

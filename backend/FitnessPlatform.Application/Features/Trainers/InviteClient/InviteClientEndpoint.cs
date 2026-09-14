@@ -3,7 +3,10 @@ using System.Security.Cryptography;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -51,6 +54,72 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
             return;
         }
 
+        // A requested scope narrows the eventual link's CanView* flags below the full
+        // set implied by the inviting professional's held roles — it must never widen
+        // them. Reject (400), don't clamp: a request for a domain the professional
+        // doesn't hold is a caller error, not something to silently downgrade.
+        if (req.RequestedScope == LinkCapabilityScope.NutritionOnly && !User.IsInRole(AppRoles.Nutritionist))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        if (req.RequestedScope == LinkCapabilityScope.TrainingOnly && !User.IsInRole(AppRoles.Trainer))
+        {
+            this.ThrowErrorWithCode(
+                ErrorCodes.RequestedScopeExceedsHeldRoles,
+                "Requested scope exceeds the caller's held roles.");
+            return;
+        }
+
+        // Refuse to invite a client who already has an active coach in the profession this
+        // invite would grant — the same pre-check CreatePendingInviteEndpoint runs, because this
+        // is the second coach-initiated invite path and the rule cannot hold on only one of them.
+        // The token minted here is redeemed by AcceptInvitationEndpoint, whose own occupancy
+        // check (inside the #1009 row lock) stays authoritative; this one just moves the
+        // rejection forward so the professional learns now instead of the client failing later.
+        //
+        // Skipped when the invitee has no account yet: no ClientProfile row, no links.
+        var normalizedInviteeEmail = req.Email.ToUpper();
+        var inviteeClientProfileId = await db.Users
+            .AsNoTracking()
+            .Where(u => u.NormalizedEmail == normalizedInviteeEmail)
+            .Join(db.ClientProfiles.AsNoTracking(),
+                u => u.Id,
+                cp => cp.UserId,
+                (_, cp) => cp.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (inviteeClientProfileId != 0)
+        {
+            // Same derivation as the accept paths: held roles narrowed by the requested scope.
+            var wantsNutritionPlans = req.RequestedScope switch
+            {
+                LinkCapabilityScope.NutritionOnly => true,
+                LinkCapabilityScope.TrainingOnly => false,
+                _ => User.IsInRole(AppRoles.Nutritionist)
+            };
+
+            var wantsTrainingPlans = req.RequestedScope switch
+            {
+                LinkCapabilityScope.TrainingOnly => true,
+                LinkCapabilityScope.NutritionOnly => false,
+                _ => User.IsInRole(AppRoles.Trainer)
+            };
+
+            if (await ProfessionSlotGuard.IsSlotTakenByAnotherProfessionalAsync(
+                    db.ClientProfessionalLinks, inviteeClientProfileId, professionalProfile.Id,
+                    wantsNutritionPlans, wantsTrainingPlans, ct))
+            {
+                this.ThrowErrorWithCode(
+                    ErrorCodes.ProfessionAlreadyOccupied,
+                    "The client already has an active professional occupying this profession slot.");
+                return;
+            }
+        }
+
         var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
 
         var invitation = new InvitationToken
@@ -58,7 +127,8 @@ public class InviteClientEndpoint(IApplicationDbContext db, IEmailService emailS
             ProfessionalProfileId = professionalProfile.Id,
             Email = req.Email,
             Token = tokenValue,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            RequestedScope = req.RequestedScope
         };
 
         var trainerUser = await db.Users.FirstAsync(u => u.Id == professionalProfile.UserId, ct);

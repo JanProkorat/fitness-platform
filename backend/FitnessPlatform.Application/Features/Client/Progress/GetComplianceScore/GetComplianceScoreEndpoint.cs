@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,8 @@ namespace FitnessPlatform.Application.Features.Client.Progress.GetComplianceScor
 /// </summary>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="db">Relational database context.</param>
-public class GetComplianceScoreEndpoint(IComplianceService complianceService, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetComplianceScoreEndpoint(IComplianceService complianceService, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetComplianceScoreRequest, GetComplianceScoreResponse>
 {
     /// <inheritdoc />
@@ -39,8 +41,6 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
             return;
         }
 
-        // MealLogs and NutritionPlans in Mongo are keyed by ClientProfile.PublicId,
-        // not the ApplicationUser.Id — we must resolve the profile first.
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
@@ -51,12 +51,17 @@ public class GetComplianceScoreEndpoint(IComplianceService complianceService, IA
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        var from = req.From ?? DateTime.UtcNow.Date.AddDays(-7);
-        var to = req.To ?? DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        // Resolve the client's local calendar day (#935) rather than the server's UTC day for the
+        // default range and the streak anchor — see GetWeeklyOverviewEndpoint for the same fix.
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        var from = req.From ?? todayLocalUtc.AddDays(-7);
+        var to = req.To ?? todayLocalUtc.AddDays(1).AddTicks(-1);
 
         var compliance = await complianceService.CalculateComplianceAsync(clientId, from, to, ct);
-        var streak = await complianceService.CalculateStreakAsync(clientId, ct);
+        var streak = await complianceService.CalculateStreakAsync(clientId, DateOnly.FromDateTime(todayLocalUtc), ct);
 
         await Send.OkAsync(new GetComplianceScoreResponse
         {

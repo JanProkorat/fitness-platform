@@ -7,6 +7,15 @@ namespace FitnessPlatform.Application.Domain.Documents;
 /// <summary>
 /// MongoDB document representing a training plan assigned to a client by a trainer.
 /// </summary>
+/// <remarks>
+/// Tolerates a legacy root-level <c>datePublished</c> element: commit e2a62a6c (#1015)
+/// removed this property from both plan documents, so any TrainingPlan written before
+/// that change carries the same orphaned element as NutritionPlan. Cost: a mistyped or
+/// renamed root <c>[BsonElement]</c> also stops throwing and silently reads its property's
+/// initializer instead — for <see cref="Version"/> (<c>= 1</c>) that turns a loud
+/// <see cref="FormatException"/> into a permanent optimistic-concurrency 409.
+/// </remarks>
+[BsonIgnoreExtraElements]
 public class TrainingPlan
 {
     /// <summary>
@@ -23,7 +32,8 @@ public class TrainingPlan
     public Guid ExternalId { get; set; }
 
     /// <summary>
-    /// The client this plan belongs to (matches <c>ClientProfile.PublicId</c>, NOT <c>ApplicationUser.Id</c>).
+    /// The client this plan belongs to (matches <c>ApplicationUser.Id</c> — #840; the prior
+    /// use of <c>ClientProfile.PublicId</c> was incidental and has been migrated away).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }
@@ -95,13 +105,6 @@ public class TrainingPlan
     [BsonElement("dateUpdated")]
     [BsonIgnoreIfNull]
     public DateTime? DateUpdated { get; set; }
-
-    /// <summary>
-    /// When this plan was published (status changed to Active).
-    /// </summary>
-    [BsonElement("datePublished")]
-    [BsonIgnoreIfNull]
-    public DateTime? DatePublished { get; set; }
 
     /// <summary>
     /// When this plan was marked as completed by the professional.

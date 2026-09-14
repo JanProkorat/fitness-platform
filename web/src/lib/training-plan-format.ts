@@ -94,37 +94,6 @@ function durationRangeStr(values: (number | null | undefined)[]): string {
 }
 
 /**
- * Structural subset of a `LocalizedNames` document the resolver needs —
- * loose enough to accept both the generated `LocalizedNames` type and any
- * hand-rolled equivalent.
- */
-interface LocalizedNamesLike {
-  en?: string | null;
-  cs?: string | null;
-  de?: string | null;
-}
-
-/**
- * Resolve a public workout template's display name for the current UI
- * language. Falls back en -> cs -> de -> the template's default `name`
- * whenever the preferred (or fallback) language's localized variant is
- * missing.
- */
-export function resolveLocalizedTemplateName(
-  name: string,
-  localizedNames: LocalizedNamesLike | null | undefined,
-  lang: string,
-): string {
-  if (!localizedNames) return name;
-  const preferred = lang.startsWith('cs')
-    ? localizedNames.cs
-    : lang.startsWith('de')
-      ? localizedNames.de
-      : localizedNames.en;
-  return preferred || localizedNames.en || localizedNames.cs || localizedNames.de || name;
-}
-
-/**
  * Compact summary of an exercise's prescription for the card header
  * (e.g. "4×4-10 · 15-22.5 kg", "40 s · 10 kg", "30 m · 40 s · 10 kg").
  *

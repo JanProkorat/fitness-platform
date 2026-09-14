@@ -4,7 +4,9 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlans;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
+using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.NutritionPlans;
 
@@ -21,29 +23,40 @@ public class GetPlansEndpointTests
         var plan1 = PlanTestHelpers.CreatePlan(nutritionistId: _nutritionistId, name: "Plan A");
         var plan2 = PlanTestHelpers.CreatePlan(nutritionistId: _nutritionistId, name: "Plan B");
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan1, plan2]);
+        var db = new MockDbBuilder().Build();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
 
         var ep = Factory.Create<GetPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db,
+            linkAuthorizationService);
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 
         ep.Response.Plans.Should().HaveCount(2);
         ep.Response.TotalCount.Should().Be(2);
+
+        // Pins the scope this LIST route passes — nutrition plans must only be scoped to
+        // clients with CanViewNutritionPlans. Swapping this for TrainingOnly would silently
+        // leak the caller's cross-domain plan list with the rest of the suite green.
+        await linkAuthorizationService.Received(1).GetAccessibleClientsAsync(
+            _nutritionistId, Arg.Any<CancellationToken>(), LinkCapabilityScope.NutritionOnly);
     }
 
     [Fact]
     public async Task HandleAsync_NoPlans_ReturnsEmpty()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
+        var db = new MockDbBuilder().Build();
 
         var ep = Factory.Create<GetPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, db,
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(new GetPlansRequest(), TestContext.Current.CancellationToken);
 

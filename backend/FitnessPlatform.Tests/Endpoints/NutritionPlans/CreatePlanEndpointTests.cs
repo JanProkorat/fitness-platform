@@ -3,10 +3,11 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.NutritionPlans.CreatePlan;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
@@ -27,7 +28,9 @@ public class CreatePlanEndpointTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -74,7 +77,9 @@ public class CreatePlanEndpointTests
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [existingPlan]);
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         using var responseBody = new MemoryStream();
         var ep = Factory.Create<CreatePlanEndpoint>(
@@ -126,7 +131,9 @@ public class CreatePlanEndpointTests
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [existingPlan]);
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -152,12 +159,82 @@ public class CreatePlanEndpointTests
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>
+    /// #840 pass-2 fix: QuestionnaireResponse.ClientId is ApplicationUser.Id, not the
+    /// trainer-facing ClientProfile.PublicId in req.ClientId. A plan linked to a valid,
+    /// submitted questionnaire response for this client must be creatable.
+    /// </summary>
+    /// <remarks>
+    /// #840 test-strengthening: PublicId and UserId must be DISTINCT guids here. With the
+    /// same guid for both (the original fixture), the pre-fix comparison
+    /// (<c>r.ClientId == req.ClientId</c>) and the post-fix comparison
+    /// (<c>r.ClientId == clientUserId</c>) both reduce to true, so the test stays green even
+    /// if the questionnaire-link fix in <see cref="CreatePlanEndpoint"/> is reverted. Keeping
+    /// them distinct makes the old (broken) comparison actually fail the link check.
+    /// </remarks>
+    [Fact]
+    public async Task HandleAsync_WithValidQuestionnaireResponseLink_CreatesPlan()
+    {
+        var mongo = PlanTestHelpers.CreateMockMongo();
+        var authHelper = CreateAuthHelper(hasLink: true);
+        var questionnaireResponseId = Guid.NewGuid();
+
+        // Distinct on purpose — see remarks above. PublicId is the trainer-facing key the
+        // endpoint receives on the request; UserId is the ApplicationUser.Id that
+        // QuestionnaireResponse.ClientId is actually keyed on.
+        var clientPublicId = Guid.NewGuid();
+        var clientUserId = Guid.NewGuid();
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = clientUserId, PublicId = clientPublicId })
+            .With(new QuestionnaireResponse
+            {
+                PublicId = questionnaireResponseId,
+                QuestionnaireId = 1,
+                ClientId = clientUserId,
+                ProfessionalId = _nutritionistId,
+                LinkId = 1,
+                Status = QuestionnaireResponseStatus.Submitted,
+                SubmittedAt = DateTime.UtcNow,
+                DateCreated = DateTime.UtcNow,
+            })
+            .Build();
+
+        var ep = Factory.Create<CreatePlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, authHelper, db);
+
+        var request = new CreatePlanRequest
+        {
+            ClientId = clientPublicId,
+            Name = "Linked Questionnaire Plan",
+            WeekCount = 2,
+            QuestionnaireResponseId = questionnaireResponseId,
+        };
+
+        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.NutritionPlans.Received(1).InsertOneAsync(
+            Arg.Is<NutritionPlan>(p =>
+                p.Name == "Linked Questionnaire Plan" &&
+                p.ClientId == clientUserId &&
+                p.QuestionnaireResponseId == questionnaireResponseId),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task HandleAsync_NoLink_Returns404()
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: false);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -188,14 +265,42 @@ public class CreatePlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
 
-    private static NutritionAuthHelper CreateAuthHelper(bool hasLink)
+    private static IClientLinkAuthorizationService CreateAuthHelper(bool hasLink) =>
+        hasLink
+            ? EndpointTestHelpers.CreateGrantingLinkAuthorizationService()
+            : PlanTestHelpers.CreateDenyingLinkAuthorizationService();
+
+    /// <summary>
+    /// Mirror-site regression guard: this is a nutrition route and must require
+    /// <c>CanViewNutritionPlans</c> specifically. A link that grants only the training domain
+    /// must still be denied — if the guard were ever widened to <c>caps is not null</c>, this
+    /// test would regress to 201.
+    /// </summary>
+    /// <remarks>
+    /// The client profile is seeded so the capability check is the sole source of the 404 —
+    /// without it, an empty <c>ClientProfiles</c> would 404 on the profile lookup regardless of
+    /// whether the capability guard fired, masking a flag inversion (nutrition &lt;-&gt; training).
+    /// </remarks>
+    [Fact]
+    public async Task HandleAsync_LinkGrantsOnlyTraining_Returns404()
     {
-        // Create db substitute first, then partial substitute — avoids NSubstitute nesting pitfall
-        var db = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(db);
-        helper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return helper;
+        var mongo = PlanTestHelpers.CreateMockMongo();
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            canViewNutritionPlans: false, canViewTrainingPlans: true);
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = Factory.Create<CreatePlanEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, linkAuthorizationService, db);
+
+        await ep.HandleAsync(
+            new CreatePlanRequest { ClientId = _clientId, Name = "Plan" },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 }

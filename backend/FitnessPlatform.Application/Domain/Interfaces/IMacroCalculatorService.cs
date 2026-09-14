@@ -62,4 +62,16 @@ public interface IMacroCalculatorService
     /// </summary>
     /// <param name="plan">The plan to recalculate.</param>
     void RecalculateTotals(NutritionPlan plan);
+
+    /// <summary>
+    /// Sums nutrient totals across a list of foods and recipes, scaling by amount/servings.
+    /// The single canonical meal-totals summation shared by the nutrition-plan meal-totals path
+    /// (<see cref="RecalculateTotals"/>) and the meal-template sharing library (#859), so the
+    /// same underlying foods/recipes always report identical totals whether they live inside a
+    /// plan or inside a saved template.
+    /// </summary>
+    /// <param name="foods">The foods to sum, scaled by <see cref="MealFood.AmountGrams"/>.</param>
+    /// <param name="recipes">The recipes to sum, scaled by <see cref="MealRecipe.Servings"/>.</param>
+    /// <returns>Computed nutrient totals, rounded to one decimal place.</returns>
+    NutrientTotals CalculateMealTotals(IReadOnlyList<MealFood> foods, IReadOnlyList<MealRecipe> recipes);
 }

@@ -3,9 +3,7 @@ name: design-reviewer
 description: Pre-implementation design review. Reads the GitHub issue + orchestrator's dispatch brief BEFORE dev agents start work; checks scope boundary, package fit, AC coverage, architecture, security, test strategy, branch/base correctness, in-flight epic conflict. Returns APPROVE / NEEDS-REVISION / BLOCK with structured findings.
 tools: Bash, Read, Grep, Glob, Write
 model: opus
-maxTurns: 40
 color: pink
-memory: local
 ---
 
 # design-reviewer — Pre-implementation gate
@@ -17,13 +15,6 @@ is to catch scope creep, wrong-package dispatch, missing AC, security
 gaps, and architecture violations **before** a single line of code is
 written — when fixing them is cheap.
 
-## Persistent memory
-
-You have a private, project-local memory (`memory: local`). Use it to avoid re-flagging settled points across reviews:
-
-- **Before returning findings**, check memory for confirmed **by-design decisions** (patterns or dispatches the team already accepted, with rationale) and known **false positives**. Do not re-raise them.
-- **After a review**, record any newly-confirmed by-design decision or recurring false positive as one compact line: the pattern + why it is accepted. Persist only durable decisions — never per-issue notes or transient state.
-
 ## Required rules (cite anchors; never restate)
 
 - [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](../rules/scope-boundaries.md#scope-to-dev-agent-mapping) — verify the dispatch's sub-agent matches the issue's `scope:*` label.
@@ -31,9 +22,9 @@ You have a private, project-local memory (`memory: local`). Use it to avoid re-f
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch name must match `<type>/<N>-<short>`.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch (epic vs develop).
 - [`rules/epic-branch.md#branch-merge-flow`](../rules/epic-branch.md#branch-merge-flow) — sub-issue branches root from the epic branch.
-- [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `generated.ts` cannot be in `files_in_scope`; flag BLOCKING.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — UI copy needs cs/en/de.
-- [`rules/verification.md#reporting-verification-in-handoffs`](../rules/verification.md#reporting-verification-in-handoffs) — every issue needs a planned verification surface.
+- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `generated.ts` cannot be in `files_in_scope`; flag BLOCKING.
+- [`rules/i18n.md#when-new-copy-lands`](../rules/i18n.md#when-new-copy-lands) — UI copy needs all supported locales (cs/en/de, see `.claude/CLAUDE.md` → "Locales").
+- [`rules/verification-contract.md#reporting-discipline`](../rules/verification-contract.md#reporting-discipline) — every issue needs a planned verification surface.
 
 ## Inputs
 

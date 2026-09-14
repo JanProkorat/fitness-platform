@@ -45,12 +45,13 @@ public static class MongoSeeder
             mongo.Exercises, ExerciseSeedData.GetExercises(),
             e => e.ExternalId, e => e.Name, logger, "exercises");
 
-        // 4. Workout templates — same DB-resolution pattern as recipes, for exercise references.
+        // 4. Session templates (#857 — the session-level catalog; formerly misnamed "workout
+        //    templates") — same DB-resolution pattern as recipes, for exercise references.
         var exerciseNameToExternalId = await BuildNameToExternalIdMapAsync(
             mongo.Exercises, e => new NameExternalIdProjection { Name = e.Name, ExternalId = e.ExternalId });
         await SeedCollectionAsync(
-            mongo.WorkoutTemplates, WorkoutTemplateSeedData.GetWorkoutTemplates(exerciseNameToExternalId),
-            t => t.ExternalId, t => t.Name, logger, "workout templates");
+            mongo.SessionTemplates, SessionTemplateSeedData.GetSessionTemplates(exerciseNameToExternalId),
+            t => t.ExternalId, t => t.Name, logger, "session templates");
     }
 
     /// <summary>

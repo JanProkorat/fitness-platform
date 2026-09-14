@@ -21,6 +21,17 @@ public static class AppPolicies
     public const string RefreshRateLimit = "auth-refresh";
 
     /// <summary>
+    /// Rate limiting policy for creating pending client invites.
+    /// Partitioned per authenticated professional (not per IP, unlike the auth policies above) —
+    /// the abuse case is one professional account flooding many distinct victims with unsolicited
+    /// invites, so the meaningful bucket is the account, not the network address.
+    /// 30 requests per 15 minutes per professional — generous enough for a coach bulk-onboarding
+    /// an existing client roster in one sitting, tight enough to bound automated flooding
+    /// (claude-security F8).
+    /// </summary>
+    public const string PendingInviteRateLimit = "pending-invite";
+
+    /// <summary>
     /// CORS policy for the web application.
     /// </summary>
     public const string AllowWebApp = nameof(AllowWebApp);

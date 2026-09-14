@@ -1,7 +1,12 @@
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Application.Features.Questionnaires.GetClientResponses;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Seed;
@@ -44,6 +49,20 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
     /// <inheritdoc />
     /// <remarks>Mirrors <see cref="FitnessPlatform.Tests.Infrastructure.FakeBlobStorageService"/> — returns the bare container path (test double, no real host).</remarks>
     public string BuildPublicUrl(string containerPath) => containerPath;
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Test double only — the seed-idempotency tests in this file never exercise the signing
+    /// contract, so this does not need to mirror the real service's fail-closed behavior. Passes
+    /// the stored value through unchanged.
+    /// </remarks>
+    public Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct) =>
+        Task.FromResult(storedBlobUrl);
+
+    /// <inheritdoc />
+    /// <remarks>Test double only — strips a query string, mirroring the real service's contract.</remarks>
+    public string? NormalizeToCanonicalUrl(string blobUrl) =>
+        string.IsNullOrWhiteSpace(blobUrl) ? null : blobUrl.Split('?', 2)[0];
 
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
@@ -326,10 +345,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, QaSeedRunner.QaMultiSectionPlanExternalId),
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the multi-section training plan (#474)");
-        (await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Empty,
+        (await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Empty,
             cancellationToken: ct))
-            .Should().Be(0, "minimal seed skips all workout logs");
+            .Should().Be(0, "minimal seed skips all session executions");
         (await mongo.Foods.CountDocumentsAsync(
             Builders<Food>.Filter.Empty,
             cancellationToken: ct))
@@ -384,11 +403,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
     /// <summary>
     /// The past training plan (#326 fixture) must have:
-    ///  - A WorkoutLog for the COMPLETED session with IsCompleted=true.
-    ///  - A WorkoutLog for the SKIPPED session with IsCompleted=false.
-    ///  - No WorkoutLog for the UNTOUCHED session.
+    ///  - A SessionExecution for the COMPLETED session with Status=Completed.
+    ///  - A SessionExecution for the SKIPPED session with Status=Partial.
+    ///  - No SessionExecution for the UNTOUCHED session.
     /// This is the minimal assertion the Playwright spec depends on to distinguish
     /// the three past-session states.
+    ///
+    /// Post-#841 the standalone WorkoutLog/TrainingCompletion documents were unified
+    /// into a single SessionExecution aggregate — QaSeedRunner writes SessionExecution
+    /// exclusively now, so these assertions query mongo.SessionExecutions.
     /// </summary>
     [Fact]
     public async Task SeedAsync_PastTrainingPlan_HasThreeDistinctSessionStates()
@@ -420,55 +443,55 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.TrainerId.Should().Be(QaSeedRunner.TrainerUserId,
             "TrainingPlan.TrainerId must be ApplicationUser.Id — GetTrainingPlansEndpoint scopes by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId");
-        // ClientId must stay as ClientProfile.PublicId so that TrainingCompletion.ClientId
-        // (written by WorkoutCompletionService as clientProfile.PublicId) matches
+        // ClientId is ApplicationUser.Id (#840) so that TrainingCompletion.ClientId
+        // (written by WorkoutCompletionService as clientProfile.UserId) matches
         // plan.ClientId used in GetTrainingPlanEndpoint's completions fold-in filter.
-        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "TrainingPlan.ClientId must be ClientProfile.PublicId — GetTrainingPlanEndpoint queries " +
+        plan.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "TrainingPlan.ClientId must be ApplicationUser.Id — GetTrainingPlanEndpoint queries " +
             "TrainingCompletion by plan.ClientId and WorkoutCompletionService writes " +
-            "TrainingCompletion.ClientId = clientProfile.PublicId");
+            "TrainingCompletion.ClientId = clientProfile.UserId");
 
-        // COMPLETED session — WorkoutLog with IsCompleted=true.
-        var completedLog = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedWorkoutLogId)
+        // COMPLETED session — SessionExecution with Status=Completed.
+        var completedLog = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastCompletedExecutionId)
             .FirstOrDefaultAsync(ct);
 
-        completedLog.Should().NotBeNull("completed WorkoutLog must be seeded");
-        completedLog!.IsCompleted.Should().BeTrue("PAST-COMPLETED log must have IsCompleted=true");
+        completedLog.Should().NotBeNull("completed SessionExecution must be seeded");
+        completedLog!.Status.Should().Be(SessionExecutionStatus.Completed, "PAST-COMPLETED log must have Status=Completed");
         completedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionCompletedId);
         completedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
-        // WorkoutLog.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
-        // CompleteWorkoutEndpoint can filter by it and WorkoutCompletionService can resolve
-        // the ClientProfile via cp.UserId == log.ClientId for the TrainingCompletion fan-out.
+        // SessionExecution.ClientId must be ApplicationUser.Id (not ClientProfile.PublicId) so that
+        // CompleteWorkoutEndpoint (live client finish) can filter SessionExecutions by
+        // ClientId == Guid.Parse(AppClaims.UserId).
         completedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
-            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, and WorkoutCompletionService " +
-            "resolves the ClientProfile via cp.UserId == log.ClientId");
-        completedLog.Sections.Should().HaveCount(1, "log mirrors the single section in the session");
-        completedLog.Sections[0].Exercises.Should().HaveCount(2);
-        completedLog.Sections[0].Exercises.Should().AllSatisfy(e =>
+            "SessionExecution.ClientId must be ApplicationUser.Id — CompleteWorkoutEndpoint filters by " +
+            "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id");
+        completedLog.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        completedLog.Performance!.Workouts.Should().HaveCount(1, "log mirrors the single workout in the session");
+        completedLog.Performance.Workouts[0].Exercises.Should().HaveCount(2);
+        completedLog.Performance.Workouts[0].Exercises.Should().AllSatisfy(e =>
             e.Sets.Should().NotBeEmpty("completed log has sets on every exercise"));
 
-        // SKIPPED session — WorkoutLog with IsCompleted=false.
-        var skippedLog = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedWorkoutLogId)
+        // SKIPPED session — SessionExecution with Status=Partial.
+        var skippedLog = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaSeedRunner.QaPastSkippedExecutionId)
             .FirstOrDefaultAsync(ct);
 
-        skippedLog.Should().NotBeNull("skipped WorkoutLog must be seeded");
-        skippedLog!.IsCompleted.Should().BeFalse("PAST-SKIPPED log must have IsCompleted=false");
+        skippedLog.Should().NotBeNull("skipped SessionExecution must be seeded");
+        skippedLog!.Status.Should().Be(SessionExecutionStatus.Partial, "PAST-SKIPPED log must have Status=Partial");
         skippedLog.SessionId.Should().Be(QaSeedRunner.QaPastSessionSkippedId);
         skippedLog.PlanId.Should().Be(QaSeedRunner.QaPastTrainingPlanExternalId);
         // Same id-space requirement as the completed log above.
         skippedLog.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id for the same reason as the completed log");
+            "SessionExecution.ClientId must be ApplicationUser.Id for the same reason as the completed log");
 
-        // UNTOUCHED session — must have NO WorkoutLog.
-        var untouchedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, QaSeedRunner.QaPastSessionUntouchedId),
+        // UNTOUCHED session — must have NO SessionExecution.
+        var untouchedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.SessionId, QaSeedRunner.QaPastSessionUntouchedId),
             cancellationToken: ct);
 
         untouchedLogCount.Should().Be(0,
-            "PAST-UNTOUCHED session must have no WorkoutLog so the web classifies it as untouched");
+            "PAST-UNTOUCHED session must have no SessionExecution so the web classifies it as untouched");
     }
 
     /// <summary>
@@ -497,10 +520,64 @@ public class QaSeedRunnerTests : IAsyncLifetime
             "TrainingPlan.TrainerId must be ApplicationUser.Id (22222222-...) — " +
             "GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by " +
             "Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, not ProfessionalProfile.PublicId (bbbbbbbb-...)");
-        plan.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "TrainingPlan.ClientId must remain ClientProfile.PublicId (aaaaaaaa-...) — " +
-            "GetClientPlansEndpoint filters by ClientProfile.PublicId and " +
-            "TrainingCompletion.ClientId is also keyed on ClientProfile.PublicId");
+        plan.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "TrainingPlan.ClientId must be ApplicationUser.Id (11111111-...) since #840 — " +
+            "GetClientPlansEndpoint filters TrainingPlan.ClientId by ApplicationUser.Id and " +
+            "TrainingCompletion.ClientId is also keyed on the same identifier");
+    }
+
+    /// <summary>
+    /// #898 — the main QA plan must carry a <c>StartDate</c> anchored to the current
+    /// week's Monday so <c>PlanWindowResolver.ResolveCurrentPlan</c>'s window
+    /// <c>[StartDate, StartDate + weeks*7)</c> covers today. Without it the plan is
+    /// "unranged" and never matches — and it cannot fall back on the resolver's legacy
+    /// single-plan rule because the Past Plan fixture is a second, ranged same-type plan
+    /// for the same client. Day coverage {1,2,3} populated / {4,5,6,7} empty is pinned in
+    /// the same assertion — the rest days are load-bearing mobile Today rest-day coverage,
+    /// not a gap to fill.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_ForTimePlan_StartDateAnchoredToCurrentMondayWithDayCoverage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the ForTime fixture plan must be seeded");
+        plan!.StartDate.Should().NotBeNull(
+            "the main QA plan must have a StartDate — otherwise PlanWindowResolver treats it as " +
+            "unranged and it never matches today's window");
+        plan.StartDate!.Value.DayOfWeek.Should().Be(DayOfWeek.Monday,
+            "StartDate must anchor to a Monday so TrainingDay.DayOfWeek=1 maps to that exact date");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowStart = DateOnly.FromDateTime(plan.StartDate.Value);
+        var windowEnd = windowStart.AddDays(plan.Weeks.Count * 7);
+        today.Should().BeOnOrAfter(windowStart, "today must fall within the plan's resolved window");
+        today.Should().BeBefore(windowEnd, "today must fall within the plan's resolved window");
+
+        plan.Weeks.Should().HaveCount(1, "the ForTime fixture is a single-week plan");
+        var days = plan.Weeks[0].Days;
+        days.Should().HaveCount(7, "BuildTrainingDays/the inline day-map always materialises all 7 weekdays");
+        foreach (var dayOfWeek in new[] { 1, 2, 3 })
+        {
+            days.Single(d => d.DayOfWeek == dayOfWeek).Sessions.Should().NotBeEmpty(
+                $"day {dayOfWeek} carries a seeded session");
+        }
+
+        foreach (var dayOfWeek in new[] { 4, 5, 6, 7 })
+        {
+            days.Single(d => d.DayOfWeek == dayOfWeek).Sessions.Should().BeEmpty(
+                $"day {dayOfWeek} is an intentional rest day — the only way to exercise the mobile " +
+                "Today rest-day empty state; do not fill it with sessions");
+        }
     }
 
     /// <summary>
@@ -522,15 +599,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
             cancellationToken: ct);
         planCount.Should().Be(1, "past training plan must not be duplicated on re-seed");
 
-        var completedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedWorkoutLogId),
+        var completedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastCompletedExecutionId),
             cancellationToken: ct);
-        completedLogCount.Should().Be(1, "completed WorkoutLog must not be duplicated on re-seed");
+        completedLogCount.Should().Be(1, "completed SessionExecution must not be duplicated on re-seed");
 
-        var skippedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedWorkoutLogId),
+        var skippedLogCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaPastSkippedExecutionId),
             cancellationToken: ct);
-        skippedLogCount.Should().Be(1, "skipped WorkoutLog must not be duplicated on re-seed");
+        skippedLogCount.Should().Be(1, "skipped SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>
@@ -552,8 +629,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
             .FirstOrDefaultAsync(ct);
 
         plan.Should().NotBeNull("QaSeedRunner must create the QA nutrition plan");
-        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            "NutritionPlan.ClientId must be keyed on ClientProfile.PublicId, not ApplicationUser.Id");
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            "NutritionPlan.ClientId must be keyed on ApplicationUser.Id since #840, not ClientProfile.PublicId");
         plan.NutritionistId.Should().Be(QaSeedRunner.NutriUserId,
             "NutritionPlan.NutritionistId must be keyed on ApplicationUser.Id (NutriUserId), not the professional profile PublicId, so nutritionist endpoint filters match AppClaims.UserId");
         plan.Status.Should().Be(FitnessPlatform.Application.Domain.Enums.NutritionPlanStatus.Active);
@@ -589,8 +666,8 @@ public class QaSeedRunnerTests : IAsyncLifetime
 
         plan.Should().NotBeNull("main training plan must be seeded");
 
-        var session = plan!.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaSessionId);
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.StandardSectionId);
+        var session = plan!.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaSessionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.StandardSectionId);
 
         standardSection.Exercises.Should().HaveCount(2, "Standard section has two exercises");
 
@@ -612,7 +689,284 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// The completed WorkoutLog seeded for the main QA plan must exercise all four
+    /// Regression guard for the QA-findings bug on #857: every seeded <see cref="SessionExercise"/>
+    /// across every training plan must carry a non-empty <see cref="SessionExercise.ExerciseId"/>.
+    /// Before the fix, all 13 seeded instances persisted <c>Guid.Empty</c>, which
+    /// <c>MarkExerciseCompleteValidator</c> rejects — making per-exercise completion unreachable
+    /// on the QA fixture, and every exercise in a session shared one empty instance id (the exact
+    /// ambiguity the instance id exists to remove).
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_AllPlans_EverySessionExerciseHasNonEmptyExerciseId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var planIds = new[]
+        {
+            QaSeedRunner.QaTrainingPlanExternalId,
+            QaSeedRunner.QaPastTrainingPlanExternalId,
+            QaSeedRunner.QaMultiSectionPlanExternalId,
+        };
+
+        foreach (var planId in planIds)
+        {
+            var plan = await mongo.TrainingPlans
+                .Find(p => p.ExternalId == planId)
+                .FirstOrDefaultAsync(ct);
+
+            plan.Should().NotBeNull($"plan {planId} must be seeded");
+
+            var allExercises = plan!.Weeks
+                .SelectMany(w => w.Days)
+                .SelectMany(d => d.Sessions)
+                .SelectMany(s => s.AllExercises)
+                .ToList();
+
+            allExercises.Should().NotBeEmpty($"plan {planId} must seed at least one exercise");
+            allExercises.Should().OnlyContain(e => e.ExerciseId != Guid.Empty,
+                $"every SessionExercise in plan {planId} must carry a non-empty instance ExerciseId — " +
+                "a Guid.Empty instance id is rejected by MarkExerciseCompleteValidator and makes per-exercise " +
+                "completion unreachable on this fixture");
+
+            var instanceIds = allExercises.Select(e => e.ExerciseId).ToList();
+            instanceIds.Should().OnlyHaveUniqueItems(
+                $"every exercise instance in plan {planId} must have a distinct ExerciseId, even when two " +
+                "instances share the same catalog ExerciseExternalId");
+        }
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session with ONLY standalone
+    /// exercises (no workouts at all) — one of the two new tree shapes the training-plan
+    /// restructure makes possible, which the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneOnlySession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaStandaloneOnlySessionId);
+
+        session.Workouts.Should().BeEmpty("this session must carry ONLY standalone exercises");
+        session.StandaloneExercises.Should().ContainSingle();
+        var exercise = session.StandaloneExercises[0];
+        exercise.ExerciseId.Should().Be(QaSeedRunner.QaStandaloneOnlyInstanceId);
+        exercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaStandaloneOnlyExerciseId);
+        session.AllExercises.Should().ContainSingle(
+            "the computed flat AllExercises view must still surface the standalone-only exercise");
+    }
+
+    /// <summary>
+    /// #857 QA fixture extension: the main QA plan must also seed a session where the SAME
+    /// catalog exercise appears BOTH standalone on the session AND nested inside one of that
+    /// session's workouts, with distinct instance ExerciseId values — the pairing standalone
+    /// exercises newly make reachable that the pre-fix fixture could not represent.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_MainPlan_HasStandaloneAndNestedDuplicateExerciseSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaDualPlacementSessionId);
+
+        session.StandaloneExercises.Should().ContainSingle();
+        var standaloneExercise = session.StandaloneExercises[0];
+        standaloneExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementStandaloneInstanceId);
+        standaloneExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        var workout = session.Workouts.Single(w => w.WorkoutId == QaSeedRunner.QaDualPlacementWorkoutId);
+        var nestedExercise = workout.Exercises.Should().ContainSingle().Subject;
+        nestedExercise.ExerciseId.Should().Be(QaSeedRunner.QaDualPlacementNestedInstanceId);
+        nestedExercise.ExerciseExternalId.Should().Be(QaSeedRunner.QaDualPlacementExerciseId);
+
+        standaloneExercise.ExerciseId.Should().NotBe(nestedExercise.ExerciseId,
+            "the two occurrences of the same catalog exercise must have distinct instance ids");
+        session.AllExercises.Should().HaveCount(2,
+            "the computed flat AllExercises view must union the standalone exercise with the nested one");
+    }
+
+    /// <summary>
+    /// #879 — both placements of the dual-placement fixture must carry prescribed sets so the
+    /// planned-vs-actual view has concrete prescription values, and so per-instance completion
+    /// (see <see cref="SeedAsync_DualPlacementCompletion_MarksOnlyStandaloneInstanceComplete"/>)
+    /// is observable rather than falling back to the pre-#877 set-based-only completion check.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementSession_BothInstancesHavePrescribedSets()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.TrainingPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaTrainingPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull();
+
+        var session = plan!.Weeks[0].Days
+            .SelectMany(d => d.Sessions)
+            .Single(s => s.SessionId == QaSeedRunner.QaDualPlacementSessionId);
+
+        var standaloneExercise = session.StandaloneExercises.Single(
+            e => e.ExerciseId == QaSeedRunner.QaDualPlacementStandaloneInstanceId);
+        standaloneExercise.Sets.Should().NotBeEmpty("the standalone placement must carry prescribed sets (#879)");
+
+        var workout = session.Workouts.Single(w => w.WorkoutId == QaSeedRunner.QaDualPlacementWorkoutId);
+        var nestedExercise = workout.Exercises.Single(e => e.ExerciseId == QaSeedRunner.QaDualPlacementNestedInstanceId);
+        nestedExercise.Sets.Should().NotBeEmpty("the nested placement must carry prescribed sets (#879)");
+    }
+
+    /// <summary>
+    /// #879 — a SessionExecution for the dual-placement fixture marks ONLY the standalone
+    /// instance complete, leaving the nested instance (sharing the same catalog exercise)
+    /// incomplete. This is what makes GetFullTrainingPlanEndpoint's per-instance completion
+    /// lookup (CompletedExerciseInstanceIds) observably distinguish the two placements.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementCompletion_MarksOnlyStandaloneInstanceComplete()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var execution = await mongo.SessionExecutions
+            .Find(e => e.ExternalId == QaSeedRunner.QaDualPlacementSessionExecutionId)
+            .FirstOrDefaultAsync(ct);
+
+        execution.Should().NotBeNull("the #879 dual-placement completion fixture must be seeded");
+        execution!.ClientId.Should().Be(QaSeedRunner.ClientUserId);
+        execution.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
+        execution.SessionId.Should().Be(QaSeedRunner.QaDualPlacementSessionId);
+        execution.CompletedExerciseInstanceIds.Should().ContainSingle()
+            .Which.Should().Be(QaSeedRunner.QaDualPlacementStandaloneInstanceId,
+                "only the standalone instance must be marked complete");
+        execution.CompletedExerciseInstanceIds.Should().NotContain(QaSeedRunner.QaDualPlacementNestedInstanceId,
+            "the nested instance must remain incomplete so the two placements are distinguishable");
+    }
+
+    /// <summary>
+    /// Seeding twice must not duplicate the #879 dual-placement completion SessionExecution.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_DualPlacementCompletion_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var count = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(e => e.ExternalId, QaSeedRunner.QaDualPlacementSessionExecutionId),
+            cancellationToken: ct);
+        count.Should().Be(1, "the dual-placement completion SessionExecution must not be duplicated on re-seed");
+    }
+
+    /// <summary>
+    /// #946 — the QA client-nutritionist link must carry at least two PhotoDiaryRequest rows:
+    /// one scoped to the seeded QA nutrition plan, one deliberately plan-less. Both must be
+    /// Status=Accepted (reachable from the client app's active-request list, which filters
+    /// {Accepted, InProgress}) with a non-null Mode/AcceptedAt as the CHECK constraints require.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PhotoDiaryRequestFixture_HasWithPlanAndPlanlessAcceptedRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == QaSeedRunner.ClientUserId, ct);
+        var nutriProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == QaSeedRunner.NutriUserId, ct);
+        var nutriLink = await db.ClientProfessionalLinks.FirstAsync(
+            l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id, ct);
+
+        var withPlanRequest = await db.PhotoDiaryRequests
+            .FirstOrDefaultAsync(r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId, ct);
+        withPlanRequest.Should().NotBeNull("the with-plan PhotoDiaryRequest fixture must be seeded");
+        withPlanRequest!.LinkId.Should().Be(nutriLink.Id);
+        withPlanRequest.PendingInviteId.Should().BeNull("LinkId/PendingInviteId is an XOR CHECK constraint");
+        withPlanRequest.PlanId.Should().Be(QaSeedRunner.QaNutritionPlanExternalId);
+        withPlanRequest.Status.Should().Be(PhotoDiaryStatus.Accepted);
+        withPlanRequest.Mode.Should().NotBeNull("Mode must be non-null when Status=Accepted (CHECK constraint)");
+        withPlanRequest.AcceptedAt.Should().NotBeNull("AcceptedAt must be non-null when Status=Accepted (CHECK constraint)");
+
+        var planlessRequest = await db.PhotoDiaryRequests
+            .FirstOrDefaultAsync(r => r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId, ct);
+        planlessRequest.Should().NotBeNull("the plan-less PhotoDiaryRequest fixture must be seeded");
+        planlessRequest!.LinkId.Should().Be(nutriLink.Id);
+        planlessRequest.PendingInviteId.Should().BeNull("LinkId/PendingInviteId is an XOR CHECK constraint");
+        planlessRequest.PlanId.Should().BeNull(
+            "a plan-less request is a legitimate backend state per PhotoDiaryRequest.PlanId's own doc comment");
+        planlessRequest.Status.Should().Be(PhotoDiaryStatus.Accepted);
+        planlessRequest.Mode.Should().NotBeNull("Mode must be non-null when Status=Accepted (CHECK constraint)");
+        planlessRequest.AcceptedAt.Should().NotBeNull("AcceptedAt must be non-null when Status=Accepted (CHECK constraint)");
+    }
+
+    /// <summary>
+    /// Seeding twice must not duplicate the #946 PhotoDiaryRequest fixture rows.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_PhotoDiaryRequestFixture_IsIdempotent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var count = await db.PhotoDiaryRequests.CountAsync(
+            r => r.Id == QaSeedRunner.QaPhotoDiaryRequestWithPlanId || r.Id == QaSeedRunner.QaPhotoDiaryRequestPlanlessId,
+            ct);
+        count.Should().Be(2, "the two PhotoDiaryRequest fixture rows must not be duplicated on re-seed");
+    }
+
+    /// <summary>
+    /// The completed SessionExecution seeded for the main QA plan must exercise all four
     /// planned-vs-actual set cases in a single session:
     ///
     ///   QA Squat  Set 1 — MODIFIED      actual != planned  (IsModified=true)
@@ -633,20 +987,21 @@ public class QaSeedRunnerTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var log = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedWorkoutLogId)
+        var log = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaSeedRunner.QaMainPlanCompletedExecutionId)
             .FirstOrDefaultAsync(ct);
 
-        log.Should().NotBeNull("main-plan completed WorkoutLog must be seeded");
-        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.Should().NotBeNull("main-plan completed SessionExecution must be seeded");
+        log!.Status.Should().Be(SessionExecutionStatus.Completed, "log is marked complete");
         log.PlanId.Should().Be(QaSeedRunner.QaTrainingPlanExternalId);
         log.SessionId.Should().Be(QaSeedRunner.QaSessionId);
         log.ClientId.Should().Be(QaSeedRunner.ClientUserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id (11111111-...) — same contract as past-plan logs");
-        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
+            "SessionExecution.ClientId must be ApplicationUser.Id (11111111-...) — same contract as past-plan logs");
+        log.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
 
-        log.Sections.Should().HaveCount(1, "one section mirrors the Standard section");
-        var section = log.Sections[0];
+        log.Performance.Workouts.Should().HaveCount(1, "one workout mirrors the Standard section");
+        var section = log.Performance.Workouts[0];
         section.Exercises.Should().HaveCount(2);
 
         // ── Exercise 1: QA Squat ───────────────────────────────────────────────
@@ -686,7 +1041,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create a duplicate main-plan WorkoutLog.
+    /// Seeding twice must not create a duplicate main-plan SessionExecution.
     /// </summary>
     [Fact]
     public async Task SeedAsync_MainPlanWorkoutLog_IsIdempotent()
@@ -699,18 +1054,18 @@ public class QaSeedRunnerTests : IAsyncLifetime
         using var scope = _factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
 
-        var count = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedWorkoutLogId),
+        var count = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMainPlanCompletedExecutionId),
             cancellationToken: ct);
 
-        count.Should().Be(1, "main-plan WorkoutLog must not be duplicated on re-seed");
+        count.Should().Be(1, "main-plan SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>
     /// The multi-section fixture (#474) must seed:
     ///  - A TrainingPlan for the second QA client/trainer pair with one session
     ///    whose two sections BOTH reference the same shared exercise (SharedExerciseId).
-    ///  - A completed WorkoutLog with SectionId set on both sections so the
+    ///  - A completed SessionExecution with SectionId set on both sections so the
     ///    section-keying read path works. The Standard section contains edited
     ///    values (Set 1 and Set 3: IsModified=true). The AMRAP section contains
     ///    a plain logged set with no planned snapshot (IsModified=false).
@@ -733,41 +1088,42 @@ public class QaSeedRunnerTests : IAsyncLifetime
         plan.Should().NotBeNull("multi-section training plan must be seeded");
         plan!.TrainerId.Should().Be(QaSeedRunner.Trainer2UserId,
             "TrainingPlan.TrainerId must be Trainer2UserId (ApplicationUser.Id)");
-        plan.ClientId.Should().Be(QaSeedRunner.Client2ProfilePublicId,
-            "TrainingPlan.ClientId must be Client2ProfilePublicId (ClientProfile.PublicId)");
+        plan.ClientId.Should().Be(QaSeedRunner.Client2UserId,
+            "TrainingPlan.ClientId must be Client2UserId (ApplicationUser.Id, #840)");
 
-        var session = plan.Weeks[0].Sessions.Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
-        session.Sections.Should().HaveCount(2, "session has Standard + AMRAP sections");
+        var session = plan.Weeks[0].Days.SelectMany(d => d.Sessions).Single(s => s.SessionId == QaSeedRunner.QaMultiSectionSessionId);
+        session.Workouts.Should().HaveCount(2, "session has Standard + AMRAP sections");
 
-        var standardSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        var standardSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         standardSection.Format.Should().BeNull("Standard section has null format");
         standardSection.Exercises.Should().HaveCount(1);
         standardSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
         standardSection.Exercises[0].Sets.Should().HaveCount(3, "Standard section has 3 prescribed sets");
 
-        var amrapSection = session.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        var amrapSection = session.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         amrapSection.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         amrapSection.Exercises.Should().HaveCount(1);
         amrapSection.Exercises[0].ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
             "AMRAP section references the SAME exercise as the Standard section");
         amrapSection.Exercises[0].Sets.Should().BeEmpty("AMRAP section carries no prescribed sets");
 
-        // WorkoutLog must exist with SectionId populated on both sections.
-        var log = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionWorkoutLogId)
+        // SessionExecution must exist with SectionId populated on both sections.
+        var log = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaSeedRunner.QaMultiSectionExecutionId)
             .FirstOrDefaultAsync(ct);
 
-        log.Should().NotBeNull("multi-section WorkoutLog must be seeded");
-        log!.IsCompleted.Should().BeTrue("log is marked complete");
+        log.Should().NotBeNull("multi-section SessionExecution must be seeded");
+        log!.Status.Should().Be(SessionExecutionStatus.Completed, "log is marked complete");
         log.PlanId.Should().Be(QaSeedRunner.QaMultiSectionPlanExternalId);
         log.SessionId.Should().Be(QaSeedRunner.QaMultiSectionSessionId);
         log.ClientId.Should().Be(QaSeedRunner.Client2UserId,
-            "WorkoutLog.ClientId must be ApplicationUser.Id (Client2UserId)");
-        log.CompletedDate.Should().NotBeNull("CompletedDate is required for the partial unique index");
-        log.Sections.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
+            "SessionExecution.ClientId must be ApplicationUser.Id (Client2UserId)");
+        log.Performance.Should().NotBeNull("completed log has live-workout performance data");
+        log.Performance!.CompletedAt.Should().NotBeNull("CompletedAt is required for the partial unique index key derivation");
+        log.Performance.Workouts.Should().HaveCount(2, "log captures both Standard and AMRAP sections");
 
-        // Standard section in the log — SectionId must match the plan section.
-        var logStandard = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionStandardSectionId);
+        // Standard section in the log — WorkoutId must match the plan section.
+        var logStandard = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionStandardWorkoutId);
         logStandard.Exercises.Should().HaveCount(1);
         var logStandardExercise = logStandard.Exercises[0];
         logStandardExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId);
@@ -795,13 +1151,13 @@ public class QaSeedRunnerTests : IAsyncLifetime
         set3.WeightKg.Should().Be(28m);
         set3.IsModified.Should().BeTrue("Set 3 actual != planned → MODIFIED");
 
-        // AMRAP section in the log — SectionId must match the plan AMRAP section.
-        var logAmrap = log.Sections.Single(s => s.SectionId == QaSeedRunner.MultiSectionAmrapSectionId);
+        // AMRAP section in the log — WorkoutId must match the plan AMRAP section.
+        var logAmrap = log.Performance.Workouts.Single(s => s.WorkoutId == QaSeedRunner.MultiSectionAmrapWorkoutId);
         logAmrap.Format.Should().Be(FitnessPlatform.Application.Domain.Enums.WorkoutFormat.AMRAP);
         logAmrap.Exercises.Should().HaveCount(1);
         var logAmrapExercise = logAmrap.Exercises[0];
         logAmrapExercise.ExerciseExternalId.Should().Be(QaSeedRunner.SharedExerciseId,
-            "AMRAP section references the SAME exercise but is keyed by a different SectionId");
+            "AMRAP section references the SAME exercise but is keyed by a different WorkoutId");
         logAmrapExercise.Sets.Should().HaveCount(1);
 
         var amrapSet = logAmrapExercise.Sets[0];
@@ -813,7 +1169,7 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Seeding twice must not create duplicate multi-section plan or WorkoutLog documents.
+    /// Seeding twice must not create duplicate multi-section plan or SessionExecution documents.
     /// </summary>
     [Fact]
     public async Task SeedAsync_MultiSectionFixture_IsIdempotent()
@@ -831,10 +1187,10 @@ public class QaSeedRunnerTests : IAsyncLifetime
             cancellationToken: ct);
         planCount.Should().Be(1, "multi-section plan must not be duplicated on re-seed");
 
-        var logCount = await mongo.WorkoutLogs.CountDocumentsAsync(
-            Builders<WorkoutLog>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionWorkoutLogId),
+        var logCount = await mongo.SessionExecutions.CountDocumentsAsync(
+            Builders<SessionExecution>.Filter.Eq(l => l.ExternalId, QaSeedRunner.QaMultiSectionExecutionId),
             cancellationToken: ct);
-        logCount.Should().Be(1, "multi-section WorkoutLog must not be duplicated on re-seed");
+        logCount.Should().Be(1, "multi-section SessionExecution must not be duplicated on re-seed");
     }
 
     /// <summary>
@@ -1069,5 +1425,257 @@ public class QaSeedRunnerTests : IAsyncLifetime
         nutritionPlan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
             "the nutrition plan link must remain stable across re-seeds");
         nutritionPlan.Version.Should().Be(2, "the link update bumps Version exactly once, not once per seed run");
+    }
+
+    /// <summary>
+    /// Root-cause probe for the #854 e2e regression (PR #854 / epic #835): reproduces,
+    /// over real HTTP with a real JWT (not a direct Mongo/EF assertion), the exact two
+    /// calls the trainer-portal "Dotazník" tab makes on the training-plan detail page:
+    ///   1. GET /training/plans/{planId} — must return a non-null questionnaireResponseId.
+    ///   2. GET /trainer/clients/{clientPublicId}/questionnaire-responses — must contain
+    ///      a Submitted response whose responsePublicId matches (1).
+    /// The QaSeedRunnerTests above only assert the Mongo document / EF row directly;
+    /// this closes the gap by exercising the actual endpoints the web e2e spec hits.
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        // The API serializes enums as strings (JsonStringEnumConverter globally),
+        // so use matching options when deserializing the test response — see the
+        // same pattern in GetFullTrainingPlanIntegrationTests.
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /training/plans/{planId} — same call TrainingPlanPage.tsx makes ──
+        var planResponse = await client.GetAsync(
+            $"/training/plans/{QaSeedRunner.QaTrainingPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<GetTrainingPlanResponse>(jsonOptions, ct);
+        plan.Should().NotBeNull();
+        plan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaQuestionnaireResponseExternalId,
+            "GET /training/plans/{planId} must return the linked questionnaire response id " +
+            "so the web 'Dotazník' tab can resolve it — this is what feeds " +
+            "plan.questionnaireResponseId in TrainingPlanPage.tsx");
+
+        // ── 2. GET /trainer/clients/{clientPublicId}/questionnaire-responses — same call
+        // PlanQuestionnairePanel / QuestionnaireAnswersSection make (getClientQuestionnaireResponses) ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{QaSeedRunner.ClientProfilePublicId}/questionnaire-responses", ct);
+        responsesHttp.EnsureSuccessStatusCode();
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId.Value);
+
+        linked.Should().NotBeNull(
+            "the questionnaire-responses list must contain an entry whose ResponsePublicId " +
+            "matches plan.QuestionnaireResponseId — this is the join TrainingPlanPage.tsx's " +
+            "linkedQuestionnaireResponse useMemo performs client-side");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// Nutritionist-side counterpart to <see cref="HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable"/>,
+    /// reproducing the #698 nutrition-plan-questionnaire.spec.ts flow: GET /nutrition/plans/{planId}
+    /// (GetPlanEndpoint — NOT touched by the #835 epic diff) must return a non-null
+    /// questionnaireResponseId, and GET /trainer/clients/{clientPublicId}/questionnaire-responses
+    /// (also not touched) must return a matching Submitted entry owned by the QA nutritionist.
+    /// Included to rule out an asymmetric nutritionist-role bug — neither endpoint appears in
+    /// the epic's file diff, so this is expected to pass; a failure here would mean the
+    /// regression is NOT confined to the touched TrainingPlans/ClientTraining read paths.
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_NutritionistPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /nutrition/plans/{planId} — same call NutritionPlanPage.tsx makes ──
+        var planResponse = await client.GetAsync(
+            $"/nutrition/plans/{QaSeedRunner.QaNutritionPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<FitnessPlatform.Application.Features.NutritionPlans.GetPlan.GetPlanResponse>(
+            jsonOptions, ct);
+        plan.Should().NotBeNull();
+        plan!.QuestionnaireResponseId.Should().Be(QaSeedRunner.QaNutriQuestionnaireResponseExternalId,
+            "GET /nutrition/plans/{planId} must return the nutritionist-linked questionnaire response id");
+
+        // ── 2. GET /trainer/clients/{clientPublicId}/questionnaire-responses as the nutritionist ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{QaSeedRunner.ClientProfilePublicId}/questionnaire-responses", ct);
+        responsesHttp.EnsureSuccessStatusCode();
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId.Value);
+
+        linked.Should().NotBeNull(
+            "the nutritionist's questionnaire-responses list must contain an entry whose " +
+            "ResponsePublicId matches plan.QuestionnaireResponseId");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Nutrition Intake Questionnaire");
+    }
+
+    /// <summary>
+    /// Regression test for the #840/#845 client-identifier semantics regression that broke
+    /// PR #854 (#697/#698 e2e specs). #840 standardised TrainingPlan.ClientId on
+    /// ApplicationUser.Id for internal storage/filters — correct — but
+    /// <see cref="GetTrainingPlanResponse.FromDocument"/> was (pre-fix) still emitting that
+    /// internal UserId verbatim as the response's outward-facing <c>clientId</c> field, which
+    /// TrainingPlanPage.tsx feeds directly into
+    /// <c>GET /trainer/clients/{{clientId}}/questionnaire-responses</c> — a route keyed on
+    /// <c>ClientProfile.PublicId</c>, not <c>ApplicationUser.Id</c>. UserId != PublicId, so the
+    /// browser's real call 404s and the Dotazník tab renders empty.
+    /// <para>
+    /// Unlike <see cref="HttpFlow_TrainerPlanDetail_QuestionnaireResponseIdRoundTripsAndIsFetchable"/>
+    /// (which calls the responses endpoint with <see cref="QaSeedRunner.ClientProfilePublicId"/>
+    /// directly and therefore cannot detect this class of bug), this test CHAINS the two calls
+    /// exactly the way the browser does: it takes <c>plan.ClientId</c> straight off the first
+    /// HTTP response and feeds it into the second HTTP call, with no test-side knowledge of the
+    /// "real" PublicId. If the response boundary regresses back to emitting the internal
+    /// UserId, this test 404s on step 2.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_TrainerPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /training/plans/{planId} — capture the response's clientId verbatim,
+        // exactly as TrainingPlanPage.tsx does (plan.clientId, no re-derivation). ──
+        var planResponse = await client.GetAsync(
+            $"/training/plans/{QaSeedRunner.QaTrainingPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<GetTrainingPlanResponse>(jsonOptions, ct);
+        plan.Should().NotBeNull();
+
+        // The response's clientId must be the ClientProfile.PublicId contract, NOT the
+        // internal Mongo storage key (ApplicationUser.Id) — this is the exact assertion that
+        // would have caught #854 before it reached the compose-harness e2e gate.
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "GetTrainingPlanResponse.ClientId must be the client-facing ClientProfile.PublicId " +
+            "(pre-#840 contract) — NOT plan.ClientId's internal ApplicationUser.Id storage key");
+        plan.ClientId.Should().NotBe(QaSeedRunner.ClientUserId,
+            "the response must not leak the internal ApplicationUser.Id storage key as clientId");
+
+        // ── 2. CHAIN: feed the plan response's clientId straight into the second call, with
+        // no test-side substitution of the "known-correct" PublicId. This is what makes the
+        // test equivalent to the browser's real request sequence. ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{plan.ClientId}/questionnaire-responses", ct);
+
+        responsesHttp.StatusCode.Should().Be(System.Net.HttpStatusCode.OK,
+            "chaining plan.ClientId into /trainer/clients/{{clientId}}/... must resolve — a 404 " +
+            "here reproduces the #854 regression exactly as the browser experienced it");
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId!.Value);
+
+        linked.Should().NotBeNull(
+            "the chained call must return the same linked Submitted response the direct-PublicId " +
+            "call returns — proving the chained clientId resolves to the same client");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// Nutrition-side counterpart to
+    /// <see cref="HttpFlow_TrainerPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses"/>,
+    /// reproducing the #698 nutrition-plan-questionnaire.spec.ts chained-identifier flow via
+    /// <see cref="GetPlanResponse"/> (nutrition plan detail).
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_NutritionistPlanDetail_ChainedClientIdRoundTripsToQuestionnaireResponses()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.NutriEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        // ── 1. GET /nutrition/plans/{planId} — capture clientId verbatim, as
+        // NutritionPlanPage.tsx does. ──
+        var planResponse = await client.GetAsync(
+            $"/nutrition/plans/{QaSeedRunner.QaNutritionPlanExternalId}", ct);
+        planResponse.EnsureSuccessStatusCode();
+
+        var plan = await planResponse.Content.ReadFromJsonAsync<FitnessPlatform.Application.Features.NutritionPlans.GetPlan.GetPlanResponse>(
+            jsonOptions, ct);
+        plan.Should().NotBeNull();
+
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
+            "GetPlanResponse.ClientId must be the client-facing ClientProfile.PublicId " +
+            "(pre-#840 contract) — NOT plan.ClientId's internal ApplicationUser.Id storage key");
+        plan.ClientId.Should().NotBe(QaSeedRunner.ClientUserId,
+            "the response must not leak the internal ApplicationUser.Id storage key as clientId");
+
+        // ── 2. CHAIN: feed the plan response's clientId straight into the second call. ──
+        var responsesHttp = await client.GetAsync(
+            $"/trainer/clients/{plan.ClientId}/questionnaire-responses", ct);
+
+        responsesHttp.StatusCode.Should().Be(System.Net.HttpStatusCode.OK,
+            "chaining plan.ClientId into /trainer/clients/{{clientId}}/... must resolve — a 404 " +
+            "here reproduces the #854 regression exactly as the browser experienced it");
+
+        var responses = await responsesHttp.Content.ReadFromJsonAsync<GetClientResponsesResponse>(jsonOptions, ct);
+        responses.Should().NotBeNull();
+        var linked = responses!.Responses.SingleOrDefault(
+            r => r.ResponsePublicId == plan.QuestionnaireResponseId!.Value);
+
+        linked.Should().NotBeNull(
+            "the chained call must return the same linked Submitted response the direct-PublicId " +
+            "call returns — proving the chained clientId resolves to the same client");
+        linked!.Status.Should().Be("Submitted");
+        linked.QuestionnaireTitle.Should().Be("QA Nutrition Intake Questionnaire");
     }
 }

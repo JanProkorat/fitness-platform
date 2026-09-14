@@ -23,7 +23,7 @@ public class DayLog
     public Guid ExternalId { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// The client who owns this day log (matches ClientProfile.PublicId).
+    /// The client who owns this day log (matches ApplicationUser.Id — #840).
     /// </summary>
     [BsonElement("clientId")]
     public Guid ClientId { get; set; }

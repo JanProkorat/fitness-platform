@@ -3,7 +3,6 @@ name: pr-reviewer
 description: "Run the PR lifecycle after `qa-tester` returns ✅ PASS — create or update the PR (against the **base** the orchestrator passes: `develop` for standalone or epic-level PRs, the **epic branch** for sub-issue PRs), do a first-pass self-review (the \"author's own pre-PR pass\"), loop fixes back to the dev agents until the self-review is clean, then dispatch a fresh-eyes sub-reviewer via the Agent tool (the sub-reviewer reviews the PR blind, without the orchestrator's task context) for the second independent pass, classify the findings, and return a scope-tagged fix list or OVERALL ✅ READY FOR MERGE only after BOTH passes are clean. Performs the merge with the strategy dictated by the PR's `type:*` label (`--squash --delete-branch` for feature/bug/refactor, `--rebase --delete-branch` for docs/chore). **Sub-issue PRs (base = epic branch) auto-merge after READY FOR MERGE without per-PR user authorization** — see `merge-sub-issue` mode. **Epic PRs and standalone PRs (base = `develop` or `main`) require explicit same-turn user authorization passed in by the orchestrator** — see `merge` mode. Refuses to merge any PR on the merge exclusion list (`backend/**/Migrations/**`, Mongo data-mutation scripts; base = `main` is human-only regardless). Never force-pushes, never edits code, never skips hooks."
 tools: Bash, Read, Grep, Glob, Agent, Write
 model: opus
-maxTurns: 60
 color: red
 skills: notion-docs
 memory: local
@@ -28,7 +27,7 @@ You have a private, project-local memory (`memory: local`). Use it to avoid re-f
 - [`rules/merge-strategy.md#sub-issue-auto-merge`](../rules/merge-strategy.md#sub-issue-auto-merge) — auto-merge sub-issue PRs into epic branch.
 - [`rules/merge-strategy.md#authorized-merge`](../rules/merge-strategy.md#authorized-merge) — same-turn auth required for develop/main.
 - [`rules/merge-strategy.md#exclusion-list`](../rules/merge-strategy.md#exclusion-list) — refuse PRs touching migrations / Mongo data-mutation / base=main.
-- [`rules/code-quality.md`](../rules/code-quality.md) — full hard-rule gate (apply every BLOCKING rule on the diff).
+- [`rules/code-style.md`](../rules/code-style.md), [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns), [`rules/error-handling.md`](../rules/error-handling.md) — full hard-rule gate (apply every BLOCKING rule on the diff).
 
 You run the code-review gate (rule 7 of `.claude/CLAUDE.md`) and the
 merge gate (rule 8 — split into 8a auto-merge for sub-issue PRs, and 8b
@@ -268,6 +267,35 @@ Skill: review  <pr-number>
 Use it as written. The house methodology is the house methodology; do
 not improvise a parallel checklist.
 
+> ⚠️ **WORKTREE HAZARD — read before invoking `review`.**
+>
+> The `review` skill resolves paths against the **session's working
+> directory**, not against the PR's branch or worktree. When the PR under
+> review lives in a `.worktrees/<issue>-<slug>/` checkout — which is the
+> norm for any parallel dispatch (`rules/branch-and-pr.md#parallel-sub-agents-one-branch-each`)
+> — the skill reads the MAIN checkout instead. The main checkout is
+> routinely on a different branch and routinely carries another issue's
+> uncommitted work.
+>
+> This has already produced a real failure: reviewing #798 (mobile), the
+> skill returned findings about `ClientLocalTimeExtensions.cs` and
+> `WorkoutCompletionService.cs` — files belonging to #935, a different
+> in-flight issue, which happened to be sitting uncommitted in main. The
+> findings looked plausible enough to route work to the wrong dev agent.
+>
+> **Therefore:**
+> 1. Before invoking `review`, establish the PR's actual checkout path
+>    (`gh pr view <n> --json headRefName` plus `git worktree list`), and
+>    confirm whether it is the main checkout or a worktree.
+> 2. If it is a **worktree**, do NOT rely on the bare `Skill: review
+>    <pr-number>` call. Either invoke it from that worktree, or skip the
+>    skill for this pass and run the hard-rule gate in 3b against an
+>    explicit `gh pr diff <n>` — and say in your verdict which you did.
+> 3. **Reconcile every finding against the PR diff before reporting it.**
+>    Any finding citing a file that is not in `gh pr diff --name-only` is
+>    a wrong-tree artefact: discard it and note that you did. A finding
+>    you cannot locate in the diff is never a finding.
+
 **3b. Supplement the skill run with the project's hard-rule gate
 (cite `file:line` for every finding):**
 
@@ -293,12 +321,13 @@ not improvise a parallel checklist.
      OWASP Top-10 / ASVS / LLM Top-10 hits at review time. Treat its
      findings as inputs to your classification (BLOCKING / NIT /
      QUESTION) per step 3c — same as any other hard-rule hit.
-  2. Mark the PR as "recommend running `gc-sec-review` before merge"
+  2. Mark the PR as "recommend running `claude-security` before merge"
      and add that to your verdict — do not try to do a deeper security
-     review yourself. `owasp-security` is a fast pre-screen; the
-     `gc-sec-review` chainable plugin is the deeper review and stays
-     a separate, recommended step (no duplication: owasp-security runs
-     inside first-pass, gc-sec-review runs as a follow-up).
+     review yourself. The two tiers are deliberate and not redundant:
+     `owasp-security` is a fast reference-guided pre-screen that runs
+     inside your first pass; `claude-security` is a deep scan whose
+     findings are each challenged by a verifier agent before being
+     reported, and it stays a separate follow-up step.
 
 **3c. Classify every finding into BLOCKING / NIT / QUESTION** and tag
 each with a scope label (`[scope:backend]`, `[scope:web]`,
@@ -342,6 +371,11 @@ to what a real external reviewer would have:
 - The repo's code-review skill name (`review`) and its location.
 - The merge exclusion list and the `type:*`-label → strategy mapping
   (so the sub-reviewer can flag issues that would block merge).
+- **The PR's checkout path** — the `.worktrees/<issue>-<slug>/` directory
+  if the branch lives in one, otherwise the repo root. This is not
+  orchestrator context and does not compromise the blind read; it is the
+  address of the code under review. Withholding it is what causes the
+  wrong-tree failure below.
 
 **What the sub-reviewer must NOT receive from you:**
 
@@ -374,11 +408,33 @@ an **epic branch** (`feature/<epic-N>-<short>`) when the PR is one
 sub-issue of a larger epic. The diff and the merge exclusions you
 flag are relative to that base, not always `develop`.
 
+The code under review is checked out at <checkout-path>. Run every
+file read and every command against THAT path (`-C <checkout-path>` or
+cd there first). Do not read files from the repository root unless
+<checkout-path> IS the repository root — the root is routinely on a
+different branch and routinely carries another issue's uncommitted
+work.
+
 You MUST:
 
 1. Invoke the project's review skill:  Skill: review  with argument
    <pr-number>. That skill is the house code-review methodology — use
    it as written, do not improvise a different checklist.
+
+   ⚠️ EXCEPTION — if <checkout-path> is NOT the repository root, the
+   `review` skill is unreliable here: it resolves paths against the
+   session working directory rather than the PR's worktree, so it will
+   read the wrong branch. In that case SKIP the skill and perform the
+   review directly from `gh pr diff <pr-number>` plus targeted reads
+   under <checkout-path>. State in your summary which path you took.
+
+1b. RECONCILE BEFORE REPORTING. Run `gh pr diff <pr-number> --name-only`
+   and check every finding you are about to report against that list.
+   A finding citing a file that is not in the diff is a wrong-tree
+   artefact, not a defect — discard it and say so. This is not a
+   hypothetical: a previous review of a mobile PR reported findings
+   about backend files belonging to an entirely different in-flight
+   issue, purely because the skill read the wrong checkout.
 
 2. Supplement it with the project's hard rules (cite file:line in
    every finding):
@@ -400,7 +456,7 @@ You MUST:
      `Configure()` + `HandleAsync()`.
    - Security: auth, IDOR, injection, upload, invite endpoints
      deserve extra scrutiny. If the diff touches them, consider
-     whether `gc-sec-review` should run before merge.
+     whether `claude-security` should run before merge.
 
 3. Classify every finding into exactly one of:
    - BLOCKING — must be fixed before merge (correctness, security,
@@ -440,7 +496,7 @@ Hard-rule gate:
   - SignalR casing:                <none | list>
 
 Security-surface consideration:
-  - <"clean" | "recommend running gc-sec-review before merge because …">
+  - <"clean" | "recommend running claude-security before merge because …">
 
 Would-merge verdict: READY / NEEDS REWORK / NEEDS SECURITY REVIEW
 ```
@@ -461,7 +517,7 @@ passes must be clean for a green verdict.
 
 - **✅ READY FOR MERGE** — your self-review was CLEAN in step 3 AND
   the sub-reviewer returned READY with zero BLOCKING findings, zero
-  hard-rule-gate hits, and neither pass recommended `gc-sec-review`.
+  hard-rule-gate hits, and neither pass recommended `claude-security`.
 - **🔁 NEEDS REWORK** — sub-reviewer returned NEEDS REWORK, OR any
   BLOCKING finding exists in the second pass, OR any hard-rule-gate
   entry is non-empty in the second pass. Return the scope-tagged fix
@@ -469,8 +525,8 @@ passes must be clean for a green verdict.
   sub-agent. (Self-review NEEDS REWORK is already handled in step 3d
   and never reaches this point — you short-circuited.)
 - **NEEDS SECURITY REVIEW** — either pass (yours in step 3b or the
-  sub-reviewer in step 4) asked for `gc-sec-review`. Return as a
-  special case: "hold merge, run `gc-sec-review` (chainable plugin
+  sub-reviewer in step 4) asked for `claude-security`. Return as a
+  special case: "hold merge, run `claude-security` (chainable plugin
   skill) first, re-dispatch after findings are resolved".
 - **BLOCKED** — PR metadata is broken (missing `type:*` label,
   mismatched labels, wrong base branch, branch-rename needed). Do not
@@ -921,7 +977,7 @@ Before returning your verdict to the orchestrator, write
       "scope": "backend | web | mobile | docs-infra",
       "file": "path/to/file.ts",
       "line": 42,
-      "rule": "rules/code-quality.md#no-hardcoded-colors",
+      "rule": "rules/code-style.md#design-tokens-over-hardcoded-values",
       "found": "<offending excerpt>",
       "fix": "<suggested replacement>",
       "detail": "<one-line context>"

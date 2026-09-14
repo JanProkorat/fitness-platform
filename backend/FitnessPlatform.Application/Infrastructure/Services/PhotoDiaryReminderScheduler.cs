@@ -96,15 +96,13 @@ public class PhotoDiaryReminderScheduler(
             await Task.Delay(delay, stoppingToken);
         }
 
-        // Seed cursor from DB so a cold start doesn't re-fire the last hour.
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            _lastTickAt = await SeedCursorAsync(db, UtcNow(), stoppingToken);
-        }
-
-        _cursorInitialized = true;
-
+        // The cursor is seeded inside TickAsync on its first call, which keeps the seed
+        // read under the same guard as the rest of the tick. Seeding out here instead
+        // would leave a DB call between the alignment delay and the loop with nothing
+        // catching it: the resulting exception escapes ExecuteAsync, faults its Task,
+        // and HostOptions.BackgroundServiceExceptionBehavior (StopHost by default) takes
+        // the whole process down. A dropped table, a failover, a connection reset, or a
+        // migration deploying against a running app all reach that same call.
         using var timer = new PeriodicTimer(TimeSpan.FromHours(1));
 
         while (!stoppingToken.IsCancellationRequested)
@@ -114,12 +112,12 @@ public class PhotoDiaryReminderScheduler(
 
             try
             {
-                using var scope = scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-                await ProcessTickAsync(db, scope.ServiceProvider, tickNow, stoppingToken);
+                await TickAsync(tickNow, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
+                // If the seed itself failed, _cursorInitialized stays false and the next
+                // tick retries it rather than running with an unseeded cursor.
                 logger.LogError(ex,
                     "PhotoDiaryReminderScheduler: unhandled error on tick at {TickNow:u}.", tickNow);
             }
@@ -225,13 +223,8 @@ public class PhotoDiaryReminderScheduler(
 
             // ── Check if client already uploaded a photo today ────────────────
             // "today" = [start-of-local-day, end-of-local-day) in UTC.
-            var localDayStart = localNow.Date;
-            var localDayEnd   = localDayStart.AddDays(1);
-
-            var dayStartUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localDayStart, DateTimeKind.Unspecified), tz);
-            var dayEndUtc = TimeZoneInfo.ConvertTimeToUtc(
-                DateTime.SpecifyKind(localDayEnd, DateTimeKind.Unspecified), tz);
+            var (dayStartUtc, dayEndUtc) = Domain.Services.ClientLocalDateResolver.ResolveLocalDayWindowUtc(
+                DateOnly.FromDateTime(localNow.Date), tz);
 
             var alreadyUploaded = await db.PlanPhotos
                 .AsNoTracking()
@@ -445,19 +438,8 @@ public class PhotoDiaryReminderScheduler(
 
     private DateTime UtcNow() => OverrideNow ?? DateTime.UtcNow;
 
-    private TimeZoneInfo GetTimeZoneInfo(string ianaId)
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(ianaId);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            logger.LogWarning(
-                "PhotoDiaryReminderScheduler: unknown time zone '{IanaId}'; falling back to UTC.", ianaId);
-            return TimeZoneInfo.Utc;
-        }
-    }
+    private TimeZoneInfo GetTimeZoneInfo(string ianaId) =>
+        Domain.Services.ClientLocalDateResolver.ResolveTimeZone(ianaId, logger);
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505";

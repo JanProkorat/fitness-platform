@@ -12,7 +12,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for <see cref="WeeklyCheckInScheduler"/> using a virtual clock.
-/// Uses Testcontainers PostgreSQL + MongoDB (Docker required). Excluded from CI.
+/// Uses Testcontainers PostgreSQL + MongoDB (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)

@@ -42,7 +42,7 @@ import {
   PlanPhotoCategory,
   type GetMyPhotosPageResult,
   type MonthGroupResponse,
-  type PlanPhotoResponse2,
+  type ClientPhotoResponse,
 } from '@/api/photos'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ type FilterCategory = 'All' | 'Food' | 'Body' | 'FreeForm'
 interface PhotoSection {
   title: string
   yearMonth: string
-  data: PlanPhotoResponse2[][]
+  data: ClientPhotoResponse[][]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -93,9 +93,9 @@ function categoryToApi(filter: FilterCategory): PlanPhotoCategory | null {
 // ─── Row renderer (3 photos per row) ─────────────────────────────────────────
 
 interface PhotoRowProps {
-  row: PlanPhotoResponse2[]
+  row: ClientPhotoResponse[]
   tileSize: number
-  onPress: (photo: PlanPhotoResponse2, sectionYearMonth: string) => void
+  onPress: (photo: ClientPhotoResponse, sectionYearMonth: string) => void
   sectionYearMonth: string
 }
 
@@ -110,9 +110,9 @@ function PhotoRow({ row, tileSize, onPress, sectionYearMonth }: PhotoRowProps) {
           accessibilityRole="imagebutton"
           style={[styles.tile, { width: tileSize, height: tileSize, backgroundColor: colors.fill2 }]}
         >
-          {photo.blobUrl ? (
+          {photo.displayUrl ? (
             <Image
-              source={{ uri: photo.blobUrl }}
+              source={{ uri: photo.displayUrl }}
               style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
@@ -230,7 +230,7 @@ export default function ProfilePhotosScreen() {
   )
 
   // ── Build SectionList sections ──
-  const sections = useMemo((): { yearMonth: string; monthLabel: string; photos: PlanPhotoResponse2[] }[] => {
+  const sections = useMemo((): { yearMonth: string; monthLabel: string; photos: ClientPhotoResponse[] }[] => {
     return allGroups
       .filter((g): g is MonthGroupResponse & { yearMonth: string } => typeof g.yearMonth === 'string')
       .map((g) => ({
@@ -244,7 +244,7 @@ export default function ProfilePhotosScreen() {
   // ── Build SectionList data (each item is a row of ≤3 photos) ──
   const sectionListData = useMemo((): PhotoSection[] => {
     return sections.map((s) => {
-      const rows: PlanPhotoResponse2[][] = []
+      const rows: ClientPhotoResponse[][] = []
       for (let i = 0; i < s.photos.length; i += 3) {
         rows.push(s.photos.slice(i, i + 3))
       }
@@ -254,27 +254,22 @@ export default function ProfilePhotosScreen() {
 
   // ── Handle tile press: open lightbox with all photos in that section ──
   const handleTilePress = useCallback(
-    (photo: PlanPhotoResponse2, sectionYearMonth: string) => {
+    (photo: ClientPhotoResponse, sectionYearMonth: string) => {
       const section = allGroups.find((g) => g.yearMonth === sectionYearMonth)
       const sectionPhotos = section?.photos ?? []
-      // Keep urls and notes index-aligned: drop entries with no blobUrl from
-      // both arrays so the caption that shows with each photo is the one the
-      // trainer wrote on it.
-      const urls: string[] = []
-      const notes: (string | null)[] = []
-      let photoIndex = 0
-      for (let i = 0; i < sectionPhotos.length; i++) {
-        const p = sectionPhotos[i]
-        if (typeof p.blobUrl !== 'string') continue
-        if (p.id === photo.id || p.blobUrl === photo.blobUrl) {
-          photoIndex = urls.length
-        }
-        urls.push(p.blobUrl)
-        notes.push(p.description ?? null)
-      }
+      // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which
+      // is identity-only and not directly fetchable. Map without filtering so
+      // the images/notes arrays stay index-aligned with `sectionPhotos`;
+      // ImageLightbox renders a placeholder for an empty entry. Identity for
+      // locating the tapped photo's index still uses `blobUrl`/`id`.
+      const urls = sectionPhotos.map((p) => p.displayUrl ?? '')
+      const notes = sectionPhotos.map((p) => p.description ?? null)
+      const photoIndex = sectionPhotos.findIndex(
+        (p) => p.id === photo.id || (p.blobUrl != null && p.blobUrl === photo.blobUrl),
+      )
       setLightboxImages(urls)
       setLightboxNotes(notes)
-      setLightboxIndex(photoIndex)
+      setLightboxIndex(photoIndex >= 0 ? photoIndex : 0)
       setLightboxVisible(true)
     },
     [allGroups],
@@ -301,7 +296,7 @@ export default function ProfilePhotosScreen() {
 
   // ── Render: row of photos ──
   const renderItem = useCallback(
-    ({ item, section }: SectionListRenderItemInfo<PlanPhotoResponse2[], PhotoSection>) => (
+    ({ item, section }: SectionListRenderItemInfo<ClientPhotoResponse[], PhotoSection>) => (
       <View style={{ paddingHorizontal: OUTER_MARGIN }}>
         <PhotoRow
           row={item}
@@ -315,7 +310,7 @@ export default function ProfilePhotosScreen() {
   )
 
   const keyExtractor = useCallback(
-    (item: PlanPhotoResponse2[], index: number) =>
+    (item: ClientPhotoResponse[], index: number) =>
       `row-${index}-${item.map((p) => p.id ?? p.blobUrl ?? '').join(',')}`,
     [],
   )

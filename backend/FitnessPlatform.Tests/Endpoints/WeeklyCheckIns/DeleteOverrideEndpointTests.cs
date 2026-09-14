@@ -12,7 +12,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for DELETE /trainer/weekly-check-ins/overrides/{clientUserId}/{profession}.
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI — see backend.yml.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class DeleteOverrideEndpointTests(FitnessApiFactory factory)

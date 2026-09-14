@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -17,8 +18,12 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.LinkQuestionnaire;
 /// Links or unlinks a questionnaire response to/from a training plan.
 /// Validates that the response belongs to the same professional and client.
 /// </summary>
-public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplicationDbContext db, PlanConcurrencyGuard guard)
-    : Endpoint<LinkQuestionnaireRequest, GetTrainingPlanResponse>
+public class LinkTrainingQuestionnaireEndpoint(
+    IMongoContext mongo,
+    IApplicationDbContext db,
+    PlanConcurrencyGuard guard,
+    IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<LinkTrainingQuestionnaireRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -33,7 +38,7 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
     }
 
     /// <inheritdoc />
-    public override async Task HandleAsync(LinkQuestionnaireRequest req, CancellationToken ct)
+    public override async Task HandleAsync(LinkTrainingQuestionnaireRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null)
@@ -55,6 +60,7 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             async (plan, mutateCt) =>
             {
                 // Only draft or active plans can have their questionnaire link changed
@@ -104,12 +110,35 @@ public class LinkTrainingQuestionnaireEndpoint(IMongoContext mongo, IApplication
                     "Version conflict. The plan was modified concurrently.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
         var plan = guardResult.Document!;
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — plan.ClientId is the internal ApplicationUser.Id storage key.
+        var clientPublicId = await db.ResolveClientPublicIdAsync(plan.ClientId, ct);
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant training access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
+    {
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewTrainingPlans: true })
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

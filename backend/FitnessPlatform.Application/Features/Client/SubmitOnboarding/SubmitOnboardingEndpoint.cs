@@ -40,6 +40,7 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
 
         var profile = await dbContext.ClientProfiles
             .Include(cp => cp.OnboardingData)
+            .ThenInclude(od => od!.NutritionTargets)
             .FirstOrDefaultAsync(cp => cp.UserId == userId, ct);
 
         if (profile is null)
@@ -113,14 +114,23 @@ public class SubmitOnboardingEndpoint(IApplicationDbContext dbContext, IAuditSer
         var adjustedKcal = calculator.ApplyGoalAdjustment(tdee, nutritionGoal);
         var macros = calculator.CalculateMacroSplit(adjustedKcal); // defaults: 30/45/25
 
-        data.DerivedActivityLevel = activityLevel;
-        data.DerivedNutritionGoal = nutritionGoal;
-        data.Bmr = bmr;
-        data.Tdee = tdee;
-        data.AdjustedKcal = adjustedKcal;
-        data.ProteinGrams = macros.ProteinGrams ?? 0;
-        data.CarbsGrams = macros.CarbsGrams ?? 0;
-        data.FatGrams = macros.FatGrams ?? 0;
+        var targets = data.NutritionTargets ?? new ClientNutritionTargets();
+        var isNewTargets = data.NutritionTargets is null;
+
+        targets.DerivedActivityLevel = activityLevel;
+        targets.DerivedNutritionGoal = nutritionGoal;
+        targets.Bmr = bmr;
+        targets.Tdee = tdee;
+        targets.AdjustedKcal = adjustedKcal;
+        targets.ProteinGrams = macros.ProteinGrams ?? 0;
+        targets.CarbsGrams = macros.CarbsGrams ?? 0;
+        targets.FatGrams = macros.FatGrams ?? 0;
+
+        if (isNewTargets)
+        {
+            data.NutritionTargets = targets;
+            dbContext.ClientNutritionTargets.Add(targets);
+        }
 
         if (profile.OnboardingData is null)
             dbContext.ClientOnboardingData.Add(data);

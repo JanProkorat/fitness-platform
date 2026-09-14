@@ -60,7 +60,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
     }
 
     private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId,
-        UserRole role = UserRole.Nutritionist)
+        UserRole role = UserRole.Nutritionist, bool isActive = true)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -75,7 +75,7 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
             ClientProfileId = clientProfile.Id,
             ProfessionalProfileId = profProfile.Id,
             ProfessionalRole = role,
-            IsActive = true,
+            IsActive = isActive,
             CanViewNutritionPlans = role == UserRole.Nutritionist,
             CanViewTrainingPlans = role == UserRole.Trainer,
             PublicId = Guid.NewGuid(),
@@ -168,6 +168,56 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         diaryItem.Status.Should().Be("Pending");
         diaryItem.ProfessionalRole.Should().Be("Nutritionist");
         diaryItem.ProfessionalName.Should().NotBeNullOrEmpty();
+    }
+
+    // ── Diary request via deactivated link → NOT returned ──────────────────────
+
+    [Fact]
+    public async Task DiaryRequest_ViaDeactivatedLink_NotReturned()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, _) = await SetupClientAsync();
+
+        var linkId = await InsertLinkAsync(clientUserId, profId, isActive: false);
+        var requestId = await InsertDiaryRequestAsync(profId, linkId: linkId);
+
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.PendingDiaryRequests.Should().NotContain(i => i.RequestPublicId == requestId);
+    }
+
+    // ── Deactivated link + matching pending invite → invite request survives ──
+
+    [Fact]
+    public async Task DiaryRequest_DeactivatedLinkWithMatchingInvite_OnlyInviteRoutedRequestReturned()
+    {
+        var (_, profId) = await SetupNutritionistAsync();
+        var (clientHttp, clientUserId, clientEmail) = await SetupClientAsync();
+
+        var deactivatedLinkId = await InsertLinkAsync(clientUserId, profId, isActive: false);
+        var inviteId = await InsertPendingInviteAsync(profId, clientEmail);
+
+        var linkRoutedRequestId = await InsertDiaryRequestAsync(profId, linkId: deactivatedLinkId);
+        var inviteRoutedRequestId = await InsertDiaryRequestAsync(profId, inviteId: inviteId);
+
+        var response = await clientHttp.GetAsync(
+            "/client/questionnaires/pending",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<BannerResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.PendingDiaryRequests.Should().Contain(i => i.RequestPublicId == inviteRoutedRequestId);
+        body.PendingDiaryRequests.Should().NotContain(i => i.RequestPublicId == linkRoutedRequestId);
     }
 
     // ── Diary request via pending invite → returned (email-matched) ───────────

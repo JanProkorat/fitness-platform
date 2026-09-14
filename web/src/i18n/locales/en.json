@@ -520,7 +520,6 @@
     "collaborationBoth": "Online & in-person",
     "collaborationOnline": "Online only",
     "collaborationInPerson": "In-person only",
-    "maxClients": "Max clients",
     "languages": "Languages",
     "addLanguage": "Add language...",
     "socialNetworks": "Social networks",
@@ -927,7 +926,6 @@
     "CLIENT_NOT_FOUND": "Client not found.",
     "NO_CLIENT_RELATIONSHIP": "You don't have an active relationship with this client.",
     "COLLABORATOR_NOT_FOUND": "Collaborator not found.",
-    "COLLABORATOR_ALREADY_LINKED": "This collaborator is already linked to the client.",
     "PLAN_NOT_DRAFT": "Only draft plans can be published.",
     "START_DATE_NOT_MONDAY": "Start date must be a Monday.",
     "START_DATE_IN_PAST": "Start date cannot be in the past.",
@@ -1180,6 +1178,7 @@
     "weightLabel": "Weight (kg)",
     "restSecondsLabel": "Rest (s)",
     "duplicateSession": "Duplicate session",
+    "sessionDuplicateName": "{{name}} (copy)",
     "removeSession": "Remove session",
     "addExercisePlaceholder": "+ Add exercise...",
     "leaveTitle": "Unsaved changes",
@@ -1392,16 +1391,7 @@
       "deleteError": "Failed to delete workout.",
       "deleteConfirmTitle": "Delete Workout",
       "deleteConfirmMessage": "Are you sure you want to delete the workout «{{name}}»? This cannot be undone.",
-      "versionConflict": "Workout was changed elsewhere, reloading.",
-      "library": {
-        "title": "Template library",
-        "subtitle": "Public workout templates you can use as a starting point.",
-        "colSections": "Sections",
-        "durationMinutes": "{{count}} min",
-        "viewDetails": "View details",
-        "formatConfigLabel": "Format",
-        "descriptionLabel": "Description"
-      }
+      "versionConflict": "Workout was changed elsewhere, reloading."
     },
     "completionState": {
       "setCompleted": "Completed",
@@ -2160,6 +2150,7 @@
     "loading": "Loading training plan…",
     "loadError": "Error loading training plan.",
     "createError": "Failed to create plan.",
+    "clientLoadError": "Could not load this client. Please try again.",
     "back": "← Back",
     "defaultPlanName": "Training plan",
     "roleDenied": "You do not have access to this client's training plans.",

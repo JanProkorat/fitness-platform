@@ -39,7 +39,7 @@ public class GetShoppingListEndpointTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal1);
         plan.Weeks[0].Days[1].Meals.Add(meal2);
 
@@ -51,7 +51,7 @@ public class GetShoppingListEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),
@@ -79,7 +79,7 @@ public class GetShoppingListEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),
@@ -98,7 +98,7 @@ public class GetShoppingListEndpointTests
         var ep = Factory.Create<GetShoppingListEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity()),
-            mongo, db);
+            mongo, db, TimeProvider.System);
 
         await ep.HandleAsync(
             new GetShoppingListRequest(),

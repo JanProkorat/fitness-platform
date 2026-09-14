@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 
 /// <summary>
@@ -29,4 +31,13 @@ public class CreatePendingInviteRequest
     /// Optional public ID of a questionnaire to assign to the client.
     /// </summary>
     public Guid? QuestionnairePublicId { get; set; }
+
+    /// <summary>
+    /// Optional explicit domain scope for the relationship this invitation will form.
+    /// When omitted, the accept flow defaults to every domain implied by the inviting
+    /// professional's held identity roles (existing behavior — unchanged). When
+    /// supplied, it must be a subset of the professional's actually-held roles; e.g. a
+    /// Trainer-only professional cannot request <see cref="LinkCapabilityScope.NutritionOnly"/>.
+    /// </summary>
+    public LinkCapabilityScope? RequestedScope { get; set; }
 }

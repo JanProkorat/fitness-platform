@@ -10,6 +10,20 @@ public class ListClientPlansResponse
     /// All plans (nutrition + training) across all statuses, newest first.
     /// </summary>
     public List<ClientPlanItem> Plans { get; set; } = [];
+
+    /// <summary>
+    /// Whether the caller's link permits viewing the client's nutrition plans.
+    /// Mirrors <c>ClientProfessionalLink.CanViewNutritionPlans</c>. Lets the portal
+    /// distinguish "no nutrition plans exist" from "you may not see them".
+    /// </summary>
+    public bool CanViewNutritionPlans { get; set; }
+
+    /// <summary>
+    /// Whether the caller's link permits viewing the client's training plans.
+    /// Mirrors <c>ClientProfessionalLink.CanViewTrainingPlans</c>. Lets the portal
+    /// distinguish "no training plans exist" from "you may not see them".
+    /// </summary>
+    public bool CanViewTrainingPlans { get; set; }
 }
 
 /// <summary>

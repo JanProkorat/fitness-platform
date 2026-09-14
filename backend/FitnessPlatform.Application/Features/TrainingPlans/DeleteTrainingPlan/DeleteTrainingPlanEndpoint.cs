@@ -3,6 +3,8 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -18,7 +20,10 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.DeleteTrainingPlan;
 /// guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-public class DeleteTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<DeleteTrainingPlanRequest>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
+public class DeleteTrainingPlanEndpoint(IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<DeleteTrainingPlanRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -45,14 +50,12 @@ public class DeleteTrainingPlanEndpoint(IMongoContext mongo) : Endpoint<DeleteTr
 
         var trainerId = Guid.Parse(userId);
 
-        // Verify ownership
-        var findFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        var cursor = await mongo.TrainingPlans.FindAsync(findFilter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        // Verify authorship AND that the caller's link to the plan's client still grants
+        // training access.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
-        if (plan is null || plan.TrainerId != trainerId)
+        if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 

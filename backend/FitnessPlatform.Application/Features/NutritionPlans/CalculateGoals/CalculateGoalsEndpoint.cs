@@ -3,7 +3,6 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Infrastructure.Services;
 
 namespace FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 
@@ -11,8 +10,9 @@ namespace FitnessPlatform.Application.Features.NutritionPlans.CalculateGoals;
 /// Calculates BMR, TDEE, adjusted calories, and macro split for a client.
 /// </summary>
 /// <param name="calculator">Macro calculator service.</param>
-/// <param name="authHelper">Nutrition authorization helper.</param>
-public class CalculateGoalsEndpoint(IMacroCalculatorService calculator, NutritionAuthHelper authHelper)
+/// <param name="linkAuthorizationService">Resolves the nutritionist-client link's CanViewNutritionPlans permission.</param>
+public class CalculateGoalsEndpoint(
+    IMacroCalculatorService calculator, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<CalculateGoalsRequest, CalculateGoalsResponse>
 {
     /// <inheritdoc />
@@ -40,10 +40,13 @@ public class CalculateGoalsEndpoint(IMacroCalculatorService calculator, Nutritio
 
         var nutritionistId = Guid.Parse(userId);
 
-        // Verify nutritionist has active link to the client
-        var hasLink = await authHelper.HasActiveLinkAsync(nutritionistId, req.ClientId, ct);
+        // Verify nutritionist has active link to the client with nutrition-domain access.
+        // req.ClientId is the nutritionist-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            nutritionistId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewNutritionPlans: true })
         {
             await Send.NotFoundAsync(ct);
             return;

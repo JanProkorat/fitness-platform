@@ -37,6 +37,7 @@ public class MarkExerciseCompleteBroadcastTests
     private readonly ISessionLockService _lockService = CreateStubLockService();
     private static readonly IOptions<TrainingLockOptions> LockOptions =
         Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private readonly ILogger<MarkExerciseCompleteEndpoint> _logger =
         Substitute.For<ILogger<MarkExerciseCompleteEndpoint>>();
 
@@ -73,16 +74,48 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         // Exactly one notification to the trainer's user id
         await _notifier.Received(1).NotifyAsync(
+            _trainerId,
+            "trainingprogressupdated",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── F6 (claude-security review): revoked/narrowed link stops the broadcast ────
+    // TrainingProgressBroadcaster used to read plan.TrainerId unconditionally — authorship is
+    // permanent even after the collaboration ends. This proves the shared broadcaster now
+    // consults the link's live capability before notifying.
+
+    [Fact]
+    public async Task HandleAsync_LinkDeniesTrainingAccess_DoesNotBroadcastToTrainer()
+    {
+        var plan = CreateActivePlan();
+        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
+        var db = CreateMockDb(_clientId, _clientId);
+        var denyingLinkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewTrainingPlans: false);
+
+        var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, denyingLinkAuthorizationService, _logger, TimeProvider.System);
+
+        await ep.HandleAsync(
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200,
+            "the mutation itself must still succeed — only the broadcast is gated");
+
+        await _notifier.DidNotReceive().NotifyAsync(
             _trainerId,
             "trainingprogressupdated",
             Arg.Any<object>(),
@@ -101,10 +134,10 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await _notifier.Received(1).NotifyAsync(
@@ -135,10 +168,10 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await _notifier.Received(1).NotifyAsync(
@@ -160,10 +193,10 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         // Must be sent to trainer, not the client
@@ -190,11 +223,7 @@ public class MarkExerciseCompleteBroadcastTests
             sessionId: _sessionId,
             date: DateTime.UtcNow.Date,
             completedExerciseIds: [_exercise1],
-            version: 1,
-            completedExerciseIdsBySection: new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exercise1]
-            });
+            version: 1);
 
         var plan = CreateActivePlan();
         var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
@@ -205,11 +234,11 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // exercise1 is already complete — idempotent no-op
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -240,10 +269,10 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
@@ -274,23 +303,22 @@ public class MarkExerciseCompleteBroadcastTests
         mongo.TrainingPlans.Returns(planColl);
 
         // UpdateOneAsync returns ModifiedCount=0 → version conflict
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb(_clientId, _clientId);
 
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkExerciseCompleteRequest
             {
                 SessionId = _sessionId,
-                ExerciseExternalId = _exercise1,
-                SectionId = _sectionId,
+                ExerciseId = _exercise1,
                 Version = 2
             },
             TestContext.Current.CancellationToken);
@@ -321,11 +349,11 @@ public class MarkExerciseCompleteBroadcastTests
         var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // Should NOT throw; the broadcast exception is swallowed
         var act = async () => await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseExternalId = _exercise1, SectionId = _sectionId },
+            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
             TestContext.Current.CancellationToken);
 
         await act.Should().NotThrowAsync();

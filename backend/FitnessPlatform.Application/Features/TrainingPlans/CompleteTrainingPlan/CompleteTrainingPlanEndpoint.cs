@@ -24,7 +24,8 @@ public class CompleteTrainingPlanEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
-    PlanConcurrencyGuard guard) : Endpoint<CompleteTrainingPlanRequest, GetTrainingPlanResponse>
+    PlanConcurrencyGuard guard,
+    IClientLinkAuthorizationService linkAuthorizationService) : Endpoint<CompleteTrainingPlanRequest, GetTrainingPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -61,6 +62,7 @@ public class CompleteTrainingPlanEndpoint(
             replaceFilter,
             req.Version,
             p => p.Version,
+            (plan, authorizeCt) => AuthorizeAsync(plan, trainerId, authorizeCt),
             (plan, _) =>
             {
                 // Only active plans can be completed
@@ -95,16 +97,16 @@ public class CompleteTrainingPlanEndpoint(
                     "Version conflict. The plan was modified by another request.", ct);
                 return;
             case PlanConcurrencyOutcome.HandledByMutator:
-                // Never reached: this endpoint's mutate delegate never writes a response directly.
+                // The authorize delegate already wrote its 404.
                 return;
         }
 
         var plan = guardResult.Document!;
 
-        // Notify the client
+        // Notify the client — TrainingPlan.ClientId is ApplicationUser.Id (#840).
         var clientProfile = await db.ClientProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
+            .FirstOrDefaultAsync(cp => cp.UserId == plan.ClientId, ct);
 
         if (clientProfile is not null)
         {
@@ -122,6 +124,29 @@ public class CompleteTrainingPlanEndpoint(
             }, ct);
         }
 
-        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan), ct);
+        // Response ClientId must stay the client-facing ClientProfile.PublicId (pre-#840
+        // contract) — reuse the profile already resolved above instead of a second lookup.
+        var clientPublicId = clientProfile?.PublicId ?? plan.ClientId;
+        await Send.OkAsync(GetTrainingPlanResponse.FromDocument(plan, clientPublicId), ct);
+    }
+
+    /// <summary>
+    /// The lookup filter proved authorship, which is permanent. Access is not — require the
+    /// caller's link to the plan's client to still grant training access. Runs before the
+    /// guard's version comparison so a denial is indistinguishable from a missing plan.
+    /// </summary>
+    private async Task<bool> AuthorizeAsync(TrainingPlan plan, Guid trainerId, CancellationToken ct)
+    {
+        // plan.ClientId is ApplicationUser.Id (#840) — the UserId-addressed overload.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerId, plan.ClientId, ct);
+
+        if (capabilities is { CanViewTrainingPlans: true })
+        {
+            return true;
+        }
+
+        await Send.NotFoundAsync(ct);
+        return false;
     }
 }

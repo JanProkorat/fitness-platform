@@ -3,45 +3,77 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientProgress;
 using FitnessPlatform.Application.Infrastructure.Data;
-using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
 /// <summary>
 /// Unit tests for <see cref="GetClientProgressEndpoint"/>.
+///
+/// Product-lockstep note (#840): <see cref="GetClientProgressEndpoint"/> now takes an
+/// <see cref="IApplicationDbContext"/> dependency to resolve <c>req.ClientId</c>
+/// (ClientProfile.PublicId) to ApplicationUser.Id before calling
+/// <see cref="IComplianceService"/> — Mongo documents are keyed on UserId, not PublicId.
+/// This was already correctly wired in the endpoint; these tests only needed updating to
+/// supply the new constructor dependency and to stub/assert ComplianceService calls with
+/// the resolved UserId rather than the route's PublicId.
 /// </summary>
 public class GetClientProgressEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _clientUserId = Guid.NewGuid();
     private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
     private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     /// <summary>
-    /// Creates a NutritionAuthHelper mock configured to return the specified link status.
+    /// Creates an <see cref="IClientLinkAuthorizationService"/> mock configured to return the
+    /// specified link status. GetClientProgressEndpoint is deliberately dual-readable by Trainers
+    /// and Nutritionists, so either flag admits the caller — but the endpoint reads the flags
+    /// themselves via <see cref="IClientLinkAuthorizationService.GetCapabilitiesByClientPublicIdAsync"/>
+    /// so it can shape the response body per domain, not merely decide who may reach it. These
+    /// tests default to both flags: their subject is the progress computation, not the gate. The
+    /// per-domain body filtering is asserted end-to-end against real data in
+    /// <c>CrossDomainPlanAccessTests</c>.
     /// </summary>
-    private NutritionAuthHelper CreateAuthHelper(bool hasLink)
+    private static IClientLinkAuthorizationService CreateLinkAuthorizationService(
+        bool hasLink,
+        bool canViewNutritionPlans = true,
+        bool canViewTrainingPlans = true)
     {
-        var authDb = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(authDb);
-        helper.HasActiveLinkAsync(
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return helper;
+            .Returns(hasLink
+                ? new LinkCapabilities(canViewNutritionPlans, canViewTrainingPlans)
+                : null);
+        return service;
     }
+
+    /// <summary>
+    /// Builds the endpoint's own <see cref="IApplicationDbContext"/> dependency, seeded with
+    /// a ClientProfile resolving <see cref="_clientId"/> (PublicId) to <see cref="_clientUserId"/>.
+    /// </summary>
+    private IApplicationDbContext CreateDb() =>
+        new MockDbBuilder()
+            .With(EntityBuilder.ClientProfile.WithPublicId(_clientId).WithUserId(_clientUserId).Build())
+            .Build();
 
     [Fact]
     public async Task HandleAsync_ActiveLink_ReturnsProgress()
     {
         // Arrange
-        var authHelper = CreateAuthHelper(hasLink: true);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: true);
+        var db = CreateDb();
 
         _complianceService.CalculateComplianceAsync(
-                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 CompliancePercent = 75m,
@@ -49,11 +81,15 @@ public class GetClientProgressEndpointTests
                 MealsLogged = 9
             });
 
-        _complianceService.CalculateStreakAsync(_clientId, Arg.Any<CancellationToken>())
+        // The discipline overload — the endpoint no longer calls the one that hard-codes the
+        // combined figure, since that returned a streak weighted by the domain a single-flag
+        // caller's link denies.
+        _complianceService.CalculateStreakAsync(
+                _clientUserId, Arg.Any<ComplianceDiscipline>(), Arg.Any<CancellationToken>())
             .Returns(4);
 
         _complianceService.CalculateAverageMacrosAsync(
-                _clientId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                _clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new NutrientTotals
             {
                 Kcal = 1800,
@@ -66,7 +102,7 @@ public class GetClientProgressEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -83,7 +119,7 @@ public class GetClientProgressEndpointTests
         ep.Response.AverageDailyMacros.Kcal.Should().Be(1800);
         ep.Response.AverageDailyMacros.Protein.Should().Be(130);
 
-        // Verify audit was logged
+        // Verify audit was logged with the route's PublicId (audit target, unaffected by #840)
         await _audit.Received(1).LogAsync(
             _trainerId,
             "Read",
@@ -99,13 +135,14 @@ public class GetClientProgressEndpointTests
     public async Task HandleAsync_NoLink_Returns404()
     {
         // Arrange — no active link
-        var authHelper = CreateAuthHelper(hasLink: false);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: false);
+        var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            _complianceService, authHelper, _audit);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest
@@ -121,10 +158,11 @@ public class GetClientProgressEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         // Arrange — no user claims
-        var authHelper = CreateAuthHelper(hasLink: false);
+        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: false);
+        var db = CreateDb();
 
         var ep = Factory.Create<GetClientProgressEndpoint>(
-            _complianceService, authHelper, _audit);
+            _complianceService, linkAuthorizationService, _audit, db);
 
         // Act
         await ep.HandleAsync(new GetClientProgressRequest

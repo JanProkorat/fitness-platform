@@ -42,5 +42,5 @@ public class GetClientVerdictResponse
     /// <summary>
     /// Number of personal records achieved in the current calendar month.
     /// </summary>
-    public int PrCountThisMonth { get; set; }
+    public int? PrCountThisMonth { get; set; }
 }

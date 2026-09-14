@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.PhotoDiaryRequests.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,7 +37,7 @@ public class ListClientRequestsEndpoint(IApplicationDbContext db)
         // Collect link IDs where this client is the client profile
         var clientLinkIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfile.UserId == clientUserId)
+            .Where(l => l.ClientProfile.UserId == clientUserId && l.IsActive)
             .Select(l => (long?)l.Id)
             .ToListAsync(ct);
 

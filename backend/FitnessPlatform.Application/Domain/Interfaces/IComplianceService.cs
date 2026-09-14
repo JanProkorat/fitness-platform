@@ -40,6 +40,21 @@ public interface IComplianceService
     Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct);
 
     /// <summary>
+    /// Calculates the current streak of consecutive compliant days for both nutrition and
+    /// training plans, anchored on a caller-supplied "today" instead of
+    /// <see cref="DateTime.UtcNow"/> (#935). Callers that have already resolved the client's
+    /// local calendar day (see <c>ClientLocalDateResolver</c>) pass it here so the streak walk
+    /// starts from the client's local "today" rather than the server's UTC day — a completion
+    /// recorded in the two-hour skew window near local midnight must extend the streak for the
+    /// local day the Today card is showing, not the previous UTC day.
+    /// </summary>
+    /// <param name="clientId">The client's ApplicationUser.Id.</param>
+    /// <param name="today">The client's resolved local calendar date to anchor the walk-back on.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Number of consecutive compliant days.</returns>
+    Task<int> CalculateStreakAsync(Guid clientId, DateOnly today, CancellationToken ct);
+
+    /// <summary>
     /// Calculates average daily macros consumed over a date range.
     /// </summary>
     /// <param name="clientId">The client's ApplicationUser.Id.</param>

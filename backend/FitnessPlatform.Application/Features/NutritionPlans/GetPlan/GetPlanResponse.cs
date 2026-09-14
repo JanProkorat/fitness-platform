@@ -33,14 +33,14 @@ public class SupplementDto
 ///     <see cref="MealLog.EatenAt"/> was non-null at read time.
 ///   </description></item>
 ///   <item><description>
-///     <b>not-touched</b> — no <see cref="MealLogDto"/> row exists for the meal,
+///     <b>not-touched</b> — no <see cref="MealEatenStatusDto"/> row exists for the meal,
 ///     or <see cref="IsEaten"/> is <c>false</c> (photo-only / note-only stub).
 ///   </description></item>
 /// </list>
 /// Day-level state (all-eaten vs not-touched) is derived client-side by
 /// inspecting every meal in the day — no separate aggregate field is stored here.
 /// </remarks>
-public class MealLogDto
+public class MealEatenStatusDto
 {
     /// <summary>
     /// The <see cref="PlanMeal.MealId"/> this log belongs to.
@@ -78,7 +78,10 @@ public class GetPlanResponse
     public Guid PlanId { get; set; }
 
     /// <summary>
-    /// Client's public user identifier.
+    /// The client's <c>ClientProfile.PublicId</c> — the client-facing identifier consumed by
+    /// web/mobile to build routes like <c>/trainer/clients/{clientId}/...</c>. NOT the
+    /// internal Mongo storage key (<c>ApplicationUser.Id</c> since #840) — see
+    /// <see cref="FromDocument"/>.
     /// </summary>
     public Guid ClientId { get; set; }
 
@@ -145,7 +148,7 @@ public class GetPlanResponse
     /// Populated by the endpoint after loading the plan. Ownership is guaranteed by the
     /// plan ownership gate above the MealLog query — filtering by PlanId is safe.
     /// </summary>
-    public List<MealLogDto> MealLogs { get; set; } = [];
+    public List<MealEatenStatusDto> MealLogs { get; set; } = [];
 
     /// <summary>
     /// Supplement recommendations attached to this plan.
@@ -156,11 +159,18 @@ public class GetPlanResponse
     /// Maps a <see cref="NutritionPlan"/> document to a detailed response DTO.
     /// </summary>
     /// <param name="plan">The nutrition plan document.</param>
+    /// <param name="clientPublicId">
+    /// The client's <c>ClientProfile.PublicId</c> to expose as <see cref="ClientId"/> —
+    /// NOT <paramref name="plan"/>.ClientId directly, which is the internal
+    /// <c>ApplicationUser.Id</c> storage key since #840. Callers resolve this via
+    /// <see cref="FitnessPlatform.Application.Domain.Extensions.ClientProfileLookupExtensions.ResolveClientPublicIdAsync"/>
+    /// (or the batch variant for list endpoints) before calling this factory.
+    /// </param>
     /// <returns>A detailed response DTO.</returns>
-    public static GetPlanResponse FromDocument(NutritionPlan plan) => new()
+    public static GetPlanResponse FromDocument(NutritionPlan plan, Guid clientPublicId) => new()
     {
         PlanId = plan.ExternalId,
-        ClientId = plan.ClientId,
+        ClientId = clientPublicId,
         NutritionistId = plan.NutritionistId,
         Name = plan.Name,
         Status = plan.Status.ToString(),

@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -37,8 +38,66 @@ public static class TrainingPlanTestHelpers
             {
                 WeekNumber = w,
                 Status = WeekStatus.Draft,
-                Sessions = []
+                Days = MaterializeDays()
             }).ToList(),
+            Version = version,
+            DateCreated = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// Materializes a full 7-day <see cref="TrainingWeek.Days"/> list (1=Monday..7=Sunday) from a
+    /// flat list of (dayOfWeek, session) pairs — mirrors how <see cref="TrainingDay"/> is always
+    /// fully materialised on the production write path, even for days carrying no sessions. Two
+    /// pairs sharing the same day both land under that day, preserving multi-session-per-day
+    /// fixtures.
+    /// </summary>
+    public static List<TrainingDay> MaterializeDays(params (int DayOfWeek, TrainingSession Session)[] sessions)
+    {
+        var days = Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay { DayOfWeek = dayOfWeek, Sessions = [] })
+            .ToList();
+
+        foreach (var (dayOfWeek, session) in sessions)
+        {
+            days.First(d => d.DayOfWeek == dayOfWeek).Sessions.Add(session);
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// Creates a single-week, single-day <see cref="TrainingPlan"/> wrapping exactly the given
+    /// <paramref name="session"/> (placed on Monday). Convenience for tests that need a session
+    /// carrying <see cref="TrainingSession.StandaloneExercises"/> alongside
+    /// <see cref="TrainingSession.Workouts"/> — the plain <see cref="CreatePlan"/> helper builds
+    /// only empty days.
+    /// </summary>
+    public static TrainingPlan CreatePlanWithSession(
+        TrainingSession session,
+        Guid? externalId = null,
+        Guid? clientId = null,
+        Guid? trainerId = null,
+        string name = "Test Training Plan",
+        TrainingPlanStatus status = TrainingPlanStatus.Active,
+        int version = 1)
+    {
+        return new TrainingPlan
+        {
+            ExternalId = externalId ?? Guid.NewGuid(),
+            ClientId = clientId ?? Guid.NewGuid(),
+            TrainerId = trainerId ?? Guid.NewGuid(),
+            Name = name,
+            Status = status,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    Days = MaterializeDays((1, session))
+                }
+            ],
             Version = version,
             DateCreated = DateTime.UtcNow
         };
@@ -48,125 +107,103 @@ public static class TrainingPlanTestHelpers
     /// Creates a mocked <see cref="IMongoContext"/> with training plans collection.
     /// </summary>
     public static IMongoContext CreateMockMongo(params TrainingPlan[] plans)
-        => CreateMockMongoWithLogs(plans: plans, workoutLogs: []);
+        => CreateMockMongoWithExecutions(plans: plans, executions: []);
 
     /// <summary>
-    /// Creates a mocked <see cref="IMongoContext"/> with training plans + workout logs +
-    /// an optional list of training completions. Completions default to an empty collection.
+    /// Creates a mocked <see cref="IMongoContext"/> with training plans + an optional list of
+    /// <see cref="SessionExecution"/> documents. #841:
+    /// <see cref="GetTrainingPlan.GetTrainingPlanEndpoint"/> (and friends) read exclusively from
+    /// the unified <see cref="IMongoContext.SessionExecutions"/> collection.
     /// </summary>
-    public static IMongoContext CreateMockMongoWithLogs(
+    public static IMongoContext CreateMockMongoWithExecutions(
         TrainingPlan[] plans,
-        WorkoutLog[] workoutLogs,
-        TrainingCompletion[]? trainingCompletions = null)
+        List<SessionExecution> executions)
     {
         var mongo = Substitute.For<IMongoContext>();
 
         // Pre-create collections BEFORE calling .Returns() to avoid NSubstitute
         // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
         var plansCollection = CreateMockCollection(plans.ToList());
-        var logsCollection = CreateMockWorkoutLogCollection(workoutLogs.ToList());
-        var completionsCollection = CreateMockCompletionCollection(
-            (trainingCompletions ?? []).ToList());
+        var executionsCollection = CreateMockSessionExecutionCollection(executions);
 
         mongo.TrainingPlans.Returns(plansCollection);
-        mongo.WorkoutLogs.Returns(logsCollection);
-        mongo.TrainingCompletions.Returns(completionsCollection);
+        mongo.SessionExecutions.Returns(executionsCollection);
         return mongo;
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{TrainingCompletion}"/> that returns the given
-    /// completions from FindAsync.
+    /// Creates a mock <see cref="IMongoCollection{SessionExecution}"/> that returns the given
+    /// executions from FindAsync()/CountDocumentsAsync(), and stubs InsertOneAsync/ReplaceOneAsync
+    /// so they succeed without mutating state.
+    /// #841: every WorkoutLogs/TrainingPlans read/write site now targets this unified collection
+    /// instead of the retired WorkoutLogs/TrainingCompletions collections.
     /// </summary>
-    public static IMongoCollection<TrainingCompletion> CreateMockCompletionCollection(
-        List<TrainingCompletion> completions)
+    public static IMongoCollection<SessionExecution> CreateMockSessionExecutionCollection(List<SessionExecution> executions)
     {
-        var collection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ => CreateCompletionCursor(completions));
-
-        return collection;
-    }
-
-    private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(
-        List<TrainingCompletion> completions)
-    {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-        var moved = false;
-        cursor.Current.Returns(completions);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return Task.FromResult(false);
-            moved = true;
-            return Task.FromResult(completions.Count > 0);
-        });
-        return cursor;
-    }
-
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> that returns the given logs from FindAsync(),
-    /// and stubs InsertOneAsync and ReplaceOneAsync so they succeed without mutating state.
-    /// </summary>
-    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(List<WorkoutLog> logs)
-    {
-        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        var cursor = CreateWorkoutLogCursor(logs);
-        // Pre-wrap in a completed Task BEFORE calling .Returns() to avoid NSubstitute
-        // "last call" confusion (CouldNotSetReturnDueToNoLastCallException).
+        var collection = Substitute.For<IMongoCollection<SessionExecution>>();
+        var cursor = CreateSessionExecutionCursor(executions);
         var cursorTask = Task.FromResult(cursor);
 
         collection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
                 Arg.Any<CancellationToken>())
             .Returns(cursorTask);
 
-        // InsertOneAsync — no-op stub so the endpoint can materialize new logs.
+        // NSubstitute can't evaluate the real FilterDefinition, so this approximates the two
+        // shapes production code actually queries: FinishSessionEndpoint's "already completed"
+        // guard filters on Status==Completed; pagination totals want the full seeded count.
+        // Counting only Completed executions is the safer default — it keeps a Partial-only
+        // fixture from tripping the "already completed" guard in tests that never intended it.
+        collection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(executions.Count(e => e.Status == SessionExecutionStatus.Completed));
+
         collection.InsertOneAsync(
-                Arg.Any<WorkoutLog>(),
+                Arg.Any<SessionExecution>(),
                 Arg.Any<InsertOneOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
-        // ReplaceOneAsync stub
         var replaceResult = Substitute.For<ReplaceOneResult>();
         replaceResult.ModifiedCount.Returns(1L);
         collection.ReplaceOneAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<WorkoutLog>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<SessionExecution>(),
                 Arg.Any<ReplaceOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(replaceResult);
 
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(1L);
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<UpdateDefinition<SessionExecution>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
+
         return collection;
     }
 
-    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
+    private static IAsyncCursor<SessionExecution> CreateSessionExecutionCursor(List<SessionExecution> executions)
     {
-        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
+        var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
         var moved = false;
-        cursor.Current.Returns(logs);
+        cursor.Current.Returns(executions);
         cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
         {
             if (moved) return false;
             moved = true;
-            return logs.Count > 0;
+            return executions.Count > 0;
         });
         cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
         {
             if (moved) return Task.FromResult(false);
             moved = true;
-            return Task.FromResult(logs.Count > 0);
+            return Task.FromResult(executions.Count > 0);
         });
         return cursor;
     }
@@ -215,6 +252,17 @@ public static class TrainingPlanTestHelpers
                 Arg.Any<CancellationToken>())
             .Returns(updateResult);
 
+        // FindOneAndUpdateAsync — default stub for the #839 targeted-$set publish path.
+        // Tests exercising the write path (success / genuine-race-conflict) override this with an
+        // explicit .Returns() for the specific plan/null they expect; this default is only reached
+        // by tests that never get past validation (e.g. NotFound, AlreadyPublished).
+        collection.FindOneAndUpdateAsync(
+                Arg.Any<FilterDefinition<TrainingPlan>>(),
+                Arg.Any<UpdateDefinition<TrainingPlan>>(),
+                Arg.Any<FindOneAndUpdateOptions<TrainingPlan, TrainingPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns((TrainingPlan?)plans.FirstOrDefault());
+
         return collection;
     }
 
@@ -262,21 +310,21 @@ public static class TrainingPlanTestHelpers
     }
 
     /// <summary>
-    /// Creates a mocked <see cref="ProfessionalAuthHelper"/> that returns <paramref name="hasLink"/>
-    /// for HasActiveLinkAsync and <paramref name="hasPlanAccess"/> for HasPlanAccessAsync
-    /// (used by #590's CanViewTrainingPlans server-side enforcement).
+    /// Creates a mocked <see cref="IClientLinkAuthorizationService"/> that reports no active link
+    /// at all — both the PublicId- and UserId-addressed overloads return <see langword="null"/>,
+    /// and the batch overload returns an empty list. Use for a deny-path test that must fail
+    /// loudly (403/404, never a silently-granted 200) if the link guard were ever removed.
     /// </summary>
-    public static ProfessionalAuthHelper CreateMockAuthHelper(bool hasLink = true, bool hasPlanAccess = true)
+    public static IClientLinkAuthorizationService CreateDenyingLinkAuthorizationService()
     {
-        var db = Substitute.For<IApplicationDbContext>();
-        var authHelper = Substitute.For<ProfessionalAuthHelper>(db);
-        authHelper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        authHelper.HasPlanAccessAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
-            .Returns(hasPlanAccess);
-        return authHelper;
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetCapabilitiesByClientUserIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetAccessibleClientsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>(), Arg.Any<LinkCapabilityScope?>())
+            .Returns([]);
+        return service;
     }
 
     private static IAsyncCursor<TrainingPlan> CreateCursor(List<TrainingPlan> plans)

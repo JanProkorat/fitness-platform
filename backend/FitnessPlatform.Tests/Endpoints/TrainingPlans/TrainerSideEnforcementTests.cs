@@ -11,6 +11,7 @@ using FitnessPlatform.Application.Features.TrainingPlans.UnlockTrainingSession;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NSubstitute;
@@ -63,19 +64,17 @@ public class TrainerSideEnforcementTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -94,8 +93,7 @@ public class TrainerSideEnforcementTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -122,19 +120,17 @@ public class TrainerSideEnforcementTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Draft,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(1, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = 1,
                             Name = "Draft Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -153,8 +149,7 @@ public class TrainerSideEnforcementTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -168,23 +163,23 @@ public class TrainerSideEnforcementTests
     /// </summary>
     private static UpdateSessionRequest IdenticalSessionRequest(TrainingSession session, Guid sessionId)
     {
-        var section = session.Sections[0];
+        var section = session.Workouts[0];
         var exercise = section.Exercises[0];
         var set = exercise.Sets[0];
         return new UpdateSessionRequest
         {
             SessionId = sessionId,
-            DayOfWeek = session.DayOfWeek,
+            DayOfWeek = 1, // both CreatePlanWithPublishedSession and CreatePlanWithDraftSession schedule day 1
             Name = session.Name,
             Order = session.Order,
             Notes = session.Notes,
             Format = session.Format,
             FormatConfig = session.FormatConfig,
-            Sections =
+            Workouts =
             [
-                new UpdateSectionRequest
+                new UpdateTrainingWorkoutRequest
                 {
-                    SectionId = section.SectionId,
+                    WorkoutId = section.WorkoutId,
                     Order = section.Order,
                     Name = section.Name,
                     Format = section.Format,
@@ -230,7 +225,7 @@ public class TrainerSideEnforcementTests
     {
         var req = IdenticalSessionRequest(session, sessionId);
         // Mutate reps to trigger the diff gate.
-        req.Sections[0].Exercises[0].Sets[0].Reps = 99;
+        req.Workouts[0].Exercises[0].Sets[0].Reps = 99;
         return req;
     }
 
@@ -304,7 +299,8 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -330,7 +326,8 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -341,6 +338,72 @@ public class TrainerSideEnforcementTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
 
         // Lock service must not have been called
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── Unlock: deny-path for the link-authorization guard itself (not authorship) ────
+
+    /// <summary>
+    /// The plan is owned by the caller, but the caller's link to the plan's client no longer
+    /// grants training access — this must still 404, distinct from
+    /// <see cref="Unlock_Returns404_WhenPlanNotOwnedByCaller"/> which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_Returns404_WhenNotLinkedToClient()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await lockService.DidNotReceive().AcquireAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task Unlock_Returns404_WhenLinkGrantsOnlyNutrition()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<UnlockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, DefaultOptions(), Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        await ep.HandleAsync(
+            new UnlockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
         await lockService.DidNotReceive().AcquireAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
             Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<TimeSpan>(),
@@ -361,9 +424,10 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -408,9 +472,10 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -454,9 +519,10 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
-        var changedSession = ChangedSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var changedSession = ChangedSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,
@@ -500,7 +566,8 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Request changes the reps — but this is a draft session, so no gate.
         var req = new UpdateTrainingPlanRequest
@@ -521,9 +588,9 @@ public class TrainerSideEnforcementTests
                             DayOfWeek = 1,
                             Name = "Draft Session",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new UpdateSectionRequest
+                                new UpdateTrainingWorkoutRequest
                                 {
                                     Order = 0,
                                     Name = "Hlavní",
@@ -579,7 +646,8 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -604,7 +672,8 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<RelockTrainingSessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Act
         await ep.HandleAsync(
@@ -615,6 +684,66 @@ public class TrainerSideEnforcementTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
 
         // ReleaseAsync must not have been called
+        await lockService.DidNotReceive().ReleaseAsync(
+            Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// The plan is owned by the caller, but the caller's link to the plan's client no longer
+    /// grants training access — this must still 404, distinct from
+    /// <see cref="Relock_Returns404_WhenPlanNotOwnedByCaller"/> which denies on authorship.
+    /// </summary>
+    [Fact]
+    public async Task Relock_Returns404_WhenNotLinkedToClient()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<RelockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            TrainingPlanTestHelpers.CreateDenyingLinkAuthorizationService());
+
+        await ep.HandleAsync(
+            new RelockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
+        await lockService.DidNotReceive().ReleaseAsync(
+            Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Flag-inversion deny test: the link is active and exists, but grants only the nutrition
+    /// domain. A "no link" deny test cannot detect a guard that checks the wrong flag, since
+    /// both flags are absent either way — this pins the guard to
+    /// <c>CanViewTrainingPlans</c> specifically.
+    /// </summary>
+    [Fact]
+    public async Task Relock_Returns404_WhenLinkGrantsOnlyNutrition()
+    {
+        var sessionId = Guid.NewGuid();
+        var plan = CreatePlanWithPublishedSession(sessionId);
+        var mongo = TrainingPlanTestHelpers.CreateMockMongo(plan);
+        var lockService = CreateLockServiceWithNoLocks();
+
+        var ep = Factory.Create<RelockTrainingSessionEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+                canViewNutritionPlans: true, canViewTrainingPlans: false));
+
+        await ep.HandleAsync(
+            new RelockTrainingSessionRequest { PlanId = plan.ExternalId, SessionId = sessionId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(404);
+
         await lockService.DidNotReceive().ReleaseAsync(
             Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(), Arg.Any<CancellationToken>());
     }
@@ -633,9 +762,10 @@ public class TrainerSideEnforcementTests
         var ep = Factory.Create<UpdateTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard());
+            mongo, lockService, Substitute.For<IRealtimeNotifier>(), new PlanConcurrencyGuard(), new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
-        var identicalSession = IdenticalSessionRequest(plan.Weeks[0].Sessions[0], sessionId);
+        var identicalSession = IdenticalSessionRequest(plan.Weeks[0].Days.SelectMany(d => d.Sessions).First(), sessionId);
         var req = new UpdateTrainingPlanRequest
         {
             PlanId = plan.ExternalId,

@@ -3,10 +3,17 @@ name: Backend CI
 on:
   push:
     branches: [main, develop]
-    paths: ['backend/**']
+    # Self-include: a change to this file must run the job it defines,
+    # otherwise a CI-config edit merges without ever executing. Matches the
+    # pattern cclint.yml already uses.
+    paths: ['backend/**', '.github/workflows/backend.yml']
   pull_request:
-    branches: [main, develop]
-    paths: ['backend/**']
+    # Every epic-branch prefix, not just feature/. An epic branch takes the
+    # prefix of its issue's type: label (rules/branch-and-pr.md), so a
+    # refactor epic is refactor/<N>-<slug> — and a sub-issue PR based on it
+    # got no CI at all until this list covered the other prefixes.
+    branches: [main, develop, 'feature/*', 'refactor/*', 'fix/*', 'docs/*', 'chore/*']
+    paths: ['backend/**', '.github/workflows/backend.yml']
 
 permissions:
   contents: read
@@ -16,6 +23,11 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    # The suite is ~15 min; restore+build adds a few more. Without this the
+    # job inherits the 6-hour default, so a hang burns runner time unnoticed
+    # instead of failing loudly. Raise it if the suite legitimately grows.
+    timeout-minutes: 40
 
     defaults:
       run:
@@ -39,6 +51,60 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # Fails fast on any two public class/record/enum/interface declarations
+      # under Features/ sharing a name. NSwag assigns the plain name to
+      # whichever side its document-processing order visits first and a
+      # numeric suffix (`Foo2`) to the other — not a stable contract, since an
+      # unrelated backend change can silently swap which side keeps which
+      # name. #862 hit this as an app-boot crash (ShortNames=true makes a
+      # duplicate *endpoint* class name fatal at startup, invisible to
+      # `dotnet build`); #887/#889/#923 hit it as a wrong-field-at-runtime bug
+      # via the client's numerically-suffixed type. Runs before any .NET step
+      # is set up since it is pure grep with no build dependency.
+      # Matches `internal`/`internal sealed` as well as `public` (#979). The
+      # original pattern saw only `public`, so the 29 `internal sealed` types
+      # under Features/ were invisible to it — a duplicate among them would
+      # have reached app boot undetected.
+      #
+      # Two modifiers are deliberately NOT in the alternation, each for its own
+      # reason:
+      #
+      #   `static` — adding it surfaces three pre-existing same-name pairs
+      #   (TemplateContentCloner, TemplateRequestMapper, TemplateWeekRuleSet,
+      #   each in both TrainingPlanTemplates/Shared/ and
+      #   NutritionPlanTemplates/Shared/) that are false positives for BOTH
+      #   failure modes this guard catches: a static class is never a
+      #   FastEndpoints endpoint (no ShortNames boot crash) and never a DTO
+      #   in the Swagger document (no NSwag numeric-suffix drift). That holds
+      #   for `public static` as well as `internal static`.
+      #
+      #   `partial` — a partial type legitimately spans several files, so each
+      #   declaration would emit the same name and `uniq -d` would report a
+      #   FALSE duplicate. There are 0 partial declarations under Features/
+      #   today; the trade-off is that an `internal sealed partial class`
+      #   endpoint collision would slip past this guard.
+      #
+      # awk prints $NF, not $3: with the widened pattern, field 3 of
+      # `internal sealed class Foo` is the literal word `class`, which would
+      # collapse every internal sealed type onto one bogus name and fail the
+      # step. `grep -o` output ends at the type name, so $NF is the identifier
+      # for every shape this pattern admits — and $NF == $3 for all 765
+      # existing `public class` lines (verified byte-identical), so the covered
+      # set is unchanged. Note $NF would NOT be the name for `record struct`,
+      # which matches only as far as `struct`; there are none under Features/,
+      # and the previous $3 form had the same limitation.
+      - name: Check for duplicate type names under Features/
+        run: |
+          duplicates=$(grep -rhoE "^(public|internal)( sealed)? (class|record|enum|interface) [A-Za-z0-9_]+" \
+            FitnessPlatform.Application/Features/ | awk '{print $NF}' | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "::error::Duplicate type name(s) found under Features/ — rename one side (domain-prefix pattern from #862/#889/#923) before this can merge. Covers public and internal declarations."
+            echo "Colliding type name(s):"
+            echo "$duplicates"
+            exit 1
+          fi
+          echo "No duplicate type names found under Features/."
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -84,49 +150,61 @@ jobs:
           path: backend/msbuild.binlog
           if-no-files-found: warn
 
-      # Invoke the xunit.v3 / Microsoft.Testing.Platform binary directly so
-      # we can use xunit's native `-class-` filter to skip test classes that
-      # are known-broken for reasons unrelated to this PR. Tracking issue:
-      # pre-existing endpoint ctors gained new dependencies (IApplicationDbContext,
-      # IRealtimeNotifier, INotificationService) but their unit-test
-      # Factory.Create calls were never updated, and the integration-test
-      # suites (AuthFlow, Profile, DeleteAccount, Collaboration, Invitation,
-      # two GetClient*IntegrationTests) were never exercised in CI. These
-      # should be restored in a dedicated follow-up PR.
-      - name: Run tests
-        run: |
-          ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests \
-            -class- '*CreatePlanEndpointTests' \
-            -class- '*CreateTrainingPlanEndpointTests' \
-            -class- '*GetComplianceScoreEndpointTests' \
-            -class- '*GetWeeklyOverviewEndpointTests' \
-            -class- '*LogMealEatenEndpointTests' \
-            -class- '*PublishTrainingWeekEndpointTests' \
-            -class- '*PublishWeekEndpointTests' \
-            -class- '*UpdatePlanFullStateTests' \
-            -class- '*AuthFlowTests' \
-            -class- '*CollaborationTests' \
-            -class- '*DeleteAccountTests' \
-            -class- '*InvitationFlowTests' \
-            -class- '*ProfileTests' \
-            -class- '*GetClientPlansIntegrationTests' \
-            -class- '*GetFullTrainingPlanIntegrationTests' \
-            -class- '*PersonalRecordDetectionTests' \
-            -class- '*PersonalRecordBroadcastTests' \
-            -class- '*GetClientRecordsEndpointTests' \
-            -class- '*GetClientTimelineEndpointTests' \
-            -class- '*UpdateTimeZoneIntegrationTests' \
-            -class- '*GetSettingsEndpointTests' \
-            -class- '*PutSettingsEndpointTests' \
-            -class- '*GetOverridesEndpointTests' \
-            -class- '*PutOverrideEndpointTests' \
-            -class- '*DeleteOverrideEndpointTests' \
-            -class- '*GetCurrentClientCheckInsEndpointTests' \
-            -class- '*RespondToCheckInEndpointTests' \
-            -class- '*DismissCheckInEndpointTests' \
-            -class- '*MarkCheckInReviewedEndpointTests' \
-            -class- '*GetTrainerCheckInsEndpointTests' \
-            -class- '*WeeklyCheckInSchedulerTests'
+      # Invoke the xunit.v3 / Microsoft.Testing.Platform binary directly.
+      #
+      # This step ran with 31 `-class-` exclusions from 2026-04 until #876.
+      # The stated cause was that endpoint constructors had gained new
+      # dependencies while their unit tests' `Factory.Create` calls were
+      # never updated, plus several integration suites that had never been
+      # enabled in CI at all. Both were re-checked on 2026-08-06: the whole
+      # test project compiles clean, all 31 classes (207 tests) pass, and
+      # the constructor/`Factory.Create` argument lists match. The causes
+      # were fixed incrementally by intervening PRs; only the filter was
+      # never revisited.
+      #
+      # No exclusions. If a class ever has to be skipped again, add it here
+      # WITH its own one-line reason and a tracking issue — never a blanket
+      # comment covering a whole block, which is how the previous list went
+      # stale without anyone noticing.
+      #
+      # The suite runs as three namespace-partitioned chunks rather than one
+      # invocation. Two single-invocation attempts on #876's PR both died at
+      # ~15m with conclusion `cancelled`, no failing step and an empty log
+      # archive — the runner was lost, not a test failing. Chunking lowers
+      # peak resource use (each chunk is a separate process, so its
+      # Testcontainers instances are torn down before the next starts),
+      # flushes results per chunk, and localises any future failure.
+      #
+      # The partition is exhaustive BY CONSTRUCTION: chunks 1 and 2 are
+      # positive namespace filters and chunk 3 is their exact complement, so
+      # a newly added top-level namespace lands in chunk 3 instead of being
+      # silently dropped. Do not rewrite chunk 3 as a positive filter list.
+      #
+      # Verified on develop 2026-08-07: 1445 + 449 + 122 = 2016, identical to
+      # a single unfiltered run. Those counts are indicative, not asserted —
+      # they grow as tests are added.
+      - name: Run tests — Endpoints
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Endpoints*'
+        env:
+          POSTGRES_PASSWORD: test_password
+          MONGO_PASSWORD: test_password
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test
+          JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      - name: Run tests — Services, Validators, Infrastructure
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Services*' -namespace 'FitnessPlatform.Tests.Validators*' -namespace 'FitnessPlatform.Tests.Infrastructure*'
+        env:
+          POSTGRES_PASSWORD: test_password
+          MONGO_PASSWORD: test_password
+          MINIO_ACCESS_KEY: test
+          MINIO_SECRET_KEY: test
+          JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      # Complement of the two chunks above — see the "exhaustive by
+      # construction" note. Every namespace not matched there runs here.
+      - name: Run tests — remaining namespaces
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace- 'FitnessPlatform.Tests.Endpoints*' -namespace- 'FitnessPlatform.Tests.Services*' -namespace- 'FitnessPlatform.Tests.Validators*' -namespace- 'FitnessPlatform.Tests.Infrastructure*'
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password

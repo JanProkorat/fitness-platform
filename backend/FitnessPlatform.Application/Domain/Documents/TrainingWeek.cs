@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.Options;
 
 namespace FitnessPlatform.Application.Domain.Documents;
 
@@ -33,16 +32,9 @@ public class TrainingWeek
     public DateTime? DatePublished { get; set; }
 
     /// <summary>
-    /// Training sessions in this week.
+    /// Days in this week. Always 7 entries (Monday through Sunday) — see
+    /// <see cref="TrainingDay"/>.
     /// </summary>
-    [BsonElement("sessions")]
-    public List<TrainingSession> Sessions { get; set; } = [];
-
-    /// <summary>
-    /// Optional day-level notes keyed by day of week (1 = Monday … 7 = Sunday).
-    /// </summary>
-    [BsonElement("dayNotes")]
-    [BsonIgnoreIfNull]
-    [BsonDictionaryOptions(DictionaryRepresentation.ArrayOfDocuments)]
-    public Dictionary<int, string>? DayNotes { get; set; }
+    [BsonElement("days")]
+    public List<TrainingDay> Days { get; set; } = [];
 }

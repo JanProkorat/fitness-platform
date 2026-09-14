@@ -272,7 +272,7 @@ findings (if any have already run). If ANY child has:
   same child).
 - `estimated_complexity` ≥ M.
 - `rule_citations` including architecture anchors
-  (`rules/code-quality.md#no-re-layered-services`, etc.).
+  (`rules/architecture.md#banned-patterns`, etc.).
 
 → **Suppress the fast-path offer**. Require per-child approvals.
 The cost of this guard is small; the cost of an architectural
@@ -635,9 +635,9 @@ manually for an excluded epic):
   non-obvious bug (qa fails for a reason the dev agent can't
   diagnose), promote the diagnosis to a parallel swarm instead of
   guessing.
-- **`engineering:standup`** — day-end recap of what the epic shipped,
-  sourced from the Notion Changelog page that `notion-docs`
-  maintains.
+- Day-end recap of what the epic shipped: read the Notion Changelog page
+  that `notion-docs` maintains rather than re-deriving from git. There is
+  no standup skill installed.
 
 ## Never
 

@@ -3,6 +3,8 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.ClientTraining;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -17,7 +19,8 @@ namespace FitnessPlatform.Application.Features.Client.Plans.GetClientPlans;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetClientPlansRequest, GetClientPlansResponse>
 {
     /// <inheritdoc />
@@ -53,8 +56,13 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        var now = DateTime.UtcNow;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        // Resolve the client's local calendar day (#935) — anchors current-week resolution,
+        // plan-window disambiguation, and the day-of-week HasTodaySession check below on the
+        // client's local "today" rather than the server's UTC day.
+        var now = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Parse status filter
         NutritionPlanStatus? nutritionStatus = null;
@@ -68,7 +76,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                 trainingStatus = ts;
         }
 
-        var items = new List<ClientPlanItem>();
+        var items = new List<ClientOwnPlanItem>();
 
         // ── Nutrition plans ──
         {
@@ -98,7 +106,13 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     .OrderBy(w => w.WeekNumber)
                     .ToList();
 
-                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).ToList();
+                // Distinct() is a no-op for plans with unique week numbers (publishedWeeks is
+                // already ascending by WeekNumber above). It only changes anything for a legacy
+                // plan whose weeks carry a DUPLICATE WeekNumber — PlanWeekCalculator's legacy
+                // cycle must use the same deduped cycle length the ClientNutrition/ClientTraining
+                // "today" reads use for that plan, or the two disagree on which week is current
+                // (#850).
+                var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).Distinct().ToList();
                 var currentWeek = PlanWeekCalculator.ResolveCurrentWeekNumber(
                     plan.StartDate,
                     publishedWeekNumbers,
@@ -107,7 +121,7 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     plan.DateCreated,
                     now);
 
-                items.Add(new ClientPlanItem
+                items.Add(new ClientOwnPlanItem
                 {
                     PlanId = plan.ExternalId,
                     PlanName = plan.Name,
@@ -149,6 +163,20 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
             var todayDow = (int)now.DayOfWeek;
             todayDow = todayDow == 0 ? 7 : todayDow;
 
+            // A client may hold several sequential, non-overlapping Active training plans
+            // (#780). GetTodaySessionEndpoint disambiguates which ONE of them is "current" via
+            // PlanWindowResolver.ResolveCurrentPlan before answering whether there's a session
+            // today (#873) — this endpoint must apply the same disambiguation, or an unranged
+            // Active sibling can independently claim HasTodaySession=true for a plan the
+            // today-session endpoint never selected. Non-Active plans (Completed/Archived) are
+            // unaffected — they carry no "current plan" concept to disambiguate.
+            var activeTrainingPlans = trainingPlans.Where(p => p.Status == TrainingPlanStatus.Active).ToList();
+            var currentActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlan(
+                activeTrainingPlans,
+                p => p.StartDate,
+                p => p.Weeks.Count,
+                now);
+
             foreach (var plan in trainingPlans)
             {
                 var publishedWeeks = plan.Weeks
@@ -156,6 +184,13 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     .OrderBy(w => w.WeekNumber)
                     .ToList();
 
+                // NOT deduped, deliberately. PlanWeekCalculator's legacy branch cycles on
+                // this list's Count, and the four ClientTraining callers
+                // (GetTodaySession, GetFullTrainingPlan, TrainingProgressBroadcaster,
+                // MarkWholeDayComplete) all pass the raw list. Deduping only here would make
+                // the plans list name a different current week than the Today screen for a
+                // legacy training plan with duplicate week numbers. Deduping the training
+                // side belongs inside PlanWeekCalculator so all callers move together.
                 var publishedWeekNumbers = publishedWeeks.Select(w => w.WeekNumber).ToList();
                 var currentWeekNumber = PlanWeekCalculator.ResolveCurrentWeekNumber(
                     plan.StartDate,
@@ -172,10 +207,17 @@ public class GetClientPlansEndpoint(IMongoContext mongo, IApplicationDbContext d
                     if (currentWeek is null || currentWeek.Status != WeekStatus.Published)
                         currentWeek = publishedWeeks.Last();
 
-                    hasTodaySession = currentWeek.Sessions.Any(s => s.DayOfWeek == todayDow);
+                    // CurrentWeek stays informational for every plan (set below regardless of
+                    // selection), but only the plan ResolveCurrentPlan selected among Active
+                    // siblings may assert a live session for today.
+                    var isDisambiguatedCurrentPlan = plan.Status != TrainingPlanStatus.Active
+                        || (currentActiveTrainingPlan is not null && currentActiveTrainingPlan.ExternalId == plan.ExternalId);
+
+                    hasTodaySession = isDisambiguatedCurrentPlan
+                        && currentWeek.Days.Any(d => d.DayOfWeek == todayDow && d.Sessions.Count > 0);
                 }
 
-                items.Add(new ClientPlanItem
+                items.Add(new ClientOwnPlanItem
                 {
                     PlanId = plan.ExternalId,
                     PlanName = plan.Name,

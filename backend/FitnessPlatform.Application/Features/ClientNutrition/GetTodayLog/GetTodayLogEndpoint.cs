@@ -3,6 +3,8 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -16,7 +18,11 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetTodayLog;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetTodayLogResponse>
+/// <param name="blobStorage">Blob storage service — converts each meal photo's stored BlobUrl into
+/// a short-lived pre-signed read URL before the response leaves the process (F9).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db, IBlobStorageService blobStorage, TimeProvider timeProvider)
+    : EndpointWithoutRequest<GetTodayLogResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -51,9 +57,14 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        var todayUtc = DateTime.UtcNow.Date;
-        var tomorrowUtc = todayUtc.AddDays(1);
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        // Resolve the client's local calendar day (#935) — todayUtc anchors LogDate-style
+        // equality checks; windowStartUtc/windowEndUtc anchor the EatenAt instant-range filter
+        // so a meal logged near local midnight lands in the correct local day's window rather
+        // than the server's UTC day.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Fetch today's meal logs.
         // Matches three cases uniformly:
@@ -70,8 +81,8 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             Builders<MealLog>.Filter.Or(
                 Builders<MealLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<MealLog>.Filter.And(
-                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, todayUtc),
-                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, tomorrowUtc))));
+                    Builders<MealLog>.Filter.Gte(l => l.EatenAt, windowStartUtc),
+                    Builders<MealLog>.Filter.Lt(l => l.EatenAt, windowEndUtc))));
 
         var logCursor = await mongo.MealLogs.FindAsync(logFilter, cancellationToken: ct);
         var logs = await logCursor.ToListAsync(ct);
@@ -84,7 +95,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         // Resolve today's plan day so we can use pre-computed MealTotals
         // (which include both foods AND recipes, matching the mobile optimistic
@@ -112,20 +123,8 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                             todayPlanDay = todayWeek.Days[dayIdx];
                     }
                 }
-                else if (plan.DatePublished.HasValue)
-                {
-                    var daysSincePublish = (int)(todayUtc - plan.DatePublished.Value.Date).TotalDays;
-                    if (daysSincePublish >= 0)
-                    {
-                        var totalDays = publishedWeeks.Count * 7;
-                        var currentDayIndex = daysSincePublish % totalDays;
-                        var weekIdx = currentDayIndex / 7;
-                        var dayIdx = currentDayIndex % 7;
-                        var todayWeek = publishedWeeks[weekIdx];
-                        if (dayIdx < todayWeek.Days.Count)
-                            todayPlanDay = todayWeek.Days[dayIdx];
-                    }
-                }
+                // No else: published weeks imply a StartDate, so the legacy plan-level
+                // DatePublished cycling branch that stood here was unreachable (#1015).
             }
         }
 
@@ -150,7 +149,7 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             planMeals.TryGetValue(log.MealId, out var planMeal);
             var totals = planMeal?.MealTotals ?? CalculateTotals(log.FoodsEaten);
 
-            return new MealLogDto
+            return new TodayMealLogDto
             {
                 MealId = log.MealId,
                 MealName = planMeal?.Kind.ToString() ?? string.Empty,
@@ -162,6 +161,14 @@ public class GetTodayLogEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 Note = log.Note
             };
         }).ToList();
+
+        // A stored BlobUrl is no longer publicly fetchable — mint a short-lived DisplayUrl for
+        // each meal photo before it leaves the process (F9). BlobUrl itself stays the canonical,
+        // permanent identity value.
+        foreach (var photo in mealsEaten.SelectMany(m => m.Photos))
+        {
+            photo.DisplayUrl = await blobStorage.GenerateReadUrlAsync(photo.BlobUrl, ct) ?? string.Empty;
+        }
 
         // Sum all meal totals
         var totalConsumed = new NutrientTotals

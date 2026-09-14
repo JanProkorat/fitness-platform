@@ -30,7 +30,11 @@ const ANIM_DURATION = 250
 const ANIM_EASING = Easing.bezier(0.25, 0.1, 0.25, 1)
 
 export interface MealPhoto {
+  /** Write-path identity (not directly fetchable) — never rendered. */
   blobUrl: string
+  /** Short-lived signed URL — this is what gets rendered. May be absent
+   *  (or empty) when the backend fails to re-sign the photo. */
+  displayUrl?: string
   note?: string | null
 }
 
@@ -78,7 +82,10 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, 
     visible: false,
     startIndex: 0,
   })
-  const photoUrls = photos.map((p) => p.blobUrl).filter(Boolean)
+  // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which is
+  // identity-only and not directly fetchable. Kept index-aligned with
+  // `photoNotes`; the photo strip below guards each tile against an empty url.
+  const photoUrls = photos.map((p) => p.displayUrl ?? '')
   const photoNotes = photos.map((p) => p.note ?? null)
 
   // Animated accordion: content is always rendered for measurement
@@ -282,11 +289,23 @@ function MealCard({ meal, expanded, onToggle, eaten, photos = [], onPhotoPress, 
                     onPress={() => setLightbox({ visible: true, startIndex: idx })}
                     style={({ pressed }) => [pressed && { opacity: 0.75 }]}
                   >
-                    <Image
-                      source={{ uri: url }}
-                      style={[styles.photoThumb, { borderRadius: Radius.sm }]}
-                      resizeMode="cover"
-                    />
+                    {url ? (
+                      <Image
+                        source={{ uri: url }}
+                        style={[styles.photoThumb, { borderRadius: Radius.sm }]}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.photoThumb,
+                          styles.photoThumbPlaceholder,
+                          { borderRadius: Radius.sm, backgroundColor: colors.fill2 },
+                        ]}
+                      >
+                        <Ionicons name="image-outline" size={18} color={colors.label3} />
+                      </View>
+                    )}
                   </Pressable>
                 ))}
               </ScrollView>
@@ -691,6 +710,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     overflow: 'hidden',
+  },
+  photoThumbPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Meal note

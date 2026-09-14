@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.InviteClient;
 using FitnessPlatform.Tests.Builders;
@@ -13,6 +15,13 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 public class InviteClientEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
+
+    private static Claim[] MultiRoleClaims(Guid userId, params string[] roles) =>
+    [
+        new Claim(AppClaims.UserId, userId.ToString()),
+        new Claim(AppClaims.Email, "professional@test.com"),
+        .. roles.Select(r => new Claim(ClaimTypes.Role, r))
+    ];
 
     [Fact]
     public async Task HandleAsync_ValidTrainer_CreatesInvitation()
@@ -108,5 +117,79 @@ public class InviteClientEndpointTests
 
         capturedInvitation.Should().NotBeNull();
         capturedInvitation!.ExpiresAt.Should().BeCloseTo(DateTime.UtcNow.AddDays(7), TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>
+    /// Dual-role professional explicitly narrows the invitation to nutrition only —
+    /// the requested scope is stamped on the InvitationToken so the accept flow can
+    /// honor it later.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_DualRoleProfessional_ExplicitNutritionOnlyScope_StampsScopeOnToken()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        var emailService = Substitute.For<IEmailService>();
+        var logger = Substitute.For<ILogger<InviteClientEndpoint>>();
+
+        InvitationToken? capturedInvitation = null;
+        db.InvitationTokens.When(x => x.Add(Arg.Any<InvitationToken>()))
+            .Do(ci => capturedInvitation = ci.Arg<InvitationToken>());
+
+        var ep = Factory.Create<InviteClientEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(MultiRoleClaims(_trainerId, AppRoles.Trainer, AppRoles.Nutritionist))),
+            db, emailService, logger);
+
+        await ep.HandleAsync(
+            new InviteClientRequest { Email = "client@test.com", RequestedScope = LinkCapabilityScope.NutritionOnly },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        capturedInvitation.Should().NotBeNull();
+        capturedInvitation!.RequestedScope.Should().Be(LinkCapabilityScope.NutritionOnly);
+    }
+
+    /// <summary>
+    /// Security invariant (#917): a Trainer-only professional cannot request
+    /// NutritionOnly scope for an invitation — the requested scope must be validated
+    /// as a subset of the caller's actually-held roles. Deleting the subset check
+    /// makes this test fail (proven and reverted — see PR description).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TrainerOnlyProfessional_RequestsNutritionOnlyScope_Returns400WithErrorCode()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        var emailService = Substitute.For<IEmailService>();
+        var logger = Substitute.For<ILogger<InviteClientEndpoint>>();
+
+        var ep = Factory.Create<InviteClientEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(MultiRoleClaims(_trainerId, AppRoles.Trainer))),
+            db, emailService, logger);
+
+        var act = () => ep.HandleAsync(
+            new InviteClientRequest { Email = "client@test.com", RequestedScope = LinkCapabilityScope.NutritionOnly },
+            TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.RequestedScopeExceedsHeldRoles);
+        db.InvitationTokens.DidNotReceive().Add(Arg.Any<InvitationToken>());
     }
 }

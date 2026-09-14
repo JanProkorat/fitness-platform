@@ -31,6 +31,7 @@ public class MarkSessionCompleteEndpointTests
     private readonly ISessionLockService _lockService = CreateStubLockService();
     private static readonly IOptions<TrainingLockOptions> LockOptions =
         Options.Create(new TrainingLockOptions { LiveTtlHours = 6 });
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private readonly ILogger<MarkSessionCompleteEndpoint> _logger = Substitute.For<ILogger<MarkSessionCompleteEndpoint>>();
 
     private static ISessionLockService CreateStubLockService()
@@ -60,7 +61,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -70,12 +71,12 @@ public class MarkSessionCompleteEndpointTests
 
         // All exercises in the session should be inserted in one completion document
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
+            Arg.Is<SessionExecution>(c =>
                 c.ClientId == _clientId &&
                 c.SessionId == _sessionId &&
-                c.CompletedExerciseIds.Count == 2 &&
-                c.CompletedExerciseIds.Contains(_exercise1) &&
-                c.CompletedExerciseIds.Contains(_exercise2)),
+                c.CompletedExerciseInstanceIds.Count == 2 &&
+                c.CompletedExerciseInstanceIds.Contains(_exercise1) &&
+                c.CompletedExerciseInstanceIds.Contains(_exercise2)),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -90,8 +91,8 @@ public class MarkSessionCompleteEndpointTests
             exerciseIds: [_exercise1, _exercise2]);
 
         // Capture the section ID the plan was built with
-        var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
-        var expectedSectionId = sessionInPlan.Sections[0].SectionId;
+        var sessionInPlan = plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).First(s => s.SessionId == _sessionId);
+        var expectedSectionId = sessionInPlan.Workouts[0].WorkoutId;
 
         var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan);
         var db = CreateMockDb();
@@ -99,7 +100,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -108,10 +109,10 @@ public class MarkSessionCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
         await completionCollection.Received(1).InsertOneAsync(
-            Arg.Is<TrainingCompletion>(c =>
-                c.CompletedSectionIds != null &&
-                c.CompletedSectionIds.Contains(expectedSectionId) &&
-                c.CompletedSectionIds.Count == 1),
+            Arg.Is<SessionExecution>(c =>
+                c.CompletedWorkoutIds != null &&
+                c.CompletedWorkoutIds.Contains(expectedSectionId) &&
+                c.CompletedWorkoutIds.Count == 1),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -125,8 +126,8 @@ public class MarkSessionCompleteEndpointTests
             exerciseIds: [_exercise1, _exercise2]);
 
         // Extract the section ID so we can include it in CompletedSectionIds
-        var sessionInPlan = plan.Weeks.SelectMany(w => w.Sessions).First(s => s.SessionId == _sessionId);
-        var sectionId = sessionInPlan.Sections[0].SectionId;
+        var sessionInPlan = plan.Weeks.SelectMany(w => w.Days).SelectMany(d => d.Sessions).First(s => s.SessionId == _sessionId);
+        var sectionId = sessionInPlan.Workouts[0].WorkoutId;
 
         // Create a completion that already has all exercises AND all sections
         var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
@@ -145,7 +146,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -155,10 +156,10 @@ public class MarkSessionCompleteEndpointTests
 
         // No writes should occur since it's already complete
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+            Arg.Any<SessionExecution>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -187,7 +188,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },
@@ -197,8 +198,8 @@ public class MarkSessionCompleteEndpointTests
 
         // Should have updated with all exercise IDs
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -217,7 +218,7 @@ public class MarkSessionCompleteEndpointTests
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = Guid.NewGuid() },
@@ -234,7 +235,7 @@ public class MarkSessionCompleteEndpointTests
 
         var ep = Factory.Create<MarkSessionCompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _logger);
+            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionCompleteRequest { SessionId = _sessionId },

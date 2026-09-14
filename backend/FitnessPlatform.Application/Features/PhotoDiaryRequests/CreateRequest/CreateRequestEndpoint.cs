@@ -63,17 +63,17 @@ public class CreateRequestEndpoint(
             return;
         }
 
+        // ClientProfile.UserId (ApplicationUser.Id) for plan-ownership lookups — Mongo
+        // NutritionPlan/TrainingPlan store ClientId as the client's ApplicationUser.Id
+        // since #840.
+        ClientProfessionalLink? link = null;
         Guid? clientUserId = null;
-        // ClientProfile.PublicId for plan-ownership lookups — Mongo NutritionPlan/TrainingPlan
-        // store ClientId as the client's PublicId, NOT their ApplicationUser.Id (verified
-        // against ClientNutrition/GetTodayPlan + HasActiveLinkAsync helpers).
-        Guid? clientPublicId = null;
         string? inviteEmail = null;
 
         if (req.LinkId.HasValue)
         {
             // Verify the link is owned by this professional and is active
-            var link = await db.ClientProfessionalLinks
+            link = await db.ClientProfessionalLinks
                 .AsNoTracking()
                 .Include(l => l.ClientProfile)
                 .FirstOrDefaultAsync(l => l.Id == req.LinkId.Value, ct);
@@ -86,7 +86,6 @@ public class CreateRequestEndpoint(
             }
 
             clientUserId = link.ClientProfile.UserId;
-            clientPublicId = link.ClientProfile.PublicId;
         }
         else if (req.PendingInviteId.HasValue)
         {
@@ -103,11 +102,16 @@ public class CreateRequestEndpoint(
             }
 
             inviteEmail = invite.Email;
-            // clientUserId / clientPublicId resolved below after save (only if user is already registered)
+            // clientUserId resolved below after save (only if user is already registered)
         }
 
-        // Validate planId ownership if provided (check both nutrition and training plans)
-        if (req.PlanId.HasValue && clientPublicId.HasValue)
+        // Validate planId ownership if provided (check both nutrition and training plans).
+        // clientUserId is only set here on the link-based path (the invite path resolves it,
+        // if at all, only after the save below), so `link` is guaranteed non-null whenever this
+        // block runs. Beyond ownership, the caller's link must also carry the capability flag
+        // matching the plan's domain — scoping a diary request to a plan the caller's own link
+        // denies is the same cross-domain association the plan-addressed routes gate on.
+        if (req.PlanId.HasValue && clientUserId.HasValue)
         {
             var planId = req.PlanId.Value;
 
@@ -120,7 +124,8 @@ public class CreateRequestEndpoint(
             bool planBelongsToClient;
             if (nutritionPlan is not null)
             {
-                planBelongsToClient = nutritionPlan.ClientId == clientPublicId.Value;
+                planBelongsToClient = nutritionPlan.ClientId == clientUserId.Value
+                    && link is not null && link.CanViewNutritionPlans;
             }
             else
             {
@@ -130,7 +135,8 @@ public class CreateRequestEndpoint(
                     .FindAsync(trainingFilter, cancellationToken: ct))
                     .FirstOrDefaultAsync(ct);
 
-                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientPublicId.Value;
+                planBelongsToClient = trainingPlan is not null && trainingPlan.ClientId == clientUserId.Value
+                    && link is not null && link.CanViewTrainingPlans;
             }
 
             if (!planBelongsToClient)

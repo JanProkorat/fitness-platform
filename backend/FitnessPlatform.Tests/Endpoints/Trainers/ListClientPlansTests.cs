@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Trainers.ListClientPlans;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -22,6 +23,7 @@ public class ListClientPlansTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IComplianceService _complianceService = Substitute.For<IComplianceService>();
+    private readonly IAuditService _audit = Substitute.For<IAuditService>();
 
     // ── Happy path — combined list ───────────────────────────────────────────
 
@@ -41,7 +43,7 @@ public class ListClientPlansTests
         var mongo = BuildMongo(
             nutritionPlans: [nutritionPlan],
             trainingPlans: [trainingPlan],
-            workoutLogs: [],
+            executions: [],
             personalRecords: []);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
@@ -79,7 +81,7 @@ public class ListClientPlansTests
 
         var mongo = BuildMongo(
             trainingPlans: [draftPlan, activePlan, completedPlan],
-            workoutLogs: [],
+            executions: [],
             personalRecords: []);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
@@ -111,14 +113,16 @@ public class ListClientPlansTests
 
         var trainingPlan = CreateTrainingPlan(clientPublicId, externalId: planId, startDate: planStart, name: "Hypertrophy Plan");
 
-        // 3 completed logs for this plan — keyed on UserId (WorkoutLog convention)
-        var log1 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
-        var log2 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
-        var log3 = CreateWorkoutLog(clientUserId, planId, isCompleted: true);
-        // 1 not completed (should not be counted)
-        var log4 = CreateWorkoutLog(clientUserId, planId, isCompleted: false);
+        // 3 completed executions for this plan — keyed on UserId (WorkoutLog/SessionExecution
+        // convention).
+        var execution1 = CreateExecution(clientUserId, planId);
+        var execution2 = CreateExecution(clientUserId, planId);
+        var execution3 = CreateExecution(clientUserId, planId);
+        // A not-completed log is deliberately absent here — pre-#847 it was filtered out
+        // (`.Where(l => l.IsCompleted)`) before ever reaching the mocked SessionExecutions
+        // collection, so it never affected TotalTrainings either way.
         // 1 completed but for a different plan (should not be counted)
-        var log5 = CreateWorkoutLog(clientUserId, Guid.NewGuid(), isCompleted: true);
+        var execution5 = CreateExecution(clientUserId, Guid.NewGuid());
 
         // 2 PRs in the plan window — keyed on UserId (PersonalRecord convention)
         var pr1 = CreatePersonalRecord(clientUserId, achievedAt: planStart.AddDays(10));
@@ -128,7 +132,7 @@ public class ListClientPlansTests
 
         var mongo = BuildMongo(
             trainingPlans: [trainingPlan],
-            workoutLogs: [log1, log2, log3, log4, log5],
+            executions: [execution1, execution2, execution3, execution5],
             personalRecords: [pr1, pr2, prBefore]);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
@@ -159,7 +163,7 @@ public class ListClientPlansTests
 
         var mongo = BuildMongo(
             trainingPlans: [trainingPlan],
-            workoutLogs: [],
+            executions: [],
             personalRecords: [pr]);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
@@ -185,9 +189,9 @@ public class ListClientPlansTests
         var clientUser = EntityBuilder.User.WithId(clientUserId).Build();
         var clientProfile = EntityBuilder.ClientProfile.WithId(10).WithUser(clientUser).Build();
 
-        // NutritionPlan.ClientId stores ClientProfile.PublicId (not UserId).
+        // NutritionPlan.ClientId stores ApplicationUser.Id (#840, previously PublicId).
         var nutritionPlan = CreateNutritionPlan(
-            clientProfile.PublicId,
+            clientProfile.UserId,
             startDate: planStart,
             dateCompleted: planEnd,
             name: "Weight Loss Plan");
@@ -221,13 +225,14 @@ public class ListClientPlansTests
             .With(measurementEnd)
             .Build();
 
-        // Regression guard for #650: ListClientPlansEndpoint must call CalculateComplianceAsync
-        // with clientProfile.PublicId, not clientProfile.UserId. NutritionPlan/MealLog/
-        // TrainingCompletion collections all key ClientId on PublicId. This substitute is
-        // configured ONLY for PublicId — a call made with UserId (the old bug) would hit no
-        // matching setup and return default(ComplianceResult) == null, causing a NullReferenceException.
+        // Regression guard for #840 (supersedes #650): ListClientPlansEndpoint must call
+        // CalculateComplianceAsync with clientProfile.UserId, not clientProfile.PublicId.
+        // NutritionPlan/MealLog/TrainingCompletion collections all key ClientId on UserId now.
+        // This substitute is configured ONLY for UserId — a call made with PublicId (the
+        // now-stale identifier) would hit no matching setup and return
+        // default(ComplianceResult) == null, causing a NullReferenceException.
         _complianceService
-            .CalculateComplianceAsync(clientProfile.PublicId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientProfile.UserId, planStart, planEnd, Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 87.5m,
@@ -237,7 +242,7 @@ public class ListClientPlansTests
 
         var mongo = BuildMongo(
             nutritionPlans: [nutritionPlan],
-            workoutLogs: [],
+            executions: [],
             personalRecords: []);
 
         var ep = CreateEndpoint(db, mongo, _trainerId, setupDefaultCompliance: false);
@@ -254,16 +259,16 @@ public class ListClientPlansTests
     }
 
     /// <summary>
-    /// Regression guard for #650: asserts the exact argument passed to
+    /// Regression guard for #840 (supersedes #650): asserts the exact argument passed to
     /// <see cref="IComplianceService.CalculateComplianceAsync"/> is
-    /// <c>ClientProfile.PublicId</c>, not <c>ApplicationUser.Id</c>. Before the fix,
-    /// ListClientPlansEndpoint:198 passed <c>clientUserId</c> — this test's
-    /// <c>Received()</c> assertion on <c>PublicId</c> fails against the old code, and its
-    /// <c>DidNotReceive()</c> assertion on <c>UserId</c> fails too (the old code called
-    /// with UserId). Both assertions pass only once the argument is corrected.
+    /// <c>ApplicationUser.Id</c>, not <c>ClientProfile.PublicId</c>. Prior to #840,
+    /// ListClientPlansEndpoint called with <c>clientPublicId</c> — this test's
+    /// <c>Received()</c> assertion on <c>UserId</c> fails against that old code, and its
+    /// <c>DidNotReceive()</c> assertion on <c>PublicId</c> fails too (the old code called
+    /// with PublicId). Both assertions pass only once the argument is UserId.
     /// </summary>
     [Fact]
-    public async Task List_NutritionPlan_CallsComplianceServiceWithPublicId_NotUserId()
+    public async Task List_NutritionPlan_CallsComplianceServiceWithUserId_NotPublicId()
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
         var clientPublicId = clientProfile.PublicId;
@@ -272,11 +277,11 @@ public class ListClientPlansTests
         var planStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
         var planEnd = new DateTime(2025, 3, 31, 0, 0, 0, DateTimeKind.Utc);
 
-        var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: planStart, dateCompleted: planEnd, name: "Adhered Plan");
-        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
+        var nutritionPlan = CreateNutritionPlan(clientUserId, startDate: planStart, dateCompleted: planEnd, name: "Adhered Plan");
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
 
         _complianceService
-            .CalculateComplianceAsync(clientPublicId, planStart, planEnd, Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(clientUserId, planStart, planEnd, Arg.Any<CancellationToken>())
             .Returns(new ComplianceResult
             {
                 NutritionCompliancePercent = 92.0m,
@@ -295,9 +300,9 @@ public class ListClientPlansTests
             "nutrition compliance must be non-zero when the client adheres to the plan");
 
         await _complianceService.Received(1).CalculateComplianceAsync(
-            clientPublicId, planStart, planEnd, Arg.Any<CancellationToken>());
+            clientUserId, planStart, planEnd, Arg.Any<CancellationToken>());
         await _complianceService.DidNotReceive().CalculateComplianceAsync(
-            clientUserId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+            clientPublicId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -308,7 +313,7 @@ public class ListClientPlansTests
 
         var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: null, name: "Draft Nutrition Plan");
 
-        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
 
@@ -328,7 +333,7 @@ public class ListClientPlansTests
     {
         var (db, clientProfile) = BuildLinkedClientSetup();
 
-        var mongo = BuildMongo(nutritionPlans: [], trainingPlans: [], workoutLogs: [], personalRecords: []);
+        var mongo = BuildMongo(nutritionPlans: [], trainingPlans: [], executions: [], personalRecords: []);
 
         var ep = CreateEndpoint(db, mongo, _trainerId);
 
@@ -354,7 +359,7 @@ public class ListClientPlansTests
 
         var planStart = new DateTime(2025, 1, 6, 0, 0, 0, DateTimeKind.Utc);
         var nutritionPlan = CreateNutritionPlan(clientPublicId, startDate: planStart, name: "Faulting Plan");
-        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], workoutLogs: [], personalRecords: []);
+        var mongo = BuildMongo(nutritionPlans: [nutritionPlan], executions: [], personalRecords: []);
 
         // Force CalculateComplianceAsync to throw a domain-specific exception
         var expected = new InvalidOperationException("compliance-db-error");
@@ -374,6 +379,68 @@ public class ListClientPlansTests
             .WithMessage("compliance-db-error");
     }
 
+    // ── Audit logging (F11) ──────────────────────────────────────────────────
+    // ListClientPlansEndpoint reads plan inventory, compliance percentages and weight
+    // deltas without leaving an audit trail, unlike sibling routes (GetClientMeasurements)
+    // reading the same rows. A successful read must audit; a denied caller (no link) must
+    // not — the negative case is the control proving the assertion below isn't vacuous.
+
+    [Fact]
+    public async Task List_Success_LogsAuditRead()
+    {
+        var (db, clientProfile) = BuildLinkedClientSetup();
+        var mongo = BuildMongo(nutritionPlans: [], trainingPlans: [], executions: [], personalRecords: []);
+
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await _audit.Received(1).LogAsync(
+            _trainerId,
+            "Read",
+            "ClientPlans",
+            clientProfile.PublicId,
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task List_NotLinkedToClient_DoesNotLogAudit()
+    {
+        // Same denial path as List_NotLinkedToClient_Returns403 — a caller refused access
+        // must not generate an audit row for a read that never happened.
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientUser = EntityBuilder.User.WithEmail("client@test.com").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .Build();
+
+        var mongo = BuildMongo();
+
+        var ep = CreateEndpoint(db, mongo, _trainerId);
+
+        await ep.HandleAsync(new ListClientPlansRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(403);
+        await _audit.DidNotReceive().LogAsync(
+            Arg.Any<Guid?>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<Guid?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ── Auth & ownership errors ──────────────────────────────────────────────
 
     [Fact]
@@ -382,7 +449,8 @@ public class ListClientPlansTests
         var db = new MockDbBuilder().Build();
         var mongo = BuildMongo();
 
-        var ep = Factory.Create<ListClientPlansEndpoint>(db, mongo, _complianceService);
+        var ep = Factory.Create<ListClientPlansEndpoint>(
+            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
 
         await ep.HandleAsync(new ListClientPlansRequest { ClientId = Guid.NewGuid() },
             TestContext.Current.CancellationToken);
@@ -502,7 +570,7 @@ public class ListClientPlansTests
 
         return Factory.Create<ListClientPlansEndpoint>(
             ctx => ctx.Request.HttpContext.User = FakeTrainerPrincipal(callerId),
-            db, mongo, _complianceService);
+            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
     }
 
     private (IApplicationDbContext db, Application.Domain.Entities.ClientProfile clientProfile)
@@ -535,21 +603,27 @@ public class ListClientPlansTests
     private static IMongoContext BuildMongo(
         IEnumerable<NutritionPlan>? nutritionPlans = null,
         IEnumerable<TrainingPlan>? trainingPlans = null,
-        IEnumerable<WorkoutLog>? workoutLogs = null,
+        IEnumerable<SessionExecution>? executions = null,
         IEnumerable<PersonalRecord>? personalRecords = null)
     {
         // Build collections first — never pass a NSubstitute setup call as an argument
         // to another Returns() call; NSubstitute's thread-local context would throw.
         var nutritionCollection = CreateMockCollection(nutritionPlans?.ToList() ?? []);
         var trainingCollection = CreateMockCollection(trainingPlans?.ToList() ?? []);
-        var workoutCollection = CreateMockCollection(workoutLogs?.ToList() ?? []);
         var recordsCollection = CreateMockCollection(personalRecords?.ToList() ?? []);
+
+        // SessionExecutions (#841) — ListClientPlansEndpoint computes TotalTrainings from
+        // this unified collection exclusively (Status=Completed, Performance present, PlanId
+        // matched). The endpoint's Mongo query applies the Status=Completed filter server-side
+        // and only re-filters by PlanId client-side afterward — only Status=Completed documents
+        // should be passed in via <paramref name="executions"/>.
+        var executionCollection = CreateMockCollection(executions?.ToList() ?? []);
 
         var mongo = Substitute.For<IMongoContext>();
         mongo.NutritionPlans.Returns(nutritionCollection);
         mongo.TrainingPlans.Returns(trainingCollection);
-        mongo.WorkoutLogs.Returns(workoutCollection);
         mongo.PersonalRecords.Returns(recordsCollection);
+        mongo.SessionExecutions.Returns(executionCollection);
         return mongo;
     }
 
@@ -628,19 +702,29 @@ public class ListClientPlansTests
         };
     }
 
-    private static WorkoutLog CreateWorkoutLog(
-        Guid clientId,
-        Guid planId,
-        bool isCompleted = true)
+    /// <summary>
+    /// Builds a completed <see cref="SessionExecution"/> for the given client/plan. Only
+    /// Status=Completed documents are ever seeded into <see cref="BuildMongo"/> — matching the
+    /// pre-#847 fixture, where a non-completed WorkoutLog was filtered out before conversion and
+    /// so never reached the mocked SessionExecutions collection at all.
+    /// </summary>
+    private static SessionExecution CreateExecution(Guid clientId, Guid planId)
     {
-        return new WorkoutLog
+        var startedAt = DateTime.UtcNow.AddDays(-5);
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
             PlanId = planId,
-            IsCompleted = isCompleted,
-            StartedAt = DateTime.UtcNow.AddDays(-5),
-            DateCreated = DateTime.UtcNow.AddDays(-5)
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts = []
+            },
+            DateCreated = startedAt,
+            Version = 1
         };
     }
 

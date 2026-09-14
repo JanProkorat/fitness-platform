@@ -7,18 +7,6 @@ are applied consistently.
 Detailed conventions live in [`rules/*.md`](rules/) — cite anchors, never
 restate. Citation format: `rules/<file>.md#<anchor>`.
 
-> **Rules are load-on-demand.** Every `rules/*.md` now carries `paths:`
-> frontmatter, so it auto-loads only when an agent reads a matching package
-> file — it is **no longer in always-on context**. The package rules
-> (`code-quality`, `i18n`, `verification`, `scope-boundaries`) load whenever the
-> relevant code is touched. The orchestration rules (`branch-and-pr`,
-> `merge-strategy`, `epic-branch`) may not be triggered by a file read at a pure
-> orchestration moment, so **before running a gate that cites one, `Read` that
-> `rules/<file>.md` first if it is not already in context** — a citation is a
-> load instruction, not just a pointer. This matters most at: branch/base
-> creation (`branch-and-pr`), epic kickoff (`epic-branch`), and the merge gate
-> (`merge-strategy`).
-
 ## Sub-agents
 
 Project-local dev agents (live in `.claude/agents/`):
@@ -56,13 +44,46 @@ Project-local workflow agents (also in `.claude/agents/`):
 
 | What | Where |
 |---|---|
-| Scope → dev-agent mapping, package boundaries | [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](rules/scope-boundaries.md#scope-to-dev-agent-mapping) |
+| Scope → dev-agent mapping, package boundaries, scope → stack map | [`rules/scope-boundaries.md`](rules/scope-boundaries.md) |
 | Branch naming, worktree pattern, parallel safety | [`rules/branch-and-pr.md`](rules/branch-and-pr.md) |
 | Epic-branch model (two-tier integration) | [`rules/epic-branch.md`](rules/epic-branch.md) |
 | Merge strategy, sub-issue auto-merge, exclusion list | [`rules/merge-strategy.md`](rules/merge-strategy.md) |
-| Hardcoded-value bans, write-locked generated files | [`rules/code-quality.md`](rules/code-quality.md) |
-| i18n requirements (cs/en/de) | [`rules/i18n.md`](rules/i18n.md) |
-| Verification surfaces per scope | [`rules/verification.md`](rules/verification.md) |
+| Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
+| i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
+| Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
+
+## Scope → stack map
+
+Each `scope:*` label maps to exactly one stack pack. Dev sub-agents and the
+pack `<stack>-verify`/`<stack>-build` skills use this to decide which pack
+applies to a given path (full detail:
+[`rules/scope-boundaries.md#scope-to-stack-mapping`](rules/scope-boundaries.md#scope-to-stack-mapping)):
+
+| Path glob    | Stack    | Verify skill    |
+|--------------|----------|-----------------|
+| `/backend/**`| `dotnet` | `dotnet-verify`  |
+| `/web/**`    | `react`  | `react-verify`   |
+| `/mobile/**` | `expo`   | `expo-verify`    |
+
+## Locales
+
+Supported locales: `cs` (primary), `en`, `de`; files at
+`web/src/i18n/locales/*.json` and `mobile/src/i18n/locales/*.json`. This is
+the repo-specific fact the generic react/expo pack `i18n` rule defers to —
+the packs describe the i18n *mechanism* (keys, `useTranslation()`,
+missing-locale fallback), never a fixed locale list of their own.
+
+## Branch / PR / merge precedence
+
+Branch/PR/merge in this repo follow [`rules/branch-and-pr.md`](rules/branch-and-pr.md)
++ [`rules/merge-strategy.md`](rules/merge-strategy.md) — issue+epic-based,
+with sub-issue auto-merge performed by `pr-reviewer`. Where the seeded hub
+[`rules/pr-workflow.md`](rules/pr-workflow.md) / [`rules/git-workflow.md`](rules/git-workflow.md)
+differ (they assume a `/conductor`-style pipeline and forbid a subagent from
+ever touching the remote — no merges, no pushes), **the local rules win**:
+this repo's pipeline is issue+epic-based, and `pr-reviewer` is explicitly
+the sub-agent that opens PRs and performs sub-issue auto-merge per
+[`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge).
 
 ## Prototype locations
 
@@ -217,50 +238,57 @@ artifacts are generated — always read the per-scene source):
 
 ## Chainable plugin skills (external)
 
-These ship as installed plugins. Invoke by their fully-qualified name:
+Invoke by their fully-qualified name. **Every entry below was verified against
+`~/.claude/plugins/installed_plugins.json` on 2026-08-06** — if you add a row,
+check the skill actually resolves first.
 
 | Skill                          | Use after…                                                |
 |--------------------------------|------------------------------------------------------------|
-| `gc-sec-review`                | Adding/changing auth, ownership, upload, or invite endpoints |
-| `engineering:code-review`      | Non-trivial backend changes or cross-package diffs        |
-| `engineering:testing-strategy` | Endpoints with concurrency / ordering concerns             |
-| `engineering:architecture`     | New aggregates, new cross-slice services, ADR-worthy decisions |
-| `engineering:standup`          | Day-end summary of the Notion Changelog page                |
-| `design:design-critique`       | New web page or mobile screen ready for review            |
-| `design:accessibility-review`  | Any screen with forms, tables, modals, or color-critical UI |
-| `design:ux-copy`               | Copy for CTAs, empty states, errors — in cs/en/de         |
-| `design:design-system`         | Before adding new tokens/components to the theme          |
-| `design:design-handoff`        | Translating a prototype scene into real code              |
+| `claude-security`              | Adding/changing auth, ownership, upload, or invite endpoints — the security gate. Deep scan at a chosen effort tier; every finding is challenged by a verifier agent before it is reported |
+| `owasp-security`               | Reference guidance while *writing* auth code (OWASP Top 10, ASVS). Not a substitute for the scan above |
+| `code-review:code-review`      | Non-trivial backend changes or cross-package diffs        |
+| `frontend-design:frontend-design` | New web page or mobile screen ready for review          |
+| `wcag-audit`                   | Any screen with forms, tables, modals, or colour-critical UI |
+| `superpowers:testing-strategy`-shaped work | Use the stack packs instead: `dotnet-tdd`, `dotnet-verify`, `react-verify`, `expo-verify` |
+| `remember:remember`            | Persisting session state worth carrying forward            |
+
+### Removed 2026-08-06 (#911) — these never existed
+
+The table previously listed `gc-sec-review`, four `engineering:*` skills and
+five `design:*` skills. **There is no `engineering` plugin and no `design`
+plugin installed**, and `gc-sec-review` does not resolve either — invoking it
+returns `Unknown skill`. Ten of ten rows were fiction, and the routing rules
+pointed the security gate at one of them, so an orchestrator following this
+file reached for a tool that was never there. Found during epic #856's security
+review, which fell back to `owasp-security`.
+
+Intent-to-reality mapping for the removed rows:
+
+- security review after auth/ownership changes → **`claude-security`** (installed
+  2026-08-06 specifically to close this gap), with `owasp-security` as reference
+  guidance while writing the code
+- code review → **`code-review:code-review`**, or the `/review` command
+- design critique / design system → **`frontend-design:frontend-design`**
+- accessibility review → **`wcag-audit`**
+- testing strategy → no direct equivalent; use the stack `*-verify` skills
+- architecture / standup / ux-copy → **no equivalent installed.** Do the work
+  inline rather than reaching for a skill that is not there.
 
 ## Guardrails (enforced by hooks)
 
 - `src/api/generated.ts` in `/web` and `/mobile` is write-locked. The
-  `block-generated-edits` PreToolUse hook rejects Edit/Write/MultiEdit on
+  `block-generated-client.py` PreToolUse hook rejects Edit/Write/MultiEdit on
   those paths. To change shapes, regenerate via the `regen-api` skill.
-- Compound commands (`&&` / `;`) get split via `split-compound-commands.sh`
+- Compound commands (`&&` / `;`) get split via `split-compound-commands.py`
   so each part passes permission validation independently.
-- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.sh`
+- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.py`
   blocks them. Merging is `pr-reviewer`'s job, dispatched from the main thread.
 - Each agent has a curated bash allowlist via `agent-bash-allowlist.sh` —
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
   (`gate-check.sh` SubagentStop hook). Schemas under `.claude/schemas/`.
-- Handoff/state JSON is **also** validated at write time by the
-  `validate-on-write.sh` PostToolUse hook, so a malformed handoff surfaces on
-  the agent's next turn instead of at the SubagentStop gate. It self-targets:
-  a `.json` file is checked only if it has a top-level `$schema` pointing at a
-  local path (so `.claude/schemas/*.json` themselves are skipped), plus an
-  invalid-JSON check for `state/handoff-*.json` and `state/ship-epic*.json`.
-  `gate-check.sh` remains the authoritative gate — it also catches the
-  "agent never wrote a handoff at all" case, which a write hook cannot.
-- **Typecheck gate** (`typecheck-on-stop.sh` → `typecheck-on-submit.sh`):
-  backgrounded `tsc` on Stop, results surfaced on the next UserPromptSubmit.
-  Note it was inert from 2026-04-30 to 2026-07-27 — it spawned through
-  `setsid`, which macOS does not ship — so 649 detected-change runs produced
-  zero reports. Fixed to fall back to `nohup`; do not reintroduce a bare
-  `setsid` dependency in any hook on this machine.
 - Long-running orchestration state persists to `.claude/state/ship-epic.json`;
-  `reinject-state.sh` re-hydrates context after `/clear` or compact.
+  `reinject-state.py` re-hydrates context after `/clear` or compact.
 
 ## Task lifecycle reminder
 

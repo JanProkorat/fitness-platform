@@ -58,9 +58,11 @@ interface MealRowProps {
   /**
    * Diary photos for this meal's log entry. When `hasPhotos` is true and the
    * user taps the gold camera indicator badge, these are opened in ImageLightbox.
-   * Each photo carries an optional per-photo caption (`note`).
+   * Each photo carries an optional per-photo caption (`note`). `displayUrl`
+   * is the short-lived signed URL rendered in the lightbox — `blobUrl` is
+   * identity-only and not directly fetchable.
    */
-  photos?: { blobUrl: string; note?: string | null; uploadedAt?: string }[]
+  photos?: { blobUrl: string; displayUrl?: string; note?: string | null; uploadedAt?: string }[]
   /**
    * Meal-level diary note. When non-empty, shown as a top overlay caption in
    * the lightbox when photos are opened.
@@ -117,7 +119,12 @@ export const MealRow = React.memo(function MealRow({
   const [lightboxVisible, setLightboxVisible] = useState(false)
 
   const photoList = photos ?? []
-  const photoUrls = photoList.map((p) => p.blobUrl).filter(Boolean)
+  // Render `displayUrl` (short-lived signed URL) — never `blobUrl`, which is
+  // identity-only and not directly fetchable. Map without filtering (an
+  // empty `displayUrl` can legitimately mean the backend failed to re-sign
+  // that photo) so `photoUrls` and `photoNotes` stay index-aligned;
+  // ImageLightbox renders a placeholder for an empty entry.
+  const photoUrls = photoList.map((p) => p.displayUrl ?? '')
   const photoNotes = photoList.map((p) => p.note ?? null)
 
   const handleBadgePress = useCallback(() => {

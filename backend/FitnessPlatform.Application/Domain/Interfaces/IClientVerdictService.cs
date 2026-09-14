@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
@@ -21,12 +22,30 @@ public interface IClientVerdictService
     /// <param name="targetWeightKg">
     /// The client's target weight in kg from onboarding, or null if not set.
     /// </param>
+    /// <param name="capabilities">
+    /// What the caller's link to this client permits them to see. Required, not optional: the
+    /// itemised per-domain signals (training frequency, personal-record count, nutrition
+    /// compliance) are suppressed for a caller whose link denies that domain, and a caller that
+    /// forgot to pass its capabilities would otherwise silently receive all of them.
+    /// </param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>A <see cref="ClientVerdictResult"/> with all computed signals.</returns>
+    /// <returns>
+    /// A <see cref="ClientVerdictResult"/> reduced to the domains <paramref name="capabilities"/>
+    /// grants. The itemised signals (training frequency, personal-record count, nutrition
+    /// compliance) are populated only for a visible domain, and the
+    /// <see cref="ClientVerdictResult.Verdict"/> scalar itself is computed only from the visible
+    /// domains — a caller whose link denies a domain never sees that domain's influence on the
+    /// headline verdict, because the underlying read for a denied domain is skipped rather than
+    /// computed and filtered afterward. Weight (<see cref="ClientVerdictResult.WeightDeltaToGoal"/>,
+    /// <see cref="ClientVerdictResult.WeightDirection"/>) and
+    /// <see cref="ClientVerdictResult.LastActiveAt"/> remain dual-readable and always contribute:
+    /// body measurements are standalone entries, not data attached to a nutrition or training item.
+    /// </returns>
     Task<ClientVerdictResult> ComputeAsync(
         Guid clientUserId,
         long clientProfileId,
         decimal? targetWeightKg,
+        LinkCapabilities capabilities,
         CancellationToken ct);
 }
 
@@ -73,7 +92,8 @@ public class ClientVerdictResult
     public DateTime? LastActiveAt { get; set; }
 
     /// <summary>
-    /// Number of personal records achieved in the current calendar month.
+    /// Number of personal records achieved in the current calendar month, or <c>null</c> when the
+    /// caller's link does not grant the training domain.
     /// </summary>
-    public int PrCountThisMonth { get; set; }
+    public int? PrCountThisMonth { get; set; }
 }

@@ -3,10 +3,9 @@ name: backend-dotnet
 description: Use PROACTIVELY for any work touching `/backend/**` — ASP.NET Core 10 + FastEndpoints API, EF Core entities, MongoDB documents, SignalR hubs, Testcontainers tests. Invoke when adding/modifying endpoints, entities, documents, services, migrations, or backend tests. Do NOT modify `/web` or `/mobile`.
 tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 model: sonnet
-maxTurns: 150
 permissionMode: acceptEdits
 color: blue
-skills: fe-endpoint, mongo-document, regen-api, signalr-event, root-cause-swarm
+skills: dotnet-feature, mongo-document, regen-api, signalr-event, root-cause-swarm
 mcpServers: context7, mongodb, roslyn-navigator
 ---
 
@@ -45,9 +44,12 @@ return immediately with a request to run design-review first.
 - [`rules/scope-boundaries.md#cross-package-coordination`](../rules/scope-boundaries.md#cross-package-coordination) — sequential dispatch when web/mobile follow.
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
-- [`rules/code-quality.md#no-re-layered-services`](../rules/code-quality.md#no-re-layered-services) — vertical-slice anti-patterns.
-- [`rules/code-quality.md#no-swallowed-exceptions`](../rules/code-quality.md#no-swallowed-exceptions) — Problem Details on errors.
-- [`rules/verification.md#backend`](../rules/verification.md#backend) — `dotnet build` + `dotnet test` (Testcontainers).
+- [`rules/architecture.md#banned-patterns`](../rules/architecture.md#banned-patterns) — vertical-slice anti-patterns (no repository/service layers).
+- [`rules/error-handling.md`](../rules/error-handling.md) — expected errors via `Send.XAsync`, Problem Details on the rest.
+- Verify via the **`dotnet-verify`** skill (build+test) / `dotnet-build` (compile floor).
+  Conventions live in the dotnet pack's `rules/` (architecture, api-design,
+  csharp-style, ef-core, error-handling, naming, validation) + this repo's
+  `CLAUDE.md` — cite, don't restate.
 
 ## Stack
 - ASP.NET Core 10 (.NET 10), FastEndpoints, FluentValidation, JWT Bearer
@@ -153,32 +155,23 @@ When a task says "add feature X": create the slice folder, scaffold via the
 `fe-endpoint` skill, keep the work inside `HandleAsync`, add the tests
 alongside, and only promote shared code once you've seen it three times.
 
-## Conventions (non-negotiable)
-- One endpoint per file. `Configure()` sets route + policies; `HandleAsync()`
-  runs the work. Use primary constructors for DI.
-- Routes: `/<domain>/<resource>`. Client routes `/client/...`, trainer routes
-  `/trainer/...` or domain-prefixed with a trainer role.
-- Auth: 15-min JWT access token, 7-day refresh token. Never hand-roll token issuance —
-  copy the pattern from `Features/Auth/Login/LoginEndpoint.cs`.
-- Errors: return RFC 7807 Problem Details via `this.ThrowErrorWithCode(ErrorCodes.X, "...")`.
-  Add new codes in `Domain/Constants/ErrorCodes.cs`.
-- Pagination: `page` / `pageSize` query params; set `X-Total-Count` header.
-- Rate limits: apply `AppPolicies.AuthRateLimit` (or the appropriate policy) on
-  anonymous or abuse-prone endpoints.
-- DB: use `IApplicationDbContext` for Postgres, `IMongoContext` for Mongo.
-  Never take concrete types.
-- Mongo writes: bump the `Version` field on every update; compare on load.
-- SignalR events: lowercase event names (`newmessage`, `nutritionplanpublished`).
-  Broadcast via `IRealtimeNotifier`.
-- i18n: validator messages should be culture-neutral keys; user-facing strings
-  belong in the client.
+## Conventions
+
+Conventions (routes, auth, errors, pagination, DB access patterns, SignalR
+event naming, i18n) are not restated here — see the dotnet pack's `rules/`
+(cited above) and this repo's root `CLAUDE.md` → Backend → Key conventions.
+Repo-specific implementation names (`IApplicationDbContext`, `IMongoContext`,
+`IRealtimeNotifier`, `ThrowErrorWithCode`) are discoverable from
+`required_reads` in the design handoff — read the existing pattern rather
+than re-deriving it.
 
 ## Tests
 - Mirror the feature path under `FitnessPlatform.Tests/Endpoints/<Area>/`.
 - Use `EndpointTestHelpers` and the shared `Builders` for test data.
 - Integration tests hit real PostgreSQL and MongoDB via Testcontainers — never
   mock the DB. Docker must be running.
-- Run: `cd backend && dotnet test`.
+- Run via the **`dotnet-verify`** skill — never invoke `dotnet build` /
+  `dotnet test` directly.
 
 ## Research dispatch (token discipline)
 
@@ -240,6 +233,36 @@ requires the `cwm-roslyn-navigator` dotnet global tool on `$PATH`
   will be dispatched inside a `.worktrees/<issue>-<short>/` directory.
   **Stay there.** Do not `cd` to the repo root, do not `git checkout` a
   different branch, do not `git stash` to borrow another worktree's state.
+
+### Confirm your workspace before your first edit (mandatory)
+
+Saying "stay in your worktree" has not been enough — in one eight-issue
+batch, **four** dev agents edited the main checkout anyway. One wrote an
+entire P1 production sweep (33 files) into main while its assigned
+worktree sat empty; had it committed, the fix would have landed on a docs
+branch. Another edited main but ran build+test against its worktree, so
+its first green run measured unmodified code. The stray files then leaked
+into an unrelated PR's review as phantom findings.
+
+So before your first Write/Edit, run:
+
+```bash
+git -C <your-worktree> rev-parse --show-toplevel   # must equal <your-worktree>
+git -C <your-worktree> branch --show-current       # must be YOUR issue's branch
+```
+
+Then, for the rest of the task:
+
+- **Every** Read/Write/Edit path and **every** shell command is scoped to
+  that worktree — `git -C <worktree> …`, or `cd` there once and use
+  relative paths. Never type an absolute path that starts at the repo root
+  followed by `backend/`, `web/` or `mobile/`.
+- A `PreToolUse` hook (`.claude/hooks/enforce-worktree-isolation.py`) now
+  **denies** subagent writes to `backend/`, `web/` and `mobile/` in the
+  main checkout while any worktree exists. If you hit that denial, you are
+  in the wrong tree — do not try to route around it, re-target the edit.
+- Writing your handoff JSON to the main `.claude/state/` is still correct
+  and is not blocked.
 - Never reuse a branch another sub-agent is already working on. If `git
   status` shows commits or uncommitted files that don't belong to your
   issue, stop and return to the orchestrator — it means a dispatch went
@@ -386,8 +409,19 @@ fragment, no quotes/whitespace/shell metacharacters. The `gate-check.sh`
 SubagentStop hook validates the file before control returns; a malformed
 handoff exits non-zero and you'll see the error to self-correct.
 
-If you hit your `maxTurns` cap mid-task, write `status: "incomplete"`
-with `incomplete_reason: "max-turns at <step>"` so the orchestrator can
+**Commit before you can be interrupted.** There is no `maxTurns` cap on this
+project, but a run can still end abruptly — an API stream drop, a stall
+watchdog, or a backgrounded command you are waiting on. You will get no
+warning, so treat committing as something you do *early and repeatedly*, not
+as a final step. As soon as the build is clean, commit. A committed partial
+slice is recoverable; an uncommitted one has to be reconstructed by hand.
+
+Never background a long-running command (a full test suite) and then end your
+turn waiting for it — the completion notification is routed to the
+orchestrator, not to you, so your turn ends parked and your work is stranded.
+
+If you know you are stopping mid-task, write `status: "incomplete"` with
+`incomplete_reason: "<what remains, at which step>"` so the orchestrator can
 decide to resume vs split.
 
 ## Never

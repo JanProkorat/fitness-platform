@@ -71,6 +71,54 @@ public class EmailDispatchWorkerDrainTests
         queue.PendingCount.Should().Be(0, "MarkProcessed must run for every drained item, including those processed during shutdown");
     }
 
+    /// <summary>
+    /// Regression test for #866. <see cref="BackgroundService.StartAsync"/> does not invoke
+    /// <c>ExecuteAsync</c> inline — it schedules it as
+    /// <c>Task.Run(() =&gt; ExecuteAsync(_stoppingCts.Token), _stoppingCts.Token)</c>, where
+    /// <c>_stoppingCts</c> is linked to the token handed to <c>StartAsync</c>. When that token is
+    /// cancelled before the thread pool dequeues the work item, <c>Task.Run</c> discards the
+    /// delegate outright: <c>ExecuteAsync</c> never runs, so neither the drain loop nor its
+    /// <c>Complete()</c> registration (nor any <c>catch</c>/<c>finally</c> placed inside it)
+    /// can save the buffered items. Handing <c>StartAsync</c> an already-cancelled token
+    /// reproduces that exact state deterministically, with no reliance on thread-pool timing —
+    /// which is what made the original report look like a test-ordering flake.
+    /// </summary>
+    [Fact]
+    public async Task StopAsync_DrainsBufferedItems_WhenExecuteAsyncNeverRan()
+    {
+        var (scopeFactory, emailService) = BuildScopeFactory();
+
+        var queue = new BackgroundEmailQueue();
+        var worker = new EmailDispatchWorker(queue, scopeFactory, NullLogger<EmailDispatchWorker>.Instance);
+
+        const int itemCount = 25;
+        var runId = Guid.NewGuid().ToString("N");
+
+        for (var i = 0; i < itemCount; i++)
+        {
+            queue.TryEnqueue(new EmailDispatchWorkItem($"{runId}-{i}@drain-test.com", $"token-{i}", "en")).Should().BeTrue(
+                "enqueueing before shutdown begins must always succeed while capacity remains");
+        }
+
+        using var alreadyCancelled = new CancellationTokenSource();
+        await alreadyCancelled.CancelAsync();
+
+        await worker.StartAsync(alreadyCancelled.Token);
+
+        // Canary, not incidental detail: this is the precondition the whole test rests on. If a
+        // future framework version goes back to running ExecuteAsync inline, this assertion fails
+        // and tells the reader to re-derive the scenario rather than silently testing nothing.
+        worker.ExecuteTask?.Status.Should().Be(TaskStatus.Canceled,
+            "the scenario under test is a shutdown that beats the thread pool to the ExecuteAsync delegate");
+
+        await worker.StopAsync(CancellationToken.None);
+
+        emailService.SentVerifications.Count(v => v.Email.StartsWith(runId, StringComparison.Ordinal))
+            .Should().Be(itemCount, "the shutdown drain must not depend on ExecuteAsync having been entered");
+
+        queue.PendingCount.Should().Be(0, "MarkProcessed must run for every item the shutdown drain sends");
+    }
+
     [Fact]
     public async Task StopAsync_WithNoBufferedItems_ReturnsPromptly()
     {

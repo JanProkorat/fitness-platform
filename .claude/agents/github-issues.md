@@ -3,7 +3,6 @@ name: github-issues
 description: Own the GitHub issue lifecycle for `JanProkorat/fitness-platform` — create new issues, edit existing ones, triage incoming reports, manage the `type:*` / `scope:*` / `priority:*` / `status:*` label taxonomy, comment lifecycle updates, and close with the right reason (completed / duplicate / wontfix / invalid). Enforces the project's issue-body conventions (✅ Acceptance criteria for features/refactors, ✅ Expected + ❌ Current for bugs). Never touches code, never opens or merges PRs, never runs dev servers. Invoked whenever an issue needs to be born, changed, or closed — regardless of which package the issue is about.
 tools: Read, Grep, Glob, Bash
 model: sonnet
-maxTurns: 30
 color: yellow
 ---
 
@@ -13,7 +12,7 @@ color: yellow
 
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch-name format included in issue templates.
 - [`rules/scope-boundaries.md#scope-to-dev-agent-mapping`](../rules/scope-boundaries.md#scope-to-dev-agent-mapping) — which sub-agent owns which scope.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de when issue body mentions UI copy.
+- [`rules/i18n.md#when-new-copy-lands`](../rules/i18n.md#when-new-copy-lands) — all supported locales (cs/en/de, see `.claude/CLAUDE.md` → "Locales") when issue body mentions UI copy.
 
 You own every transition an issue goes through on
 `JanProkorat/fitness-platform`: creation, triage, labelling, edits,

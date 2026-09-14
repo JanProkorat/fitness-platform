@@ -519,7 +519,6 @@
     "collaborationBoth": "Online & vor Ort",
     "collaborationOnline": "Nur online",
     "collaborationInPerson": "Nur vor Ort",
-    "maxClients": "Max. Klientenzahl",
     "languages": "Sprachen",
     "addLanguage": "Sprache hinzufügen...",
     "socialNetworks": "Soziale Netzwerke",
@@ -926,7 +925,6 @@
     "CLIENT_NOT_FOUND": "Klient nicht gefunden.",
     "NO_CLIENT_RELATIONSHIP": "Sie haben keine aktive Beziehung zu diesem Klienten.",
     "COLLABORATOR_NOT_FOUND": "Mitarbeiter nicht gefunden.",
-    "COLLABORATOR_ALREADY_LINKED": "Dieser Mitarbeiter ist bereits mit dem Klienten verknüpft.",
     "PLAN_NOT_DRAFT": "Nur Entwürfe können veröffentlicht werden.",
     "START_DATE_NOT_MONDAY": "Das Startdatum muss ein Montag sein.",
     "START_DATE_IN_PAST": "Das Startdatum darf nicht in der Vergangenheit liegen.",
@@ -1179,6 +1177,7 @@
     "weightLabel": "Gewicht (kg)",
     "restSecondsLabel": "Pause (s)",
     "duplicateSession": "Einheit duplizieren",
+    "sessionDuplicateName": "{{name}} (Kopie)",
     "removeSession": "Einheit entfernen",
     "addExercisePlaceholder": "+ Übung hinzufügen...",
     "leaveTitle": "Nicht gespeicherte Änderungen",
@@ -1391,16 +1390,7 @@
       "deleteError": "Workout konnte nicht gelöscht werden.",
       "deleteConfirmTitle": "Workout löschen",
       "deleteConfirmMessage": "Möchten Sie das Workout «{{name}}» wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "versionConflict": "Workout wurde anderswo geändert, wird neu geladen.",
-      "library": {
-        "title": "Vorlagenbibliothek",
-        "subtitle": "Öffentliche Workout-Vorlagen, die Sie als Ausgangspunkt verwenden können.",
-        "colSections": "Abschnitte",
-        "durationMinutes": "{{count}} Min.",
-        "viewDetails": "Details anzeigen",
-        "formatConfigLabel": "Format",
-        "descriptionLabel": "Beschreibung"
-      }
+      "versionConflict": "Workout wurde anderswo geändert, wird neu geladen."
     },
     "completionState": {
       "setCompleted": "Abgeschlossen",
@@ -2159,6 +2149,7 @@
     "loading": "Trainingsplan wird geladen…",
     "loadError": "Fehler beim Laden des Trainingsplans.",
     "createError": "Plan konnte nicht erstellt werden.",
+    "clientLoadError": "Der Klient konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
     "back": "← Zurück",
     "defaultPlanName": "Trainingsplan",
     "roleDenied": "Sie haben keinen Zugriff auf die Trainingspläne dieses Klienten.",

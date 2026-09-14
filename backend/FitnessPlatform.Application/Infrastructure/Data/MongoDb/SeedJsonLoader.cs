@@ -6,7 +6,7 @@ namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 /// Loads and deserializes the embedded JSON seed data resources under
 /// <c>FitnessPlatform.Application/Seed/Data/</c> (registered as <c>&lt;EmbeddedResource&gt;</c>
 /// in the .csproj). Shared by <see cref="FoodSeedData"/>, <see cref="RecipeSeedData"/>,
-/// <see cref="ExerciseSeedData"/>, and <see cref="WorkoutTemplateSeedData"/>.
+/// <see cref="ExerciseSeedData"/>, and <see cref="SessionTemplateSeedData"/>.
 /// </summary>
 internal static class SeedJsonLoader
 {

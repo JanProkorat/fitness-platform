@@ -1,5 +1,7 @@
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 using NSubstitute;
@@ -95,6 +97,24 @@ public static class PlanTestHelpers
     }
 
     /// <summary>
+    /// Creates a mocked <see cref="IClientLinkAuthorizationService"/> that reports no active link
+    /// at all — both the PublicId- and UserId-addressed overloads return <see langword="null"/>,
+    /// and the batch overload returns an empty list. Use for a deny-path test that must fail
+    /// loudly (403/404, never a silently-granted 200) if the link guard were ever removed.
+    /// </summary>
+    public static IClientLinkAuthorizationService CreateDenyingLinkAuthorizationService()
+    {
+        var service = Substitute.For<IClientLinkAuthorizationService>();
+        service.GetCapabilitiesByClientPublicIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetCapabilitiesByClientUserIdAsync(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns((LinkCapabilities?)null);
+        service.GetAccessibleClientsAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>(), Arg.Any<LinkCapabilityScope?>())
+            .Returns([]);
+        return service;
+    }
+
+    /// <summary>
     /// Creates a mocked <see cref="IMongoContext"/> with plans (and optional foods / meal logs) collections.
     /// </summary>
     public static IMongoContext CreateMockMongo(
@@ -182,6 +202,17 @@ public static class PlanTestHelpers
                 Arg.Any<UpdateOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(updateResult);
+
+        // FindOneAndUpdateAsync — default stub for the #839 targeted-$set publish path.
+        // Tests exercising the write path (success / genuine-race-conflict) override this with an
+        // explicit .Returns() for the specific plan/null they expect; this default is only reached
+        // by tests that never get past validation (e.g. NotFound, AlreadyPublished).
+        collection.FindOneAndUpdateAsync(
+                Arg.Any<FilterDefinition<NutritionPlan>>(),
+                Arg.Any<UpdateDefinition<NutritionPlan>>(),
+                Arg.Any<FindOneAndUpdateOptions<NutritionPlan, NutritionPlan>>(),
+                Arg.Any<CancellationToken>())
+            .Returns((NutritionPlan?)plans.FirstOrDefault());
 
         return collection;
     }

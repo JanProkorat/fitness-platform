@@ -4,11 +4,11 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
@@ -24,9 +24,10 @@ namespace FitnessPlatform.Application.Features.TrainingPlans.CreateTrainingPlan;
 /// See the guard's class doc-comment for the full Create/Delete exclusion rationale (#659 / #695).
 /// </remarks>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="authHelper">Validates trainer-client relationship.</param>
+/// <param name="linkAuthorizationService">Resolves the trainer-client link's CanViewTrainingPlans permission.</param>
 /// <param name="db">PostgreSQL context for cross-DB validation.</param>
-public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHelper authHelper, IApplicationDbContext db)
+public class CreateTrainingPlanEndpoint(
+    IMongoContext mongo, IClientLinkAuthorizationService linkAuthorizationService, IApplicationDbContext db)
     : Endpoint<CreateTrainingPlanRequest, TrainingPlanSummaryDto>
 {
     /// <inheritdoc />
@@ -54,22 +55,42 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
 
         var trainerId = Guid.Parse(userId);
 
-        var hasLink = await authHelper.HasActiveLinkAsync(trainerId, req.ClientId, ct);
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — the PublicId-addressed
+        // overload. Training plans require CanViewTrainingPlans specifically.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            trainerId, req.ClientId, ct);
 
-        if (!hasLink)
+        if (capabilities is not { CanViewTrainingPlans: true })
         {
             await Send.NotFoundAsync(ct);
             return;
         }
 
+        // req.ClientId is the trainer-facing ClientProfile.PublicId — resolve to
+        // ApplicationUser.Id, the canonical clientId key for Mongo documents (#840).
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        var clientUserId = clientProfile.UserId;
+
         // Validate questionnaire response link if provided
         if (req.QuestionnaireResponseId.HasValue)
         {
+            // QuestionnaireResponse.ClientId is ApplicationUser.Id (set from the auth user
+            // id), so compare against the already-resolved clientUserId, not req.ClientId
+            // (which is the trainer-facing ClientProfile.PublicId) — see #840.
             var responseExists = await db.QuestionnaireResponses
                 .AsNoTracking()
                 .AnyAsync(r => r.PublicId == req.QuestionnaireResponseId.Value
                                && r.ProfessionalId == trainerId
-                               && r.ClientId == req.ClientId
+                               && r.ClientId == clientUserId
                                && r.Status == QuestionnaireResponseStatus.Submitted, ct);
 
             if (!responseExists)
@@ -88,7 +109,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         {
             var candidateStart = DateTime.SpecifyKind(req.StartDate.Value.Date, DateTimeKind.Utc);
 
-            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, req.ClientId)
+            var existingFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Archived)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.Status, TrainingPlanStatus.Completed)
                                 & Builders<TrainingPlan>.Filter.Ne(p => p.StartDate, null);
@@ -112,7 +133,7 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
         var plan = new TrainingPlan
         {
             ExternalId = Guid.NewGuid(),
-            ClientId = req.ClientId,
+            ClientId = clientUserId,
             TrainerId = trainerId,
             Name = req.Name,
             Description = req.Description?.Trim(),
@@ -124,7 +145,11 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
             {
                 WeekNumber = w,
                 Status = WeekStatus.Draft,
-                Sessions = []
+                Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                {
+                    DayOfWeek = d,
+                    Sessions = []
+                }).ToList()
             }).ToList(),
             Version = 1,
             DateCreated = now,
@@ -133,7 +158,9 @@ public class CreateTrainingPlanEndpoint(IMongoContext mongo, ProfessionalAuthHel
 
         await mongo.TrainingPlans.InsertOneAsync(plan, cancellationToken: ct);
 
-        var response = TrainingPlanSummaryDto.FromDocument(plan);
+        // req.ClientId is already the client-facing ClientProfile.PublicId (resolved above to
+        // clientUserId for storage) — reuse it directly for the response, no extra lookup needed.
+        var response = TrainingPlanSummaryDto.FromDocument(plan, req.ClientId);
         await HttpContext.Response.SendAsync(response, 201, cancellation: ct);
     }
 }

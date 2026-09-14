@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -16,7 +17,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetShoppingList;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext db)
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider)
     : Endpoint<GetShoppingListRequest, GetShoppingListResponse>
 {
     /// <inheritdoc />
@@ -53,7 +55,8 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Find the client's Active nutrition plan whose date window contains today — a client
         // may hold several sequential, non-overlapping Active plans (#780), so an arbitrary
@@ -63,7 +66,8 @@ public class GetShoppingListEndpoint(IMongoContext mongo, IApplicationDbContext 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {

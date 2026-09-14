@@ -10,6 +10,8 @@ using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -48,11 +50,10 @@ public class GetTodaySessionEndpointTests
     private IMongoContext CreateMongoWithPlan(
         TrainingPlan? plan,
         List<Exercise>? exercises = null,
-        List<TrainingCompletion>? completions = null,
-        List<WorkoutLog>? workoutLogs = null)
+        List<SessionExecution>? executions = null)
     {
         var plans = plan is not null ? new List<TrainingPlan> { plan } : new List<TrainingPlan>();
-        return CreateMongoWithPlans(plans, exercises, completions, workoutLogs);
+        return CreateMongoWithPlans(plans, exercises, executions);
     }
 
     /// <summary>
@@ -62,8 +63,7 @@ public class GetTodaySessionEndpointTests
     private IMongoContext CreateMongoWithPlans(
         List<TrainingPlan> plans,
         List<Exercise>? exercises = null,
-        List<TrainingCompletion>? completions = null,
-        List<WorkoutLog>? workoutLogs = null)
+        List<SessionExecution>? executions = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -123,64 +123,6 @@ public class GetTodaySessionEndpointTests
 
         mongo.Exercises.Returns(exerciseCollection);
 
-        // Stub the TrainingCompletions collection.
-        var completionDocs = completions ?? [];
-        var completionCollection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-        completionCollection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-                var moved = false;
-                cursor.Current.Returns(completionDocs);
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-                {
-                    if (moved) return false;
-                    moved = true;
-                    return completionDocs.Count > 0;
-                });
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-                {
-                    if (moved) return false;
-                    moved = true;
-                    return completionDocs.Count > 0;
-                });
-                return cursor;
-            });
-
-        mongo.TrainingCompletions.Returns(completionCollection);
-
-        // Stub the WorkoutLogs collection — the endpoint calls .Find().ToListAsync()
-        // which internally dispatches to FindAsync on the collection.
-        var logDocs = workoutLogs ?? [];
-        var logCollection = Substitute.For<IMongoCollection<WorkoutLog>>();
-        logCollection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(_ =>
-            {
-                var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-                var moved = false;
-                cursor.Current.Returns(logDocs);
-                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-                {
-                    if (moved) return false;
-                    moved = true;
-                    return logDocs.Count > 0;
-                });
-                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-                {
-                    if (moved) return false;
-                    moved = true;
-                    return logDocs.Count > 0;
-                });
-                return cursor;
-            });
-        mongo.WorkoutLogs.Returns(logCollection);
-
         // Stub the SessionLogs collection — used by the PhotosBySession enrichment path.
         // The endpoint calls .Find().ToListAsync() which internally dispatches to FindAsync.
         var sessionLogCollection = Substitute.For<IMongoCollection<SessionLog>>();
@@ -210,6 +152,34 @@ public class GetTodaySessionEndpointTests
             });
         mongo.SessionLogs.Returns(sessionLogCollection);
 
+        // SessionExecutions (#841) — GetTodaySessionEndpoint reads this collection exclusively.
+        var executionDocs = executions ?? [];
+        var executionCollection = Substitute.For<IMongoCollection<SessionExecution>>();
+        executionCollection.FindAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
+                var moved = false;
+                cursor.Current.Returns(executionDocs);
+                cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return executionDocs.Count > 0;
+                });
+                cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+                {
+                    if (moved) return false;
+                    moved = true;
+                    return executionDocs.Count > 0;
+                });
+                return cursor;
+            });
+        mongo.SessionExecutions.Returns(executionCollection);
+
         return mongo;
     }
 
@@ -225,7 +195,7 @@ public class GetTodaySessionEndpointTests
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
     // -------------------------------------------------------------------------
     // #780 — date-window-aware plan resolution (multiple Active plans per client)
@@ -254,19 +224,17 @@ public class GetTodaySessionEndpointTests
                 WeekNumber = w,
                 Status = WeekStatus.Published,
                 DatePublished = startDate,
-                Sessions = w == 1
+                Days = w == 1
                     ?
-                    [
-                        new TrainingSession
+                    TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = capturedSessionId,
-                            DayOfWeek = todayDow,
                             Name = name + " Session",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
-                    : []
+                            Workouts = []
+                        }))
+                    : TrainingPlanTestHelpers.MaterializeDays()
             }).ToList(),
             Version = 1,
             DateCreated = startDate
@@ -366,25 +334,21 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = session1Id,
-                            DayOfWeek = todayDow,
                             Name = "Morning Session",
                             Order = 1,
-                            Sections = []
-                        },
-                        new TrainingSession
+                            Workouts = []
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = session2Id,
-                            DayOfWeek = todayDow,
                             Name = "Evening Session",
                             Order = 2,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -440,25 +404,21 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionBId,
-                            DayOfWeek = todayDow,
                             Name = "Second Session",
                             Order = 2,
-                            Sections = []
-                        },
-                        new TrainingSession
+                            Workouts = []
+                        }),
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionAId,
-                            DayOfWeek = todayDow,
                             Name = "First Session",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -509,17 +469,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Only Session",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -572,17 +529,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(otherDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = otherDow,
                             Name = "Not Today",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -643,7 +597,7 @@ public class GetTodaySessionEndpointTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Draft,
-                    Sessions = []
+                    Days = TrainingPlanTestHelpers.MaterializeDays()
                 }
             ],
             Version = 1,
@@ -673,7 +627,7 @@ public class GetTodaySessionEndpointTests
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, CreateStubLockService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -690,7 +644,7 @@ public class GetTodaySessionEndpointTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService());
+            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -741,19 +695,17 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -771,51 +723,57 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
             DateCreated = startOfWeek
         };
 
-        // WorkoutLog.ClientId is the JWT user id (_clientId), NOT distinctPublicId.
-        // Before the fix the filter used distinctPublicId and this log was never found.
-        var log = new WorkoutLog
+        // SessionExecution.ClientId is the JWT user id (_clientId), NOT distinctPublicId.
+        // Before the fix the filter used distinctPublicId and this execution was never found.
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId, // <-- user id, not PublicId
-            SessionId = sessionId,
             PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Pull-up",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            Version = 1
         };
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [log]),
-            db, CreateStubLockService());
+            CreateMongoWithPlan(plan, executions: [execution]),
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -869,19 +827,17 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -901,8 +857,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -911,44 +866,50 @@ public class GetTodaySessionEndpointTests
 
         // Only set #1 is completed — sets #2 and #3 have CompletedAt = null.
         // This mirrors what the mobile client sends after the user marks one set done.
-        var partialLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            SessionId = sessionId,
             PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Bench Press",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Bench Press",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                    new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                    new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            Version = 1
         };
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db, CreateStubLockService());
+            CreateMongoWithPlan(plan, executions: [execution]),
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -963,173 +924,17 @@ public class GetTodaySessionEndpointTests
             "only one of three sets is done — the exercise must not be marked complete");
     }
 
-    /// <summary>
-    /// Regression (hypothesis 4): when the user completes an entire session earlier
-    /// in the day (IsCompleted=true, all sets done) and then starts a fresh partial
-    /// log for the same session, ONLY the newest log should determine completion state.
-    /// The older completed log's fully-done exercises must NOT leak into
-    /// CompletedExerciseIdsBySession when the current log is partial.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_StaleCompletedLogPlusPartialLog_OnlyLatestLogDeterminesCompletion()
-    {
-        var todayDow = TodayDow();
-        var startOfWeek = StartOfCurrentWeek();
-        var sessionId = Guid.NewGuid();
-        var exerciseId = Guid.NewGuid();
-
-        var db = new MockDbBuilder()
-            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
-            .Build();
-
-        var plan = new TrainingPlan
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            TrainerId = Guid.NewGuid(),
-            Name = "Stale Log Plan",
-            Status = TrainingPlanStatus.Active,
-            StartDate = startOfWeek,
-            Weeks =
-            [
-                new TrainingWeek
-                {
-                    WeekNumber = 1,
-                    Status = WeekStatus.Published,
-                    DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Pull Day",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Pull-up",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1 },
-                                                new ExerciseSet { SetNumber = 2 }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            Version = 1,
-            DateCreated = startOfWeek
-        };
-
-        var olderStartedAt = DateTime.UtcNow.AddHours(-3);
-
-        // Older log — IsCompleted=true, all sets done. Simulates a full session
-        // completed earlier today (e.g. during a test run or a restarted session).
-        var completedLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = olderStartedAt,
-            IsCompleted = true,
-            CompletedAt = olderStartedAt.AddHours(1),
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        // Newer log — fresh start, only one set done (partial).
-        var newerPartialLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow.AddMinutes(-5),
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        // Both logs are seeded — the older completed one and the newer partial one.
-        var ep = Factory.Create<GetTodaySessionEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [completedLog, newerPartialLog]),
-            db, CreateStubLockService());
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-
-        var response = ep.Response;
-        response.HasSession.Should().BeTrue();
-
-        // The older completed log's exercises must NOT propagate. The newest log
-        // is partial, so no exercise should be marked complete.
-        var completedForSession = response.CompletedExerciseIdsBySession.GetValueOrDefault(sessionId);
-        completedForSession.Should().NotContain(exerciseId,
-            "the newest log for this session is partial — the stale completed log must not override it");
-    }
-
     // -------------------------------------------------------------------------
     // CompletedSetsBySessionExercise — per-set completion map
     // -------------------------------------------------------------------------
+    //
+    // #841: the "stale/multiple WorkoutLogs for the same session on the same day, pick
+    // the latest" tests formerly here (HandleAsync_StaleCompletedLogPlusPartialLog_*,
+    // HandleAsync_MultipleLogsWithIdenticalStartedAt_PicksDeterministically) were removed.
+    // That scenario is no longer reachable: the unified SessionExecutions collection
+    // enforces a partial-unique index on (clientId, sessionId, date), so at most ONE
+    // execution document can exist per planned session per calendar day — the app-level
+    // "latest wins" tie-break these tests guarded is now a DB-level invariant instead.
 
     /// <summary>
     /// Seeding exercise X with 3 planned sets and a WorkoutLog where only
@@ -1164,19 +969,17 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1196,8 +999,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1205,44 +1007,50 @@ public class GetTodaySessionEndpointTests
         };
 
         // Only set #1 is completed — sets #2 and #3 have CompletedAt = null.
-        var partialLog = new WorkoutLog
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            SessionId = sessionId,
             PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Bench Press",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
+            SessionId = sessionId,
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Bench Press",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                    new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                    new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            Version = 1
         };
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [partialLog]),
-            db, CreateStubLockService());
+            CreateMongoWithPlan(plan, executions: [execution]),
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1260,170 +1068,6 @@ public class GetTodaySessionEndpointTests
         var completedIds = response.CompletedExerciseIdsBySession.GetValueOrDefault(sessionId);
         completedIds.Should().NotContain(exerciseId,
             "only set #1 of 3 is done — the exercise must not be in CompletedExerciseIdsBySession");
-    }
-
-    /// <summary>
-    /// Regression: when an older fully-completed log exists alongside a newer partial log
-    /// for the same session, ONLY the newest log (by StartedAt) must feed
-    /// CompletedSetsBySessionExercise. The older log's sets must not leak into the map.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_StaleCompletedLogPlusPartialLog_OnlyLatestLogSetsInMap()
-    {
-        var todayDow = TodayDow();
-        var startOfWeek = StartOfCurrentWeek();
-        var sessionId = Guid.NewGuid();
-        var exerciseId = Guid.NewGuid();
-
-        var db = new MockDbBuilder()
-            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
-            .Build();
-
-        var plan = new TrainingPlan
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            TrainerId = Guid.NewGuid(),
-            Name = "Stale Sets Plan",
-            Status = TrainingPlanStatus.Active,
-            StartDate = startOfWeek,
-            Weeks =
-            [
-                new TrainingWeek
-                {
-                    WeekNumber = 1,
-                    Status = WeekStatus.Published,
-                    DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Pull Day",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseId,
-                                            ExerciseName = "Pull-up",
-                                            Order = 1,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1 },
-                                                new ExerciseSet { SetNumber = 2 },
-                                                new ExerciseSet { SetNumber = 3 }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            Version = 1,
-            DateCreated = startOfWeek
-        };
-
-        var olderStartedAt = DateTime.UtcNow.AddHours(-3);
-
-        // Older log — all 3 sets done (fully completed session restart).
-        var completedLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = olderStartedAt,
-            IsCompleted = true,
-            CompletedAt = olderStartedAt.AddHours(1),
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = olderStartedAt.AddMinutes(10) },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = olderStartedAt.AddMinutes(20) },
-                                new WorkoutSet { SetNumber = 3, CompletedAt = olderStartedAt.AddMinutes(30) }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        // Newer log — fresh restart, only set #1 done.
-        var newerPartialLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow.AddMinutes(-5),
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow.AddMinutes(-2) },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        var ep = Factory.Create<GetTodaySessionEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [completedLog, newerPartialLog]),
-            db, CreateStubLockService());
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-
-        var response = ep.Response;
-        response.HasSession.Should().BeTrue();
-
-        // Only set #1 from the LATEST log must appear — NOT sets #2 and #3 from the old log.
-        response.CompletedSetsBySessionExercise.Should().ContainKey(sessionId);
-        response.CompletedSetsBySessionExercise[sessionId].Should().ContainKey(exerciseId);
-        response.CompletedSetsBySessionExercise[sessionId][exerciseId].Should()
-            .BeEquivalentTo(new[] { 1 },
-                "the older fully-completed log must not bleed sets #2 and #3 into the map");
     }
 
     // -------------------------------------------------------------------------
@@ -1462,25 +1106,24 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exerciseId,
                                             ExerciseExternalId = exerciseId,
                                             ExerciseName = "Bench Press",
                                             Order = 1,
@@ -1494,22 +1137,22 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
             DateCreated = startOfWeek
         };
 
-        // Exercise is marked complete via the Today card — no WorkoutLog exists.
-        var completionDoc = new TrainingCompletion
+        // Exercise is marked complete via the Today card — no live session exists.
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [exerciseId],
             Version = 1,
             DateCreated = DateTime.UtcNow
         };
@@ -1517,8 +1160,8 @@ public class GetTodaySessionEndpointTests
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, completions: [completionDoc]),
-            db, CreateStubLockService());
+            CreateMongoWithPlan(plan, executions: [execution]),
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1572,25 +1215,24 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Pull Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exerciseId,
                                             ExerciseExternalId = exerciseId,
                                             ExerciseName = "Pull-up",
                                             Order = 1,
@@ -1604,65 +1246,63 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
             DateCreated = startOfWeek
         };
 
-        // WorkoutLog: only set #1 stamped — sets #2 and #3 are null.
-        var partialLog = new WorkoutLog
+        // Live session: only set #1 stamped — sets #2 and #3 are null. The Today-card checkbox
+        // tick (below) lands on the SAME (sessionId, date) key, so — matching the pre-#847
+        // the pre-#847 fixture fold — it is folded into this ONE document rather
+        // than seeded as a second one.
+        var startedAt = DateTime.UtcNow;
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            SessionId = sessionId,
             PlanId = plan.ExternalId,
-            StartedAt = DateTime.UtcNow,
-            IsCompleted = false,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseId,
-                            ExerciseName = "Pull-up",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
-                                new WorkoutSet { SetNumber = 2, CompletedAt = null },
-                                new WorkoutSet { SetNumber = 3, CompletedAt = null }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        // TrainingCompletion: user ticked the checkbox on the Today card.
-        var completionDoc = new TrainingCompletion
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exerciseId],
-            Version = 1,
-            DateCreated = DateTime.UtcNow
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = exerciseId,
+                                ExerciseName = "Pull-up",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow },
+                                    new WorkoutSet { SetNumber = 2, CompletedAt = null },
+                                    new WorkoutSet { SetNumber = 3, CompletedAt = null }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            // Today-card checkbox tick, overlaid onto the same document.
+            CompletedExerciseInstanceIds = [exerciseId],
+            Version = 1
         };
 
         var ep = Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, completions: [completionDoc], workoutLogs: [partialLog]),
-            db, CreateStubLockService());
+            CreateMongoWithPlan(plan, executions: [execution]),
+            db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
 
         await ep.HandleAsync(TestContext.Current.CancellationToken);
 
@@ -1684,170 +1324,14 @@ public class GetTodaySessionEndpointTests
     }
 
     // -------------------------------------------------------------------------
-    // latestLogPerSession tie-breaker — determinism when StartedAt is identical
-    // -------------------------------------------------------------------------
-
-    /// <summary>
-    /// Regression: when two WorkoutLogs for the same session share an identical StartedAt
-    /// (e.g. start-workout retried on a flaky network), the secondary sort by DateCreated
-    /// descending must break the tie deterministically.
-    /// The log with the later DateCreated (newerLog) should win, so only its exercises
-    /// appear in CompletedExerciseIdsBySession / CompletedSetsBySessionExercise.
-    /// </summary>
-    [Fact]
-    public async Task HandleAsync_MultipleLogsWithIdenticalStartedAt_PicksDeterministically()
-    {
-        var todayDow = TodayDow();
-        var startOfWeek = StartOfCurrentWeek();
-        var sessionId = Guid.NewGuid();
-        var exerciseA = Guid.NewGuid(); // only in olderLog (all sets done)
-        var exerciseB = Guid.NewGuid(); // only in newerLog (all sets done)
-
-        var db = new MockDbBuilder()
-            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
-            .Build();
-
-        var sharedStartedAt = DateTime.UtcNow.AddMinutes(-10); // identical for both logs
-
-        var plan = new TrainingPlan
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            TrainerId = Guid.NewGuid(),
-            Name = "Tie-Breaker Plan",
-            Status = TrainingPlanStatus.Active,
-            StartDate = startOfWeek,
-            Weeks =
-            [
-                new TrainingWeek
-                {
-                    WeekNumber = 1,
-                    Status = WeekStatus.Published,
-                    DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Push Day",
-                            Order = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = Guid.NewGuid(),
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseA,
-                                            ExerciseName = "Exercise A",
-                                            Order = 1,
-                                            Sets = [new ExerciseSet { SetNumber = 1 }]
-                                        },
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = exerciseB,
-                                            ExerciseName = "Exercise B",
-                                            Order = 2,
-                                            Sets = [new ExerciseSet { SetNumber = 1 }]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            Version = 1,
-            DateCreated = startOfWeek
-        };
-
-        // Older log (lower DateCreated): only exerciseA fully done.
-        var olderLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = sharedStartedAt,
-            IsCompleted = false,
-            DateCreated = sharedStartedAt,                        // earlier insert
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseA,
-                            ExerciseName = "Exercise A",
-                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        // Newer log (higher DateCreated): only exerciseB fully done.
-        var newerLog = new WorkoutLog
-        {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,
-            SessionId = sessionId,
-            PlanId = plan.ExternalId,
-            StartedAt = sharedStartedAt,                         // identical StartedAt
-            IsCompleted = false,
-            DateCreated = sharedStartedAt.AddSeconds(2),         // later insert — wins tie-break
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = exerciseB,
-                            ExerciseName = "Exercise B",
-                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = DateTime.UtcNow }]
-                        }
-                    ]
-                }
-            ]
-        };
-
-        var ep = Factory.Create<GetTodaySessionEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            CreateMongoWithPlan(plan, workoutLogs: [olderLog, newerLog]),
-            db, CreateStubLockService());
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
-
-        var response = ep.Response;
-        response.HasSession.Should().BeTrue();
-
-        // The newer log (exerciseB complete) must win — exerciseA from the older log must not appear.
-        var completed = response.CompletedExerciseIdsBySession.GetValueOrDefault(sessionId) ?? [];
-        completed.Should().Contain(exerciseB, "the newer log (higher DateCreated) must win the tie-break");
-        completed.Should().NotContain(exerciseA, "the older log must be discarded by the tie-break");
-    }
-
-    // -------------------------------------------------------------------------
     // ExerciseMuscleGroups enrichment
     // -------------------------------------------------------------------------
+    //
+    // #841: HandleAsync_MultipleLogsWithIdenticalStartedAt_PicksDeterministically (the
+    // StartedAt-tie-break-by-DateCreated regression test) was removed for the same reason
+    // as the stale/multiple-log tests above — two WorkoutLogs/executions for the same
+    // (clientId, sessionId, date) can no longer coexist under the unified model's
+    // partial-unique index.
 
     [Fact]
     public async Task HandleAsync_SessionsWithMatchingExerciseDocs_PopulatesExerciseMuscleGroups()
@@ -1872,19 +1356,17 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -1906,8 +1388,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -1976,25 +1457,24 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Push Day",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId = exercise1Id,
                                             ExerciseExternalId = exercise1Id,
                                             ExerciseName = "Bench Press",
                                             Order = 1,
@@ -2002,6 +1482,7 @@ public class GetTodaySessionEndpointTests
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId = exercise2Id,
                                             ExerciseExternalId = exercise2Id,
                                             ExerciseName = "Overhead Press",
                                             Order = 2,
@@ -2010,26 +1491,26 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
             DateCreated = startOfWeek
         };
 
-        var completionDoc = new TrainingCompletion
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = DateTime.UtcNow.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = [exercise1Id],
+            Date = DateTime.UtcNow.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [exercise1Id],
             Version = 3,
             DateCreated = DateTime.UtcNow
         };
 
-        var mongo = CreateMongoWithPlan(plan, completions: [completionDoc]);
+        var mongo = CreateMongoWithPlan(plan, executions: [execution]);
         var db = CreateMockDb();
         var ep = CreateEndpoint(mongo, db);
 
@@ -2067,17 +1548,14 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = sessionId,
-                            DayOfWeek = todayDow,
                             Name = "Legs",
                             Order = 1,
-                            Sections = []
-                        }
-                    ]
+                            Workouts = []
+                        }))
                 }
             ],
             Version = 1,
@@ -2122,19 +1600,17 @@ public class GetTodaySessionEndpointTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
                         {
                             SessionId = Guid.NewGuid(),
-                            DayOfWeek = todayDow,
                             Name = "Push",
                             Order = 1,
-                            Sections =
+                            Workouts =
                             [
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId = Guid.NewGuid(),
+                                    WorkoutId = Guid.NewGuid(),
                                     Order = 0,
                                     Name = "Hlavní",
                                     Exercises =
@@ -2156,8 +1632,7 @@ public class GetTodaySessionEndpointTests
                                     ]
                                 }
                             ]
-                        }
-                    ]
+                        }))
                 }
             ],
             Version = 1,
@@ -2190,5 +1665,274 @@ public class GetTodaySessionEndpointTests
 
         // The unknown exercise must be absent — not an exception, just missing.
         response.ExerciseMuscleGroups.Should().NotContainKey(unknownExerciseId);
+    }
+
+    // -------------------------------------------------------------------------
+    // #838 — two-phase projected read: byte-equivalence across edge cases.
+    // These assert the phase-1 (light projection) + phase-2 (per-week hydration)
+    // split still produces the exact same response shape as the old single
+    // full-fetch implementation for the tricky window/week-resolution cases.
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// A plan whose StartDate is far enough in the future that its window
+    /// <c>[StartDate, StartDate + weekCount*7)</c> doesn't contain today must never
+    /// reach phase-2 hydration — <see cref="PlanWindowResolver.ResolveCurrentPlan{T}"/>
+    /// filters it out at phase 1 already (it isn't "the current plan" at all, same as
+    /// pre-#838 behavior), so the response must be the bare HasSession=false state with
+    /// no plan metadata and no leaked session content from the not-yet-started week.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_FutureStartDate_ReturnsNoPlanState()
+    {
+        var todayDow = TodayDow();
+        var futureStart = DateTime.UtcNow.Date.AddDays(30);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Not Started Yet Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = futureStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = futureStart,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
+                        {
+                            SessionId = Guid.NewGuid(),
+                            Name = "Future Session",
+                            Order = 1,
+                            Workouts = []
+                        }))
+                }
+            ],
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeFalse("the plan's window doesn't contain today yet");
+        response.PlanId.Should().BeNull("a plan whose window excludes today is not resolved as 'current' — same as pre-#838 behavior");
+        response.Sessions.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression for #838: when the resolved week number is past the last PUBLISHED
+    /// week (trainer hasn't queued anything for today yet, even though the plan's
+    /// window still contains today), the endpoint must return the metadata-only
+    /// response without ever calling phase-2 hydration for a week that doesn't exist
+    /// as "current".
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_PastLastPublishedWeek_ReturnsMetadataOnlyNoSession()
+    {
+        var todayDow = TodayDow();
+        // Plan started 3 weeks ago; only week 1 is published. Today resolves to
+        // week 4 (daysSinceStart/7+1), which is past the last published week (1).
+        var startDate = StartOfCurrentWeek().AddDays(-21);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Stale Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession
+                        {
+                            SessionId = Guid.NewGuid(),
+                            Name = "Week 1 Session",
+                            Order = 1,
+                            Workouts = []
+                        }))
+                },
+                new TrainingWeek { WeekNumber = 2, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() },
+                new TrainingWeek { WeekNumber = 3, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() },
+                new TrainingWeek { WeekNumber = 4, Status = WeekStatus.Draft, Days = TrainingPlanTestHelpers.MaterializeDays() }
+            ],
+            Version = 1,
+            DateCreated = startDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeFalse("the trainer hasn't published anything for the current week yet");
+        response.PlanId.Should().Be(plan.ExternalId);
+        response.TotalWeeks.Should().Be(4);
+        response.Sessions.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression for #838: gap-skip. Trainer published weeks 1, 2 and 4 but left
+    /// week 3 as a Draft. Today's calculated week is 3 (unpublished) — the endpoint
+    /// must fall back to the latest published week not after the calculated one
+    /// (week 2), and phase-2 hydration must fetch WEEK 2's session content — not
+    /// week 3's (doesn't exist) and not week 4's (ahead of the trainer's cursor).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_GapSkipWeek_HydratesFallbackWeekNotCalculatedOrAheadWeek()
+    {
+        var todayDow = TodayDow();
+        // Plan started 2 full weeks ago, so today falls in week 3 (daysSinceStart/7+1 = 3).
+        var startDate = StartOfCurrentWeek().AddDays(-14);
+        var week2SessionId = Guid.NewGuid();
+        var week4SessionId = Guid.NewGuid();
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Gap Skip Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 1 Session", Order = 1, Workouts = [] }))
+                },
+                new TrainingWeek
+                {
+                    WeekNumber = 2,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week2SessionId, Name = "Week 2 Session (fallback target)", Order = 1, Workouts = [] }))
+                },
+                new TrainingWeek
+                {
+                    // Week 3 is the calculated week (unpublished) — must be skipped entirely.
+                    WeekNumber = 3,
+                    Status = WeekStatus.Draft,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 3 Session (must never appear)", Order = 1, Workouts = [] }))
+                },
+                new TrainingWeek
+                {
+                    // Week 4 is published but AHEAD of the calculated week — must never appear either.
+                    WeekNumber = 4,
+                    Status = WeekStatus.Published,
+                    DatePublished = startDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week4SessionId, Name = "Week 4 Session (must never appear)", Order = 1, Workouts = [] }))
+                }
+            ],
+            Version = 1,
+            DateCreated = startDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeTrue();
+        response.CurrentWeek.Should().Be(2, "the resolver must fall back to the latest published week not after the calculated (unpublished) week 3");
+#pragma warning disable CS0618
+        response.Session!.SessionId.Should().Be(week2SessionId, "phase-2 hydration must fetch week 2's content, not week 3's or week 4's");
+        response.Session!.Name.Should().Be("Week 2 Session (fallback target)");
+#pragma warning restore CS0618
+    }
+
+    /// <summary>
+    /// Regression for #838: legacy plans with no StartDate cycle through published
+    /// weeks based on the first published week's DatePublished. This asserts phase-2
+    /// hydration fetches the CORRECT cycled week's session content, not week 1's by
+    /// default.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LegacyNoStartDate_CyclesToCorrectWeek_HydratesThatWeeksSession()
+    {
+        var todayDow = TodayDow();
+        var week2SessionId = Guid.NewGuid();
+        // Two published weeks, published 8 days ago: (8 / 7) % 2 = 1 → cycles to week index 1 (week 2).
+        var firstPublishDate = DateTime.UtcNow.Date.AddDays(-8);
+
+        var plan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Legacy Cycling Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = null, // legacy plan — no StartDate
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = firstPublishDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = Guid.NewGuid(), Name = "Week 1 Session (must never appear)", Order = 1, Workouts = [] }))
+                },
+                new TrainingWeek
+                {
+                    WeekNumber = 2,
+                    Status = WeekStatus.Published,
+                    DatePublished = firstPublishDate,
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+(todayDow, new TrainingSession { SessionId = week2SessionId, Name = "Week 2 Session (cycle target)", Order = 1, Workouts = [] }))
+                }
+            ],
+            Version = 1,
+            DateCreated = firstPublishDate
+        };
+
+        var mongo = CreateMongoWithPlan(plan);
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        var response = ep.Response;
+        response.HasSession.Should().BeTrue();
+        response.CurrentWeek.Should().Be(2, "8 days since first publish cycles to week index 1 (week 2) for a 2-week legacy plan");
+#pragma warning disable CS0618
+        response.Session!.SessionId.Should().Be(week2SessionId);
+        response.Session!.Name.Should().Be("Week 2 Session (cycle target)");
+#pragma warning restore CS0618
     }
 }

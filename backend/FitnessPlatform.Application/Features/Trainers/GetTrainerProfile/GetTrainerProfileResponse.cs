@@ -46,11 +46,6 @@ public class GetProfessionalProfileResponse
     public string? CollaborationType { get; set; }
 
     /// <summary>
-    /// Maximum number of clients.
-    /// </summary>
-    public int? MaxClients { get; set; }
-
-    /// <summary>
     /// LinkedIn profile URL or handle.
     /// </summary>
     public string? LinkedIn { get; set; }

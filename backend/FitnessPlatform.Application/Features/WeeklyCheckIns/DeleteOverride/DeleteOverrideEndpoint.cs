@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,8 @@ namespace FitnessPlatform.Application.Features.WeeklyCheckIns.DeleteOverride;
 /// The trainer must have an active link to the specified client.
 /// </summary>
 /// <param name="db">Database context.</param>
-public class DeleteOverrideEndpoint(IApplicationDbContext db)
+/// <param name="linkAuthorizationService">Link capability resolver.</param>
+public class DeleteOverrideEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<DeleteOverrideRequest>
 {
     /// <inheritdoc />
@@ -68,14 +70,14 @@ public class DeleteOverrideEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l =>
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.ClientProfileId == clientProfile.Id &&
-                l.IsActive, ct);
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile". No
+        // capability flag is required, matching the pre-migration IsActive-only presence check —
+        // the override applies regardless of which plan domains the link currently grants.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            trainerUserId, req.ClientUserId, ct);
 
-        if (!hasLink)
+        if (capabilities is null)
         {
             await this.SendProblemAsync(
                 StatusCodes.Status403Forbidden,

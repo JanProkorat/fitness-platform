@@ -2,13 +2,13 @@ import api from './client'
 import type {
   GetMyPhotosResponse,
   MonthGroupResponse,
-  PlanPhotoResponse2,
+  ClientPhotoResponse,
 } from './generated'
 import { PlanPhotoCategory } from './generated'
 
 // Re-export generated types so consumers only need to import from '@/api/photos'.
 export { PlanPhotoCategory }
-export type { GetMyPhotosResponse, MonthGroupResponse, PlanPhotoResponse2 }
+export type { GetMyPhotosResponse, MonthGroupResponse, ClientPhotoResponse }
 
 export interface GetMyPhotosParams {
   page: number

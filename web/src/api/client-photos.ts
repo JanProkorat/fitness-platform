@@ -2,11 +2,11 @@ import { apiClient } from '@/api/client';
 import type {
   GetTrainerClientPhotosResponse,
   MonthGroupResponse,
-  PlanPhotoResponse2,
+  ClientPhotoResponse,
   PlanPhotoCategory,
 } from '@/api/generated';
 
-export type { GetTrainerClientPhotosResponse, MonthGroupResponse, PlanPhotoResponse2, PlanPhotoCategory };
+export type { GetTrainerClientPhotosResponse, MonthGroupResponse, ClientPhotoResponse, PlanPhotoCategory };
 
 export interface GetClientPhotosParams {
   clientId: string;

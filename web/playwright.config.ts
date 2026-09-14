@@ -117,13 +117,25 @@ export default defineConfig({
     // (POST /auth/refresh on mount) complete before asserting page content.
     // The globalSetup calls POST /test/reset before this project runs, so
     // the DB is at the deterministic QA seed baseline.
+    //
+    // No `storageState` option here (#897): every trainer spec imports the
+    // `trainerTest` export from tests/e2e/fixtures/auth.ts, which overrides
+    // the built-in `storageState` fixture to mint a fresh, single-use
+    // refresh token per test ATTEMPT rather than sharing the one token
+    // .auth/trainer.json used to hold across every spec. `dependencies:
+    // ['setup']` stays — auth.setup.ts still writes .auth/trainer.json, and
+    // the fixture reads it as a template for the non-auth parts of storage
+    // state (dark-mode preference, Google cookie). Leaving `storageState`
+    // out of this project's `use` is deliberate: a spec that forgot to
+    // import `trainerTest` gets an unauthenticated context and fails loudly,
+    // instead of silently falling back to the shared on-disk token and
+    // reintroducing this bug.
     {
       name: 'trainer',
       dependencies: ['setup'],
       testMatch: /trainer\/.+\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/trainer.json',
       },
     },
 
@@ -150,6 +162,13 @@ export default defineConfig({
     // inside qa-playwright (where the seeded fixtures + dockerised web service
     // are the source of truth). Excluded from host runs to keep regression
     // smoke (trainer/clients.spec.ts) fast and deterministic.
+    //
+    // No `storageState` option here (#897), for the same reason as the
+    // `trainer` project above: every nutritionist spec imports the
+    // `nutritionistTest` export from tests/e2e/fixtures/auth.ts, which mints
+    // a fresh per-attempt refresh token instead of sharing the one token
+    // .auth/nutritionist.json used to hold across all three nutritionist
+    // specs. `dependencies: ['setup']` stays for the same reason too.
     {
       name: 'nutritionist',
       dependencies: ['setup'],
@@ -162,7 +181,6 @@ export default defineConfig({
           ],
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/nutritionist.json',
       },
     },
   ],

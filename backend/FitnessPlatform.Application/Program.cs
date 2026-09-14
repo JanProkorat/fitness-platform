@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Application.Infrastructure.Cli;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.HealthChecks;
@@ -61,7 +62,11 @@ var mongoDatabaseName = builder.Configuration[ConfigKeys.MongoDbDatabaseName]
 var mongoClient = new MongoClient(mongoConnection);
 builder.Services.AddSingleton<IMongoDatabase>(_ => mongoClient.GetDatabase(mongoDatabaseName));
 builder.Services.AddSingleton<IMongoContext, MongoContext>();
-builder.Services.AddHostedService<MongoIndexInitializer>();
+
+// MongoIndexInitializer is registered as a plain singleton, NOT via AddHostedService.
+// It is invoked explicitly, awaited, and completed BEFORE app.Run() below — see that
+// call site for why. Index creation is idempotent and stays part of the same pass.
+builder.Services.AddSingleton<MongoIndexInitializer>();
 
 // Blob Storage (MinIO)
 builder.Services.AddSingleton<IBlobStorageService, MinioBlobStorageService>();
@@ -165,6 +170,23 @@ builder.Services.AddRateLimiter(options =>
                     QueueLimit = 0
                 }));
 
+    // Partitioned by the authenticated professional's UserId, not IP — see
+    // AppPolicies.PendingInviteRateLimit for why the account is the meaningful bucket here.
+    // Falls back to the IP-based key only in the defensive case where the claim is somehow
+    // absent (the endpoint already requires a Trainer/Nutritionist/Admin role, so this claim
+    // is always present in practice).
+    options.AddPolicy(AppPolicies.PendingInviteRateLimit, context =>
+        rateLimitingDisabled
+            ? RateLimitPartition.GetNoLimiter("disabled")
+            : RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.User.FindFirst(AppClaims.UserId)?.Value ?? GetPartitionKey(context),
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -189,9 +211,13 @@ builder.Services.AddSingleton<PresenceTracker>();
 // Macro Calculator
 builder.Services.AddSingleton<IMacroCalculatorService, MacroCalculatorService>();
 
-// Nutrition Auth Helper (cross-DB link verification)
-builder.Services.AddScoped<NutritionAuthHelper>();
-builder.Services.AddScoped<ProfessionalAuthHelper>();
+// System clock — see rules/csharp-style.md#timeprovider. Not previously registered because no
+// endpoint injected it yet; the meal-template feature (#859) is the first consumer.
+builder.Services.AddSingleton(TimeProvider.System);
+
+// Client link authorization (cross-DB link verification) — the single entry point every
+// call site resolves professional/client link capabilities through; see #958, #964.
+builder.Services.AddScoped<IClientLinkAuthorizationService, ClientLinkAuthorizationService>();
 builder.Services.AddScoped<IPrDetectionService, PrDetectionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IWorkoutCompletionService, WorkoutCompletionService>();
@@ -272,6 +298,14 @@ builder.Services.AddScoped<IClientVerdictService, ClientVerdictService>();
 // mutation endpoints (Update, Publish, Complete, LinkQuestionnaire).
 builder.Services.AddScoped<PlanConcurrencyGuard>();
 
+// Resolves a coach's effective feature entitlements + client-count limit from their
+// subscription (#593). No endpoint gates on this yet — see #594.
+builder.Services.AddScoped<EntitlementService>();
+
+// One-shot CLI backfill, resolved by CliCommandDispatcher — never `new`-ed
+// directly. Scoped: takes IApplicationDbContext, which is scoped (see :56).
+builder.Services.AddScoped<PhotoDescriptionBackfillService>();
+
 // Google social login token verification
 builder.Services.AddScoped<IGoogleTokenVerifier, GoogleTokenVerifier>();
 
@@ -309,62 +343,15 @@ if (testingEnabled)
         "A production deploy with this flag set has no further protection.");
 }
 
-// Seed data
-if (args.Contains("--seed"))
+// One-shot CLI commands (--seed, --qa-seed, --backfill-photo-descriptions,
+// --drop-legacy-training-collections).
+// CliCommandDispatcher.TryHandleAsync's own doc
+// comment states the contract: a `true` return means one of them ran, and
+// this process must exit right here — never falling through to the
+// unconditional MongoIndexInitializer.StartAsync call near app.Run() below,
+// nor to app.Run() itself.
+if (await CliCommandDispatcher.TryHandleAsync(app, args))
 {
-    await ApplicationDbContextSeed.SeedAsync(app.Services);
-    await MongoSeeder.SeedAsync(app.Services);
-    return;
-}
-
-// QA fixture for the docker-compose end-to-end harness. Order matters:
-// roles first (QaSeedRunner assigns roles to its users), then the QA users
-// themselves, then Mongo. Note (#809): MongoSeeder's catalog recipes/workout
-// templates no longer gate on a nutritionist existing — the old per-nutritionist
-// private-recipe cloning was removed; catalog recipes are public and owned by
-// the system admin user regardless of which (if any) nutritionists exist.
-// QaSeedRunner still runs before MongoSeeder here so the QA fixture users/plans
-// and the public catalog land in one deterministic pass on cold boot. Idempotent
-// across reruns.
-if (args.Contains("--qa-seed"))
-{
-    await ApplicationDbContextSeed.SeedAsync(app.Services);
-    await QaSeedRunner.SeedAsync(app.Services);
-    await MongoSeeder.SeedAsync(app.Services);
-    return;
-}
-
-// One-shot backfill: copy per-photo notes from MongoDB into PlanPhoto.Description in Postgres.
-// Usage: dotnet run -- --backfill-photo-descriptions
-if (args.Contains("--backfill-photo-descriptions"))
-{
-    using var scope = app.Services.CreateScope();
-    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-    var svc = new FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService(
-        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PhotoDescriptionBackfillService>());
-    var (mealCount, dayCount) = await svc.BackfillAsync();
-    Console.WriteLine($"Meal photos updated: {mealCount}");
-    Console.WriteLine($"Day photos updated:  {dayCount}");
-    return;
-}
-
-// One-shot backfill: copy goal + targetWeightKg from ClientOnboardingData onto existing
-// NutritionPlan and TrainingPlan MongoDB documents that were created before the plan-level
-// goal fields were introduced.
-// Usage: dotnet run -- --backfill-plan-goals
-if (args.Contains("--backfill-plan-goals"))
-{
-    using var scope = app.Services.CreateScope();
-    var db     = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-    var mongoc = scope.ServiceProvider.GetRequiredService<IMongoContext>();
-    var logFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-    var svc = new FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService(
-        db, mongoc, logFactory.CreateLogger<FitnessPlatform.Application.Infrastructure.Services.PlanGoalBackfillService>());
-    var (nutritionCount, trainingCount) = await svc.BackfillAsync();
-    Console.WriteLine($"Nutrition plans updated: {nutritionCount}");
-    Console.WriteLine($"Training plans updated:  {trainingCount}");
     return;
 }
 
@@ -477,5 +464,23 @@ app.UseFastEndpoints(c =>
     });
 });
 app.UseSwaggerGen();
+
+// Guarantee MongoIndexInitializer's idempotent index creation COMPLETES before
+// Kestrel accepts any request. This is why MongoIndexInitializer is registered
+// above as a plain AddSingleton, NOT AddHostedService: in the generic/web host,
+// hosted services start sequentially in registration order, and the framework's
+// own web-hosting service (which actually starts Kestrel listening) is registered
+// ahead of anything added later in this file — so a plain
+// AddHostedService<MongoIndexInitializer> would let Kestrel begin serving BEFORE
+// (or concurrently with) the unique indexes existing, opening a window for a
+// duplicate-key race those indexes exist to prevent. Awaiting the explicit call
+// below, strictly before app.Run(), removes that race entirely: there is no
+// hosted-service ordering to reason about because this is plain sequential code.
+using (var migrationScope = app.Services.CreateScope())
+{
+    var mongoIndexInitializer = migrationScope.ServiceProvider.GetRequiredService<MongoIndexInitializer>();
+
+    await mongoIndexInitializer.StartAsync(CancellationToken.None);
+}
 
 app.Run();

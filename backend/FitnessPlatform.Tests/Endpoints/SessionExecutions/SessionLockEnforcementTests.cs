@@ -1,0 +1,229 @@
+using System.Security.Claims;
+using FastEndpoints;
+using FluentAssertions;
+using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.SessionExecutions.CompleteWorkout;
+using FitnessPlatform.Application.Features.SessionExecutions.StartWorkout;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints;
+using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using NSubstitute;
+
+namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
+
+/// <summary>
+/// Tests for session-lock enforcement around StartWorkout and CompleteWorkout endpoints (issue #382).
+///
+/// Design note (#401): StartWorkout no longer acquires the Live lock — that responsibility
+/// moved to GoLiveEndpoint (see GoLiveEndpointTests for the lock-state-machine coverage).
+/// StartWorkout now ONLY creates the draft log. Lock-enforcement tests that previously targeted
+/// StartWorkout have been relocated here to GoLive (or deleted where GoLiveEndpointTests already
+/// provides equivalent coverage). The remaining StartWorkout tests assert that:
+///   - Ad-hoc workouts (null PlanId or null SessionId) create a draft log without touching the lock service.
+///   - Plan-bound workouts create a draft log without touching the lock service (GoLive handles the lock).
+/// </summary>
+public class SessionLockEnforcementTests
+{
+    private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _trainerId = Guid.NewGuid();
+    private readonly Guid _planId = Guid.NewGuid();
+    private readonly Guid _sessionId = Guid.NewGuid();
+
+    private TrainingPlan MakePlan(Guid? clientId = null)
+    {
+        return new TrainingPlan
+        {
+            ExternalId = _planId,
+            ClientId = clientId ?? _clientId,
+            TrainerId = _trainerId,
+            Name = "Test Plan",
+            Status = TrainingPlanStatus.Active,
+            Weeks = [],
+            Version = 1,
+            DateCreated = DateTime.UtcNow
+        };
+    }
+
+    private StartWorkoutEndpoint CreateStartEndpoint(IMongoContext mongo)
+    {
+        // Since #840, TrainingPlan.ClientId stores ApplicationUser.Id directly, so
+        // StartWorkoutEndpoint's ownership check no longer needs a ClientProfile lookup.
+        // It DOES take IApplicationDbContext since #935, to resolve the caller's persisted
+        // time zone for the SessionExecution.Date calendar-day key — no ApplicationUser row
+        // is seeded here, so resolution falls back to UTC (identical to pre-#935 behaviour).
+        return Factory.Create<StartWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, new MockDbBuilder().Build(), TimeProvider.System);
+    }
+
+    // ── StartWorkout tests ────────────────────────────────────────────────────
+    // StartWorkout creates the draft log only; it does NOT interact with ISessionLockService.
+    // Lock acquisition (Live lock) and the 409-on-Editing enforcement live in GoLiveEndpoint
+    // (see GoLiveEndpointTests.GoLive_ValidPlanBoundLog_Returns200_AcquiresLock_BroadcastsLive
+    //  and GoLiveEndpointTests.GoLive_SessionInEditingState_Returns409_EmitsNothing).
+
+    [Fact]
+    public async Task StartWorkout_PlanBoundSession_CreatesDraftLogAndReturns201()
+    {
+        // Arrange — plan-bound workout: StartWorkout should create the draft and return 201
+        // WITHOUT acquiring any lock (GoLive owns that step).
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(plans: [MakePlan()]);
+        var ep = CreateStartEndpoint(mongo);
+
+        var req = new StartWorkoutRequest { PlanId = _planId, SessionId = _sessionId };
+
+        // Act
+        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
+
+        // Assert — draft log created
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.SessionId == _sessionId),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task StartWorkout_NullPlanId_CreatesDraftLogAndReturns201()
+    {
+        // Arrange — ad-hoc workout: no PlanId, no SessionId
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
+        var ep = CreateStartEndpoint(mongo);
+
+        // Act
+        await ep.HandleAsync(new StartWorkoutRequest { PlanId = null, SessionId = null },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == null && w.SessionId == null),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task StartWorkout_NullSessionIdOnly_CreatesDraftLogAndReturns201()
+    {
+        // Arrange — PlanId provided but SessionId is null: ad-hoc relative to a plan
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
+        var ep = CreateStartEndpoint(mongo);
+
+        // Act
+        await ep.HandleAsync(new StartWorkoutRequest { PlanId = _planId, SessionId = null },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(201);
+
+        await mongo.SessionExecutions.Received(1).InsertOneAsync(
+            Arg.Is<SessionExecution>(w => w.ClientId == _clientId && w.PlanId == _planId && w.SessionId == null),
+            Arg.Any<InsertOneOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── CompleteWorkout tests ─────────────────────────────────────────────────
+
+    private IWorkoutCompletionService MockCompletionService()
+    {
+        var svc = Substitute.For<IWorkoutCompletionService>();
+        svc.CompleteAsync(Arg.Any<SessionExecution>(), Arg.Any<DateTime>(), Arg.Any<TimeZoneInfo>(), Arg.Any<CancellationToken>())
+            .Returns(new List<string>());
+        return svc;
+    }
+
+    private static IComplianceService StubComplianceService()
+    {
+        var svc = Substitute.For<IComplianceService>();
+        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new ComplianceResult { CompliancePercent = 100m });
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        // #935: TrainingProgressBroadcaster now anchors the streak walk on the caller-supplied
+        // local calendar day rather than DateTime.UtcNow — stub the new overload too.
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
+            .Returns(1);
+        return svc;
+    }
+
+    private CompleteWorkoutEndpoint CreateCompleteEndpoint(
+        IMongoContext mongo,
+        IWorkoutCompletionService completionService,
+        ISessionLockService lockService)
+    {
+        return Factory.Create<CompleteWorkoutEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
+            mongo, completionService, lockService, Substitute.For<IRealtimeNotifier>(),
+            StubComplianceService(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService(),
+            Substitute.For<ILogger<CompleteWorkoutEndpoint>>(),
+            new MockDbBuilder().Build(), TimeProvider.System);
+    }
+
+    [Fact]
+    public async Task CompleteWorkout_PlanBoundLog_ReleasesLiveLock()
+    {
+        // Arrange — plan-bound log (SessionId non-null)
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, planId: _planId, sessionId: _sessionId);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+        var completionService = MockCompletionService();
+        var lockService = Substitute.For<ISessionLockService>();
+        lockService.ReleaseAsync(Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>()).Returns(true);
+
+        var ep = CreateCompleteEndpoint(mongo, completionService, lockService);
+
+        // Act
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // ReleaseAsync must have been called with the session's id and Client/Live
+        await lockService.Received(1).ReleaseAsync(
+            _sessionId, LockHolder.Client, LockType.Live,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CompleteWorkout_AdHocLog_SkipsLockRelease()
+    {
+        // Arrange — ad-hoc log (SessionId is null)
+        var logId = Guid.NewGuid();
+        var log = WorkoutLogTestHelpers.CreateLog(
+            externalId: logId, clientId: _clientId, sessionId: null);
+
+        var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: [log]);
+        var completionService = MockCompletionService();
+        var lockService = Substitute.For<ISessionLockService>();
+
+        var ep = CreateCompleteEndpoint(mongo, completionService, lockService);
+
+        // Act
+        await ep.HandleAsync(new CompleteWorkoutRequest { LogId = logId },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+
+        // ReleaseAsync must NOT have been called
+        await lockService.DidNotReceive().ReleaseAsync(
+            Arg.Any<Guid>(), Arg.Any<LockHolder>(), Arg.Any<LockType>(),
+            Arg.Any<CancellationToken>());
+    }
+}

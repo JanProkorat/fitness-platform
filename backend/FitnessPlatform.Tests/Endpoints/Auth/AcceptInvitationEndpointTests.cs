@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
@@ -104,6 +105,47 @@ public class AcceptInvitationEndpointTests
     }
 
     /// <summary>
+    /// The InvitationToken carries an explicit RequestedScope stamped at invite-creation
+    /// time (#917) — the accept flow must honor it instead of re-deriving both flags
+    /// from the professional's current held roles, even though the professional holds
+    /// both roles here.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TokenCarriesExplicitScope_HonorsStoredScopeOverHeldRoles()
+    {
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var invitation = EntityBuilder.InvitationToken
+            .WithToken("scoped-token")
+            .WithProfessionalProfile(trainerProfile)
+            .WithRequestedScope(LinkCapabilityScope.NutritionOnly)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(invitation)
+            .Build();
+
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("T").WithLastName("R").Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
+        userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Nutritionist"]);
+
+        var ep = Factory.Create<AcceptInvitationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService);
+
+        await ep.HandleAsync(new AcceptInvitationRequest { Token = "scoped-token" }, TestContext.Current.CancellationToken);
+
+        ep.ValidationFailed.Should().BeFalse();
+        db.ClientProfessionalLinks.Received(1).Add(Arg.Is<ClientProfessionalLink>(
+            l => l.CanViewNutritionPlans && !l.CanViewTrainingPlans));
+    }
+
+    /// <summary>
     /// Regression test for #768 — an invite's personal message must surface as the
     /// conversation's first message when the invitee (who had no account yet at
     /// invite-creation time) later accepts via the token flow.
@@ -151,6 +193,64 @@ public class AcceptInvitationEndpointTests
         await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
             _trainerId, _userId, _trainerId, Arg.Any<string>(), pendingInvite.Message,
             seedIntoExisting: false, Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A client may hold at most one active coach per profession (#980). A different
+    /// professional already holds an active link with CanViewNutritionPlans — accepting
+    /// this token invite would occupy the same slot with a second nutritionist.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ClientHasActiveNutritionistLink_AnotherNutritionistTokenAccepted_ThrowsErrorWithCode()
+    {
+        var occupyingProfessionalUserId = Guid.NewGuid();
+        var occupyingProfessionalProfile = new ProfessionalProfile
+        {
+            Id = 1, PublicId = Guid.NewGuid(), UserId = occupyingProfessionalUserId
+        };
+        var clientProfile = new ClientProfile { Id = 1, UserId = _userId };
+        var occupyingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(occupyingProfessionalProfile)
+            .WithCanViewNutritionPlans(true)
+            .WithCanViewTrainingPlans(false)
+            .Build();
+
+        var invitingProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUserId(_trainerId).Build();
+        var invitation = EntityBuilder.InvitationToken
+            .WithToken("nutrition-conflict-token")
+            .WithProfessionalProfile(invitingProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(clientProfile)
+            .With(occupyingProfessionalProfile)
+            .With(invitingProfile)
+            .With(occupyingLink)
+            .With(invitation)
+            .Build();
+
+        var invitingUser = EntityBuilder.User.WithId(_trainerId).WithEmail("inviting-nutritionist@test.com")
+            .WithFirstName("N").WithLastName("R").Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_trainerId.ToString()).Returns(invitingUser);
+        userManager.GetRolesAsync(invitingUser).Returns(["Nutritionist"]);
+
+        var ep = Factory.Create<AcceptInvitationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService);
+
+        var act = () => ep.HandleAsync(
+            new AcceptInvitationRequest { Token = "nutrition-conflict-token" }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(
+            f => f.ErrorCode == ErrorCodes.ProfessionAlreadyOccupied);
+        invitation.IsUsed.Should().BeFalse();
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
 
     [Fact]

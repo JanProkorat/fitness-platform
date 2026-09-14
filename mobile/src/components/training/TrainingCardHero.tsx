@@ -50,7 +50,11 @@ export function TrainingCardHero({
     const seen = new Set<MuscleGroup>()
     const result: MuscleGroup[] = []
     for (const session of sessions) {
-      for (const ex of session.exercises ?? []) {
+      // allExercises is the flat, computed union of every exercise in the
+      // session (standalone + every workout's nested exercises). Order
+      // doesn't matter here — this is a deduplicated muscle-group set, not
+      // an ordered render — so the flat field is safe to use directly.
+      for (const ex of session.allExercises ?? []) {
         const id = ex.exerciseExternalId
         if (!id) continue
         const mgs = exerciseMuscleGroups[id] ?? []

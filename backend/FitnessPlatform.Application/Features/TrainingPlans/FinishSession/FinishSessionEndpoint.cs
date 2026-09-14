@@ -3,30 +3,34 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Common;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.FinishSession;
 
 /// <summary>
 /// Allows a trainer to retroactively finish a skipped or untouched session in their client's
-/// training plan. Produces a completed <see cref="WorkoutLog"/> (materializing from the session
-/// template when no log exists), runs PR detection, and fans out a <see cref="TrainingCompletion"/>
-/// document so that compliance/streak attribution lands on the correct calendar day.
+/// training plan. Produces a completed <see cref="SessionExecution"/> (materializing Performance
+/// from the session template when none exists), runs PR detection, and sets the completion flags
+/// so that compliance/streak attribution lands on the correct calendar day — all in one document.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-/// <param name="db">Relational database context — used to resolve the client's ApplicationUser.Id
-/// from TrainingPlan.ClientId (which stores ClientProfile.PublicId, NOT ApplicationUser.Id) when
-/// materializing a new WorkoutLog. Mirrors the resolution StartWorkoutEndpoint already performs.</param>
 /// <param name="completionService">Shared workout completion pipeline.</param>
+/// <param name="linkAuthorizationService">Resolves link capabilities — authorship identifies the
+/// plan, the caller's live link to its client decides access.</param>
+/// <param name="db">Relational database context — resolves the CLIENT's (not the trainer's)
+/// persisted time zone (#935). Whoever writes <see cref="SessionExecution.Date"/> resolves it
+/// from the client's own time zone regardless of which role drove the mutation, so the client's
+/// own Today card reads back the same calendar day this trainer-initiated finish wrote.</param>
 public class FinishSessionEndpoint(
     IMongoContext mongo,
-    IApplicationDbContext db,
-    IWorkoutCompletionService completionService) : Endpoint<FinishSessionRequest, FinishSessionResponse>
+    IWorkoutCompletionService completionService,
+    IClientLinkAuthorizationService linkAuthorizationService,
+    IApplicationDbContext db) : Endpoint<FinishSessionRequest, FinishSessionResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -38,7 +42,7 @@ public class FinishSessionEndpoint(
             s.Summary = "Finish a session on behalf of a client";
             s.Description =
                 "Marks a skipped or untouched session as completed. " +
-                "Materializes a WorkoutLog from the session template when none exists. " +
+                "Materializes Performance data from the session template when none exists. " +
                 "Accepts an optional backdated completedAt; defaults to now.";
         });
     }
@@ -56,21 +60,20 @@ public class FinishSessionEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        // 1. Load the plan and apply the ownership guard.
-        //    Mirror GetTrainingPlanEndpoint: "not mine" is returned as NotFound to prevent existence leak.
-        var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId);
-        using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var plan = await planCursor.FirstOrDefaultAsync(ct);
+        // 1. Load the plan and apply the authorship + client-link guard.
+        //    Mirror GetTrainingPlanEndpoint: "not mine" and "no longer linked" are both returned
+        //    as NotFound to prevent an existence leak.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
-        if (plan is null || plan.TrainerId != trainerId)
+        if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
         // 2. Locate the session within the plan.
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -78,6 +81,11 @@ public class FinishSessionEndpoint(
             await Send.NotFoundAsync(ct);
             return;
         }
+
+        // Resolve the CLIENT's (not the trainer's) persisted time zone (#935) — see the ctor
+        // doc comment. Every SessionExecution.Date this endpoint writes or looks up below is
+        // keyed on the client's local calendar day.
+        var clientTimeZone = await db.ResolveClientTimeZoneAsync(plan.ClientId, ct);
 
         // 3. Resolve the effective completion instant, normalizing to UTC so that
         //    DateOnly.FromDateTime(completedAt) always lands on the correct calendar day
@@ -100,59 +108,61 @@ public class FinishSessionEndpoint(
             return;
         }
 
-        // 4. Look for an existing WorkoutLog for this (PlanId, SessionId).
-        var logFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
-                        & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, req.SessionId);
-        using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
-        var existingLogs = await logCursor.ToListAsync(ct);
+        // 4. Reject if this session already has a completed execution (any date) — mirrors the
+        //    prior "already has a completed WorkoutLog" guard.
+        var completedGuardFilter = Builders<SessionExecution>.Filter.Eq(e => e.PlanId, req.PlanId)
+                                   & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, req.SessionId)
+                                   & Builders<SessionExecution>.Filter.Eq(e => e.Status, SessionExecutionStatus.Completed)
+                                   & Builders<SessionExecution>.Filter.Exists(e => e.Performance);
+        var alreadyCompletedCount = await mongo.SessionExecutions.CountDocumentsAsync(completedGuardFilter, cancellationToken: ct);
 
-        // 4a. If there is already a completed log, reject — idempotent-safe message.
-        var completedLog = existingLogs.FirstOrDefault(l => l.IsCompleted);
-        if (completedLog is not null)
+        if (alreadyCompletedCount > 0)
         {
             await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
                 "This session already has a completed workout log.", ct);
             return;
         }
 
-        // 5. Use the most-recently-updated in-progress log if one exists; otherwise materialize
-        //    a new WorkoutLog from the session template.
-        var log = existingLogs
-            .OrderByDescending(l => l.DateUpdated ?? l.DateCreated)
-            .FirstOrDefault();
+        // 5. Reuse the execution for this exact (clientId, sessionId, date) if one exists —
+        //    the unified partial-unique index allows only one per day — otherwise materialize a
+        //    fresh SessionExecution from the session template.
+        var date = SessionExecution.ToCompletionDateUtc(completedAt, clientTimeZone);
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(e => e.ClientId, plan.ClientId)
+                              & Builders<SessionExecution>.Filter.Eq(e => e.SessionId, req.SessionId)
+                              & Builders<SessionExecution>.Filter.Eq(e => e.Date, date);
+        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var execution = await executionCursor.FirstOrDefaultAsync(ct);
 
-        if (log is null)
+        if (execution is null)
         {
-            // Resolve the client's ApplicationUser.Id — TrainingPlan.ClientId stores
-            // ClientProfile.PublicId, but WorkoutLog.ClientId (like every other write path,
-            // e.g. StartWorkoutEndpoint) must be keyed on ApplicationUser.Id. Without this
-            // resolution the materialized log would be invisible to client-facing history/PR
-            // detection and WorkoutCompletionService couldn't resolve the client for the
-            // TrainingCompletion fan-out.
-            var clientProfile = await db.ClientProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(cp => cp.PublicId == plan.ClientId, ct);
-
-            if (clientProfile is null)
-            {
-                await Send.NotFoundAsync(ct);
-                return;
-            }
-
-            log = MaterializeFromTemplate(plan, session, completedAt, clientProfile.UserId);
-            await mongo.WorkoutLogs.InsertOneAsync(log, cancellationToken: ct);
+            // TrainingPlan.ClientId is ApplicationUser.Id (#840) — same identifier
+            // SessionExecution.ClientId has always used, so no ClientProfile translation
+            // is needed here anymore (previously required a PublicId -> UserId lookup).
+            execution = MaterializeFromTemplate(plan, session, completedAt, date, plan.ClientId);
+            await mongo.SessionExecutions.InsertOneAsync(execution, cancellationToken: ct);
         }
+        else if (execution.Performance is null)
+        {
+            // A checkbox-only execution already exists for this day — attach Performance to it.
+            execution.PlanId = plan.ExternalId;
+            execution.Performance = BuildPerformanceFromTemplate(session, completedAt);
+        }
+        // else: reuse the existing (non-completed) draft's Performance as-is.
 
         // 6. Delegate the full completion pipeline to the shared service.
-        //    The completedAt instant drives BOTH log.CompletedAt and the TrainingCompletion date key,
+        //    The completedAt instant drives BOTH Performance.CompletedAt and the completion flags,
         //    so that backdated finishes are attributed to the correct calendar day.
+        //    Whoever writes SessionExecution.Date resolves it from the CLIENT's time zone (#935),
+        //    regardless of which role is authenticated — clientTimeZone above is always resolved
+        //    from plan.ClientId, never the trainer's own claim, even though a trainer drives this
+        //    endpoint.
         try
         {
-            await completionService.CompleteAsync(log, completedAt, ct);
+            await completionService.CompleteAsync(execution, completedAt, clientTimeZone, ct);
         }
         catch (WorkoutAlreadyCompletedException)
         {
-            // TOCTOU backstop: the in-process guard above (step 4a) is the fast path.
+            // TOCTOU backstop: the in-process guard above (step 4) is the fast path.
             // This catch handles the rare case where two concurrent requests both passed
             // the in-process check and the partial unique index rejected the loser's write.
             await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
@@ -162,7 +172,7 @@ public class FinishSessionEndpoint(
 
         await Send.OkAsync(new FinishSessionResponse
         {
-            WorkoutLogId = log.ExternalId,
+            WorkoutLogId = execution.ExternalId,
             PlanId = req.PlanId,
             SessionId = req.SessionId,
             CompletedAt = completedAt
@@ -170,27 +180,50 @@ public class FinishSessionEndpoint(
     }
 
     /// <summary>
-    /// Creates a new <see cref="WorkoutLog"/> from the session template, with all sets
+    /// Creates a new <see cref="SessionExecution"/> from the session template, with all sets
     /// initialized from the plan's <see cref="ExerciseSet"/> prescription and
     /// <see cref="WorkoutSet.CompletedAt"/> stamped with the supplied instant.
     /// </summary>
-    private static WorkoutLog MaterializeFromTemplate(
+    /// <param name="plan">The owning training plan.</param>
+    /// <param name="session">The session template to materialize.</param>
+    /// <param name="completedAt">The instant every set's <c>CompletedAt</c> is stamped with.</param>
+    /// <param name="date">The pre-resolved calendar-day key (client's local day, #935) — passed
+    /// in rather than re-derived so this helper needs no time-zone parameter of its own.</param>
+    /// <param name="clientUserId">The client's <c>ApplicationUser.Id</c>.</param>
+    private static SessionExecution MaterializeFromTemplate(
         TrainingPlan plan,
         TrainingSession session,
         DateTime completedAt,
+        DateTime date,
         Guid clientUserId)
     {
-        // Backfill legacy flat-exercise sessions into the section structure first.
-        session.WithBackfilledSections();
+        return new SessionExecution
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            PlanId = plan.ExternalId,
+            SessionId = session.SessionId,
+            Date = date,
+            Performance = BuildPerformanceFromTemplate(session, completedAt),
+            DateCreated = DateTime.UtcNow,
+            Version = 1
+        };
+    }
 
-        var workoutSections = session.Sections
-            .Select(section => new WorkoutSection
+    /// <summary>
+    /// Builds the <see cref="SessionExecutionPerformance"/> sub-document from the session
+    /// template, with every set stamped as completed at the supplied instant.
+    /// </summary>
+    private static SessionExecutionPerformance BuildPerformanceFromTemplate(TrainingSession session, DateTime completedAt)
+    {
+        var loggedWorkouts = session.Workouts
+            .Select(workout => new LoggedWorkout
             {
-                SectionId = section.SectionId,
-                Order = section.Order,
-                Name = section.Name,
-                Format = section.Format,
-                Exercises = section.Exercises
+                WorkoutId = workout.WorkoutId,
+                Order = workout.Order,
+                Name = workout.Name,
+                Format = workout.Format,
+                Exercises = workout.Exercises
                     .Select(se => new WorkoutExercise
                     {
                         ExerciseExternalId = se.ExerciseExternalId,
@@ -223,16 +256,10 @@ public class FinishSessionEndpoint(
             })
             .ToList();
 
-        return new WorkoutLog
+        return new SessionExecutionPerformance
         {
-            ExternalId = Guid.NewGuid(),
-            ClientId = clientUserId,
-            PlanId = plan.ExternalId,
-            SessionId = session.SessionId,
             StartedAt = completedAt,
-            IsCompleted = false, // will be set to true by completionService.CompleteAsync
-            Sections = workoutSections,
-            DateCreated = DateTime.UtcNow
+            Workouts = loggedWorkouts
         };
     }
 }

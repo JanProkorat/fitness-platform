@@ -66,27 +66,49 @@ public class FitnessApiFactoryTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// <see cref="MongoIndexInitializer"/> and <see cref="EmailDispatchWorker"/> must
-    /// remain registered <see cref="IHostedService"/>s in the test host. Neither one
-    /// is part of the #726 removal set (see <see cref="TestHostedServiceExtensions"/>):
-    /// <see cref="MongoIndexInitializer"/> is a one-shot startup task (not a
-    /// <see cref="BackgroundService"/>) that several integration tests depend on for
-    /// the indexes it creates (e.g. the partial unique index exercised by
-    /// WorkoutLogCompletionUniquenessTests). <see cref="EmailDispatchWorker"/> never
-    /// touches Postgres/Mongo, so it cannot hit the container-disposed cascade the
-    /// removal set exists to prevent — and <c>AnonymousResendVerificationEndpointTests</c>
+    /// <see cref="EmailDispatchWorker"/> must remain registered as an
+    /// <see cref="IHostedService"/> in the test host. It is not part of the #726
+    /// removal set (see <see cref="TestHostedServiceExtensions"/>): it never touches
+    /// Postgres/Mongo, so it cannot hit the container-disposed cascade the removal
+    /// set exists to prevent — and <c>AnonymousResendVerificationEndpointTests</c>
     /// depends on it actually running to drain the endpoint's fire-and-forget send.
     /// </summary>
     [Fact]
-    public void MongoIndexInitializer_And_EmailDispatchWorker_AreStillRegistered_InTestHost()
+    public void EmailDispatchWorker_IsStillRegistered_InTestHost()
     {
         var hostedServiceTypes = factory.Services.GetServices<IHostedService>()
             .Select(s => s.GetType())
             .ToList();
 
-        hostedServiceTypes.Should().Contain(typeof(MongoIndexInitializer),
-            "index creation must still run at test-host startup — it is a one-shot task, not a recurring background loop");
         hostedServiceTypes.Should().Contain(typeof(EmailDispatchWorker),
             "the worker must keep draining its queue in the test host — AnonymousResendVerificationEndpointTests depends on it");
+    }
+
+    /// <summary>
+    /// <see cref="MongoIndexInitializer"/> deliberately does NOT appear in the
+    /// <see cref="IHostedService"/> set (post-#837 pass-2 review, fix for M1): it is
+    /// registered as a plain <c>AddSingleton</c> in <c>Program.cs</c> and invoked
+    /// explicitly, awaited, BEFORE <c>app.Run()</c> — never via <c>AddHostedService</c>.
+    /// That wiring previously let Kestrel start accepting requests before (or
+    /// concurrently with) the migration's completion, racing a
+    /// <c>BsonSerializationException</c> on legacy documents. This test proves both
+    /// halves of the fix: the plain-singleton registration exists (so the explicit
+    /// call site in <c>Program.cs</c> can resolve it), and it is NOT also registered
+    /// as an <see cref="IHostedService"/> (so there is exactly one code path that
+    /// runs it, not two).
+    /// </summary>
+    [Fact]
+    public void MongoIndexInitializer_IsPlainSingleton_NotHostedService()
+    {
+        var initializer = factory.Services.GetRequiredService<MongoIndexInitializer>();
+        initializer.Should().NotBeNull(
+            "it must be resolvable as a plain singleton — Program.cs's explicit pre-app.Run() call depends on this");
+
+        var hostedServiceTypes = factory.Services.GetServices<IHostedService>()
+            .Select(s => s.GetType())
+            .ToList();
+
+        hostedServiceTypes.Should().NotContain(typeof(MongoIndexInitializer),
+            "it must run via the explicit pre-app.Run() call only, never additionally via the IHostedService pipeline");
     }
 }

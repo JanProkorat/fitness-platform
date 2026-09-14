@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Endpoints.ClientTraining;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using MongoDB.Driver;
 using NSubstitute;
 
@@ -19,13 +20,13 @@ public class ComplianceServiceTests
 
     /// <summary>
     /// Creates a mocked IMongoContext with nutrition plans, meal logs, training plans,
-    /// and training completions collections.
+    /// and (#841) the unified SessionExecutions collection.
     /// </summary>
     private static IMongoContext CreateMongo(
         NutritionPlan[]? nutritionPlans = null,
         List<MealLog>? mealLogs = null,
         TrainingPlan? trainingPlan = null,
-        List<TrainingCompletion>? completions = null)
+        List<SessionExecution>? completions = null)
     {
         var mongo = PlanTestHelpers.CreateMockMongo(nutritionPlans);
 
@@ -49,10 +50,10 @@ public class ComplianceServiceTests
             .Returns(_ => CreateTrainingPlanCursor(trainingPlanList));
         mongo.TrainingPlans.Returns(trainingPlanColl);
 
-        // Training completions
+        // SessionExecutions (#841) — unified checkbox + performance collection
         var completionList = completions ?? [];
-        var completionColl = TrainingCompletionTestHelpers.CreateMockCompletionCollection(completionList);
-        mongo.TrainingCompletions.Returns(completionColl);
+        var completionColl = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(completionList);
+        mongo.SessionExecutions.Returns(completionColl);
 
         return mongo;
     }
@@ -133,7 +134,6 @@ public class ComplianceServiceTests
             clientId: _clientId,
             status: NutritionPlanStatus.Active,
             weekCount: 1);
-        plan.DatePublished = mondayThisWeek;
         plan.StartDate = mondayThisWeek;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = mondayThisWeek;
@@ -286,6 +286,86 @@ public class ComplianceServiceTests
         result.TrainingsCompleted.Should().Be(result.TrainingsPlanned);
         result.TrainingCompliancePercent.Should().Be(100m);
         result.CompliancePercent.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task CalculateComplianceAsync_StandaloneOnlySession_CountsTowardCompliance()
+    {
+        // Arrange — a session programmed with ONLY standalone exercises (no workouts at all).
+        // #857 phase 3a made this a valid, completable session shape (mirrors
+        // SessionExecutionExtensions.IsSessionComplete's guard); IsSessionCompleteForDateAsync must
+        // not treat "no workouts" as "nothing programmed" the way a workouts-only guard would.
+        var sessionId = Guid.NewGuid();
+        var standaloneExerciseId = Guid.NewGuid();
+        var today = DateTime.UtcNow.Date;
+        var weekStart = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var todayIsoDayOfWeek = (int)today.DayOfWeek == 0 ? 7 : (int)today.DayOfWeek;
+
+        var session = new TrainingSession
+        {
+            SessionId = sessionId,
+            Name = "Standalone Day",
+            Order = 1,
+            Workouts = [],
+            StandaloneExercises =
+            [
+                new SessionExercise
+                {
+                    ExerciseId = standaloneExerciseId,
+                    ExerciseExternalId = standaloneExerciseId,
+                    ExerciseName = "Plank",
+                    Order = 1
+                }
+            ]
+        };
+
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Standalone-Only Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = weekStart,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = weekStart,
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                    {
+                        DayOfWeek = d,
+                        Sessions = d == todayIsoDayOfWeek ? [session] : []
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = weekStart
+        };
+
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: today,
+            completedExerciseIds: [standaloneExerciseId]);
+
+        var mongo = CreateMongo(
+            trainingPlan: trainingPlan,
+            completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        // Act
+        var result = await sut.CalculateComplianceAsync(
+            _clientId, today, today, TestContext.Current.CancellationToken);
+
+        // Assert — the standalone-only session must count as both planned AND completed
+        result.TrainingsPlanned.Should().BeGreaterThan(0);
+        result.TrainingsCompleted.Should().Be(result.TrainingsPlanned,
+            "a session programmed with only standalone exercises, fully checked off, must count as " +
+            "complete — a workouts-only guard would wrongly exclude it from compliance forever");
+        result.TrainingCompliancePercent.Should().Be(100m);
     }
 
     [Fact]
@@ -517,25 +597,21 @@ public class ComplianceServiceTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = weekStart,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = TrainingPlanTestHelpers.MaterializeDays(
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId1,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session A",
                             Order = 1,
-                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        },
-                        new TrainingSession
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                        }),
+                        (yesterdayDow, new TrainingSession
                         {
                             SessionId = sessionId2,
-                            DayOfWeek = yesterdayDow,
                             Name = "Session B",
                             Order = 2,
-                            Sections = [new TrainingSection { SectionId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
-                        }
-                    ]
+                            Workouts = [new TrainingWorkout { WorkoutId = Guid.NewGuid(), Order = 0, Name = "Hlavní", Exercises = [new SessionExercise { ExerciseId = ex1, ExerciseExternalId = ex1, ExerciseName = "Ex1", Order = 1, Sets = [] }] }]
+                        }))
                 }
             ]
         };
@@ -583,7 +659,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 1);
         plan.StartDate = startDate;
-        plan.DatePublished = startDate;
         plan.Weeks[0].Status = WeekStatus.Published;
         plan.Weeks[0].DatePublished = startDate;
 
@@ -622,7 +697,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
@@ -679,7 +753,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
@@ -738,7 +811,6 @@ public class ComplianceServiceTests
             status: NutritionPlanStatus.Active,
             weekCount: 3);
         nutritionPlan.StartDate = startDate;
-        nutritionPlan.DatePublished = startDate;
         foreach (var week in nutritionPlan.Weeks)
         {
             week.Status = WeekStatus.Published;
@@ -925,5 +997,125 @@ public class ComplianceServiceTests
             _clientId, today, today, TestContext.Current.CancellationToken);
 
         result.TrainingsCompleted.Should().Be(0, "ForTime section was never marked complete");
+    }
+
+    // ── #935 streak continuity across the client's local midnight ──────────────
+
+    /// <summary>
+    /// The mandatory #935 streak-continuity case: a session completed right after the client's
+    /// LOCAL midnight is attributed to the client's local calendar day (via
+    /// <c>SessionExecution.Date</c>), and a caller that anchors the streak walk's "today" on
+    /// that SAME local day sees it. A caller that instead anchors on the server's stale UTC day
+    /// for the same instant — exactly what every <c>CalculateStreakAsync</c> caller did before
+    /// #935 — never even enters the walk, because the plan's own floor (its <c>StartDate</c>,
+    /// itself resolved on the client's local day the very first time the client interacted with
+    /// it) is already past that stale "today".
+    /// </summary>
+    /// <remarks>
+    /// The plan intentionally spans exactly ONE day (<c>StartDate</c> == the local day the
+    /// completion is dated on). The shared <c>CreateMockSessionExecutionCollection</c> test
+    /// double (used by every other streak test in this file) ignores its filter argument and
+    /// always returns the full seeded completion list regardless of the query's Date — a
+    /// pre-existing, out-of-scope simplification. A one-day plan window sidesteps it entirely:
+    /// the walk's loop condition (<c>currentDate &gt;= floorDate</c>) can visit at most a single
+    /// day, so which day gets checked — not whether the mock also matches on Date — is what
+    /// distinguishes the two calls below.
+    /// </remarks>
+    [Fact]
+    public async Task CalculateStreakAsync_SessionCompletedJustAfterLocalMidnight_CountsOnlyWhenAnchoredOnClientLocalDay()
+    {
+        // 2026-06-15 22:30 UTC == 2026-06-16 00:30 in Europe/Prague (UTC+2 in June) — the same
+        // boundary instant exercised in ClientLocalDateResolverTests. The client's LOCAL
+        // calendar day for this instant is 2026-06-16; the server's stale UTC calendar day is
+        // 2026-06-15 — the exact divergence #935 exists to fix.
+        var sessionId = Guid.NewGuid();
+        var ex1 = Guid.NewGuid();
+        var todayLocal = new DateOnly(2026, 6, 16);
+        var staleUtcDay = new DateOnly(2026, 6, 15);
+        var start = todayLocal.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+        var trainingPlan = new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = _clientId,
+            TrainerId = Guid.NewGuid(),
+            Name = "Test Plan",
+            Status = TrainingPlanStatus.Active,
+            StartDate = start,
+            Weeks =
+            [
+                new TrainingWeek
+                {
+                    WeekNumber = 1,
+                    Status = WeekStatus.Published,
+                    DatePublished = start,
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
+                    {
+                        DayOfWeek = d,
+                        Sessions =
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = sessionId,
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = Guid.NewGuid(),
+                                        Order = 0,
+                                        Name = "Main",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = ex1,
+                                                ExerciseExternalId = ex1,
+                                                ExerciseName = "Exercise 1",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }).ToList()
+                }
+            ],
+            Version = 1,
+            DateCreated = start
+        };
+
+        // The completion is dated on the client's local day (2026-06-16) — exactly what
+        // WorkoutCompletionService now writes via SessionExecution.ToCompletionDateUtc resolved
+        // from the client's own time zone (#935).
+        var completion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: sessionId,
+            date: start,
+            completedExerciseIds: [ex1]);
+
+        var mongo = CreateMongo(trainingPlan: trainingPlan, completions: [completion]);
+        var sut = new ComplianceService(mongo);
+
+        // Correct: anchor the walk on the client's own local day — the plan floor (its
+        // StartDate) is exactly that day, so the walk visits it and finds the completion.
+        var streakFromLocalDay = await sut.CalculateStreakAsync(
+            _clientId, todayLocal, TestContext.Current.CancellationToken);
+        streakFromLocalDay.Should().Be(1,
+            "the session completed just after local midnight is dated on the client's local day, " +
+            "which is also the plan's own floor");
+
+        // Regression guard: anchoring on the server's stale UTC day for the SAME instant (what
+        // every CalculateStreakAsync caller did before #935) starts the walk BEFORE the plan's
+        // floor — the loop condition (currentDate >= floorDate) never executes, so the streak
+        // is silently reported as zero even though the client just completed their session.
+        var streakFromStaleUtcDay = await sut.CalculateStreakAsync(
+            _clientId, staleUtcDay, TestContext.Current.CancellationToken);
+        streakFromStaleUtcDay.Should().Be(0,
+            "anchoring on the UTC day instead of the client's local day starts the walk before " +
+            "the plan even began, from that stale day's point of view");
     }
 }

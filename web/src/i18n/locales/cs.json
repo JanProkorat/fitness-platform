@@ -533,7 +533,6 @@
     "collaborationBoth": "Online i osobně",
     "collaborationOnline": "Pouze online",
     "collaborationInPerson": "Pouze osobně",
-    "maxClients": "Max. počet klientů",
     "languages": "Jazyky",
     "addLanguage": "Přidat jazyk...",
     "socialNetworks": "Sociální sítě",
@@ -940,7 +939,6 @@
     "CLIENT_NOT_FOUND": "Klient nebyl nalezen.",
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
-    "COLLABORATOR_ALREADY_LINKED": "Tento spolupracovník je již propojen s klientem.",
     "PLAN_NOT_DRAFT": "Publikovat lze pouze plány ve stavu konceptu.",
     "START_DATE_NOT_MONDAY": "Datum zahájení musí být pondělí.",
     "START_DATE_IN_PAST": "Datum zahájení nemůže být v minulosti.",
@@ -1193,6 +1191,7 @@
     "weightLabel": "Váha (kg)",
     "restSecondsLabel": "Odpočinek (s)",
     "duplicateSession": "Duplikovat trénink",
+    "sessionDuplicateName": "{{name}} (kopie)",
     "removeSession": "Odstranit trénink",
     "addExercisePlaceholder": "+ Přidat cvik...",
     "leaveTitle": "Neuložené změny",
@@ -1411,16 +1410,7 @@
       "deleteError": "Nepodařilo se smazat workout.",
       "deleteConfirmTitle": "Smazat workout",
       "deleteConfirmMessage": "Opravdu chcete smazat workout «{{name}}»? Tuto akci nelze vrátit.",
-      "versionConflict": "Workout byl změněn jinde, načítám znovu.",
-      "library": {
-        "title": "Knihovna workoutů",
-        "subtitle": "Veřejné vzorové workouty, které můžete použít jako výchozí bod.",
-        "colSections": "Sekce",
-        "durationMinutes": "{{count}} min",
-        "viewDetails": "Zobrazit detail",
-        "formatConfigLabel": "Formát",
-        "descriptionLabel": "Popis"
-      }
+      "versionConflict": "Workout byl změněn jinde, načítám znovu."
     },
     "completionState": {
       "setCompleted": "Dokončeno",
@@ -2193,6 +2183,7 @@
     "loading": "Načítání tréninkového plánu…",
     "loadError": "Chyba při načítání tréninkového plánu.",
     "createError": "Nepodařilo se vytvořit plán.",
+    "clientLoadError": "Klienta se nepodařilo načíst. Zkuste to prosím znovu.",
     "back": "← Zpět",
     "defaultPlanName": "Tréninkový plán",
     "roleDenied": "K tréninkovým plánům tohoto klienta nemáte přístup.",

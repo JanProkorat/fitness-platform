@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.NutritionPlans.GetPlan;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -18,7 +19,8 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.GetFullPlan;
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
-public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) : EndpointWithoutRequest<GetFullPlanResponse>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
+public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db, TimeProvider timeProvider) : EndpointWithoutRequest<GetFullPlanResponse>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -53,7 +55,12 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
+
+        // Resolve the client's local calendar day (#935) — anchors plan-window resolution and
+        // the current-week/day-of-week calculation below on the client's local "today".
+        var todayLocalUtc = await db.ResolveClientLocalDateUtcAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
 
         // Find the Active plan whose date window contains today — a client may hold several
         // sequential, non-overlapping Active plans (#780).
@@ -63,7 +70,7 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
 
         var cursor = await mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         var activePlans = await cursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayLocalUtc);
 
         if (plan is null)
         {
@@ -83,11 +90,12 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
             return;
         }
 
-        var today = DateTime.UtcNow.Date;
+        var today = todayLocalUtc;
 
-        // Determine the anchor date used for computing week start/end dates
-        // Prefer StartDate; fall back to DatePublished for legacy plans
-        DateTime? anchorDate = plan.StartDate ?? plan.DatePublished;
+        // Anchor date for the per-week start/end dates below. publishedWeeks is non-empty
+        // here, which implies StartDate is set (#1015 — see the reachability note below), so the
+        // plan-level DatePublished fallback this used to carry was unreachable.
+        DateTime? anchorDate = plan.StartDate;
 
         // Determine currentWeek and currentDayOfWeek
         int? currentWeek = null;
@@ -115,8 +123,9 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 {
                     // Beyond published weeks or on an unpublished week — fall back to last published week
                     currentWeek = publishedWeeks[^1].WeekNumber;
-                    // Use current day of week (Monday=1 … Sunday=7)
-                    var dow = (int)DateTime.UtcNow.DayOfWeek;
+                    // Use current day of week (Monday=1 … Sunday=7) — today already carries
+                    // the client's local calendar date (#935).
+                    var dow = (int)today.DayOfWeek;
                     currentDayOfWeek = dow == 0 ? 7 : dow;
                 }
                 else
@@ -126,18 +135,13 @@ public class GetFullPlanEndpoint(IMongoContext mongo, IApplicationDbContext db) 
                 }
             }
         }
-        else if (plan.DatePublished.HasValue)
-        {
-            // Legacy: cycle through published weeks based on publish date
-            var daysSincePublish = (int)(today - plan.DatePublished.Value.Date).TotalDays;
-            var totalDays = publishedWeeks.Count * 7;
-            var currentDayIndex = daysSincePublish % totalDays;
-            var weekIndex = currentDayIndex / 7;
-            var dayIndex = currentDayIndex % 7;
 
-            currentWeek = publishedWeeks[Math.Max(0, weekIndex)].WeekNumber;
-            currentDayOfWeek = dayIndex + 1;
-        }
+        // No else: publishedWeeks is non-empty here, which implies StartDate is set —
+        // PublishWeekEndpoint refuses to publish a week without one (START_DATE_REQUIRED) and
+        // UpdatePlanEndpoint refuses to clear one while any week is published
+        // (START_DATE_LOCKED), and publishing is the only route to WeekStatus.Published. The
+        // legacy plan-level DatePublished cycling branch that stood here was unreachable, and
+        // the field it read has had no writer since 8d39e113 (#1015).
 
         // Build week list with pre-computed date ranges
         var fullPlanWeeks = publishedWeeks.Select(w =>

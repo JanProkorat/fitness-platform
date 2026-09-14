@@ -296,9 +296,9 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
 
     /// <summary>
     /// POST /test/reset seeds a TrainingPlan with ExternalId = QaTrainingPlanExternalId.
-    /// The plan must be keyed on ClientProfilePublicId (not ClientUserId) and
-    /// have exactly one Published week with one session containing three sections
-    /// in the expected order and format.
+    /// The plan must be keyed on ClientUserId (ApplicationUser.Id, #840/#845 — not
+    /// ClientProfilePublicId) and have exactly one Published week with one session
+    /// containing three sections in the expected order and format.
     /// </summary>
     [Fact]
     public async Task Reset_SeedsTrainingPlan_WithForTimeSectionAndNonRegressionSections()
@@ -318,11 +318,11 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
 
         plan.Should().NotBeNull(because: "QaSeedRunner must create the QA training plan");
 
-        // ClientId must be ClientProfilePublicId — GetClientPlansEndpoint filters by
-        // ClientProfile.PublicId (not by the user id) so using the wrong value makes
-        // the plan invisible to GET /client/plans.
-        plan!.ClientId.Should().Be(QaSeedRunner.ClientProfilePublicId,
-            because: "TrainingPlan.ClientId must equal ClientProfile.PublicId for the plan to be visible via GET /client/plans");
+        // ClientId must be ClientUserId (ApplicationUser.Id) — post-#840/#845,
+        // GetClientPlansEndpoint resolves clientProfile.UserId and filters Mongo
+        // documents on that value, not on ClientProfile.PublicId.
+        plan!.ClientId.Should().Be(QaSeedRunner.ClientUserId,
+            because: "TrainingPlan.ClientId must equal ApplicationUser.Id for the plan to be visible via GET /client/plans");
 
         // Plan must be Active (not Draft) with at least one Published week.
         plan.Status.Should().Be(TrainingPlanStatus.Active);
@@ -337,13 +337,17 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "week must be Published for GET /client/plans to return the plan");
         week.DatePublished.Should().NotBeNull(because: "published week must have a DatePublished timestamp");
 
-        week.Sessions.Should().HaveCount(1);
-        var session = week.Sessions[0];
+        // Select by SessionId rather than taking the first of the list: the fixture also seeds a
+        // standalone-only session and a standalone-plus-nested duplicate session (#857 phase 3a),
+        // and this test is about the four workout formats on the main QA session only. Asserting a
+        // session COUNT here would make every future fixture addition break an unrelated test.
+        var sessions = week.Days.SelectMany(d => d.Sessions).ToList();
+        var session = sessions.Should().ContainSingle(s => s.SessionId == QaSeedRunner.QaSessionId).Subject;
 
-        session.Sections.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
+        session.Workouts.Should().HaveCount(4, because: "one ForTime section + one AMRAP section + one Standard section + one Tabata section");
 
         // Section 1 — ForTime + 0 exercises (the #258 bug shape).
-        var section1 = session.Sections[0];
+        var section1 = session.Workouts[0];
         section1.Format.Should().Be(WorkoutFormat.ForTime,
             because: "Section 1 must be ForTime format");
         section1.FormatConfig.Should().NotBeNull();
@@ -353,21 +357,21 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
             because: "ForTime section intentionally has 0 exercises to exercise the #258 empty-exercise bug shape");
 
         // Section 2 — AMRAP + exercises (non-regression: format-with-exercises path).
-        var section2 = session.Sections[1];
+        var section2 = session.Workouts[1];
         section2.Format.Should().Be(WorkoutFormat.AMRAP,
             because: "Section 2 must be AMRAP format");
         section2.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
             because: "AMRAP section must have at least one exercise for non-regression");
 
         // Section 3 — Standard (null format) + exercises (non-regression: no-format path).
-        var section3 = session.Sections[2];
+        var section3 = session.Workouts[2];
         section3.Format.Should().BeNull(
             because: "Section 3 must be Standard (null format)");
         section3.Exercises.Should().HaveCountGreaterThanOrEqualTo(1,
             because: "Standard section must have at least one exercise for non-regression");
 
         // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture).
-        var section4 = session.Sections[3];
+        var section4 = session.Workouts[3];
         section4.Format.Should().Be(WorkoutFormat.Tabata,
             because: "Section 4 must be Tabata format");
         section4.Order.Should().Be(3,

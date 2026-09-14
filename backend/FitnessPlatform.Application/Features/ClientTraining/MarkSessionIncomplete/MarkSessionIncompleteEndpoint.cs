@@ -2,13 +2,10 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
-using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
@@ -16,19 +13,23 @@ namespace FitnessPlatform.Application.Features.ClientTraining.MarkSessionIncompl
 
 /// <summary>
 /// Clears all completion records for an entire training session on the specified date.
-/// Idempotent: if the session has no completion document, returns success.
+/// Idempotent: if the session has no execution document, returns success.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>trainingprogressupdated</c> event.</param>
 /// <param name="compliance">Compliance service for computing today's metrics.</param>
+/// <param name="linkAuthorizationService">Link capability service for the trainer-progress broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class MarkSessionIncompleteEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     IComplianceService compliance,
-    ILogger<MarkSessionIncompleteEndpoint> logger)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    ILogger<MarkSessionIncompleteEndpoint> logger,
+    TimeProvider timeProvider)
     : Endpoint<MarkSessionIncompleteRequest, MarkSessionIncompleteResponse>
 {
     /// <inheritdoc />
@@ -53,27 +54,22 @@ public class MarkSessionIncompleteEndpoint(
             return;
         }
 
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.UserId == Guid.Parse(userId), ct);
+        // req.CompletedOn is never populated by the client in practice — the fallback resolves
+        // the CLIENT's local calendar day (#935) rather than the server's UTC day. Resolves the
+        // client's Active training plan whose date window contains that date (a client may hold
+        // several sequential, non-overlapping Active plans, #780) — the shared cross-store
+        // assembly (#938) also validates the ClientProfile exists.
+        var loadResult = await this.LoadActiveTrainingPlanForClientAsync(
+            db, mongo, Guid.Parse(userId),
+            req.CompletedOn?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            timeProvider.GetUtcNow().UtcDateTime, ct);
 
-        if (clientProfile is null)
+        if (loadResult is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        var clientId = clientProfile.PublicId;
-        var targetDate = (req.CompletedOn ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-
-        // Validate session ownership via the Active plan whose date window contains today — a
-        // client may hold several sequential, non-overlapping Active plans (#780).
-        var planFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
-                         & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
-
-        using var planCursor = await mongo.TrainingPlans.FindAsync(planFilter, cancellationToken: ct);
-        var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, targetDate);
+        var (clientId, targetDate, plan) = loadResult.Value;
 
         if (plan is null)
         {
@@ -82,7 +78,8 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -91,24 +88,22 @@ public class MarkSessionIncompleteEndpoint(
             return;
         }
 
-        session.WithBackfilledSections();
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, clientId)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.Date, targetDate)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, req.SessionId);
 
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, clientId)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.Date, targetDate)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
-
-        using var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-        var existing = await completionCursor.FirstOrDefaultAsync(ct);
+        using var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var existing = await executionCursor.FirstOrDefaultAsync(ct);
 
         if (existing is null)
         {
-            // Idempotent: no completion document exists
+            // Idempotent: no execution document exists
             await Send.OkAsync(new MarkSessionIncompleteResponse
             {
                 SessionId = req.SessionId,
                 Date = DateOnly.FromDateTime(targetDate),
                 CompletedExerciseCount = 0,
-                TotalExerciseCount = session.Exercises.Count,
+                TotalExerciseCount = session.AllExercises.Count,
                 Version = 1
             }, ct);
             return;
@@ -123,17 +118,29 @@ public class MarkSessionIncompleteEndpoint(
         }
 
         var newVersion = existing.Version + 1;
-        var versionedFilter = completionFilter
-                              & Builders<TrainingCompletion>.Filter.Eq(c => c.Version, existing.Version);
+        var versionedFilter = executionFilter
+                              & Builders<SessionExecution>.Filter.Eq(c => c.Version, existing.Version);
 
-        var update = Builders<TrainingCompletion>.Update
-            .Set(c => c.CompletedExerciseIds, new List<Guid>())
-            .Set(c => c.CompletedExerciseIdsBySection, new Dictionary<string, List<Guid>>())
-            .Set(c => c.CompletedSectionIds, new List<Guid>())
+        // #841: if this execution also carries Performance (live-training-assistant data),
+        // clear every set's CompletedAt stamp IN THE SAME DOCUMENT — no more best-effort
+        // cross-collection sync into a separate WorkoutLog. Combined with clearing
+        // CompletedExerciseInstanceIds below, BOTH signals the placement-exact rule (#938)
+        // reads are cleared, so the hardcoded 0 below still holds for a Performance-logged session.
+        if (existing.Performance is not null)
+        {
+            foreach (var exercise in existing.Performance.Exercises)
+                foreach (var set in exercise.Sets)
+                    set.CompletedAt = null;
+        }
+
+        var update = Builders<SessionExecution>.Update
+            .Set(c => c.CompletedExerciseInstanceIds, new List<Guid>())
+            .Set(c => c.CompletedWorkoutIds, new List<Guid>())
+            .Set(c => c.Performance, existing.Performance)
             .Set(c => c.DateUpdated, DateTime.UtcNow)
             .Set(c => c.Version, newVersion);
 
-        var updateResult = await mongo.TrainingCompletions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
+        var updateResult = await mongo.SessionExecutions.UpdateOneAsync(versionedFilter, update, cancellationToken: ct);
 
         if (updateResult.ModifiedCount == 0)
         {
@@ -142,50 +149,10 @@ public class MarkSessionIncompleteEndpoint(
             return;
         }
 
-        // Mirror the un-mark into today's WorkoutLog(s) so the read side
-        // (GetTodaySessionEndpoint) no longer re-merges stale CompletedAt stamps.
-        // NOTE: WorkoutLog.ClientId is stored as the auth user's Id, NOT clientProfile.PublicId.
-        var userIdGuid = Guid.Parse(userId);
-        try
-        {
-            var tomorrow = targetDate.AddDays(1);
-            var logFilter =
-                Builders<WorkoutLog>.Filter.Eq(l => l.ClientId, userIdGuid)
-                & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, (Guid?)req.SessionId)
-                & Builders<WorkoutLog>.Filter.Gte(l => l.StartedAt, targetDate)
-                & Builders<WorkoutLog>.Filter.Lt(l => l.StartedAt, tomorrow);
-
-            using var logCursor = await mongo.WorkoutLogs.FindAsync(logFilter, cancellationToken: ct);
-            var matchingLogs = await logCursor.ToListAsync(ct);
-
-            foreach (var log in matchingLogs)
-            {
-                log.WithBackfilledSections();
-                foreach (var exercise in log.Exercises)
-                    foreach (var set in exercise.Sets)
-                        set.CompletedAt = null;
-
-                log.IsCompleted = false;
-                log.DateUpdated = DateTime.UtcNow;
-
-                await mongo.WorkoutLogs.ReplaceOneAsync(
-                    Builders<WorkoutLog>.Filter.Eq(l => l.Id, log.Id),
-                    log,
-                    cancellationToken: ct);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex,
-                "Failed to clear WorkoutLog CompletedAt stamps for session {SessionId} on {Date}. " +
-                "TrainingCompletion was already cleared; this is best-effort.",
-                req.SessionId, targetDate);
-        }
-
         await TrainingProgressBroadcaster.BroadcastSessionAsync(
-            notifier, compliance, mongo, plan, clientId,
+            notifier, compliance, mongo, linkAuthorizationService, plan, clientId,
             req.SessionId, DateOnly.FromDateTime(targetDate),
-            0, session.Exercises.Count,
+            0, session.AllExercises.Count,
             logger, ct);
 
         await Send.OkAsync(new MarkSessionIncompleteResponse
@@ -193,7 +160,7 @@ public class MarkSessionIncompleteEndpoint(
             SessionId = req.SessionId,
             Date = DateOnly.FromDateTime(targetDate),
             CompletedExerciseCount = 0,
-            TotalExerciseCount = session.Exercises.Count,
+            TotalExerciseCount = session.AllExercises.Count,
             Version = newVersion
         }, ct);
     }

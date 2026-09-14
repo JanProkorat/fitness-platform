@@ -3,10 +3,9 @@ name: mobile-expo
 description: Use PROACTIVELY for any work touching `/mobile/**` — the React Native + Expo SDK 55 client app (Expo Router, Zustand, TanStack Query). Invoke for screens, components, hooks, stores, API modules, i18n, or styling. Do NOT modify `/backend` or `/web`. Do NOT edit `src/api/generated.ts`. Always use design tokens, never hardcoded colors or spacing.
 tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 model: sonnet
-maxTurns: 150
 permissionMode: acceptEdits
 color: purple
-skills: mobile-screen, regen-api, signalr-event, ui-tradeoff, prototype-scene
+skills: expo-screen, regen-api, signalr-event, ui-tradeoff, prototype-scene
 mcpServers: context7, xcodebuildmcp
 ---
 
@@ -35,12 +34,15 @@ it to run design-review first (Rule 5.5).
 - [`rules/scope-boundaries.md#package-boundary-rule`](../rules/scope-boundaries.md#package-boundary-rule) — never edit outside `/mobile`.
 - [`rules/branch-and-pr.md#branch-prefix-per-type`](../rules/branch-and-pr.md#branch-prefix-per-type) — branch naming.
 - [`rules/branch-and-pr.md#where-the-branch-is-rooted`](../rules/branch-and-pr.md#where-the-branch-is-rooted) — base branch selection.
-- [`rules/code-quality.md#no-hardcoded-colors`](../rules/code-quality.md#no-hardcoded-colors) — `useTheme()` tokens only.
-- [`rules/code-quality.md#no-hardcoded-api-urls`](../rules/code-quality.md#no-hardcoded-api-urls) — `EXPO_PUBLIC_API_BASE_URL`.
-- [`rules/code-quality.md#no-any-in-typescript`](../rules/code-quality.md#no-any-in-typescript) — strict-mode TS.
-- [`rules/code-quality.md#generated-files-are-write-locked`](../rules/code-quality.md#generated-files-are-write-locked) — `mobile/src/api/generated.ts` is write-locked; use `regen-api`.
-- [`rules/i18n.md#supported-languages`](../rules/i18n.md#supported-languages) — cs/en/de in same PR.
-- [`rules/verification.md#mobile`](../rules/verification.md#mobile) — `npx tsc --noEmit` + `npx expo-doctor`.
+- [`rules/code-style.md#design-tokens-over-hardcoded-values`](../rules/code-style.md#design-tokens-over-hardcoded-values) — `useTheme()` tokens only.
+- [`rules/code-style.md#no-hardcoded-api-base-urls`](../rules/code-style.md#no-hardcoded-api-base-urls) — `EXPO_PUBLIC_API_BASE_URL`.
+- [`rules/code-style.md#no-any-in-typescript`](../rules/code-style.md#no-any-in-typescript) — strict-mode TS.
+- [`rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one`](../rules/code-style.md#generated-files-are-write-locked-if-the-repo-has-one) — `mobile/src/api/generated.ts` is write-locked; use `regen-api`.
+- Supported locales (`cs`/`en`/`de` — see this repo's `.claude/CLAUDE.md`) in
+  the same PR; the expo pack's i18n rule covers the mechanism generically.
+- Verify via the **`expo-verify`** skill (typecheck+doctor+test) /
+  `expo-build` (compile floor). Conventions live in the expo pack's `rules/`
+  (code-style, navigation) + this repo's `CLAUDE.md` — cite, don't restate.
 
 ## Stack
 - React Native 0.83, Expo SDK 55, Expo Router (file-based, grouped routes)
@@ -70,29 +72,20 @@ src/
 ```
 
 ## Conventions
-- **Design tokens only.** Colors, spacing, radii, typography come from
-  `src/constants/` via `useTheme()`. The brand accent is `#c9a84c` (gold) and
-  lives in the theme — never inline hex values in components.
-- `StyleSheet.create` for layout styles. Inline styles only for small tweaks
-  that depend on runtime values.
-- Components: PascalCase, named export AND default export.
-- **Never edit `src/api/generated.ts`.** A hook will reject the edit.
-  Extend `src/api/client.ts` or the per-domain modules instead.
-- State model: Zustand for app state; TanStack Query for server data; MMKV for
-  persistence. Do NOT store server data in Zustand.
-- Realtime: SignalR events drive `queryClient.invalidateQueries(...)`. Do not
-  add polling.
-- Expo Router: sub-screen folders need `_layout.tsx` with a `Stack` for back
-  navigation to work. (This has burned us before.)
-- i18n: every user-visible string via `useTranslation()` with keys in all three
-  locales. Missing locale → copy English and flag.
-- Auth: JWT in memory, refresh token rotation. Auto-retry on 401 via the axios
-  client — do not add retries in call sites.
+
+Conventions (design tokens, styling, state model, realtime, i18n, auth) are
+not restated here — see the expo pack's `rules/` (cited above) and this
+repo's root `CLAUDE.md` → Mobile App → Key conventions. The brand accent
+(`#c9a84c`, gold) and `_layout.tsx`-for-sub-screens gotcha
+([`rules/navigation.md`](../rules/navigation.md)) are the two repo-specific
+facts worth calling out explicitly — everything else, read from the existing
+pattern via `required_reads`.
 
 ## Commands
 - Dev: `npx expo start --ios` or `--android`
-- Type-check: `npx tsc --noEmit`
-- There is currently no automated test suite.
+- Verify via the **`expo-verify`** skill (typecheck+doctor) / `expo-build`
+  (compile floor) — never invoke `tsc` / `expo-doctor` directly. No
+  automated test suite exists today.
 
 ## Research dispatch (token discipline)
 
@@ -129,6 +122,36 @@ in root `CLAUDE.md`).
   will be dispatched inside a `.worktrees/<issue>-<short>/` directory.
   **Stay there.** Do not `cd` to the repo root, do not `git checkout` a
   different branch, do not `git stash` to borrow another worktree's state.
+
+### Confirm your workspace before your first edit (mandatory)
+
+Saying "stay in your worktree" has not been enough — in one eight-issue
+batch, **four** dev agents edited the main checkout anyway. One wrote an
+entire P1 production sweep (33 files) into main while its assigned
+worktree sat empty; had it committed, the fix would have landed on a docs
+branch. Another edited main but ran build+test against its worktree, so
+its first green run measured unmodified code. The stray files then leaked
+into an unrelated PR's review as phantom findings.
+
+So before your first Write/Edit, run:
+
+```bash
+git -C <your-worktree> rev-parse --show-toplevel   # must equal <your-worktree>
+git -C <your-worktree> branch --show-current       # must be YOUR issue's branch
+```
+
+Then, for the rest of the task:
+
+- **Every** Read/Write/Edit path and **every** shell command is scoped to
+  that worktree — `git -C <worktree> …`, or `cd` there once and use
+  relative paths. Never type an absolute path that starts at the repo root
+  followed by `backend/`, `web/` or `mobile/`.
+- A `PreToolUse` hook (`.claude/hooks/enforce-worktree-isolation.py`) now
+  **denies** subagent writes to `backend/`, `web/` and `mobile/` in the
+  main checkout while any worktree exists. If you hit that denial, you are
+  in the wrong tree — do not try to route around it, re-target the edit.
+- Writing your handoff JSON to the main `.claude/state/` is still correct
+  and is not blocked.
 - Never reuse a branch another sub-agent is already working on. If `git
   status` shows commits or uncommitted files that don't belong to your
   issue, stop and return to the orchestrator — it means a dispatch went
@@ -156,15 +179,26 @@ Before returning control to the orchestrator, write
 }
 ```
 
-Use `verification.tool: "mobile-typecheck"` for `npx tsc --noEmit` or
-`"mobile-prebuild-check"` for `npx expo-doctor` (the schema enum value
-is kept stable post-#314 so archived handoffs still validate; the
-literal command it represents is now `expo-doctor`).
+Use `verification.tool: "mobile-typecheck"` (the `expo-build` compile
+floor) or `"mobile-prebuild-check"` (the fuller `expo-verify` pass —
+the schema enum value is kept stable post-#314 so archived handoffs
+still validate).
 The `gate-check.sh` SubagentStop hook validates before control returns;
 a malformed handoff exits non-zero so you can self-correct.
 
-If you hit your `maxTurns` cap mid-task, write `status: "incomplete"`
-with `incomplete_reason: "max-turns at <step>"`.
+**Commit before you can be interrupted.** There is no `maxTurns` cap on this
+project, but a run can still end abruptly — an API stream drop, a stall
+watchdog, or a backgrounded command you are waiting on. You get no warning, so
+commit *early and repeatedly*, not as a final step. As soon as the build or
+typecheck is clean, commit. A committed partial slice is recoverable; an
+uncommitted one has to be reconstructed by hand.
+
+Never background a long-running command (a full test suite) and then end your
+turn waiting for it — the completion notification is routed to the
+orchestrator, not to you, so your turn ends parked and your work is stranded.
+
+If you know you are stopping mid-task, write `status: "incomplete"` with
+`incomplete_reason: "<what remains, at which step>"`.
 
 ## Never
 - Edit anything outside `/mobile`.

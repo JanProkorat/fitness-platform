@@ -44,6 +44,11 @@ public static class EntityBuilder
     public static ClientOnboardingDataBuilder ClientOnboardingData => new();
 
     /// <summary>
+    /// Creates a new <see cref="ClientNutritionTargetsBuilder"/>.
+    /// </summary>
+    public static ClientNutritionTargetsBuilder ClientNutritionTargets => new();
+
+    /// <summary>
     /// Creates a new <see cref="PendingInviteBuilder"/>.
     /// </summary>
     public static PendingInviteBuilder PendingInvite => new();
@@ -344,6 +349,7 @@ public class InvitationTokenBuilder
     private string _token = "invite-token";
     private DateTime _expiresAt = DateTime.UtcNow.AddDays(7);
     private bool _isUsed;
+    private LinkCapabilityScope? _requestedScope;
     private ProfessionalProfile? _professionalProfile;
 
     /// <summary>
@@ -382,12 +388,18 @@ public class InvitationTokenBuilder
     public InvitationTokenBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
+    /// Sets the requested link capability scope.
+    /// </summary>
+    public InvitationTokenBuilder WithRequestedScope(LinkCapabilityScope? scope) { _requestedScope = scope; return this; }
+
+    /// <summary>
     /// Builds the <see cref="Application.Domain.Entities.InvitationToken"/> instance.
     /// </summary>
     public InvitationToken Build() => new()
     {
         ProfessionalProfileId = _professionalProfileId, Email = _email, Token = _token,
-        ExpiresAt = _expiresAt, IsUsed = _isUsed, ProfessionalProfile = _professionalProfile!
+        ExpiresAt = _expiresAt, IsUsed = _isUsed, RequestedScope = _requestedScope,
+        ProfessionalProfile = _professionalProfile!
     };
 }
 
@@ -403,6 +415,7 @@ public class PendingInviteBuilder
     private string _email = "invited@test.com";
     private DateTime _sentAt = DateTime.UtcNow;
     private bool _isAccepted;
+    private LinkCapabilityScope? _requestedScope;
     private ProfessionalProfile? _professionalProfile;
 
     /// <summary>
@@ -441,6 +454,11 @@ public class PendingInviteBuilder
     public PendingInviteBuilder WithProfessionalProfile(ProfessionalProfile pp) { _professionalProfile = pp; _professionalProfileId = pp.Id; return this; }
 
     /// <summary>
+    /// Sets the requested link capability scope.
+    /// </summary>
+    public PendingInviteBuilder WithRequestedScope(LinkCapabilityScope? scope) { _requestedScope = scope; return this; }
+
+    /// <summary>
     /// Builds the <see cref="Application.Domain.Entities.PendingInvite"/> instance.
     /// </summary>
     public Application.Domain.Entities.PendingInvite Build() => new()
@@ -452,6 +470,7 @@ public class PendingInviteBuilder
         Email = _email,
         SentAt = _sentAt,
         IsAccepted = _isAccepted,
+        RequestedScope = _requestedScope,
         ProfessionalProfile = _professionalProfile!
     };
 }
@@ -499,4 +518,34 @@ public class ClientOnboardingDataBuilder
     /// Builds the <see cref="ClientOnboardingData"/> instance.
     /// </summary>
     public ClientOnboardingData Build() => _entity;
+}
+
+/// <summary>
+/// Builder for <see cref="ClientNutritionTargets"/> test entities.
+/// </summary>
+public class ClientNutritionTargetsBuilder
+{
+    private readonly ClientNutritionTargets _entity = new()
+    {
+        Id = 1,
+        ClientOnboardingDataId = 1,
+        DerivedActivityLevel = ActivityLevel.ModeratelyActive,
+        DerivedNutritionGoal = NutritionGoal.Bulk,
+        Bmr = 1800,
+        Tdee = 2500,
+        AdjustedKcal = 2750,
+        ProteinGrams = 206,
+        CarbsGrams = 309,
+        FatGrams = 76,
+    };
+
+    /// <summary>
+    /// Sets the client onboarding data ID.
+    /// </summary>
+    public ClientNutritionTargetsBuilder WithClientOnboardingDataId(long id) { _entity.ClientOnboardingDataId = id; return this; }
+
+    /// <summary>
+    /// Builds the <see cref="ClientNutritionTargets"/> instance.
+    /// </summary>
+    public ClientNutritionTargets Build() => _entity;
 }

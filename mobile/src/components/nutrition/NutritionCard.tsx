@@ -50,9 +50,14 @@ interface NutritionCardProps {
   /**
    * Per-meal diary photos from the log, keyed by mealId. Fed into MealRow so
    * the accordion body can display a horizontal thumbnail strip.
-   * Each photo carries an optional per-photo caption (`note`).
+   * Each photo carries an optional per-photo caption (`note`). `displayUrl`
+   * is the short-lived signed URL to render — `blobUrl` is identity-only and
+   * not directly fetchable.
    */
-  mealPhotosByMealId?: Record<string, { blobUrl: string; note?: string | null; uploadedAt?: string }[]>
+  mealPhotosByMealId?: Record<
+    string,
+    { blobUrl: string; displayUrl?: string; note?: string | null; uploadedAt?: string }[]
+  >
   /**
    * Meal-level diary note keyed by mealId. Passed to the lightbox as a top
    * overlay caption when the user opens photos for that meal.

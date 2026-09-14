@@ -319,7 +319,7 @@ describe('liveSessionStore', () => {
       store.discard()
 
       expect(useLiveSessionStore.getState()).toEqual({
-        _version: 2,
+        _version: 3,
         activeLogId: null,
         planId: null,
         sessionId: null,
@@ -567,22 +567,22 @@ describe('liveSessionStore', () => {
   })
 })
 
-// ── migrateState() v1 → v2 migration ────────────────────────────────────────
+// ── migrateState() version migration (v1 → v2 → v3) ─────────────────────────
 //
 // The store reads + migrates persisted state once, at module-eval time
 // (getPersistedSession() runs inside the create() initializer). To exercise
-// migrateState() with a v1-shaped MMKV blob already on disk, we must seed
-// the mock MMKV *before* a fresh module instance evaluates, via
+// migrateState() with an older-shaped MMKV blob already on disk, we must
+// seed the mock MMKV *before* a fresh module instance evaluates, via
 // jest.isolateModules() + require() (resetModules() alone would not help,
 // since the outer `useLiveSessionStore` import at the top of this file has
 // already run its module-level initializer).
 
-describe('migrateState() v1 -> v2 migration', () => {
+describe('migrateState() version migration', () => {
   beforeEach(() => {
     Object.keys(_mmkvStore).forEach((k) => { delete _mmkvStore[k] })
   })
 
-  it('drops the legacy sentinel wodResults key and stamps _version=2', () => {
+  it('migrates a v1 blob all the way to v3, dropping wodResults entirely', () => {
     _mmkvStore['session'] = JSON.stringify({
       _version: 1,
       activeLogId: 'log-1',
@@ -599,6 +599,10 @@ describe('migrateState() v1 -> v2 migration', () => {
       finishedAt: null,
       formOverrides: {},
       wodResults: {
+        // The v1 sentinel would be dropped by the v1→v2 step alone, but the
+        // v2→v3 step drops the whole map regardless (workoutId/exerciseId
+        // cannot be derived from a catalog id or a retired sectionId
+        // without the plan tree at migration time).
         '__legacySentinelKey123': { roundsCompleted: 3 },
         'section-real': { roundsCompleted: 5 },
       },
@@ -610,12 +614,12 @@ describe('migrateState() v1 -> v2 migration', () => {
     })
 
     const state = fresh!.useLiveSessionStore.getState()
-    expect(state._version).toBe(2)
-    expect(state.wodResults).toEqual({ 'section-real': { roundsCompleted: 5 } })
+    expect(state._version).toBe(3)
+    expect(state.wodResults).toEqual({})
     expect(state.currentSectionIdx).toBeNull()
   })
 
-  it('treats a persisted blob with no _version field as v1 and migrates it', () => {
+  it('treats a persisted blob with no _version field as v1 and migrates it to v3', () => {
     _mmkvStore['session'] = JSON.stringify({
       activeLogId: 'log-1',
       planId: 'plan-1',
@@ -639,11 +643,11 @@ describe('migrateState() v1 -> v2 migration', () => {
     })
 
     const state = fresh!.useLiveSessionStore.getState()
-    expect(state._version).toBe(2)
+    expect(state._version).toBe(3)
     expect(state.wodResults).toEqual({})
   })
 
-  it('leaves an already-current (v2) blob untouched', () => {
+  it('migrates a v2 blob to v3, dropping wodResults (the sectionId half of the key space has no 1:1 mapping to the new workoutId space)', () => {
     _mmkvStore['session'] = JSON.stringify({
       _version: 2,
       activeLogId: 'log-1',
@@ -653,7 +657,7 @@ describe('migrateState() v1 -> v2 migration', () => {
       currentExerciseIdx: 0,
       currentSetIdx: 0,
       currentSectionIdx: 1,
-      completedSets: {},
+      completedSets: { 'ex-1': [0, 1] },
       skippedSets: {},
       skippedExercises: [],
       restStartedAt: null,
@@ -669,8 +673,42 @@ describe('migrateState() v1 -> v2 migration', () => {
     })
 
     const state = fresh!.useLiveSessionStore.getState()
-    expect(state._version).toBe(2)
+    expect(state._version).toBe(3)
+    // currentSectionIdx and the catalog-keyed live-log maps (completedSets
+    // etc.) carry over unchanged — only wodResults' meaning changed.
     expect(state.currentSectionIdx).toBe(1)
-    expect(state.wodResults).toEqual({ 'section-real': { roundsCompleted: 5 } })
+    expect(state.completedSets).toEqual({ 'ex-1': [0, 1] })
+    expect(state.wodResults).toEqual({})
+  })
+
+  it('leaves an already-current (v3) blob untouched', () => {
+    _mmkvStore['session'] = JSON.stringify({
+      _version: 3,
+      activeLogId: 'log-1',
+      planId: 'plan-1',
+      sessionId: 'sess-1',
+      startedAt: null,
+      currentExerciseIdx: 0,
+      currentSetIdx: 0,
+      currentSectionIdx: 1,
+      completedSets: {},
+      skippedSets: {},
+      skippedExercises: [],
+      restStartedAt: null,
+      restSeconds: null,
+      finishedAt: null,
+      formOverrides: {},
+      wodResults: { 'workout-real': { roundsCompleted: 5 } },
+    })
+
+    let fresh: typeof import('../liveSessionStore') | undefined
+    jest.isolateModules(() => {
+      fresh = require('../liveSessionStore')
+    })
+
+    const state = fresh!.useLiveSessionStore.getState()
+    expect(state._version).toBe(3)
+    expect(state.currentSectionIdx).toBe(1)
+    expect(state.wodResults).toEqual({ 'workout-real': { roundsCompleted: 5 } })
   })
 })

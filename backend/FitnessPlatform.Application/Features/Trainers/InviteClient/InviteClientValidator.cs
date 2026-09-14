@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Trainers.InviteClient;
@@ -17,5 +18,8 @@ public class InviteClientValidator : Validator<InviteClientRequest>
             .NotEmpty()
             .EmailAddress()
             .MaximumLength(100);
+
+        RuleFor(x => x.RequestedScope)
+            .IsInEnum().WithErrorCode(ErrorCodes.OutOfRange);
     }
 }

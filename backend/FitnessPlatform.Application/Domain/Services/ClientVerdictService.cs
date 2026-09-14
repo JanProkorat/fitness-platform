@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -31,6 +32,7 @@ public class ClientVerdictService(
         Guid clientUserId,
         long clientProfileId,
         decimal? targetWeightKg,
+        LinkCapabilities capabilities,
         CancellationToken ct)
     {
         // ── EF queries — must be serialized (DbContext is not thread-safe) ──
@@ -59,11 +61,26 @@ public class ClientVerdictService(
             .FirstOrDefaultAsync(ct);
 
         // ── MongoDB queries — thread-safe, run in parallel ──────────────────
-        var complianceTask = ComputeComplianceAsync(clientUserId, ct);
-        var trainingTask = ComputeTrainingFrequencyAsync(clientUserId, ct);
+        // Every domain-scoped read is skipped outright, not filtered afterwards, when the caller's
+        // link denies that domain. This is what makes the reduction land "for free": a skipped
+        // compliance/training read yields hasActiveNutritionPlan=false / hasActiveTrainingPlan=false,
+        // and every branch in ComputeVerdict already guards on those two booleans, so the verdict
+        // scalar itself reduces to only the visible domain without any change to ComputeVerdict's
+        // signature or logic. Weight and LastActiveAt are deliberately NOT gated here — they are
+        // dual-readable per the response boundary below, so their reads always run.
+        var complianceTask = capabilities.CanViewNutritionPlans
+            ? ComputeComplianceAsync(clientUserId, ct)
+            : Task.FromResult<(decimal? compliancePercent, bool hasActivePlan)>((null, false));
+        var trainingTask = capabilities.CanViewTrainingPlans
+            ? ComputeTrainingFrequencyAsync(clientUserId, ct)
+            : Task.FromResult<(int? actual, int? prescribed, bool hasActivePlan)>((null, null, false));
         var latestWorkoutTask = FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
         var latestMealTask = FetchLatestMealLogTimestampAsync(clientUserId, ct);
-        var prCountTask = ComputePrCountThisMonthAsync(clientUserId, ct);
+        // The record count feeds nothing but its own response field, so there is no reason to read
+        // a client's personal records for a caller who may not see them.
+        var prCountTask = capabilities.CanViewTrainingPlans
+            ? ComputePrCountThisMonthAsync(clientUserId, ct)
+            : Task.FromResult(0);
 
         await Task.WhenAll(complianceTask, trainingTask, latestWorkoutTask, latestMealTask, prCountTask);
 
@@ -86,16 +103,26 @@ public class ClientVerdictService(
             frequencyActual, frequencyPrescribed, hasActiveTrainingPlan,
             lastActiveAt);
 
+        // Each itemised signal requires BOTH that the data exists and that the caller's link grants
+        // its domain. Weight, and the coalesced last-active timestamp, stay dual-readable: body
+        // measurements are standalone rather than hanging off a nutrition or training item, which
+        // is how the timeline endpoint already classifies them.
         return new ClientVerdictResult
         {
             Verdict = verdict,
-            CompliancePercent = hasActiveNutritionPlan ? compliancePercent : null,
+            CompliancePercent = hasActiveNutritionPlan && capabilities.CanViewNutritionPlans
+                ? compliancePercent
+                : null,
             WeightDeltaToGoal = hasWeightSignal ? weightDeltaToGoal : null,
             WeightDirection = weightDirection,
-            TrainingFrequencyActual = hasActiveTrainingPlan ? frequencyActual : null,
-            TrainingFrequencyPrescribed = hasActiveTrainingPlan ? frequencyPrescribed : null,
+            TrainingFrequencyActual = hasActiveTrainingPlan && capabilities.CanViewTrainingPlans
+                ? frequencyActual
+                : null,
+            TrainingFrequencyPrescribed = hasActiveTrainingPlan && capabilities.CanViewTrainingPlans
+                ? frequencyPrescribed
+                : null,
             LastActiveAt = lastActiveAt,
-            PrCountThisMonth = prCountThisMonth
+            PrCountThisMonth = capabilities.CanViewTrainingPlans ? prCountThisMonth : null
         };
     }
 
@@ -187,7 +214,7 @@ public class ClientVerdictService(
             .OrderBy(w => w.WeekNumber)
             .FirstOrDefault();
 
-        int prescribed = publishedWeek?.Sessions.Count ?? 0;
+        int prescribed = publishedWeek?.Days.Sum(d => d.Sessions.Count) ?? 0;
 
         // Actual sessions this ISO week (Monday–Sunday).
         var today = DateTime.UtcNow.Date;
@@ -196,12 +223,15 @@ public class ClientVerdictService(
         var weekStart = today.AddDays(-(dayOfWeek - 1));
         var weekEnd = weekStart.AddDays(7);
 
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true)
-            & Builders<WorkoutLog>.Filter.Gte(w => w.CompletedAt, (DateTime?)weekStart)
-            & Builders<WorkoutLog>.Filter.Lt(w => w.CompletedAt, (DateTime?)weekEnd);
+        // #841: only executions that carry Performance data (a live-training-assistant log) count
+        // here — checkbox-only completions never appeared in the old WorkoutLogs collection either.
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Exists(w => w.Performance)
+            & Builders<SessionExecution>.Filter.Gte(w => w.Performance!.CompletedAt, (DateTime?)weekStart)
+            & Builders<SessionExecution>.Filter.Lt(w => w.Performance!.CompletedAt, (DateTime?)weekEnd);
 
-        using var workoutCursor = await mongo.WorkoutLogs.FindAsync(workoutFilter, cancellationToken: ct);
+        using var workoutCursor = await mongo.SessionExecutions.FindAsync(workoutFilter, cancellationToken: ct);
         var completedLogs = await workoutCursor.ToListAsync(ct);
         int actual = completedLogs.Count;
 
@@ -210,16 +240,17 @@ public class ClientVerdictService(
 
     private async Task<DateTime?> FetchLatestWorkoutCompletedAtAsync(Guid clientUserId, CancellationToken ct)
     {
-        var workoutFilter = Builders<WorkoutLog>.Filter.Eq(w => w.ClientId, clientUserId)
-            & Builders<WorkoutLog>.Filter.Eq(w => w.IsCompleted, true);
+        var workoutFilter = Builders<SessionExecution>.Filter.Eq(w => w.ClientId, clientUserId)
+            & Builders<SessionExecution>.Filter.Eq(w => w.Status, SessionExecutionStatus.Completed)
+            & Builders<SessionExecution>.Filter.Exists(w => w.Performance);
 
-        using var workoutCursor = await mongo.WorkoutLogs.FindAsync(
+        using var workoutCursor = await mongo.SessionExecutions.FindAsync(
             workoutFilter,
-            new FindOptions<WorkoutLog> { Sort = Builders<WorkoutLog>.Sort.Descending(w => w.CompletedAt), Limit = 1 },
+            new FindOptions<SessionExecution> { Sort = Builders<SessionExecution>.Sort.Descending(w => w.Performance!.CompletedAt), Limit = 1 },
             ct);
         var latestWorkout = await workoutCursor.FirstOrDefaultAsync(ct);
 
-        return latestWorkout?.CompletedAt;
+        return latestWorkout?.Performance?.CompletedAt;
     }
 
     private async Task<DateTime?> FetchLatestMealLogTimestampAsync(Guid clientUserId, CancellationToken ct)

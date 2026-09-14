@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using MongoDB.Driver;
 using NSubstitute;
@@ -42,10 +43,12 @@ public class UpdateTrainingPlanFormatTests
             mongo,
             CreateNoOpLockService(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
     /// <summary>Builds a minimal single-section request for a given session.</summary>
-    private static UpdateSectionRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
+    private static UpdateTrainingWorkoutRequest DefaultSection(List<UpdateSessionExerciseRequest>? exercises = null) =>
         new() { Name = "Hlavní", Order = 0, Exercises = exercises ?? [] };
 
     // ── Session-level format round-trip tests ────────────────────────────────
@@ -77,7 +80,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -91,9 +94,9 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Format == WorkoutFormat.EMOM &&
-                p.Weeks[0].Sessions[0].FormatConfig!.IntervalSeconds == 60 &&
-                p.Weeks[0].Sessions[0].FormatConfig!.TotalRounds == 10),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Format == WorkoutFormat.EMOM &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.IntervalSeconds == 60 &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.TotalRounds == 10),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -125,7 +128,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { TimeCapSeconds = 1200 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -139,8 +142,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Format == WorkoutFormat.AMRAP &&
-                p.Weeks[0].Sessions[0].FormatConfig!.TimeCapSeconds == 1200),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Format == WorkoutFormat.AMRAP &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.TimeCapSeconds == 1200),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -172,7 +175,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -186,8 +189,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Format == WorkoutFormat.ForTime &&
-                p.Weeks[0].Sessions[0].FormatConfig!.TimeCapSeconds == 600),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Format == WorkoutFormat.ForTime &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.TimeCapSeconds == 600),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -219,7 +222,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { WorkSeconds = 20, RestSeconds = 10, TotalRounds = 8 },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -233,10 +236,10 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Format == WorkoutFormat.Tabata &&
-                p.Weeks[0].Sessions[0].FormatConfig!.WorkSeconds == 20 &&
-                p.Weeks[0].Sessions[0].FormatConfig!.RestSeconds == 10 &&
-                p.Weeks[0].Sessions[0].FormatConfig!.TotalRounds == 8),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Format == WorkoutFormat.Tabata &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.WorkSeconds == 20 &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.RestSeconds == 10 &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig!.TotalRounds == 8),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -268,7 +271,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = null,
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -282,8 +285,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Format == WorkoutFormat.Standard &&
-                p.Weeks[0].Sessions[0].FormatConfig == null),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().Format == WorkoutFormat.Standard &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().FormatConfig == null),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -316,7 +319,7 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -343,7 +346,7 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Exercises[0].MovementType == MovementType.Time),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].MovementType == MovementType.Time),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -374,7 +377,7 @@ public class UpdateTrainingPlanFormatTests
                             Name = "Session",
                             Order = 1,
                             Format = WorkoutFormat.Standard,
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -403,8 +406,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Exercises[0].Format == WorkoutFormat.AMRAP &&
-                p.Weeks[0].Sessions[0].Exercises[0].FormatConfig!.TimeCapSeconds == 300),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].Format == WorkoutFormat.AMRAP &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].FormatConfig!.TimeCapSeconds == 300),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -436,7 +439,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { IntervalSeconds = 60, TotalRounds = 10 },
-                            Sections =
+                            Workouts =
                             [
                                 DefaultSection(
                                 [
@@ -465,8 +468,8 @@ public class UpdateTrainingPlanFormatTests
         await mongo.TrainingPlans.Received(1).ReplaceOneAsync(
             Arg.Any<FilterDefinition<TrainingPlan>>(),
             Arg.Is<TrainingPlan>(p =>
-                p.Weeks[0].Sessions[0].Exercises[0].Format == null &&
-                p.Weeks[0].Sessions[0].Exercises[0].FormatConfig == null),
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].Format == null &&
+                p.Weeks[0].Days.SelectMany(d => d.Sessions).First().AllExercises[0].FormatConfig == null),
             Arg.Any<ReplaceOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -482,18 +485,17 @@ public class UpdateTrainingPlanFormatTests
         var plan = TrainingPlanTestHelpers.CreatePlan(externalId: planId, trainerId: _trainerId);
 
         // Add a session with a section containing an exercise — Format and MovementType at C# defaults.
-        plan.Weeks[0].Sessions.Add(new TrainingSession
+        plan.Weeks[0].Days[0].Sessions.Add(new TrainingSession
         {
             SessionId = Guid.NewGuid(),
-            DayOfWeek = 1,
             Name = "Legacy Session",
             Order = 1,
             // Format defaults to null, FormatConfig defaults to null
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -556,7 +558,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.EMOM,
                             FormatConfig = new WodConfig { TotalRounds = 10 /* IntervalSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -592,7 +594,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.AMRAP,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -628,7 +630,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Tabata,
                             FormatConfig = new WodConfig { RestSeconds = 10, TotalRounds = 8 /* WorkSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -664,7 +666,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.Standard,
                             FormatConfig = new WodConfig { TimeCapSeconds = 600 }, // must be null for Standard
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }
@@ -701,7 +703,7 @@ public class UpdateTrainingPlanFormatTests
                             Order = 1,
                             Format = WorkoutFormat.ForTime,
                             FormatConfig = new WodConfig { /* TimeCapSeconds missing */ },
-                            Sections = [DefaultSection()]
+                            Workouts = [DefaultSection()]
                         }
                     ]
                 }

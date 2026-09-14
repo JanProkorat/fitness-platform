@@ -5,15 +5,16 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
 
 /// <summary>
 /// Tests for the <see cref="GetTrainingPlanEndpoint"/> <c>SessionExecutions</c> fold-in
-/// using <see cref="TrainingCompletion"/> documents (the mobile home-checkbox path).
+/// using checkbox-only <see cref="SessionExecution"/> documents (the mobile home-checkbox path).
 ///
-/// The live path (WorkoutLog.IsCompleted=true) is already covered by
+/// The live path (SessionExecutionStatus.Completed) is already covered by
 /// <see cref="GetTrainingPlanSessionExecutionTests"/>. This class covers the checkbox path.
 ///
 /// Issue #429 follow-up: sessions finished via the mobile "mark whole day complete" checkbox
@@ -47,38 +48,35 @@ public class GetTrainingPlanCompletionFinishedStateTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            Name = "Session 1",
-                            DayOfWeek = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = _sectionId,
-                                    Order = 0,
-                                    Name = "Hlavní",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = _exerciseId,
-                                            ExerciseName = "Squat",
-                                            Order = 0,
-                                            Sets =
-                                            [
-                                                new ExerciseSet { SetNumber = 1, Reps = 10 },
-                                                new ExerciseSet { SetNumber = 2, Reps = 10 }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Session 1",
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = _sectionId,
+                                Order = 0,
+                                Name = "Hlavní",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = _exerciseId,
+                                        ExerciseExternalId = _exerciseId,
+                                        ExerciseName = "Squat",
+                                        Order = 0,
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Reps = 10 },
+                                            new ExerciseSet { SetNumber = 2, Reps = 10 }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -86,15 +84,20 @@ public class GetTrainingPlanCompletionFinishedStateTests
         };
     }
 
-    private TrainingCompletion BuildCompletion(List<Guid> completedExerciseIds)
+    /// <summary>
+    /// Builds the checkbox-path (Status=Partial) <see cref="SessionExecution"/> a TrainingCompletion
+    /// fixture with no matching live session would have produced.
+    /// </summary>
+    private SessionExecution BuildCompletionExecution(List<Guid> completedExerciseInstanceIds)
     {
-        return new TrainingCompletion
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = completedExerciseIds,
+            Date = _now.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = completedExerciseInstanceIds,
             Version = 1,
             DateCreated = _now
         };
@@ -102,19 +105,19 @@ public class GetTrainingPlanCompletionFinishedStateTests
 
     private async Task<GetTrainingPlanResponse?> ExecuteAsync(
         TrainingPlan plan,
-        WorkoutLog[] logs,
-        TrainingCompletion[] completions)
+        List<SessionExecution> executions)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
-            workoutLogs: logs,
-            trainingCompletions: completions);
+            executions: executions);
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -134,9 +137,9 @@ public class GetTrainingPlanCompletionFinishedStateTests
     public async Task SessionExecutions_FullyCompleteTrainingCompletion_NoWorkoutLog_IsSessionFinishedTrue()
     {
         var plan = BuildPlan();
-        var completion = BuildCompletion([_exerciseId]); // all exercises done
+        var execution = BuildCompletionExecution([_exerciseId]); // all exercises done
 
-        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1,
@@ -158,9 +161,9 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         var plan = BuildPlan();
         // Only half done — the plan has one exercise; partial means empty list here.
-        var partialCompletion = BuildCompletion([]); // no exercises completed
+        var partialExecution = BuildCompletionExecution([]); // no exercises completed
 
-        var response = await ExecuteAsync(plan, logs: [], completions: [partialCompletion]);
+        var response = await ExecuteAsync(plan, [partialExecution]);
 
         response.Should().NotBeNull();
         // No entry at all, or an entry with IsSessionFinished=false (either is acceptable;
@@ -182,43 +185,54 @@ public class GetTrainingPlanCompletionFinishedStateTests
     public async Task SessionExecutions_BothWorkoutLogAndCompletion_NoDuplicateEntry()
     {
         var plan = BuildPlan();
-        var completion = BuildCompletion([_exerciseId]);
+        var completionExecution = BuildCompletionExecution([_exerciseId]);
 
-        var log = new WorkoutLog
+        // Live session, seeded by a DIFFERENT ClientId than the completion (mirrors the
+        // pre-#847 fixture, where WorkoutLog.ClientId was a fresh random Guid rather than
+        // _clientId) — the pre-#847 fixture fold grouped log/completion documents by their
+        // OWN ClientId, so this produces a second, independent SessionExecution rather than
+        // merging into the completion's document.
+        var liveStartedAt = _now.AddMinutes(-30);
+        var liveExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = Guid.NewGuid(),
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = _exerciseId,
-                            ExerciseName = "Squat",
-                            Sets =
-                            [
-                                new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = _now.AddMinutes(-20) },
-                                new WorkoutSet { SetNumber = 2, Reps = 10, CompletedAt = _now.AddMinutes(-15) }
-                            ]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = _now.AddMinutes(-35)
+            Date = SessionExecution.ToCompletionDateUtc(liveStartedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = liveStartedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exerciseId,
+                                ExerciseName = "Squat",
+                                Sets =
+                                [
+                                    new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = _now.AddMinutes(-20) },
+                                    new WorkoutSet { SetNumber = 2, Reps = 10, CompletedAt = _now.AddMinutes(-15) }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now.AddMinutes(-35),
+            Version = 1
         };
 
-        var response = await ExecuteAsync(plan, logs: [log], completions: [completion]);
+        var response = await ExecuteAsync(plan, [liveExecution, completionExecution]);
 
         response.Should().NotBeNull();
         // Must be exactly one entry — not two (no duplicate synthesis).
@@ -238,40 +252,47 @@ public class GetTrainingPlanCompletionFinishedStateTests
     public async Task SessionExecutions_InProgressWorkoutLog_FullyCompleteTrainingCompletion_IsSessionFinishedTrue()
     {
         var plan = BuildPlan();
-        var completion = BuildCompletion([_exerciseId]); // fully done via checkbox
+        var completionExecution = BuildCompletionExecution([_exerciseId]); // fully done via checkbox
 
-        // WorkoutLog in-progress (not completed).
-        var log = new WorkoutLog
+        // Live session in-progress (not completed), seeded by a DIFFERENT ClientId than the
+        // completion — see the equivalent comment on
+        // SessionExecutions_BothWorkoutLogAndCompletion_NoDuplicateEntry.
+        var liveStartedAt = _now.AddMinutes(-30);
+        var liveExecution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = Guid.NewGuid(),
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = false,
-            CompletedAt = null,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Hlavní",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = _exerciseId,
-                            ExerciseName = "Squat",
-                            Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = _now.AddMinutes(-20) }]
-                        }
-                    ]
-                }
-            ],
-            DateCreated = _now.AddMinutes(-35)
+            Date = SessionExecution.ToCompletionDateUtc(liveStartedAt),
+            Status = SessionExecutionStatus.Partial,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = liveStartedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Hlavní",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exerciseId,
+                                ExerciseName = "Squat",
+                                Sets = [new WorkoutSet { SetNumber = 1, Reps = 10, CompletedAt = _now.AddMinutes(-20) }]
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now.AddMinutes(-35),
+            Version = 1
         };
 
-        var response = await ExecuteAsync(plan, logs: [log], completions: [completion]);
+        var response = await ExecuteAsync(plan, [liveExecution, completionExecution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -289,7 +310,7 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         var plan = BuildPlan();
 
-        var response = await ExecuteAsync(plan, logs: [], completions: []);
+        var response = await ExecuteAsync(plan, []);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().BeEmpty();
@@ -320,50 +341,48 @@ public class GetTrainingPlanCompletionFinishedStateTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = _sessionId,
-                            Name = "Session 1",
-                            DayOfWeek = 1,
-                            Sections =
-                            [
-                                new TrainingSection
-                                {
-                                    SectionId = _sectionAId,
-                                    Order = 0,
-                                    Name = "Section A",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = _exerciseAId,
-                                            ExerciseName = "Squat",
-                                            Order = 0,
-                                            Sets = [new ExerciseSet { SetNumber = 1, Reps = 10 }]
-                                        }
-                                    ]
-                                },
-                                new TrainingSection
-                                {
-                                    SectionId = _sectionBId,
-                                    Order = 1,
-                                    Name = "Section B",
-                                    Exercises =
-                                    [
-                                        new SessionExercise
-                                        {
-                                            ExerciseExternalId = _exerciseBId,
-                                            ExerciseName = "Press",
-                                            Order = 0,
-                                            Sets = [new ExerciseSet { SetNumber = 1, Reps = 8 }]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, new TrainingSession
+                    {
+                        SessionId = _sessionId,
+                        Name = "Session 1",
+                        Workouts =
+                        [
+                            new TrainingWorkout
+                            {
+                                WorkoutId = _sectionAId,
+                                Order = 0,
+                                Name = "Section A",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = _exerciseAId,
+                                        ExerciseExternalId = _exerciseAId,
+                                        ExerciseName = "Squat",
+                                        Order = 0,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Reps = 10 }]
+                                    }
+                                ]
+                            },
+                            new TrainingWorkout
+                            {
+                                WorkoutId = _sectionBId,
+                                Order = 1,
+                                Name = "Section B",
+                                Exercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId = _exerciseBId,
+                                        ExerciseExternalId = _exerciseBId,
+                                        ExerciseName = "Press",
+                                        Order = 0,
+                                        Sets = [new ExerciseSet { SetNumber = 1, Reps = 8 }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }))
                 }
             ],
             Version = 1,
@@ -380,31 +399,27 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         var plan = BuildTwoSectionPlan();
 
-        var completion = new TrainingCompletion
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseAId, _exerciseBId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionAId.ToString()] = [_exerciseAId],
-                [_sectionBId.ToString()] = [_exerciseBId]
-            },
+            Date = _now.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [_exerciseAId, _exerciseBId],
             Version = 1,
             DateCreated = _now
         };
 
-        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull("a session entry must be present when completion data exists");
-        exec!.FinishedSections.Should().HaveCount(2,
+        exec!.FinishedWorkouts.Should().HaveCount(2,
             "both sections are complete so both must appear in FinishedSections");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -416,49 +431,55 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         var plan = BuildTwoSectionPlan();
 
-        var log = new WorkoutLog
+        var startedAt = _now.AddMinutes(-30);
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = Guid.NewGuid(),
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = _sectionAId, Order = 0, Name = "Section A",
-                    Exercises = [new WorkoutExercise
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
                     {
-                        ExerciseExternalId = _exerciseAId, ExerciseName = "Squat",
-                        Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-20) }]
-                    }]
-                },
-                new WorkoutSection
-                {
-                    SectionId = _sectionBId, Order = 1, Name = "Section B",
-                    Exercises = [new WorkoutExercise
+                        WorkoutId = _sectionAId, Order = 0, Name = "Section A",
+                        Exercises = [new WorkoutExercise
+                        {
+                            ExerciseExternalId = _exerciseAId, ExerciseName = "Squat",
+                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-20) }]
+                        }]
+                    },
+                    new LoggedWorkout
                     {
-                        ExerciseExternalId = _exerciseBId, ExerciseName = "Press",
-                        Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-10) }]
-                    }]
-                }
-            ],
-            DateCreated = _now.AddMinutes(-35)
+                        WorkoutId = _sectionBId, Order = 1, Name = "Section B",
+                        Exercises = [new WorkoutExercise
+                        {
+                            ExerciseExternalId = _exerciseBId, ExerciseName = "Press",
+                            Sets = [new WorkoutSet { SetNumber = 1, CompletedAt = _now.AddMinutes(-10) }]
+                        }]
+                    }
+                ]
+            },
+            DateCreated = _now.AddMinutes(-35),
+            Version = 1
         };
 
-        var response = await ExecuteAsync(plan, logs: [log], completions: []);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull();
         exec!.IsSessionFinished.Should().BeTrue();
-        exec.FinishedSections.Should().HaveCount(2,
+        exec.FinishedWorkouts.Should().HaveCount(2,
             "a completed WorkoutLog implies all sections are done");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionBId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionBId && s.IsFinished);
     }
 
     /// <summary>
@@ -472,30 +493,27 @@ public class GetTrainingPlanCompletionFinishedStateTests
         var plan = BuildTwoSectionPlan();
 
         // Only section A's exercise is completed — section B is not done.
-        var completion = new TrainingCompletion
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseAId],
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionAId.ToString()] = [_exerciseAId]
-            },
+            Date = _now.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [_exerciseAId],
             Version = 1,
             DateCreated = _now
         };
 
-        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         exec.Should().NotBeNull();
-        exec!.FinishedSections.Should().HaveCount(1,
+        exec!.FinishedWorkouts.Should().HaveCount(1,
             "only the finished section must appear — not the unfinished one");
-        exec.FinishedSections.Should().Contain(s => s.SectionId == _sectionAId && s.IsFinished);
-        exec.FinishedSections.Should().NotContain(s => s.SectionId == _sectionBId,
+        exec.FinishedWorkouts.Should().Contain(s => s.WorkoutId == _sectionAId && s.IsFinished);
+        exec.FinishedWorkouts.Should().NotContain(s => s.WorkoutId == _sectionBId,
             "section B is not finished so it must not appear in FinishedSections");
     }
 
@@ -507,14 +525,14 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         var plan = BuildTwoSectionPlan();
 
-        var response = await ExecuteAsync(plan, logs: [], completions: []);
+        var response = await ExecuteAsync(plan, []);
 
         response.Should().NotBeNull();
         // Either no entry at all, or an entry with empty FinishedSections.
         var exec = response!.SessionExecutions.FirstOrDefault(e => e.SessionId == _sessionId);
         if (exec is not null)
         {
-            exec.FinishedSections.Should().BeEmpty(
+            exec.FinishedWorkouts.Should().BeEmpty(
                 "no completion data means FinishedSections must be empty");
         }
     }
@@ -524,8 +542,8 @@ public class GetTrainingPlanCompletionFinishedStateTests
     /// vacuously complete — <c>Enumerable.All()</c> over an empty collection returns <c>true</c>,
     /// which would cause any completion doc (even an empty one) to match.
     ///
-    /// A zero-section session indicates an empty/corrupt session definition (after
-    /// WithBackfilledSections() a legacy flat-exercise session always gets a synthetic section).
+    /// A zero-section session indicates an empty/corrupt session definition (every
+    /// TrainingSession document is guaranteed to carry a populated sections list post-#837).
     /// Even with a non-empty TrainingCompletion document for that session, IsSessionFinished
     /// must remain false.
     /// </summary>
@@ -534,25 +552,22 @@ public class GetTrainingPlanCompletionFinishedStateTests
     {
         // Build a plan where the session has NO sections (empty/corrupt definition).
         var plan = BuildPlan();
-        plan.Weeks[0].Sessions[0].Sections = []; // zero sections
+        plan.Weeks[0].Days.SelectMany(d => d.Sessions).First().Workouts = []; // zero sections
 
         // A non-empty completion doc that would match vacuously under the old All() check.
-        var completion = new TrainingCompletion
+        var execution = new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = _clientId,
-            Date = _now.Date,
             SessionId = _sessionId,
-            CompletedExerciseIds = [_exerciseId], // non-empty flat list
-            CompletedExerciseIdsBySection = new Dictionary<string, List<Guid>>
-            {
-                [_sectionId.ToString()] = [_exerciseId]
-            },
+            Date = _now.Date,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = [_exerciseId], // non-empty flat list
             Version = 1,
             DateCreated = _now
         };
 
-        var response = await ExecuteAsync(plan, logs: [], completions: [completion]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
 

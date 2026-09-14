@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
@@ -34,7 +35,9 @@ public class PlanGoalFieldsTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -68,7 +71,9 @@ public class PlanGoalFieldsTests
     {
         var mongo = PlanTestHelpers.CreateMockMongo();
         var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
 
         var ep = Factory.Create<CreatePlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -155,7 +160,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var req = new UpdatePlanRequest
         {
@@ -207,7 +213,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         // Simulate a legacy client payload: Goal and TargetWeightKg are null (omitted)
         // while another field (Name) is legitimately updated.
@@ -256,7 +263,8 @@ public class PlanGoalFieldsTests
             macroCalc,
             new MockDbBuilder().Build(),
             Substitute.For<IRealtimeNotifier>(),
-            new PlanConcurrencyGuard());
+            new PlanConcurrencyGuard(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         var req = new UpdatePlanRequest
         {
@@ -324,13 +332,8 @@ public class PlanGoalFieldsTests
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private static NutritionAuthHelper CreateAuthHelper(bool hasLink)
-    {
-        var db = Substitute.For<IApplicationDbContext>();
-        var helper = Substitute.ForPartsOf<NutritionAuthHelper>(db);
-        helper.HasActiveLinkAsync(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(hasLink);
-        return helper;
-    }
+    private static IClientLinkAuthorizationService CreateAuthHelper(bool hasLink) =>
+        hasLink
+            ? EndpointTestHelpers.CreateGrantingLinkAuthorizationService()
+            : PlanTestHelpers.CreateDenyingLinkAuthorizationService();
 }

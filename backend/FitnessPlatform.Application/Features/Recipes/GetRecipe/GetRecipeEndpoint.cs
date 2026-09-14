@@ -45,10 +45,17 @@ public class GetRecipeEndpoint(IMongoContext mongo)
         var nutritionistId = Guid.Parse(userId);
 
         var filterBuilder = Builders<Recipe>.Filter;
-        var filter = filterBuilder.Eq(r => r.ExternalId, req.RecipeId)
-            & filterBuilder.Or(
+
+        // Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the ownership term
+        // is suppressed entirely for an empty caller id, so a document that explicitly stores a
+        // zero-uuid owner can't be matched as "owned by the caller" below.
+        var visibilityFilter = nutritionistId == Guid.Empty
+            ? filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public)
+            : filterBuilder.Or(
                 filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
                 filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
+
+        var filter = filterBuilder.Eq(r => r.ExternalId, req.RecipeId) & visibilityFilter;
 
         using var cursor = await mongo.Recipes.FindAsync(filter, cancellationToken: ct);
         var recipe = await cursor.FirstOrDefaultAsync(ct);

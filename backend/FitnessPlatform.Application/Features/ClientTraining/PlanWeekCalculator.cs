@@ -61,7 +61,15 @@ internal static class PlanWeekCalculator
         }
         else
         {
-            // Legacy fallback: cycle through published weeks based on first publish date
+            // Legacy fallback: cycle through published weeks based on first publish date.
+            //
+            // Retained deliberately by #1015, which removed the sibling branches that read the
+            // PLAN-level DatePublished. Those were dead on two independent grounds: the field had
+            // no writer after 8d39e113, AND published weeks imply a StartDate. This branch only
+            // has the second ground — firstPublishedDate is the WEEK-level PlanWeek/TrainingWeek
+            // DatePublished, which PublishWeekEndpoint does still write. Deleting it would mean
+            // deleting live-field-reading code on the weaker argument alone, and would churn the
+            // signatures of all six callers for no field removal, so it stays.
             var anchor = firstPublishedDate ?? planDateCreated;
             var daysSinceStart = (int)(now.Date - anchor.Date).TotalDays;
             var currentWeekIndex = (daysSinceStart / 7) % publishedWeekNumbers.Count;

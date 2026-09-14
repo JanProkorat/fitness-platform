@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FitnessPlatform.Application.Infrastructure.Data;
 
@@ -58,6 +59,11 @@ public interface IApplicationDbContext
     /// Client onboarding questionnaire data.
     /// </summary>
     DbSet<ClientOnboardingData> ClientOnboardingData { get; set; }
+
+    /// <summary>
+    /// Computed nutrition targets derived from client onboarding data.
+    /// </summary>
+    DbSet<ClientNutritionTargets> ClientNutritionTargets { get; set; }
 
     /// <summary>
     /// Notifications.
@@ -151,6 +157,16 @@ public interface IApplicationDbContext
     DbSet<SocialLoginNonce> SocialLoginNonces { get; set; }
 
     /// <summary>
+    /// Coach subscription tiers: pricing, billing cadence, and feature flags/limits.
+    /// </summary>
+    DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+
+    /// <summary>
+    /// A professional's subscription to a <see cref="SubscriptionPlan"/>.
+    /// </summary>
+    DbSet<CoachSubscription> CoachSubscriptions { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
@@ -190,4 +206,19 @@ public interface IApplicationDbContext
     /// number of rows revoked.
     /// </summary>
     Task<int> RevokeRefreshTokenFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Opens a database transaction, for a read and a dependent write that must be serialized
+    /// against a concurrent request. Pair it with <see cref="LockClientProfileAsync"/>.
+    /// </summary>
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Takes a row-level <c>FOR NO KEY UPDATE</c> lock on one client-profile row, serializing
+    /// every link-creation path that must first check that client's profession slots (#1009).
+    /// Call it inside a transaction from <see cref="BeginTransactionAsync"/>, and after any
+    /// find-or-create save that produces the row — locking a row that does not exist yet is a
+    /// no-op.
+    /// </summary>
+    Task LockClientProfileAsync(long clientProfileId, CancellationToken cancellationToken = default);
 }

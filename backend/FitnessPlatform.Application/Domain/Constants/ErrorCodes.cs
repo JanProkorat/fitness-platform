@@ -73,6 +73,9 @@ public static class ErrorCodes
     /// <summary>Recipe gallery is at its 6-entry cap; no further images can be added.</summary>
     public const string RecipeGalleryFull = "RECIPE_GALLERY_FULL";
 
+    /// <summary>The recipe version is stale; another write occurred first (optimistic concurrency).</summary>
+    public const string RecipeVersionConflict = "RECIPE_VERSION_CONFLICT";
+
     // ── Exercises ──────────────────────────────────────────────────
     /// <summary>User can only edit/delete their own custom exercises.</summary>
     public const string ExerciseNotOwned = "EXERCISE_NOT_OWNED";
@@ -97,7 +100,27 @@ public static class ErrorCodes
     public const string CollaboratorNotFound = "COLLABORATOR_NOT_FOUND";
 
     /// <summary>Collaborator already linked to client.</summary>
-    public const string CollaboratorAlreadyLinked = "COLLABORATOR_ALREADY_LINKED";
+    /// <summary>
+    /// Requested link capability scope (see <see cref="Enums.LinkCapabilityScope"/>) exceeds
+    /// the identity roles actually held by the professional the link's CanView flags gate.
+    /// Emitted by AcceptClientRequestEndpoint, CreatePendingInviteEndpoint and
+    /// InviteClientEndpoint.
+    /// </summary>
+    public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
+
+    /// <summary>
+    /// An unaccepted pending invite already exists for this professional and email — the
+    /// professional must wait for a response or delete the existing invite before resending
+    /// (claude-security F8: repeated invites to the same target are abuse, not a workflow need).
+    /// </summary>
+    public const string DuplicatePendingInvite = "DUPLICATE_PENDING_INVITE";
+
+    /// <summary>
+    /// The professional has reached the maximum number of outstanding (unaccepted) pending
+    /// invites. Bounds the standing fan-out an abusive account can build up even when paced
+    /// below the rate-limit window (claude-security F8).
+    /// </summary>
+    public const string TooManyPendingInvites = "TOO_MANY_PENDING_INVITES";
 
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
@@ -158,8 +181,14 @@ public static class ErrorCodes
     /// <summary>The exercise was not found in the specified session.</summary>
     public const string TrainingExerciseNotFound = "TRAINING_EXERCISE_NOT_FOUND";
 
-    /// <summary>The section was not found in the specified session.</summary>
-    public const string TrainingSectionNotFound = "TRAINING_SECTION_NOT_FOUND";
+    /// <summary>The workout was not found in the specified session.</summary>
+    public const string TrainingWorkoutNotFound = "TRAINING_WORKOUT_NOT_FOUND";
+
+    /// <summary>
+    /// A session's standalone exercises and workouts share one ordering sequence; two entries
+    /// (in either list, or across both) claimed the same Order value.
+    /// </summary>
+    public const string TrainingDuplicateSessionOrder = "TRAINING_DUPLICATE_SESSION_ORDER";
 
     /// <summary>No active training plan found for the client.</summary>
     public const string NoActiveTrainingPlan = "NO_ACTIVE_TRAINING_PLAN";
@@ -240,22 +269,19 @@ public static class ErrorCodes
     /// <summary>The caller is not the owning professional for this photo diary request (role-gate rejection).</summary>
     public const string PhotoDiaryRequestForbidden = "PHOTO_DIARY_REQUEST_FORBIDDEN";
 
-    // ── Section Templates ────────────────────────────────────────────
-    /// <summary>Section template not found.</summary>
-    public const string SectionTemplateNotFound = "SECTION_TEMPLATE_NOT_FOUND";
+    // ── Workout Templates ────────────────────────────────────────────
+    /// <summary>Workout template not found, or not owned by the calling trainer (indistinguishable from missing).</summary>
+    public const string WorkoutTemplateNotFound = "WORKOUT_TEMPLATE_NOT_FOUND";
 
-    /// <summary>Section template belongs to another trainer.</summary>
-    public const string SectionTemplateNotOwned = "SECTION_TEMPLATE_NOT_OWNED";
+    /// <summary>Workout template version mismatch (optimistic concurrency).</summary>
+    public const string WorkoutTemplateVersionConflict = "WORKOUT_TEMPLATE_VERSION_CONFLICT";
 
-    /// <summary>Section template version mismatch (optimistic concurrency).</summary>
-    public const string SectionTemplateVersionConflict = "SECTION_TEMPLATE_VERSION_CONFLICT";
+    // ── Training Workouts ────────────────────────────────────────────
+    /// <summary>Session workouts list is empty.</summary>
+    public const string WorkoutsRequired = "WORKOUTS_REQUIRED";
 
-    // ── Training Sections ────────────────────────────────────────────
-    /// <summary>Session sections list is empty.</summary>
-    public const string SectionsRequired = "SECTIONS_REQUIRED";
-
-    /// <summary>Duplicate Order values across sections in the same session.</summary>
-    public const string SectionOrderDuplicate = "SECTION_ORDER_DUPLICATE";
+    /// <summary>Duplicate Order values across workouts in the same session.</summary>
+    public const string WorkoutOrderDuplicate = "WORKOUT_ORDER_DUPLICATE";
 
     // ── Trainer Finish Session ───────────────────────────────────────
     /// <summary>The session is currently locked by another party (live or editing lock conflict).</summary>
@@ -268,7 +294,7 @@ public static class ErrorCodes
     /// Attempt to edit a training plan section whose content has already been completed
     /// by the client (via a finished WorkoutLog or a TrainingCompletion record).
     /// </summary>
-    public const string SectionAlreadyCompleted = "SECTION_ALREADY_COMPLETED";
+    public const string WorkoutAlreadyCompleted = "WORKOUT_ALREADY_COMPLETED";
 
     /// <summary>completedAt is in the future; backdating to the future is not allowed.</summary>
     public const string CompletedAtInFuture = "COMPLETED_AT_IN_FUTURE";
@@ -287,6 +313,75 @@ public static class ErrorCodes
     /// <summary>Value is out of allowed range.</summary>
     public const string OutOfRange = "OUT_OF_RANGE";
 
+    /// <summary>Two or more fields were supplied together when exactly one (or none) is allowed.</summary>
+    public const string MutuallyExclusiveFields = "MUTUALLY_EXCLUSIVE_FIELDS";
+
     /// <summary>DeadlineOffsetHours is not one of the allowed values (24, 48, 72, 120, 168).</summary>
     public const string InvalidDeadlineOffsetHours = "INVALID_DEADLINE_OFFSET_HOURS";
+
+    // ── Sharing Libraries (#858) ──────────────────────────────────────
+    // Meal templates, session templates, nutrition-plan templates, and training-plan
+    // templates — the four reusable-content libraries sharing LibraryVisibility /
+    // LibraryAccessGuard / LibrarySearchHelper. Exactly 12 codes (4 libraries x
+    // NOT_FOUND/NOT_OWNED/VERSION_CONFLICT) — never a WORKOUT_TEMPLATE_* code; that name is
+    // minted by #857's rename of the pre-existing SECTION_TEMPLATE_* codes above.
+
+    /// <summary>Meal template not found, or belongs to another owner and is Private.</summary>
+    public const string MealTemplateNotFound = "MEAL_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Meal template is readable but belongs to another owner.</summary>
+    public const string MealTemplateNotOwned = "MEAL_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Meal template version mismatch (optimistic concurrency).</summary>
+    public const string MealTemplateVersionConflict = "MEAL_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Session template not found, or belongs to another owner and is Private.</summary>
+    public const string SessionTemplateNotFound = "SESSION_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Session template is readable but belongs to another owner.</summary>
+    public const string SessionTemplateNotOwned = "SESSION_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Session template version mismatch (optimistic concurrency).</summary>
+    public const string SessionTemplateVersionConflict = "SESSION_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Nutrition plan template not found, or belongs to another owner and is Private.</summary>
+    public const string NutritionPlanTemplateNotFound = "NUTRITION_PLAN_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Nutrition plan template is readable but belongs to another owner.</summary>
+    public const string NutritionPlanTemplateNotOwned = "NUTRITION_PLAN_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Nutrition plan template version mismatch (optimistic concurrency).</summary>
+    public const string NutritionPlanTemplateVersionConflict = "NUTRITION_PLAN_TEMPLATE_VERSION_CONFLICT";
+
+    /// <summary>Training plan template not found, or belongs to another owner and is Private.</summary>
+    public const string TrainingPlanTemplateNotFound = "TRAINING_PLAN_TEMPLATE_NOT_FOUND";
+
+    /// <summary>Training plan template is readable but belongs to another owner.</summary>
+    public const string TrainingPlanTemplateNotOwned = "TRAINING_PLAN_TEMPLATE_NOT_OWNED";
+
+    /// <summary>Training plan template version mismatch (optimistic concurrency).</summary>
+    public const string TrainingPlanTemplateVersionConflict = "TRAINING_PLAN_TEMPLATE_VERSION_CONFLICT";
+
+    // ── Subscription Plans (#595) ───────────────────────────────────
+    /// <summary>A subscription plan with this Code already exists.</summary>
+    public const string SubscriptionPlanCodeAlreadyExists = "SUBSCRIPTION_PLAN_CODE_ALREADY_EXISTS";
+
+    /// <summary>Subscription plan not found for the given Code.</summary>
+    public const string SubscriptionPlanNotFound = "SUBSCRIPTION_PLAN_NOT_FOUND";
+
+    /// <summary>Currency is not one of the platform's supported billing currencies.</summary>
+    public const string UnsupportedCurrency = "UNSUPPORTED_CURRENCY";
+
+    // ── Client-Professional Links (#980) ─────────────────────────────
+    /// <summary>
+    /// Accepting/creating this link would give the client a second ACTIVE link holding
+    /// a profession slot (CanViewNutritionPlans or CanViewTrainingPlans) that a
+    /// different active professional already occupies. A client may hold at most one
+    /// active coach per profession — ending the existing link first (see
+    /// EndCollaborationEndpoint) frees the slot. A single dual-role professional
+    /// legitimately occupies both slots through one link; this fires only when a
+    /// different professional would claim a slot already held. See
+    /// <see cref="FitnessPlatform.Application.Domain.Services.ProfessionSlotGuard"/>.
+    /// </summary>
+    public const string ProfessionAlreadyOccupied = "PROFESSION_ALREADY_OCCUPIED";
 }

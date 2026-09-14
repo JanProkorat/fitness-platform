@@ -13,7 +13,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 /// Integration tests for GET /trainer/clients/{clientUserId}/weekly-check-ins/current.
 /// This is the trainer-facing "plan editor banner" endpoint (distinct from
 /// GET /client/weekly-check-ins/current, covered by GetCurrentClientCheckInsEndpointTests).
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class GetClientCurrentCheckInEndpointTests(FitnessApiFactory factory)

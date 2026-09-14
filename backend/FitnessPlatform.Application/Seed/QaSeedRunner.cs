@@ -26,11 +26,15 @@ namespace FitnessPlatform.Application.Seed;
 ///   (ProfessionalRole=Nutritionist) to the QA client is seeded as part of the
 ///   #720 nutritionist-owned questionnaire fixture (Rich seed path only).
 /// - A TrainingPlan (dddddddd-...) is seeded for the QA client with a Published week
-///   containing one session with four sections:
-///   Section 1 — ForTime + 0 exercises (the #258 bug shape).
-///   Section 2 — AMRAP + 2 synthetic exercises (non-regression).
-///   Section 3 — Standard (null format) + 2 synthetic exercises (non-regression).
-///   Section 4 — Tabata (20s/10s × 8) + 1 synthetic exercise (#327 iOS QA fixture).
+///   containing (Monday) one session with four workouts:
+///   Workout 1 — ForTime + 0 exercises (the #258 bug shape).
+///   Workout 2 — AMRAP + 2 synthetic exercises (non-regression).
+///   Workout 3 — Standard (null format) + 2 synthetic exercises (non-regression).
+///   Workout 4 — Tabata (20s/10s × 8) + 1 synthetic exercise (#327 iOS QA fixture).
+///   Plus (#857 phase 3a/3b), on Tuesday, a session with ONLY standalone exercises
+///   (no workouts), and on Wednesday, a session where the same catalog exercise
+///   appears BOTH standalone AND nested inside one of the session's workouts, each
+///   with a distinct ExerciseId instance value.
 /// </summary>
 public static class QaSeedRunner
 {
@@ -41,14 +45,16 @@ public static class QaSeedRunner
     public static readonly Guid TrainerUserId   = new("22222222-2222-2222-2222-222222222222");
     public static readonly Guid NutriUserId     = new("33333333-3333-3333-3333-333333333333");
 
-    // Stable PublicIds for profile rows — used by nutrition/training plans and
-    // compliance queries that key on ClientProfile.PublicId / ProfessionalProfile.PublicId.
+    // Stable PublicIds for profile rows — the public identifier trainers/nutritionists
+    // use to reference a client (route params, DTOs). Unrelated to the Mongo document
+    // clientId key since #840 — see ClientUserId/Client2UserId for that.
     public static readonly Guid ClientProfilePublicId  = new("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     public static readonly Guid TrainerProfilePublicId = new("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     public static readonly Guid NutriProfilePublicId   = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     // Stable ExternalId for the seeded training plan (ForTime + 0-exercise fixture).
-    // ClientId on the plan = ClientProfilePublicId (NOT ClientUserId) per GetClientPlansEndpoint filter.
+    // ClientId on the plan = ClientUserId (ApplicationUser.Id, #840) — every Mongo
+    // document's clientId field uses this canonical identifier.
     public static readonly Guid QaTrainingPlanExternalId = new("dddddddd-dddd-dddd-dddd-dddddddddddd");
 
     // -------------------------------------------------------------------------
@@ -82,8 +88,8 @@ public static class QaSeedRunner
     public static readonly Guid QaPastSessionUntouchedId = new("11111111-1111-1111-2222-000000000004");
 
     // Stable WorkoutLog ExternalIds.
-    public static readonly Guid QaPastCompletedWorkoutLogId = new("11111111-1111-1111-2222-000000000005");
-    public static readonly Guid QaPastSkippedWorkoutLogId   = new("11111111-1111-1111-2222-000000000006");
+    public static readonly Guid QaPastCompletedExecutionId = new("11111111-1111-1111-2222-000000000005");
+    public static readonly Guid QaPastSkippedExecutionId   = new("11111111-1111-1111-2222-000000000006");
 
     // -------------------------------------------------------------------------
     // #457 — Main plan (dddd...) WorkoutLog with four-case planned-vs-actual sets.
@@ -97,7 +103,7 @@ public static class QaSeedRunner
     ///   Exercise 1 (QA Squat) — Set 1: modified (actual != planned), Set 2: as-prescribed.
     ///   Exercise 2 (QA Deadlift) — Set 1: skipped (planned present, actual null), Set 2: extra (no planned snapshot).
     /// </summary>
-    public static readonly Guid QaMainPlanCompletedWorkoutLogId = new("11111111-1111-1111-4455-000000000001");
+    public static readonly Guid QaMainPlanCompletedExecutionId = new("11111111-1111-1111-4455-000000000001");
 
     // -------------------------------------------------------------------------
     // #474 — Multi-section fixture: second client/trainer pair with a session
@@ -122,25 +128,25 @@ public static class QaSeedRunner
     public static readonly Guid QaMultiSectionSessionId = new("55555555-5555-5555-bbbb-000000000001");
 
     // Standard section — edited reps/weights logged here.
-    public static readonly Guid MultiSectionStandardSectionId = new("55555555-5555-5555-aaaa-000000000001");
+    public static readonly Guid MultiSectionStandardWorkoutId = new("55555555-5555-5555-aaaa-000000000001");
 
     // AMRAP section — left at planned values (no edits).
-    public static readonly Guid MultiSectionAmrapSectionId = new("55555555-5555-5555-aaaa-000000000002");
+    public static readonly Guid MultiSectionAmrapWorkoutId = new("55555555-5555-5555-aaaa-000000000002");
 
     // The SAME exercise appears in BOTH sections to prove section-keyed lookup
     // returns independent values per section.
     public static readonly Guid SharedExerciseId = new("55555555-5555-5555-cccc-000000000001");
 
     // WorkoutLog for the completed multi-section session.
-    public static readonly Guid QaMultiSectionWorkoutLogId = new("55555555-5555-5555-4455-000000000001");
+    public static readonly Guid QaMultiSectionExecutionId = new("55555555-5555-5555-4455-000000000001");
 
     // Section ID within the main-plan completed WorkoutLog (mirrors StandardSectionId).
-    public static readonly Guid MainPlanCompletedSectionId = new("11111111-1111-1111-4455-000000000002");
+    public static readonly Guid MainPlanCompletedWorkoutId = new("11111111-1111-1111-4455-000000000002");
 
     // Section IDs within the three past sessions.
-    public static readonly Guid PastCompletedSectionId = new("11111111-1111-1111-3333-000000000001");
-    public static readonly Guid PastSkippedSectionId   = new("11111111-1111-1111-3333-000000000002");
-    public static readonly Guid PastUntouchedSectionId = new("11111111-1111-1111-3333-000000000003");
+    public static readonly Guid PastCompletedWorkoutId = new("11111111-1111-1111-3333-000000000001");
+    public static readonly Guid PastSkippedWorkoutId   = new("11111111-1111-1111-3333-000000000002");
+    public static readonly Guid PastUntouchedWorkoutId = new("11111111-1111-1111-3333-000000000003");
 
     // Stable SectionIds — deterministic for test assertions.
     public static readonly Guid ForTimeSectionId   = new("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
@@ -171,6 +177,61 @@ public static class QaSeedRunner
     public static readonly Guid PastRomanianDeadliftExerciseId = new("11111111-1111-1111-4444-000000000004");
     public static readonly Guid PastPulldownExerciseId         = new("11111111-1111-1111-4444-000000000005");
     public static readonly Guid PastSeatedRowExerciseId        = new("11111111-1111-1111-4444-000000000006");
+
+    // -------------------------------------------------------------------------
+    // #857 phase 3b — SessionExercise.ExerciseId instance ids for every exercise
+    // seeded above. Distinct per occurrence so per-exercise completion
+    // (MarkExerciseComplete/-Incomplete) is reachable on this fixture: before
+    // this every seeded SessionExercise left ExerciseId at its Guid.Empty
+    // default, which MarkExerciseCompleteValidator rejects (NotEmpty), and
+    // every exercise in a session shared one empty instance id — the exact
+    // ambiguity the instance id exists to remove.
+    // -------------------------------------------------------------------------
+    public static readonly Guid AmrapExercise1InstanceId    = new("00000000-0000-0001-cccc-000000000001");
+    public static readonly Guid AmrapExercise2InstanceId    = new("00000000-0000-0001-cccc-000000000002");
+    public static readonly Guid StandardExercise1InstanceId = new("00000000-0000-0001-dddd-000000000001");
+    public static readonly Guid StandardExercise2InstanceId = new("00000000-0000-0001-dddd-000000000002");
+    public static readonly Guid TabataExercise1InstanceId   = new("00000000-0000-0001-eeee-000000000006");
+
+    public static readonly Guid PastBenchPressInstanceId       = new("11111111-1111-1111-5555-000000000001");
+    public static readonly Guid PastOverheadPressInstanceId    = new("11111111-1111-1111-5555-000000000002");
+    public static readonly Guid PastBackSquatInstanceId        = new("11111111-1111-1111-5555-000000000003");
+    public static readonly Guid PastRomanianDeadliftInstanceId = new("11111111-1111-1111-5555-000000000004");
+    public static readonly Guid PastPulldownInstanceId         = new("11111111-1111-1111-5555-000000000005");
+    public static readonly Guid PastSeatedRowInstanceId        = new("11111111-1111-1111-5555-000000000006");
+
+    // #474 multi-section fixture — same catalog exercise (SharedExerciseId), two distinct
+    // instance ids, one per section, proving section-independent completion tracking.
+    public static readonly Guid MultiSectionStandardInstanceId = new("55555555-5555-5555-cccc-000000000002");
+    public static readonly Guid MultiSectionAmrapInstanceId    = new("55555555-5555-5555-cccc-000000000003");
+
+    // -------------------------------------------------------------------------
+    // #857 QA fixture — two new session shapes the training-plan tree restructure
+    // makes possible: a session with ONLY standalone exercises (no workouts), and
+    // a session where the same catalog exercise appears BOTH standalone AND nested
+    // inside one of that session's workouts (distinct ExerciseId instance values).
+    // -------------------------------------------------------------------------
+    public static readonly Guid QaStandaloneOnlySessionId  = new("00000000-0000-0000-bbbb-000000000002");
+    public static readonly Guid QaStandaloneOnlyExerciseId = new("00000000-0000-0000-cccc-000000000003"); // catalog: QA Plank
+    public static readonly Guid QaStandaloneOnlyInstanceId = new("00000000-0000-0001-cccc-000000000003");
+
+    public static readonly Guid QaDualPlacementSessionId            = new("00000000-0000-0000-bbbb-000000000003");
+    public static readonly Guid QaDualPlacementWorkoutId             = new("00000000-0000-0000-aaaa-000000000003");
+    public static readonly Guid QaDualPlacementExerciseId            = new("00000000-0000-0000-cccc-000000000004"); // catalog: QA Wall Ball
+    public static readonly Guid QaDualPlacementStandaloneInstanceId  = new("00000000-0000-0001-cccc-000000000004");
+    public static readonly Guid QaDualPlacementNestedInstanceId      = new("00000000-0000-0001-cccc-000000000005");
+
+    // #879 — SessionExecution marking ONLY the standalone occurrence of the dual-placement
+    // fixture complete, so the two instance placements are observably distinguishable via
+    // GET /client/training/plans/{planId} instead of requiring an interactive drive.
+    public static readonly Guid QaDualPlacementSessionExecutionId = new("00000000-0000-0001-cccc-000000000006");
+
+    // #946 — Photo diary request fixtures on the nutritionist<->client link. Both are
+    // Status=Accepted so they surface on the client app's active-request list. One is
+    // scoped to the seeded QA nutrition plan; the other is deliberately plan-less — a
+    // legitimate backend state per PhotoDiaryRequest.PlanId's own doc comment.
+    public static readonly Guid QaPhotoDiaryRequestWithPlanId  = new("00000000-0000-0000-9999-000000000001");
+    public static readonly Guid QaPhotoDiaryRequestPlanlessId  = new("00000000-0000-0000-9999-000000000002");
 
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
@@ -351,17 +412,22 @@ public static class QaSeedRunner
             await EnsureExercisesAsync(mongo, logger);
 
             // Training plan — ForTime + 0-exercise fixture for #258 non-regression.
-            await EnsureTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+            // ClientUserId (ApplicationUser.Id, #840) — not clientProfile.PublicId.
+            await EnsureTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
             // Main-plan completed WorkoutLog — exercises four planned-vs-actual set cases (#457).
-            await EnsureMainPlanWorkoutLogAsync(mongo, logger);
+            await EnsureMainPlanExecutionAsync(mongo, logger);
+
+            // #879 — completion flag on the dual-placement fixture (QaDualPlacementSessionId)
+            // so the standalone instance's completion is distinguishable from the nested one's.
+            await EnsureDualPlacementCompletionAsync(mongo, logger);
 
             // Past-dated training plan — three sessions in distinct completion states for #326.
-            await EnsurePastTrainingPlanAsync(mongo, clientProfile.PublicId, trainerProfile.PublicId, logger);
+            await EnsurePastTrainingPlanAsync(mongo, ClientUserId, trainerProfile.PublicId, logger);
 
             // #474 — Multi-section plan + completed WorkoutLog for section-keying coach-detail fixture.
-            await EnsureMultiSectionTrainingPlanAsync(mongo, client2Profile.PublicId, Trainer2UserId, logger);
-            await EnsureMultiSectionWorkoutLogAsync(mongo, logger);
+            await EnsureMultiSectionTrainingPlanAsync(mongo, Client2UserId, Trainer2UserId, logger);
+            await EnsureMultiSectionExecutionAsync(mongo, logger);
 
             // Foods + Recipes + NutritionPlan.
             // NutriUserId (not nutriProfile.PublicId) — ownership guards in UploadFoodImageUrlEndpoint
@@ -370,7 +436,8 @@ public static class QaSeedRunner
             // RECIPE_NOT_OWNED (HTTP 400) when the e2e flow calls the upload-url endpoint.
             await EnsureFoodsAsync(mongo, NutriUserId, logger);
             await EnsureRecipesAsync(mongo, NutriUserId, logger);
-            await EnsureNutritionPlanAsync(mongo, clientProfile.PublicId, NutriUserId, logger);
+            // ClientUserId (ApplicationUser.Id, #840) — not clientProfile.PublicId.
+            await EnsureNutritionPlanAsync(mongo, ClientUserId, NutriUserId, logger);
 
             // #715 — Questionnaire template + submitted response owned by the
             // QA trainer, linked to the training plan created above.
@@ -380,6 +447,11 @@ public static class QaSeedRunner
             // by the QA nutritionist, linked to the nutrition plan created
             // above (replacing the trainer-owned link #715 used to set there).
             await EnsureNutritionistQuestionnaireFixtureAsync(db, mongo, logger);
+
+            // #946 — Photo diary request fixtures on the nutritionist<->client link. Must
+            // run AFTER EnsureNutritionistQuestionnaireFixtureAsync, which is what creates
+            // that link.
+            await EnsurePhotoDiaryRequestsFixtureAsync(db, logger);
 
             // Image blobs in MinIO — idempotent, bucket created if absent.
             await EnsureAvatarAsync(sp, logger);
@@ -547,17 +619,31 @@ public static class QaSeedRunner
     ///   3. Standard (null format), two synthetic exercises — non-regression.
     ///   4. Tabata, WorkSeconds=20, RestSeconds=10, TotalRounds=8, one exercise — #327 iOS QA fixture.
     ///
-    /// ClientId = clientProfilePublicId (NOT ClientUserId) — GetClientPlansEndpoint
-    /// filters by ClientProfile.PublicId. Using the user id would make the plan
-    /// invisible to GET /client/plans.
+    /// ClientId = clientUserId (ApplicationUser.Id, #840) — GetClientPlansEndpoint
+    /// filters TrainingPlan.ClientId by the same identifier since the #840 migration.
     ///
     /// The week Status must be WeekStatus.Published — GetClientPlansEndpoint line 142
     /// applies ElemMatch(w => w.Status == WeekStatus.Published). A Draft week silently
     /// excludes the plan.
     /// </summary>
+    /// <summary>
+    /// Materialises 7 <see cref="TrainingDay"/> entries (Monday..Sunday) for a
+    /// <see cref="TrainingWeek"/> from a sparse day-of-week -> sessions map, mirroring
+    /// <c>CreateTrainingPlanEndpoint</c>'s "always 7 days" invariant (#857 phase 2). Days
+    /// absent from <paramref name="sessionsByDay"/> get an empty session list (a rest day).
+    /// </summary>
+    private static List<TrainingDay> BuildTrainingDays(IReadOnlyDictionary<int, List<TrainingSession>> sessionsByDay) =>
+        Enumerable.Range(1, 7)
+            .Select(dayOfWeek => new TrainingDay
+            {
+                DayOfWeek = dayOfWeek,
+                Sessions = sessionsByDay.TryGetValue(dayOfWeek, out var sessions) ? sessions : []
+            })
+            .ToList();
+
     private static async Task EnsureTrainingPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid trainerProfilePublicId,
         ILogger logger)
     {
@@ -574,10 +660,28 @@ public static class QaSeedRunner
 
         var now = DateTime.UtcNow;
 
+        // #898 — anchor StartDate to the Monday of the current (seed-time) week so
+        // PlanWindowResolver.ResolveCurrentPlan's [StartDate, StartDate + weeks*7) window
+        // covers today. Same anchoring idiom as EnsurePastTrainingPlanAsync's lastMonday,
+        // minus the -28 day offset (this plan's window is the CURRENT week, not a past one).
+        //
+        // This plan cannot rely on ResolveCurrentPlan's legacy single-plan fallback (an
+        // unranged plan is only auto-selected when it is the client's ONLY same-type plan):
+        // EnsurePastTrainingPlanAsync seeds a second, ranged TrainingPlan for the same
+        // client, so the moment both exist this plan MUST carry its own StartDate to ever
+        // be selected — do not "fix" a resolver miss here by deleting the past-plan fixture.
+        //
+        // A 1-week plan means a 7-day window: this anchor is only valid for 7 days after
+        // seeding. POST /test/reset drops the Mongo collections and re-seeds (re-anchoring
+        // to the new current Monday), so exposure is limited to a harness left running for
+        // more than a week without a reset.
+        var daysUntilMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
+        var startDate = now.Date.AddDays(-daysUntilMonday);
+
         var plan = new TrainingPlan
         {
             ExternalId      = QaTrainingPlanExternalId,
-            ClientId        = clientProfilePublicId,
+            ClientId        = clientUserId,
             // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
             // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
             // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
@@ -586,8 +690,8 @@ public static class QaSeedRunner
             TrainerId       = TrainerUserId,
             Name            = "QA Test Plan — ForTime fixture",
             Status          = TrainingPlanStatus.Active,
+            StartDate       = startDate,
             DateCreated     = now,
-            DatePublished   = now,
             Version         = 1,
             Weeks =
             [
@@ -596,20 +700,24 @@ public static class QaSeedRunner
                     WeekNumber    = 1,
                     Status        = WeekStatus.Published,
                     DatePublished = now,
-                    Sessions =
-                    [
-                        new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(dayOfWeek => new TrainingDay
+                    {
+                        DayOfWeek = dayOfWeek,
+                        Sessions = dayOfWeek switch
                         {
-                            SessionId  = QaSessionId,
-                            DayOfWeek  = 1, // Monday
-                            Name       = "QA Session",
-                            Order      = 1,
-                            Sections =
-                            [
+                            1 =>
+                        [
+                            new TrainingSession
+                            {
+                                SessionId  = QaSessionId,
+                                Name       = "QA Session",
+                                Order      = 1,
+                                Workouts =
+                                [
                                 // Section 1 — ForTime + 0 exercises (#258 bug shape)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = ForTimeSectionId,
+                                    WorkoutId    = ForTimeSectionId,
                                     Order        = 0,
                                     Name         = "ForTime 30min",
                                     Format       = WorkoutFormat.ForTime,
@@ -617,9 +725,9 @@ public static class QaSeedRunner
                                     Exercises    = [],
                                 },
                                 // Section 2 — AMRAP + 2 synthetic exercises (non-regression)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = AmrapSectionId,
+                                    WorkoutId    = AmrapSectionId,
                                     Order        = 1,
                                     Name         = "AMRAP test",
                                     Format       = WorkoutFormat.AMRAP,
@@ -628,6 +736,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = AmrapExercise1InstanceId,
                                             ExerciseExternalId = AmrapExercise1Id,
                                             ExerciseName       = "QA Pull-up",
                                             Order              = 1,
@@ -635,6 +744,7 @@ public static class QaSeedRunner
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId         = AmrapExercise2InstanceId,
                                             ExerciseExternalId = AmrapExercise2Id,
                                             ExerciseName       = "QA Box Jump",
                                             Order              = 2,
@@ -645,9 +755,9 @@ public static class QaSeedRunner
                                 // Section 3 — Standard (null format) + 2 synthetic exercises with prescribed sets.
                                 // Sets are populated so the planned-vs-actual WorkoutLog (#457) can exercise
                                 // all four UI cases: modified, as-prescribed, skipped, extra.
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = StandardSectionId,
+                                    WorkoutId    = StandardSectionId,
                                     Order        = 2,
                                     Name         = "Standard test",
                                     Format       = null,
@@ -656,6 +766,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = StandardExercise1InstanceId,
                                             ExerciseExternalId = StandardExercise1Id,
                                             ExerciseName       = "QA Squat",
                                             Order              = 1,
@@ -669,6 +780,7 @@ public static class QaSeedRunner
                                         },
                                         new SessionExercise
                                         {
+                                            ExerciseId         = StandardExercise2InstanceId,
                                             ExerciseExternalId = StandardExercise2Id,
                                             ExerciseName       = "QA Deadlift",
                                             Order              = 2,
@@ -683,9 +795,9 @@ public static class QaSeedRunner
                                     ],
                                 },
                                 // Section 4 — Tabata 20s/10s × 8 + 1 exercise (#327 iOS QA fixture)
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = TabataSectionId,
+                                    WorkoutId    = TabataSectionId,
                                     Order        = 3,
                                     Name         = "Tabata test",
                                     Format       = WorkoutFormat.Tabata,
@@ -699,6 +811,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = TabataExercise1InstanceId,
                                             ExerciseExternalId = TabataExercise1Id,
                                             ExerciseName       = "QA Burpee",
                                             Order              = 1,
@@ -707,8 +820,95 @@ public static class QaSeedRunner
                                     ],
                                 },
                             ],
-                        },
-                    ],
+                            },
+                        ],
+                            // #857 QA fixture — a session with ONLY standalone exercises (no
+                            // workouts at all), exercising the tree restructure's new
+                            // "session with only standalone exercises" shape.
+                            2 =>
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = QaStandaloneOnlySessionId,
+                                Name      = "QA Standalone-Only Session",
+                                Order     = 1,
+                                Workouts  = [],
+                                StandaloneExercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId         = QaStandaloneOnlyInstanceId,
+                                        ExerciseExternalId = QaStandaloneOnlyExerciseId,
+                                        ExerciseName       = "QA Plank",
+                                        Order              = 1,
+                                        MovementType       = MovementType.Reps,
+                                    },
+                                ],
+                            },
+                        ],
+                            // #857 QA fixture — the SAME catalog exercise appears BOTH standalone
+                            // on the session AND nested inside one of the session's workouts, with
+                            // distinct ExerciseId instance values. Unreachable pre-#857; exercises
+                            // completion-path coverage for exactly this pairing.
+                            3 =>
+                        [
+                            new TrainingSession
+                            {
+                                SessionId = QaDualPlacementSessionId,
+                                Name      = "QA Standalone + Nested Session",
+                                Order     = 1,
+                                Workouts  =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId    = QaDualPlacementWorkoutId,
+                                        Order        = 0,
+                                        Name         = "Main workout",
+                                        Format       = null,
+                                        FormatConfig = null,
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId         = QaDualPlacementNestedInstanceId,
+                                                ExerciseExternalId = QaDualPlacementExerciseId,
+                                                ExerciseName       = "QA Wall Ball",
+                                                Order              = 1,
+                                                MovementType       = MovementType.Reps,
+                                                // #879 — prescribed sets so per-instance completion
+                                                // (via EnsureDualPlacementCompletionAsync) is observable.
+                                                Sets =
+                                                [
+                                                    new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                                    new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                ],
+                                StandaloneExercises =
+                                [
+                                    new SessionExercise
+                                    {
+                                        ExerciseId         = QaDualPlacementStandaloneInstanceId,
+                                        ExerciseExternalId = QaDualPlacementExerciseId,
+                                        ExerciseName       = "QA Wall Ball",
+                                        Order              = 1,
+                                        MovementType       = MovementType.Reps,
+                                        // #879 — prescribed sets so per-instance completion
+                                        // (via EnsureDualPlacementCompletionAsync) is observable.
+                                        Sets =
+                                        [
+                                            new ExerciseSet { SetNumber = 1, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                            new ExerciseSet { SetNumber = 2, Type = SetType.Normal, Reps = 15, WeightKg = 9m },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                            _ => [],
+                        }
+                    }).ToList(),
                 },
             ],
         };
@@ -717,7 +917,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaTrainingPlanExternalId, clientProfilePublicId);
+            QaTrainingPlanExternalId, clientUserId);
     }
 
     /// <summary>
@@ -772,6 +972,9 @@ public static class QaSeedRunner
             Build(PastRomanianDeadliftExerciseId, "QA Romanian Deadlift", MuscleGroup.Hamstrings, ExerciseEquipment.Barbell),
             Build(PastPulldownExerciseId, "QA Pull-down", MuscleGroup.Back, ExerciseEquipment.Machine),
             Build(PastSeatedRowExerciseId, "QA Seated Row", MuscleGroup.Back, ExerciseEquipment.Machine),
+            // #857 QA fixture — standalone-only and standalone+nested session shapes.
+            Build(QaStandaloneOnlyExerciseId, "QA Plank", MuscleGroup.Abs, ExerciseEquipment.Bodyweight),
+            Build(QaDualPlacementExerciseId, "QA Wall Ball", MuscleGroup.FullBody, ExerciseEquipment.None),
         };
 
         await mongo.Exercises.InsertManyAsync(exercises);
@@ -780,7 +983,7 @@ public static class QaSeedRunner
     }
 
     /// <summary>
-    /// Seeds a completed WorkoutLog against the main QA training plan (dddddddd-...)
+    /// Seeds a completed SessionExecution against the main QA training plan (dddddddd-...)
     /// Standard section, exercising all four planned-vs-actual set cases in one session:
     ///
     ///   Exercise 1 (QA Squat):
@@ -791,118 +994,121 @@ public static class QaSeedRunner
     ///     Set 1 — SKIPPED     PlannedReps=5, PlannedWeightKg=100, Reps=null, WeightKg=null     → planned set, no actual.
     ///     Set 2 — EXTRA       PlannedReps=null (no snapshot), actual Reps=6, WeightKg=90       → no planned snapshot.
     ///
-    /// ClientId = ClientUserId (ApplicationUser.Id) — WorkoutLog ownership mirrors
+    /// ClientId = ClientUserId (ApplicationUser.Id) — SessionExecution ownership mirrors
     /// CompleteWorkoutEndpoint's filter on AppClaims.UserId.
     /// Gated to the Rich seed path only; never created for the Minimal kind.
     /// </summary>
-    private static async Task EnsureMainPlanWorkoutLogAsync(
+    private static async Task EnsureMainPlanExecutionAsync(
         IMongoContext mongo,
         ILogger logger)
     {
-        var existing = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaMainPlanCompletedWorkoutLogId)
+        var existing = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaMainPlanCompletedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existing is not null)
         {
             logger.LogInformation(
-                "QA MainPlan WorkoutLog already present: externalId={ExternalId}", QaMainPlanCompletedWorkoutLogId);
+                "QA MainPlan SessionExecution already present: externalId={ExternalId}", QaMainPlanCompletedExecutionId);
             return;
         }
 
         var completedAt = DateTime.UtcNow.Date.AddDays(-3).AddHours(11); // 11:00 UTC, 3 days ago.
-        var log = new WorkoutLog
+        var log = new SessionExecution
         {
-            ExternalId  = QaMainPlanCompletedWorkoutLogId,
-            // ClientId = ApplicationUser.Id — CompleteWorkoutEndpoint scopes WorkoutLogs by
+            ExternalId  = QaMainPlanCompletedExecutionId,
+            // ClientId = ApplicationUser.Id — CompleteWorkoutEndpoint scopes SessionExecutions by
             // Guid.Parse(AppClaims.UserId) which is ApplicationUser.Id, NOT ClientProfile.PublicId.
             ClientId      = ClientUserId,
             PlanId        = QaTrainingPlanExternalId,
             SessionId     = QaSessionId,
-            StartedAt     = completedAt.AddMinutes(-60),
-            CompletedAt   = completedAt,
-            CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
-            IsCompleted   = true,
+            Date          = SessionExecution.ToCompletionDateUtc(completedAt),
+            Status        = SessionExecutionStatus.Completed,
             DateCreated   = completedAt.AddMinutes(-60),
             DateUpdated   = completedAt,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = MainPlanCompletedSectionId,
-                    Order     = 2,    // mirrors Standard section Order=2 in the plan
-                    Name      = "Standard test",
-                    Format    = null,
-                    Exercises =
-                    [
-                        // Exercise 1: QA Squat — Set 1 modified, Set 2 as-prescribed.
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = StandardExercise1Id,
-                            ExerciseName       = "QA Squat",
-                            Sets =
-                            [
-                                // MODIFIED — actual differs from planned.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 1,
-                                    Reps            = 8,          // actual: fewer reps
-                                    WeightKg        = 85m,         // actual: heavier weight
-                                    PlannedReps     = 10,          // snapshot from plan prescription
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt     = completedAt.AddMinutes(-50),
-                                },
-                                // AS-PRESCRIBED — actual matches planned exactly.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 2,
-                                    Reps            = 10,
-                                    WeightKg        = 80m,
-                                    PlannedReps     = 10,
-                                    PlannedWeightKg = 80m,
-                                    CompletedAt     = completedAt.AddMinutes(-40),
-                                },
-                            ],
-                        },
-                        // Exercise 2: QA Deadlift — Set 1 skipped (planned present, no actual),
-                        //                           Set 2 extra (actual present, no planned snapshot).
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = StandardExercise2Id,
-                            ExerciseName       = "QA Deadlift",
-                            Sets =
-                            [
-                                // SKIPPED — planned prescription captured, client did not perform the set.
-                                // Reps/WeightKg are null; PlannedReps/PlannedWeightKg are set.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 1,
-                                    Reps            = null,
-                                    WeightKg        = null,
-                                    PlannedReps     = 5,
-                                    PlannedWeightKg = 100m,
-                                    CompletedAt     = null,
-                                },
-                                // EXTRA — client logged an additional set beyond what was prescribed.
-                                // No planned snapshot (PlannedReps/PlannedWeightKg remain null).
-                                new WorkoutSet
-                                {
-                                    SetNumber   = 2,
-                                    Reps        = 6,
-                                    WeightKg    = 90m,
-                                    CompletedAt = completedAt.AddMinutes(-20),
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt   = completedAt.AddMinutes(-60),
+                CompletedAt = completedAt,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = MainPlanCompletedWorkoutId,
+                        Order     = 2,    // mirrors Standard section Order=2 in the plan
+                        Name      = "Standard test",
+                        Format    = null,
+                        Exercises =
+                        [
+                            // Exercise 1: QA Squat — Set 1 modified, Set 2 as-prescribed.
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = StandardExercise1Id,
+                                ExerciseName       = "QA Squat",
+                                Sets =
+                                [
+                                    // MODIFIED — actual differs from planned.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 1,
+                                        Reps            = 8,          // actual: fewer reps
+                                        WeightKg        = 85m,         // actual: heavier weight
+                                        PlannedReps     = 10,          // snapshot from plan prescription
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt     = completedAt.AddMinutes(-50),
+                                    },
+                                    // AS-PRESCRIBED — actual matches planned exactly.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 2,
+                                        Reps            = 10,
+                                        WeightKg        = 80m,
+                                        PlannedReps     = 10,
+                                        PlannedWeightKg = 80m,
+                                        CompletedAt     = completedAt.AddMinutes(-40),
+                                    },
+                                ],
+                            },
+                            // Exercise 2: QA Deadlift — Set 1 skipped (planned present, no actual),
+                            //                           Set 2 extra (actual present, no planned snapshot).
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = StandardExercise2Id,
+                                ExerciseName       = "QA Deadlift",
+                                Sets =
+                                [
+                                    // SKIPPED — planned prescription captured, client did not perform the set.
+                                    // Reps/WeightKg are null; PlannedReps/PlannedWeightKg are set.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 1,
+                                        Reps            = null,
+                                        WeightKg        = null,
+                                        PlannedReps     = 5,
+                                        PlannedWeightKg = 100m,
+                                        CompletedAt     = null,
+                                    },
+                                    // EXTRA — client logged an additional set beyond what was prescribed.
+                                    // No planned snapshot (PlannedReps/PlannedWeightKg remain null).
+                                    new WorkoutSet
+                                    {
+                                        SetNumber   = 2,
+                                        Reps        = 6,
+                                        WeightKg    = 90m,
+                                        CompletedAt = completedAt.AddMinutes(-20),
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
         };
 
-        await mongo.WorkoutLogs.InsertOneAsync(log);
+        await mongo.SessionExecutions.InsertOneAsync(log);
         logger.LogInformation(
-            "QA MainPlan WorkoutLog created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
-            QaMainPlanCompletedWorkoutLogId, QaTrainingPlanExternalId, QaSessionId);
+            "QA MainPlan SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
+            QaMainPlanCompletedExecutionId, QaTrainingPlanExternalId, QaSessionId);
     }
 
     /// <summary>
@@ -923,7 +1129,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsurePastTrainingPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid trainerProfilePublicId,
         ILogger logger)
     {
@@ -946,16 +1152,129 @@ public static class QaSeedRunner
 
         if (existingPlan is null)
         {
+            // Session 1 — will have a completed WorkoutLog. Scheduled Monday.
+            var pastSessionCompleted = new TrainingSession
+            {
+                SessionId = QaPastSessionCompletedId,
+                Name      = "QA Past Session — Completed",
+                Order     = 1,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastCompletedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastBenchPressInstanceId,
+                                ExerciseExternalId = PastBenchPressExerciseId,
+                                ExerciseName       = "QA Bench Press",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastOverheadPressInstanceId,
+                                ExerciseExternalId = PastOverheadPressExerciseId,
+                                ExerciseName       = "QA Overhead Press",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            // Session 2 — will have an incomplete (skipped) WorkoutLog. Scheduled Wednesday.
+            var pastSessionSkipped = new TrainingSession
+            {
+                SessionId = QaPastSessionSkippedId,
+                Name      = "QA Past Session — Skipped",
+                Order     = 2,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastSkippedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastBackSquatInstanceId,
+                                ExerciseExternalId = PastBackSquatExerciseId,
+                                ExerciseName       = "QA Back Squat",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastRomanianDeadliftInstanceId,
+                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
+                                ExerciseName       = "QA Romanian Deadlift",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            // Session 3 — NO WorkoutLog (untouched). Scheduled Monday, week 2.
+            var pastSessionUntouched = new TrainingSession
+            {
+                SessionId = QaPastSessionUntouchedId,
+                Name      = "QA Past Session — Untouched",
+                Order     = 1,
+                Workouts  =
+                [
+                    new TrainingWorkout
+                    {
+                        WorkoutId    = PastUntouchedWorkoutId,
+                        Order        = 0,
+                        Name         = "Hlavní",
+                        Format       = null,
+                        FormatConfig = null,
+                        Exercises    =
+                        [
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastPulldownInstanceId,
+                                ExerciseExternalId = PastPulldownExerciseId,
+                                ExerciseName       = "QA Pull-down",
+                                Order              = 1,
+                                MovementType       = MovementType.Reps,
+                            },
+                            new SessionExercise
+                            {
+                                ExerciseId         = PastSeatedRowInstanceId,
+                                ExerciseExternalId = PastSeatedRowExerciseId,
+                                ExerciseName       = "QA Seated Row",
+                                Order              = 2,
+                                MovementType       = MovementType.Reps,
+                            },
+                        ],
+                    },
+                ],
+            };
+
             var plan = new TrainingPlan
             {
                 ExternalId    = QaPastTrainingPlanExternalId,
-                // ClientId is keyed on ClientProfile.PublicId (NOT ApplicationUser.Id) —
-                // GetTrainingPlansEndpoint filters by ClientId = ClientProfile.PublicId when
-                // the caller passes a clientId query param, and TrainingCompletion.ClientId
-                // (written by WorkoutCompletionService) is also keyed on ClientProfile.PublicId.
+                // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) since
+                // #840 — GetTrainingPlansEndpoint and TrainingCompletion (written by
+                // WorkoutCompletionService) are both keyed on the same ApplicationUser.Id.
                 // plan.ClientId and TrainingCompletion.ClientId must match for the completions
-                // fold-in in GetTrainingPlanEndpoint (line 59 filters by plan.ClientId).
-                ClientId      = clientProfilePublicId,
+                // fold-in in GetTrainingPlanEndpoint (line 67 filters by plan.ClientId).
+                ClientId      = clientUserId,
                 // TrainerId is keyed on ApplicationUser.Id (NOT ProfessionalProfile.PublicId) —
                 // GetTrainingPlansEndpoint and GetTrainingPlanEndpoint scope by
                 // Guid.Parse(User.FindFirstValue(AppClaims.UserId)) which is ApplicationUser.Id.
@@ -965,7 +1284,6 @@ public static class QaSeedRunner
                 Status        = TrainingPlanStatus.Active,
                 StartDate     = startDate,
                 DateCreated   = startDate.AddDays(-3),
-                DatePublished = startDate.AddDays(-1),
                 Version       = 1,
                 Weeks =
                 [
@@ -974,126 +1292,21 @@ public static class QaSeedRunner
                         WeekNumber    = 1,
                         Status        = WeekStatus.Published,
                         DatePublished = startDate.AddDays(-1),
-                        Sessions      =
-                        [
-                            // Session 1 — will have a completed WorkoutLog.
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionCompletedId,
-                                DayOfWeek = 1, // Monday
-                                Name      = "QA Past Session — Completed",
-                                Order     = 1,
-                                Sections  =
-                                [
-                                    new TrainingSection
-                                    {
-                                        SectionId    = PastCompletedSectionId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastBenchPressExerciseId,
-                                                ExerciseName       = "QA Bench Press",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastOverheadPressExerciseId,
-                                                ExerciseName       = "QA Overhead Press",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                            // Session 2 — will have an incomplete (skipped) WorkoutLog.
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionSkippedId,
-                                DayOfWeek = 3, // Wednesday
-                                Name      = "QA Past Session — Skipped",
-                                Order     = 2,
-                                Sections  =
-                                [
-                                    new TrainingSection
-                                    {
-                                        SectionId    = PastSkippedSectionId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastBackSquatExerciseId,
-                                                ExerciseName       = "QA Back Squat",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
-                                                ExerciseName       = "QA Romanian Deadlift",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
+                        Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                        {
+                            [1] = [pastSessionCompleted], // Monday
+                            [3] = [pastSessionSkipped],    // Wednesday
+                        }),
                     },
                     new TrainingWeek
                     {
                         WeekNumber    = 2,
                         Status        = WeekStatus.Published,
                         DatePublished = startDate.AddDays(6),
-                        Sessions      =
-                        [
-                            // Session 3 — NO WorkoutLog (untouched).
-                            new TrainingSession
-                            {
-                                SessionId = QaPastSessionUntouchedId,
-                                DayOfWeek = 1, // Monday
-                                Name      = "QA Past Session — Untouched",
-                                Order     = 1,
-                                Sections  =
-                                [
-                                    new TrainingSection
-                                    {
-                                        SectionId    = PastUntouchedSectionId,
-                                        Order        = 0,
-                                        Name         = "Hlavní",
-                                        Format       = null,
-                                        FormatConfig = null,
-                                        Exercises    =
-                                        [
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastPulldownExerciseId,
-                                                ExerciseName       = "QA Pull-down",
-                                                Order              = 1,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                            new SessionExercise
-                                            {
-                                                ExerciseExternalId = PastSeatedRowExerciseId,
-                                                ExerciseName       = "QA Seated Row",
-                                                Order              = 2,
-                                                MovementType       = MovementType.Reps,
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
-                        ],
+                        Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                        {
+                            [1] = [pastSessionUntouched], // Monday
+                        }),
                     },
                 ],
             };
@@ -1110,150 +1323,157 @@ public static class QaSeedRunner
         }
 
         // ---------------------------------------------------------------------------
-        // WorkoutLog: COMPLETED — IsCompleted=true, all sets stamped CompletedAt.
+        // SessionExecution: COMPLETED — Status=Completed, all sets stamped CompletedAt.
         // ---------------------------------------------------------------------------
-        var existingCompletedLog = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaPastCompletedWorkoutLogId)
+        var existingCompletedLog = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaPastCompletedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existingCompletedLog is null)
         {
             var completedAt = completedSessionDate.AddHours(10); // 10:00 UTC on session day.
-            var completedLog = new WorkoutLog
+            var completedLog = new SessionExecution
             {
-                ExternalId  = QaPastCompletedWorkoutLogId,
+                ExternalId  = QaPastCompletedExecutionId,
                 // ClientId is keyed on ApplicationUser.Id (NOT ClientProfile.PublicId) —
-                // CompleteWorkoutEndpoint (live client finish) filters WorkoutLogs by
+                // CompleteWorkoutEndpoint (live client finish) filters SessionExecutions by
                 // ClientId == Guid.Parse(AppClaims.UserId), which is ApplicationUser.Id.
-                // WorkoutCompletionService resolves the ClientProfile by cp.UserId == log.ClientId,
-                // then uses clientProfile.PublicId for the TrainingCompletion — so the fan-out
-                // correctly produces a TrainingCompletion.ClientId = ClientProfile.PublicId.
+                // Post-#840, WorkoutCompletionService no longer resolves a ClientProfile at
+                // all — it writes the completion flags straight onto the SAME document, so
+                // this same ApplicationUser.Id (ClientUserId) is used throughout.
                 ClientId      = ClientUserId,
                 PlanId        = QaPastTrainingPlanExternalId,
                 SessionId     = QaPastSessionCompletedId,
-                StartedAt     = completedAt.AddMinutes(-45),
-                CompletedAt   = completedAt,
-                // CompletedDate is the calendar-day key required by the partial unique index
-                // idx_workoutlog_planId_sessionId_completedDate_unique. Derived via the shared
-                // WorkoutLog.ToCompletionDateUtc helper so the key always agrees with
+                // Date is the calendar-day key required by the unified partial unique index
+                // idx_sessionexecution_clientId_sessionId_date_unique. Derived via the shared
+                // SessionExecution.ToCompletionDateUtc helper so the key always agrees with
                 // WorkoutCompletionService and MongoIndexInitializer.
-                CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
-                IsCompleted   = true,
+                Date          = SessionExecution.ToCompletionDateUtc(completedAt),
+                Status        = SessionExecutionStatus.Completed,
                 DateCreated   = completedAt.AddMinutes(-45),
                 DateUpdated   = completedAt,
-                Sections    =
-                [
-                    new WorkoutSection
-                    {
-                        SectionId = PastCompletedSectionId,
-                        Order     = 0,
-                        Name      = "Hlavní",
-                        Format    = null,
-                        Exercises =
-                        [
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = PastBenchPressExerciseId,
-                                ExerciseName       = "QA Bench Press",
-                                Sets               =
-                                [
-                                    new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-30) },
-                                    new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-25) },
-                                    new WorkoutSet { SetNumber = 3, Reps = 7, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-20) },
-                                ],
-                            },
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = PastOverheadPressExerciseId,
-                                ExerciseName       = "QA Overhead Press",
-                                Sets               =
-                                [
-                                    new WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 50m, CompletedAt = completedAt.AddMinutes(-15) },
-                                    new WorkoutSet { SetNumber = 2, Reps = 10, WeightKg = 50m, CompletedAt = completedAt.AddMinutes(-10) },
-                                ],
-                            },
-                        ],
-                    },
-                ],
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt   = completedAt.AddMinutes(-45),
+                    CompletedAt = completedAt,
+                    Workouts    =
+                    [
+                        new LoggedWorkout
+                        {
+                            WorkoutId = PastCompletedWorkoutId,
+                            Order     = 0,
+                            Name      = "Hlavní",
+                            Format    = null,
+                            Exercises =
+                            [
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = PastBenchPressExerciseId,
+                                    ExerciseName       = "QA Bench Press",
+                                    Sets               =
+                                    [
+                                        new WorkoutSet { SetNumber = 1, Reps = 8, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-30) },
+                                        new WorkoutSet { SetNumber = 2, Reps = 8, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-25) },
+                                        new WorkoutSet { SetNumber = 3, Reps = 7, WeightKg = 80m, CompletedAt = completedAt.AddMinutes(-20) },
+                                    ],
+                                },
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = PastOverheadPressExerciseId,
+                                    ExerciseName       = "QA Overhead Press",
+                                    Sets               =
+                                    [
+                                        new WorkoutSet { SetNumber = 1, Reps = 10, WeightKg = 50m, CompletedAt = completedAt.AddMinutes(-15) },
+                                        new WorkoutSet { SetNumber = 2, Reps = 10, WeightKg = 50m, CompletedAt = completedAt.AddMinutes(-10) },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
             };
 
-            await mongo.WorkoutLogs.InsertOneAsync(completedLog);
+            await mongo.SessionExecutions.InsertOneAsync(completedLog);
             logger.LogInformation(
-                "QA WorkoutLog COMPLETED created: externalId={ExternalId} sessionId={SessionId}",
-                QaPastCompletedWorkoutLogId, QaPastSessionCompletedId);
+                "QA SessionExecution COMPLETED created: externalId={ExternalId} sessionId={SessionId}",
+                QaPastCompletedExecutionId, QaPastSessionCompletedId);
         }
         else
         {
             logger.LogInformation(
-                "QA WorkoutLog COMPLETED already present: externalId={ExternalId}", QaPastCompletedWorkoutLogId);
+                "QA SessionExecution COMPLETED already present: externalId={ExternalId}", QaPastCompletedExecutionId);
         }
 
         // ---------------------------------------------------------------------------
-        // WorkoutLog: SKIPPED — IsCompleted=false, only one set per exercise logged.
+        // SessionExecution: SKIPPED — Status=Partial, only one set per exercise logged.
         // The client started but did not finish the session.
         // ---------------------------------------------------------------------------
-        var existingSkippedLog = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaPastSkippedWorkoutLogId)
+        var existingSkippedLog = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaPastSkippedExecutionId)
             .FirstOrDefaultAsync();
 
         if (existingSkippedLog is null)
         {
             var skippedStartedAt = skippedSessionDate.AddHours(9); // started at 09:00 UTC.
-            var skippedLog = new WorkoutLog
+            var skippedLog = new SessionExecution
             {
-                ExternalId  = QaPastSkippedWorkoutLogId,
+                ExternalId  = QaPastSkippedExecutionId,
                 // ClientId = ApplicationUser.Id — same reasoning as the completed log above.
                 ClientId    = ClientUserId,
                 PlanId      = QaPastTrainingPlanExternalId,
                 SessionId   = QaPastSessionSkippedId,
-                StartedAt   = skippedStartedAt,
-                CompletedAt = null,
-                IsCompleted = false,
+                Date        = SessionExecution.ToCompletionDateUtc(skippedStartedAt),
+                Status      = SessionExecutionStatus.Partial,
                 DateCreated = skippedStartedAt,
                 DateUpdated = skippedStartedAt.AddMinutes(20),
-                Sections    =
-                [
-                    new WorkoutSection
-                    {
-                        SectionId = PastSkippedSectionId,
-                        Order     = 0,
-                        Name      = "Hlavní",
-                        Format    = null,
-                        Exercises =
-                        [
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = PastBackSquatExerciseId,
-                                ExerciseName       = "QA Back Squat",
-                                Sets               =
-                                [
-                                    // Only 1 of 3 planned sets was recorded before the client stopped.
-                                    new WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = skippedStartedAt.AddMinutes(15) },
-                                ],
-                            },
-                            new WorkoutExercise
-                            {
-                                ExerciseExternalId = PastRomanianDeadliftExerciseId,
-                                ExerciseName       = "QA Romanian Deadlift",
-                                Sets               = [], // exercise was never started
-                            },
-                        ],
-                    },
-                ],
+                Performance = new SessionExecutionPerformance
+                {
+                    StartedAt   = skippedStartedAt,
+                    CompletedAt = null,
+                    Workouts    =
+                    [
+                        new LoggedWorkout
+                        {
+                            WorkoutId = PastSkippedWorkoutId,
+                            Order     = 0,
+                            Name      = "Hlavní",
+                            Format    = null,
+                            Exercises =
+                            [
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = PastBackSquatExerciseId,
+                                    ExerciseName       = "QA Back Squat",
+                                    Sets               =
+                                    [
+                                        // Only 1 of 3 planned sets was recorded before the client stopped.
+                                        new WorkoutSet { SetNumber = 1, Reps = 5, WeightKg = 100m, CompletedAt = skippedStartedAt.AddMinutes(15) },
+                                    ],
+                                },
+                                new WorkoutExercise
+                                {
+                                    ExerciseExternalId = PastRomanianDeadliftExerciseId,
+                                    ExerciseName       = "QA Romanian Deadlift",
+                                    Sets               = [], // exercise was never started
+                                },
+                            ],
+                        },
+                    ],
+                },
             };
 
-            await mongo.WorkoutLogs.InsertOneAsync(skippedLog);
+            await mongo.SessionExecutions.InsertOneAsync(skippedLog);
             logger.LogInformation(
-                "QA WorkoutLog SKIPPED created: externalId={ExternalId} sessionId={SessionId}",
-                QaPastSkippedWorkoutLogId, QaPastSessionSkippedId);
+                "QA SessionExecution SKIPPED created: externalId={ExternalId} sessionId={SessionId}",
+                QaPastSkippedExecutionId, QaPastSessionSkippedId);
         }
         else
         {
             logger.LogInformation(
-                "QA WorkoutLog SKIPPED already present: externalId={ExternalId}", QaPastSkippedWorkoutLogId);
+                "QA SessionExecution SKIPPED already present: externalId={ExternalId}", QaPastSkippedExecutionId);
         }
 
-        // PAST-UNTOUCHED: deliberately no WorkoutLog for QaPastSessionUntouchedId.
+        // PAST-UNTOUCHED: deliberately no SessionExecution for QaPastSessionUntouchedId.
         logger.LogInformation(
             "QA PastTrainingPlan fixture complete: planId={PlanId} startDate={StartDate} " +
             "completed={CompletedId} skipped={SkippedId} untouched={UntouchedId}",
@@ -1277,11 +1497,11 @@ public static class QaSeedRunner
     /// values even when the exercise is the same object.
     ///
     /// TrainerId = Trainer2UserId (ApplicationUser.Id) — same rule as all other plans.
-    /// ClientId  = client2ProfilePublicId (ClientProfile.PublicId) — same rule as all other plans.
+    /// ClientId  = Client2UserId (ApplicationUser.Id, #840) — same rule as all other plans.
     /// </summary>
     private static async Task EnsureMultiSectionTrainingPlanAsync(
         IMongoContext mongo,
-        Guid client2ProfilePublicId,
+        Guid client2UserId,
         Guid trainer2UserId,
         ILogger logger)
     {
@@ -1301,12 +1521,11 @@ public static class QaSeedRunner
         var plan = new TrainingPlan
         {
             ExternalId    = QaMultiSectionPlanExternalId,
-            ClientId      = client2ProfilePublicId,
+            ClientId      = client2UserId,
             TrainerId     = trainer2UserId,
             Name          = "QA Multi-Section Plan — shared-exercise section-keying fixture",
             Status        = TrainingPlanStatus.Active,
             DateCreated   = now,
-            DatePublished = now,
             Version       = 1,
             Weeks =
             [
@@ -1315,20 +1534,21 @@ public static class QaSeedRunner
                     WeekNumber    = 1,
                     Status        = WeekStatus.Published,
                     DatePublished = now,
-                    Sessions =
-                    [
+                    Days = BuildTrainingDays(new Dictionary<int, List<TrainingSession>>
+                    {
+                        [2] = // Tuesday
+                        [
                         new TrainingSession
                         {
                             SessionId = QaMultiSectionSessionId,
-                            DayOfWeek = 2, // Tuesday
                             Name      = "QA Multi-Section Session",
                             Order     = 1,
-                            Sections  =
+                            Workouts  =
                             [
                                 // Section 1 — Standard: prescribed set for QA Kettlebell Swing.
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = MultiSectionStandardSectionId,
+                                    WorkoutId    = MultiSectionStandardWorkoutId,
                                     Order        = 0,
                                     Name         = "Standard work",
                                     Format       = null,
@@ -1337,6 +1557,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = MultiSectionStandardInstanceId,
                                             ExerciseExternalId = SharedExerciseId,
                                             ExerciseName       = "QA Kettlebell Swing",
                                             Order              = 1,
@@ -1353,9 +1574,9 @@ public static class QaSeedRunner
                                 },
                                 // Section 2 — AMRAP 10 min: same exercise but AMRAP context.
                                 // No prescribed sets (AMRAP format — reps accumulate per round).
-                                new TrainingSection
+                                new TrainingWorkout
                                 {
-                                    SectionId    = MultiSectionAmrapSectionId,
+                                    WorkoutId    = MultiSectionAmrapWorkoutId,
                                     Order        = 1,
                                     Name         = "AMRAP 10 min",
                                     Format       = WorkoutFormat.AMRAP,
@@ -1364,6 +1585,7 @@ public static class QaSeedRunner
                                     [
                                         new SessionExercise
                                         {
+                                            ExerciseId         = MultiSectionAmrapInstanceId,
                                             ExerciseExternalId = SharedExerciseId,
                                             ExerciseName       = "QA Kettlebell Swing",
                                             Order              = 1,
@@ -1375,7 +1597,8 @@ public static class QaSeedRunner
                                 },
                             ],
                         },
-                    ],
+                        ]
+                    }),
                 },
             ],
         };
@@ -1384,7 +1607,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA MultiSection TrainingPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaMultiSectionPlanExternalId, client2ProfilePublicId);
+            QaMultiSectionPlanExternalId, client2UserId);
     }
 
     /// <summary>
@@ -1404,121 +1627,124 @@ public static class QaSeedRunner
     ///
     /// SectionId is set on each logged section so the section-keying read path works (#472).
     /// </summary>
-    private static async Task EnsureMultiSectionWorkoutLogAsync(
+    private static async Task EnsureMultiSectionExecutionAsync(
         IMongoContext mongo,
         ILogger logger)
     {
-        var existing = await mongo.WorkoutLogs
-            .Find(l => l.ExternalId == QaMultiSectionWorkoutLogId)
+        var existing = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaMultiSectionExecutionId)
             .FirstOrDefaultAsync();
 
         if (existing is not null)
         {
             logger.LogInformation(
-                "QA MultiSection WorkoutLog already present: externalId={ExternalId}", QaMultiSectionWorkoutLogId);
+                "QA MultiSection SessionExecution already present: externalId={ExternalId}", QaMultiSectionExecutionId);
             return;
         }
 
         var completedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(14); // 14:00 UTC, yesterday.
-        var log = new WorkoutLog
+        var log = new SessionExecution
         {
-            ExternalId    = QaMultiSectionWorkoutLogId,
-            // ClientId = ApplicationUser.Id — same contract as all other WorkoutLogs.
+            ExternalId    = QaMultiSectionExecutionId,
+            // ClientId = ApplicationUser.Id — same contract as all other SessionExecutions.
             ClientId      = Client2UserId,
             PlanId        = QaMultiSectionPlanExternalId,
             SessionId     = QaMultiSectionSessionId,
-            StartedAt     = completedAt.AddMinutes(-40),
-            CompletedAt   = completedAt,
-            CompletedDate = WorkoutLog.ToCompletionDateUtc(completedAt),
-            IsCompleted   = true,
+            Date          = SessionExecution.ToCompletionDateUtc(completedAt),
+            Status        = SessionExecutionStatus.Completed,
             DateCreated   = completedAt.AddMinutes(-40),
             DateUpdated   = completedAt,
-            Sections =
-            [
-                // Standard section — edited reps/weights on Set 1 + Set 3; Set 2 as-prescribed.
-                new WorkoutSection
-                {
-                    SectionId = MultiSectionStandardSectionId,
-                    Order     = 0, // mirrors Standard section Order=0 in the plan
-                    Name      = "Standard work",
-                    Format    = null,
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = SharedExerciseId,
-                            ExerciseName       = "QA Kettlebell Swing",
-                            Sets =
-                            [
-                                // MODIFIED — client used heavier KB for fewer reps.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 1,
-                                    Reps            = 12,
-                                    WeightKg        = 28m,
-                                    PlannedReps     = 15,
-                                    PlannedWeightKg = 24m,
-                                    CompletedAt     = completedAt.AddMinutes(-30),
-                                },
-                                // AS-PRESCRIBED — exactly as planned.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 2,
-                                    Reps            = 15,
-                                    WeightKg        = 24m,
-                                    PlannedReps     = 15,
-                                    PlannedWeightKg = 24m,
-                                    CompletedAt     = completedAt.AddMinutes(-20),
-                                },
-                                // MODIFIED — client again used heavier KB for fewer reps.
-                                new WorkoutSet
-                                {
-                                    SetNumber       = 3,
-                                    Reps            = 10,
-                                    WeightKg        = 28m,
-                                    PlannedReps     = 15,
-                                    PlannedWeightKg = 24m,
-                                    CompletedAt     = completedAt.AddMinutes(-10),
-                                },
-                            ],
-                        },
-                    ],
-                },
-                // AMRAP section — same exercise, logged at face value (no edits).
-                // No planned snapshot because AMRAP sections don't carry prescribed sets.
-                new WorkoutSection
-                {
-                    SectionId = MultiSectionAmrapSectionId,
-                    Order     = 1, // mirrors AMRAP section Order=1 in the plan
-                    Name      = "AMRAP 10 min",
-                    Format    = WorkoutFormat.AMRAP,
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = SharedExerciseId,
-                            ExerciseName       = "QA Kettlebell Swing",
-                            Sets =
-                            [
-                                // No planned snapshot — AMRAP accumulates rounds, not prescribed sets.
-                                new WorkoutSet
-                                {
-                                    SetNumber   = 1,
-                                    Reps        = 15,
-                                    WeightKg    = 24m,
-                                    CompletedAt = completedAt.AddMinutes(-5),
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt   = completedAt.AddMinutes(-40),
+                CompletedAt = completedAt,
+                Workouts =
+                [
+                    // Standard section — edited reps/weights on Set 1 + Set 3; Set 2 as-prescribed.
+                    new LoggedWorkout
+                    {
+                        WorkoutId = MultiSectionStandardWorkoutId,
+                        Order     = 0, // mirrors Standard section Order=0 in the plan
+                        Name      = "Standard work",
+                        Format    = null,
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = SharedExerciseId,
+                                ExerciseName       = "QA Kettlebell Swing",
+                                Sets =
+                                [
+                                    // MODIFIED — client used heavier KB for fewer reps.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 1,
+                                        Reps            = 12,
+                                        WeightKg        = 28m,
+                                        PlannedReps     = 15,
+                                        PlannedWeightKg = 24m,
+                                        CompletedAt     = completedAt.AddMinutes(-30),
+                                    },
+                                    // AS-PRESCRIBED — exactly as planned.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 2,
+                                        Reps            = 15,
+                                        WeightKg        = 24m,
+                                        PlannedReps     = 15,
+                                        PlannedWeightKg = 24m,
+                                        CompletedAt     = completedAt.AddMinutes(-20),
+                                    },
+                                    // MODIFIED — client again used heavier KB for fewer reps.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber       = 3,
+                                        Reps            = 10,
+                                        WeightKg        = 28m,
+                                        PlannedReps     = 15,
+                                        PlannedWeightKg = 24m,
+                                        CompletedAt     = completedAt.AddMinutes(-10),
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    // AMRAP section — same exercise, logged at face value (no edits).
+                    // No planned snapshot because AMRAP sections don't carry prescribed sets.
+                    new LoggedWorkout
+                    {
+                        WorkoutId = MultiSectionAmrapWorkoutId,
+                        Order     = 1, // mirrors AMRAP section Order=1 in the plan
+                        Name      = "AMRAP 10 min",
+                        Format    = WorkoutFormat.AMRAP,
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = SharedExerciseId,
+                                ExerciseName       = "QA Kettlebell Swing",
+                                Sets =
+                                [
+                                    // No planned snapshot — AMRAP accumulates rounds, not prescribed sets.
+                                    new WorkoutSet
+                                    {
+                                        SetNumber   = 1,
+                                        Reps        = 15,
+                                        WeightKg    = 24m,
+                                        CompletedAt = completedAt.AddMinutes(-5),
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
         };
 
-        await mongo.WorkoutLogs.InsertOneAsync(log);
+        await mongo.SessionExecutions.InsertOneAsync(log);
         logger.LogInformation(
-            "QA MultiSection WorkoutLog created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
-            QaMultiSectionWorkoutLogId, QaMultiSectionPlanExternalId, QaMultiSectionSessionId);
+            "QA MultiSection SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId}",
+            QaMultiSectionExecutionId, QaMultiSectionPlanExternalId, QaMultiSectionSessionId);
     }
 
     private static async Task EnsureFoodsAsync(
@@ -1711,7 +1937,7 @@ public static class QaSeedRunner
     /// </summary>
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
-        Guid clientProfilePublicId,
+        Guid clientUserId,
         Guid nutriUserId,
         ILogger logger)
     {
@@ -1731,12 +1957,11 @@ public static class QaSeedRunner
         var plan = new NutritionPlan
         {
             ExternalId     = QaNutritionPlanExternalId,
-            ClientId       = clientProfilePublicId,
+            ClientId       = clientUserId,
             NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
             DateCreated    = now,
-            DatePublished  = now,
             Version        = 1,
             Weeks =
             [
@@ -1787,7 +2012,7 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA NutritionPlan created: externalId={ExternalId} clientId={ClientId}",
-            QaNutritionPlanExternalId, clientProfilePublicId);
+            QaNutritionPlanExternalId, clientUserId);
     }
 
     /// <summary>
@@ -2237,5 +2462,137 @@ public static class QaSeedRunner
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
         return ms.ToArray();
+    }
+
+    /// <summary>
+    /// #879 — seeds a completed <see cref="SessionExecution"/> for
+    /// <see cref="QaDualPlacementSessionId"/> that marks ONLY the standalone occurrence
+    /// (<see cref="QaDualPlacementStandaloneInstanceId"/>) complete, leaving the nested
+    /// occurrence (<see cref="QaDualPlacementNestedInstanceId"/>) incomplete. Both share the
+    /// same catalog exercise (<see cref="QaDualPlacementExerciseId"/>) but carry distinct
+    /// instance ids (#857 phase 3b), so <c>GetFullTrainingPlanEndpoint</c>'s per-instance
+    /// completion lookup (<c>CompletedExerciseInstanceIds</c>) must report the two placements
+    /// differently — this fixture makes that distinction observable via
+    /// GET /client/training/plans/{planId} instead of requiring an interactive drive.
+    /// Gated to the Rich seed path only; never created for the Minimal kind.
+    /// </summary>
+    private static async Task EnsureDualPlacementCompletionAsync(IMongoContext mongo, ILogger logger)
+    {
+        var existing = await mongo.SessionExecutions
+            .Find(l => l.ExternalId == QaDualPlacementSessionExecutionId)
+            .FirstOrDefaultAsync();
+
+        if (existing is not null)
+        {
+            logger.LogInformation(
+                "QA DualPlacement SessionExecution already present: externalId={ExternalId}", QaDualPlacementSessionExecutionId);
+            return;
+        }
+
+        var completedAt = DateTime.UtcNow.Date.AddDays(-1).AddHours(9);
+        var execution = new SessionExecution
+        {
+            ExternalId  = QaDualPlacementSessionExecutionId,
+            // ClientId = ApplicationUser.Id — mirrors EnsureMainPlanExecutionAsync's convention.
+            ClientId    = ClientUserId,
+            PlanId      = QaTrainingPlanExternalId,
+            SessionId   = QaDualPlacementSessionId,
+            Date        = SessionExecution.ToCompletionDateUtc(completedAt),
+            Status      = SessionExecutionStatus.Partial,
+            DateCreated = completedAt,
+            DateUpdated = completedAt,
+            CompletedExerciseInstanceIds = [QaDualPlacementStandaloneInstanceId],
+        };
+
+        await mongo.SessionExecutions.InsertOneAsync(execution);
+        logger.LogInformation(
+            "QA DualPlacement SessionExecution created: externalId={ExternalId} planId={PlanId} sessionId={SessionId} completedInstanceId={CompletedInstanceId}",
+            QaDualPlacementSessionExecutionId, QaTrainingPlanExternalId, QaDualPlacementSessionId, QaDualPlacementStandaloneInstanceId);
+    }
+
+    /// <summary>
+    /// #946 — seeds two <see cref="PhotoDiaryRequest"/> rows on the nutritionist↔client link
+    /// (created by <see cref="EnsureNutritionistQuestionnaireFixtureAsync"/>, which MUST run
+    /// first) so a navigable requestId exists for the index/detail (list, get-by-id) and the
+    /// finalize (photo upload) screens: one scoped to the seeded QA nutrition plan, one
+    /// deliberately plan-less — a legitimate backend state per
+    /// <see cref="PhotoDiaryRequest.PlanId"/>'s own doc comment, not a synthetic edge case. Both
+    /// rows are Status=Accepted so they surface on the client app's active-request list (mobile
+    /// filters {Accepted, InProgress}) and are eligible for FinalizePlanPhotoEndpoint (Accepted or
+    /// InProgress). This does NOT make the accept screen (either PhotoDiaryMode — bulk or
+    /// workflow) or the dismiss screen drivable: both AcceptRequestEndpoint and
+    /// DismissRequestEndpoint reject any request whose Status isn't Pending, so an
+    /// already-Accepted row 409s on both. Driving those two screens needs a third, Pending-status
+    /// fixture row — not attempted here.
+    /// Re-resolves the nutritionist↔client link by (clientProfile.Id, nutriProfile.Id) — its
+    /// Id is DB-generated and only ever held as a local inside
+    /// EnsureNutritionistQuestionnaireFixtureAsync, never published as a Qa* constant.
+    /// Gated to the Rich seed path only; never created for the Minimal kind.
+    /// </summary>
+    private static async Task EnsurePhotoDiaryRequestsFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        var clientProfile = await db.ClientProfiles.FirstOrDefaultAsync(cp => cp.UserId == ClientUserId)
+            ?? throw new InvalidOperationException("QA ClientProfile must be seeded before the photo diary requests fixture.");
+        var nutriProfile = await db.ProfessionalProfiles.FirstOrDefaultAsync(pp => pp.UserId == NutriUserId)
+            ?? throw new InvalidOperationException("QA nutri ProfessionalProfile must be seeded before the photo diary requests fixture.");
+
+        var nutriLink = await db.ClientProfessionalLinks
+            .FirstOrDefaultAsync(l => l.ClientProfileId == clientProfile.Id && l.ProfessionalProfileId == nutriProfile.Id)
+            ?? throw new InvalidOperationException(
+                "QA nutritionist<->client link must be seeded before the photo diary requests fixture — " +
+                "EnsureNutritionistQuestionnaireFixtureAsync must run first.");
+
+        var requestIds = new[] { QaPhotoDiaryRequestWithPlanId, QaPhotoDiaryRequestPlanlessId };
+
+        var existingIds = (await db.PhotoDiaryRequests
+            .Where(r => requestIds.Contains(r.Id))
+            .Select(r => r.Id)
+            .ToListAsync())
+            .ToHashSet();
+
+        if (existingIds.Count == requestIds.Length)
+        {
+            logger.LogInformation("QA PhotoDiaryRequest fixtures already present ({Count}), skipping.", existingIds.Count);
+            return;
+        }
+
+        var acceptedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        var requests = new List<PhotoDiaryRequest>
+        {
+            new()
+            {
+                Id             = QaPhotoDiaryRequestWithPlanId,
+                ProfessionalId = NutriUserId,
+                LinkId         = nutriLink.Id,
+                PlanId         = QaNutritionPlanExternalId,
+                DurationDays   = 7,
+                Mode           = PhotoDiaryMode.Bulk,
+                Status         = PhotoDiaryStatus.Accepted,
+                AcceptedAt     = acceptedAt,
+                CreatedAt      = acceptedAt,
+                UpdatedAt      = acceptedAt,
+            },
+            new()
+            {
+                Id             = QaPhotoDiaryRequestPlanlessId,
+                ProfessionalId = NutriUserId,
+                LinkId         = nutriLink.Id,
+                PlanId         = null,
+                DurationDays   = 7,
+                Mode           = PhotoDiaryMode.Workflow,
+                Status         = PhotoDiaryStatus.Accepted,
+                AcceptedAt     = acceptedAt,
+                CreatedAt      = acceptedAt,
+                UpdatedAt      = acceptedAt,
+            },
+        };
+
+        var toInsert = requests.Where(r => !existingIds.Contains(r.Id)).ToList();
+        db.PhotoDiaryRequests.AddRange(toInsert);
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA PhotoDiaryRequest fixtures created: {Count} inserted, linkId={LinkId}", toInsert.Count, nutriLink.Id);
     }
 }

@@ -11,7 +11,7 @@ namespace FitnessPlatform.Tests.Endpoints.WeeklyCheckIns;
 
 /// <summary>
 /// Integration tests for GET /trainer/weekly-check-ins?weekStartDate=...
-/// Uses Testcontainers PostgreSQL (Docker required). Excluded from CI.
+/// Uses Testcontainers PostgreSQL (Docker required).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)

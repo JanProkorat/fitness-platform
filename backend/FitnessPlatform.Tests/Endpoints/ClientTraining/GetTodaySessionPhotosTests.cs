@@ -10,6 +10,8 @@ using FitnessPlatform.Application.Features.ClientTraining.GetTodaySession;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Tests.Builders;
+using FitnessPlatform.Tests.Endpoints.TrainingPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using NSubstitute;
@@ -24,6 +26,12 @@ namespace FitnessPlatform.Tests.Endpoints.ClientTraining;
 public class GetTodaySessionPhotosTests
 {
     private readonly Guid _clientId = Guid.NewGuid();
+
+    /// <summary>
+    /// Shared fake so tests can assert on <see cref="FakeBlobStorageService.SignedUrlRequests"/> —
+    /// which stored BlobUrls were routed through signing before the response was sent (F9).
+    /// </summary>
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -67,17 +75,13 @@ public class GetTodaySessionPhotosTests
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = startOfWeek,
-                    Sessions =
-                    [
-                        new TrainingSession
-                        {
-                            SessionId = sessionId,
-                            DayOfWeek = todayDow,
-                            Name = "Push Day",
-                            Order = 1,
-                            Sections = []
-                        }
-                    ]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((todayDow, new TrainingSession
+                    {
+                        SessionId = sessionId,
+                        Name = "Push Day",
+                        Order = 1,
+                        Workouts = []
+                    }))
                 }
             ]
         };
@@ -87,16 +91,12 @@ public class GetTodaySessionPhotosTests
         // Build all collections BEFORE calling .Returns() to avoid NSubstitute nesting issues
         var planCollection = TrainingPhotoTestHelpers.CreateCollection([plan]);
         var exerciseCollection = TrainingPhotoTestHelpers.CreateCollection<Exercise>([]);
-        var completionCollection = TrainingPhotoTestHelpers.CreateCollection<TrainingCompletion>([]);
-        var workoutLogCollection = TrainingPhotoTestHelpers.CreateCollection<WorkoutLog>([]);
         var sessionLockCollection = TrainingPhotoTestHelpers.CreateCollection<SessionLock>([]);
         var sessionLogCollection = TrainingPhotoTestHelpers.CreateSessionLogCollection(sessionLogs ?? []);
 
         // Assign after all substitutes are created
         mongo.TrainingPlans.Returns(planCollection);
         mongo.Exercises.Returns(exerciseCollection);
-        mongo.TrainingCompletions.Returns(completionCollection);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
         mongo.SessionLocks.Returns(sessionLockCollection);
         mongo.SessionLogs.Returns(sessionLogCollection);
 
@@ -115,7 +115,7 @@ public class GetTodaySessionPhotosTests
         Factory.Create<GetTodaySessionEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, CreateStubLockService());
+            mongo, db, CreateStubLockService(), _blobStorage, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Read-back: photos saved to SessionLog appear in PhotosBySession
@@ -151,10 +151,19 @@ public class GetTodaySessionPhotosTests
         ep.Response.PhotosBySession.Should().ContainKey(sessionId);
         var photos = ep.Response.PhotosBySession[sessionId];
         photos.Should().HaveCount(2);
+
+        // Positive control: both stored BlobUrls reached the signing call verbatim.
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/a.jpg");
+        _blobStorage.SignedUrlRequests.Should().Contain("https://minio.local/diary/sessions/s1/b.jpg");
+
+        // Negative control: DisplayUrl carries the signed marker — the bucket no longer grants
+        // public read on diary/* (F9) — while BlobUrl stays the canonical, permanent identity
+        // value so a client can safely echo it back on a later SaveSessionPhotos call.
+        photos[0].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg?signed=test");
         photos[0].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/a.jpg");
         photos[0].UploadedAt.Should().Be(uploadedAt);
         photos[0].Note.Should().Be("Note A");
-        photos[1].BlobUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg");
+        photos[1].DisplayUrl.Should().Be("https://minio.local/diary/sessions/s1/b.jpg?signed=test");
         photos[1].Note.Should().BeNull();
     }
 

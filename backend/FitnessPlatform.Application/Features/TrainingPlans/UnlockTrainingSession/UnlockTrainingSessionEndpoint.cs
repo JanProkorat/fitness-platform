@@ -22,7 +22,8 @@ public class UnlockTrainingSessionEndpoint(
     IMongoContext mongo,
     ISessionLockService lockService,
     IOptions<TrainingLockOptions> lockOptions,
-    IRealtimeNotifier notifier)
+    IRealtimeNotifier notifier,
+    IClientLinkAuthorizationService linkAuthorizationService)
     : Endpoint<UnlockTrainingSessionRequest>
 {
     /// <inheritdoc />
@@ -50,22 +51,19 @@ public class UnlockTrainingSessionEndpoint(
 
         var trainerId = Guid.Parse(userId);
 
-        // Ownership guard first: plan must exist AND belong to the calling trainer.
-        var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ExternalId, req.PlanId)
-                     & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
-
-        var cursor = await mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
-        var plan = await cursor.FirstOrDefaultAsync(ct);
+        // Authorship + link guard first: the plan must exist, be the calling trainer's, and the
+        // caller's link to its client must still grant training access.
+        var plan = await this.LoadOwnedTrainingPlanIfAllowedAsync(mongo, linkAuthorizationService, req.PlanId, trainerId, ct);
 
         if (plan is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
         // Verify the session exists in the plan (any week).
         var session = plan.Weeks
-            .SelectMany(w => w.Sessions)
+            .SelectMany(w => w.Days)
+            .SelectMany(d => d.Sessions)
             .FirstOrDefault(s => s.SessionId == req.SessionId);
 
         if (session is null)
@@ -75,34 +73,16 @@ public class UnlockTrainingSessionEndpoint(
         }
 
         // Finished-guard: reject unlock attempts on sessions that are already finished.
-        // Two completion signals must be checked — live path (WorkoutLog.IsCompleted=true) and
-        // home-checkbox path (TrainingCompletion fully complete per IsSessionComplete()).
+        // #841: both signals (finished live workout, home-checkbox completion) now live on the
+        // SAME SessionExecution document — a single query + IsSessionComplete() covers both.
+        // Match any execution for this session regardless of date — finished state is permanent.
         // Checked AFTER ownership/existence guards (404 takes precedence) and BEFORE acquiring the Editing lock.
-        // Reuses the existing SESSION_ALREADY_COMPLETED error code (matches FinishSessionEndpoint pattern).
+        var executionFilter = Builders<SessionExecution>.Filter.Eq(c => c.ClientId, plan.ClientId)
+                               & Builders<SessionExecution>.Filter.Eq(c => c.SessionId, req.SessionId);
+        var executionCursor = await mongo.SessionExecutions.FindAsync(executionFilter, cancellationToken: ct);
+        var executionDocs = await executionCursor.ToListAsync(ct);
 
-        // Signal 1: completed WorkoutLog
-        var completedLogFilter = Builders<WorkoutLog>.Filter.Eq(l => l.PlanId, req.PlanId)
-                                 & Builders<WorkoutLog>.Filter.Eq(l => l.SessionId, req.SessionId)
-                                 & Builders<WorkoutLog>.Filter.Eq(l => l.IsCompleted, true);
-        var completedLogCount = await mongo.WorkoutLogs.CountDocumentsAsync(completedLogFilter, cancellationToken: ct);
-
-        if (completedLogCount > 0)
-        {
-            await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
-                "This session has already been completed and cannot be unlocked for editing.", ct);
-            return;
-        }
-
-        // Signal 2: fully-complete TrainingCompletion (written by mobile home-checkbox path).
-        // Match any completion for this session regardless of date — finished state is permanent.
-        // Call WithBackfilledSections() first so legacy flat-exercise sessions are handled correctly.
-        session.WithBackfilledSections();
-        var completionFilter = Builders<TrainingCompletion>.Filter.Eq(c => c.ClientId, plan.ClientId)
-                               & Builders<TrainingCompletion>.Filter.Eq(c => c.SessionId, req.SessionId);
-        var completionCursor = await mongo.TrainingCompletions.FindAsync(completionFilter, cancellationToken: ct);
-        var completionDocs = await completionCursor.ToListAsync(ct);
-
-        if (completionDocs.Any(c => c.IsSessionComplete(session)))
+        if (executionDocs.Any(e => e.IsSessionComplete(session)))
         {
             await this.SendProblemAsync(409, ErrorCodes.SessionAlreadyCompleted,
                 "This session has already been completed and cannot be unlocked for editing.", ct);

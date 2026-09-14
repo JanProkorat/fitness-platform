@@ -76,17 +76,31 @@ A deterministic training plan is seeded for the QA client on every `/test/reset`
 | Constant                          | Value                                  | What it maps to                                    |
 | --------------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `QaTrainingPlanExternalId`        | `dddddddd-dddd-dddd-dddd-dddddddddddd` | The plan's `ExternalId` (used in API responses)    |
-| `ClientProfilePublicId`           | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `TrainingPlan.ClientId` (NOT the user id — see note) |
+| `ClientUserId`                    | `11111111-1111-1111-1111-111111111111` | `TrainingPlan.ClientId` (ApplicationUser.Id — see note) |
+| `ClientProfilePublicId`           | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `ClientProfile.PublicId` — trainer-facing routes only, NOT any Mongo `ClientId` |
 | `TrainerUserId`                   | `22222222-2222-2222-2222-222222222222` | `TrainingPlan.TrainerId` (ApplicationUser.Id — see note) |
 | `ForTimeSectionId`                | `eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee` | `TrainingSection.SectionId` for Section 1          |
 | `AmrapSectionId`                  | `ffffffff-ffff-ffff-ffff-ffffffffffff` | `TrainingSection.SectionId` for Section 2          |
 | `StandardSectionId`               | `00000000-0000-0000-aaaa-000000000001` | `TrainingSection.SectionId` for Section 3          |
 | `QaSessionId`                     | `00000000-0000-0000-bbbb-000000000001` | `TrainingSession.SessionId`                        |
 
-> **Note on ClientId.** `TrainingPlan.ClientId` is keyed on `ClientProfile.PublicId`
-> (the profile's public identifier, `aaaaaaaa-...`), **not** on `ApplicationUser.Id`
-> (`11111111-...`). `GET /client/plans` filters by `ClientProfile.PublicId`. Using the
-> user id directly would make the plan invisible to that endpoint.
+> **Note on ClientId.** `TrainingPlan.ClientId` is keyed on `ApplicationUser.Id`
+> (`11111111-...`), **not** on `ClientProfile.PublicId` (`aaaaaaaa-...`), since the #840
+> migration. `GetClientPlansEndpoint.cs:59` resolves `var clientId = clientProfile.UserId`
+> and filters on that, so seeding the profile `PublicId` would make the plan invisible.
+> Every Mongo document keys the same way — `SessionExecution`, `SessionLog`,
+> `PersonalRecord`, `MealLog`.
+>
+> The profile `PublicId` is still the right value in **API query parameters** on
+> trainer-facing routes: `GET /training/plans?clientId=<ClientProfilePublicId>` resolves
+> `cp.PublicId == req.ClientId` and only then filters `TrainingPlan.ClientId` by that
+> profile's `UserId` (`GetTrainingPlansEndpoint.cs:85-87`). Query parameter = `PublicId`,
+> stored Mongo field = `ApplicationUser.Id`; conflating the two is what this note
+> originally got wrong.
+>
+> This note asserted the exact opposite before #847. The old wording was correct only
+> before #840, and a join by `PublicId` now matches zero documents silently rather than
+> failing, so treat any surviving copy of the old claim as stale.
 >
 > **Note on TrainerId.** `TrainingPlan.TrainerId` is keyed on `ApplicationUser.Id`
 > (`22222222-...`), **not** on `ProfessionalProfile.PublicId` (`bbbbbbbb-...`).
@@ -146,9 +160,9 @@ The plan exercises the three past-session states the web portal classifies in `c
 
 | State | Definition | Fixture session |
 |-------|------------|-----------------|
-| **completed** (read-only) | `WorkoutLog` exists with `IsCompleted = true` | `QaPastSessionCompletedId` (Week 1, Mon) |
-| **skipped** (editable + Mark-finished) | `WorkoutLog` exists with `IsCompleted = false` | `QaPastSessionSkippedId` (Week 1, Wed) |
-| **untouched** (editable + Mark-finished) | No `WorkoutLog` at all | `QaPastSessionUntouchedId` (Week 2, Mon) |
+| **completed** (read-only) | `SessionExecution` exists with `Status = Completed` | `QaPastSessionCompletedId` (Week 1, Mon) |
+| **skipped** (editable + Mark-finished) | `SessionExecution` exists with `Status = Partial` | `QaPastSessionSkippedId` (Week 1, Wed) |
+| **untouched** (editable + Mark-finished) | No `SessionExecution` at all | `QaPastSessionUntouchedId` (Week 2, Mon) |
 
 ### Stable GUIDs
 
@@ -158,14 +172,14 @@ The plan exercises the three past-session states the web portal classifies in `c
 | `QaPastSessionCompletedId` | `11111111-1111-1111-2222-000000000002` | Session in Week 1, DayOfWeek=1 (Monday) |
 | `QaPastSessionSkippedId` | `11111111-1111-1111-2222-000000000003` | Session in Week 1, DayOfWeek=3 (Wednesday) |
 | `QaPastSessionUntouchedId` | `11111111-1111-1111-2222-000000000004` | Session in Week 2, DayOfWeek=1 (Monday) |
-| `QaPastCompletedWorkoutLogId` | `11111111-1111-1111-2222-000000000005` | WorkoutLog for the completed session |
-| `QaPastSkippedWorkoutLogId` | `11111111-1111-1111-2222-000000000006` | WorkoutLog for the skipped session |
+| `QaPastCompletedExecutionId` | `11111111-1111-1111-2222-000000000005` | SessionExecution for the completed session |
+| `QaPastSkippedExecutionId` | `11111111-1111-1111-2222-000000000006` | SessionExecution for the skipped session |
 
 ### Plan ownership
 
-- `TrainingPlan.ClientId` = `ClientProfilePublicId` (`aaaaaaaa-...`) — keyed on `ClientProfile.PublicId`, same as all other training plans. `GetTrainingPlanEndpoint` queries `TrainingCompletion` by `plan.ClientId` and `WorkoutCompletionService` writes `TrainingCompletion.ClientId = clientProfile.PublicId`, so these must match.
+- `TrainingPlan.ClientId` = `ClientUserId` (`11111111-...`) — keyed on **`ApplicationUser.Id`** since #840, NOT `ClientProfile.PublicId`. This document previously stated the opposite; that was correct only before #840 and joining by `PublicId` now matches zero documents silently. `SessionExecution.ClientId` uses the same identifier, so plan and execution join directly.
 - `TrainingPlan.TrainerId` = `TrainerUserId` (`22222222-...`) — keyed on **`ApplicationUser.Id`**, NOT `ProfessionalProfile.PublicId`. `GetTrainingPlansEndpoint` and `GetTrainingPlanEndpoint` scope by `Guid.Parse(AppClaims.UserId)` which is `ApplicationUser.Id`. Using the profile `PublicId` (`bbbbbbbb-...`) would make the plan invisible to `GET /training/plans`.
-- `WorkoutLog.ClientId` = `ClientUserId` (`11111111-...`) — keyed on **`ApplicationUser.Id`**, NOT `ClientProfile.PublicId`. `CompleteWorkoutEndpoint` filters WorkoutLogs by `ClientId == Guid.Parse(AppClaims.UserId)` = `ApplicationUser.Id`. `WorkoutCompletionService` then resolves the ClientProfile via `cp.UserId == log.ClientId` and writes `TrainingCompletion.ClientId = clientProfile.PublicId`.
+- `SessionExecution.ClientId` = `ClientUserId` (`11111111-...`) — also **`ApplicationUser.Id`**. `CompleteWorkoutEndpoint` scopes executions by `ClientId == Guid.Parse(AppClaims.UserId)`, which is `ApplicationUser.Id`.
 - Login as `qa.trainer@fitnessplatform.test` to access via `GET /training/plans/{planId}`.
 
 ### Plan shape
@@ -179,16 +193,16 @@ TrainingPlan (ExternalId = 11111111-1111-1111-2222-000000000001)
       Session "QA Past Session — Completed" (DayOfWeek = 1 = Monday)
         Section "Hlavní" (Standard, PastCompletedSectionId = 11111111-1111-1111-3333-000000000001)
           [QA Bench Press, QA Overhead Press]
-        → WorkoutLog (ExternalId = 11111111-1111-1111-2222-000000000005, IsCompleted=true)
+        → SessionExecution (ExternalId = 11111111-1111-1111-2222-000000000005, Status=Completed)
       Session "QA Past Session — Skipped" (DayOfWeek = 3 = Wednesday)
         Section "Hlavní" (Standard, PastSkippedSectionId = 11111111-1111-1111-3333-000000000002)
           [QA Back Squat, QA Romanian Deadlift]
-        → WorkoutLog (ExternalId = 11111111-1111-1111-2222-000000000006, IsCompleted=false, 1 partial set)
+        → SessionExecution (ExternalId = 11111111-1111-1111-2222-000000000006, Status=Partial, 1 partial set)
     Week 2 (Status = Published)
       Session "QA Past Session — Untouched" (DayOfWeek = 1 = Monday)
         Section "Hlavní" (Standard, PastUntouchedSectionId = 11111111-1111-1111-3333-000000000003)
           [QA Pull-down, QA Seated Row]
-        → NO WorkoutLog
+        → NO SessionExecution
 ```
 
 ### Playwright targeting
@@ -231,7 +245,7 @@ All three recipes are owned by the QA Nutri, visibility `Public`.
 | Constant                     | Value                                  | What it maps to                                    |
 | ---------------------------- | -------------------------------------- | -------------------------------------------------- |
 | `QaNutritionPlanExternalId`  | `dddddddd-eeee-ffff-0000-111111111111` | The plan's `ExternalId`                            |
-| `ClientProfilePublicId`      | `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa` | `NutritionPlan.ClientId` (profile public id)       |
+| `ClientUserId`               | `11111111-1111-1111-1111-111111111111` | `NutritionPlan.ClientId` (ApplicationUser.Id, #840) |
 | `NutriUserId`                | `33333333-3333-3333-3333-333333333333` | `NutritionPlan.NutritionistId` (nutritionist user id) |
 
 Plan shape:
@@ -265,7 +279,7 @@ A third training plan is seeded for the **second** QA client/trainer pair. Its p
 - Client: `qa.client2@fitnessplatform.test` (`Client2UserId = 55555555-5555-5555-5555-555555555555`)
 - Trainer: `qa.trainer2@fitnessplatform.test` (`Trainer2UserId = 66666666-6666-6666-6666-666666666666`)
 - `TrainingPlan.TrainerId` = `Trainer2UserId` (ApplicationUser.Id — same rule as all other plans)
-- `TrainingPlan.ClientId` = `Client2ProfilePublicId = 55555555-5555-5555-aaaa-000000000001` (ClientProfile.PublicId — same rule as all other plans)
+- `TrainingPlan.ClientId` = `Client2UserId = 55555555-5555-5555-5555-555555555555` (ApplicationUser.Id — same rule as all other plans, per #840)
 
 ### Stable GUIDs
 
@@ -276,7 +290,7 @@ A third training plan is seeded for the **second** QA client/trainer pair. Its p
 | `MultiSectionStandardSectionId` | `55555555-5555-5555-aaaa-000000000001` | Standard section SectionId |
 | `MultiSectionAmrapSectionId` | `55555555-5555-5555-aaaa-000000000002` | AMRAP section SectionId |
 | `SharedExerciseId` | `55555555-5555-5555-cccc-000000000001` | "QA Kettlebell Swing" (appears in BOTH sections) |
-| `QaMultiSectionWorkoutLogId` | `55555555-5555-5555-4455-000000000001` | Completed WorkoutLog for this session |
+| `QaMultiSectionExecutionId` | `55555555-5555-5555-4455-000000000001` | Completed SessionExecution for this session |
 
 ### Plan shape
 
@@ -292,11 +306,11 @@ TrainingPlan (ExternalId = 55555555-5555-5555-dddd-000000000001)
           [QA Kettlebell Swing — no prescribed sets (AMRAP accumulates rounds)]
 ```
 
-### WorkoutLog shape
+### SessionExecution shape
 
 ```
-WorkoutLog (ExternalId = 55555555-5555-5555-4455-000000000001)
-  IsCompleted: true
+SessionExecution (ExternalId = 55555555-5555-5555-4455-000000000001)
+  Status: Completed
   ClientId: 55555555-5555-5555-5555-555555555555  (Client2UserId — ApplicationUser.Id)
 
   Section "Standard work" (SectionId = 55555555-5555-5555-aaaa-000000000001)

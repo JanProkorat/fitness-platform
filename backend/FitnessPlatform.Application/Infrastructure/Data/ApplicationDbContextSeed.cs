@@ -40,6 +40,7 @@ public static class ApplicationDbContextSeed
         }
 
         await EnsureSystemAdminAsync(userManager);
+        await EnsureSubscriptionPlansAsync(context);
     }
 
     /// <summary>
@@ -84,6 +85,111 @@ public static class ApplicationDbContextSeed
                 throw new InvalidOperationException($"Failed to assign Admin role to system user: {errors}");
             }
         }
+    }
+
+    /// <summary>
+    /// Seeds a placeholder set of subscription tiers (Free/Small/Medium/Big) so the Admin
+    /// management UI (#595, #596) has rows to display on first boot. Upserts by <c>Code</c> —
+    /// a plan that already exists is left untouched, so Admin edits made through the CRUD
+    /// endpoints are never clobbered by a later boot re-running this seeder. Caps and prices
+    /// are intentionally placeholder values; exact figures are a post-consult data change via
+    /// the Admin UI, not a code change (#595).
+    /// </summary>
+    private static async Task EnsureSubscriptionPlansAsync(ApplicationDbContext context)
+    {
+        var existingCodes = await context.SubscriptionPlans
+            .Select(p => p.Code)
+            .ToListAsync();
+
+        var placeholderPlans = new[]
+        {
+            new SubscriptionPlan
+            {
+                Code = "free",
+                NameCs = "Zdarma",
+                NameEn = "Free",
+                NameDe = "Kostenlos",
+                ApplicableRoles = ApplicableRoles.Both,
+                CanCreatePlans = false,
+                CanMessage = false,
+                CanSendQuestionnaires = false,
+                CanUseWeeklyCheckIns = false,
+                CanUsePerClientCheckInConfig = false,
+                MaxActiveClients = 3,
+                PriceMinorUnits = 0,
+                Currency = SupportedCurrencies.Czk,
+                BillingInterval = BillingInterval.Monthly,
+                ExternalPriceId = null,
+                IsActive = true,
+            },
+            new SubscriptionPlan
+            {
+                Code = "small",
+                NameCs = "Malý",
+                NameEn = "Small",
+                NameDe = "Klein",
+                ApplicableRoles = ApplicableRoles.Both,
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = false,
+                CanUseWeeklyCheckIns = false,
+                CanUsePerClientCheckInConfig = false,
+                MaxActiveClients = 10,
+                PriceMinorUnits = 29900,
+                Currency = SupportedCurrencies.Czk,
+                BillingInterval = BillingInterval.Monthly,
+                ExternalPriceId = null,
+                IsActive = true,
+            },
+            new SubscriptionPlan
+            {
+                Code = "medium",
+                NameCs = "Střední",
+                NameEn = "Medium",
+                NameDe = "Mittel",
+                ApplicableRoles = ApplicableRoles.Both,
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = false,
+                MaxActiveClients = 30,
+                PriceMinorUnits = 59900,
+                Currency = SupportedCurrencies.Czk,
+                BillingInterval = BillingInterval.Monthly,
+                ExternalPriceId = null,
+                IsActive = true,
+            },
+            new SubscriptionPlan
+            {
+                Code = "big",
+                NameCs = "Velký",
+                NameEn = "Big",
+                NameDe = "Groß",
+                ApplicableRoles = ApplicableRoles.Both,
+                CanCreatePlans = true,
+                CanMessage = true,
+                CanSendQuestionnaires = true,
+                CanUseWeeklyCheckIns = true,
+                CanUsePerClientCheckInConfig = true,
+                MaxActiveClients = null,
+                PriceMinorUnits = 99900,
+                Currency = SupportedCurrencies.Czk,
+                BillingInterval = BillingInterval.Monthly,
+                ExternalPriceId = null,
+                IsActive = true,
+            },
+        };
+
+        foreach (var plan in placeholderPlans)
+        {
+            if (!existingCodes.Contains(plan.Code))
+            {
+                context.SubscriptionPlans.Add(plan);
+            }
+        }
+
+        await context.SaveChangesAsync();
     }
 
     /// <summary>

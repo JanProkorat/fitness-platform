@@ -241,4 +241,87 @@ public class GetClientDashboardPlanGoalTests
         ep.Response.Onboarding!.PrimaryGoal.Should().Be(PrimaryGoal.LoseFat.ToString());
         ep.Response.Onboarding!.TargetWeightKg.Should().Be(65.0m);
     }
+
+    /// <summary>
+    /// A training-only caller (CanViewNutritionPlans=false, CanViewTrainingPlans=true) must
+    /// receive the onboarding baseline for <c>PrimaryGoal</c>/<c>TargetWeightKg</c> even when
+    /// the client has an active NutritionPlan whose Goal/TargetWeightKg differ — the existence
+    /// and values of that plan must not be observable to a caller without nutrition-plan
+    /// visibility (#921). The plan and onboarding fixture values are deliberately different so
+    /// this assertion is discriminating: it fails if the CanViewNutritionPlans gate around the
+    /// mongo NutritionPlans query is removed, since the plan's differing values would then win
+    /// via the existing <c>??</c> fallback.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TrainingOnlyCaller_ResponseUsesOnboardingBaseline_NotActivePlan()
+    {
+        var clientUser = EntityBuilder.User.WithEmail("training-only-goal@test.com").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(4).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(4).WithUser(clientUser).Build();
+
+        // Onboarding baseline — the training-only caller is entitled to see these
+        clientProfile.OnboardingData = new ClientOnboardingData
+        {
+            Id = 4,
+            ClientProfileId = 4,
+            PrimaryGoal = PrimaryGoal.LoseFat,
+            TargetWeightKg = 72.0m,
+            Sex = BiologicalSex.Male,
+            HeightCm = 180,
+            WeightKg = 90,
+            BodyType = BodyType.Mesomorph,
+            TimeHorizon = TimeHorizon.SixMonths,
+            JobType = JobType.Sedentary,
+            SleepHours = 7,
+            StressLevel = 3,
+            CurrentTrainingFrequency = CurrentTrainingFrequency.Regular,
+            DesiredTrainingFrequency = DesiredTrainingFrequency.FourPerWeek,
+            FitnessRating = 6,
+            MealsPerDay = MealsPerDay.FourToFive,
+            DietaryStyle = DietaryStyle.Standard,
+            PlanExperience = PlanExperience.TriedFailed,
+            PrimaryMotivation = PrimaryMotivation.Appearance,
+        };
+
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(13)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .WithCanViewNutritionPlans(false)
+            .WithCanViewTrainingPlans(true)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        // Active NutritionPlan with DIFFERENT values than onboarding — must not leak to a
+        // training-only caller.
+        var activePlan = PlanTestHelpers.CreatePlan(
+            clientId: clientProfile.PublicId,
+            status: NutritionPlanStatus.Active);
+        activePlan.Goal = PrimaryGoal.GainMuscle;
+        activePlan.TargetWeightKg = 95.0m;
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [activePlan]);
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, mongo);
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Onboarding.Should().NotBeNull();
+        // Onboarding baseline must win — the active plan's differing values must not surface.
+        ep.Response.Onboarding!.PrimaryGoal.Should().Be(PrimaryGoal.LoseFat.ToString());
+        ep.Response.Onboarding!.TargetWeightKg.Should().Be(72.0m);
+    }
 }

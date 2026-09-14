@@ -61,7 +61,7 @@ public class GetClientPendingQuestionnairesEndpoint(
         // Collect link IDs and invite IDs for this client (same dual-source pattern as ListClientRequests)
         var clientLinkIds = await db.ClientProfessionalLinks
             .AsNoTracking()
-            .Where(l => l.ClientProfileId == clientProfile.Id)
+            .Where(l => l.ClientProfileId == clientProfile.Id && l.IsActive)
             .Select(l => (long?)l.Id)
             .ToListAsync(ct);
 

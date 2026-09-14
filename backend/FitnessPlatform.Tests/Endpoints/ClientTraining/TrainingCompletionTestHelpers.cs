@@ -13,6 +13,32 @@ namespace FitnessPlatform.Tests.Endpoints.ClientTraining;
 public static class TrainingCompletionTestHelpers
 {
     /// <summary>
+    /// Returns the Monday of the current UTC week.
+    /// </summary>
+    /// <remarks>
+    /// Root cause of the #726-lookalike "scheduler-zombie" CI flake investigated for
+    /// epic #835/PR #854: this file's fixtures previously computed the week start as
+    /// <c>DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1)</c>. That
+    /// formula is correct for Monday(1)..Saturday(6) but breaks on Sunday, where
+    /// <see cref="DayOfWeek.Sunday"/> is <c>0</c>: <c>-(0) + 1 = +1</c> pushes the
+    /// computed "Monday" to TOMORROW instead of 6 days in the past. Every real
+    /// Sunday, the seeded <see cref="TrainingPlan.StartDate"/> lands in the future,
+    /// <c>PlanWindowResolver.ResolveCurrentPlan</c> legitimately finds no plan whose
+    /// window contains "today", and the endpoint under test returns a genuine 404 —
+    /// deterministically, in CI and locally alike, on any machine's real calendar
+    /// Sunday. This is why the failure was 100% reproducible in complete isolation
+    /// (no Testcontainers, no other tests) yet had never been seen before: the branch
+    /// had simply never had CI run on a Sunday until now. Uses the same
+    /// ISO-week-safe formula already proven correct elsewhere in this suite (see
+    /// <c>GetTodaySessionEndpointTests.StartOfCurrentWeek()</c>).
+    /// </remarks>
+    public static DateTime StartOfCurrentWeekUtc()
+    {
+        var today = DateTime.UtcNow.Date;
+        return today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+    }
+
+    /// <summary>
     /// Creates an active <see cref="TrainingPlan"/> with one published week containing
     /// sessions for every day of the week. Each session has the given exercises in a single section.
     /// </summary>
@@ -38,7 +64,7 @@ public static class TrainingCompletionTestHelpers
         var sid = sessionId ?? Guid.NewGuid();
         var secId = sectionId ?? Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
-        var start = startDate ?? DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1); // Monday of current week
+        var start = startDate ?? StartOfCurrentWeekUtc();
 
         return new TrainingPlan
         {
@@ -55,26 +81,33 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = secId,
-                                Order = 0,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sid : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
+                                Order = 1,
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = secId,
+                                        Order = 0,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseId = id,
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
@@ -86,14 +119,19 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates an active <see cref="TrainingPlan"/> where the target session has two sections,
-    /// each containing the same catalog exercise. This is the canonical "same exercise in two sections"
-    /// scenario that caused the original cross-section checkbox bug.
+    /// Creates an active <see cref="TrainingPlan"/> where the target session has two workouts,
+    /// each containing the same catalog exercise (same <see cref="SessionExercise.ExerciseExternalId"/>)
+    /// but a distinct <see cref="SessionExercise.ExerciseExternalId"/> instance identity per occurrence
+    /// (#857 phase 3b). This is the canonical "same exercise in two workouts" scenario that caused the
+    /// original cross-section checkbox bug.
     /// </summary>
     /// <returns>
-    ///   The plan plus the two section IDs. The <paramref name="exerciseId"/> appears in both sections.
+    ///   The plan, the two workout IDs, and the distinct per-instance ExerciseId for each occurrence —
+    ///   <paramref name="exerciseId"/> (the shared catalog external id) appears in both workouts, but
+    ///   <c>Workout1ExerciseId</c>/<c>Workout2ExerciseId</c> are the disambiguating instance ids callers
+    ///   must use to mark ONE occurrence complete without affecting the other.
     /// </returns>
-    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id)
+    public static (TrainingPlan Plan, Guid Section1Id, Guid Section2Id, Guid Workout1ExerciseId, Guid Workout2ExerciseId)
         CreateActivePlanWithDuplicateExerciseAcrossSections(
             Guid clientId,
             Guid sessionId,
@@ -101,7 +139,9 @@ public static class TrainingCompletionTestHelpers
     {
         var section1Id = Guid.NewGuid();
         var section2Id = Guid.NewGuid();
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var workout1ExerciseId = Guid.NewGuid();
+        var workout2ExerciseId = Guid.NewGuid();
+        var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
         {
@@ -118,43 +158,51 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = section1Id,
-                                Order = 0,
-                                Name = "Section A",
-                                Exercises =
-                                [
-                                    new SessionExercise
-                                    {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
-                                        Order = 1,
-                                        Sets = []
-                                    }
-                                ]
-                            },
-                            new TrainingSection
-                            {
-                                SectionId = section2Id,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Section B",
-                                Exercises =
+                                Workouts =
                                 [
-                                    new SessionExercise
+                                    new TrainingWorkout
                                     {
-                                        ExerciseExternalId = exerciseId,
-                                        ExerciseName = "Shared Exercise",
+                                        WorkoutId = section1Id,
+                                        Order = 0,
+                                        Name = "Section A",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = workout1ExerciseId,
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = section2Id,
                                         Order = 1,
-                                        Sets = []
+                                        Name = "Section B",
+                                        Exercises =
+                                        [
+                                            new SessionExercise
+                                            {
+                                                ExerciseId = workout2ExerciseId,
+                                                ExerciseExternalId = exerciseId,
+                                                ExerciseName = "Shared Exercise",
+                                                Order = 1,
+                                                Sets = []
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -166,30 +214,32 @@ public static class TrainingCompletionTestHelpers
             DateCreated = start
         };
 
-        return (plan, section1Id, section2Id);
+        return (plan, section1Id, section2Id, workout1ExerciseId, workout2ExerciseId);
     }
 
     /// <summary>
-    /// Creates a <see cref="TrainingCompletion"/> document for the given session and date.
+    /// Creates a <see cref="SessionExecution"/> document (checkbox-only — no Performance) for the
+    /// given session and date. #841: unifies the retired <c>TrainingCompletion</c> document this
+    /// helper used to build; kept the same name/parameter shape for minimal call-site churn across
+    /// the ClientTraining test suite.
     /// </summary>
-    public static TrainingCompletion CreateCompletion(
+    public static SessionExecution CreateCompletion(
         Guid clientId,
         Guid sessionId,
         DateTime date,
         IReadOnlyList<Guid>? completedExerciseIds = null,
         IReadOnlyList<Guid>? completedSectionIds = null,
-        int version = 1,
-        Dictionary<string, List<Guid>>? completedExerciseIdsBySection = null)
+        int version = 1)
     {
-        return new TrainingCompletion
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientId,
             Date = date.Date,
             SessionId = sessionId,
-            CompletedExerciseIds = completedExerciseIds?.ToList() ?? [],
-            CompletedSectionIds = completedSectionIds?.ToList(),
-            CompletedExerciseIdsBySection = completedExerciseIdsBySection,
+            Status = SessionExecutionStatus.Partial,
+            CompletedExerciseInstanceIds = completedExerciseIds?.ToList() ?? [],
+            CompletedWorkoutIds = completedSectionIds?.ToList(),
             DateCreated = DateTime.UtcNow,
             Version = version
         };
@@ -209,7 +259,7 @@ public static class TrainingCompletionTestHelpers
         var forTimeSectionId = Guid.NewGuid();
         var standardSectionId = Guid.NewGuid();
         var exIds = exerciseIds ?? [Guid.NewGuid(), Guid.NewGuid()];
-        var start = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek + 1);
+        var start = StartOfCurrentWeekUtc();
 
         var plan = new TrainingPlan
         {
@@ -226,33 +276,40 @@ public static class TrainingCompletionTestHelpers
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
                     DatePublished = start,
-                    Sessions = Enumerable.Range(1, 7).Select(d => new TrainingSession
+                    Days = Enumerable.Range(1, 7).Select(d => new TrainingDay
                     {
-                        SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
                         DayOfWeek = d,
-                        Name = $"Day {d} Session",
-                        Order = 1,
-                        Sections =
+                        Sessions =
                         [
-                            new TrainingSection
+                            new TrainingSession
                             {
-                                SectionId = forTimeSectionId,
-                                Order = 0,
-                                Name = "ForTime",
-                                Exercises = [] // exercise-free section
-                            },
-                            new TrainingSection
-                            {
-                                SectionId = standardSectionId,
+                                SessionId = d == (int)DateTime.UtcNow.DayOfWeek || d == 1 ? sessionId : Guid.NewGuid(),
+                                Name = $"Day {d} Session",
                                 Order = 1,
-                                Name = "Hlavní",
-                                Exercises = exIds.Select((id, i) => new SessionExercise
-                                {
-                                    ExerciseExternalId = id,
-                                    ExerciseName = $"Exercise {i + 1}",
-                                    Order = i + 1,
-                                    Sets = []
-                                }).ToList()
+                                Workouts =
+                                [
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = forTimeSectionId,
+                                        Order = 0,
+                                        Name = "ForTime",
+                                        Exercises = [] // exercise-free section
+                                    },
+                                    new TrainingWorkout
+                                    {
+                                        WorkoutId = standardSectionId,
+                                        Order = 1,
+                                        Name = "Hlavní",
+                                        Exercises = exIds.Select((id, i) => new SessionExercise
+                                        {
+                                            ExerciseId = id,
+                                            ExerciseExternalId = id,
+                                            ExerciseName = $"Exercise {i + 1}",
+                                            Order = i + 1,
+                                            Sets = []
+                                        }).ToList()
+                                    }
+                                ]
                             }
                         ]
                     }).ToList()
@@ -266,17 +323,18 @@ public static class TrainingCompletionTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoContext"/> with configured collections for
-    /// training plans and training completions. <paramref name="workoutLogs"/> is
-    /// optional; when supplied the mock WorkoutLogs collection will contain those
-    /// documents and <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> will
-    /// return a successful result.
+    /// Creates a mock <see cref="IMongoContext"/> with configured collections for training plans
+    /// and (#841) the unified SessionExecutions collection. <paramref name="existingCompletion"/>
+    /// is a checkbox-flag-only <see cref="SessionExecution"/> (see <see cref="CreateCompletion"/>).
+    /// Performance-bearing fixtures are built as <see cref="SessionExecution"/> documents directly
+    /// by the calling test and passed through the same parameter, since every
+    /// Mark*/GetTodaySession endpoint under test reads exclusively
+    /// <see cref="IMongoContext.SessionExecutions"/>.
     /// </summary>
-    public static (IMongoContext Mongo, IMongoCollection<TrainingCompletion> CompletionCollection)
+    public static (IMongoContext Mongo, IMongoCollection<SessionExecution> ExecutionCollection)
         CreateMockMongo(
             TrainingPlan? plan = null,
-            TrainingCompletion? existingCompletion = null,
-            IReadOnlyList<WorkoutLog>? workoutLogs = null)
+            SessionExecution? existingCompletion = null)
     {
         var mongo = Substitute.For<IMongoContext>();
 
@@ -285,42 +343,61 @@ public static class TrainingCompletionTestHelpers
         var planCollection = CreateMockPlanCollection(plans);
         mongo.TrainingPlans.Returns(planCollection);
 
-        // Training completions
-        var completions = existingCompletion is not null
-            ? new List<TrainingCompletion> { existingCompletion }
-            : new List<TrainingCompletion>();
-        var completionCollection = CreateMockCompletionCollection(completions);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        var executions = new List<SessionExecution>();
+        if (existingCompletion is not null)
+            executions.Add(existingCompletion);
 
-        // WorkoutLogs — empty by default so the new best-effort WorkoutLog cleanup
-        // paths in MarkSessionIncomplete / MarkExerciseIncomplete don't throw.
-        var logCollection = CreateMockWorkoutLogCollection(workoutLogs ?? []);
-        mongo.WorkoutLogs.Returns(logCollection);
+        var executionCollection = CreateMockSessionExecutionCollection(executions);
+        mongo.SessionExecutions.Returns(executionCollection);
 
-        return (mongo, completionCollection);
+        return (mongo, executionCollection);
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{WorkoutLog}"/> backed by the supplied list.
-    /// <see cref="IMongoCollection{WorkoutLog}.ReplaceOneAsync"/> is stubbed to return success
-    /// without mutating the list (the test inspects the in-memory objects directly).
+    /// Creates a mock <see cref="IMongoCollection{SessionExecution}"/> backed by the supplied list.
+    /// FindAsync/CountDocumentsAsync return-value semantics mirror the pre-#841
+    /// two-collection mocks this replaced; InsertOneAsync/UpdateOneAsync/ReplaceOneAsync are stubbed to
+    /// succeed without mutating the seeded list (tests inspect the in-memory objects directly or
+    /// assert on ReceivedCalls()).
     /// </summary>
-    public static IMongoCollection<WorkoutLog> CreateMockWorkoutLogCollection(
-        IReadOnlyList<WorkoutLog> logs)
+    public static IMongoCollection<SessionExecution> CreateMockSessionExecutionCollection(
+        List<SessionExecution> executions,
+        bool updateSucceeds = true)
     {
-        var collection = Substitute.For<IMongoCollection<WorkoutLog>>();
+        var collection = Substitute.For<IMongoCollection<SessionExecution>>();
 
         collection.FindAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<FindOptions<WorkoutLog, WorkoutLog>>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<FindOptions<SessionExecution, SessionExecution>>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => CreateWorkoutLogCursor(logs.ToList()));
+            .Returns(_ => CreateExecutionCursor(executions));
+
+        collection.CountDocumentsAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<CountOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(executions.Count);
+
+        collection.InsertOneAsync(
+                Arg.Any<SessionExecution>(),
+                Arg.Any<InsertOneOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(updateSucceeds ? 1L : 0L);
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<UpdateDefinition<SessionExecution>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
 
         var replaceResult = Substitute.For<ReplaceOneResult>();
         replaceResult.ModifiedCount.Returns(1L);
         collection.ReplaceOneAsync(
-                Arg.Any<FilterDefinition<WorkoutLog>>(),
-                Arg.Any<WorkoutLog>(),
+                Arg.Any<FilterDefinition<SessionExecution>>(),
+                Arg.Any<SessionExecution>(),
                 Arg.Any<ReplaceOptions>(),
                 Arg.Any<CancellationToken>())
             .Returns(replaceResult);
@@ -328,31 +405,24 @@ public static class TrainingCompletionTestHelpers
         return collection;
     }
 
-    /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{TrainingCompletion}"/> with basic operations.
-    /// </summary>
-    public static IMongoCollection<TrainingCompletion> CreateMockCompletionCollection(
-        List<TrainingCompletion> completions,
-        bool updateSucceeds = true)
+    private static IAsyncCursor<SessionExecution> CreateExecutionCursor(List<SessionExecution> executions)
     {
-        var collection = Substitute.For<IMongoCollection<TrainingCompletion>>();
-
-        collection.FindAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<FindOptions<TrainingCompletion, TrainingCompletion>>(),
-                Arg.Any<CancellationToken>())
-            .Returns(ci => CreateCompletionCursor(completions));
-
-        var updateResult = Substitute.For<UpdateResult>();
-        updateResult.ModifiedCount.Returns(updateSucceeds ? 1L : 0L);
-        collection.UpdateOneAsync(
-                Arg.Any<FilterDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateDefinition<TrainingCompletion>>(),
-                Arg.Any<UpdateOptions>(),
-                Arg.Any<CancellationToken>())
-            .Returns(updateResult);
-
-        return collection;
+        var cursor = Substitute.For<IAsyncCursor<SessionExecution>>();
+        var moved = false;
+        cursor.Current.Returns(executions);
+        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return executions.Count > 0;
+        });
+        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (moved) return false;
+            moved = true;
+            return executions.Count > 0;
+        });
+        return cursor;
     }
 
     private static IMongoCollection<TrainingPlan> CreateMockPlanCollection(List<TrainingPlan> plans)
@@ -409,45 +479,5 @@ public static class TrainingCompletionTestHelpers
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(0);
         return svc;
-    }
-
-    private static IAsyncCursor<TrainingCompletion> CreateCompletionCursor(List<TrainingCompletion> completions)
-    {
-        var cursor = Substitute.For<IAsyncCursor<TrainingCompletion>>();
-        var moved = false;
-        cursor.Current.Returns(completions);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return completions.Count > 0;
-        });
-        return cursor;
-    }
-
-    private static IAsyncCursor<WorkoutLog> CreateWorkoutLogCursor(List<WorkoutLog> logs)
-    {
-        var cursor = Substitute.For<IAsyncCursor<WorkoutLog>>();
-        var moved = false;
-        cursor.Current.Returns(logs);
-        cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return logs.Count > 0;
-        });
-        cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (moved) return false;
-            moved = true;
-            return logs.Count > 0;
-        });
-        return cursor;
     }
 }

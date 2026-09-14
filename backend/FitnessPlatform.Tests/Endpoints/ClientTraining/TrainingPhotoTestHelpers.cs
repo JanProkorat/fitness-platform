@@ -29,16 +29,12 @@ public static class TrainingPhotoTestHelpers
         var planCollection = CreateCollection(plans);
         var sessionLogCollection = CreateSessionLogCollection(sessionLogs ?? []);
         var exerciseCollection = CreateCollection<Exercise>([]);
-        var completionCollection = CreateCollection<TrainingCompletion>([]);
-        var workoutLogCollection = CreateCollection<WorkoutLog>([]);
         var sessionLockCollection = CreateCollection<SessionLock>([]);
 
         // Assign after all substitutes are created
         mongo.TrainingPlans.Returns(planCollection);
         mongo.SessionLogs.Returns(sessionLogCollection);
         mongo.Exercises.Returns(exerciseCollection);
-        mongo.TrainingCompletions.Returns(completionCollection);
-        mongo.WorkoutLogs.Returns(workoutLogCollection);
         mongo.SessionLocks.Returns(sessionLockCollection);
 
         return mongo;

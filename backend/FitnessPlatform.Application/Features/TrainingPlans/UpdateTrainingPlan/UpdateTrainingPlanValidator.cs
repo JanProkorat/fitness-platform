@@ -1,15 +1,29 @@
 using FastEndpoints;
 using FluentValidation;
-using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.TrainingPlans.UpdateTrainingPlan;
 
 /// <summary>
-/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, sections, exercises, and sets.
+/// Validates <see cref="UpdateTrainingPlanRequest"/> including all nested weeks, sessions, workouts, exercises, and sets.
 /// </summary>
 public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
 {
+    private static readonly SessionExerciseAccessors<UpdateSessionExerciseRequest, UpdateExerciseSetRequest> ExerciseAccessors = new(
+        ExerciseExternalId: e => e.ExerciseExternalId,
+        ExerciseName: e => e.ExerciseName,
+        Order: e => e.Order,
+        RestSeconds: e => e.RestSeconds,
+        Format: e => e.Format,
+        FormatConfig: e => e.FormatConfig,
+        Sets: e => e.Sets,
+        SetNumber: s => s.SetNumber,
+        Reps: s => s.Reps,
+        WeightKg: s => s.WeightKg,
+        Rpe: s => s.Rpe);
+
     /// <summary>
     /// Initializes validation rules for a full-state training plan update.
     /// </summary>
@@ -83,14 +97,27 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                 session.RuleFor(s => s.Order)
                     .GreaterThanOrEqualTo(1).WithMessage("Session Order must be >= 1.");
 
-                // Session must have at least one section
-                session.RuleFor(s => s.Sections)
-                    .NotEmpty().WithMessage("A session must have at least one section.");
+                // Session must have at least one workout or standalone exercise (#857 phase 3a:
+                // a session no longer strictly needs a workout — a lone finisher exercise
+                // programmed directly on the session is now a valid, complete session).
+                session.RuleFor(s => s)
+                    .Must(s => s.Workouts.Count > 0 || s.StandaloneExercises.Count > 0)
+                    .WithErrorCode(ErrorCodes.WorkoutsRequired)
+                    .WithName("Workouts")
+                    .WithMessage("A session must have at least one workout or standalone exercise.");
 
-                // No duplicate Order values within a session's sections
-                session.RuleFor(s => s.Sections)
-                    .Must(sections => sections.Select(sec => sec.Order).Distinct().Count() == sections.Count)
-                    .WithMessage("Duplicate Order values are not allowed within a session's sections.");
+                // No duplicate Order values within a session's workouts
+                session.RuleFor(s => s.Workouts)
+                    .Must(workouts => workouts.Select(w => w.Order).Distinct().Count() == workouts.Count)
+                    .WithErrorCode(ErrorCodes.WorkoutOrderDuplicate)
+                    .WithMessage("Duplicate Order values are not allowed within a session's workouts.");
+
+                // #857 phase 3a: standalone exercises and workouts share ONE ordering
+                // sequence within a session — a duplicate Order across either list (or both) is
+                // rejected with the stable TRAINING_DUPLICATE_SESSION_ORDER code. Shared with the
+                // template validators via TrainingContentRuleSet (#892).
+                TrainingContentRuleSet.ApplyCombinedOrderRule(
+                    session, s => s.Workouts, w => w.Order, s => s.StandaloneExercises, e => e.Order);
 
                 // Session-level format config invariants (optional, nullable)
                 session.RuleFor(s => s.FormatConfig)
@@ -103,132 +130,21 @@ public class UpdateTrainingPlanValidator : Validator<UpdateTrainingPlanRequest>
                     .When(s => s.Format.HasValue && s.Format != WorkoutFormat.Standard)
                     .WithMessage("Session FormatConfig is required for non-Standard formats.");
 
-                ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
+                TrainingContentRuleSet.ApplyFormatConfigRules(session, s => s.Format, s => s.FormatConfig, "Session");
 
-                session.RuleForEach(s => s.Sections).ChildRules(section =>
-                {
-                    section.RuleFor(sec => sec.Name)
-                        .NotEmpty().WithMessage("Section Name must not be empty.")
-                        .MaximumLength(200);
+                session.RuleForEach(s => s.Workouts).ChildRules(workout =>
+                    TrainingContentRuleSet.ApplyWorkoutRules(
+                        workout, w => w.Name, w => w.Format, w => w.FormatConfig, w => w.Exercises, ExerciseAccessors));
 
-                    section.RuleFor(sec => sec.Exercises)
-                        .Must(exercises => exercises.Count <= 30).WithMessage("A section may not have more than 30 exercises.");
+                // #857 phase 3a: standalone exercises directly on the session — same shape and
+                // limits as a section's nested exercises, shared via TrainingContentRuleSet (#892)
+                // to avoid duplicating the whole exercise+set rule tree.
+                session.RuleFor(s => s.StandaloneExercises)
+                    .Must(exercises => exercises.Count <= 30).WithMessage("A session may not have more than 30 standalone exercises.");
 
-                    // Section-level format config invariants
-                    section.RuleFor(sec => sec.FormatConfig)
-                        .Null()
-                        .When(sec => sec.Format == WorkoutFormat.Standard)
-                        .WithMessage("Section FormatConfig must be null for Standard format.");
-
-                    section.RuleFor(sec => sec.FormatConfig)
-                        .NotNull()
-                        .When(sec => sec.Format.HasValue && sec.Format != WorkoutFormat.Standard)
-                        .WithMessage("Section FormatConfig is required for non-Standard formats.");
-
-                    ApplyFormatConfigRules(section, sec => sec.Format, sec => sec.FormatConfig, "Section");
-
-                    section.RuleForEach(sec => sec.Exercises).ChildRules(exercise =>
-                    {
-                        exercise.RuleFor(e => e.ExerciseExternalId)
-                            .NotEmpty().WithMessage("ExerciseExternalId must not be empty.");
-
-                        exercise.RuleFor(e => e.ExerciseName)
-                            .NotEmpty().WithMessage("ExerciseName must not be empty.");
-
-                        exercise.RuleFor(e => e.Order)
-                            .GreaterThanOrEqualTo(1).WithMessage("Exercise Order must be >= 1.");
-
-                        exercise.RuleFor(e => e.RestSeconds)
-                            .InclusiveBetween(0, 600).When(e => e.RestSeconds.HasValue)
-                            .WithMessage("RestSeconds must be between 0 and 600.");
-
-                        // Per-exercise format config invariants
-                        exercise.RuleFor(e => e.FormatConfig)
-                            .Null()
-                            .When(e => e.Format == WorkoutFormat.Standard)
-                            .WithMessage("Exercise FormatConfig must be null for Standard format.");
-
-                        exercise.RuleFor(e => e.FormatConfig)
-                            .NotNull()
-                            .When(e => e.Format.HasValue && e.Format != WorkoutFormat.Standard)
-                            .WithMessage("Exercise FormatConfig is required for non-Standard formats.");
-
-                        ApplyFormatConfigRules(exercise, e => e.Format, e => e.FormatConfig, "Exercise");
-
-                        exercise.RuleFor(e => e.Sets)
-                            .Must(sets => sets.Count <= 20).WithMessage("An exercise may not have more than 20 sets.");
-
-                        exercise.RuleForEach(e => e.Sets).ChildRules(set =>
-                        {
-                            set.RuleFor(s => s.SetNumber)
-                                .GreaterThanOrEqualTo(1).WithMessage("SetNumber must be >= 1.");
-
-                            set.RuleFor(s => s.Reps)
-                                .InclusiveBetween(1, 1000).When(s => s.Reps.HasValue)
-                                .WithMessage("Reps must be between 1 and 1000.");
-
-                            set.RuleFor(s => s.WeightKg)
-                                .GreaterThanOrEqualTo(0).When(s => s.WeightKg.HasValue)
-                                .WithMessage("WeightKg must be >= 0.");
-
-                            set.RuleFor(s => s.Rpe)
-                                .InclusiveBetween(1, 10).When(s => s.Rpe.HasValue)
-                                .WithMessage("RPE must be between 1 and 10.");
-                        });
-                    });
-                });
+                session.RuleForEach(s => s.StandaloneExercises).ChildRules(exercise =>
+                    TrainingContentRuleSet.ApplyExerciseChildRules(exercise, ExerciseAccessors));
             });
         });
-    }
-
-    private static void ApplyFormatConfigRules<T>(
-        AbstractValidator<T> validator,
-        Func<T, WorkoutFormat?> formatSelector,
-        Func<T, WodConfig?> configSelector,
-        string prefix)
-    {
-        // Use Must() on the root object so FluentValidation does not need to resolve
-        // PropertyName from a delegate-chained expression such as
-        // `x => configSelector(x)!.IntervalSeconds`. Expression-visitor-based name
-        // resolution of that pattern is JIT-dependent and produces an empty string
-        // on Linux/x64 while resolving correctly on macOS/ARM64 (issue #276).
-        // WithName() pins the property name explicitly and WithMessage() ensures
-        // the field name appears in the error message on every platform.
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.IntervalSeconds is > 0)
-            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
-            .WithName("IntervalSeconds")
-            .WithMessage($"{prefix} EMOM requires IntervalSeconds > 0.");
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.TotalRounds is > 0)
-            .When(x => formatSelector(x) == WorkoutFormat.EMOM && configSelector(x) != null)
-            .WithName("TotalRounds")
-            .WithMessage($"{prefix} EMOM requires TotalRounds > 0.");
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.TimeCapSeconds is > 0)
-            .When(x => (formatSelector(x) == WorkoutFormat.AMRAP || formatSelector(x) == WorkoutFormat.ForTime) && configSelector(x) != null)
-            .WithName("TimeCapSeconds")
-            .WithMessage($"{prefix} AMRAP and ForTime require TimeCapSeconds > 0.");
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.WorkSeconds is > 0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithName("WorkSeconds")
-            .WithMessage($"{prefix} Tabata requires WorkSeconds > 0.");
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.RestSeconds is > 0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithName("RestSeconds")
-            .WithMessage($"{prefix} Tabata requires RestSeconds > 0.");
-
-        validator.RuleFor(x => x)
-            .Must(x => configSelector(x)?.TotalRounds is > 0)
-            .When(x => formatSelector(x) == WorkoutFormat.Tabata && configSelector(x) != null)
-            .WithName("TotalRounds")
-            .WithMessage($"{prefix} Tabata requires TotalRounds > 0.");
     }
 }

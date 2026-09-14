@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Questionnaires.Dtos;
 using FitnessPlatform.Application.Features.Questionnaires.GetClientResponse;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -14,7 +15,8 @@ namespace FitnessPlatform.Application.Features.Questionnaires.GetClientResponses
 /// specific client, scoped to the requesting professional. Supports response
 /// history when a coach sends multiple questionnaires over time.
 /// </summary>
-public class GetClientResponsesEndpoint(IApplicationDbContext db) : EndpointWithoutRequest<GetClientResponsesResponse>
+public class GetClientResponsesEndpoint(IApplicationDbContext db, IClientLinkAuthorizationService linkAuthorizationService)
+    : EndpointWithoutRequest<GetClientResponsesResponse>
 {
     public override void Configure()
     {
@@ -54,13 +56,13 @@ public class GetClientResponsesEndpoint(IApplicationDbContext db) : EndpointWith
             return;
         }
 
-        var hasLink = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .AnyAsync(l => l.ClientProfileId == clientProfile.Id
-                        && l.ProfessionalProfileId == professionalProfile.Id
-                        && l.IsActive, ct);
+        // The professional and client profiles are already confirmed to exist above, so a null
+        // result here can only mean "no active link" — not "no professional/client profile". No
+        // capability flag is required, matching the pre-migration IsActive-only presence check.
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientPublicIdAsync(
+            userGuid, clientPublicId, ct);
 
-        if (!hasLink)
+        if (capabilities is null)
         {
             await Send.NotFoundAsync(ct);
             return;

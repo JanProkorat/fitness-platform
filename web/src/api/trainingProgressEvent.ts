@@ -56,16 +56,16 @@ export interface TrainingProgressUpdatedEvent {
   sessionsPlannedToday: number;
 
   /**
-   * The section (superset / circuit) that was mutated, if the operation was
-   * section-scoped.  Absent when the operation targeted a whole session or day.
+   * The workout (superset / circuit) that was mutated, if the operation was
+   * workout-scoped.  Absent when the operation targeted a whole session or day.
    */
-  sectionId?: string;
+  workoutId?: string;
 
   /**
-   * Whether every exercise in the section is now complete.
-   * Only present when `sectionId` is also present.
+   * Whether every exercise in the workout is now complete.
+   * Only present when `workoutId` is also present.
    */
-  sectionComplete?: boolean;
+  workoutComplete?: boolean;
 }
 
 /**
@@ -90,8 +90,8 @@ export function isTrainingProgressUpdatedEvent(
     typeof p.newStreak === 'number' &&
     typeof p.sessionsCompletedToday === 'number' &&
     typeof p.sessionsPlannedToday === 'number' &&
-    // Optional section-level fields — validate only when present
-    (p.sectionId === undefined || typeof p.sectionId === 'string') &&
-    (p.sectionComplete === undefined || typeof p.sectionComplete === 'boolean')
+    // Optional workout-level fields — validate only when present
+    (p.workoutId === undefined || typeof p.workoutId === 'string') &&
+    (p.workoutComplete === undefined || typeof p.workoutComplete === 'boolean')
   );
 }

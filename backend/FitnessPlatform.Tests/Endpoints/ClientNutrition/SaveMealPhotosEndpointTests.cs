@@ -9,8 +9,10 @@ using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientNutrition.SaveMealPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.NutritionPlans;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -27,6 +29,7 @@ public class SaveMealPhotosEndpointTests
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
     private readonly ILogger<SaveMealPhotosEndpoint> _logger =
         Substitute.For<ILogger<SaveMealPhotosEndpoint>>();
+    private readonly FakeBlobStorageService _blobStorage = new();
 
     private IApplicationDbContext CreateMockDb() =>
         new MockDbBuilder()
@@ -96,12 +99,12 @@ public class SaveMealPhotosEndpointTests
     }
 
     private SaveMealPhotosEndpoint CreateEndpoint(
-        IMongoContext mongo, IApplicationDbContext db) =>
+        IMongoContext mongo, IApplicationDbContext db, IClientLinkAuthorizationService? linkAuthorizationService = null) =>
         Factory.Create<SaveMealPhotosEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _logger);
+            mongo, db, _notifier, linkAuthorizationService ?? EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _logger, _blobStorage, TimeProvider.System);
 
     // ──────────────────────────────────────────────────────────────────────────
     // Replace-semantics happy-path tests
@@ -115,7 +118,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -168,7 +171,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Pre-existing log: 2 photos + an old note
@@ -228,7 +231,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var existingLog = new MealLog
@@ -282,7 +285,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Pre-existing log with a note
@@ -334,7 +337,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string urlA = "https://minio.local/bucket/photoA.jpg";
@@ -426,7 +429,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Dinner, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var originalEatenAt = DateTime.UtcNow.AddMinutes(-45);
@@ -487,7 +490,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -541,7 +544,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Lunch, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string urlA = "https://minio.local/bucket/pasta.jpg";
@@ -641,7 +644,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         // Legacy record: LogDate is the default (0001-01-01), EatenAt is today
@@ -702,7 +705,7 @@ public class SaveMealPhotosEndpointTests
         var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
 
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
@@ -746,7 +749,7 @@ public class SaveMealPhotosEndpointTests
 
         var planExternalId = Guid.NewGuid();
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active, externalId: planExternalId);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         plan.Weeks[0].Days[0].Meals.Add(meal);
 
         const string blobUrl = "https://minio.local/bucket/existing-photo.jpg";
@@ -812,6 +815,149 @@ public class SaveMealPhotosEndpointTests
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    // BlobUrl normalization (F9 follow-up)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlWithSignedQueryString_PersistsCanonicalForm()
+    {
+        // A client echoes back a short-lived DisplayUrl (or a stale value from an app build
+        // predating the identity/presentation split). Persisting the raw query string would
+        // make the signature the permanent stored value. Revert the endpoint's
+        // NormalizePhotoUrlsOrRespondAsync call and this assertion fails: the inserted photo's
+        // BlobUrl would equal the raw, still-signed input instead of the stripped canonical form.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.StartDate = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        MealLog? insertedLog = null;
+        var mealLogCollection = Substitute.For<IMongoCollection<MealLog>>();
+        mealLogCollection.FindAsync(
+                Arg.Any<FilterDefinition<MealLog>>(),
+                Arg.Any<FindOptions<MealLog, MealLog>>(),
+                Arg.Any<CancellationToken>())
+            .Returns(_ => CreateMealLogCursor([]));
+        mealLogCollection.InsertOneAsync(
+                Arg.Do<MealLog>(log => insertedLog = log),
+                Arg.Any<InsertOneOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/echoed.jpg?signed=test" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+        insertedLog.Should().NotBeNull();
+        insertedLog!.Photos.Should().ContainSingle();
+        insertedLog.Photos[0].BlobUrl.Should().Be("https://minio.local/bucket/echoed.jpg");
+        insertedLog.Photos[0].BlobUrl.Should().NotContain("?");
+    }
+
+    [Fact]
+    public async Task HandleAsync_BlobUrlCannotBeNormalized_Returns400()
+    {
+        // An empty BlobUrl cannot be normalised to a canonical form. Remove the endpoint's
+        // NormalizePhotoUrlsOrRespondAsync guard and this 400 disappears — the request proceeds
+        // to a 204 with an empty BlobUrl persisted instead.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.StartDate = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = CreateMockDb();
+        var ep = CreateEndpoint(mongo, db);
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+
+        await mealLogCollection.DidNotReceive().InsertOneAsync(
+            Arg.Any<MealLog>(), Arg.Any<InsertOneOptions>(), Arg.Any<CancellationToken>());
+        await mealLogCollection.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<MealLog>>(),
+            Arg.Any<UpdateDefinition<MealLog>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // F6 residual: planPhotoUploaded is gated on the nutritionist's CURRENT link
+    // capability, not mere plan authorship.
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveMealPhotos_NutritionistLacksCapability_DoesNotEmitPlanPhotoUploaded()
+    {
+        // The nutritionist authored the plan (plan.NutritionistId is set) but no longer holds
+        // a live, nutrition-capable ClientProfessionalLink — the same defect class F6 closed at
+        // the other six sites: authorship must never substitute for a live capability check.
+        var mealId = Guid.NewGuid();
+        var food = PlanTestHelpers.CreateMealFood(foodName: "Toast");
+        var meal = PlanTestHelpers.CreateMeal(mealId: mealId, kind: MealKind.Breakfast, foods: food);
+
+        var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
+        plan.StartDate = DateTime.UtcNow;
+        plan.Weeks[0].Days[0].Meals.Add(meal);
+
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);
+        var mealLogCollection = CreateMealLogCollection(existingLogs: []);
+        mongo.MealLogs.Returns(mealLogCollection);
+
+        var db = new MockDbBuilder()
+            .With(new ClientProfile { UserId = _clientId, PublicId = _clientId })
+            .Build();
+
+        var ep = CreateEndpoint(mongo, db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(canViewNutritionPlans: false));
+
+        await ep.HandleAsync(
+            new SaveMealPhotosRequest
+            {
+                MealId = mealId,
+                Photos = [new MealPhotoInput { BlobUrl = "https://minio.local/bucket/denied.jpg" }],
+                Note = null
+            },
+            TestContext.Current.CancellationToken);
+
+        // The write itself still succeeds — only the broadcast is gated.
+        ep.HttpContext.Response.StatusCode.Should().Be(204);
+
+        await _notifier.DidNotReceive().NotifyAsync(
+            Arg.Any<Guid>(),
+            "planphotouploaded",
+            Arg.Any<object>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Auth / ownership guard tests
     // ──────────────────────────────────────────────────────────────────────────
 
@@ -845,7 +991,7 @@ public class SaveMealPhotosEndpointTests
     public async Task HandleAsync_InvalidMealId_Returns404()
     {
         var plan = PlanTestHelpers.CreatePlan(clientId: _clientId, status: NutritionPlanStatus.Active);
-        plan.DatePublished = DateTime.UtcNow;
+        plan.StartDate = DateTime.UtcNow;
         // No meals added — any mealId will be unknown
 
         var mongo = PlanTestHelpers.CreateMockMongo(plans: [plan]);

@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.ClientTraining.MarkSessionIncomplete;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
@@ -26,6 +27,7 @@ public class MarkSessionIncompleteEndpointTests
     private readonly Guid _exercise2 = Guid.NewGuid();
     private readonly IRealtimeNotifier _notifier = TrainingCompletionTestHelpers.CreateStubNotifier();
     private readonly IComplianceService _compliance = TrainingCompletionTestHelpers.CreateStubComplianceService();
+    private readonly IClientLinkAuthorizationService _linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
     private readonly ILogger<MarkSessionIncompleteEndpoint> _logger = Substitute.For<ILogger<MarkSessionIncompleteEndpoint>>();
 
     private IApplicationDbContext CreateMockDb() =>
@@ -57,7 +59,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -67,8 +69,8 @@ public class MarkSessionIncompleteEndpointTests
 
         // Completion list should have been cleared via UpdateOneAsync
         await completionCollection.Received(1).UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Is<UpdateDefinition<TrainingCompletion>>(u => u != null),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Is<UpdateDefinition<SessionExecution>>(u => u != null),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -88,7 +90,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -98,12 +100,12 @@ public class MarkSessionIncompleteEndpointTests
 
         // No insert or update should have occurred
         await completionCollection.DidNotReceive().InsertOneAsync(
-            Arg.Any<TrainingCompletion>(),
+            Arg.Any<SessionExecution>(),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
         await completionCollection.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<TrainingCompletion>>(),
-            Arg.Any<UpdateDefinition<TrainingCompletion>>(),
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
             Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
@@ -132,7 +134,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest
@@ -165,16 +167,16 @@ public class MarkSessionIncompleteEndpointTests
         var planColl = TrainingCompletionTestHelpers.CreateMockMongo(plan: plan).Mongo.TrainingPlans;
         mongo.TrainingPlans.Returns(planColl);
 
-        var completionCollection = TrainingCompletionTestHelpers.CreateMockCompletionCollection(
+        var completionCollection = TrainingCompletionTestHelpers.CreateMockSessionExecutionCollection(
             [existingCompletion], updateSucceeds: false);
-        mongo.TrainingCompletions.Returns(completionCollection);
+        mongo.SessionExecutions.Returns(completionCollection);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest
@@ -201,7 +203,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(wrongClientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -225,7 +227,7 @@ public class MarkSessionIncompleteEndpointTests
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = Guid.NewGuid() },
@@ -242,7 +244,7 @@ public class MarkSessionIncompleteEndpointTests
 
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         await ep.HandleAsync(
             new MarkSessionIncompleteRequest { SessionId = _sessionId },
@@ -251,23 +253,33 @@ public class MarkSessionIncompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(401);
     }
 
+    /// <summary>
+    /// #841: the endpoint no longer syncs a separate WorkoutLog document — the set-by-set
+    /// Performance data lives on the SAME SessionExecution as the checkbox completion flags.
+    /// Un-marking a session clears every Performance set's CompletedAt in-place on the loaded
+    /// document (mutated before the versioned UpdateOneAsync call), no cross-collection write.
+    /// </summary>
     [Fact]
-    public async Task HandleAsync_ClearsWorkoutLogCompletedAtForSession()
+    public async Task HandleAsync_ClearsPerformanceCompletedAtForSession()
     {
-        // Arrange — a fully-completed WorkoutLog for today for this session
+        // Arrange — a single SessionExecution carrying BOTH the checkbox flags AND a
+        // fully-completed Performance for today's session.
         var now = DateTime.UtcNow;
-        var workoutLog = new Application.Domain.Documents.WorkoutLog
+        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
+            clientId: _clientId,
+            sessionId: _sessionId,
+            date: now.Date,
+            completedExerciseIds: [_exercise1, _exercise2],
+            version: 1);
+        existingCompletion.Performance = new SessionExecutionPerformance
         {
-            ExternalId = Guid.NewGuid(),
-            ClientId = _clientId,          // auth user id — matches the JWT claim
-            SessionId = _sessionId,
             StartedAt = now.Date.AddHours(9),
-            IsCompleted = true,
-            Sections =
+            CompletedAt = now,
+            Workouts =
             [
-                new Application.Domain.Documents.WorkoutSection
+                new Application.Domain.Documents.LoggedWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Order = 0,
                     Name = "Hlavní",
                     Exercises =
@@ -287,29 +299,21 @@ public class MarkSessionIncompleteEndpointTests
             ]
         };
 
-        var existingCompletion = TrainingCompletionTestHelpers.CreateCompletion(
-            clientId: _clientId,
-            sessionId: _sessionId,
-            date: now.Date,
-            completedExerciseIds: [_exercise1, _exercise2],
-            version: 1);
-
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(
             clientId: _clientId,
             sessionId: _sessionId,
             exerciseIds: [_exercise1, _exercise2]);
 
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo(
+        var (mongo, completionCollection) = TrainingCompletionTestHelpers.CreateMockMongo(
             plan: plan,
-            existingCompletion: existingCompletion,
-            workoutLogs: [workoutLog]);
+            existingCompletion: existingCompletion);
 
         var db = CreateMockDb();
 
         var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_clientId, AppRoles.Client))),
-            mongo, db, _notifier, _compliance, _logger);
+            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
 
         // Act
         await ep.HandleAsync(
@@ -319,23 +323,22 @@ public class MarkSessionIncompleteEndpointTests
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(200);
 
-        // IsCompleted cleared
-        workoutLog.IsCompleted.Should().BeFalse();
-
-        // Every set's CompletedAt is null
-        workoutLog.Exercises
+        // Every set's CompletedAt is null, mutated in-place on the same document the mock's
+        // FindAsync returned.
+        existingCompletion.Performance.Exercises
             .SelectMany(e => e.Sets)
             .Should().AllSatisfy(s => s.CompletedAt.Should().BeNull());
 
         // Reps and WeightKg on the first set are preserved
-        workoutLog.Exercises[0].Sets[0].Reps.Should().Be(10);
-        workoutLog.Exercises[0].Sets[0].WeightKg.Should().Be(80m);
+        existingCompletion.Performance.Exercises[0].Sets[0].Reps.Should().Be(10);
+        existingCompletion.Performance.Exercises[0].Sets[0].WeightKg.Should().Be(80m);
 
-        // ReplaceOneAsync was called for the log
-        await mongo.WorkoutLogs.Received(1).ReplaceOneAsync(
-            Arg.Any<FilterDefinition<Application.Domain.Documents.WorkoutLog>>(),
-            Arg.Any<Application.Domain.Documents.WorkoutLog>(),
-            Arg.Any<ReplaceOptions>(),
+        // UpdateOneAsync was called for the unified SessionExecutions collection — no separate
+        // WorkoutLogs write.
+        await completionCollection.Received(1).UpdateOneAsync(
+            Arg.Any<FilterDefinition<SessionExecution>>(),
+            Arg.Any<UpdateDefinition<SessionExecution>>(),
+            Arg.Any<UpdateOptions>(),
             Arg.Any<CancellationToken>());
     }
 }

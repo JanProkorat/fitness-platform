@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.TrainingPlans.GetTrainingPlan;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 
 namespace FitnessPlatform.Tests.Endpoints.TrainingPlans;
@@ -31,12 +32,11 @@ public class GetTrainingPlanLoggedSetsTests
         {
             SessionId = _sessionId,
             Name = "Session 1",
-            DayOfWeek = 1,
-            Sections =
+            Workouts =
             [
-                new TrainingSection
+                new TrainingWorkout
                 {
-                    SectionId = Guid.NewGuid(),
+                    WorkoutId = Guid.NewGuid(),
                     Name = "Main",
                     Order = 0,
                     Exercises =
@@ -70,7 +70,7 @@ public class GetTrainingPlanLoggedSetsTests
                 {
                     WeekNumber = 1,
                     Status = WeekStatus.Published,
-                    Sessions = [session]
+                    Days = TrainingPlanTestHelpers.MaterializeDays((1, session))
                 }
             ],
             Version = 1,
@@ -78,52 +78,60 @@ public class GetTrainingPlanLoggedSetsTests
         };
     }
 
-    private WorkoutLog BuildLog(List<WorkoutSet> sets)
+    private SessionExecution BuildExecution(List<WorkoutSet> sets)
     {
-        return new WorkoutLog
+        var startedAt = _now.AddMinutes(-30);
+        return new SessionExecution
         {
             ExternalId = Guid.NewGuid(),
             ClientId = Guid.NewGuid(),
             PlanId = _planId,
             SessionId = _sessionId,
-            StartedAt = _now.AddMinutes(-30),
-            IsCompleted = true,
-            CompletedAt = _now,
-            Sections =
-            [
-                new WorkoutSection
-                {
-                    SectionId = Guid.NewGuid(),
-                    Order = 0,
-                    Name = "Main",
-                    Exercises =
-                    [
-                        new WorkoutExercise
-                        {
-                            ExerciseExternalId = _exerciseId,
-                            ExerciseName = "Squat",
-                            Sets = sets
-                        }
-                    ]
-                }
-            ],
-            DateCreated = _now
+            Date = SessionExecution.ToCompletionDateUtc(startedAt),
+            Status = SessionExecutionStatus.Completed,
+            Performance = new SessionExecutionPerformance
+            {
+                StartedAt = startedAt,
+                CompletedAt = _now,
+                Workouts =
+                [
+                    new LoggedWorkout
+                    {
+                        WorkoutId = Guid.NewGuid(),
+                        Order = 0,
+                        Name = "Main",
+                        Exercises =
+                        [
+                            new WorkoutExercise
+                            {
+                                ExerciseExternalId = _exerciseId,
+                                ExerciseName = "Squat",
+                                Sets = sets
+                            }
+                        ]
+                    }
+                ]
+            },
+            DateCreated = _now,
+            Version = 1
         };
     }
 
     private async Task<GetTrainingPlanResponse?> ExecuteAsync(
         TrainingPlan plan,
-        WorkoutLog[] logs)
+        SessionExecution[] executions)
     {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithLogs(
+        var mongo = TrainingPlanTestHelpers.CreateMockMongoWithExecutions(
             plans: [plan],
-            workoutLogs: logs);
+            executions: executions.ToList());
 
         var ep = Factory.Create<GetTrainingPlanEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
             mongo,
-            TrainingPlanTestHelpers.CreateNoOpLockService());
+            TrainingPlanTestHelpers.CreateNoOpLockService(),
+            new MockDbBuilder().Build(),
+            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
 
         await ep.HandleAsync(
             new GetTrainingPlanRequest { PlanId = _planId },
@@ -141,7 +149,7 @@ public class GetTrainingPlanLoggedSetsTests
     public async Task SessionExecution_WithPlannedSnapshot_LoggedSetsByExerciseContainsActualAndPlanned()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
         [
             new WorkoutSet
             {
@@ -163,7 +171,7 @@ public class GetTrainingPlanLoggedSetsTests
             }
         ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         response!.SessionExecutions.Should().HaveCount(1);
@@ -191,7 +199,7 @@ public class GetTrainingPlanLoggedSetsTests
     public async Task SessionExecution_WithModifiedSet_HasModificationsTrue()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
         [
             new WorkoutSet
             {
@@ -204,7 +212,7 @@ public class GetTrainingPlanLoggedSetsTests
             }
         ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.Single();
@@ -215,7 +223,7 @@ public class GetTrainingPlanLoggedSetsTests
     public async Task SessionExecution_AllSetsAsPlanned_HasModificationsFalse()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
         [
             new WorkoutSet
             {
@@ -237,7 +245,7 @@ public class GetTrainingPlanLoggedSetsTests
             }
         ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.Single();
@@ -250,7 +258,7 @@ public class GetTrainingPlanLoggedSetsTests
     public async Task SessionExecution_LegacySetWithoutPlannedFields_IsModifiedFalseAndPlannedNull()
     {
         var plan = BuildPlan();
-        var log = BuildLog(
+        var execution = BuildExecution(
         [
             new WorkoutSet
             {
@@ -262,7 +270,7 @@ public class GetTrainingPlanLoggedSetsTests
             }
         ]);
 
-        var response = await ExecuteAsync(plan, [log]);
+        var response = await ExecuteAsync(plan, [execution]);
 
         response.Should().NotBeNull();
         var exec = response!.SessionExecutions.Single();

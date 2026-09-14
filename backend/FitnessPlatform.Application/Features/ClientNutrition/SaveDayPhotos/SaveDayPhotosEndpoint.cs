@@ -4,9 +4,10 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
-using FitnessPlatform.Application.Features.ClientPlans;
+using FitnessPlatform.Application.Features.ClientPhotos;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
@@ -30,12 +31,20 @@ namespace FitnessPlatform.Application.Features.ClientNutrition.SaveDayPhotos;
 /// <param name="mongo">MongoDB context.</param>
 /// <param name="db">Relational database context.</param>
 /// <param name="notifier">Realtime notifier for pushing the <c>planPhotoUploaded</c> event.</param>
+/// <param name="linkAuthorizationService">Link capability service — gates the nutritionist-addressed broadcast.</param>
 /// <param name="logger">Logger.</param>
+/// <param name="blobStorage">Blob storage service — normalises each submitted BlobUrl to its
+/// canonical stored form before persisting, so an echoed short-lived read URL cannot become the
+/// permanently stored value (F9 follow-up).</param>
+/// <param name="timeProvider">Clock abstraction (#955) — lets tests pin the "now" instant deterministically.</param>
 public class SaveDayPhotosEndpoint(
     IMongoContext mongo,
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
-    ILogger<SaveDayPhotosEndpoint> logger)
+    IClientLinkAuthorizationService linkAuthorizationService,
+    ILogger<SaveDayPhotosEndpoint> logger,
+    IBlobStorageService blobStorage,
+    TimeProvider timeProvider)
     : Endpoint<SaveDayPhotosRequest>
 {
     /// <inheritdoc />
@@ -77,7 +86,8 @@ public class SaveDayPhotosEndpoint(
             return;
         }
 
-        var clientId = clientProfile.PublicId;
+        // Canonical client id on Mongo docs is ApplicationUser.Id (#840).
+        var clientId = clientProfile.UserId;
 
         // Resolve the client's Active nutrition plan whose date window contains today — a client
         // may hold several sequential, non-overlapping Active plans (#780).
@@ -87,7 +97,11 @@ public class SaveDayPhotosEndpoint(
 
         var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
         var activePlans = await planCursor.ToListAsync(ct);
-        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+        // Resolve the client's local calendar day (#935) once — todayUtc anchors LogDate-style
+        // equality checks and plan-window resolution; windowStartUtc/windowEndUtc anchor the
+        // CreatedAt instant-range filter below so it isn't skewed by the client's UTC offset.
+        var (todayUtc, windowStartUtc, windowEndUtc) = await db.ResolveClientLocalDayWindowAsync(clientId, timeProvider.GetUtcNow().UtcDateTime, ct);
+        var plan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, todayUtc);
 
         if (plan is null)
         {
@@ -95,9 +109,13 @@ public class SaveDayPhotosEndpoint(
             return;
         }
 
+        var normalizedPhotos = await NormalizePhotoUrlsOrRespondAsync(req.Photos, ct);
+        if (normalizedPhotos is null)
+        {
+            return;
+        }
+
         var now = DateTime.UtcNow;
-        var todayUtc = now.Date;
-        var tomorrowUtc = todayUtc.AddDays(1);
 
         // Key: one log per (client, plan, calendar day).
         // Defensive OR branch: matches both modern records (LogDate == today) and any future
@@ -110,8 +128,8 @@ public class SaveDayPhotosEndpoint(
             Builders<DayLog>.Filter.Or(
                 Builders<DayLog>.Filter.Eq(l => l.LogDate, todayUtc),
                 Builders<DayLog>.Filter.And(
-                    Builders<DayLog>.Filter.Gte(l => l.CreatedAt, todayUtc),
-                    Builders<DayLog>.Filter.Lt(l => l.CreatedAt, tomorrowUtc))));
+                    Builders<DayLog>.Filter.Gte(l => l.CreatedAt, windowStartUtc),
+                    Builders<DayLog>.Filter.Lt(l => l.CreatedAt, windowEndUtc))));
 
         var existingCursor = await mongo.DayLogs.FindAsync(logFilter, cancellationToken: ct);
         var existingLog = await existingCursor.FirstOrDefaultAsync(ct);
@@ -120,7 +138,7 @@ public class SaveDayPhotosEndpoint(
         var existingByUrl = (existingLog?.Photos ?? [])
             .ToDictionary(p => p.BlobUrl, p => p);
 
-        var replacementPhotos = req.Photos
+        var replacementPhotos = normalizedPhotos
             .Select(input =>
             {
                 var perPhotoNote = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
@@ -184,7 +202,32 @@ public class SaveDayPhotosEndpoint(
             ct);
 
         // Emit planPhotoUploaded to the owning nutritionist for each newly-created row (best-effort).
+        // Gated on the nutritionist's CURRENT link capability, not mere plan authorship (F6
+        // residual): plan.NutritionistId is permanent, but the underlying ClientProfessionalLink
+        // is not — a professional whose collaboration ended must stop receiving the client's
+        // diary photos. The check is evaluated once (not per photo) and never fails the client's
+        // own write — an exception here only skips the broadcast.
+        var nutritionistHasAccess = false;
         if (plan.NutritionistId != Guid.Empty)
+        {
+            try
+            {
+                // plan.NutritionistId / clientId are both ApplicationUser.Id (#840) — the
+                // UserId-addressed overload; the nutritionist here is the plan's permanent
+                // author, not the caller.
+                var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+                    plan.NutritionistId, clientId, ct);
+                nutritionistHasAccess = capabilities is { CanViewNutritionPlans: true };
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to verify nutritionist {NutritionistId} link capability for client {ClientId}; planPhotoUploaded events skipped",
+                    plan.NutritionistId, clientId);
+            }
+        }
+
+        if (nutritionistHasAccess)
         {
             foreach (var newPhoto in newPhotos)
             {
@@ -213,11 +256,47 @@ public class SaveDayPhotosEndpoint(
         else if (newPhotos.Count > 0)
         {
             logger.LogWarning(
-                "Could not resolve owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
+                "Could not resolve an accessible owning nutritionist for PlanId={PlanId}; planPhotoUploaded events skipped",
                 plan.ExternalId);
         }
 
         await Send.NoContentAsync(ct);
+    }
+
+    /// <summary>
+    /// Normalises every submitted <see cref="DayPhotoInput.BlobUrl"/> to its canonical stored
+    /// form before it reaches any Mongo/DB write — see
+    /// <see cref="IBlobStorageService.NormalizeToCanonicalUrl"/>. A client may echo back the
+    /// short-lived DisplayUrl issued by GetTodayDayLog (or, from an app build that predates the
+    /// identity/presentation split, a value that used to BE the permanent BlobUrl); without this
+    /// the signed query string would become the permanently stored value. Returns <c>null</c>
+    /// when any submitted URL cannot be recognised as a blob storage URL — a 400 has already
+    /// been written in that case.
+    /// </summary>
+    private async Task<List<DayPhotoInput>?> NormalizePhotoUrlsOrRespondAsync(
+        List<DayPhotoInput> inputs, CancellationToken ct)
+    {
+        var normalized = new List<DayPhotoInput>(inputs.Count);
+
+        foreach (var input in inputs)
+        {
+            var canonicalBlobUrl = blobStorage.NormalizeToCanonicalUrl(input.BlobUrl);
+            if (canonicalBlobUrl is null)
+            {
+                await this.SendProblemAsync(400, ErrorCodes.InvalidBlobUrl,
+                    "Photo URL is not a recognised blob storage URL.", ct);
+                return null;
+            }
+
+            normalized.Add(new DayPhotoInput
+            {
+                BlobUrl = canonicalBlobUrl,
+                Note = input.Note,
+                Category = input.Category
+            });
+        }
+
+        return normalized;
     }
 
     /// <summary>

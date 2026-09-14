@@ -32,6 +32,32 @@ public class FakeBlobStorageService : IBlobStorageService
     public string BuildPublicUrl(string containerPath) => containerPath;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Appends a recognisable <c>?signed=</c> marker distinct from the bare container path
+    /// returned by <see cref="BuildPublicUrl"/>, so tests can assert that an endpoint actually
+    /// routed a stored BlobUrl through signing rather than emitting the raw stored value.
+    /// Null/empty input passes through unchanged, matching the real service's contract.
+    /// </remarks>
+    public Task<string?> GenerateReadUrlAsync(string? storedBlobUrl, CancellationToken ct)
+    {
+        SignedUrlRequests.Add(storedBlobUrl ?? string.Empty);
+
+        return Task.FromResult(string.IsNullOrWhiteSpace(storedBlobUrl)
+            ? storedBlobUrl
+            : $"{storedBlobUrl}?signed=test");
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Mirrors the real service's contract: strips a query string (the fake's own
+    /// <c>?signed=test</c> marker included) so a signed URL echoed back by a test normalizes to
+    /// the same value <see cref="BuildPublicUrl"/> would have produced. Returns null for
+    /// null/empty/whitespace input, matching the "genuinely foreign value" contract.
+    /// </remarks>
+    public string? NormalizeToCanonicalUrl(string blobUrl) =>
+        string.IsNullOrWhiteSpace(blobUrl) ? null : blobUrl.Split('?', 2)[0];
+
+    /// <inheritdoc />
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
         // Record the upload so tests can assert it was called.
@@ -65,4 +91,11 @@ public class FakeBlobStorageService : IBlobStorageService
     /// Tests can assert against this list to verify blob deletion was requested.
     /// </summary>
     public List<string> DeletedPaths { get; } = [];
+
+    /// <summary>
+    /// Stored BlobUrl values passed to <see cref="GenerateReadUrlAsync"/> during the test run.
+    /// Tests can assert against this list to verify a response path signed every photo URL it
+    /// emitted rather than leaking the stored value unsigned.
+    /// </summary>
+    public List<string> SignedUrlRequests { get; } = [];
 }
