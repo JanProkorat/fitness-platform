@@ -35,6 +35,18 @@ screen. The wireframe has **no mobile frames at all**, so the "one shared
 design language for web and mobile" goal recorded on this branch is only
 half-covered by this file. Mobile is a separate future effort.
 
+### The mobile strip was reverted
+
+This branch originally stripped **both** apps — commit `5a948a41` deleted
+238 mobile files (−52 851 lines) alongside the web strip. With v1 scoped
+to `/web`, leaving that in place would have taken the working mobile app
+down with it when this branch eventually merges to `develop`, and
+discarded the 7 mobile commits `develop` has landed since July.
+
+`5a948a41` was therefore reverted on 2026-09-14 (commit `78e48928`).
+`mobile/` on this branch is now byte-identical to `origin/develop`. A
+mobile redesign gets its own branch once mobile wireframes exist.
+
 ---
 
 ## 2. Decisions
@@ -88,9 +100,22 @@ theme change will not reach.
 
 Runs before any page. One issue, one PR.
 
-1. **Rebase `feature/ui-redesign` onto `develop`.** The branch is 85
-   commits behind. Conflicts should be minimal — the `web/` UI files that
-   would conflict are already deleted.
+1. ~~**Sync `feature/ui-redesign` with `develop`.**~~ **Done 2026-09-14**,
+   ahead of the rest of phase 0, at the user's request. `develop` was
+   merged in (not rebased) and the branch is now 0 commits behind.
+   Conflict resolutions, for the record:
+   - 19 conflicted `web/src` files — kept **deleted**; the strip wins.
+   - All of `.claude/` and the root `CLAUDE.md` — took **develop's**.
+     Its tooling has moved well past July (shell hooks replaced by
+     Python, four new hooks), so the branch copies were superseded.
+     Two branch-only hooks were dropped: `inject-task-flow.sh`,
+     `validate-on-write.sh`.
+   - `.claude/rules/code-quality.md` and `verification.md` — accepted
+     develop's rename to `code-style.md` / `verification-contract.md`.
+   - `.gitignore` — kept **both** sides.
+   - `.mcp.json` and `PLAN.md` auto-merged to the branch's July content
+     and were reset to develop's. `.mcp.json` had silently lost the
+     `roslyn-navigator` server entry.
 2. **Regenerate the API client** (`npm run generate-api`) and audit the
    ~60 surviving `api/*.ts` modules against it. They were written against
    July's backend; since then photo endpoints merged into `ClientPhotos`
@@ -126,11 +151,29 @@ client.
 | 5 | Inbox + chat | Wireframe `inbox-state-05`…`12`. SignalR live messages; `hooks/useSignalR.ts` survives. |
 | 6 | Ingredients — list + create/edit/detail drawer | Wireframe `ingredients-01`/`02`. Backend: `Foods`. |
 | 7 | Recipes — list + create/edit/detail drawer | Wireframe `recipes-state-01`/`02`. |
-| 8 | Nutrition plan — create, read, update, delete | Wireframe `client-nutrition-01`…`08`. The largest piece; the stripped version was 28 components. |
+| 8 | Nutrition plan — create, read, update, delete | Wireframe `client-nutrition-01`…`08`. The largest piece; the stripped version was 28 components. **Hard stop before this one — see §5.1.** |
 | 9 | Nutrition plan — publish by week | Publishing is week-level, with its own optimistic-concurrency rules. Separated so its logic gets its own review. |
 
 Messaging stays at position 5 at the user's request, ahead of the
 databases.
+
+### 5.1 Hard stop before the nutrition plan editor
+
+**Work stops after page 7 and does not continue into page 8 without a
+fresh brainstorming round with the user.** Set by the user on
+2026-09-14.
+
+Pages 1–7 are conventional screens: a list, a form, a drawer, a chat.
+The plan editor is not — it is a builder, and its interaction model
+(week structure, drag and drop, macro recalculation, concurrent edit
+locks, what "draft" means before a week is published) is a design
+problem, not an implementation one. Guessing it from the wireframe
+alone is how the 28-component version happened.
+
+So when page 7 merges, the next step is a brainstorming session on the
+editor, producing its own design document. Only after that is approved
+does page 8 get an issue. Whether page 8 splits into several pieces is
+an output of that session, not a decision to make now.
 
 ---
 
@@ -200,7 +243,8 @@ A page is not done until every line below is true.
 6. Two-pass code review (`pr-reviewer`) — loop until READY FOR MERGE.
 7. Auto-merge into `feature/ui-redesign` — no per-page authorization,
    per `rules/merge-strategy.md#sub-issue-auto-merge`.
-8. **Stop and wait for the user** before starting the next page.
+8. **Stop and wait for the user** before starting the next page. After
+   page 7 this is not a pause but a hard stop — see §5.1.
 
 At the end of v1, one epic PR from `feature/ui-redesign` into `develop`,
 merged only on explicit same-turn authorization.
@@ -215,9 +259,9 @@ be an hour or a day. It is deliberately its own phase so that cost lands
 before any page depends on it.
 
 **Page 8 is not one page.** The nutrition plan builder was 28 components.
-If it does not fit one reviewable PR once its issue is written, it gets
-split then rather than now — splitting it before reading the wireframe in
-detail would be guessing.
+This risk is now handled by the hard stop in §5.1: the editor gets its own
+brainstorming round and its own design document before any issue is
+written for it.
 
 **The wireframe is a product roadmap, not just a redesign.** Four of its
 sidebar areas have no backend. Building them means backend work too, and
