@@ -2,25 +2,19 @@
   "mcpServers": {
     "xcodebuildmcp": {
       "command": "npx",
-      "args": [
-        "-y",
-        "xcodebuildmcp@latest",
-        "mcp"
-      ]
+      "args": ["-y", "xcodebuildmcp@latest", "mcp"]
+    },
+    "roslyn-navigator": {
+      "command": "cwm-roslyn-navigator",
+      "args": []
     },
     "git-worktree": {
       "command": "npx",
-      "args": [
-        "-y",
-        "github:Mandalorian007/git-worktree-mcp"
-      ]
+      "args": ["-y", "github:Mandalorian007/git-worktree-mcp"]
     },
     "a11y-accessibility": {
       "command": "npx",
-      "args": [
-        "-y",
-        "a11y-mcp-server"
-      ]
+      "args": ["-y", "a11y-mcp-server"]
     },
     "github": {
       "command": ".claude/scripts/with-keychain-secret.sh",
