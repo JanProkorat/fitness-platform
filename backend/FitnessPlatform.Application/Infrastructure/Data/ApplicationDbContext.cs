@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -241,8 +242,19 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 json => JsonSerializer.Deserialize<List<string>>(json, (JsonSerializerOptions?)null)!
                     .Select(s => Enum.Parse<CheckInFlag>(s)).ToList());
 
+            // Flags is a reference-type (List<T>) property. Without an explicit ValueComparer,
+            // EF's default snapshot for reference types stores the SAME live list instance, so
+            // an in-place Add/Remove/Clear mutation is invisible to change detection — the
+            // snapshot and the current value are literally the same object. The snapshot lambda
+            // (v => v.ToList()) forces a real copy at snapshot time; elements are an enum, so
+            // ToList() is a genuine deep copy here.
+            var flagsComparer = new ValueComparer<List<CheckInFlag>>(
+                (a, b) => a == null || b == null ? a == b : a.SequenceEqual(b),
+                v => v.Aggregate(0, (hash, f) => HashCode.Combine(hash, f.GetHashCode())),
+                v => v.ToList());
+
             e.Property(c => c.Flags)
-                .HasConversion(flagsConverter)
+                .HasConversion(flagsConverter, flagsComparer)
                 .HasColumnType("jsonb");
 
             e.HasIndex(c => new
