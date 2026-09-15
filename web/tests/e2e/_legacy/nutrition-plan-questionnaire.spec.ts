@@ -1,3 +1,9 @@
+// QUARANTINED by #1051 (web v1 rebuild, epic #1052) — the nutrition plan
+// editor (design spec §5, pages 8-9) is a hard stop pending its own
+// brainstorming round (§5.1) and is not part of epic #1052's committed
+// sub-issues 0-7; no sub-issue currently restores this test. Targets
+// /clients/:id/plans/:id DOM the v1 strip removed.
+
 /**
  * #698 — Nutrition Plan detail: linked questionnaire answers in a dedicated
  * "Dotazník" page tab (management actions stay in the sidebar). Mirror of #697.

@@ -1,10 +1,23 @@
 /**
- * Playwright auth setup — logs each QA role in via the real compose harness
- * and persists the browser storage state to .auth/<role>.json.
+ * Playwright auth setup — logs each QA role in via POST /auth/login against
+ * the compose harness and persists a synthesized storage state to
+ * .auth/<role>.json.
  *
  * This runs once as a dependency before any spec project (trainer / client /
- * nutritionist). Subsequent spec runs reuse the stored auth state so the login
- * form is never visited again during the test suite.
+ * nutritionist). The `client` project reads .auth/client.json verbatim
+ * (playwright.config.ts's `client` project `use.storageState`). The trainer
+ * and nutritionist projects instead mint a fresh per-attempt token via
+ * tests/e2e/fixtures/auth.ts and use this file's output only as a template
+ * for the non-auth parts of storage state — see that file's header comment.
+ *
+ * v1 has no login page yet (epic sub-issue 1 builds it — design spec
+ * docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md §5). This no
+ * longer drives the /login form; it authenticates straight through the API:
+ * POST /auth/login via Playwright's `request` fixture, then synthesize a
+ * storage-state document with the returned refreshToken written into
+ * localStorage under the app's own 'refreshToken' key — the same key
+ * stores/auth.ts reads on startup. This mirrors the approach
+ * tests/e2e/fixtures/auth.ts already uses per-test.
  *
  * Credentials come from QA_SEED_PASSWORD (env var, never hardcoded). Copy
  * .env.test.example to .env.test and set a value before running.
@@ -14,18 +27,17 @@
  *   qa.client@fitnessplatform.test
  *   qa.nutri@fitnessplatform.test
  *
- * Auth flow for this app:
- *   1. Fill the /login form (email + password).
- *   2. Submit → the app stores refreshToken in localStorage and navigates to /dashboard.
- *   3. Save storageState (localStorage + cookies) to .auth/<role>.json.
- *
  * Error handling:
- *   - Missing QA_SEED_PASSWORD → fail fast with a clear message pointing at .env.test.example.
- *   - Login failure (wrong password, network error) → the waitForURL will timeout and
- *     Playwright will surface the actual page content for diagnosis.
+ *   - Missing QA_SEED_PASSWORD → fail fast with a clear message pointing at
+ *     .env.test.example.
+ *   - POST /auth/login failure (wrong password, harness down) → throw with a
+ *     diagnostic BEFORE writing anything to disk. A half-written
+ *     .auth/<role>.json would make every downstream spec fail as an
+ *     unexplained "element not found" instead of a clear auth signal.
  */
 
-import { test as setup, expect } from '@playwright/test';
+import { test as setup } from '@playwright/test';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const ROLES = [
@@ -33,29 +45,28 @@ const ROLES = [
     role: 'trainer',
     email: 'qa.trainer@fitnessplatform.test',
     storageStatePath: path.resolve('.auth/trainer.json'),
-    /** Trainers land on /dashboard after login */
-    expectedUrl: '**/dashboard',
   },
   {
     role: 'client',
     email: 'qa.client@fitnessplatform.test',
     storageStatePath: path.resolve('.auth/client.json'),
-    /** Clients (portal login) redirect to /download-app */
-    expectedUrl: '**/download-app',
   },
   {
     role: 'nutritionist',
     email: 'qa.nutri@fitnessplatform.test',
     storageStatePath: path.resolve('.auth/nutritionist.json'),
-    /** Nutritionists land on /dashboard after login */
-    expectedUrl: '**/dashboard',
   },
 ] as const;
 
-for (const { role, email, storageStatePath, expectedUrl } of ROLES) {
-  setup(`authenticate as ${role}`, async ({ page }) => {
-    // Fail fast if the QA password is not configured — do this at runtime
-    // (not module-load time) so `playwright test --list` still works.
+interface LoginResponseBody {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+  emailConfirmed: boolean;
+}
+
+for (const { role, email, storageStatePath } of ROLES) {
+  setup(`authenticate as ${role}`, async ({ request, baseURL }) => {
     const password = process.env['QA_SEED_PASSWORD'];
     if (!password) {
       throw new Error(
@@ -65,43 +76,48 @@ for (const { role, email, storageStatePath, expectedUrl } of ROLES) {
       );
     }
 
-    await page.goto('/login');
+    const response = await request.post('/auth/login', {
+      data: { email, password },
+    });
 
-    // Fill email
-    await page.locator('input[type="email"]').fill(email);
+    if (!response.ok()) {
+      throw new Error(
+        `[auth-setup] POST /auth/login for role "${role}" returned ` +
+          `${response.status()} ${response.statusText()}. Is the compose ` +
+          'harness running (npm run e2e:up) and QA_SEED_PASSWORD set ' +
+          'correctly?',
+      );
+    }
 
-    // Fill password
-    await page.locator('input[type="password"]').fill(password);
+    const { refreshToken } = (await response.json()) as LoginResponseBody;
 
-    // Submit the login form
-    await page.locator('button[type="submit"]').click();
+    // The client project (playwright.config.ts) reads .auth/client.json
+    // verbatim, so the origin here must be the live baseURL fixture, never a
+    // hardcoded localhost — it differs between host runs (localhost:5173)
+    // and the dockerised qa-playwright container (http://web:5173).
+    const origin = baseURL ?? 'http://localhost:5173';
 
-    // Wait for the post-login redirect to confirm auth succeeded.
-    // If this times out, the page content will show the error state.
-    await page.waitForURL(expectedUrl, { timeout: 30_000 });
+    await mkdir(path.dirname(storageStatePath), { recursive: true });
+    await writeFile(
+      storageStatePath,
+      JSON.stringify(
+        {
+          cookies: [],
+          origins: [
+            {
+              origin,
+              localStorage: [
+                { name: 'refreshToken', value: refreshToken },
+                { name: 'lang', value: 'en' },
+              ],
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
 
-    // Confirm we are NOT on the login page (belt-and-suspenders)
-    await expect(page).not.toHaveURL('**/login');
-
-    // Warm up the auth-store: App.tsx calls restoreSession() in a useEffect on
-    // every mount. Because restorePromise is null after a login (the pre-login
-    // no-op call already resolved), restoreSession re-runs on the post-login
-    // page and calls POST /auth/refresh. Waiting for networkidle ensures this
-    // round-trip completes and the updated refreshToken is written to
-    // localStorage BEFORE we snapshot the storageState.
-    //
-    // Without this wait the storageState sometimes captures the original
-    // refreshToken (from the /auth/login response) before the /auth/refresh
-    // response has rotated it. The spec contexts then start with a stale token
-    // and the first restoreSession call in the spec may fail if the original
-    // token was already consumed.
-    await page.waitForLoadState('networkidle', { timeout: 30_000 });
-
-    // Persist the authenticated browser context (localStorage + cookies).
-    // At this point localStorage contains the refreshToken written by the
-    // /auth/refresh response (the most recent rotation), which the spec
-    // contexts will use to bootstrap their own restoreSession calls.
-    await page.context().storageState({ path: storageStatePath });
     console.log(`[auth-setup] Saved ${role} storage state to ${storageStatePath}`);
   });
 }

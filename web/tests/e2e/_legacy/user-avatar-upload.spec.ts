@@ -1,3 +1,8 @@
+// QUARANTINED by #1051 (web v1 rebuild, epic #1052) — this spec drives the
+// mobile-web client (react-native-web build), not the /web trainer portal;
+// unrelated to this epic's sub-issues. Not restored by anything in the v1
+// rebuild — revisit alongside future mobile-web E2E test-suite work.
+
 /**
  * Durable spec — client uploads a profile avatar (issue #120, Phase 4).
  *

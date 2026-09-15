@@ -9,12 +9,12 @@ export default function RoleGuard({ allowedRoles }: Props) {
   const user = useAuthStore((s) => s.user);
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const hasRole = user.roles.some((r) => allowedRoles.includes(r));
   if (!hasRole) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/clients" replace />;
   }
 
   return <Outlet />;
