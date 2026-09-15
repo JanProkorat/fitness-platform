@@ -63,6 +63,13 @@ developer actually ships code:
    missing locale keys, an endpoint that skipped the FastEndpoints
    pattern). Findings route back to the dev sub-agents; loop dev →
    you until your self-review has zero BLOCKING findings.
+
+   ⚠️ The oversized-diff rule in the sub-reviewer brief below
+   (exception 2) applies to THIS pass too. Measure the patch first;
+   past ~6000 lines, skip the `review` skill and review directly from
+   `gh pr diff --name-only` plus targeted reads. Both passes invoke the
+   same skill, so an oversized diff takes out both of them at once —
+   that is exactly how PR #1054 lost its review gate entirely.
 2. **Second pass — fresh-eyes sub-reviewer.** Only after your own
    pass is clean, delegate the second review to a separate **Agent**
    sub-call. That sub-reviewer comes in blind — no memory of the
@@ -421,12 +428,35 @@ You MUST:
    <pr-number>. That skill is the house code-review methodology — use
    it as written, do not improvise a different checklist.
 
-   ⚠️ EXCEPTION — if <checkout-path> is NOT the repository root, the
+   ⚠️ EXCEPTION 1 — if <checkout-path> is NOT the repository root, the
    `review` skill is unreliable here: it resolves paths against the
    session working directory rather than the PR's worktree, so it will
    read the wrong branch. In that case SKIP the skill and perform the
    review directly from `gh pr diff <pr-number>` plus targeted reads
    under <checkout-path>. State in your summary which path you took.
+
+   ⚠️ EXCEPTION 2 — OVERSIZED DIFF. Before invoking the skill, measure
+   the patch: `gh pr diff <pr-number> --patch | wc -l`. If it exceeds
+   ~6000 lines, SKIP the skill and review directly, exactly as in
+   exception 1. Feeding an oversized patch to the skill is what killed
+   PR #1054's review: both the reviewer and its sub-reviewer hit the
+   600-second no-progress watchdog and were killed having posted
+   nothing — a stall that looks identical to a clean review from the
+   outside, which is the dangerous part.
+
+   Nearly all of that bulk is routinely two files that must never be
+   read line by line either way:
+
+     - `web/src/api/generated.ts` / `mobile/src/api/generated.ts`
+       (~3900 lines, NSwag output, write-locked)
+     - `web/package-lock.json` / `mobile/package-lock.json`
+
+   For those, the only review question is whether they were
+   regenerated or hand-edited — never their contents. Scope the real
+   review with `gh pr diff <pr-number> --name-only`, subtract those
+   files, and read the remainder individually. Say in your summary
+   that you took the oversized-diff path and give the measured line
+   count.
 
 1b. RECONCILE BEFORE REPORTING. Run `gh pr diff <pr-number> --name-only`
    and check every finding you are about to report against that list.
