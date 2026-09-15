@@ -25,7 +25,12 @@ services:
       - mongo_data:/data/db
 
   minio:
-    image: minio/minio
+    # `minio/minio` no longer exists on Docker Hub — see the long note in
+    # docker-compose.test.yml. This kept working on machines that already had
+    # the image cached, and broke on any fresh clone. `user: "0:0"` is required
+    # because alpine/minio runs as a non-root user that cannot write /data.
+    image: alpine/minio:RELEASE.2025-10-15T17-29-55Z
+    user: "0:0"
     container_name: fitness-minio
     restart: unless-stopped
     ports:
