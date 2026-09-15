@@ -372,555 +372,6 @@ export class ApiClient {
     }
 
     /**
-     * Update workout log
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    updateWorkoutEndpoint(logId: string, updateWorkoutRequest: UpdateWorkoutRequest, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(updateWorkoutRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdateWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processUpdateWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Get workout log detail
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    getWorkoutLogEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkoutLogEndpoint(_response);
-        });
-    }
-
-    protected processGetWorkoutLogEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Start a workout (create draft log)
-     * @return Success
-     */
-    startWorkoutEndpoint(startWorkoutRequest: StartWorkoutRequest, signal?: AbortSignal): Promise<StartWorkoutResponse> {
-        let url_ = this.baseUrl + "/client/training/logs";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(startWorkoutRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processStartWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processStartWorkoutEndpoint(response: AxiosResponse): Promise<StartWorkoutResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<StartWorkoutResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<StartWorkoutResponse>(null as any);
-    }
-
-    /**
-     * List workout logs
-     * @param page Page number (1-based).
-     * @param pageSize Number of items per page.
-     * @return Success
-     */
-    getWorkoutLogsEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<GetWorkoutLogsResponse> {
-        let url_ = this.baseUrl + "/client/training/logs?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetWorkoutLogsEndpoint(_response);
-        });
-    }
-
-    protected processGetWorkoutLogsEndpoint(response: AxiosResponse): Promise<GetWorkoutLogsResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetWorkoutLogsResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetWorkoutLogsResponse>(null as any);
-    }
-
-    /**
-     * Go live with a workout
-     * @param logId The external ID of the workout log to go live with.
-    Bound from the route segment {logId}.
-     * @return Success
-     */
-    goLiveEndpoint(logId: string, signal?: AbortSignal): Promise<GoLiveResponse> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/go-live";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGoLiveEndpoint(_response);
-        });
-    }
-
-    protected processGoLiveEndpoint(response: AxiosResponse): Promise<GoLiveResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GoLiveResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GoLiveResponse>(null as any);
-    }
-
-    /**
-     * Get exercise progress
-     * @param clientId Client's public user identifier.
-     * @param exerciseId Exercise's public identifier.
-     * @return Success
-     */
-    getExerciseProgressEndpoint(clientId: string, exerciseId: string, signal?: AbortSignal): Promise<GetExerciseProgressResponse> {
-        let url_ = this.baseUrl + "/training/clients/{clientId}/progress/{exerciseId}";
-        if (clientId === undefined || clientId === null)
-            throw new globalThis.Error("The parameter 'clientId' must be defined.");
-        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
-        if (exerciseId === undefined || exerciseId === null)
-            throw new globalThis.Error("The parameter 'exerciseId' must be defined.");
-        url_ = url_.replace("{exerciseId}", encodeURIComponent("" + exerciseId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetExerciseProgressEndpoint(_response);
-        });
-    }
-
-    protected processGetExerciseProgressEndpoint(response: AxiosResponse): Promise<GetExerciseProgressResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetExerciseProgressResponse>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetExerciseProgressResponse>(null as any);
-    }
-
-    /**
-     * Complete a workout
-     * @param logId The workout log's public identifier.
-     * @return Success
-     */
-    completeWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/complete";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCompleteWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processCompleteWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<WorkoutLogDetail>(result200);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkoutLogDetail>(null as any);
-    }
-
-    /**
-     * Abandon a workout
-     * @param logId The external ID of the workout log to abandon.
-    Bound from the route segment {logId}.
-     * @return Success
-     */
-    abandonWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<AbandonWorkoutResponse> {
-        let url_ = this.baseUrl + "/client/training/logs/{logId}/abandon";
-        if (logId === undefined || logId === null)
-            throw new globalThis.Error("The parameter 'logId' must be defined.");
-        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "POST",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processAbandonWorkoutEndpoint(_response);
-        });
-    }
-
-    protected processAbandonWorkoutEndpoint(response: AxiosResponse): Promise<AbandonWorkoutResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<AbandonWorkoutResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AbandonWorkoutResponse>(null as any);
-    }
-
-    /**
      * Respond to a weekly check-in
      * @param id Route parameter — check-in identifier.
      * @return Success
@@ -5913,6 +5364,555 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SessionTemplateDetailResponse>(null as any);
+    }
+
+    /**
+     * Update workout log
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    updateWorkoutEndpoint(logId: string, updateWorkoutRequest: UpdateWorkoutRequest, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateWorkoutRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processUpdateWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Get workout log detail
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    getWorkoutLogEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkoutLogEndpoint(_response);
+        });
+    }
+
+    protected processGetWorkoutLogEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Start a workout (create draft log)
+     * @return Success
+     */
+    startWorkoutEndpoint(startWorkoutRequest: StartWorkoutRequest, signal?: AbortSignal): Promise<StartWorkoutResponse> {
+        let url_ = this.baseUrl + "/client/training/logs";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(startWorkoutRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStartWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processStartWorkoutEndpoint(response: AxiosResponse): Promise<StartWorkoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<StartWorkoutResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StartWorkoutResponse>(null as any);
+    }
+
+    /**
+     * List workout logs
+     * @param page Page number (1-based).
+     * @param pageSize Number of items per page.
+     * @return Success
+     */
+    getWorkoutLogsEndpoint(page: number, pageSize: number, signal?: AbortSignal): Promise<GetWorkoutLogsResponse> {
+        let url_ = this.baseUrl + "/client/training/logs?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetWorkoutLogsEndpoint(_response);
+        });
+    }
+
+    protected processGetWorkoutLogsEndpoint(response: AxiosResponse): Promise<GetWorkoutLogsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetWorkoutLogsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetWorkoutLogsResponse>(null as any);
+    }
+
+    /**
+     * Go live with a workout
+     * @param logId The external ID of the workout log to go live with.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    goLiveEndpoint(logId: string, signal?: AbortSignal): Promise<GoLiveResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/go-live";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGoLiveEndpoint(_response);
+        });
+    }
+
+    protected processGoLiveEndpoint(response: AxiosResponse): Promise<GoLiveResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GoLiveResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GoLiveResponse>(null as any);
+    }
+
+    /**
+     * Get exercise progress
+     * @param clientId Client's public user identifier.
+     * @param exerciseId Exercise's public identifier.
+     * @return Success
+     */
+    getExerciseProgressEndpoint(clientId: string, exerciseId: string, signal?: AbortSignal): Promise<GetExerciseProgressResponse> {
+        let url_ = this.baseUrl + "/training/clients/{clientId}/progress/{exerciseId}";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (exerciseId === undefined || exerciseId === null)
+            throw new globalThis.Error("The parameter 'exerciseId' must be defined.");
+        url_ = url_.replace("{exerciseId}", encodeURIComponent("" + exerciseId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetExerciseProgressEndpoint(_response);
+        });
+    }
+
+    protected processGetExerciseProgressEndpoint(response: AxiosResponse): Promise<GetExerciseProgressResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetExerciseProgressResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetExerciseProgressResponse>(null as any);
+    }
+
+    /**
+     * Complete a workout
+     * @param logId The workout log's public identifier.
+     * @return Success
+     */
+    completeWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<WorkoutLogDetail> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/complete";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCompleteWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processCompleteWorkoutEndpoint(response: AxiosResponse): Promise<WorkoutLogDetail> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WorkoutLogDetail>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkoutLogDetail>(null as any);
+    }
+
+    /**
+     * Abandon a workout
+     * @param logId The external ID of the workout log to abandon.
+    Bound from the route segment {logId}.
+     * @return Success
+     */
+    abandonWorkoutEndpoint(logId: string, signal?: AbortSignal): Promise<AbandonWorkoutResponse> {
+        let url_ = this.baseUrl + "/client/training/logs/{logId}/abandon";
+        if (logId === undefined || logId === null)
+            throw new globalThis.Error("The parameter 'logId' must be defined.");
+        url_ = url_.replace("{logId}", encodeURIComponent("" + logId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAbandonWorkoutEndpoint(_response);
+        });
+    }
+
+    protected processAbandonWorkoutEndpoint(response: AxiosResponse): Promise<AbandonWorkoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<AbandonWorkoutResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<AbandonWorkoutResponse>(null as any);
     }
 
     /**
@@ -12599,6 +12599,110 @@ export class ApiClient {
     }
 
     /**
+     * List a client's photos (trainer view)
+     * @param clientId The client profile's public identifier (route parameter).
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param groupByMonth When true the response items are MonthGroupResponse objects
+    grouped by YYYY-MM. When false (default) items are flat
+    ClientPhotoResponse objects.
+    Pagination applies to groups when true, to individual photos when false.
+     * @param category (optional) Optional category filter (Food / Body / FreeForm).
+     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
+     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
+     * @param planId (optional) Optional plan filter. When provided, only photos belonging to this plan
+    (matching PlanPhoto.PlanId) are returned. Applies regardless of
+    PlanType; the caller is expected to know whether the plan is a
+    nutrition or training plan.
+     * @return Success
+     */
+    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/photos?";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (groupByMonth === undefined || groupByMonth === null)
+            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
+        else
+            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
+        if (category !== undefined && category !== null)
+            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        if (planId !== undefined && planId !== null)
+            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTrainerClientPhotosEndpoint(_response);
+        });
+    }
+
+    protected processGetTrainerClientPhotosEndpoint(response: AxiosResponse): Promise<GetTrainerClientPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetTrainerClientPhotosResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetTrainerClientPhotosResponse>(null as any);
+    }
+
+    /**
      * List plan photos
      * @param planId Route: the plan's public identifier.
      * @param page 1-based page number (default 1).
@@ -12759,6 +12863,100 @@ export class ApiClient {
     }
 
     /**
+     * List my photos (client view)
+     * @param page Page number (1-based). Defaults to 1.
+     * @param pageSize Number of items per page. Defaults to 20.
+     * @param groupByMonth When true the response items are MonthGroupResponse objects
+    grouped by YYYY-MM. When false (default) items are flat
+    ClientPhotoResponse objects.
+    Pagination applies to groups when true, to individual photos when false.
+     * @param category (optional) Optional category filter (Food / Body / FreeForm).
+     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
+     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
+     * @return Success
+     */
+    getMyPhotosEndpoint(page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetMyPhotosResponse> {
+        let url_ = this.baseUrl + "/client/me/photos?";
+        if (page === undefined || page === null)
+            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
+        else
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === undefined || pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
+        else
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (groupByMonth === undefined || groupByMonth === null)
+            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
+        else
+            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
+        if (category !== undefined && category !== null)
+            url_ += "category=" + encodeURIComponent("" + category) + "&";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent("" + from) + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent("" + to) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyPhotosEndpoint(_response);
+        });
+    }
+
+    protected processGetMyPhotosEndpoint(response: AxiosResponse): Promise<GetMyPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetMyPhotosResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetMyPhotosResponse>(null as any);
+    }
+
+    /**
      * Generate plan photo upload URL
      * @param planId Route: the plan's public identifier (NutritionPlan.ExternalId or TrainingPlan.ExternalId).
      * @return Success
@@ -12891,204 +13089,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * List a client's photos (trainer view)
-     * @param clientId The client profile's public identifier (route parameter).
-     * @param page Page number (1-based). Defaults to 1.
-     * @param pageSize Number of items per page. Defaults to 20.
-     * @param groupByMonth When true the response items are MonthGroupResponse objects
-    grouped by YYYY-MM. When false (default) items are flat
-    ClientPhotoResponse objects.
-    Pagination applies to groups when true, to individual photos when false.
-     * @param category (optional) Optional category filter (Food / Body / FreeForm).
-     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
-     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
-     * @param planId (optional) Optional plan filter. When provided, only photos belonging to this plan
-    (matching PlanPhoto.PlanId) are returned. Applies regardless of
-    PlanType; the caller is expected to know whether the plan is a
-    nutrition or training plan.
-     * @return Success
-     */
-    getTrainerClientPhotosEndpoint(clientId: string, page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, planId?: string | null | undefined, signal?: AbortSignal): Promise<GetTrainerClientPhotosResponse> {
-        let url_ = this.baseUrl + "/trainer/clients/{clientId}/photos?";
-        if (clientId === undefined || clientId === null)
-            throw new globalThis.Error("The parameter 'clientId' must be defined.");
-        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (groupByMonth === undefined || groupByMonth === null)
-            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
-        else
-            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
-        if (from !== undefined && from !== null)
-            url_ += "from=" + encodeURIComponent("" + from) + "&";
-        if (to !== undefined && to !== null)
-            url_ += "to=" + encodeURIComponent("" + to) + "&";
-        if (planId !== undefined && planId !== null)
-            url_ += "planId=" + encodeURIComponent("" + planId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetTrainerClientPhotosEndpoint(_response);
-        });
-    }
-
-    protected processGetTrainerClientPhotosEndpoint(response: AxiosResponse): Promise<GetTrainerClientPhotosResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetTrainerClientPhotosResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetTrainerClientPhotosResponse>(null as any);
-    }
-
-    /**
-     * List my photos (client view)
-     * @param page Page number (1-based). Defaults to 1.
-     * @param pageSize Number of items per page. Defaults to 20.
-     * @param groupByMonth When true the response items are MonthGroupResponse objects
-    grouped by YYYY-MM. When false (default) items are flat
-    ClientPhotoResponse objects.
-    Pagination applies to groups when true, to individual photos when false.
-     * @param category (optional) Optional category filter (Food / Body / FreeForm).
-     * @param from (optional) Optional inclusive lower bound on TakenAt (UTC).
-     * @param to (optional) Optional inclusive upper bound on TakenAt (UTC).
-     * @return Success
-     */
-    getMyPhotosEndpoint(page: number, pageSize: number, groupByMonth: boolean, category?: PlanPhotoCategory | null | undefined, from?: string | null | undefined, to?: string | null | undefined, signal?: AbortSignal): Promise<GetMyPhotosResponse> {
-        let url_ = this.baseUrl + "/client/me/photos?";
-        if (page === undefined || page === null)
-            throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
-        else
-            url_ += "page=" + encodeURIComponent("" + page) + "&";
-        if (pageSize === undefined || pageSize === null)
-            throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
-        else
-            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
-        if (groupByMonth === undefined || groupByMonth === null)
-            throw new globalThis.Error("The parameter 'groupByMonth' must be defined and cannot be null.");
-        else
-            url_ += "groupByMonth=" + encodeURIComponent("" + groupByMonth) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
-        if (from !== undefined && from !== null)
-            url_ += "from=" + encodeURIComponent("" + from) + "&";
-        if (to !== undefined && to !== null)
-            url_ += "to=" + encodeURIComponent("" + to) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetMyPhotosEndpoint(_response);
-        });
-    }
-
-    protected processGetMyPhotosEndpoint(response: AxiosResponse): Promise<GetMyPhotosResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetMyPhotosResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<GetMyPhotosResponse>(null as any);
     }
 
     /**
@@ -16282,264 +16282,6 @@ export interface CreateWorkoutTemplateRequest {
     defaultExercises?: CreateWorkoutTemplateExerciseRequest[];
 }
 
-/** Full workout log detail DTO. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
-export interface WorkoutLogDetail {
-    /** Workout log public identifier. */
-    logId?: string;
-    /** Client's user ID. */
-    clientId?: string;
-    /** Training plan reference. */
-    planId?: string | undefined;
-    /** Training session reference. */
-    sessionId?: string | undefined;
-    /** When the workout started. */
-    startedAt?: string;
-    /** When the workout was completed. */
-    completedAt?: string | undefined;
-    /** Duration in seconds (null if not completed). */
-    durationSeconds?: number | undefined;
-    /** Client mood (1-5). */
-    mood?: number | undefined;
-    /** Client notes. */
-    notes?: string | undefined;
-    /** Whether the workout is completed. */
-    isCompleted?: boolean;
-    /** Exercises performed. */
-    exercises?: WorkoutExercise[];
-    /** Whether any set in this workout is a PR. */
-    hasPR?: boolean;
-}
-
-/** An exercise performed during a workout — denormalized snapshot with actual results. */
-export interface WorkoutExercise {
-    /** Reference to the exercise document's ExternalId. */
-    exerciseExternalId?: string;
-    /** Snapshot of the exercise name. */
-    exerciseName?: string;
-    /** WOD format result for this individual exercise.
-Null for Standard exercises or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Actual sets performed. */
-    sets?: WorkoutSet[];
-}
-
-/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
-export interface WodResult {
-    /** Number of complete rounds completed (AMRAP, Tabata). */
-    roundsCompleted?: number | undefined;
-    /** Extra reps accumulated after the last complete round (AMRAP). */
-    extraReps?: number | undefined;
-    /** Total time taken to complete the workout in seconds (ForTime). */
-    totalTimeSeconds?: number | undefined;
-    /** List of round numbers that were not completed (Tabata, EMOM). */
-    failedRounds?: number[] | undefined;
-    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
-    repsByRound?: number[] | undefined;
-}
-
-/** A single set actually performed during a workout with recorded values. Snapshot-planned fields capture the prescribed values at the time the set was first logged; they are immutable after initial persistence so later plan edits do not affect them. */
-export interface WorkoutSet {
-    /** Set number within the exercise (1-based). */
-    setNumber?: number;
-    /** Actual repetitions completed. */
-    reps?: number | undefined;
-    /** Actual weight used in kilograms. */
-    weightKg?: number | undefined;
-    /** Rate of Perceived Exertion (1-10 scale). */
-    rpe?: number | undefined;
-    /** Actual duration in seconds (for timed exercises). */
-    durationSeconds?: number | undefined;
-    /** Actual distance in meters (for distance-based exercises). */
-    distanceMeters?: number | undefined;
-    /** When this set was completed. */
-    completedAt?: string | undefined;
-    /** Whether this set is a personal record for this exercise. */
-    isPR?: boolean;
-    /** Prescribed repetitions at the time this set was first logged. */
-    plannedReps?: number | undefined;
-    /** Prescribed weight (kg) at the time this set was first logged. */
-    plannedWeightKg?: number | undefined;
-    /** Prescribed RPE at the time this set was first logged. */
-    plannedRpe?: number | undefined;
-    /** Prescribed duration (seconds) at the time this set was first logged. */
-    plannedDurationSeconds?: number | undefined;
-    /** Prescribed distance (meters) at the time this set was first logged. */
-    plannedDistanceMeters?: number | undefined;
-    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
-Always false for legacy sets whose planned fields are all null (backward-compatible default).
-Never stored — derived on read. */
-    isModified?: boolean;
-}
-
-/** Request to progressively update a workout log with exercise data. Designed for offline-first: client sends all exercises/sets accumulated so far. */
-export interface UpdateWorkoutRequest {
-    /** Client's subjective mood rating (1-5). */
-    mood?: number | undefined;
-    /** Optional client notes. */
-    notes?: string | undefined;
-    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
-Null for Standard workouts or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Current state of exercises performed. */
-    exercises?: UpdateWorkoutExerciseRequest[];
-}
-
-/** Exercise data in a workout update. */
-export interface UpdateWorkoutExerciseRequest {
-    /** The workout this exercise belongs to — must match WorkoutId
-(and by design the source WorkoutId).
-Null for requests from legacy clients that do not yet send workout context;
-in that case the exercise is stored in the first workout of the log (single-workout fallback). */
-    workoutId?: string | undefined;
-    /** Reference to the exercise document's ExternalId. */
-    exerciseExternalId?: string;
-    /** Snapshot of the exercise name. */
-    exerciseName?: string;
-    /** WOD format result for this individual exercise.
-Null for Standard exercises or when not yet recorded. */
-    wodResult?: WodResult | undefined;
-    /** Sets performed for this exercise. */
-    sets?: UpdateWorkoutSetRequest[];
-}
-
-/** Set data in a workout update. */
-export interface UpdateWorkoutSetRequest {
-    /** Set number (1-based). */
-    setNumber?: number;
-    /** Actual reps completed. */
-    reps?: number | undefined;
-    /** Actual weight in kg. */
-    weightKg?: number | undefined;
-    /** Rate of Perceived Exertion (1-10). */
-    rpe?: number | undefined;
-    /** Duration in seconds. */
-    durationSeconds?: number | undefined;
-    /** Distance in meters. */
-    distanceMeters?: number | undefined;
-    /** When this set was completed. */
-    completedAt?: string | undefined;
-    /** Prescribed repetitions from the plan prescription. */
-    plannedReps?: number | undefined;
-    /** Prescribed weight (kg) from the plan prescription. */
-    plannedWeightKg?: number | undefined;
-    /** Prescribed RPE from the plan prescription. */
-    plannedRpe?: number | undefined;
-    /** Prescribed duration (seconds) from the plan prescription. */
-    plannedDurationSeconds?: number | undefined;
-    /** Prescribed distance (meters) from the plan prescription. */
-    plannedDistanceMeters?: number | undefined;
-}
-
-/** Response after starting a workout. */
-export interface StartWorkoutResponse {
-    /** The new workout log's public identifier. */
-    logId?: string;
-    /** When the workout was started. */
-    startedAt?: string;
-}
-
-/** Request to start a new workout session. */
-export interface StartWorkoutRequest {
-    /** Optional reference to the training plan. */
-    planId?: string | undefined;
-    /** Optional reference to the training session within the plan. */
-    sessionId?: string | undefined;
-}
-
-/** Response returned when a workout log transitions to Live state. */
-export interface GoLiveResponse {
-    /** The external ID of the workout log now in Live state. */
-    logId?: string;
-    /** UTC timestamp when the Live lock was acquired. */
-    liveAt?: string;
-}
-
-/** Request to transition an existing draft workout log to Live state. */
-export interface GoLiveRequest {
-}
-
-/** Paginated response with workout log summaries. */
-export interface GetWorkoutLogsResponse {
-    /** List of workout log summaries. */
-    logs?: WorkoutLogSummary[];
-    /** Total count of matching logs. */
-    totalCount?: number;
-    /** Current page. */
-    page?: number;
-    /** Page size. */
-    pageSize?: number;
-}
-
-/** Lightweight workout log summary for list views. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
-export interface WorkoutLogSummary {
-    /** Workout log public identifier. */
-    logId?: string;
-    /** When the workout started. */
-    startedAt?: string;
-    /** When the workout was completed. */
-    completedAt?: string | undefined;
-    /** Duration in seconds. */
-    durationSeconds?: number | undefined;
-    /** Client mood (1-5). */
-    mood?: number | undefined;
-    /** Whether the workout is completed. */
-    isCompleted?: boolean;
-    /** Number of exercises performed. */
-    exerciseCount?: number;
-    /** Total number of sets performed. */
-    setCount?: number;
-    /** Whether any set is a PR. */
-    hasPR?: boolean;
-}
-
-/** Request to list client's workout logs. */
-export interface GetWorkoutLogsRequest {
-}
-
-/** Request to get a single workout log detail. */
-export interface GetWorkoutLogRequest {
-}
-
-/** Time series of exercise performance data points. */
-export interface GetExerciseProgressResponse {
-    /** Exercise name. */
-    exerciseName?: string;
-    /** Performance data points ordered by date. */
-    dataPoints?: ExerciseProgressPoint[];
-}
-
-/** A single data point of exercise performance. */
-export interface ExerciseProgressPoint {
-    /** Date of the workout. */
-    date?: string;
-    /** Best weight used in this workout (kg). */
-    bestWeightKg?: number | undefined;
-    /** Best reps at best weight. */
-    bestReps?: number | undefined;
-    /** Total volume (sum of weight × reps across all sets). */
-    totalVolume?: number;
-    /** Whether any set was a PR. */
-    hasPR?: boolean;
-}
-
-/** Request to get a client's exercise progress over time. */
-export interface GetExerciseProgressRequest {
-}
-
-/** Request to complete a workout session. */
-export interface CompleteWorkoutRequest {
-}
-
-/** Response returned when an abandon request is processed (including idempotent no-op case). */
-export interface AbandonWorkoutResponse {
-    /** Whether a Live lock was actually released. False when the lock was already gone (idempotent). */
-    released?: boolean;
-}
-
-/** Request to abandon (discard) a draft workout session and release the Live lock. */
-export interface AbandonWorkoutRequest {
-}
-
 /** Response for POST /client/weekly-check-ins/{id}/respond. */
 export interface RespondToCheckInResponse {
     /** Check-in identifier. */
@@ -17336,7 +17078,7 @@ Populated by the endpoint after loading the plan; the client side should filter
 to dates that fall within the plan's active weeks. */
     completions?: TrainingPlanCompletionDto[];
     /** Per-session workout-log execution data for the plan's client.
-One entry per session that has at least one WorkoutLog record.
+One entry per session that has at least one SessionExecution record.
 Sessions with no log entry are absent (equivalent to all sets being not-yet-reached).
 The web layer uses this together with Completions to render per-set,
 per-exercise, and per-session completed/skipped/unreached state indicators. */
@@ -17421,11 +17163,11 @@ semantics unchanged. */
 export interface SessionExecutionDto {
     /** The SessionId this execution belongs to. */
     sessionId?: string;
-    /** Whether the workout was finalised by the client (IsCompleted was true). */
+    /** Whether the workout was finalised by the client (Status was Completed). */
     isSessionFinished?: boolean;
     /** Per-exercise map of which set numbers were completed (i.e. had a non-null
 CompletedAt). Key = ExerciseExternalId; value = sorted list
-of 1-based set numbers that were stamped as complete in the WorkoutLog.
+of 1-based set numbers that were stamped as complete in the SessionExecution.
 An absent key means no sets for that exercise were logged.
 An empty list should not occur but is treated identically to an absent key.
 Deprecated in favour of CompletedSetsByWorkoutAndExercise.
@@ -18781,6 +18523,264 @@ Private when omitted. */
 export interface CopySessionTemplateRequest {
 }
 
+/** Full workout log detail DTO. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
+export interface WorkoutLogDetail {
+    /** Workout log public identifier. */
+    logId?: string;
+    /** Client's user ID. */
+    clientId?: string;
+    /** Training plan reference. */
+    planId?: string | undefined;
+    /** Training session reference. */
+    sessionId?: string | undefined;
+    /** When the workout started. */
+    startedAt?: string;
+    /** When the workout was completed. */
+    completedAt?: string | undefined;
+    /** Duration in seconds (null if not completed). */
+    durationSeconds?: number | undefined;
+    /** Client mood (1-5). */
+    mood?: number | undefined;
+    /** Client notes. */
+    notes?: string | undefined;
+    /** Whether the workout is completed. */
+    isCompleted?: boolean;
+    /** Exercises performed. */
+    exercises?: WorkoutExercise[];
+    /** Whether any set in this workout is a PR. */
+    hasPR?: boolean;
+}
+
+/** An exercise performed during a workout — denormalized snapshot with actual results. */
+export interface WorkoutExercise {
+    /** Reference to the exercise document's ExternalId. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name. */
+    exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Actual sets performed. */
+    sets?: WorkoutSet[];
+}
+
+/** Records the outcome of a WOD (Workout Of the Day) format session or exercise. Which fields are meaningful depends on the WorkoutFormat. All fields are nullable — only those relevant to the actual result need to be set. */
+export interface WodResult {
+    /** Number of complete rounds completed (AMRAP, Tabata). */
+    roundsCompleted?: number | undefined;
+    /** Extra reps accumulated after the last complete round (AMRAP). */
+    extraReps?: number | undefined;
+    /** Total time taken to complete the workout in seconds (ForTime). */
+    totalTimeSeconds?: number | undefined;
+    /** List of round numbers that were not completed (Tabata, EMOM). */
+    failedRounds?: number[] | undefined;
+    /** Reps completed per round, indexed 1-based (Tabata, EMOM, AMRAP). */
+    repsByRound?: number[] | undefined;
+}
+
+/** A single set actually performed during a workout with recorded values. Snapshot-planned fields capture the prescribed values at the time the set was first logged; they are immutable after initial persistence so later plan edits do not affect them. */
+export interface WorkoutSet {
+    /** Set number within the exercise (1-based). */
+    setNumber?: number;
+    /** Actual repetitions completed. */
+    reps?: number | undefined;
+    /** Actual weight used in kilograms. */
+    weightKg?: number | undefined;
+    /** Rate of Perceived Exertion (1-10 scale). */
+    rpe?: number | undefined;
+    /** Actual duration in seconds (for timed exercises). */
+    durationSeconds?: number | undefined;
+    /** Actual distance in meters (for distance-based exercises). */
+    distanceMeters?: number | undefined;
+    /** When this set was completed. */
+    completedAt?: string | undefined;
+    /** Whether this set is a personal record for this exercise. */
+    isPR?: boolean;
+    /** Prescribed repetitions at the time this set was first logged. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) at the time this set was first logged. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE at the time this set was first logged. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) at the time this set was first logged. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) at the time this set was first logged. */
+    plannedDistanceMeters?: number | undefined;
+    /** Backend-computed flag: true when any actual field differs from its snapshot-planned counterpart.
+Always false for legacy sets whose planned fields are all null (backward-compatible default).
+Never stored — derived on read. */
+    isModified?: boolean;
+}
+
+/** Request to progressively update a workout log with exercise data. Designed for offline-first: client sends all exercises/sets accumulated so far. */
+export interface UpdateWorkoutRequest {
+    /** Client's subjective mood rating (1-5). */
+    mood?: number | undefined;
+    /** Optional client notes. */
+    notes?: string | undefined;
+    /** WOD format result for the whole session (ForTime, AMRAP, etc.).
+Null for Standard workouts or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Current state of exercises performed. */
+    exercises?: UpdateWorkoutExerciseRequest[];
+}
+
+/** Exercise data in a workout update. */
+export interface UpdateWorkoutExerciseRequest {
+    /** The workout this exercise belongs to — must match WorkoutId
+(and by design the source WorkoutId).
+Null for requests from legacy clients that do not yet send workout context;
+in that case the exercise is stored in the first workout of the log (single-workout fallback). */
+    workoutId?: string | undefined;
+    /** Reference to the exercise document's ExternalId. */
+    exerciseExternalId?: string;
+    /** Snapshot of the exercise name. */
+    exerciseName?: string;
+    /** WOD format result for this individual exercise.
+Null for Standard exercises or when not yet recorded. */
+    wodResult?: WodResult | undefined;
+    /** Sets performed for this exercise. */
+    sets?: UpdateWorkoutSetRequest[];
+}
+
+/** Set data in a workout update. */
+export interface UpdateWorkoutSetRequest {
+    /** Set number (1-based). */
+    setNumber?: number;
+    /** Actual reps completed. */
+    reps?: number | undefined;
+    /** Actual weight in kg. */
+    weightKg?: number | undefined;
+    /** Rate of Perceived Exertion (1-10). */
+    rpe?: number | undefined;
+    /** Duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Distance in meters. */
+    distanceMeters?: number | undefined;
+    /** When this set was completed. */
+    completedAt?: string | undefined;
+    /** Prescribed repetitions from the plan prescription. */
+    plannedReps?: number | undefined;
+    /** Prescribed weight (kg) from the plan prescription. */
+    plannedWeightKg?: number | undefined;
+    /** Prescribed RPE from the plan prescription. */
+    plannedRpe?: number | undefined;
+    /** Prescribed duration (seconds) from the plan prescription. */
+    plannedDurationSeconds?: number | undefined;
+    /** Prescribed distance (meters) from the plan prescription. */
+    plannedDistanceMeters?: number | undefined;
+}
+
+/** Response after starting a workout. */
+export interface StartWorkoutResponse {
+    /** The new workout log's public identifier. */
+    logId?: string;
+    /** When the workout was started. */
+    startedAt?: string;
+}
+
+/** Request to start a new workout session. */
+export interface StartWorkoutRequest {
+    /** Optional reference to the training plan. */
+    planId?: string | undefined;
+    /** Optional reference to the training session within the plan. */
+    sessionId?: string | undefined;
+}
+
+/** Response returned when a workout log transitions to Live state. */
+export interface GoLiveResponse {
+    /** The external ID of the workout log now in Live state. */
+    logId?: string;
+    /** UTC timestamp when the Live lock was acquired. */
+    liveAt?: string;
+}
+
+/** Request to transition an existing draft workout log to Live state. */
+export interface GoLiveRequest {
+}
+
+/** Paginated response with workout log summaries. */
+export interface GetWorkoutLogsResponse {
+    /** List of workout log summaries. */
+    logs?: WorkoutLogSummary[];
+    /** Total count of matching logs. */
+    totalCount?: number;
+    /** Current page. */
+    page?: number;
+    /** Page size. */
+    pageSize?: number;
+}
+
+/** Lightweight workout log summary for list views. Byte-stable wire shape — sourced from SessionExecution (#841) instead of the retired standalone WorkoutLog. */
+export interface WorkoutLogSummary {
+    /** Workout log public identifier. */
+    logId?: string;
+    /** When the workout started. */
+    startedAt?: string;
+    /** When the workout was completed. */
+    completedAt?: string | undefined;
+    /** Duration in seconds. */
+    durationSeconds?: number | undefined;
+    /** Client mood (1-5). */
+    mood?: number | undefined;
+    /** Whether the workout is completed. */
+    isCompleted?: boolean;
+    /** Number of exercises performed. */
+    exerciseCount?: number;
+    /** Total number of sets performed. */
+    setCount?: number;
+    /** Whether any set is a PR. */
+    hasPR?: boolean;
+}
+
+/** Request to list client's workout logs. */
+export interface GetWorkoutLogsRequest {
+}
+
+/** Request to get a single workout log detail. */
+export interface GetWorkoutLogRequest {
+}
+
+/** Time series of exercise performance data points. */
+export interface GetExerciseProgressResponse {
+    /** Exercise name. */
+    exerciseName?: string;
+    /** Performance data points ordered by date. */
+    dataPoints?: ExerciseProgressPoint[];
+}
+
+/** A single data point of exercise performance. */
+export interface ExerciseProgressPoint {
+    /** Date of the workout. */
+    date?: string;
+    /** Best weight used in this workout (kg). */
+    bestWeightKg?: number | undefined;
+    /** Best reps at best weight. */
+    bestReps?: number | undefined;
+    /** Total volume (sum of weight × reps across all sets). */
+    totalVolume?: number;
+    /** Whether any set was a PR. */
+    hasPR?: boolean;
+}
+
+/** Request to get a client's exercise progress over time. */
+export interface GetExerciseProgressRequest {
+}
+
+/** Request to complete a workout session. */
+export interface CompleteWorkoutRequest {
+}
+
+/** Response returned when an abandon request is processed (including idempotent no-op case). */
+export interface AbandonWorkoutResponse {
+    /** Whether a Live lock was actually released. False when the lock was already gone (idempotent). */
+    released?: boolean;
+}
+
+/** Request to abandon (discard) a draft workout session and release the Live lock. */
+export interface AbandonWorkoutRequest {
+}
+
 /** Response model containing the pre-signed upload URL and the permanent blob URL. */
 export interface UploadRecipeImageUrlResponse {
     /** Time-limited pre-signed URL the client should PUT the image file to. */
@@ -18831,6 +18831,8 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
     dateCreated?: string;
     /** When the recipe was last updated. */
     dateUpdated?: string | undefined;
+    /** Optimistic concurrency version. Clients must echo this value back on update. */
+    version?: number;
 }
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
@@ -18883,6 +18885,8 @@ export enum RecipeVisibility {
 
 /** Request model for updating an existing recipe. */
 export interface UpdateRecipeRequest {
+    /** Optimistic concurrency version. Must match the current document version. */
+    version?: number;
     /** Updated name of the recipe. */
     name: string;
     /** Updated description or preparation instructions. */
@@ -18944,6 +18948,8 @@ export interface RecipeSummaryDto {
     dateCreated?: string;
     /** Distinct food categories from the recipe's ingredients. */
     foodCategories?: string[];
+    /** Optimistic concurrency version. Clients must echo this value back on update. */
+    version?: number;
 }
 
 /** Request model for searching recipes. */
@@ -21028,7 +21034,7 @@ Missing entries imply a fresh document (server will accept Version=null/1). */
     /** Per-session, per-exercise completed set numbers for today. Keyed by
 SessionId → ExerciseExternalId → list of 1-based SetNumbers whose
 CompletedAt is non-null in the latest
-WorkoutLog for that session on today's date.
+SessionExecution for that session on today's date.
 Empty when no live-training progress has been logged for today.
 Keeps per-set state out of the planning-document tree (Sessions) which
 represents prescription, not actuals. */
@@ -21076,20 +21082,22 @@ Union of two sources — read this before consuming the field. The value set is
 the union of:
 Every id in the session's CompletedExerciseInstanceIds,
 carried verbatim — these already identify a single placement.
-Performance-derived completion, fanned out to every sibling instance sharing the
-same catalog id. WorkoutExercise (the live-training-assistant side of
-Performance) carries only ExerciseExternalId
-— it has NO instance id, so a fully-logged exercise from a live workout cannot be
-attributed to one specific placement. Rather than silently omitting it (which would make
-this field strictly LESS complete than the catalog-keyed fields it supersedes, and a
-session finished through the live-training assistant would render with no ticks at all),
-every ExerciseId in the session whose
-ExerciseExternalId matches a fully-logged Performance
-exercise is added here too. Concretely: if a session holds catalog exercise X both
-standalone and nested in a workout, and the client fully logs X via the live-training
-assistant, BOTH instance ids appear in this field — the write path cannot distinguish
-which placement was actually performed, so both are reported complete rather than
-neither.
+Performance-derived completion, attributed placement-exact (#938).
+WorkoutExercise (the live-training-assistant side of
+Performance) carries only
+ExerciseExternalId plus its containing
+WorkoutId — no instance id — so attribution goes through
+ResolveMatchedPlacements: a
+fully-logged exercise is attributed to the ONE placement its containing workout resolves to
+when unambiguous; fanned out across every TIED instance when the same catalog exercise is
+placed twice under the same workout (or twice standalone) — genuinely unresolvable, since
+WorkoutExercise carries neither an instance id nor an order; and fanned out
+across every sibling instance sharing the catalog id ONLY when attribution is genuinely
+impossible (no workout in the session matches the logged placement at all). Concretely: if a
+session holds catalog exercise X both standalone and nested in a REAL workout, and the
+client fully logs X against that real workout via the live-training assistant, only the
+NESTED instance id appears here — the standalone placement is a different, unambiguous
+container and is not reported complete.
 Empty dictionary when no active plan exists or no session has any completed exercise for
 today. Additive alongside CompletedExerciseIdsBySession and
 CompletedExerciseIdsByWorkoutAndSession, which keep their existing
@@ -21399,101 +21407,6 @@ export interface ClientRequestDto {
     respondedAt?: string | undefined;
 }
 
-/** Response shape for a single PlanPhoto record. Shared across the FinalizePlanPhoto and GetPlanPhotos slices within the ClientPlans feature area — both surfaces expose the same projection. */
-export interface PlanPhotoResponse {
-    /** Public identifier of the photo record. */
-    id?: string;
-    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
-client-photo prefixes (the bucket carries no public-read grant there) — this is the
-write-path identity key, safe to echo back unchanged on a subsequent save. Never render
-this as an <img>/Image source; use DisplayUrl instead. */
-    blobUrl?: string;
-    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
-MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
-rather than persisting, caching, or echoing it back on a write. Never conflate this with
-BlobUrl: a client that submits this value back on a save would permanently
-store an expiring signature (F9 follow-up). */
-    displayUrl?: string;
-    /** Display / filtering category (Food / Body / FreeForm). */
-    category?: PlanPhotoCategory;
-    /** Optional caption. */
-    description?: string | undefined;
-    /** When the photo was taken (or uploaded), in UTC. */
-    takenAt?: string;
-    /** MongoDB MealLog ObjectId string for food photos. Null for non-food photos. */
-    mealLogId?: string | undefined;
-    /** External plan identifier this photo belongs to. */
-    planId?: string | undefined;
-    /** Whether this is a nutrition or training plan photo. */
-    planType?: PlanPhotoType | undefined;
-    /** When the record was created. */
-    dateCreated?: string;
-    /** The ApplicationUser.Id of the uploader. */
-    uploadedByUserId?: string;
-    /** The diary request this photo is associated with, or null if none. */
-    diaryRequestId?: string | undefined;
-}
-
-/** Categorises a PlanPhoto for display grouping and filtering in the app. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Tělo / Volné). */
-export enum PlanPhotoCategory {
-    Food = "Food",
-    Body = "Body",
-    FreeForm = "FreeForm",
-    Training = "Training",
-}
-
-/** Identifies whether a PlanPhoto is associated with a nutrition plan or a training plan. */
-export enum PlanPhotoType {
-    Nutrition = "Nutrition",
-    Training = "Training",
-}
-
-/** Request model for listing plan photos with optional category filter and pagination. */
-export interface GetPlanPhotosRequest {
-}
-
-/** Response for the plan photo upload URL generation endpoint. Consistent with the shape used by GenerateMealPhotoUploadUrlEndpoint and GenerateDayPhotoUploadUrlEndpoint. */
-export interface GeneratePlanPhotoUploadUrlResponse {
-    /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
-    uploadUrl?: string;
-    /** The permanent blob URL where the image will be accessible after upload.
-Pass this to POST /client/plans/{planId}/photos to finalize the record. */
-    blobUrl?: string;
-}
-
-/** Request model for generating a pre-signed plan photo upload URL. */
-export interface GeneratePlanPhotoUploadUrlRequest {
-    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
-    contentType: string;
-    /** Declared file size in bytes. Must not exceed 5 MiB. */
-    sizeBytes?: number;
-}
-
-/** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
-export interface FinalizePlanPhotoRequest {
-    /** Permanent blob URL returned by the upload-url endpoint. */
-    blobUrl: string;
-    /** Display / filtering category (Food / Body / FreeForm). */
-    category?: PlanPhotoCategory;
-    /** Optional caption / description (max 500 chars). */
-    description?: string | undefined;
-    /** When the photo was taken. Defaults to UtcNow when not provided. */
-    takenAt?: string | undefined;
-    /** MongoDB MealLog ObjectId string. Required when Category is
-Food, otherwise ignored. */
-    mealLogId?: string | undefined;
-    /** Optional diary request ID. When set, the photo is linked to this diary request.
-The diary request must be owned by the calling client and must be in
-Accepted or
-InProgress status.
-On the first upload for an Accepted request the request is transitioned to InProgress. */
-    diaryRequestId?: string | undefined;
-}
-
-/** Request model for deleting a plan photo by its public identifier. */
-export interface DeletePlanPhotoRequest {
-}
-
 /** Response for GET /trainer/clients/{id}/photos. Design decision — discriminated response in a single envelope: The endpoint serves two shapes depending on the groupByMonth query flag rather than splitting into two routes, because the filtering/auth logic is identical and a single URL is easier to cache and document. Exactly one of Photos or Groups will be non-null in any response: groupByMonth=false (default): Photos is populated,  Groups is null. Pagination applies to individual photos. groupByMonth=true: Groups is populated,  Photos is null. Pagination applies to month groups (one page = N groups). The X-Total-Count response header always reflects the total count of the active collection (photos or groups). */
 export interface GetTrainerClientPhotosResponse {
     /** Flat list of photo records. Populated when groupByMonth=false. */
@@ -21539,6 +21452,20 @@ Null when PlanId is null. */
     diaryRequestId?: string | undefined;
 }
 
+/** Categorises a PlanPhoto for display grouping and filtering in the app. Maps to the three chips shown in the Fotky plánu gallery (Jídlo / Tělo / Volné). */
+export enum PlanPhotoCategory {
+    Food = "Food",
+    Body = "Body",
+    FreeForm = "FreeForm",
+    Training = "Training",
+}
+
+/** Identifies whether a PlanPhoto is associated with a nutrition plan or a training plan. */
+export enum PlanPhotoType {
+    Nutrition = "Nutrition",
+    Training = "Training",
+}
+
 /** Represents a calendar-month bucket of plan photos returned when groupByMonth=true is passed to the aggregation endpoints. */
 export interface MonthGroupResponse {
     /** ISO-8601 year-month key derived from TakenAt,
@@ -21553,6 +21480,45 @@ TakenAt descending. */
 export interface GetTrainerClientPhotosRequest {
 }
 
+/** Response shape for a single PlanPhoto record. Shared across the FinalizePlanPhoto and GetPlanPhotos slices — both surfaces expose the same projection. */
+export interface PlanPhotoResponse {
+    /** Public identifier of the photo record. */
+    id?: string;
+    /** Canonical, permanent blob storage identity for the photo. NOT directly fetchable for
+client-photo prefixes (the bucket carries no public-read grant there) — this is the
+write-path identity key, safe to echo back unchanged on a subsequent save. Never render
+this as an <img>/Image source; use DisplayUrl instead. */
+    blobUrl?: string;
+    /** Short-lived pre-signed GET URL for actually fetching the photo bytes. Expires after
+MinIO:ReadUrlExpiryMinutes (default 15 minutes) — presentation-only, re-fetch
+rather than persisting, caching, or echoing it back on a write. Never conflate this with
+BlobUrl: a client that submits this value back on a save would permanently
+store an expiring signature (F9 follow-up). */
+    displayUrl?: string;
+    /** Display / filtering category (Food / Body / FreeForm). */
+    category?: PlanPhotoCategory;
+    /** Optional caption. */
+    description?: string | undefined;
+    /** When the photo was taken (or uploaded), in UTC. */
+    takenAt?: string;
+    /** MongoDB MealLog ObjectId string for food photos. Null for non-food photos. */
+    mealLogId?: string | undefined;
+    /** External plan identifier this photo belongs to. */
+    planId?: string | undefined;
+    /** Whether this is a nutrition or training plan photo. */
+    planType?: PlanPhotoType | undefined;
+    /** When the record was created. */
+    dateCreated?: string;
+    /** The ApplicationUser.Id of the uploader. */
+    uploadedByUserId?: string;
+    /** The diary request this photo is associated with, or null if none. */
+    diaryRequestId?: string | undefined;
+}
+
+/** Request model for listing plan photos with optional category filter and pagination. */
+export interface GetPlanPhotosRequest {
+}
+
 /** Response for GET /client/me/photos. Uses the same discriminated-envelope design as the trainer variant: exactly one of Photos or Groups is non-null. */
 export interface GetMyPhotosResponse {
     /** Flat list of photo records. Populated when groupByMonth=false. */
@@ -21563,6 +21529,48 @@ export interface GetMyPhotosResponse {
 
 /** Query parameters for GET /client/me/photos. */
 export interface GetMyPhotosRequest {
+}
+
+/** Response for the plan photo upload URL generation endpoint. Consistent with the shape used by GenerateMealPhotoUploadUrlEndpoint and GenerateDayPhotoUploadUrlEndpoint. */
+export interface GeneratePlanPhotoUploadUrlResponse {
+    /** Time-limited pre-signed PUT URL for direct upload to blob storage. */
+    uploadUrl?: string;
+    /** The permanent blob URL where the image will be accessible after upload.
+Pass this to POST /client/plans/{planId}/photos to finalize the record. */
+    blobUrl?: string;
+}
+
+/** Request model for generating a pre-signed plan photo upload URL. */
+export interface GeneratePlanPhotoUploadUrlRequest {
+    /** MIME type of the image file (e.g. "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif") */
+    contentType: string;
+    /** Declared file size in bytes. Must not exceed 5 MiB. */
+    sizeBytes?: number;
+}
+
+/** Request model for finalizing a plan photo upload by inserting a PlanPhoto row. The caller must have already uploaded the photo to blob storage using the URL from POST /client/plans/{planId}/photos/upload-url. */
+export interface FinalizePlanPhotoRequest {
+    /** Permanent blob URL returned by the upload-url endpoint. */
+    blobUrl: string;
+    /** Display / filtering category (Food / Body / FreeForm). */
+    category?: PlanPhotoCategory;
+    /** Optional caption / description (max 500 chars). */
+    description?: string | undefined;
+    /** When the photo was taken. Defaults to UtcNow when not provided. */
+    takenAt?: string | undefined;
+    /** MongoDB MealLog ObjectId string. Required when Category is
+Food, otherwise ignored. */
+    mealLogId?: string | undefined;
+    /** Optional diary request ID. When set, the photo is linked to this diary request.
+The diary request must be owned by the calling client and must be in
+Accepted or
+InProgress status.
+On the first upload for an Accepted request the request is transitioned to InProgress. */
+    diaryRequestId?: string | undefined;
+}
+
+/** Request model for deleting a plan photo by its public identifier. */
+export interface DeletePlanPhotoRequest {
 }
 
 /** Request model for un-logging (removing) a previously logged meal for the current day. */
