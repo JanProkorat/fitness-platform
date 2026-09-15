@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "GoodFellas",
     "redesignPlaceholder": "GoodFellas Trainer-Portal — neues UI in Arbeit.",
     "loading": "Laden...",
     "save": "Änderungen speichern",
@@ -178,10 +179,20 @@
     "comingSoon": "Mobile App kommt bald",
     "comingSoonHint": "Wir arbeiten an der mobilen GF Platform App. Bleiben Sie dran!"
   },
+  "shell": {
+    "searchPlaceholder": "Suchen...",
+    "accountMenu": "Kontomenü",
+    "comingSoon": "Diese Seite ist in Vorbereitung.",
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundBody": "Die gesuchte Seite existiert nicht.",
+    "backToClients": "Zurück zu Klienten"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
+    "inbox": "Posteingang",
+    "ingredients": "Zutaten",
     "foods": "Lebensmittel",
     "plans": "Pläne",
     "settings": "Einstellungen",

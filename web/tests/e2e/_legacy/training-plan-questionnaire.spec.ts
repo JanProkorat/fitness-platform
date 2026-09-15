@@ -1,3 +1,7 @@
+// QUARANTINED by #1051 (web v1 rebuild, epic #1052) — training plans are
+// explicitly out of scope for epic #1052 (design spec §1); no sub-issue
+// currently restores this test. Targets DOM the v1 strip removed.
+
 /**
  * #697 — Training Plan detail: linked questionnaire answers moved into a
  * dedicated "Dotazník" page tab (management actions stay in the sidebar).

@@ -1,5 +1,6 @@
 {
   "common": {
+    "appName": "GoodFellas",
     "redesignPlaceholder": "Trenérský portál GoodFellas — nové UI se připravuje.",
     "loading": "Načítání...",
     "save": "Uložit změny",
@@ -178,10 +179,20 @@
     "comingSoon": "Mobilní aplikace se připravuje",
     "comingSoonHint": "Pracujeme na mobilní aplikaci GF Platform. Sledujte novinky!"
   },
+  "shell": {
+    "searchPlaceholder": "Hledat...",
+    "accountMenu": "Nabídka účtu",
+    "comingSoon": "Tato stránka je připravována.",
+    "notFoundTitle": "Stránka nenalezena",
+    "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
+    "backToClients": "Zpět na klienty"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
+    "inbox": "Doručená pošta",
+    "ingredients": "Suroviny",
     "foods": "Potraviny",
     "plans": "Plány",
     "settings": "Nastavení",

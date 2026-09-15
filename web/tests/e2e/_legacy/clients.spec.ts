@@ -1,3 +1,7 @@
+// QUARANTINED by #1051 (web v1 rebuild, epic #1052) — restored by the
+// "Clients list + invite" sub-issue (design spec §5, page 3). Targets
+// /dashboard and DOM the v1 strip removed; do not run until that page ships.
+
 /**
  * Durable spec — trainer clients list (issue #268).
  *

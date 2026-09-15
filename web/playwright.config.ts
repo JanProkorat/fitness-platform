@@ -74,6 +74,14 @@ const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 export default defineConfig({
   testDir: './tests/e2e',
 
+  // Belt-and-braces exclusion for quarantined specs (#1051). testMatch below
+  // is an UNANCHORED regexp matched against the full path, so a spec under
+  // tests/e2e/_legacy/<role>/<name>.spec.ts would still match a project's
+  // /<role>\/.+\.spec\.ts/ pattern — quarantined specs are therefore also
+  // flattened (no role subfolder) so no testMatch pattern can find them.
+  // This root-level testIgnore is the second, independent guard.
+  testIgnore: /_legacy\//,
+
   globalSetup: './tests/e2e/global-setup.ts',
 
   /* Retries: 2 in CI, 0 locally (dev gets immediate feedback) */

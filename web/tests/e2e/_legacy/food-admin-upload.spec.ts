@@ -1,3 +1,8 @@
+// QUARANTINED by #1051 (web v1 rebuild, epic #1052) — restored by the
+// "Ingredients — list + create/edit/detail drawer" sub-issue (design spec
+// §5, page 6; Figma renames Foods to Ingredients). Targets /foods and
+// FoodDialog DOM the v1 strip removed.
+
 /**
  * Durable spec — nutritionist uploads a food image (issue #120, Phase 4).
  *
