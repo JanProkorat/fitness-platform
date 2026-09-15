@@ -36,7 +36,7 @@ export default function AudienceSection() {
   ];
 
   return (
-    <section className="border-t border-line-soft py-12 sm:py-16 lg:py-19">
+    <section className="min-w-0 border-t border-line-soft py-12 sm:py-16 lg:py-19 panel:col-start-1">
       <div className="mx-auto max-w-wrap px-6 sm:px-9 lg:px-18">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {panels.map((panel) => (

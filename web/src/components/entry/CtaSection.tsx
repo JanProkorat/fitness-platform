@@ -11,7 +11,7 @@ export default function CtaSection() {
   const { t } = useTranslation();
 
   return (
-    <section className="border-t border-line-soft py-12 sm:py-16 lg:py-19">
+    <section className="min-w-0 border-t border-line-soft py-12 sm:py-16 lg:py-19 panel:col-start-1">
       <div className="mx-auto max-w-wrap px-6 sm:px-9 lg:px-18">
         <div className="flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-pill p-8 sm:p-11 lg:p-13">
           <div>

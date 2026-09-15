@@ -25,7 +25,7 @@ export default function HeroSection() {
   ];
 
   return (
-    <div className="relative flex min-h-0 flex-col justify-start gap-8 overflow-hidden bg-background px-6 pt-11 pb-12 sm:px-9 lg:px-18 panel:min-h-screen">
+    <div className="relative flex min-h-0 min-w-0 flex-col justify-start gap-8 overflow-hidden bg-background px-6 pt-11 pb-12 sm:px-9 lg:px-18 panel:col-start-1 panel:min-h-screen">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_90%_at_8%_0%,var(--color-green-soft)_0%,transparent_55%)]"

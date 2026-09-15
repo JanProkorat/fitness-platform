@@ -138,7 +138,7 @@ export default function LoginPanel() {
   };
 
   return (
-    <div className="flex flex-col justify-center gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8">
+    <div className="flex flex-col justify-center gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:col-start-2 panel:row-span-full panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8">
       <div>
         <h2 className="text-auth-title font-bold text-ink">{t('entry.login.title')}</h2>
         <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.login.lede')}</p>

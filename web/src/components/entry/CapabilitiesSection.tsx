@@ -29,7 +29,7 @@ export default function CapabilitiesSection() {
   ];
 
   return (
-    <section className="border-t border-border py-12 sm:py-16 lg:py-19">
+    <section className="min-w-0 border-t border-border py-12 sm:py-16 lg:py-19 panel:col-start-1">
       <div className="mx-auto max-w-wrap px-6 sm:px-9 lg:px-18">
         <div className="mb-9 max-w-[56ch]">
           <p className="text-label font-semibold tracking-label text-muted-foreground uppercase">
