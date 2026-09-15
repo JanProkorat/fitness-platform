@@ -46,16 +46,34 @@ services:
       retries: 30
 
   minio-test:
-    # Pinned to a specific MinIO release so the harness behaves identically
-    # across CI runs + dev workstations. Rolling `latest` exposed us to surprise
-    # upstream changes that could flip CI red across all branches at once.
-    # When bumping: pick the absolute newest tag from Docker Hub (NOT GitHub —
-    # MinIO Inc's CVE-only patches are sometimes tagged on GitHub but never
-    # pushed as a Docker image; verify via
-    # `curl -s 'https://hub.docker.com/v2/repositories/minio/minio/tags?ordering=last_updated' | jq '.results[].name'`),
-    # then rebuild the image (`docker compose -f docker-compose.test.yml
-    # build minio-test`) and re-verify the `mc ready local` healthcheck.
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    # `minio/minio` is GONE from Docker Hub — the whole repository, not just an
+    # old tag. MinIO Inc stopped publishing free Docker images; even
+    # `minio/minio:latest` now answers `denied: requested access to the
+    # resource is denied`. That reads like a credentials problem and isn't one.
+    # So this is not a tag bump: there is no tag left to bump to.
+    #
+    # `alpine/minio` is the community-maintained continuation and ships the
+    # same `minio` server binary. Two behavioural differences it forces, both
+    # load-bearing — do not "tidy" either away:
+    #
+    #   1. `user: "0:0"`. The image runs as a non-root user that cannot write
+    #      /data, so the server dies at boot with "Unable to initialize
+    #      backend: file access denied". The old image ran as root.
+    #   2. The healthcheck no longer uses `mc`. This image does not ship the
+    #      `mc` client at all, so `mc ready local` can never pass and every
+    #      service waiting on minio-test would hang forever. It ships busybox
+    #      wget, so we probe MinIO's own liveness endpoint instead.
+    #
+    # Pinned to an exact release so the harness behaves identically across CI
+    # runs and dev workstations; rolling `latest` previously exposed us to
+    # upstream changes that flipped CI red on all branches at once. Note the
+    # pin does not protect against the *tag* being deleted — which is exactly
+    # how the previous pin died. When bumping, verify the candidate really
+    # exists before committing:
+    #   docker manifest inspect alpine/minio:<TAG>
+    # then re-verify this healthcheck actually reaches `healthy`.
+    image: alpine/minio:RELEASE.2025-10-15T17-29-55Z
+    user: "0:0"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minio_test_password
@@ -63,7 +81,7 @@ services:
     networks:
       - qa-net
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9000/minio/health/live"]
       interval: 2s
       timeout: 3s
       retries: 30
