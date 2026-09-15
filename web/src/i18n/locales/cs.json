@@ -1,7 +1,6 @@
 {
   "common": {
     "appName": "GoodFellas",
-    "redesignPlaceholder": "Trenérský portál GoodFellas — nové UI se připravuje.",
     "loading": "Načítání...",
     "save": "Uložit změny",
     "saving": "Ukládám...",
@@ -2221,5 +2220,112 @@
     "mondayHint": "Plány mohou začínat pouze v pondělí.",
     "weekCountRequired": "Zadejte počet týdnů.",
     "weekCountRange": "Počet týdnů musí být 1 až 52."
+  },
+  "entry": {
+    "brand": "GoodFellas",
+    "eyebrow": "Platforma pro trenéry a výživové poradce",
+    "headline": {
+      "line1": "Vedení klientů",
+      "accent": "bez chaosu"
+    },
+    "sub": "Jídelníčky, tréninkové plány, měření a komunikace na jednom místě. Vy pracujete v prohlížeči, klient má všechno v mobilu.",
+    "points": {
+      "meals": "Jídelníčky po týdnech",
+      "training": "Tréninkové plány",
+      "checkins": "Týdenní check-iny",
+      "chat": "Chat v reálném čase"
+    },
+    "collage": {
+      "strength": "Silový trénink",
+      "conditioning": "Kondice",
+      "nutrition": "Výživa",
+      "coaching": "Konzultace",
+      "progress": "Progres",
+      "note": "Místo pro fotografie — doplní se při stavbě aplikace."
+    },
+    "capabilities": {
+      "eyebrow": "Co platforma umí",
+      "title": "Jedna aplikace místo tabulek, e-mailů a WhatsAppu",
+      "subtitle": "Trenér i výživový poradce pracují nad stejným klientem. Klient vidí jen to, co má schválené.",
+      "nutrition": {
+        "tag": "Výživa",
+        "title": "Jídelníčky po týdnech",
+        "body": "Sestavte týden z receptů a surovin, zkontrolujte makra a publikujte klientovi jen hotové týdny. Rozpracovaný týden zůstává skrytý."
+      },
+      "training": {
+        "tag": "Trénink",
+        "title": "Plány i knihovna cviků",
+        "body": "Poskládejte tréninkovou jednotku přetažením cviků, uložte si ji jako šablonu a příště ji použijte na jedno kliknutí."
+      },
+      "contact": {
+        "tag": "Kontakt",
+        "title": "Check-iny a zprávy",
+        "body": "Klient jednou týdně pošle míry, fotky a jak se cítí. Vy odpovíte v chatu, který běží živě — bez obnovování stránky."
+      }
+    },
+    "audience": {
+      "coaches": {
+        "eyebrow": "Pro trenéry",
+        "title": "Práce v prohlížeči",
+        "subtitle": "Portál je stavěný na velký monitor, protože plány se sestavují vsedě u stolu.",
+        "check1": "Přehled klientů se štítky a filtry",
+        "check2": "Pozvánky novým klientům e-mailem",
+        "check3": "Vlastní databáze surovin a receptů",
+        "check4": "Historie měření a fotek na jednom místě"
+      },
+      "clients": {
+        "eyebrow": "Pro klienty",
+        "title": "Aplikace v mobilu",
+        "subtitle": "Klient si nic nesestavuje. Otevře appku a vidí, co má dnes jíst a co trénovat.",
+        "check1": "Dnešní jídla i dnešní trénink",
+        "check2": "Odškrtávání jídel a zapisování sérií",
+        "check3": "Nákupní seznam na celý týden",
+        "check4": "Chat s trenérem a upozornění"
+      }
+    },
+    "cta": {
+      "title": "Zkuste to s jedním klientem",
+      "body": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden. Zabere to odpoledne.",
+      "button": "Založit účet trenéra"
+    },
+    "footer": "Trenérský portál · Klientská aplikace pro iOS a Android",
+    "login": {
+      "title": "Vítejte zpět",
+      "lede": "Přihlaste se do trenérského portálu.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@goodfellas.cz",
+      "passwordLabel": "Heslo",
+      "showPassword": "Zobrazit",
+      "hidePassword": "Skrýt",
+      "rememberMe": "Zůstat přihlášen",
+      "forgotPassword": "Zapomenuté heslo?",
+      "submit": "Přihlásit se",
+      "submitting": "Přihlašuji...",
+      "or": "nebo",
+      "google": "Google",
+      "apple": "Apple",
+      "googleComingSoon": "Přihlášení přes Google zatím není dostupné.",
+      "appleComingSoon": "Přihlášení přes Apple zatím není dostupné.",
+      "noAccount": "Nemáte účet?",
+      "createAccount": "Založit účet trenéra",
+      "validation": {
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail.",
+        "passwordRequired": "Zadejte heslo."
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "profileLoadFailed": "Přihlášení proběhlo, ale načtení profilu se nezdařilo. Zkuste to prosím znovu.",
+        "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
+      }
+    },
+    "languageSwitch": {
+      "label": "Jazyk",
+      "cs": "CS",
+      "en": "EN",
+      "de": "DE"
+    },
+    "brandMark": "GF",
+    "copyright": "© 2026 GoodFellas"
   }
 }

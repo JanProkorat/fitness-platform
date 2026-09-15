@@ -2,6 +2,25 @@ import type { LoginResponse } from '@/api/client';
 import api from '@/lib/api';
 
 /**
+ * POST /auth/login
+ * Authenticates with an email/password pair and returns platform JWT tokens.
+ *
+ * Deliberately built on `api.post` (not `apiClient.loginEndpoint` from the
+ * generated NSwag client) so a failure surfaces as an `AxiosError` — the
+ * generated client throws `ApiException` instead, which `lib/api-errors.ts`'s
+ * `getErrorCode()`/`getApiErrorMessage()` cannot read, collapsing every
+ * login failure to one generic message. See the sibling `googleSocialLogin`/
+ * `appleSocialLogin` helpers, which use the same pattern.
+ *
+ * Invalid credentials and a deactivated account both come back as HTTP 400
+ * (not 401), with the machine-readable code at `errors[0].reason`.
+ */
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const { data } = await api.post<LoginResponse>('/auth/login', { email, password });
+  return data;
+}
+
+/**
  * POST /auth/social/nonce
  * Requests a single-use, server-issued nonce from the backend.
  * The raw nonce must be passed to the IdP sign-in (Apple/Google) and then
