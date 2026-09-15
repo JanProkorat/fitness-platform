@@ -115,23 +115,37 @@ jobs:
           QA_SEED_PASSWORD: ${{ secrets.QA_SEED_PASSWORD }}
 
       # ── Containerised named-flow runs ────────────────────────────────────
-      # Each invocation execs the qa-playwright container's runner; output
-      # streams to the workflow log. Artifacts land in .qa-artifacts/ via the
-      # compose bind-mount and are uploaded as a single artifact below.
-      # Avatar flow stays non-fatal until #376 wires client auth for the
-      # mobile-web (Expo RN-Web) origin — the shared web-portal storageState
-      # does not authenticate the mobile-web app at http://mobile-web:8081,
-      # so this flow lands on the mobile-web login screen. food + recipe are
-      # hard gates (they pass end-to-end against the harness).
-      - name: Run named flow — user-avatar-upload
-        continue-on-error: true
-        run: ./scripts/test-env run user-avatar-upload
-
-      - name: Run named flow — food-admin-upload
-        run: ./scripts/test-env run food-admin-upload
-
-      - name: Run named flow — recipe-gallery-upload
-        run: ./scripts/test-env run recipe-gallery-upload
+      # DISABLED ON THIS BRANCH ONLY — the web portal is being rebuilt from
+      # scratch (epic #1052) and every page these flows drive was deleted by
+      # the clean-slate strip. Their specs are quarantined under
+      # web/tests/e2e/_legacy/ for the same reason. Leaving the steps active
+      # would keep the E2E check red on all nine child PRs for a reason that
+      # has nothing to do with the code under review.
+      #
+      # These are commented out rather than deleted so the diff that restores
+      # each one is a comment removal, not a rewrite. Re-enable each with the
+      # sub-issue that rebuilds its page:
+      #
+      #   food-admin-upload    → the Ingredients page sub-issue of #1052
+      #   recipe-gallery-upload → the Recipes page sub-issue of #1052
+      #   user-avatar-upload   → mobile-web, unrelated to the web rebuild;
+      #                          restore once the portal login exists again,
+      #                          keeping continue-on-error until #376 wires
+      #                          client auth for the mobile-web origin
+      #
+      # Do NOT re-enable these by merging this branch to develop with the
+      # comments still in place and the pages rebuilt — check the list above
+      # before the epic PR.
+      #
+      # - name: Run named flow — user-avatar-upload
+      #   continue-on-error: true
+      #   run: ./scripts/test-env run user-avatar-upload
+      #
+      # - name: Run named flow — food-admin-upload
+      #   run: ./scripts/test-env run food-admin-upload
+      #
+      # - name: Run named flow — recipe-gallery-upload
+      #   run: ./scripts/test-env run recipe-gallery-upload
 
       # ── Artifact uploads ──────────────────────────────────────────────────
       # .qa-artifacts/ holds the container playwright's traces + screenshots
