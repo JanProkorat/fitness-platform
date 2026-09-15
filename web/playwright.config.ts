@@ -74,12 +74,19 @@ const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 export default defineConfig({
   testDir: './tests/e2e',
 
-  // Belt-and-braces exclusion for quarantined specs (#1051). testMatch below
-  // is an UNANCHORED regexp matched against the full path, so a spec under
+  // Exclusion for quarantined specs (#1051). testMatch below is an
+  // UNANCHORED regexp matched against the full path, so a spec under
   // tests/e2e/_legacy/<role>/<name>.spec.ts would still match a project's
-  // /<role>\/.+\.spec\.ts/ pattern — quarantined specs are therefore also
+  // /<role>\/.+\.spec\.ts/ pattern — quarantined specs are therefore
   // flattened (no role subfolder) so no testMatch pattern can find them.
-  // This root-level testIgnore is the second, independent guard.
+  // That flattening is what actually holds the quarantine, for every
+  // project. This root-level testIgnore is NOT a second independent guard
+  // for the `client` and `nutritionist` projects below: Playwright project
+  // config replaces (does not merge with) the root value, and both of
+  // those projects set their own project-level `testIgnore`, so this root
+  // setting is inert for them regardless of PLAYWRIGHT_IN_CONTAINER. It
+  // only adds real protection for projects that don't set their own
+  // testIgnore (`setup`, `trainer`).
   testIgnore: /_legacy\//,
 
   globalSetup: './tests/e2e/global-setup.ts',
