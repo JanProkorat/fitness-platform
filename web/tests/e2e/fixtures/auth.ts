@@ -174,6 +174,21 @@ function buildRoleTest(role: Role) {
           entry.name === 'refreshToken' ? { ...entry, value: refreshToken } : entry,
       );
 
+      // Fail loudly rather than silently degrading to an unauthenticated
+      // context. The .map() above only REPLACES an existing 'refreshToken'
+      // entry — it never appends one — so if a future edit ever stops
+      // auth.setup.ts from writing that entry, every trainer/nutritionist
+      // spec would otherwise run unauthenticated and could still report
+      // green (a wrong-page assertion failure reads like a broken locator,
+      // not an auth problem).
+      if (!localStorage.some((entry) => entry.name === 'refreshToken')) {
+        throw new Error(
+          `[auth fixture] .auth/${role}.json's storage-state template carried ` +
+            'no "refreshToken" localStorage entry, so the authenticated context ' +
+            'cannot be built. Check that auth.setup.ts still writes one.',
+        );
+      }
+
       // This `use` is Playwright's fixture teardown-boundary callback
       // (per-fixture setup/teardown split, see
       // https://playwright.dev/docs/test-fixtures), not a React hook.
