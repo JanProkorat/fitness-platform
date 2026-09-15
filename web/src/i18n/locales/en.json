@@ -2260,7 +2260,7 @@
       "title": "Welcome back",
       "lede": "Sign in to the coach portal.",
       "emailLabel": "Email",
-      "emailPlaceholder": "coach@goodfellas.com",
+      "emailPlaceholder": "coach@example.com",
       "passwordLabel": "Password",
       "showPassword": "Show",
       "hidePassword": "Hide",

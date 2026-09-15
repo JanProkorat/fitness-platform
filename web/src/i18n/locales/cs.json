@@ -2293,7 +2293,7 @@
       "title": "Vítejte zpět",
       "lede": "Přihlaste se do trenérského portálu.",
       "emailLabel": "E-mail",
-      "emailPlaceholder": "trener@goodfellas.cz",
+      "emailPlaceholder": "trener@example.com",
       "passwordLabel": "Heslo",
       "showPassword": "Zobrazit",
       "hidePassword": "Skrýt",

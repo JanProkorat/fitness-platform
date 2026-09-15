@@ -2259,7 +2259,7 @@
       "title": "Willkommen zurück",
       "lede": "Im Trainerportal anmelden.",
       "emailLabel": "E-Mail",
-      "emailPlaceholder": "trainer@goodfellas.de",
+      "emailPlaceholder": "trainer@example.com",
       "passwordLabel": "Passwort",
       "showPassword": "Zeigen",
       "hidePassword": "Verbergen",
