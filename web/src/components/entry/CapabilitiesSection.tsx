@@ -32,7 +32,7 @@ export default function CapabilitiesSection() {
     <section className="border-t border-border py-12 sm:py-16 lg:py-19">
       <div className="mx-auto max-w-wrap px-6 sm:px-9 lg:px-18">
         <div className="mb-9 max-w-[56ch]">
-          <p className="text-label font-semibold tracking-[.14em] text-muted-foreground uppercase">
+          <p className="text-label font-semibold tracking-label text-muted-foreground uppercase">
             {t('entry.capabilities.eyebrow')}
           </p>
           <h2 className="mt-2.5 mb-3 text-section-title font-bold text-ink">

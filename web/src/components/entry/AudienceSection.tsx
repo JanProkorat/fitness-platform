@@ -47,7 +47,7 @@ export default function AudienceSection() {
                 (panel.lead ? 'bg-sunken' : '')
               }
             >
-              <p className="text-label font-semibold tracking-[.14em] text-muted-foreground uppercase">
+              <p className="text-label font-semibold tracking-label text-muted-foreground uppercase">
                 {panel.eyebrow}
               </p>
               <h3 className="text-panel-title font-bold text-ink">{panel.title}</h3>

@@ -13,7 +13,8 @@ import api from '@/lib/api';
  * `appleSocialLogin` helpers, which use the same pattern.
  *
  * Invalid credentials and a deactivated account both come back as HTTP 400
- * (not 401), with the machine-readable code at `errors[0].reason`.
+ * (not 401), with the machine-readable code at `errors[0].code` (`reason`
+ * carries the human-readable message — see `lib/api-errors.ts`).
  */
 export async function login(email: string, password: string): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>('/auth/login', { email, password });

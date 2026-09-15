@@ -25,7 +25,7 @@ export default function HeroSection() {
   ];
 
   return (
-    <div className="relative flex min-h-screen flex-col justify-start gap-8 overflow-hidden bg-background px-6 pt-11 pb-12 sm:px-9 lg:px-18">
+    <div className="relative flex min-h-0 flex-col justify-start gap-8 overflow-hidden bg-background px-6 pt-11 pb-12 sm:px-9 lg:px-18 panel:min-h-screen">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 [background:radial-gradient(120%_90%_at_8%_0%,var(--color-green-soft)_0%,transparent_55%)]"
@@ -38,8 +38,8 @@ export default function HeroSection() {
         <span>{t('entry.brand')}</span>
       </div>
 
-      <div className="relative max-w-[min(100%,900px)]">
-        <p className="text-label font-semibold tracking-[.14em] text-muted-foreground uppercase">
+      <div className="relative max-w-hero-content">
+        <p className="text-label font-semibold tracking-label text-muted-foreground uppercase">
           {t('entry.eyebrow')}
         </p>
         <h1 className="mt-4 mb-4.5 max-w-[12em] text-hero leading-[1.04] font-bold tracking-[-.02em] text-ink">
@@ -63,7 +63,7 @@ export default function HeroSection() {
         </ul>
       </div>
 
-      <div className="relative max-w-[min(100%,900px)]">
+      <div className="relative max-w-hero-content">
         <div className="grid grid-cols-6 grid-rows-2 gap-2">
           {collageCells.map((label, index) => (
             <div
