@@ -124,6 +124,20 @@ export default defineConfig({
       },
     },
 
+    // ─── Public / unauthenticated specs ───────────────────────────────────────
+    // Picks up only tests/e2e/public/**. No `dependencies` on `setup` and no
+    // `storageState` — these specs exercise the "/" entry page as a signed-out
+    // visitor, including the login form itself, so they must never inherit a
+    // token (#1055). globalSetup's POST /test/reset still runs before this
+    // project, same as every other project.
+    {
+      name: 'public',
+      testMatch: /public\/.+\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
     // ─── Trainer-scoped specs ─────────────────────────────────────────────────
     // Picks up only tests/e2e/trainer/**. Add new trainer-role specs there so
     // they are never duplicated by the client or nutritionist projects.

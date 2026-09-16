@@ -1,7 +1,6 @@
 {
   "common": {
     "appName": "GoodFellas",
-    "redesignPlaceholder": "GoodFellas Trainer-Portal — neues UI in Arbeit.",
     "loading": "Laden...",
     "save": "Änderungen speichern",
     "saving": "Speichern...",
@@ -2187,5 +2186,112 @@
     "mondayHint": "Pläne können nur montags beginnen.",
     "weekCountRequired": "Geben Sie eine Anzahl von Wochen ein.",
     "weekCountRange": "Die Anzahl der Wochen muss zwischen 1 und 52 liegen."
+  },
+  "entry": {
+    "brand": "GoodFellas",
+    "eyebrow": "Plattform für Trainer und Ernährungsberater",
+    "headline": {
+      "line1": "Klientenbetreuung",
+      "accent": "ohne Chaos"
+    },
+    "sub": "Ernährungspläne, Trainingspläne, Messwerte und Nachrichten an einem Ort. Sie arbeiten im Browser, Ihr Klient hat alles auf dem Handy.",
+    "points": {
+      "meals": "Wochenweise Ernährungspläne",
+      "training": "Trainingspläne",
+      "checkins": "Wöchentliche Check-ins",
+      "chat": "Live-Chat"
+    },
+    "collage": {
+      "strength": "Krafttraining",
+      "conditioning": "Ausdauer",
+      "nutrition": "Ernährung",
+      "coaching": "Betreuung",
+      "progress": "Fortschritt",
+      "note": "Hier kommen Fotos hin — beim Bau der App ergänzt."
+    },
+    "capabilities": {
+      "eyebrow": "Was die Plattform kann",
+      "title": "Eine App statt Tabellen, E-Mails und WhatsApp",
+      "subtitle": "Trainer und Ernährungsberater arbeiten am selben Klienten. Der Klient sieht nur, was freigegeben ist.",
+      "nutrition": {
+        "tag": "Ernährung",
+        "title": "Wochenweise Ernährungspläne",
+        "body": "Stellen Sie eine Woche aus Rezepten und Zutaten zusammen, prüfen Sie die Makros und geben Sie nur fertige Wochen frei. Eine offene Woche bleibt verborgen."
+      },
+      "training": {
+        "tag": "Training",
+        "title": "Pläne und Übungsbibliothek",
+        "body": "Ziehen Sie Übungen in eine Einheit, speichern Sie sie als Vorlage und nutzen Sie sie beim nächsten Mal mit einem Klick."
+      },
+      "contact": {
+        "tag": "Kontakt",
+        "title": "Check-ins und Nachrichten",
+        "body": "Einmal pro Woche schickt Ihr Klient Messwerte, Fotos und sein Befinden. Sie antworten im Chat, der live läuft — ohne Neuladen."
+      }
+    },
+    "audience": {
+      "coaches": {
+        "eyebrow": "Für Trainer",
+        "title": "Für den Browser gebaut",
+        "subtitle": "Das Portal ist für den großen Bildschirm gemacht, denn Pläne entstehen am Schreibtisch.",
+        "check1": "Klientenliste mit Tags und Filtern",
+        "check2": "Einladungen per E-Mail",
+        "check3": "Eigene Zutaten- und Rezeptdatenbank",
+        "check4": "Messwerte und Fotos an einem Ort"
+      },
+      "clients": {
+        "eyebrow": "Für Klienten",
+        "title": "App auf dem Handy",
+        "subtitle": "Klienten stellen nichts zusammen. Sie öffnen die App und sehen, was heute zu essen und zu trainieren ist.",
+        "check1": "Heutige Mahlzeiten und Einheit",
+        "check2": "Mahlzeiten abhaken, Sätze eintragen",
+        "check3": "Einkaufsliste für die ganze Woche",
+        "check4": "Chat mit dem Trainer und Hinweise"
+      }
+    },
+    "cta": {
+      "title": "Testen Sie es mit einem Klienten",
+      "body": "Konto anlegen, ersten Klienten einladen und die erste Woche bauen. Das dauert einen Nachmittag.",
+      "button": "Trainerkonto erstellen"
+    },
+    "footer": "Trainerportal · Klienten-App für iOS und Android",
+    "login": {
+      "title": "Willkommen zurück",
+      "lede": "Im Trainerportal anmelden.",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "passwordLabel": "Passwort",
+      "showPassword": "Zeigen",
+      "hidePassword": "Verbergen",
+      "rememberMe": "Angemeldet bleiben",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "submitting": "Anmeldung läuft...",
+      "or": "oder",
+      "google": "Google",
+      "apple": "Apple",
+      "googleComingSoon": "Die Google-Anmeldung ist noch nicht verfügbar.",
+      "appleComingSoon": "Die Apple-Anmeldung ist noch nicht verfügbar.",
+      "noAccount": "Noch kein Konto?",
+      "createAccount": "Trainerkonto erstellen",
+      "validation": {
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "passwordRequired": "Geben Sie Ihr Passwort ein."
+      },
+      "errors": {
+        "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "profileLoadFailed": "Sie sind angemeldet, aber das Laden Ihres Profils ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "generic": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
+    },
+    "languageSwitch": {
+      "label": "Sprache",
+      "cs": "CS",
+      "en": "EN",
+      "de": "DE"
+    },
+    "brandMark": "GF",
+    "copyright": "© 2026 GoodFellas"
   }
 }

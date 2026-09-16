@@ -41,15 +41,52 @@
      error color lands. */
   --gf-danger: #dc2626;
 
+  /* ---- Added for the entry page (#1055) — from scratchpad/gf-entry.html,
+     not the Figma wireframe (no login/register frames exist there; see
+     docs/superpowers/specs/2026-09-14-web-v1-rebuild-design.md §6). ---- */
+  --gf-line-soft: #eef2f7; /* lighter hairline between marketing bands */
+  --gf-sunken: #f1f5f9; /* recessed panel background (lead audience panel) */
+  --gf-green-soft: #dcfce7; /* soft green wash — hero backdrop, tag pills */
+  --gf-green-ink: #14532d; /* text color on top of --gf-green-soft */
+
   --gf-radius-sm: 6px; /* nav items */
   --gf-radius-md: 8px; /* inputs and buttons */
+  --gf-radius-lg: 14px; /* cards, collage cells, marketing panels (#1055) */
 
   --gf-font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Accent face for one headline word (#1055) — prototype choice, not a
+     locked brand decision, see spec §6 "Deliberately left open". */
+  --gf-font-accent: 'Fraunces', Georgia, 'Times New Roman', serif;
 
   /* Scale observed in the wireframe (spec §3). */
   --gf-text-title: 28px; /* page title, bold */
   --gf-text-body: 13px; /* body copy and controls */
   --gf-text-label: 10px; /* uppercase section labels, wide tracking */
+
+  /* ---- Entry page scale (#1055) — from scratchpad/gf-entry.html. ---- */
+  --gf-text-tick: 9px; /* audience panel checkmark glyph */
+  --gf-text-caption: 11px; /* reveal/divider/language-switch/collage note */
+  --gf-text-meta: 12px; /* field labels, links, hero chips, footer */
+  --gf-text-copy: 14px; /* audience panel body copy, CTA band body */
+  --gf-text-subhead: 15px; /* capability card title, band lede */
+  --gf-text-lede: 17px; /* hero sub-headline */
+  --gf-text-panel-title: 18px; /* audience panel heading */
+  --gf-text-auth-title: 24px; /* login panel heading */
+  --gf-text-hero: clamp(38px, 4.4vw, 58px); /* hero H1 */
+  --gf-text-section-title: clamp(26px, 3vw, 34px); /* band H2 */
+  --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
+
+  --gf-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06); /* login panel + medallion */
+
+  --gf-panel-width: 440px; /* login panel column width */
+  --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
+  --gf-wrap-width: 1044px; /* marketing section content max-width, reused across bands */
+  --gf-hero-content-width: 900px; /* hero headline/collage max-width, reused twice in HeroSection */
+  --gf-tracking-label: 0.14em; /* eyebrow/section-label letter-spacing, reused 3x */
+  /* 960px collapse breakpoint (spec §6) is declared as a literal directly
+     in `--breakpoint-panel` below, not aliased through a --gf-* raw token:
+     Tailwind compiles `--breakpoint-*` into literal `@media` rules at
+     build time and cannot resolve a var() reference there. */
 
   /* ---- Tier 2: shadcn/ui semantic aliases ---- */
   --background: var(--gf-paper);
@@ -106,13 +143,51 @@
   --color-pill: var(--gf-pill);
   --color-brand: var(--gf-green);
 
+  /* ---- Entry page additions (#1055) ---- */
+  --color-line-soft: var(--gf-line-soft);
+  --color-sunken: var(--gf-sunken);
+  --color-green-soft: var(--gf-green-soft);
+  --color-green-ink: var(--gf-green-ink);
+
   --radius-sm: var(--gf-radius-sm);
   --radius-md: var(--gf-radius-md);
   --radius-lg: var(--gf-radius-md);
+  /* NOT an alias of --radius-lg above: that name is already load-bearing
+     for the 8px button/input radius shipped in phase 0 (button.tsx's
+     `rounded-lg`). This is the entry page's own true "large" radius
+     (spec §6 / prototype --r-lg, 14px) for cards, panels, collage cells. */
+  --radius-2xl: var(--gf-radius-lg);
 
   --text-title: var(--gf-text-title);
   --text-body: var(--gf-text-body);
   --text-label: var(--gf-text-label);
+
+  /* ---- Entry page scale (#1055) ---- */
+  --text-tick: var(--gf-text-tick);
+  --text-caption: var(--gf-text-caption);
+  --text-meta: var(--gf-text-meta);
+  --text-copy: var(--gf-text-copy);
+  --text-subhead: var(--gf-text-subhead);
+  --text-lede: var(--gf-text-lede);
+  --text-panel-title: var(--gf-text-panel-title);
+  --text-auth-title: var(--gf-text-auth-title);
+  --text-hero: var(--gf-text-hero);
+  --text-section-title: var(--gf-text-section-title);
+  --text-cta-title: var(--gf-text-cta-title);
+
+  --font-accent: var(--gf-font-accent);
+
+  --shadow-panel: var(--gf-shadow-panel);
+
+  --spacing-panel: var(--gf-panel-width);
+  --spacing-collage-cell: var(--gf-collage-cell-min-height);
+  --spacing-wrap: var(--gf-wrap-width);
+  --spacing-hero-content: var(--gf-hero-content-width);
+
+  --tracking-label: var(--gf-tracking-label);
+
+  /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
+  --breakpoint-panel: 960px;
 }
 
 @layer base {
