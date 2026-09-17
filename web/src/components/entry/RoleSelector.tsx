@@ -11,11 +11,13 @@ interface RoleSelectorProps {
   onChange: (roles: RegistrableRole[]) => void;
   /**
    * Forwards RHF Controller's `field.onBlur` so a real blur on one of these
-   * buttons participates in `mode: 'onBlur'` validation the same way a
-   * registered text input's blur does. Without this, toggling a role and
-   * then tabbing/clicking away never told react-hook-form anything
-   * changed, so `formState.isValid` stayed stale at whatever it was before
-   * the toggle — the root cause of the submit button never unlocking.
+   * buttons marks the field "touched" (RegisterForm uses `mode: 'onTouched'`)
+   * the same way a registered text input's blur does — required for the
+   * field to start revalidating on every subsequent change/click, not just
+   * on blur. Without this wired at all, toggling a role never told
+   * react-hook-form anything changed, so `formState.isValid` stayed stale at
+   * whatever it was before the toggle — the root cause of the submit button
+   * never unlocking.
    */
   onBlur?: () => void;
   error?: string;

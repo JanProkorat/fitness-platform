@@ -83,36 +83,39 @@ export default function RegisterForm() {
     formState: { errors, isValid },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    // 'onBlur': a blur on a validated field runs the resolver against the
-    // WHOLE current form and (a) recomputes formState.isValid from that
-    // full result, and (b) surfaces only THAT field's own error into
-    // formState.errors (RHF's schemaErrorLookup scopes a targeted trigger
-    // to the field(s) that were actually validated) — never the whole
-    // schema's error set. Typing alone does not trigger either.
+    // 'onTouched', not 'onBlur' — confirmed the difference matters in a real
+    // browser, not assumed. A field's FIRST validation trigger is still its
+    // blur (so nobody gets shouted at mid-keystroke on a field they haven't
+    // finished typing into yet — verified: typing an invalid email character
+    // by character shows zero errors until focus leaves the field). The
+    // difference is what happens AFTER that first blur: 'onTouched' also
+    // revalidates on every subsequent change, where plain 'onBlur' does not.
     //
-    // isValid is NOT continuously recomputed on every keystroke regardless
-    // of mode — a validation trigger has to actually fire first. That's why
-    // EVERY interactive control here needs a wired onBlur: the two
-    // Controller-driven controls (RoleSelector's buttons, the consent
-    // Checkbox) don't get one for free the way a register()-bound <input>
-    // does, so their field.onBlur is passed through explicitly below. Skip
-    // one and its value participates correctly in the schema (the resolver
-    // reads current getValues() regardless of who changed what) but the
-    // button can stay stuck at whatever isValid was before that control's
-    // last change — confirmed in a real browser: ticking the consent
-    // checkbox last (its onBlur was missing) left the button disabled even
-    // though every field was already valid, until some OTHER field's blur
-    // forced a fresh full-form validation.
+    // That difference is what unlocks the submit button without an extra
+    // click or Tab. Every registered/Controller-driven field here has
+    // field.onBlur wired (see RoleSelector's `onBlur` prop and the
+    // gdprConsent Checkbox below) — necessary but NOT sufficient on its own:
+    // under plain 'onBlur' mode, ticking the consent checkbox (normally the
+    // user's last action) still left the button locked until focus moved
+    // away, because isValid only gets recomputed by a validation trigger,
+    // and the checkbox's own change doesn't fire one under 'onBlur' — only
+    // its (separate, later) blur would. 'onTouched' closes that gap: once a
+    // field has been touched at all, RHF revalidates on its onChange too, so
+    // the checkbox's own toggle now triggers the same full-form
+    // isValid recompute its blur used to. Verified: filling every field and
+    // ticking consent LAST, with no blur/Tab/click afterward at all, the
+    // button is enabled the moment consent is ticked.
     //
     // The disabled submit button is still the primary guard against the
-    // "six errors at once" bulk dump: a disabled button can't be clicked
-    // and can't be reached by the browser's implicit Enter-key submission.
-    // The form's onSubmit below adds a second, explicit `!isValid` guard
-    // for the one remaining path — a submission forced past the disabled
-    // attribute (e.g. via devtools) — so handleSubmit's own full-schema
-    // validation (which is NOT scoped the way a targeted blur trigger is)
-    // never runs and never re-populates every invalid field's error at once.
-    mode: 'onBlur',
+    // original "six errors at once" bulk dump: a disabled button can't be
+    // clicked and can't be reached by the browser's implicit Enter-key
+    // submission. The form's onSubmit below adds a second, explicit
+    // `!isValid` guard for the one remaining path — a submission forced past
+    // the disabled attribute (e.g. via devtools) — so handleSubmit's own
+    // full-schema validation (unscoped, unlike a targeted blur/change
+    // trigger) never runs and never re-populates every invalid field's error
+    // at once.
+    mode: 'onTouched',
     defaultValues: {
       roles: [],
       firstName: '',
