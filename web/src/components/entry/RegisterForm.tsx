@@ -83,17 +83,35 @@ export default function RegisterForm() {
     formState: { errors, isValid },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    // 'onBlur' pairs with the zod resolver's own field-name-scoped error
-    // lookup: a blur only surfaces THAT field's error, not the whole
-    // schema's error set. formState.isValid is still recomputed on every
-    // keystroke (it's tracked independently of `mode` the moment it's
-    // destructured) — that's what drives the submit-button lock below, in
-    // real time, without waiting for a blur. This combination is the fix
-    // for the "six errors at once" behaviour the user rejected: submission
-    // is impossible while invalid (a disabled submit button cannot be
-    // clicked, and a sole disabled submit button also cannot be reached by
-    // the browser's implicit Enter-key submission), so the bulk
-    // all-fields-at-once error dump no longer has a path to occur.
+    // 'onBlur': a blur on a validated field runs the resolver against the
+    // WHOLE current form and (a) recomputes formState.isValid from that
+    // full result, and (b) surfaces only THAT field's own error into
+    // formState.errors (RHF's schemaErrorLookup scopes a targeted trigger
+    // to the field(s) that were actually validated) — never the whole
+    // schema's error set. Typing alone does not trigger either.
+    //
+    // isValid is NOT continuously recomputed on every keystroke regardless
+    // of mode — a validation trigger has to actually fire first. That's why
+    // EVERY interactive control here needs a wired onBlur: the two
+    // Controller-driven controls (RoleSelector's buttons, the consent
+    // Checkbox) don't get one for free the way a register()-bound <input>
+    // does, so their field.onBlur is passed through explicitly below. Skip
+    // one and its value participates correctly in the schema (the resolver
+    // reads current getValues() regardless of who changed what) but the
+    // button can stay stuck at whatever isValid was before that control's
+    // last change — confirmed in a real browser: ticking the consent
+    // checkbox last (its onBlur was missing) left the button disabled even
+    // though every field was already valid, until some OTHER field's blur
+    // forced a fresh full-form validation.
+    //
+    // The disabled submit button is still the primary guard against the
+    // "six errors at once" bulk dump: a disabled button can't be clicked
+    // and can't be reached by the browser's implicit Enter-key submission.
+    // The form's onSubmit below adds a second, explicit `!isValid` guard
+    // for the one remaining path — a submission forced past the disabled
+    // attribute (e.g. via devtools) — so handleSubmit's own full-schema
+    // validation (which is NOT scoped the way a targeted blur trigger is)
+    // never runs and never re-populates every invalid field's error at once.
     mode: 'onBlur',
     defaultValues: {
       roles: [],
@@ -177,7 +195,26 @@ export default function RegisterForm() {
         <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.register.lede')}</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4.5">
+      <form
+        onSubmit={(event) => {
+          // Defense in depth: the disabled submit button already prevents a
+          // real user from reaching this handler while the form is invalid
+          // (a disabled button can't be clicked and can't be the target of
+          // the browser's implicit Enter-key submission). This guard closes
+          // the one remaining path — a submission forced past the disabled
+          // attribute (e.g. via devtools) — from calling handleSubmit's own
+          // full-schema validation, which would otherwise populate every
+          // invalid field's error at once, reintroducing the bulk dump this
+          // whole rework exists to prevent.
+          if (!isValid) {
+            event.preventDefault();
+            return;
+          }
+          void handleSubmit(onSubmit)(event);
+        }}
+        noValidate
+        className="flex flex-col gap-4.5"
+      >
         <Controller
           control={control}
           name="roles"
@@ -185,6 +222,7 @@ export default function RegisterForm() {
             <RoleSelector
               value={field.value}
               onChange={field.onChange}
+              onBlur={field.onBlur}
               error={errors.roles?.message}
             />
           )}
@@ -274,6 +312,7 @@ export default function RegisterForm() {
                 checked={field.value}
                 aria-invalid={!!errors.gdprConsent}
                 onCheckedChange={(checked) => field.onChange(checked === true)}
+                onBlur={field.onBlur}
               />
               <span>{t('entry.register.consentLabel')}</span>
             </label>

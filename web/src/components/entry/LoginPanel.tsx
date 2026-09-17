@@ -110,10 +110,28 @@ export default function LoginPanel() {
 
   // Focus moves to the swapped-in form's first field on every real swap,
   // never on first mount (a fresh page load must not steal focus).
+  //
+  // The guard must reset itself in a CLEANUP function, not just read-then-
+  // flip the ref inline in the effect body. StrictMode double-invokes every
+  // effect at mount time (invoke → cleanup → invoke, dev-only) to surface
+  // exactly this class of bug: the first invocation flips the ref to
+  // false and returns; without a cleanup, the second (StrictMode-simulated)
+  // invocation then sees it already false and proceeds to call .focus() —
+  // on the very first real page load. That silently auto-focused
+  // #entry-firstName on a cold `/register` load, so the first interaction
+  // afterward (even an inert click on a disabled submit button) blurred an
+  // empty required field and surfaced its "required" error out of nowhere
+  // (confirmed via `document.activeElement` in a real browser — see #1058
+  // validation-feedback rework). Restoring the ref in the cleanup cancels
+  // the double-invoke out: mount ends up looking like a single skipped run
+  // in both dev and production, while a later real swap (mount already
+  // settled, no cleanup pending) still focuses the new field once.
   useEffect(() => {
     if (isFirstRenderRef.current) {
       isFirstRenderRef.current = false;
-      return;
+      return () => {
+        isFirstRenderRef.current = true;
+      };
     }
 
     const firstField = swapRef.current?.querySelector<HTMLInputElement>(

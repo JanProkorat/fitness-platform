@@ -9,6 +9,15 @@ const ROLE_IDS: RegistrableRole[] = ['Trainer', 'Nutritionist'];
 interface RoleSelectorProps {
   value: RegistrableRole[];
   onChange: (roles: RegistrableRole[]) => void;
+  /**
+   * Forwards RHF Controller's `field.onBlur` so a real blur on one of these
+   * buttons participates in `mode: 'onBlur'` validation the same way a
+   * registered text input's blur does. Without this, toggling a role and
+   * then tabbing/clicking away never told react-hook-form anything
+   * changed, so `formState.isValid` stayed stale at whatever it was before
+   * the toggle — the root cause of the submit button never unlocking.
+   */
+  onBlur?: () => void;
   error?: string;
 }
 
@@ -20,7 +29,7 @@ interface RoleSelectorProps {
  * role). Both may be selected at once: the backend takes a list and the
  * platform supports dual-role professionals (design-review finding #2).
  */
-export default function RoleSelector({ value, onChange, error }: RoleSelectorProps) {
+export default function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorProps) {
   const { t } = useTranslation();
 
   const toggle = (role: RegistrableRole) => {
@@ -44,6 +53,7 @@ export default function RoleSelector({ value, onChange, error }: RoleSelectorPro
               type="button"
               aria-pressed={selected}
               onClick={() => toggle(role)}
+              onBlur={onBlur}
               className={cn(
                 'flex flex-col gap-0.5 rounded-md border border-border bg-surface p-3 text-left',
                 selected && 'border-brand bg-green-soft'
