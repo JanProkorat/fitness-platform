@@ -2319,6 +2319,7 @@
       "consentLabel": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
       "submit": "Konto erstellen",
       "submitting": "Konto wird erstellt...",
+      "submitHint": "Wählen Sie eine Rolle aus und füllen Sie alle Felder aus.",
       "haveAccount": "Sie haben bereits ein Konto?",
       "signIn": "Anmelden",
       "validation": {

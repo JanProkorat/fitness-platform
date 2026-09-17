@@ -2353,6 +2353,7 @@
       "consentLabel": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
       "submit": "Založit účet",
       "submitting": "Zakládám účet...",
+      "submitHint": "Vyberte roli a vyplňte všechna pole.",
       "haveAccount": "Už účet máte?",
       "signIn": "Přihlaste se",
       "validation": {

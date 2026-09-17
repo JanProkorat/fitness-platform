@@ -9,6 +9,7 @@ import axios from 'axios';
 import { register as registerAccount } from '@/api/auth';
 import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 import { passwordMeetsAllRules } from '@/lib/password-rules';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,9 +80,21 @@ export default function RegisterForm() {
     handleSubmit,
     watch,
     setError,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
+    // 'onBlur' pairs with the zod resolver's own field-name-scoped error
+    // lookup: a blur only surfaces THAT field's error, not the whole
+    // schema's error set. formState.isValid is still recomputed on every
+    // keystroke (it's tracked independently of `mode` the moment it's
+    // destructured) — that's what drives the submit-button lock below, in
+    // real time, without waiting for a blur. This combination is the fix
+    // for the "six errors at once" behaviour the user rejected: submission
+    // is impossible while invalid (a disabled submit button cannot be
+    // clicked, and a sole disabled submit button also cannot be reached by
+    // the browser's implicit Enter-key submission), so the bulk
+    // all-fields-at-once error dump no longer has a path to occur.
+    mode: 'onBlur',
     defaultValues: {
       roles: [],
       firstName: '',
@@ -245,9 +258,6 @@ export default function RegisterForm() {
           <div id="entry-register-password-rules">
             <PasswordStrengthRules password={password} />
           </div>
-          {errors.password && (
-            <p className="text-meta text-destructive">{errors.password.message}</p>
-          )}
         </div>
 
         <Controller
@@ -279,9 +289,26 @@ export default function RegisterForm() {
           </p>
         )}
 
-        <Button type="submit" disabled={registerMutation.isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={!isValid || registerMutation.isPending}
+          aria-describedby={!isValid ? 'entry-register-submit-hint' : undefined}
+          className="w-full"
+        >
           {registerMutation.isPending ? t('entry.register.submitting') : t('entry.register.submit')}
         </Button>
+        {/*
+          Fixed-position, always-rendered hint — reserves its line height
+          whether or not it is showing, so the panel never grows/shifts as
+          validity changes (the layout-jump the user rejected). One quiet
+          line, never an enumeration of which fields are missing.
+        */}
+        <p
+          id="entry-register-submit-hint"
+          className={cn('text-caption text-muted-foreground', isValid && 'invisible')}
+        >
+          {t('entry.register.submitHint')}
+        </p>
       </form>
 
       <p className="text-meta text-muted-foreground">

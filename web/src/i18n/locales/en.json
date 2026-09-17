@@ -2320,6 +2320,7 @@
       "consentLabel": "I agree to the processing of my personal data and to the terms of use.",
       "submit": "Create account",
       "submitting": "Creating account...",
+      "submitHint": "Select a role and fill in every field.",
       "haveAccount": "Already have an account?",
       "signIn": "Sign in",
       "validation": {
