@@ -2285,6 +2285,17 @@
         "generic": "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
       }
     },
+    "panel": {
+      "headline": "Werden Sie Teil unserer Community aus Trainern und Ernährungsberatern"
+    },
+    "register": {
+      "placeholderTitle": "Konto erstellen",
+      "backToLogin": "Sie haben bereits ein Konto? Anmelden"
+    },
+    "forgotPassword": {
+      "placeholderTitle": "Passwort vergessen",
+      "backToLogin": "Zurück zur Anmeldung"
+    },
     "languageSwitch": {
       "label": "Sprache",
       "cs": "CS",

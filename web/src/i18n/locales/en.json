@@ -2286,6 +2286,17 @@
         "generic": "Sign in failed. Please try again."
       }
     },
+    "panel": {
+      "headline": "Join our community of coaches and nutritionists"
+    },
+    "register": {
+      "placeholderTitle": "Create account",
+      "backToLogin": "Already have an account? Sign in"
+    },
+    "forgotPassword": {
+      "placeholderTitle": "Forgot password",
+      "backToLogin": "Back to sign in"
+    },
     "languageSwitch": {
       "label": "Language",
       "cs": "CS",

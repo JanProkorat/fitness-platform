@@ -2319,6 +2319,17 @@
         "generic": "Přihlášení se nezdařilo. Zkuste to prosím znovu."
       }
     },
+    "panel": {
+      "headline": "Přidejte se do naší komunity trenérů a výživových poradců"
+    },
+    "register": {
+      "placeholderTitle": "Založit účet",
+      "backToLogin": "Už účet máte? Přihlaste se"
+    },
+    "forgotPassword": {
+      "placeholderTitle": "Zapomenuté heslo",
+      "backToLogin": "Zpět na přihlášení"
+    },
     "languageSwitch": {
       "label": "Jazyk",
       "cs": "CS",

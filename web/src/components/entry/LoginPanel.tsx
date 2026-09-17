@@ -1,251 +1,144 @@
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useLocation, useOutlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
-import { login as loginRequest } from '@/api/auth';
-import { getMyProfile } from '@/api/profile';
-import type { GetProfileResponse } from '@/api/generated';
-import { useAuthStore } from '@/stores/auth';
-import { getApiErrorMessage } from '@/lib/api-errors';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/entry/LanguageSwitcher';
 
-/**
- * Distinguishes "login succeeded but the follow-up profile fetch failed"
- * (design-review error path: tokens are already persisted, the mutation
- * has already logged the half-authenticated session out by the time this
- * is thrown) from a rejected login request itself, which the mutation's
- * error handler resolves via getApiErrorMessage + the network-error check
- * instead.
- */
-class ProfileLoadError extends Error {}
+interface DisplayedRoute {
+  key: string;
+  element: ReactNode;
+}
 
-interface LoginFormValues {
-  email: string;
-  password: string;
+type SwapPhase = 'idle' | 'leaving';
+
+/**
+ * Tracks `prefers-reduced-motion` in JS (not CSS) — see the cross-fade
+ * comment below for why a CSS-only `animation: none` is not enough here.
+ */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = (event: MediaQueryListEvent) => setReduced(event.matches);
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, []);
+
+  return reduced;
 }
 
 /**
- * Login panel — email/password form, Google/Apple (disabled, see below),
- * create-account/forgot-password stubs, and the language switch (spec §6 /
- * prototype `.auth`).
+ * Login panel SHELL (#1058) — the standing community headline, the
+ * language switch, and the cross-fade swap area for the login/register/
+ * forgot-password forms rendered via App.tsx's pathless layout route
+ * (`<Route element={<EntryPage />}>` wrapping the three form routes). No
+ * login-specific markup lives here — every form is its own route element
+ * behind the swap area below.
  *
- * Google and Apple sign-in ship disabled for this issue: there is no Google
- * client id configured in this repo's env, Apple needs a domain-verified
- * Services ID the compose harness cannot exercise, and the social-nonce
- * flow is epic item 2's to own (see design-review finding, issue Notes).
+ * The headline and the swap area are SIBLING grid rows, not a shared
+ * centred flex column: centring the two together (the pre-split shell's
+ * `flex flex-col justify-center`) makes the headline drift up and down
+ * every time the form swaps to one of a different height, which reads as
+ * the page jumping. Pinning the headline to its own `auto` row and only
+ * centring the swap-area row fixes that.
  *
- * "Keep me signed in" is rendered but not wired to any request field —
- * the backend issues the same 15-minute access / 7-day refresh token pair
- * regardless, so there is no differing behaviour for this checkbox to
- * control yet.
+ * Cross-fade: a bare `<Outlet />` unmounts the outgoing route element the
+ * instant the location changes, so there is no "leaving" phase to animate.
+ * `useOutlet()` resolves the matched route's element as a value without
+ * mounting it here, so the previous element can be held in state and
+ * swapped out-then-in by hand: the outgoing form plays the leaving
+ * animation, and only once it finishes do we commit the incoming element
+ * and let it play the entering one — the two are never mounted together.
+ * The swap wrapper is keyed by pathname so React treats each route's form
+ * as a distinct instance; without that key, two different forms would
+ * reconcile into a single component instance and leak local state (field
+ * values, validation) across the swap.
  */
 export default function LoginPanel() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const setTokens = useAuthStore((s) => s.setTokens);
-  const storeLogin = useAuthStore((s) => s.login);
-  const storeLogout = useAuthStore((s) => s.logout);
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const location = useLocation();
+  const outlet = useOutlet();
+  const reducedMotion = usePrefersReducedMotion();
 
-  const loginSchema = useMemo(
-    () =>
-      z.object({
-        email: z
-          .string()
-          .min(1, t('entry.login.validation.emailRequired'))
-          .email(t('entry.login.validation.emailInvalid')),
-        password: z.string().min(1, t('entry.login.validation.passwordRequired')),
-      }),
-    [t]
-  );
+  const [display, setDisplay] = useState<DisplayedRoute>(() => ({
+    key: location.pathname,
+    element: outlet,
+  }));
+  const [phase, setPhase] = useState<SwapPhase>('idle');
+  const isFirstRenderRef = useRef(true);
+  const swapRef = useRef<HTMLDivElement>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async ({ email, password }: LoginFormValues) => {
-      const { accessToken, refreshToken } = await loginRequest(email, password);
-      if (!accessToken || !refreshToken) {
-        throw new ProfileLoadError('missing-tokens');
+  // The route changed since the last commit. This adjusts state directly
+  // during render — React's documented pattern for "adjusting state when
+  // a prop changes" — rather than a useEffect: a useEffect whose entire
+  // body derives a setState call from a prop comparison and then returns
+  // is exactly the redundant-derived-state shape the
+  // react-hooks/set-state-in-effect lint rule flags, and there genuinely
+  // is no external system to synchronize with yet at this point — that
+  // happens once the CSS animation completes, in the real event handler
+  // (handleLeaveAnimationEnd) below.
+  //
+  // Both branches are idempotent and self-terminating: once `display.key`
+  // or `phase` reflects the change, the condition guarding each setState
+  // call goes false, so this can't loop and is safe to run on every
+  // render (including React StrictMode's double-invoke).
+  if (location.pathname !== display.key) {
+    if (reducedMotion) {
+      setDisplay({ key: location.pathname, element: outlet });
+      if (phase !== 'idle') {
+        setPhase('idle');
       }
-      setTokens(accessToken, refreshToken);
-
-      let profile: GetProfileResponse;
-      try {
-        profile = await getMyProfile();
-      } catch {
-        // Tokens are already persisted — a half-authenticated session must
-        // not linger (design-review error path: login ok, /users/me failed).
-        storeLogout();
-        throw new ProfileLoadError('profile-load-failed');
-      }
-
-      storeLogin(
-        {
-          publicId: profile.userId ?? '',
-          email: profile.email ?? '',
-          firstName: profile.firstName ?? '',
-          lastName: profile.lastName ?? '',
-          roles: profile.roles ?? [],
-          emailConfirmed: profile.emailConfirmed ?? true,
-          avatarBlobUrl: profile.avatarBlobUrl ?? null,
-        },
-        accessToken,
-        refreshToken
-      );
-    },
-    onSuccess: () => {
-      navigate('/clients', { replace: true });
-    },
-  });
-
-  const resolveErrorMessage = (error: unknown): string => {
-    if (error instanceof ProfileLoadError) {
-      return t('entry.login.errors.profileLoadFailed');
+    } else if (phase !== 'leaving') {
+      setPhase('leaving');
     }
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 429) {
-        return t('errors.rateLimitRefresh');
-      }
-      if (!error.response) {
-        return t('entry.login.errors.network');
-      }
-      return getApiErrorMessage(error, 'entry.login.errors.generic');
-    }
-    return t('entry.login.errors.generic');
+  }
+
+  // Commits the pending route once the leaving animation finishes. A plain
+  // event handler, not an effect — reads the latest location/outlet at the
+  // moment it actually fires, so a second navigation mid-animation is
+  // picked up correctly instead of resolving to a stale intermediate route.
+  const handleLeaveAnimationEnd = () => {
+    setDisplay({ key: location.pathname, element: outlet });
+    setPhase('idle');
   };
 
-  const errorMessage = loginMutation.isError ? resolveErrorMessage(loginMutation.error) : null;
+  // Focus moves to the swapped-in form's first field on every real swap,
+  // never on first mount (a fresh page load must not steal focus).
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
 
-  const onSubmit = (values: LoginFormValues) => {
-    loginMutation.mutate(values);
-  };
+    const firstField = swapRef.current?.querySelector<HTMLInputElement>(
+      'input:not([type="checkbox"])'
+    );
+    firstField?.focus({ preventScroll: true });
+  }, [display.key]);
 
   return (
-    <div className="flex flex-col justify-center gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:col-start-2 panel:row-span-full panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8">
-      <div>
-        <h2 className="text-auth-title font-bold text-ink">{t('entry.login.title')}</h2>
-        <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.login.lede')}</p>
-      </div>
+    <div className="grid grid-rows-[auto_1fr_auto] gap-4.5 border-t border-border bg-surface px-7 py-10 sm:px-11 panel:sticky panel:top-0 panel:col-start-2 panel:row-span-full panel:h-screen panel:overflow-y-auto panel:border-t-0 panel:border-l panel:py-8">
+      <h2 className="text-auth-title font-bold text-ink">{t('entry.panel.headline')}</h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4.5">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-email">{t('entry.login.emailLabel')}</Label>
-          <Input
-            id="entry-email"
-            type="email"
-            autoComplete="email"
-            placeholder={t('entry.login.emailPlaceholder')}
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? 'entry-email-error' : undefined}
-            {...register('email')}
-          />
-          {errors.email && (
-            <p id="entry-email-error" className="text-meta text-destructive">
-              {errors.email.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="entry-password">{t('entry.login.passwordLabel')}</Label>
-          <div className="relative">
-            <Input
-              id="entry-password"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="current-password"
-              placeholder="••••••••"
-              aria-invalid={!!errors.password}
-              aria-describedby={errors.password ? 'entry-password-error' : undefined}
-              className="pr-16"
-              {...register('password')}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={
-                showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')
-              }
-              className="absolute inset-y-0 right-2 inline-flex items-center gap-1 text-caption font-semibold text-muted-foreground"
-            >
-              {showPassword ? (
-                <EyeOffIcon className="size-3.5" />
-              ) : (
-                <EyeIcon className="size-3.5" />
-              )}
-              {showPassword ? t('entry.login.hidePassword') : t('entry.login.showPassword')}
-            </button>
-          </div>
-          {errors.password && (
-            <p id="entry-password-error" className="text-meta text-destructive">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-baseline justify-between gap-3">
-          <Label htmlFor="entry-remember" className="text-muted-foreground">
-            <Checkbox
-              id="entry-remember"
-              checked={rememberMe}
-              onCheckedChange={(checked) => setRememberMe(checked === true)}
-            />
-            {t('entry.login.rememberMe')}
-          </Label>
-          <span className="text-meta font-medium text-brand">
-            {t('entry.login.forgotPassword')}
-          </span>
-        </div>
-
-        {errorMessage && (
-          <p role="alert" className="text-meta text-destructive">
-            {errorMessage}
-          </p>
+      <div
+        key={display.key}
+        ref={swapRef}
+        onAnimationEnd={phase === 'leaving' ? handleLeaveAnimationEnd : undefined}
+        className={cn(
+          'flex flex-col gap-4.5 self-center-safe',
+          !reducedMotion && (phase === 'leaving' ? 'animate-panel-out' : 'animate-panel-in')
         )}
-
-        <Button type="submit" disabled={loginMutation.isPending} className="w-full">
-          {loginMutation.isPending ? t('entry.login.submitting') : t('entry.login.submit')}
-        </Button>
-      </form>
-
-      <div className="flex items-center gap-3 text-caption tracking-[.1em] text-faint uppercase">
-        <span className="h-px flex-1 bg-border" />
-        <span>{t('entry.login.or')}</span>
-        <span className="h-px flex-1 bg-border" />
+      >
+        {display.element}
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <Button type="button" variant="outline" disabled title={t('entry.login.googleComingSoon')}>
-          {t('entry.login.google')}
-        </Button>
-        <Button type="button" variant="outline" disabled title={t('entry.login.appleComingSoon')}>
-          {t('entry.login.apple')}
-        </Button>
-      </div>
-
-      <div className="flex flex-col gap-3.5 text-meta text-muted-foreground">
-        <p>
-          {t('entry.login.noAccount')}{' '}
-          <span className="font-medium text-brand">{t('entry.login.createAccount')}</span>
-        </p>
-        <LanguageSwitcher />
-      </div>
+      <LanguageSwitcher />
     </div>
   );
 }

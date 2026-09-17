@@ -188,6 +188,36 @@
 
   /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
   --breakpoint-panel: 960px;
+
+  /* ---- Entry panel cross-fade (#1058) ----
+     Tailwind v4 turns a `--animate-*` theme token into the `animate-*`
+     utility (`animate-panel-in` / `animate-panel-out`); the keyframes
+     themselves are declared as a plain top-level @keyframes rule below,
+     same as any other CSS custom property that references one. */
+  --animate-panel-in: panel-in 200ms ease-out;
+  --animate-panel-out: panel-out 120ms ease-in forwards;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes panel-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 @layer base {

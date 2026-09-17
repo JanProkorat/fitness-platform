@@ -8,13 +8,20 @@ import CtaSection from '@/components/entry/CtaSection';
 import LoginPanel from '@/components/entry/LoginPanel';
 
 /**
- * Public entry route ("/") — marketing page plus login panel (design spec
- * §6, prototype scratchpad/gf-entry.html). Deliberately kept OUTSIDE
- * ProtectedRoute (App.tsx) and outside AppShell: `<body>` is the scroll
- * container for the left column, matching the prototype's CSS one to one.
- * No `h-screen`/`overflow-hidden` on this component or any ancestor of the
- * login panel — that would reparent the sticky panel to an inner scroll
- * box and detach it from the fixed medallion.
+ * Public entry layout route ("/", "/register", "/forgot-password" — #1058)
+ * — marketing page plus the login panel SHELL (design spec §6, prototype
+ * scratchpad/gf-register.html). It is a pathless layout route in App.tsx:
+ * this component renders once per visit to any of the three child routes,
+ * and LoginPanel's swap area (via `useOutlet()`) renders whichever child
+ * route — LoginForm, RegisterForm, or ForgotPasswordForm — is active. This
+ * page has no `<Outlet />` of its own; LoginPanel owns that.
+ *
+ * Deliberately kept OUTSIDE ProtectedRoute (App.tsx) and outside AppShell:
+ * `<body>` is the scroll container for the left column, matching the
+ * prototype's CSS one to one. No `h-screen`/`overflow-hidden` on this
+ * component or any ancestor of the login panel — that would reparent the
+ * sticky panel to an inner scroll box and detach it from the fixed
+ * medallion.
  *
  * Hero, LoginPanel and the three marketing sections are direct grid
  * siblings (not a wrapped "left column" child), in DOM order Hero →
