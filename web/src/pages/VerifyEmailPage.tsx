@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { CheckIcon, MailIcon, TriangleAlertIcon } from 'lucide-react';
 import { resendVerificationAnonymous, verifyEmail } from '@/api/auth';
@@ -32,13 +32,38 @@ interface VerifyMutationResult {
  *      "check your inbox" using the session's own email, with a resend.
  *   3. No token, no session          → invalid-link state linking to "/".
  *
- * StrictMode: `verifyStartedRef` is a plain ref that is NEVER reset — unlike
- * LoginPanel's focus-guard ref (which resets in a cleanup because it must
- * fire once per real navigation), this one must fire at most once for the
- * entire lifetime of this page instance. `VerifyEmailEndpoint` consumes the
- * token (sets `UsedAt`), so StrictMode's dev-only double-invoke would
- * otherwise turn a successful verification into an
- * INVALID_VERIFICATION_TOKEN error on the second call.
+ * StrictMode / single-fire (fixed after the initial phase-3 landing — see
+ * git history for the broken `useMutation`-triggered-from-`useEffect`
+ * version): `VerifyEmailEndpoint` CONSUMES the token (sets `UsedAt`), so a
+ * second call with the same token turns a real, successful verification
+ * into a false `INVALID_VERIFICATION_TOKEN` failure. The first version of
+ * this page called `useMutation(...).mutate(token)` from inside a
+ * `useEffect`, guarded by a `useRef` latch to stop the request itself from
+ * firing twice. That latch worked — Playwright confirmed exactly one
+ * `/auth/verify-email` request — but the component never re-rendered once
+ * the mutation settled: React 18/19 StrictMode's dev-only mount → simulated
+ * unmount → remount cycle re-subscribes `useMutation`'s internal observer
+ * on the second (surviving) mount pass, while the single fetch this page
+ * fired belongs to the FIRST pass's subscription — the notification that
+ * fetch produces on settle has nowhere live left to land, so the surviving
+ * component's `verifyMutation` object stays permanently idle even though
+ * the network call it triggered completed. The ref that correctly stopped a
+ * second consuming request also, as a side effect, stopped the only
+ * `useEffect` invocation whose resulting mutation instance would have been
+ * observed by the component actually left on screen.
+ *
+ * `useQuery` does not have this failure mode: the fetch and its result live
+ * in the shared `QueryClient` cache, keyed by `['verify-email', token]`,
+ * external to any one component instance. Both the discarded and the
+ * surviving StrictMode mount subscribe to the SAME cache entry — whichever
+ * one actually issues the request, the query cache dedupes a second
+ * subscriber's fetch for an identical, non-stale key rather than starting a
+ * new one, and every subscriber (including the one still mounted when the
+ * fetch settles) reads from that same entry. `retry: false` plus
+ * `staleTime: Infinity` keep this to exactly one network call for the
+ * token's entire single-use lifetime — no retries on the expected 400, and
+ * no accidental refetch from a window-focus/reconnect event while the user
+ * is reading the result.
  */
 export default function VerifyEmailPage() {
   const { t } = useTranslation();
@@ -53,11 +78,11 @@ export default function VerifyEmailPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
 
-  const verifyStartedRef = useRef(false);
-
-  const verifyMutation = useMutation({
-    mutationFn: async (verificationToken: string): Promise<VerifyMutationResult> => {
-      await verifyEmail(verificationToken);
+  const verifyQuery = useQuery({
+    queryKey: ['verify-email', token],
+    queryFn: async (): Promise<VerifyMutationResult> => {
+      // Non-null: this queryFn only ever runs when `enabled` (below) is true.
+      await verifyEmail(token as string);
 
       if (!isAuthenticated) {
         return { profileRefreshed: false };
@@ -82,19 +107,12 @@ export default function VerifyEmailPage() {
         return { profileRefreshed: false };
       }
     },
+    enabled: !!token,
+    retry: false,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
-
-  useEffect(() => {
-    if (!token) return;
-    if (verifyStartedRef.current) return;
-    verifyStartedRef.current = true;
-    verifyMutation.mutate(token);
-    // verifyMutation.mutate has a stable identity across renders; only
-    // `token` (read once into state above) can ever change this effect's
-    // inputs, and the ref latch prevents a StrictMode double-invoke from
-    // firing a second, token-consuming request.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
 
   const resendMutation = useMutation({
     mutationFn: (email: string) => resendVerificationAnonymous(email),
@@ -153,8 +171,8 @@ export default function VerifyEmailPage() {
 
   // Caller 1: cold link with a token.
   if (token) {
-    if (verifyMutation.isSuccess) {
-      const goToClients = verifyMutation.data.profileRefreshed;
+    if (verifyQuery.isSuccess) {
+      const goToClients = verifyQuery.data.profileRefreshed;
       return shell(
         <>
           {brandRow}
@@ -178,8 +196,8 @@ export default function VerifyEmailPage() {
       );
     }
 
-    if (verifyMutation.isError) {
-      const errorCode = getErrorCode(verifyMutation.error);
+    if (verifyQuery.isError) {
+      const errorCode = getErrorCode(verifyQuery.error);
       const canResendHere =
         errorCode === 'VERIFICATION_TOKEN_EXPIRED' && isAuthenticated && !!user?.email;
 
@@ -190,7 +208,7 @@ export default function VerifyEmailPage() {
             <TriangleAlertIcon className="size-5" />
           </div>
           <CardTitle>{t('entry.verifyEmail.invalid.title')}</CardTitle>
-          <CardDescription>{resolveErrorMessage(verifyMutation.error)}</CardDescription>
+          <CardDescription>{resolveErrorMessage(verifyQuery.error)}</CardDescription>
           <CardContent>
             {canResendHere && user?.email && (
               <>
