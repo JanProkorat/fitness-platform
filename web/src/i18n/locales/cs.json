@@ -2323,8 +2323,62 @@
       "headline": "Přidejte se do naší komunity trenérů a výživových poradců"
     },
     "register": {
-      "placeholderTitle": "Založit účet",
-      "backToLogin": "Už účet máte? Přihlaste se"
+      "title": "Založit účet",
+      "lede": "Vyplňte údaje a potvrďte e-mail. Zabere to minutu.",
+      "roleLabel": "Čím se zabýváte?",
+      "roleHint": "Můžete vybrat obojí. Role lze později změnit v nastavení.",
+      "roles": {
+        "trainer": {
+          "name": "Trenér",
+          "description": "Tréninkové plány, cviky, záznam tréninků."
+        },
+        "nutritionist": {
+          "name": "Výživový poradce",
+          "description": "Jídelníčky, recepty, suroviny, makra."
+        }
+      },
+      "firstNameLabel": "Jméno",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Příjmení",
+      "lastNamePlaceholder": "Novák",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@example.com",
+      "passwordLabel": "Heslo",
+      "passwordRules": {
+        "length": "Aspoň 8 znaků",
+        "uppercase": "Velké písmeno",
+        "lowercase": "Malé písmeno",
+        "digit": "Číslice"
+      },
+      "consentLabel": "Souhlasím se zpracováním osobních údajů a s podmínkami použití.",
+      "submit": "Založit účet",
+      "submitting": "Zakládám účet...",
+      "haveAccount": "Už účet máte?",
+      "signIn": "Přihlaste se",
+      "validation": {
+        "roleRequired": "Vyberte alespoň jednu roli.",
+        "firstNameRequired": "Zadejte jméno.",
+        "lastNameRequired": "Zadejte příjmení.",
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail.",
+        "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
+        "consentRequired": "Pro založení účtu musíte souhlasit se zpracováním osobních údajů."
+      },
+      "errors": {
+        "duplicateEmail": "Tento e-mail je již zaregistrován.",
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Registraci se nepodařilo dokončit. Zkuste to prosím znovu."
+      },
+      "sent": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Poslali jsme ověřovací odkaz na {{email}}. Odkaz platí 24 hodin.",
+        "note": "Nepřišel? Podívejte se do spamu. Pokud tam není, pošleme ho znovu.",
+        "resend": "Poslat odkaz znovu",
+        "resending": "Odesílám...",
+        "resendConfirmation": "Pokud je to potřeba, poslali jsme nový odkaz.",
+        "wrongEmail": "Špatná adresa?",
+        "changeEmail": "Změnit e-mail"
+      }
     },
     "forgotPassword": {
       "placeholderTitle": "Zapomenuté heslo",

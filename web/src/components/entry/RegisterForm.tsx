@@ -1,21 +1,293 @@
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { register as registerAccount } from '@/api/auth';
+import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
+import { passwordMeetsAllRules } from '@/lib/password-rules';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import RoleSelector, { type RegistrableRole } from '@/components/entry/RoleSelector';
+import PasswordStrengthRules from '@/components/entry/PasswordStrengthRules';
+import VerificationSentState from '@/components/entry/VerificationSentState';
+
+interface RegisterFormValues {
+  roles: RegistrableRole[];
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  gdprConsent: boolean;
+}
 
 /**
- * Placeholder for the full registration form (#1058 phase 2 builds the
- * role picker, password-strength rules, and field set). This phase only
- * needs the routing restructure and the panel swap to be real, so this
- * component is deliberately minimal: a heading and a way back to "/".
+ * RegisterEndpoint has no machine-readable code for a duplicate email — it
+ * pipes ASP.NET Identity's IdentityResult errors through as a bare English
+ * `errors[].reason` (e.g. "Email 'x' is already taken."). Match it
+ * heuristically rather than looking up an `apiErrors.*` translation key
+ * (design-review error path — see `api/auth.ts#register`).
+ */
+const DUPLICATE_EMAIL_PATTERN = /already taken|already registered/i;
+
+/**
+ * Register form — role picker, name/email/password fields, live password
+ * rules, and the single GDPR consent checkbox (prototype
+ * `[data-form="register"]`, scratchpad gf-register.html). Renders
+ * VerificationSentState in place of the fields once `registerMutation`
+ * succeeds — that state is the RESULT of the mutation, not a route: the
+ * URL stays `/register`, and nothing about the submitted email is
+ * persisted to storage (design-review error path — a page reload must
+ * degrade back to this empty form, never resurrect a stale "check your
+ * email" screen for an address the user already corrected).
  */
 export default function RegisterForm() {
   const { t } = useTranslation();
 
+  const registerSchema = useMemo(
+    () =>
+      z.object({
+        roles: z
+          .array(z.enum(['Trainer', 'Nutritionist']))
+          .min(1, t('entry.register.validation.roleRequired')),
+        firstName: z.string().min(1, t('entry.register.validation.firstNameRequired')),
+        lastName: z.string().min(1, t('entry.register.validation.lastNameRequired')),
+        email: z
+          .string()
+          .min(1, t('entry.register.validation.emailRequired'))
+          .email(t('entry.register.validation.emailInvalid')),
+        password: z
+          .string()
+          .refine(passwordMeetsAllRules, t('entry.register.validation.passwordInvalid')),
+        gdprConsent: z
+          .boolean()
+          .refine((consented) => consented === true, {
+            message: t('entry.register.validation.consentRequired'),
+          }),
+      }),
+    [t]
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setError,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      roles: [],
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      gdprConsent: false,
+    },
+  });
+
+  const password = watch('password');
+
+  const registerMutation = useMutation({
+    mutationFn: (values: RegisterFormValues) =>
+      registerAccount({
+        email: values.email,
+        password: values.password,
+        confirmPassword: values.password,
+        firstName: values.firstName,
+        lastName: values.lastName,
+        roles: values.roles,
+        gdprConsent: values.gdprConsent,
+        // healthDataConsent intentionally omitted, not set to a literal
+        // null: RegisterValidator.cs:73-83 requires null for Trainer and
+        // Nutritionist, and an absent JSON field binds to the same null an
+        // explicit one would.
+      }),
+    onError: (error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        const reason = getErrorCode(error) ?? '';
+        if (DUPLICATE_EMAIL_PATTERN.test(reason)) {
+          setError('email', {
+            type: 'server',
+            message: t('entry.register.errors.duplicateEmail'),
+          });
+        }
+      }
+    },
+  });
+
+  const resolveBannerErrorMessage = (error: unknown): string | null => {
+    if (axios.isAxiosError(error)) {
+      const reason = getErrorCode(error) ?? '';
+      if (error.response?.status === 400 && DUPLICATE_EMAIL_PATTERN.test(reason)) {
+        // Rendered on the email field instead — see registerMutation.onError above.
+        return null;
+      }
+      if (error.response?.status === 429) {
+        return t('errors.rateLimitRefresh');
+      }
+      if (!error.response) {
+        return t('entry.register.errors.network');
+      }
+      return getApiErrorMessage(error, 'entry.register.errors.generic');
+    }
+    return t('entry.register.errors.generic');
+  };
+
+  const bannerErrorMessage = registerMutation.isError
+    ? resolveBannerErrorMessage(registerMutation.error)
+    : null;
+
+  const onSubmit = (values: RegisterFormValues) => {
+    registerMutation.mutate(values);
+  };
+
+  if (registerMutation.isSuccess) {
+    return (
+      <VerificationSentState
+        email={registerMutation.variables?.email ?? ''}
+        onWrongEmail={() => registerMutation.reset()}
+      />
+    );
+  }
+
   return (
     <>
-      <h3 className="text-auth-title font-bold text-ink">{t('entry.register.placeholderTitle')}</h3>
+      <div>
+        <h3 className="text-auth-title font-bold text-ink">{t('entry.register.title')}</h3>
+        <p className="mt-1.5 text-meta text-muted-foreground">{t('entry.register.lede')}</p>
+      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4.5">
+        <Controller
+          control={control}
+          name="roles"
+          render={({ field }) => (
+            <RoleSelector
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.roles?.message}
+            />
+          )}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="entry-firstName">{t('entry.register.firstNameLabel')}</Label>
+            <Input
+              id="entry-firstName"
+              autoComplete="given-name"
+              placeholder={t('entry.register.firstNamePlaceholder')}
+              aria-invalid={!!errors.firstName}
+              aria-describedby={errors.firstName ? 'entry-firstName-error' : undefined}
+              {...register('firstName')}
+            />
+            {errors.firstName && (
+              <p id="entry-firstName-error" className="text-meta text-destructive">
+                {errors.firstName.message}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="entry-lastName">{t('entry.register.lastNameLabel')}</Label>
+            <Input
+              id="entry-lastName"
+              autoComplete="family-name"
+              placeholder={t('entry.register.lastNamePlaceholder')}
+              aria-invalid={!!errors.lastName}
+              aria-describedby={errors.lastName ? 'entry-lastName-error' : undefined}
+              {...register('lastName')}
+            />
+            {errors.lastName && (
+              <p id="entry-lastName-error" className="text-meta text-destructive">
+                {errors.lastName.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="entry-register-email">{t('entry.register.emailLabel')}</Label>
+          <Input
+            id="entry-register-email"
+            type="email"
+            autoComplete="email"
+            placeholder={t('entry.register.emailPlaceholder')}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'entry-register-email-error' : undefined}
+            {...register('email')}
+          />
+          {errors.email && (
+            <p id="entry-register-email-error" className="text-meta text-destructive">
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="entry-register-password">{t('entry.register.passwordLabel')}</Label>
+          <Input
+            id="entry-register-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="••••••••"
+            aria-invalid={!!errors.password}
+            aria-describedby="entry-register-password-rules"
+            {...register('password')}
+          />
+          <div id="entry-register-password-rules">
+            <PasswordStrengthRules password={password} />
+          </div>
+          {errors.password && (
+            <p className="text-meta text-destructive">{errors.password.message}</p>
+          )}
+        </div>
+
+        <Controller
+          control={control}
+          name="gdprConsent"
+          render={({ field }) => (
+            <label
+              htmlFor="entry-gdpr-consent"
+              className="flex items-start gap-2.5 text-meta text-ink-2"
+            >
+              <Checkbox
+                id="entry-gdpr-consent"
+                className="mt-0.5"
+                checked={field.value}
+                aria-invalid={!!errors.gdprConsent}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+              />
+              <span>{t('entry.register.consentLabel')}</span>
+            </label>
+          )}
+        />
+        {errors.gdprConsent && (
+          <p className="text-meta text-destructive">{errors.gdprConsent.message}</p>
+        )}
+
+        {bannerErrorMessage && (
+          <p role="alert" className="text-meta text-destructive">
+            {bannerErrorMessage}
+          </p>
+        )}
+
+        <Button type="submit" disabled={registerMutation.isPending} className="w-full">
+          {registerMutation.isPending ? t('entry.register.submitting') : t('entry.register.submit')}
+        </Button>
+      </form>
+
       <p className="text-meta text-muted-foreground">
+        {t('entry.register.haveAccount')}{' '}
         <Link to="/" className="font-medium text-brand hover:underline">
-          {t('entry.register.backToLogin')}
+          {t('entry.register.signIn')}
         </Link>
       </p>
     </>

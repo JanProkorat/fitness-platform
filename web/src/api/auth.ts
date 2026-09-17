@@ -1,4 +1,5 @@
-import type { LoginResponse } from '@/api/client';
+import type { LoginResponse, RegisterRequest, RegisterResponse } from '@/api/client';
+import type { AnonymousResendVerificationResponse } from '@/api/generated';
 import api from '@/lib/api';
 
 /**
@@ -77,5 +78,43 @@ export async function appleSocialLogin(payload: {
   nonce: string;
 }): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>('/auth/social/apple', payload);
+  return data;
+}
+
+/**
+ * POST /auth/register
+ * Creates a new user account. Success is 201, not 200 (`RegisterEndpoint`
+ * uses `Send.ResponseAsync(..., StatusCodes.Status201Created, ct)`).
+ *
+ * Built on `api.post` (not the generated NSwag client) for the same reason
+ * as `login` above — a rejected request must surface as an `AxiosError` so
+ * `lib/api-errors.ts` can read it. Duplicate-email has no machine-readable
+ * error code: `RegisterEndpoint` pipes ASP.NET Identity's `IdentityResult`
+ * errors through as a bare `ThrowIfAnyErrors()`, so the 400 body carries an
+ * untranslated English `errors[].reason` (e.g. "Email 'x' is already
+ * taken.") and an empty `code` — callers must match `reason` heuristically
+ * rather than looking up an `apiErrors.*` translation key.
+ */
+export async function register(payload: RegisterRequest): Promise<RegisterResponse> {
+  const { data } = await api.post<RegisterResponse>('/auth/register', payload);
+  return data;
+}
+
+/**
+ * POST /auth/resend-verification/anonymous
+ * Resends the verification email, keyed by email address instead of an
+ * authenticated session. Always returns the same generic 200 body for an
+ * unregistered email, an already-verified account, a throttled sender
+ * (3 per rolling 24h), and a genuine send — never surface a differing
+ * message or a remaining-sends count, or the response becomes an
+ * account-existence oracle.
+ */
+export async function resendVerificationAnonymous(
+  email: string
+): Promise<AnonymousResendVerificationResponse> {
+  const { data } = await api.post<AnonymousResendVerificationResponse>(
+    '/auth/resend-verification/anonymous',
+    { email }
+  );
   return data;
 }

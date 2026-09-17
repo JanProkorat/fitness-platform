@@ -2290,8 +2290,62 @@
       "headline": "Join our community of coaches and nutritionists"
     },
     "register": {
-      "placeholderTitle": "Create account",
-      "backToLogin": "Already have an account? Sign in"
+      "title": "Create account",
+      "lede": "Fill in your details and confirm your email. Takes a minute.",
+      "roleLabel": "What do you do?",
+      "roleHint": "You can pick both. Roles can be changed later in settings.",
+      "roles": {
+        "trainer": {
+          "name": "Trainer",
+          "description": "Training plans, exercises, workout logging."
+        },
+        "nutritionist": {
+          "name": "Nutritionist",
+          "description": "Meal plans, recipes, ingredients, macros."
+        }
+      },
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Novak",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "passwordLabel": "Password",
+      "passwordRules": {
+        "length": "At least 8 characters",
+        "uppercase": "Uppercase letter",
+        "lowercase": "Lowercase letter",
+        "digit": "Digit"
+      },
+      "consentLabel": "I agree to the processing of my personal data and to the terms of use.",
+      "submit": "Create account",
+      "submitting": "Creating account...",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "validation": {
+        "roleRequired": "Select at least one role.",
+        "firstNameRequired": "Enter your first name.",
+        "lastNameRequired": "Enter your last name.",
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordInvalid": "Password does not meet all the requirements above.",
+        "consentRequired": "You must agree to the processing of your personal data to create an account."
+      },
+      "errors": {
+        "duplicateEmail": "This email is already registered.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Could not complete registration. Please try again."
+      },
+      "sent": {
+        "title": "Check your email",
+        "lede": "We sent a verification link to {{email}}. The link is valid for 24 hours.",
+        "note": "Didn't get it? Check your spam folder. If it's not there, we'll resend it.",
+        "resend": "Resend link",
+        "resending": "Sending...",
+        "resendConfirmation": "If needed, we've sent a new link.",
+        "wrongEmail": "Wrong address?",
+        "changeEmail": "Change email"
+      }
     },
     "forgotPassword": {
       "placeholderTitle": "Forgot password",

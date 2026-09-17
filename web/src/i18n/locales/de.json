@@ -2289,8 +2289,62 @@
       "headline": "Werden Sie Teil unserer Community aus Trainern und Ernährungsberatern"
     },
     "register": {
-      "placeholderTitle": "Konto erstellen",
-      "backToLogin": "Sie haben bereits ein Konto? Anmelden"
+      "title": "Konto erstellen",
+      "lede": "Geben Sie Ihre Daten ein und bestätigen Sie Ihre E-Mail-Adresse. Das dauert eine Minute.",
+      "roleLabel": "Womit beschäftigen Sie sich?",
+      "roleHint": "Sie können beides wählen. Rollen können später in den Einstellungen geändert werden.",
+      "roles": {
+        "trainer": {
+          "name": "Trainer",
+          "description": "Trainingspläne, Übungen, Trainingsprotokoll."
+        },
+        "nutritionist": {
+          "name": "Ernährungsberater",
+          "description": "Ernährungspläne, Rezepte, Zutaten, Makros."
+        }
+      },
+      "firstNameLabel": "Vorname",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Nachname",
+      "lastNamePlaceholder": "Novak",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "passwordLabel": "Passwort",
+      "passwordRules": {
+        "length": "Mindestens 8 Zeichen",
+        "uppercase": "Großbuchstabe",
+        "lowercase": "Kleinbuchstabe",
+        "digit": "Ziffer"
+      },
+      "consentLabel": "Ich stimme der Verarbeitung meiner personenbezogenen Daten und den Nutzungsbedingungen zu.",
+      "submit": "Konto erstellen",
+      "submitting": "Konto wird erstellt...",
+      "haveAccount": "Sie haben bereits ein Konto?",
+      "signIn": "Anmelden",
+      "validation": {
+        "roleRequired": "Wählen Sie mindestens eine Rolle aus.",
+        "firstNameRequired": "Geben Sie Ihren Vornamen ein.",
+        "lastNameRequired": "Geben Sie Ihren Nachnamen ein.",
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
+        "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
+        "consentRequired": "Sie müssen der Verarbeitung Ihrer personenbezogenen Daten zustimmen, um ein Konto zu erstellen."
+      },
+      "errors": {
+        "duplicateEmail": "Diese E-Mail-Adresse ist bereits registriert.",
+        "network": "Der Server konnte nicht erreicht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Die Registrierung konnte nicht abgeschlossen werden. Bitte versuchen Sie es erneut."
+      },
+      "sent": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Der Link ist 24 Stunden gültig.",
+        "note": "Nicht angekommen? Prüfen Sie Ihren Spam-Ordner. Falls er dort auch nicht ist, senden wir ihn erneut.",
+        "resend": "Link erneut senden",
+        "resending": "Wird gesendet...",
+        "resendConfirmation": "Falls nötig, haben wir einen neuen Link gesendet.",
+        "wrongEmail": "Falsche Adresse?",
+        "changeEmail": "E-Mail ändern"
+      }
     },
     "forgotPassword": {
       "placeholderTitle": "Passwort vergessen",
