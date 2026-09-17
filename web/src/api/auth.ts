@@ -1,5 +1,11 @@
-import type { LoginResponse, RegisterRequest, RegisterResponse } from '@/api/client';
-import type { AnonymousResendVerificationResponse } from '@/api/generated';
+import type {
+  LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  RequestPasswordResetRequest,
+  ResetPasswordRequest,
+} from '@/api/client';
+import type { AnonymousResendVerificationResponse, VerifyEmailRequest } from '@/api/generated';
 import api from '@/lib/api';
 
 /**
@@ -117,4 +123,47 @@ export async function resendVerificationAnonymous(
     { email }
   );
   return data;
+}
+
+/**
+ * POST /auth/verify-email
+ * Verifies a user's email address using the token from the verification
+ * link. Consumes the token — a second call with the same token returns
+ * INVALID_VERIFICATION_TOKEN even though the first call succeeded (see
+ * VerifyEmailPage's StrictMode double-invoke guard).
+ *
+ * Built on `api.post` for the same AxiosError reason as the other helpers
+ * in this file — the generated `verifyEmailEndpoint` throws `ApiException`,
+ * which `lib/api-errors.ts` cannot read.
+ */
+export async function verifyEmail(token: string): Promise<void> {
+  const payload: VerifyEmailRequest = { token };
+  await api.post('/auth/verify-email', payload);
+}
+
+/**
+ * POST /auth/password/reset
+ * Requests a password reset link. Always returns 200 whether or not the
+ * account exists (anti-enumeration) — never branch UI copy on this call
+ * succeeding vs. "the account was found".
+ *
+ * Note the verb collision with `resetPassword` below: both endpoints live
+ * at the same path, distinguished only by HTTP verb (`RequestPasswordResetEndpoint`
+ * vs `ResetPasswordEndpoint`).
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const payload: RequestPasswordResetRequest = { email };
+  await api.post('/auth/password/reset', payload);
+}
+
+/**
+ * PUT /auth/password/reset
+ * Completes a password reset using the token + email from the reset link.
+ * Returns one generic failure for an invalid/expired/already-used token AND
+ * for an unknown email (anti-enumeration, #656) — do not try to distinguish
+ * them client-side. Does NOT revoke sessions and does NOT sign the caller
+ * in (`ResetPasswordEndpoint.cs:43-62`).
+ */
+export async function resetPassword(payload: ResetPasswordRequest): Promise<void> {
+  await api.put('/auth/password/reset', payload);
 }

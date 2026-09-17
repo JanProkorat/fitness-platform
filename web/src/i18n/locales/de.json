@@ -2348,8 +2348,87 @@
       }
     },
     "forgotPassword": {
-      "placeholderTitle": "Passwort vergessen",
-      "backToLogin": "Zurück zur Anmeldung"
+      "title": "Passwort vergessen",
+      "lede": "Geben Sie die E-Mail-Adresse ein, mit der Sie sich anmelden.",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "trainer@example.com",
+      "submit": "Link senden",
+      "submitting": "Wird gesendet...",
+      "note": "Wir antworten immer gleich, unabhängig davon, ob ein Konto existiert — so verraten wir nie, welche E-Mail-Adressen registriert sind.",
+      "backToLogin": "Zurück zur Anmeldung",
+      "validation": {
+        "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+      },
+      "errors": {
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Senden fehlgeschlagen. Bitte versuchen Sie es erneut."
+      },
+      "sent": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Falls unter dieser Adresse ein Konto existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet.",
+        "tryAnother": "Andere Adresse verwenden"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "E-Mail wird bestätigt...",
+      "success": {
+        "title": "E-Mail bestätigt",
+        "lede": "Ihr Konto ist bereit. Sie können sich anmelden und loslegen.",
+        "cta": "Zum Portal",
+        "ctaLoggedOut": "Zur Anmeldung"
+      },
+      "checkInbox": {
+        "title": "Prüfen Sie Ihr Postfach",
+        "lede": "Wir haben einen Bestätigungslink an {{email}} gesendet. Klicken Sie darauf, um Ihr Konto zu aktivieren.",
+        "resend": "Link erneut senden",
+        "resending": "Wird gesendet...",
+        "resendConfirmation": "Wir haben einen neuen Link gesendet."
+      },
+      "invalid": {
+        "title": "Dieser Link ist ungültig",
+        "noSessionLede": "Dieser Bestätigungslink ist ungültig oder wurde bereits verwendet.",
+        "backToLogin": "Zurück zur Anmeldung"
+      },
+      "resendFromExpired": {
+        "prompt": "Wir senden einen neuen Link an {{email}}.",
+        "button": "Neuen Link senden"
+      },
+      "errors": {
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Bestätigung fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
+    },
+    "resetPassword": {
+      "title": "Neues Passwort festlegen",
+      "lede": "Wählen Sie ein Passwort, das Sie nicht anderswo verwenden. Angemeldete Geräte bleiben angemeldet.",
+      "newPasswordLabel": "Neues Passwort",
+      "confirmPasswordLabel": "Passwort wiederholen",
+      "submit": "Neues Passwort speichern",
+      "submitting": "Wird gespeichert...",
+      "note": "Melden Sie sich danach mit Ihrem neuen Passwort an. Der Link kann nur einmal verwendet werden.",
+      "success": {
+        "title": "Passwort geändert",
+        "lede": "Sie können sich jetzt mit Ihrem neuen Passwort anmelden.",
+        "cta": "Zur Anmeldung"
+      },
+      "invalidLink": {
+        "title": "Dieser Link ist ungültig",
+        "lede": "Dieser Link zum Zurücksetzen des Passworts fehlt oder ist fehlerhaft.",
+        "cta": "Zurück zur Anmeldung",
+        "requestNew": "Neuen Link anfordern"
+      },
+      "validation": {
+        "passwordInvalid": "Das Passwort erfüllt nicht alle oben genannten Anforderungen.",
+        "confirmRequired": "Geben Sie das Passwort erneut ein.",
+        "confirmMismatch": "Die Passwörter stimmen nicht überein."
+      },
+      "errors": {
+        "genericFailure": "Dieser Link zum Zurücksetzen des Passworts ist nicht mehr gültig. Bitte fordern Sie einen neuen an.",
+        "passwordField": "Das Passwort erfüllt nicht die Anforderungen des Servers. Bitte versuchen Sie ein anderes.",
+        "network": "Verbindung zum Server fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+        "generic": "Speichern fehlgeschlagen. Bitte versuchen Sie es erneut."
+      }
     },
     "languageSwitch": {
       "label": "Sprache",

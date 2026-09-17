@@ -10,6 +10,7 @@ import LoginForm from '@/components/entry/LoginForm';
 import RegisterForm from '@/components/entry/RegisterForm';
 import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
 import InboxPage from '@/pages/InboxPage';
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPasswordForm />} />
           </Route>
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 
           <Route element={<ProtectedRoute />}>

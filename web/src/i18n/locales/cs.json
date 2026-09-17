@@ -2382,8 +2382,87 @@
       }
     },
     "forgotPassword": {
-      "placeholderTitle": "Zapomenuté heslo",
-      "backToLogin": "Zpět na přihlášení"
+      "title": "Zapomenuté heslo",
+      "lede": "Zadejte e-mail, kterým se přihlašujete.",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "trener@example.com",
+      "submit": "Poslat odkaz",
+      "submitting": "Odesílám...",
+      "note": "Odpovíme stejně, ať už účet existuje nebo ne — abychom neprozradili, které e-maily jsou registrované.",
+      "backToLogin": "Zpět na přihlášení",
+      "validation": {
+        "emailRequired": "Zadejte e-mail.",
+        "emailInvalid": "Zadejte platný e-mail."
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Odeslání se nezdařilo. Zkuste to prosím znovu."
+      },
+      "sent": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Pokud pod touto adresou existuje účet, poslali jsme na ni odkaz pro obnovení hesla.",
+        "tryAnother": "Zadat jinou adresu"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "Ověřujeme váš e-mail...",
+      "success": {
+        "title": "E-mail ověřen",
+        "lede": "Váš účet je připravený. Můžete se přihlásit a pustit se do práce.",
+        "cta": "Přejít do portálu",
+        "ctaLoggedOut": "Přejít na přihlášení"
+      },
+      "checkInbox": {
+        "title": "Zkontrolujte poštu",
+        "lede": "Poslali jsme ověřovací odkaz na {{email}}. Klikněte na něj pro aktivaci účtu.",
+        "resend": "Poslat odkaz znovu",
+        "resending": "Odesílám...",
+        "resendConfirmation": "Poslali jsme nový odkaz."
+      },
+      "invalid": {
+        "title": "Odkaz není platný",
+        "noSessionLede": "Tento ověřovací odkaz je neplatný nebo už byl použit.",
+        "backToLogin": "Zpět na přihlášení"
+      },
+      "resendFromExpired": {
+        "prompt": "Pošleme vám nový odkaz na {{email}}.",
+        "button": "Poslat nový odkaz"
+      },
+      "errors": {
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Ověření se nezdařilo. Zkuste to prosím znovu."
+      }
+    },
+    "resetPassword": {
+      "title": "Nastavte si nové heslo",
+      "lede": "Zvolte heslo, které jinde nepoužíváte. Přihlášená zařízení zůstanou přihlášená.",
+      "newPasswordLabel": "Nové heslo",
+      "confirmPasswordLabel": "Heslo znovu",
+      "submit": "Uložit nové heslo",
+      "submitting": "Ukládám...",
+      "note": "Po uložení se přihlaste novým heslem. Odkaz lze použít jen jednou.",
+      "success": {
+        "title": "Heslo bylo změněno",
+        "lede": "Nyní se můžete přihlásit novým heslem.",
+        "cta": "Přejít na přihlášení"
+      },
+      "invalidLink": {
+        "title": "Odkaz není platný",
+        "lede": "Tento odkaz pro obnovení hesla chybí nebo je poškozený.",
+        "cta": "Zpět na přihlášení",
+        "requestNew": "Vyžádat nový odkaz"
+      },
+      "validation": {
+        "passwordInvalid": "Heslo nesplňuje všechny požadavky výše.",
+        "confirmRequired": "Zadejte heslo znovu.",
+        "confirmMismatch": "Hesla se neshodují."
+      },
+      "errors": {
+        "genericFailure": "Tento odkaz pro obnovení hesla už není platný. Vyžádejte si prosím nový.",
+        "passwordField": "Heslo nesplňuje požadavky serveru. Zkuste prosím jiné heslo.",
+        "network": "Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+        "generic": "Uložení se nezdařilo. Zkuste to prosím znovu."
+      }
     },
     "languageSwitch": {
       "label": "Jazyk",
