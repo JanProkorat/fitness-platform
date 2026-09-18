@@ -58,11 +58,11 @@ test('/forgot-password returns the same confirmation copy for an existing and a 
   // Since #1059 the compose harness captures outbound mail in MailHog
   // instead of sending it for real, so any recipient address works here —
   // this no longer needs to be a real, deliverable inbox. Kept as a fixed
-  // address purely so the "exists" case is a stable, reusable account rather
-  // than a fresh one per run; registered here via a direct API call
-  // (idempotent — a 400 "already registered" is fine, we only need the
-  // account to exist).
-  const existingEmail = 'prokoratj@gmail.com';
+  // synthetic address purely so the "exists" case is a stable, reusable
+  // account rather than a fresh one per run; registered here via a direct
+  // API call (idempotent — a 400 "already registered" is fine, we only need
+  // the account to exist).
+  const existingEmail = 'existing-owner@example.com';
   await request.post('/auth/register', {
     data: {
       email: existingEmail,

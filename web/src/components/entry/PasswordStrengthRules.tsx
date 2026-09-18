@@ -32,7 +32,7 @@ export default function PasswordStrengthRules({ password }: PasswordStrengthRule
   ];
 
   return (
-    <ul className="mt-1.5 grid grid-cols-2 gap-x-2.5 gap-y-1">
+    <ul aria-live="polite" className="mt-1.5 grid grid-cols-2 gap-x-2.5 gap-y-1">
       {items.map((item) => (
         <li
           key={item.key}
