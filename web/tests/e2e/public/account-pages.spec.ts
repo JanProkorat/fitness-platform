@@ -55,13 +55,13 @@ test('/forgot-password returns the same confirmation copy for an existing and a 
   // which is queued) — so the UI must show identical confirmation copy for
   // both cases.
   //
-  // IMPORTANT: the compose harness talks to the LIVE Resend service, which
-  // rejects any recipient other than the account owner and 500s the
-  // request. Any "existing account" email other than prokoratj@gmail.com
-  // will fail at the email provider, not in our code — this is not a
-  // backend bug, don't spend time chasing it. Use prokoratj@gmail.com as
-  // the "exists" case, registered here via a direct API call (idempotent —
-  // a 400 "already registered" is fine, we only need the account to exist).
+  // Since #1059 the compose harness captures outbound mail in MailHog
+  // instead of sending it for real, so any recipient address works here —
+  // this no longer needs to be a real, deliverable inbox. Kept as a fixed
+  // address purely so the "exists" case is a stable, reusable account rather
+  // than a fresh one per run; registered here via a direct API call
+  // (idempotent — a 400 "already registered" is fine, we only need the
+  // account to exist).
   const existingEmail = 'prokoratj@gmail.com';
   await request.post('/auth/register', {
     data: {
@@ -82,8 +82,9 @@ test('/forgot-password returns the same confirmation copy for an existing and a 
   await page.goto('/forgot-password');
   await page.getByLabel('Email').fill(existingEmail);
   await page.getByRole('button', { name: 'Send link' }).click();
-  // The "existing" case awaits a real, synchronous call to the live email
-  // provider (see the comment above) — allow more than the default 5s.
+  // The "existing" case still awaits a real, synchronous outbound-mail call
+  // (captured by MailHog rather than actually delivered, per #1059 — see the
+  // comment above) — allow more than the default 5s.
   await expect(page.getByText(sentCopy)).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/forgot-password');
@@ -148,38 +149,57 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
   expect(verifyCalls).toHaveLength(1);
 });
 
-test('a client-side login<->register swap focuses the new form\'s first field, but a cold load never steals focus', async ({
+test('a client-side login<->register swap focuses the swap CONTAINER (never a field), but a cold load never steals focus', async ({
   page,
 }) => {
-  // Regression (#1058 AC 15): LoginPanel's focus effect reset its own
-  // "already focused" guard inside a cleanup function. React runs an
-  // effect's cleanup before EVERY re-run triggered by a dependency change,
-  // not only on unmount, so the guard re-armed on every single swap and the
-  // effect's `.focus()` call was unreachable dead code — confirmed via
-  // `document.activeElement` staying BODY at +0..+2500ms after a real swap.
-  // Fixed with a ref that remembers the last `display.key` the effect
-  // already handled, seeded with the mount's own key (see LoginPanel.tsx's
-  // `focusedKeyRef`). Both halves matter: a cold load must NOT steal focus,
-  // and a real swap MUST move it.
+  // Regression (#1058 AC 15), two rounds:
+  //
+  // Round 1 — LoginPanel's focus effect reset its own "already focused"
+  // guard inside a cleanup function. React runs an effect's cleanup before
+  // EVERY re-run triggered by a dependency change, not only on unmount, so
+  // the guard re-armed on every single swap and the effect's `.focus()`
+  // call was unreachable dead code — confirmed via `document.activeElement`
+  // staying BODY at +0..+2500ms after a real swap.
+  //
+  // Round 2 — the round-1 fix focused the new form's first FIELD directly
+  // (e.g. #entry-firstName). RegisterForm runs React Hook Form in
+  // `mode: 'onTouched'`, so the swapped-in user's very next click ANYWHERE
+  // blurred that never-typed field first, marking it touched, rendering its
+  // "required" error, growing the form, and (via `self-center-safe`)
+  // re-centring the swap row out from under the pointer between mousedown
+  // and mouseup — swallowing that click entirely (see register.spec.ts's
+  // dedicated repro of the swallowed-click bug). Fixed by giving the swap
+  // wrapper itself `tabIndex={-1}` (`data-testid="entry-swap"`) and focusing
+  // THAT instead of any field inside it.
+  //
+  // All three properties matter: a cold load must NOT steal focus, a real
+  // swap MUST move focus onto the container, and no FIELD is ever focused.
+  const swap = page.getByTestId('entry-swap');
+
   await page.goto('/');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(300);
+  await expect(swap).not.toBeFocused();
   await expect(page.getByLabel('Email')).not.toBeFocused();
 
   await page.goto('/register');
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(300);
+  await expect(swap).not.toBeFocused();
   await expect(page.getByLabel('First name')).not.toBeFocused();
 
-  // Real client-side swap back to login — focus MUST move to the first field.
+  // Real client-side swap back to login — focus MUST move to the
+  // container, never into the email field.
   await page.getByRole('link', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByLabel('Email')).toBeFocused();
+  await expect(swap).toBeFocused();
+  await expect(page.getByLabel('Email')).not.toBeFocused();
 
   // And swapping forward to register again — same expectation.
   await page.getByRole('link', { name: 'Create a coach account' }).click();
   await expect(page).toHaveURL(/\/register$/);
-  await expect(page.getByLabel('First name')).toBeFocused();
+  await expect(swap).toBeFocused();
+  await expect(page.getByLabel('First name')).not.toBeFocused();
 });
 
 test('the client signpost renders on the login form only, not on register or forgot-password', async ({

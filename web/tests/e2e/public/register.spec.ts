@@ -92,6 +92,43 @@ test('submit is disabled on an empty form and enables the instant consent is tic
   await expect(submit).toBeEnabled();
 });
 
+test('arriving at /register via a client-side swap does not swallow the first click on the consent checkbox', async ({
+  page,
+}) => {
+  // Regression (#1058 AC 15, round 2): LoginPanel's swap-focus fix used to
+  // focus the register form's empty #entry-firstName field directly.
+  // RegisterForm runs React Hook Form in `mode: 'onTouched'`, so the very
+  // next click ANYWHERE blurred that never-typed field first — marking it
+  // touched, rendering "Enter your first name.", growing the form ~24px,
+  // and (via `self-center-safe`) re-centring the swap row out from under the
+  // pointer between mousedown and mouseup, so the click never reached the
+  // checkbox at all. A cold `page.goto('/register')` never focuses anything,
+  // so it can't exercise this path — this MUST arrive via a real
+  // client-side swap. Fixed by focusing the swap container instead of any
+  // field (see LoginPanel.tsx's `tabIndex={-1}` on `data-testid="entry-swap"`).
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Create a coach account' }).click();
+  await expect(page).toHaveURL(/\/register$/);
+  // LoginPanel keeps the OUTGOING login form mounted until its 120ms
+  // leaving-animation finishes — the URL updates before that commit. Wait
+  // for the register form to actually be in the DOM before measuring it,
+  // or `form.boundingBox()` below measures the departing login form's
+  // (shorter) height instead.
+  await expect(page.getByLabel('First name')).toBeVisible();
+
+  const form = page.locator('form');
+  const before = await form.boundingBox();
+
+  const consent = page.getByRole('checkbox');
+  await consent.click();
+
+  await expect(consent).toBeChecked();
+  await expect(page.getByText('Enter your first name.')).not.toBeVisible();
+
+  const after = await form.boundingBox();
+  expect(after?.height).toBeCloseTo(before?.height ?? 0, 0);
+});
+
 test("a forced click on the disabled submit button does not change the register form's height", async ({
   page,
 }) => {

@@ -111,31 +111,41 @@ export default function LoginPanel() {
     setPhase('idle');
   };
 
-  // Focus moves to the swapped-in form's first field on every real swap,
-  // never on first mount (a fresh page load must not steal focus).
+  // Focus moves to the swapped-in form's CONTAINER on every real swap, never
+  // on first mount (a fresh page load must not steal focus) — and never into
+  // a FIELD inside it. This compares `display.key` against a ref of the last
+  // key the effect already ran for, rather than a boolean "first render"
+  // flag with a re-arming cleanup. React runs an effect's cleanup before
+  // EVERY re-run triggered by a dependency change, not only on unmount — so
+  // a boolean guard reset inside its own cleanup gets re-armed on every
+  // single swap, not just the mount, and the guard branch swallows every
+  // real swap too (`focus()` never reached; confirmed via
+  // `document.activeElement` staying BODY across a `/register` → `/` swap at
+  // +0..+2500ms — see #1058 QA). A ref comparison has no cleanup to re-arm:
+  // it is seeded with the mount's own key, so the mount's invocation sees
+  // "already handled" and skips, while a real swap's invocation sees a
+  // different key, updates the ref, and focuses once.
   //
-  // This compares `display.key` against a ref of the last key the effect
-  // already ran for, rather than a boolean "first render" flag with a
-  // re-arming cleanup. React runs an effect's cleanup before EVERY re-run
-  // triggered by a dependency change, not only on unmount — so a boolean
-  // guard reset inside its own cleanup gets re-armed on every single swap,
-  // not just the mount, and the guard branch swallows every real swap too
-  // (`focus()` never reached; confirmed via `document.activeElement`
-  // staying BODY across a `/register` → `/` swap at +0..+2500ms — see
-  // #1058 QA). A ref comparison has no cleanup to re-arm: it is seeded with
-  // the mount's own key, so the mount's invocation sees "already handled"
-  // and skips, while a real swap's invocation sees a different key, updates
-  // the ref, and focuses once.
+  // The focus target is `swapRef` itself (given `tabIndex={-1}` below), NOT
+  // the form's first input. Focusing straight into the first field was tried
+  // first and had to be reverted: RegisterForm runs React Hook Form in
+  // `mode: 'onTouched'`, so a swap into it left the never-typed
+  // #entry-firstName focused, and the user's very next click anywhere (e.g.
+  // the consent checkbox) blurred it first — marking it touched, rendering
+  // its "required" error, growing the form ~24px, and (via
+  // `self-center-safe`) re-centring the swap row out from under the pointer
+  // between mousedown and mouseup, swallowing that first click entirely.
+  // Landing on the container instead still satisfies the requirement (a
+  // keyboard user's next Tab enters the first field, and reduces
+  // disorientation for screen-reader users, who hear the new form's heading)
+  // without touching, validating, or blurring any field.
   useEffect(() => {
     if (focusedKeyRef.current === display.key) {
       return;
     }
     focusedKeyRef.current = display.key;
 
-    const firstField = swapRef.current?.querySelector<HTMLInputElement>(
-      'input:not([type="checkbox"])'
-    );
-    firstField?.focus({ preventScroll: true });
+    swapRef.current?.focus({ preventScroll: true });
   }, [display.key]);
 
   return (
@@ -145,9 +155,17 @@ export default function LoginPanel() {
       <div
         key={display.key}
         ref={swapRef}
+        data-testid="entry-swap"
+        // -1: a focus SINK for the swap-commit effect above, not a tab stop
+        // of its own — the container is never reached by pressing Tab, only
+        // targeted programmatically. `outline-none` because that
+        // programmatic focus has no visual affordance to show; a sighted
+        // keyboard user's next real Tab press lands on the form's first
+        // field and gets its own visible focus ring there.
+        tabIndex={-1}
         onAnimationEnd={phase === 'leaving' ? handleLeaveAnimationEnd : undefined}
         className={cn(
-          'flex flex-col gap-4.5 self-center-safe',
+          'flex flex-col gap-4.5 self-center-safe outline-none',
           !reducedMotion && (phase === 'leaving' ? 'animate-panel-out' : 'animate-panel-in')
         )}
       >
