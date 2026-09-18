@@ -71,6 +71,7 @@ public class CreateClientTagValidatorTests
     [InlineData("#fff")]
     [InlineData("#gggggg")]
     [InlineData("3b82f6")]
+    [InlineData("#3b82f6\n")]
     public void ColorHex_NotSixDigitHex_FailsWithOutOfRange(string colorHex)
     {
         var req = ValidRequest();

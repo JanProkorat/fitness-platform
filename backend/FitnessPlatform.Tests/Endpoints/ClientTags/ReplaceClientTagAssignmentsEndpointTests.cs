@@ -37,6 +37,28 @@ public class ReplaceClientTagAssignmentsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Replace_ConcurrentIdenticalReplace_NeverReturns500()
+    {
+        // Two overlapping replace calls for the same client/link with the same desired tag set
+        // both compute the same insert for (ClientTagId, ClientProfessionalLinkId) and race on the
+        // unique index. The endpoint treats the collision as "the desired state is already true"
+        // rather than a conflict, so both calls must succeed with 200 — never 500, never 409.
+        var (http, professionalUserId) = await SetupTrainerAsync();
+        var tagId = await CreateTagAsync(http, "VIP");
+        var clientPublicId = await SetupLinkedClientAsync(professionalUserId, true, true);
+        var payload = new { TagIds = new[] { tagId } };
+
+        var firstCall = http.PutAsJsonAsync(
+            $"/trainer/clients/{clientPublicId}/tags", payload, TestContext.Current.CancellationToken);
+        var secondCall = http.PutAsJsonAsync(
+            $"/trainer/clients/{clientPublicId}/tags", payload, TestContext.Current.CancellationToken);
+
+        var responses = await Task.WhenAll(firstCall, secondCall);
+
+        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Replace_EmptyTagIds_ClearsAssignments()
     {
         var (http, professionalUserId) = await SetupTrainerAsync();

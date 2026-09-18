@@ -79,6 +79,21 @@ public class DeleteClientTagEndpointTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
         assignResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
+        // Resolve the link's own row id BEFORE deleting the tag — after deletion, a query that
+        // joins assignments to ClientTags through the now-gone principal returns 0 whether the
+        // cascade actually fired or the rows were simply orphaned. Filtering by
+        // ClientProfessionalLinkId instead means the assertion can actually distinguish the two.
+        long linkId;
+        using (var setupScope = factory.Services.CreateScope())
+        {
+            var setupDb = setupScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientProfile = await setupDb.ClientProfiles.AsNoTracking()
+                .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+            var link = await setupDb.ClientProfessionalLinks.AsNoTracking()
+                .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
+            linkId = link.Id;
+        }
+
         var deleteResponse = await http.DeleteAsync(
             $"/trainer/client-tags/{tagId}", TestContext.Current.CancellationToken);
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -86,9 +101,9 @@ public class DeleteClientTagEndpointTests(FitnessApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var remainingAssignments = await db.ClientTagAssignments.AsNoTracking()
-            .Where(a => a.ClientTag.PublicId == tagId)
+            .Where(a => a.ClientProfessionalLinkId == linkId)
             .CountAsync(TestContext.Current.CancellationToken);
-        remainingAssignments.Should().Be(0);
+        remainingAssignments.Should().Be(0, "ON DELETE CASCADE on client_tag_assignments.client_tag_id must remove the row");
     }
 
     private async Task<HttpClient> SetupTrainerAsync()

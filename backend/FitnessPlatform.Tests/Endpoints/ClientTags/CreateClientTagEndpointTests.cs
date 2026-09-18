@@ -89,6 +89,22 @@ public class CreateClientTagEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Create_ColorHexWithTrailingNewline_Returns400()
+    {
+        // .NET regex `$` matches at end of input OR immediately before a trailing '\n', unlike
+        // JavaScript's hard end-of-string anchor. An 8-character "#3b82f6\n" would have passed a
+        // `$`-anchored pattern and then hit ColorHex's [MaxLength(7)] column at save time,
+        // surfacing as an uncaught DbUpdateException (500) instead of a validation 400.
+        var http = await SetupTrainerAsync();
+
+        var response = await http.PostAsJsonAsync("/trainer/client-tags",
+            new { Name = "VIP", Description = (string?)null, ColorHex = "#3b82f6\n" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Create_EmptyName_Returns400()
     {
         var http = await SetupTrainerAsync();

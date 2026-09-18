@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Features.ClientTags.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace FitnessPlatform.Application.Features.ClientTags.ReplaceClientTagAssignments;
 
@@ -118,7 +119,18 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
         db.ClientTagAssignments.RemoveRange(toRemove);
         db.ClientTagAssignments.AddRange(toAdd);
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            // A concurrent replace for the same client/link raced this one to insert the same
+            // (ClientTagId, ClientProfessionalLinkId) row. PUT here is a replace — idempotent by
+            // design — so the caller's desired end state (this tag assigned to this link) is true
+            // either way. Treated as success rather than a 409: there is no meaningful conflict to
+            // report back, only a race the unique index already resolved correctly.
+        }
 
         await Send.OkAsync(new ReplaceClientTagAssignmentsResponse
         {
@@ -129,4 +141,7 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
                 .ToList(),
         }, ct);
     }
+
+    private static bool IsUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505";
 }

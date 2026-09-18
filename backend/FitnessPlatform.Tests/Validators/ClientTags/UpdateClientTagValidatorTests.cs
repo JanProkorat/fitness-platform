@@ -66,4 +66,18 @@ public class UpdateClientTagValidatorTests
         var result = _validator.TestValidate(req);
         result.ShouldHaveValidationErrorFor(x => x.ColorHex).WithErrorCode(ErrorCodes.OutOfRange);
     }
+
+    [Fact]
+    public void ColorHex_TrailingNewline_FailsWithOutOfRange()
+    {
+        // .NET regex `$` matches at end of input OR immediately before a trailing '\n' — unlike
+        // JavaScript, where `$` is a hard end-of-string anchor. "#3b82f6\n" is 8 characters, which
+        // would silently pass a `$`-anchored pattern and then blow past ColorHex's [MaxLength(7)]
+        // at the database. `\z` is a true end-of-string anchor and rejects it here instead.
+        var req = ValidRequest();
+        req.ColorHex = "#3b82f6\n";
+
+        var result = _validator.TestValidate(req);
+        result.ShouldHaveValidationErrorFor(x => x.ColorHex).WithErrorCode(ErrorCodes.OutOfRange);
+    }
 }

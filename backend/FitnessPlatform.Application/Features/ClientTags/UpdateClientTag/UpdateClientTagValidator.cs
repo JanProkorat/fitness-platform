@@ -27,7 +27,7 @@ public class UpdateClientTagValidator : Validator<UpdateClientTagRequest>
 
         RuleFor(x => x.ColorHex)
             .NotEmpty().WithErrorCode(ErrorCodes.Required)
-            .Matches("^#[0-9a-fA-F]{6}$").WithErrorCode(ErrorCodes.OutOfRange)
+            .Matches(@"^#[0-9a-fA-F]{6}\z").WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage("ColorHex must be a 6-digit hex color, e.g. #3b82f6.");
     }
 }
