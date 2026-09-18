@@ -46,6 +46,23 @@ public class ReplaceClientTagAssignmentsValidatorTests
     }
 
     [Fact]
+    public void TagIds_Null_FailsWithRequiredAndDoesNotThrow()
+    {
+        // Guards the `ids is null ||` prefix on both Must() rules below NotNull(). No CascadeMode
+        // is configured anywhere in this backend (default: Continue), so both Must() delegates
+        // still run against a null TagIds after NotNull() has already failed — an unguarded
+        // `ids.Count` / `ids.Distinct()` would throw a NullReferenceException instead of
+        // producing a clean validation error, turning a well-formed 400 (`{"tagIds": null}`) into
+        // an uncaught 500.
+        var req = ValidRequest();
+        req.TagIds = null!;
+
+        var result = _validator.TestValidate(req);
+
+        result.ShouldHaveValidationErrorFor(x => x.TagIds).WithErrorCode(ErrorCodes.Required);
+    }
+
+    [Fact]
     public void TagIds_ContainsDuplicates_FailsWithOutOfRange()
     {
         var duplicateId = Guid.NewGuid();

@@ -68,6 +68,31 @@ public class DeleteClientTagEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task Delete_ConcurrentDuplicateDelete_BothReturn204()
+    {
+        // Both requests load the same owner-filtered row before either commits, then race on the
+        // DELETE. Whichever loses affects 0 rows — a tracked Remove() expects exactly 1 row
+        // affected and throws DbUpdateConcurrencyException, which the endpoint must catch: the
+        // desired end state (the tag no longer exists) is true regardless of which request
+        // "won", so neither request may surface as a 500.
+        var http = await SetupTrainerAsync();
+        var tagId = await CreateTagAsync(http, "VIP");
+
+        var firstCall = http.DeleteAsync($"/trainer/client-tags/{tagId}", TestContext.Current.CancellationToken);
+        var secondCall = http.DeleteAsync($"/trainer/client-tags/{tagId}", TestContext.Current.CancellationToken);
+
+        var responses = await Task.WhenAll(firstCall, secondCall);
+
+        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.NoContent);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var persisted = await db.ClientTags.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.PublicId == tagId, TestContext.Current.CancellationToken);
+        persisted.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Delete_AssignedTag_RemovesAssignmentToo()
     {
         var (http, professionalUserId) = await SetupTrainerInternalAsync();

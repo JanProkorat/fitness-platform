@@ -124,6 +124,19 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
         // RemoveRange+AddRange staged in one SaveChanges could report a set that a rolled-back
         // transaction never committed; re-reading before every attempt (and once more below to
         // build the response) rules that out.
+        //
+        // Accepted 500 surface: the catch below retries only a unique-index violation on
+        // (ClientTagId, ClientProfessionalLinkId) (SqlState 23505), and only while
+        // attempt < maxAttempts. Two distinct races still escape as an uncaught 500 after the
+        // set-based removal above has already committed: (1) retry exhaustion — a concurrent
+        // replace keeps winning the same insert race across all three attempts; and (2) a
+        // DbUpdateException that is not a unique violation at all, e.g. the owning coach
+        // concurrently deleting one of the requested tags between the ownership read and this
+        // insert, which raises a foreign-key violation (SqlState 23503) instead. Path (2) needs
+        // only a single concurrent request to reach, versus three for path (1). Neither is folded
+        // into the catch filter — a bare DbUpdateException catch would also swallow genuine
+        // faults — so both remain a 500, and both require a second concurrent request from the
+        // same coach to reach at all.
         const int maxAttempts = 3;
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
@@ -165,18 +178,21 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
 
         // Re-query rather than trust the staged `ownedTags`/`toAdd` sets — the response must
         // reflect what is actually persisted, never intent that a retry exhausted or a
-        // still-in-flight concurrent write superseded.
-        var persistedTagIds = await db.ClientTagAssignments
+        // still-in-flight concurrent write superseded. Joining to ClientTags here (instead of
+        // filtering `ownedTags`, which only holds the tags THIS request resolved from its own
+        // TagIds) matters under a divergent concurrent replace on the same link: a tag a
+        // different concurrent request just persisted would not be in `ownedTags` at all, so
+        // filtering that set would under-report a tag the database actually holds.
+        var assignedTags = await db.ClientTagAssignments
             .AsNoTracking()
             .Where(a => a.ClientProfessionalLinkId == link.Id)
-            .Select(a => a.ClientTagId)
+            .Select(a => a.ClientTag)
             .ToListAsync(ct);
 
         await Send.OkAsync(new ReplaceClientTagAssignmentsResponse
         {
             ClientId = clientProfile.PublicId,
-            Tags = ownedTags
-                .Where(t => persistedTagIds.Contains(t.Id))
+            Tags = assignedTags
                 .OrderBy(t => t.Name)
                 .Select(ClientTagDto.FromEntity)
                 .ToList(),
