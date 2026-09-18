@@ -391,4 +391,12 @@ public static class ErrorCodes
 
     /// <summary>A recipient id does not resolve to a client with a live link to the caller.</summary>
     public const string BroadcastRecipientNotLinked = "BROADCAST_RECIPIENT_NOT_LINKED";
+
+    /// <summary>
+    /// A recipient's personalized text (after {{firstName}}/{{fullName}} substitution) exceeds
+    /// the 4000-character storage limit, even though the pre-substitution template passed
+    /// validation. Rejected before any write — checked for every recipient up front, alongside
+    /// the authorization gates.
+    /// </summary>
+    public const string BroadcastMessageTooLongAfterSubstitution = "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION";
 }

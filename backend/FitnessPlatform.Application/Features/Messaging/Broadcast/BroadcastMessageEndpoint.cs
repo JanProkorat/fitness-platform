@@ -46,7 +46,8 @@ public class BroadcastMessageEndpoint(
                              "Auto-unarchives the thread for a recipient who had archived it " +
                              "(not for a former collaboration). No push notification is sent.";
             s.Responses[StatusCodes.Status200OK] = "Message sent; SentCount is the distinct recipient count.";
-            s.Responses[StatusCodes.Status400BadRequest] = "Empty/too-long text, or more than 50 recipients.";
+            s.Responses[StatusCodes.Status400BadRequest] = "Empty/too-long text, more than 50 recipients, or a " +
+                                                             "recipient's substituted text exceeds the storage limit.";
             s.Responses[StatusCodes.Status404NotFound] = "One or more recipients are not a live client of the caller.";
         });
     }
@@ -108,15 +109,34 @@ public class BroadcastMessageEndpoint(
             .Select(user => new { user.Id, user.FirstName, user.LastName })
             .ToListAsync(ct);
 
+        // Substitution can only grow the text, so a template that passed the validator's raw-text
+        // cap can still overflow chat_messages.text's storage limit once expanded per recipient.
+        // Precompute every recipient's substituted text and check the same limit BEFORE the first
+        // write — otherwise a length overflow becomes a partial send instead of a bad request.
+        var personalizedMessages = recipients
+            .Select(recipient => (
+                Recipient: recipient,
+                Text: SubstituteTemplate(
+                    req.Text.Trim(), recipient.FirstName, FormatFullName(recipient.FirstName, recipient.LastName))))
+            .ToList();
+
+        if (personalizedMessages.Any(message => message.Text.Length > BroadcastMessageValidator.MaxTextLength))
+        {
+            await this.SendProblemAsync(
+                400,
+                ErrorCodes.BroadcastMessageTooLongAfterSubstitution,
+                $"One or more recipients' personalized message exceeds {BroadcastMessageValidator.MaxTextLength} " +
+                "characters after {{firstName}}/{{fullName}} substitution.",
+                ct);
+            return;
+        }
+
         // No transaction, no per-recipient result list: every id above was authorized before the
         // first write, so a failure partway through this loop is infrastructure, not a bad
         // request. Earlier recipients keep their message and the caller gets a 500; a client
         // retry re-sends to those recipients again (no idempotency key by design).
-        foreach (var recipient in recipients)
+        foreach (var (recipient, personalizedText) in personalizedMessages)
         {
-            var personalizedText = SubstituteTemplate(
-                req.Text.Trim(), recipient.FirstName, FormatFullName(recipient.FirstName, recipient.LastName));
-
             var conversation = await conversationSeedService.GetOrSeedConversationAsync(
                 professionalUserId,
                 recipient.Id,
@@ -126,10 +146,11 @@ public class BroadcastMessageEndpoint(
                 seedIntoExisting: true,
                 ct);
 
-            // Auto-unarchive for the recipient, mirroring SendMessageEndpoint.cs:81-105 — a
-            // delivered message should always be visible, not stuck in an archived thread. The
-            // coach is always the sender here, so ArchivedByProfessionalAt (the coach's own
-            // archive flag) is never touched. A former collaboration is never resurrected.
+            // Auto-unarchive for the recipient, mirroring SendMessageEndpoint.HandleAsync's
+            // auto-unarchive branch — a delivered message should always be visible, not stuck in
+            // an archived thread. The coach is always the sender here, so ArchivedByProfessionalAt
+            // (the coach's own archive flag) is never touched. A former collaboration is never
+            // resurrected.
             if (!conversation.IsFormer && conversation.ArchivedByClientAt is not null)
             {
                 conversation.ArchivedByClientAt = null;

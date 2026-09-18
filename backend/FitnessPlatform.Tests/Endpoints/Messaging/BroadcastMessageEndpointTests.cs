@@ -325,6 +325,47 @@ public class BroadcastMessageEndpointTests
     }
 
     /// <summary>
+    /// Substitution can only grow the text, so a template that is exactly
+    /// <see cref="BroadcastMessageValidator.MaxTextLength"/> characters (and so passes the
+    /// validator) can still overflow chat_messages.text's storage limit once a recipient's
+    /// {{fullName}} — longer than the placeholder it replaces — is substituted in. The whole
+    /// request must be rejected with a coded 400 before anything is sent, not discovered as a
+    /// mid-loop DbUpdateException after earlier recipients already got their message.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_SubstitutedTextExceedsStorageLimit_Returns400WithoutSending()
+    {
+        var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
+
+        var clientPublicId = Guid.NewGuid();
+        var clientUserId = Guid.NewGuid();
+        var client = EntityBuilder.User.WithId(clientUserId).WithFirstName("Alexandra").WithLastName("Bartosova").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithPublicId(clientPublicId).WithUserId(clientUserId).Build();
+
+        var db = new MockDbBuilder().With(trainer).With(client).With(clientProfile).Build();
+
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            accessibleClients: [(clientUserId, new LinkCapabilities(true, true))]);
+
+        var ep = Factory.Create<BroadcastMessageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
+
+        const string placeholder = "{{fullName}}";
+        var filler = new string('a', BroadcastMessageValidator.MaxTextLength - placeholder.Length);
+        var text = filler + placeholder; // exactly MaxTextLength chars pre-substitution — passes the validator
+
+        await ep.HandleAsync(
+            new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = text },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
+            default, default, default, default!, default, default, default);
+    }
+
+    /// <summary>
     /// A recipient who archived the coach's thread must have it auto-unarchived by a delivered
     /// broadcast — mirrors <c>SendMessageEndpoint.cs:81-105</c>'s single-send behaviour. Only the
     /// client's own archive flag is touched; the coach is always the sender here.
