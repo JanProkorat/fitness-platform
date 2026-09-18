@@ -86,6 +86,34 @@ services:
       timeout: 3s
       retries: 30
 
+  # Catches every email the harness sends instead of delivering it.
+  #
+  # Without this the harness inherits appsettings.Development.json, which
+  # selects the REAL Resend service with a live API token. That has two
+  # consequences, both observed: mail to the Resend account owner's own
+  # address is genuinely delivered to a real inbox, and mail to any other
+  # address is rejected — registration swallows that (RegisterEndpoint
+  # catches and still returns 201) but password reset does not, so
+  # /auth/password/reset returned 500 for every address except one.
+  #
+  # The UI port is published ephemerally, like `api` — a fixed host port
+  # would collide between two branches' stacks. Find it with:
+  #   docker compose -f docker-compose.test.yml port mailhog-test 8025
+  mailhog-test:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025"
+    networks:
+      - qa-net
+    healthcheck:
+      # Probes the web UI rather than the SMTP port: a listening socket only
+      # proves the port is open, while a 200 from the UI proves MailHog is
+      # actually serving. The image ships busybox wget (verified).
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8025/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   seed:
     build:
       context: ./backend
@@ -122,6 +150,12 @@ services:
       MinIO__AccessKey: "minioadmin"
       MinIO__SecretKey: "minio_test_password"
       RateLimiting__Disabled: "true"
+      # Override appsettings.Development.json, which selects the live Resend
+      # service. See the note on the mailhog-test service.
+      Email__Provider: "Smtp"
+      Email__SmtpHost: "mailhog-test"
+      Email__SmtpPort: "1025"
+      Email__FromAddress: "noreply@fitnessplatform.test"
     networks:
       - qa-net
     command: ["--qa-seed"]
@@ -133,6 +167,8 @@ services:
     depends_on:
       seed:
         condition: service_completed_successfully
+      mailhog-test:
+        condition: service_healthy
     ports:
       # Ephemeral host port — docker assigns at `up` time, scripts/test-env
       # surfaces the assigned port via `docker compose port api 8080` and
@@ -175,6 +211,12 @@ services:
       Cors__AllowedOrigins__2: "http://web:5173"
       Cors__AllowedOrigins__3: "http://mobile-web:8081"
       RateLimiting__Disabled: "true"
+      # Override appsettings.Development.json, which selects the live Resend
+      # service. See the note on the mailhog-test service.
+      Email__Provider: "Smtp"
+      Email__SmtpHost: "mailhog-test"
+      Email__SmtpPort: "1025"
+      Email__FromAddress: "noreply@fitnessplatform.test"
       # Apply pending EF migrations on API boot for the e2e harness (#436).
       # Gated on this dedicated flag, NOT ASPNETCORE_ENVIRONMENT — Render runs
       # as Development for TLS reasons and must NOT auto-migrate, so the guard
