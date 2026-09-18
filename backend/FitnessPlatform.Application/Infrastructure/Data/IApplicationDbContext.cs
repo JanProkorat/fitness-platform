@@ -167,6 +167,16 @@ public interface IApplicationDbContext
     DbSet<CoachSubscription> CoachSubscriptions { get; set; }
 
     /// <summary>
+    /// Coach-owned tags used to label clients.
+    /// </summary>
+    DbSet<ClientTag> ClientTags { get; set; }
+
+    /// <summary>
+    /// Assignments of a <see cref="ClientTag"/> to a specific <see cref="ClientProfessionalLink"/>.
+    /// </summary>
+    DbSet<ClientTagAssignment> ClientTagAssignments { get; set; }
+
+    /// <summary>
     /// Saves all changes made in this context to the database.
     /// </summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

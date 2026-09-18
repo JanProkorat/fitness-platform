@@ -384,4 +384,11 @@ public static class ErrorCodes
     /// <see cref="FitnessPlatform.Application.Domain.Services.ProfessionSlotGuard"/>.
     /// </summary>
     public const string ProfessionAlreadyOccupied = "PROFESSION_ALREADY_OCCUPIED";
+
+    // ── Client Tags (#1063) ────────────────────────────────────────────
+    /// <summary>Client tag not found, or belongs to a different owning professional.</summary>
+    public const string ClientTagNotFound = "CLIENT_TAG_NOT_FOUND";
+
+    /// <summary>A tag with this Name already exists for the owning professional.</summary>
+    public const string ClientTagNameAlreadyExists = "CLIENT_TAG_NAME_ALREADY_EXISTS";
 }
