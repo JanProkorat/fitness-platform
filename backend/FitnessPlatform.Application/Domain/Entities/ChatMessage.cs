@@ -9,6 +9,12 @@ namespace FitnessPlatform.Application.Domain.Entities;
 public class ChatMessage : PublicTimestampableEntity
 {
     /// <summary>
+    /// The maximum length of <see cref="Text"/>. Single source of truth for the column's storage
+    /// limit — referenced by <c>BroadcastMessageValidator</c> and its endpoint.
+    /// </summary>
+    public const int MaxTextLength = 4000;
+
+    /// <summary>
     /// The conversation this message belongs to.
     /// </summary>
     public long ConversationId { get; set; }
@@ -21,7 +27,7 @@ public class ChatMessage : PublicTimestampableEntity
     /// <summary>
     /// The message text content.
     /// </summary>
-    [MaxLength(4000)]
+    [MaxLength(MaxTextLength)]
     public string Text { get; set; } = string.Empty;
 
     /// <summary>

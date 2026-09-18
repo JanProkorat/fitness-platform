@@ -326,7 +326,7 @@ public class BroadcastMessageEndpointTests
 
     /// <summary>
     /// Substitution can only grow the text, so a template that is exactly
-    /// <see cref="BroadcastMessageValidator.MaxTextLength"/> characters (and so passes the
+    /// <see cref="ChatMessage.MaxTextLength"/> characters (and so passes the
     /// validator) can still overflow chat_messages.text's storage limit once a recipient's
     /// {{fullName}} — longer than the placeholder it replaces — is substituted in. The whole
     /// request must be rejected with a coded 400 before anything is sent, not discovered as a
@@ -353,7 +353,7 @@ public class BroadcastMessageEndpointTests
             db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         const string placeholder = "{{fullName}}";
-        var filler = new string('a', BroadcastMessageValidator.MaxTextLength - placeholder.Length);
+        var filler = new string('a', ChatMessage.MaxTextLength - placeholder.Length);
         var text = filler + placeholder; // exactly MaxTextLength chars pre-substitution — passes the validator
 
         await ep.HandleAsync(
@@ -412,7 +412,7 @@ public class BroadcastMessageEndpointTests
             db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         const string placeholder = "{{fullName}}";
-        var filler = new string('a', BroadcastMessageValidator.MaxTextLength - placeholder.Length);
+        var filler = new string('a', ChatMessage.MaxTextLength - placeholder.Length);
         var text = filler + placeholder; // exactly MaxTextLength chars pre-substitution — passes the validator
 
         await ep.HandleAsync(

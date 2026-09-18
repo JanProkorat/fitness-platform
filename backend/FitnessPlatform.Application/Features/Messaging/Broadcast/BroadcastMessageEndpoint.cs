@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -120,12 +121,12 @@ public class BroadcastMessageEndpoint(
                     req.Text.Trim(), recipient.FirstName, FormatFullName(recipient.FirstName, recipient.LastName))))
             .ToList();
 
-        if (personalizedMessages.Any(message => message.Text.Length > BroadcastMessageValidator.MaxTextLength))
+        if (personalizedMessages.Any(message => message.Text.Length > ChatMessage.MaxTextLength))
         {
             await this.SendProblemAsync(
                 400,
                 ErrorCodes.BroadcastMessageTooLongAfterSubstitution,
-                $"One or more recipients' personalized message exceeds {BroadcastMessageValidator.MaxTextLength} " +
+                $"One or more recipients' personalized message exceeds {ChatMessage.MaxTextLength} " +
                 "characters after {{firstName}}/{{fullName}} substitution.",
                 ct);
             return;
