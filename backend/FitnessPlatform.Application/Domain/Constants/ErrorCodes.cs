@@ -384,4 +384,11 @@ public static class ErrorCodes
     /// <see cref="FitnessPlatform.Application.Domain.Services.ProfessionSlotGuard"/>.
     /// </summary>
     public const string ProfessionAlreadyOccupied = "PROFESSION_ALREADY_OCCUPIED";
+
+    // ── Messaging Broadcast (#1065) ────────────────────────────────────
+    /// <summary>The recipient list exceeds the maximum allowed size for a single broadcast.</summary>
+    public const string BroadcastRecipientLimitExceeded = "BROADCAST_RECIPIENT_LIMIT_EXCEEDED";
+
+    /// <summary>A recipient id does not resolve to a client with a live link to the caller.</summary>
+    public const string BroadcastRecipientNotLinked = "BROADCAST_RECIPIENT_NOT_LINKED";
 }
