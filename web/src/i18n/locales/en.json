@@ -2275,6 +2275,12 @@
       "appleComingSoon": "Apple sign-in is not available yet.",
       "noAccount": "No account yet?",
       "createAccount": "Create a coach account",
+      "clientNote": {
+        "lead": "Looking for a coach or nutritionist?",
+        "body": "Download our mobile app and join today.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
       "validation": {
         "emailRequired": "Enter your email.",
         "emailInvalid": "Enter a valid email address.",

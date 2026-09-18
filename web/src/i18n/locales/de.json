@@ -2274,6 +2274,12 @@
       "appleComingSoon": "Die Apple-Anmeldung ist noch nicht verfügbar.",
       "noAccount": "Noch kein Konto?",
       "createAccount": "Trainerkonto erstellen",
+      "clientNote": {
+        "lead": "Suchen Sie einen Trainer oder Ernährungsberater?",
+        "body": "Laden Sie unsere mobile App herunter und werden Sie noch heute Mitglied.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
       "validation": {
         "emailRequired": "Geben Sie Ihre E-Mail-Adresse ein.",
         "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",

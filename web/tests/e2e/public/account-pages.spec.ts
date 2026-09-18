@@ -148,6 +148,63 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
   expect(verifyCalls).toHaveLength(1);
 });
 
+test('a client-side login<->register swap focuses the new form\'s first field, but a cold load never steals focus', async ({
+  page,
+}) => {
+  // Regression (#1058 AC 15): LoginPanel's focus effect reset its own
+  // "already focused" guard inside a cleanup function. React runs an
+  // effect's cleanup before EVERY re-run triggered by a dependency change,
+  // not only on unmount, so the guard re-armed on every single swap and the
+  // effect's `.focus()` call was unreachable dead code — confirmed via
+  // `document.activeElement` staying BODY at +0..+2500ms after a real swap.
+  // Fixed with a ref that remembers the last `display.key` the effect
+  // already handled, seeded with the mount's own key (see LoginPanel.tsx's
+  // `focusedKeyRef`). Both halves matter: a cold load must NOT steal focus,
+  // and a real swap MUST move it.
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(300);
+  await expect(page.getByLabel('Email')).not.toBeFocused();
+
+  await page.goto('/register');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(300);
+  await expect(page.getByLabel('First name')).not.toBeFocused();
+
+  // Real client-side swap back to login — focus MUST move to the first field.
+  await page.getByRole('link', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByLabel('Email')).toBeFocused();
+
+  // And swapping forward to register again — same expectation.
+  await page.getByRole('link', { name: 'Create a coach account' }).click();
+  await expect(page).toHaveURL(/\/register$/);
+  await expect(page.getByLabel('First name')).toBeFocused();
+});
+
+test('the client signpost renders on the login form only, not on register or forgot-password', async ({
+  page,
+}) => {
+  // Regression (#1058 AC 8): the "looking for a coach or nutritionist?"
+  // signpost + App Store/Google Play buttons were approved in prototype
+  // review (twice — first to add it, then to restrict it to the login form)
+  // but never built. Asserts both presence on login AND absence on the
+  // other two forms, which was the explicit product decision.
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByText('Looking for a coach or nutritionist?')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'App Store' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Google Play' })).toBeVisible();
+
+  await page.goto('/register');
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByText('Looking for a coach or nutritionist?')).toHaveCount(0);
+
+  await page.goto('/forgot-password');
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByText('Looking for a coach or nutritionist?')).toHaveCount(0);
+});
+
 test('/auth/reset-password with no query params renders the invalid-link state with no password inputs; with token+email it renders the form', async ({
   page,
 }) => {

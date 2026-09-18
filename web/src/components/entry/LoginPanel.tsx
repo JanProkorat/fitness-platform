@@ -71,8 +71,11 @@ export default function LoginPanel() {
     element: outlet,
   }));
   const [phase, setPhase] = useState<SwapPhase>('idle');
-  const isFirstRenderRef = useRef(true);
   const swapRef = useRef<HTMLDivElement>(null);
+  // Tracks which `display.key` the focus effect below has already run for.
+  // Seeded with the initial key so the effect's first invocation (the cold
+  // mount) is recognised as "already handled" rather than as a swap.
+  const focusedKeyRef = useRef(display.key);
 
   // The route changed since the last commit. This adjusts state directly
   // during render — React's documented pattern for "adjusting state when
@@ -111,28 +114,23 @@ export default function LoginPanel() {
   // Focus moves to the swapped-in form's first field on every real swap,
   // never on first mount (a fresh page load must not steal focus).
   //
-  // The guard must reset itself in a CLEANUP function, not just read-then-
-  // flip the ref inline in the effect body. StrictMode double-invokes every
-  // effect at mount time (invoke → cleanup → invoke, dev-only) to surface
-  // exactly this class of bug: the first invocation flips the ref to
-  // false and returns; without a cleanup, the second (StrictMode-simulated)
-  // invocation then sees it already false and proceeds to call .focus() —
-  // on the very first real page load. That silently auto-focused
-  // #entry-firstName on a cold `/register` load, so the first interaction
-  // afterward (even an inert click on a disabled submit button) blurred an
-  // empty required field and surfaced its "required" error out of nowhere
-  // (confirmed via `document.activeElement` in a real browser — see #1058
-  // validation-feedback rework). Restoring the ref in the cleanup cancels
-  // the double-invoke out: mount ends up looking like a single skipped run
-  // in both dev and production, while a later real swap (mount already
-  // settled, no cleanup pending) still focuses the new field once.
+  // This compares `display.key` against a ref of the last key the effect
+  // already ran for, rather than a boolean "first render" flag with a
+  // re-arming cleanup. React runs an effect's cleanup before EVERY re-run
+  // triggered by a dependency change, not only on unmount — so a boolean
+  // guard reset inside its own cleanup gets re-armed on every single swap,
+  // not just the mount, and the guard branch swallows every real swap too
+  // (`focus()` never reached; confirmed via `document.activeElement`
+  // staying BODY across a `/register` → `/` swap at +0..+2500ms — see
+  // #1058 QA). A ref comparison has no cleanup to re-arm: it is seeded with
+  // the mount's own key, so the mount's invocation sees "already handled"
+  // and skips, while a real swap's invocation sees a different key, updates
+  // the ref, and focuses once.
   useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return () => {
-        isFirstRenderRef.current = true;
-      };
+    if (focusedKeyRef.current === display.key) {
+      return;
     }
+    focusedKeyRef.current = display.key;
 
     const firstField = swapRef.current?.querySelector<HTMLInputElement>(
       'input:not([type="checkbox"])'

@@ -2308,6 +2308,12 @@
       "appleComingSoon": "Přihlášení přes Apple zatím není dostupné.",
       "noAccount": "Nemáte účet?",
       "createAccount": "Založit účet trenéra",
+      "clientNote": {
+        "lead": "Hledáte trenéra či poradce?",
+        "body": "Stáhněte si naši mobilní aplikaci a přidejte se ještě dnes.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
       "validation": {
         "emailRequired": "Zadejte e-mail.",
         "emailInvalid": "Zadejte platný e-mail.",

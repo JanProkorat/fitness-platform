@@ -6,13 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { Apple, EyeIcon, EyeOffIcon, PlayCircle } from 'lucide-react';
 import { login as loginRequest } from '@/api/auth';
 import { getMyProfile } from '@/api/profile';
 import type { GetProfileResponse } from '@/api/generated';
 import { useAuthStore } from '@/stores/auth';
 import { getApiErrorMessage } from '@/lib/api-errors';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -240,6 +241,30 @@ export default function LoginForm() {
         <Button type="button" variant="outline" disabled title={t('entry.login.appleComingSoon')}>
           {t('entry.login.apple')}
         </Button>
+      </div>
+
+      {/*
+       * Client signpost (#1058 AC 8) — login form only. Someone already
+       * filling in the register or forgot-password form has shown which
+       * side they are on; repeating this there would just be noise
+       * (explicit product decision, prototype `scratchpad/gf-register.html`
+       * lines ~447-456).
+       */}
+      <div className="flex flex-col gap-2.5 rounded-md border border-border bg-sunken p-3.5">
+        <p className="text-meta text-muted-foreground">
+          <strong className="font-semibold text-ink">{t('entry.login.clientNote.lead')}</strong>{' '}
+          {t('entry.login.clientNote.body')}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <a href="#" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
+            <Apple className="size-3.5" />
+            {t('entry.login.clientNote.appStore')}
+          </a>
+          <a href="#" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}>
+            <PlayCircle className="size-3.5" />
+            {t('entry.login.clientNote.googlePlay')}
+          </a>
+        </div>
       </div>
 
       <p className="text-meta text-muted-foreground">
