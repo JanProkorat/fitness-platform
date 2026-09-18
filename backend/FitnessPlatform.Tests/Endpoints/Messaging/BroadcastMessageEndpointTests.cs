@@ -366,6 +366,71 @@ public class BroadcastMessageEndpointTests
     }
 
     /// <summary>
+    /// The single-recipient overflow test above cannot distinguish a guard that runs before the
+    /// send loop from one that runs at the top of each iteration — with one recipient the two are
+    /// outcome-identical. With an earlier recipient whose substituted text fits and a later one
+    /// that overflows, a per-iteration guard would already have sent to the earlier recipient by
+    /// the time it rejects the later one. Asserting <c>DidNotReceiveWithAnyArgs</c> here is what
+    /// actually pins "authorize everything, including length, before the first write" rather than
+    /// "authorize each recipient right before their own write".
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_LaterRecipientSubstitutedTextExceedsStorageLimit_Returns400WithoutSendingToAnyRecipient()
+    {
+        var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
+
+        var fittingClientPublicId = Guid.NewGuid();
+        var fittingClientUserId = Guid.NewGuid();
+        // A short name: substituted length is comfortably within MaxTextLength.
+        var fittingClient = EntityBuilder.User.WithId(fittingClientUserId).WithFirstName("Al").WithLastName("Bo").Build();
+        var fittingClientProfile = EntityBuilder.ClientProfile
+            .WithPublicId(fittingClientPublicId).WithUserId(fittingClientUserId).Build();
+
+        var overflowingClientPublicId = Guid.NewGuid();
+        var overflowingClientUserId = Guid.NewGuid();
+        // A long name: substituted length overflows MaxTextLength (see the single-recipient test above).
+        var overflowingClient = EntityBuilder.User
+            .WithId(overflowingClientUserId).WithFirstName("Alexandra").WithLastName("Bartosova").Build();
+        var overflowingClientProfile = EntityBuilder.ClientProfile
+            .WithPublicId(overflowingClientPublicId).WithUserId(overflowingClientUserId).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainer).With(fittingClient).With(overflowingClient)
+            .With(fittingClientProfile).With(overflowingClientProfile)
+            .Build();
+
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            accessibleClients:
+            [
+                (fittingClientUserId, new LinkCapabilities(true, true)),
+                (overflowingClientUserId, new LinkCapabilities(true, true)),
+            ]);
+
+        var ep = Factory.Create<BroadcastMessageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
+
+        const string placeholder = "{{fullName}}";
+        var filler = new string('a', BroadcastMessageValidator.MaxTextLength - placeholder.Length);
+        var text = filler + placeholder; // exactly MaxTextLength chars pre-substitution — passes the validator
+
+        await ep.HandleAsync(
+            new BroadcastMessageRequest
+            {
+                // Fitting recipient FIRST, overflowing recipient SECOND — a per-iteration guard
+                // would already have sent to the first before rejecting the second.
+                ClientPublicIds = [fittingClientPublicId, overflowingClientPublicId],
+                Text = text,
+            },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(400);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
+            default, default, default, default!, default, default, default);
+    }
+
+    /// <summary>
     /// A recipient who archived the coach's thread must have it auto-unarchived by a delivered
     /// broadcast — mirrors <c>SendMessageEndpoint.cs:81-105</c>'s single-send behaviour. Only the
     /// client's own archive flag is touched; the coach is always the sender here.
