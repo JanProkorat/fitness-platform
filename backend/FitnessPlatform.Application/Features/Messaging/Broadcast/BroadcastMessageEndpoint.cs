@@ -19,10 +19,15 @@ namespace FitnessPlatform.Application.Features.Messaging.Broadcast;
 /// <param name="conversationSeedService">
 /// Shared get-or-create-conversation + append-message + broadcast "newmessage" seam.
 /// </param>
+/// <param name="notifier">
+/// Raises "conversationunarchived" for a recipient whose thread auto-unarchives, mirroring
+/// <c>SendMessageEndpoint</c>'s single-send path.
+/// </param>
 public class BroadcastMessageEndpoint(
     IApplicationDbContext db,
     IClientLinkAuthorizationService linkAuthorizationService,
-    IConversationSeedService conversationSeedService)
+    IConversationSeedService conversationSeedService,
+    IRealtimeNotifier notifier)
     : Endpoint<BroadcastMessageRequest, BroadcastMessageResponse>
 {
     private static readonly Regex TemplatePlaceholderPattern =
@@ -37,8 +42,9 @@ public class BroadcastMessageEndpoint(
         {
             s.Summary = "Broadcast a message to several clients";
             s.Description = "Sends the same text message to several of the caller's clients at " +
-                             "once, substituting {{firstName}}/{{fullName}} per recipient. No push " +
-                             "notification is sent.";
+                             "once, substituting {{firstName}}/{{fullName}} per recipient. " +
+                             "Auto-unarchives the thread for a recipient who had archived it " +
+                             "(not for a former collaboration). No push notification is sent.";
             s.Responses[StatusCodes.Status200OK] = "Message sent; SentCount is the distinct recipient count.";
             s.Responses[StatusCodes.Status400BadRequest] = "Empty/too-long text, or more than 50 recipients.";
             s.Responses[StatusCodes.Status404NotFound] = "One or more recipients are not a live client of the caller.";
@@ -111,7 +117,7 @@ public class BroadcastMessageEndpoint(
             var personalizedText = SubstituteTemplate(
                 req.Text.Trim(), recipient.FirstName, FormatFullName(recipient.FirstName, recipient.LastName));
 
-            await conversationSeedService.GetOrSeedConversationAsync(
+            var conversation = await conversationSeedService.GetOrSeedConversationAsync(
                 professionalUserId,
                 recipient.Id,
                 professionalUserId,
@@ -119,6 +125,22 @@ public class BroadcastMessageEndpoint(
                 personalizedText,
                 seedIntoExisting: true,
                 ct);
+
+            // Auto-unarchive for the recipient, mirroring SendMessageEndpoint.cs:81-105 — a
+            // delivered message should always be visible, not stuck in an archived thread. The
+            // coach is always the sender here, so ArchivedByProfessionalAt (the coach's own
+            // archive flag) is never touched. A former collaboration is never resurrected.
+            if (!conversation.IsFormer && conversation.ArchivedByClientAt is not null)
+            {
+                conversation.ArchivedByClientAt = null;
+                await db.SaveChangesAsync(ct);
+
+                await notifier.NotifyAsync(recipient.Id, "conversationunarchived", new
+                {
+                    conversationId = conversation.PublicId,
+                    isFormer = false,
+                }, ct);
+            }
         }
 
         await Send.OkAsync(new BroadcastMessageResponse { SentCount = recipients.Count }, ct);

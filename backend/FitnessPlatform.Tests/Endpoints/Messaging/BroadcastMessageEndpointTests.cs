@@ -18,6 +18,31 @@ public class BroadcastMessageEndpointTests
 {
     private readonly Guid _trainerId = Guid.NewGuid();
     private readonly IConversationSeedService _conversationSeedService = Substitute.For<IConversationSeedService>();
+    private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
+
+    /// <summary>
+    /// Builds the <see cref="Conversation"/> the mocked <see cref="IConversationSeedService"/>
+    /// hands back. Defaults to "not archived, not former" so tests whose subject is something
+    /// else (dedup, template substitution, SentCount) don't accidentally exercise the
+    /// auto-unarchive branch.
+    /// </summary>
+    private static Conversation CreateConversation(bool isFormer = false, DateTime? archivedByClientAt = null) => new()
+    {
+        PublicId = Guid.NewGuid(),
+        IsFormer = isFormer,
+        ArchivedByClientAt = archivedByClientAt,
+    };
+
+    /// <summary>
+    /// Stubs <see cref="IConversationSeedService.GetOrSeedConversationAsync"/> to return
+    /// <paramref name="conversation"/> for any call — every loop-reaching test needs this since
+    /// the endpoint now reads the returned conversation's archive state.
+    /// </summary>
+    private void StubConversationSeed(Conversation conversation) =>
+        _conversationSeedService.GetOrSeedConversationAsync(
+                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string?>(),
+                Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(conversation);
 
     // ── validator ────────────────────────────────────────────────────────
 
@@ -84,7 +109,7 @@ public class BroadcastMessageEndpointTests
 
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _conversationSeedService);
+            db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [Guid.NewGuid()], Text = "Hi" },
@@ -103,7 +128,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _conversationSeedService);
+            db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [Guid.NewGuid()], Text = "Hi" },
@@ -138,7 +163,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, linkAuthorizationService, _conversationSeedService);
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = "Hi" },
@@ -152,6 +177,8 @@ public class BroadcastMessageEndpointTests
     [Fact]
     public async Task HandleAsync_ValidRecipients_ReturnsDistinctSentCountAndBroadcastsToEach()
     {
+        StubConversationSeed(CreateConversation());
+
         var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
 
         var clientAPublicId = Guid.NewGuid();
@@ -179,7 +206,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, linkAuthorizationService, _conversationSeedService);
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [clientAPublicId, clientBPublicId], Text = "Hi {{firstName}}" },
@@ -197,6 +224,8 @@ public class BroadcastMessageEndpointTests
     [Fact]
     public async Task HandleAsync_DuplicateRecipientIds_DeduplicatesAndSendsOnce()
     {
+        StubConversationSeed(CreateConversation());
+
         var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
 
         var clientPublicId = Guid.NewGuid();
@@ -212,7 +241,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, linkAuthorizationService, _conversationSeedService);
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [clientPublicId, clientPublicId], Text = "Hi" },
@@ -231,6 +260,8 @@ public class BroadcastMessageEndpointTests
     [Fact]
     public async Task HandleAsync_GrantsNothingLink_StillSendsMessage()
     {
+        StubConversationSeed(CreateConversation());
+
         var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
 
         var clientPublicId = Guid.NewGuid();
@@ -246,7 +277,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, linkAuthorizationService, _conversationSeedService);
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = "Hi" },
@@ -265,6 +296,8 @@ public class BroadcastMessageEndpointTests
     [Fact]
     public async Task HandleAsync_RecipientWithEmptyName_SubstitutesWithoutThrowing()
     {
+        StubConversationSeed(CreateConversation());
+
         var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
 
         var clientPublicId = Guid.NewGuid();
@@ -280,7 +313,7 @@ public class BroadcastMessageEndpointTests
         var ep = Factory.Create<BroadcastMessageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, linkAuthorizationService, _conversationSeedService);
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
 
         await ep.HandleAsync(
             new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = "Hi {{firstName}} ({{fullName}})" },
@@ -289,5 +322,84 @@ public class BroadcastMessageEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
             _trainerId, clientUserId, _trainerId, "Coach Carl", "Hi  ()", seedIntoExisting: true, Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A recipient who archived the coach's thread must have it auto-unarchived by a delivered
+    /// broadcast — mirrors <c>SendMessageEndpoint.cs:81-105</c>'s single-send behaviour. Only the
+    /// client's own archive flag is touched; the coach is always the sender here.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_RecipientArchivedThread_ClearsFlagAndEmitsUnarchivedEvent()
+    {
+        var conversation = CreateConversation(isFormer: false, archivedByClientAt: DateTime.UtcNow.AddDays(-3));
+        StubConversationSeed(conversation);
+
+        var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
+
+        var clientPublicId = Guid.NewGuid();
+        var clientUserId = Guid.NewGuid();
+        var client = EntityBuilder.User.WithId(clientUserId).WithFirstName("Alice").WithLastName("Anders").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithPublicId(clientPublicId).WithUserId(clientUserId).Build();
+
+        var db = new MockDbBuilder().With(trainer).With(client).With(clientProfile).Build();
+
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            accessibleClients: [(clientUserId, new LinkCapabilities(true, true))]);
+
+        var ep = Factory.Create<BroadcastMessageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
+
+        await ep.HandleAsync(
+            new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = "Hi" },
+            TestContext.Current.CancellationToken);
+
+        conversation.ArchivedByClientAt.Should().BeNull();
+        await _realtimeNotifier.Received(1).NotifyAsync(
+            clientUserId,
+            "conversationunarchived",
+            Arg.Is<object>(payload =>
+                payload.ToString()!.Contains(conversation.PublicId.ToString()) &&
+                payload.ToString()!.Contains("isFormer = False")),
+            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A former collaboration is never resurrected by a broadcast, even if the client had
+    /// archived the thread — matches the guard <c>SendMessageEndpoint</c> already applies.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_RecipientFormerCollaborationArchivedThread_LeftAlone()
+    {
+        var archivedAt = DateTime.UtcNow.AddDays(-30);
+        var conversation = CreateConversation(isFormer: true, archivedByClientAt: archivedAt);
+        StubConversationSeed(conversation);
+
+        var trainer = EntityBuilder.User.WithId(_trainerId).WithFirstName("Coach").WithLastName("Carl").Build();
+
+        var clientPublicId = Guid.NewGuid();
+        var clientUserId = Guid.NewGuid();
+        var client = EntityBuilder.User.WithId(clientUserId).WithFirstName("Alice").WithLastName("Anders").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithPublicId(clientPublicId).WithUserId(clientUserId).Build();
+
+        var db = new MockDbBuilder().With(trainer).With(client).With(clientProfile).Build();
+
+        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService(
+            accessibleClients: [(clientUserId, new LinkCapabilities(true, true))]);
+
+        var ep = Factory.Create<BroadcastMessageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, linkAuthorizationService, _conversationSeedService, _realtimeNotifier);
+
+        await ep.HandleAsync(
+            new BroadcastMessageRequest { ClientPublicIds = [clientPublicId], Text = "Hi" },
+            TestContext.Current.CancellationToken);
+
+        conversation.ArchivedByClientAt.Should().Be(archivedAt);
+        await _realtimeNotifier.DidNotReceiveWithAnyArgs().NotifyAsync(
+            default, default!, default!, TestContext.Current.CancellationToken);
     }
 }
