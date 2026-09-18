@@ -394,7 +394,7 @@ public static class ErrorCodes
 
     /// <summary>
     /// A recipient's personalized text (after {{firstName}}/{{fullName}} substitution) exceeds
-    /// the 4000-character storage limit, even though the pre-substitution template passed
+    /// the message column's storage limit, even though the pre-substitution template passed
     /// validation. Rejected before any write — checked for every recipient up front, alongside
     /// the authorization gates.
     /// </summary>

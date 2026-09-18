@@ -95,7 +95,11 @@ public class BroadcastMessageEndpointTests
     public void Validator_TextTooLong_HasValidationError()
     {
         var result = new BroadcastMessageValidator().TestValidate(
-            new BroadcastMessageRequest { ClientPublicIds = [Guid.NewGuid()], Text = new string('a', 4001) });
+            new BroadcastMessageRequest
+            {
+                ClientPublicIds = [Guid.NewGuid()],
+                Text = new string('a', ChatMessage.MaxTextLength + 1),
+            });
 
         result.ShouldHaveValidationErrorFor(x => x.Text);
     }
@@ -418,8 +422,12 @@ public class BroadcastMessageEndpointTests
         await ep.HandleAsync(
             new BroadcastMessageRequest
             {
-                // Fitting recipient FIRST, overflowing recipient SECOND — a per-iteration guard
-                // would already have sent to the first before rejecting the second.
+                // A per-iteration guard would already have sent to the fitting recipient before
+                // reaching the overflowing one, so DidNotReceiveWithAnyArgs below fails unless
+                // the check runs before the loop. The send order that makes this discriminating
+                // comes from the db.Users read, i.e. from MockDbBuilder's .With() insertion
+                // order above — fitting client added first — not from this array's order.
+                // Reorder those .With() calls and this test silently becomes a tautology.
                 ClientPublicIds = [fittingClientPublicId, overflowingClientPublicId],
                 Text = text,
             },
