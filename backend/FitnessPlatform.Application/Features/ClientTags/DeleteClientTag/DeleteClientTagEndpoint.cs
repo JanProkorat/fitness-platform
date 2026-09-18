@@ -63,7 +63,19 @@ public class DeleteClientTagEndpoint(IApplicationDbContext db) : Endpoint<Delete
         }
 
         db.ClientTags.Remove(tag);
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // A concurrent delete for the same tag already removed the row between our
+            // owner-filtered load above and this save (the DELETE affected 0 rows). The desired
+            // end state — the tag no longer existing — is true either way, so this is not an
+            // error to report, matching how Create/Update/Replace in this slice treat their own
+            // races as already-achieved rather than a conflict.
+        }
 
         await Send.NoContentAsync(ct);
     }

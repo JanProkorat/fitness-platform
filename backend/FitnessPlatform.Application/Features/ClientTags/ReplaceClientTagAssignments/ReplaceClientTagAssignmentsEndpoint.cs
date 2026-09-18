@@ -104,38 +104,79 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var existingAssignments = await db.ClientTagAssignments
-            .Where(a => a.ClientProfessionalLinkId == link.Id)
-            .ToListAsync(ct);
-
         var desiredTagIds = ownedTags.Select(t => t.Id).ToHashSet();
-        var existingTagIds = existingAssignments.Select(a => a.ClientTagId).ToHashSet();
 
-        var toRemove = existingAssignments.Where(a => !desiredTagIds.Contains(a.ClientTagId)).ToList();
-        var toAdd = desiredTagIds
-            .Where(tagId => !existingTagIds.Contains(tagId))
-            .Select(tagId => new ClientTagAssignment { ClientTagId = tagId, ClientProfessionalLinkId = link.Id });
+        // Removals are a set-based bulk delete, not a tracked Remove()+SaveChanges. That matters
+        // for concurrency: a tracked Remove() expects the DELETE to affect exactly one row and
+        // throws DbUpdateConcurrencyException if a concurrent replace already removed the same
+        // row (0 rows affected). ExecuteDeleteAsync has no such expectation — a concurrent
+        // duplicate delete just removes 0 more rows and never throws. This also means the
+        // removal step needs no retry: it is already idempotent.
+        await db.ClientTagAssignments
+            .Where(a => a.ClientProfessionalLinkId == link.Id && !desiredTagIds.Contains(a.ClientTagId))
+            .ExecuteDeleteAsync(ct);
 
-        db.ClientTagAssignments.RemoveRange(toRemove);
-        db.ClientTagAssignments.AddRange(toAdd);
+        // Insertion is the only step that can race with a concurrent replace targeting an
+        // overlapping tag set (both insert the same (ClientTagId, ClientProfessionalLinkId) row).
+        // Each attempt re-reads the currently-persisted tag ids for this link — never a
+        // pre-collision snapshot — so a retry only adds rows nobody has persisted yet, and a
+        // caller can never receive success for a set that the database does not actually hold:
+        // RemoveRange+AddRange staged in one SaveChanges could report a set that a rolled-back
+        // transaction never committed; re-reading before every attempt (and once more below to
+        // build the response) rules that out.
+        const int maxAttempts = 3;
 
-        try
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await db.SaveChangesAsync(ct);
+            var currentTagIds = await db.ClientTagAssignments
+                .AsNoTracking()
+                .Where(a => a.ClientProfessionalLinkId == link.Id)
+                .Select(a => a.ClientTagId)
+                .ToListAsync(ct);
+
+            var toAdd = desiredTagIds
+                .Except(currentTagIds)
+                .Select(tagId => new ClientTagAssignment { ClientTagId = tagId, ClientProfessionalLinkId = link.Id })
+                .ToList();
+
+            if (toAdd.Count == 0)
+            {
+                break;
+            }
+
+            db.ClientTagAssignments.AddRange(toAdd);
+
+            try
+            {
+                await db.SaveChangesAsync(ct);
+                break;
+            }
+            catch (DbUpdateException ex) when (attempt < maxAttempts && IsUniqueViolation(ex))
+            {
+                // A concurrent replace inserted one of the same rows first. This attempt's
+                // failed inserts are still tracked as Added — left alone, they would poison
+                // every subsequent SaveChangesAsync with the same doomed insert. Remove() on an
+                // entity that was never actually saved (still Added, not yet in the database)
+                // detaches it rather than issuing a DELETE, which is exactly the cleanup needed
+                // before looping back to re-read + retry with the now-current state.
+                db.ClientTagAssignments.RemoveRange(toAdd);
+            }
         }
-        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
-        {
-            // A concurrent replace for the same client/link raced this one to insert the same
-            // (ClientTagId, ClientProfessionalLinkId) row. PUT here is a replace — idempotent by
-            // design — so the caller's desired end state (this tag assigned to this link) is true
-            // either way. Treated as success rather than a 409: there is no meaningful conflict to
-            // report back, only a race the unique index already resolved correctly.
-        }
+
+        // Re-query rather than trust the staged `ownedTags`/`toAdd` sets — the response must
+        // reflect what is actually persisted, never intent that a retry exhausted or a
+        // still-in-flight concurrent write superseded.
+        var persistedTagIds = await db.ClientTagAssignments
+            .AsNoTracking()
+            .Where(a => a.ClientProfessionalLinkId == link.Id)
+            .Select(a => a.ClientTagId)
+            .ToListAsync(ct);
 
         await Send.OkAsync(new ReplaceClientTagAssignmentsResponse
         {
             ClientId = clientProfile.PublicId,
             Tags = ownedTags
+                .Where(t => persistedTagIds.Contains(t.Id))
                 .OrderBy(t => t.Name)
                 .Select(ClientTagDto.FromEntity)
                 .ToList(),

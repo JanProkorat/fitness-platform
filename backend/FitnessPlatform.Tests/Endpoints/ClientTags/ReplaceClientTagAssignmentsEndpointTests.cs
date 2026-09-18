@@ -37,16 +37,28 @@ public class ReplaceClientTagAssignmentsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Replace_ConcurrentIdenticalReplace_NeverReturns500()
+    public async Task Replace_ConcurrentIdenticalReplace_NeverReturns500AndNeverReportsRolledBackRemovals()
     {
-        // Two overlapping replace calls for the same client/link with the same desired tag set
-        // both compute the same insert for (ClientTagId, ClientProfessionalLinkId) and race on the
-        // unique index. The endpoint treats the collision as "the desired state is already true"
-        // rather than a conflict, so both calls must succeed with 200 — never 500, never 409.
+        // Starts from a NON-empty assignment set ({Y}) so the removal half of the replace is
+        // actually exercised by the race, not just the insert half — a set that starts empty
+        // (as an earlier version of this test did) can never observe a removal that a failed
+        // insert rolled back, because there is nothing to roll back. Both concurrent calls
+        // replace {Y} with {X}: each removes Y and tries to insert X, and exactly one of the two
+        // inserts collides on the unique index. The regression this guards is a response that
+        // reports staged intent ("200 {tags:[X]}") while the actually-persisted row set still
+        // contains Y because the insert's failure rolled back the same transaction's removal of
+        // Y. Every response must report — and the database must actually hold — exactly {X}.
         var (http, professionalUserId) = await SetupTrainerAsync();
-        var tagId = await CreateTagAsync(http, "VIP");
+        var tagX = await CreateTagAsync(http, "X");
+        var tagY = await CreateTagAsync(http, "Y");
         var clientPublicId = await SetupLinkedClientAsync(professionalUserId, true, true);
-        var payload = new { TagIds = new[] { tagId } };
+
+        var seed = await http.PutAsJsonAsync($"/trainer/clients/{clientPublicId}/tags",
+            new { TagIds = new[] { tagY } },
+            TestContext.Current.CancellationToken);
+        seed.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var payload = new { TagIds = new[] { tagX } };
 
         var firstCall = http.PutAsJsonAsync(
             $"/trainer/clients/{clientPublicId}/tags", payload, TestContext.Current.CancellationToken);
@@ -56,6 +68,28 @@ public class ReplaceClientTagAssignmentsEndpointTests(FitnessApiFactory factory)
         var responses = await Task.WhenAll(firstCall, secondCall);
 
         responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.OK);
+
+        foreach (var response in responses)
+        {
+            var body = await response.Content.ReadFromJsonAsync<ReplaceResponseDto>(
+                JsonOptions, TestContext.Current.CancellationToken);
+            body!.Tags.Select(t => t.TagId).Should().BeEquivalentTo([tagX],
+                "the response must reflect persisted state, never a pre-collision snapshot");
+        }
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles.AsNoTracking()
+            .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+        var link = await db.ClientProfessionalLinks.AsNoTracking()
+            .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
+        var persistedTagPublicIds = await db.ClientTagAssignments.AsNoTracking()
+            .Where(a => a.ClientProfessionalLinkId == link.Id)
+            .Join(db.ClientTags, a => a.ClientTagId, t => t.Id, (a, t) => t.PublicId)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        persistedTagPublicIds.Should().BeEquivalentTo([tagX],
+            "Y's removal must not be rolled back by a losing concurrent insert of X");
     }
 
     [Fact]

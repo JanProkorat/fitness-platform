@@ -21,12 +21,16 @@ public class ReplaceClientTagAssignmentsValidator : Validator<ReplaceClientTagAs
         RuleFor(x => x.ClientId)
             .NotEmpty().WithErrorCode(ErrorCodes.Required);
 
+        // No CascadeMode is configured anywhere in this backend (default: Continue), so both
+        // Must() rules below still run after NotNull() fails — each one guards `ids is null`
+        // itself rather than relying on cascade-stop to short-circuit a null body before it
+        // reaches them.
         RuleFor(x => x.TagIds)
             .NotNull().WithErrorCode(ErrorCodes.Required)
-            .Must(ids => ids.Count <= MaxTagsPerClient)
+            .Must(ids => ids is null || ids.Count <= MaxTagsPerClient)
             .WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage($"A client may have at most {MaxTagsPerClient} tags assigned.")
-            .Must(ids => ids.Distinct().Count() == ids.Count)
+            .Must(ids => ids is null || ids.Distinct().Count() == ids.Count)
             .WithErrorCode(ErrorCodes.OutOfRange)
             .WithMessage("TagIds must not contain duplicates.");
     }
