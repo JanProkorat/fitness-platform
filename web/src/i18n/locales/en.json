@@ -2275,6 +2275,12 @@
       "appleComingSoon": "Apple sign-in is not available yet.",
       "noAccount": "No account yet?",
       "createAccount": "Create a coach account",
+      "clientNote": {
+        "lead": "Looking for a coach or nutritionist?",
+        "body": "Download our mobile app and join today.",
+        "appStore": "App Store",
+        "googlePlay": "Google Play"
+      },
       "validation": {
         "emailRequired": "Enter your email.",
         "emailInvalid": "Enter a valid email address.",
@@ -2284,6 +2290,151 @@
         "network": "Could not reach the server. Check your connection and try again.",
         "profileLoadFailed": "You're signed in, but loading your profile failed. Please try again.",
         "generic": "Sign in failed. Please try again."
+      }
+    },
+    "panel": {
+      "headline": "Join our community of coaches and nutritionists"
+    },
+    "register": {
+      "title": "Create account",
+      "lede": "Fill in your details and confirm your email. Takes a minute.",
+      "roleLabel": "What do you do?",
+      "roleHint": "You can pick both. Roles can be changed later in settings.",
+      "roles": {
+        "trainer": {
+          "name": "Trainer",
+          "description": "Training plans, exercises, workout logging."
+        },
+        "nutritionist": {
+          "name": "Nutritionist",
+          "description": "Meal plans, recipes, ingredients, macros."
+        }
+      },
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "Jan",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "Novak",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "passwordLabel": "Password",
+      "passwordRules": {
+        "length": "At least 8 characters",
+        "uppercase": "Uppercase letter",
+        "lowercase": "Lowercase letter",
+        "digit": "Digit"
+      },
+      "consentLabel": "I agree to the processing of my personal data and to the terms of use.",
+      "submit": "Create account",
+      "submitting": "Creating account...",
+      "submitHint": "Select a role and fill in every field.",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "validation": {
+        "roleRequired": "Select at least one role.",
+        "firstNameRequired": "Enter your first name.",
+        "lastNameRequired": "Enter your last name.",
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email address.",
+        "passwordInvalid": "Password does not meet all the requirements above.",
+        "consentRequired": "You must agree to the processing of your personal data to create an account."
+      },
+      "errors": {
+        "duplicateEmail": "This email is already registered.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Could not complete registration. Please try again."
+      },
+      "sent": {
+        "title": "Check your email",
+        "lede": "We sent a verification link to {{email}}. The link is valid for 24 hours.",
+        "note": "Didn't get it? Check your spam folder. If it's not there, we'll resend it.",
+        "resend": "Resend link",
+        "resending": "Sending...",
+        "resendConfirmation": "If needed, we've sent a new link.",
+        "wrongEmail": "Wrong address?",
+        "changeEmail": "Change email"
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "lede": "Enter the email you sign in with.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "coach@example.com",
+      "submit": "Send link",
+      "submitting": "Sending...",
+      "note": "We reply the same way whether or not an account exists — so we never reveal which emails are registered.",
+      "backToLogin": "Back to sign in",
+      "validation": {
+        "emailRequired": "Enter your email.",
+        "emailInvalid": "Enter a valid email."
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Sending failed. Please try again."
+      },
+      "sent": {
+        "title": "Check your email",
+        "lede": "If an account exists for this address, we've sent it a password reset link.",
+        "tryAnother": "Use a different address"
+      }
+    },
+    "verifyEmail": {
+      "verifying": "Verifying your email...",
+      "success": {
+        "title": "Email verified",
+        "lede": "Your account is ready. You can sign in and get to work.",
+        "cta": "Go to the portal",
+        "ctaLoggedOut": "Go to sign in"
+      },
+      "checkInbox": {
+        "title": "Check your email",
+        "lede": "We sent a verification link to {{email}}. Click it to activate your account.",
+        "resend": "Resend link",
+        "resending": "Sending...",
+        "resendConfirmation": "We sent a new link."
+      },
+      "invalid": {
+        "title": "This link isn't valid",
+        "noSessionLede": "This verification link is invalid or has already been used.",
+        "backToLogin": "Back to sign in"
+      },
+      "resendFromExpired": {
+        "prompt": "We'll send a new link to {{email}}.",
+        "button": "Send new link"
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Verification failed. Please try again."
+      }
+    },
+    "resetPassword": {
+      "title": "Set a new password",
+      "lede": "Choose a password you don't use elsewhere. Signed-in devices stay signed in.",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm password",
+      "submit": "Save new password",
+      "submitting": "Saving...",
+      "note": "Sign in with your new password afterwards. The link can only be used once.",
+      "success": {
+        "title": "Password changed",
+        "lede": "You can now sign in with your new password.",
+        "cta": "Go to sign in"
+      },
+      "invalidLink": {
+        "title": "This link isn't valid",
+        "lede": "This password reset link is missing or malformed.",
+        "cta": "Back to sign in",
+        "requestNew": "Request a new link"
+      },
+      "validation": {
+        "passwordInvalid": "Password doesn't meet all the requirements above.",
+        "confirmRequired": "Enter your password again.",
+        "confirmMismatch": "Passwords don't match."
+      },
+      "errors": {
+        "genericFailure": "This password reset link is no longer valid. Please request a new one.",
+        "passwordField": "Password doesn't meet the server's requirements. Please try a different one.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Saving failed. Please try again."
       }
     },
     "languageSwitch": {

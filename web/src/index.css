@@ -49,6 +49,13 @@
   --gf-green-soft: #dcfce7; /* soft green wash — hero backdrop, tag pills */
   --gf-green-ink: #14532d; /* text color on top of --gf-green-soft */
 
+  /* ---- Added for the account-flow standalone pages (#1058 phase 3) —
+     from scratchpad/gf-register.html. Pairs with --gf-danger above the
+     same way --gf-green-soft pairs with --gf-green: a soft wash for the
+     warn/invalid status-icon background, with --gf-danger itself (already
+     aliased to --destructive) used as the icon's ink color on top of it. ---- */
+  --gf-danger-soft: #fee2e2; /* soft red wash — warn/invalid status icon backdrop */
+
   --gf-radius-sm: 6px; /* nav items */
   --gf-radius-md: 8px; /* inputs and buttons */
   --gf-radius-lg: 14px; /* cards, collage cells, marketing panels (#1055) */
@@ -148,6 +155,7 @@
   --color-sunken: var(--gf-sunken);
   --color-green-soft: var(--gf-green-soft);
   --color-green-ink: var(--gf-green-ink);
+  --color-danger-soft: var(--gf-danger-soft);
 
   --radius-sm: var(--gf-radius-sm);
   --radius-md: var(--gf-radius-md);
@@ -188,6 +196,36 @@
 
   /* Literal, not a var() alias — see the comment on --gf-panel-width above. */
   --breakpoint-panel: 960px;
+
+  /* ---- Entry panel cross-fade (#1058) ----
+     Tailwind v4 turns a `--animate-*` theme token into the `animate-*`
+     utility (`animate-panel-in` / `animate-panel-out`); the keyframes
+     themselves are declared as a plain top-level @keyframes rule below,
+     same as any other CSS custom property that references one. */
+  --animate-panel-in: panel-in 200ms ease-out;
+  --animate-panel-out: panel-out 120ms ease-in forwards;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes panel-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 @layer base {

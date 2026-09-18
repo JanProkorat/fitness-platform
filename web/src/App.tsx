@@ -6,7 +6,11 @@ import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import AppShell from '@/components/layout/AppShell';
 import EntryPage from '@/pages/EntryPage';
+import LoginForm from '@/components/entry/LoginForm';
+import RegisterForm from '@/components/entry/RegisterForm';
+import ForgotPasswordForm from '@/components/entry/ForgotPasswordForm';
 import VerifyEmailPage from '@/pages/VerifyEmailPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
 import InboxPage from '@/pages/InboxPage';
@@ -34,11 +38,24 @@ export default function App() {
            * Public routes — MUST stay outside ProtectedRoute. ProtectedRoute
            * redirects an unauthenticated visitor to "/", an unconfirmed user
            * to "/verify-email", and a client-only user to "/download-app";
-           * mounting any of the three inside ProtectedRoute re-enters the
-           * same guard and infinite-loops instead of rendering.
+           * mounting any of these inside ProtectedRoute re-enters the same
+           * guard and infinite-loops instead of rendering.
+           *
+           * EntryPage is a pathless layout route (#1058): it renders the
+           * marketing column plus LoginPanel's shell once, and LoginPanel's
+           * swap area (via useOutlet(), see that component) renders whichever
+           * of the three child routes below is active. Do NOT collapse these
+           * into a single `path="/:authMode?"` route — an optional param
+           * segment swallows every unmatched path ahead of the catch-all
+           * NotFound route.
            */}
-          <Route path="/" element={<EntryPage />} />
+          <Route element={<EntryPage />}>
+            <Route path="/" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+          </Route>
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
           <Route path="/download-app" element={<DownloadAppPage />} />
 
           <Route element={<ProtectedRoute />}>
