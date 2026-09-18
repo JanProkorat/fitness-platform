@@ -121,19 +121,18 @@ test('/verify-email?token=<bogus> calls /auth/verify-email exactly once', async 
   // never-reset `verifyStartedRef` latch (unlike LoginPanel's focus-guard
   // ref, which resets per navigation because it must fire once per swap).
   //
-  // KNOWN BUG (pre-existing, phase 3, not introduced by this spec — see
-  // #1058 phase 4 handoff): under the Vite DEV server (StrictMode active,
-  // used by this whole Playwright suite via `dev:e2e`), the mutation
-  // genuinely settles to its error state — confirmed via a direct
-  // `onSettled` probe that fired with the correct AxiosError — but the
-  // component is never re-rendered afterward, so the page hangs forever on
-  // "Verifying your email...". Root cause not yet fixed: this phase's scope
-  // is tests + i18n only. `test.fixme()` keeps the correct, intended
-  // assertions in the repo (so removing the fixme is the entire fix-
-  // verification step) without red-blocking CI on a bug this phase was not
-  // authorized to touch. The "exactly once" network-call guard below is the
-  // part of this AC already proven true today.
-  test.fixme(true, 'VerifyEmailPage never re-renders on mutation settle under Vite dev/StrictMode — see comment above.');
+  // This spec also guards the page SETTLING at all. It was briefly disabled
+  // because the page hung on "Verifying your email..." forever: the ref latch
+  // survived StrictMode's remount (same component identity) but the
+  // `useMutation` object did not, so the request belonged to the discarded
+  // mount while the surviving one held a fresh mutation still sitting idle.
+  // The latch correctly stopped the second, token-consuming call and, in
+  // doing so, stopped the only thing that would have populated the component
+  // left on screen. Fixed by moving to `useQuery`: the request and its result
+  // live in the shared cache keyed by token, external to any one mount, so
+  // both StrictMode mounts subscribe to the same entry. Assert BOTH halves —
+  // one call (token safety) and a settled result (the user gets an answer) —
+  // because the broken version satisfied the first on its own.
 
   const verifyCalls: string[] = [];
   page.on('request', (req) => {
