@@ -38,14 +38,29 @@ public class RequestPasswordResetEndpoint(
 
         if (user is not null)
         {
-            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            try
+            {
+                var token = await userManager.GeneratePasswordResetTokenAsync(user);
 
-            var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-            await emailService.SendPasswordResetEmailAsync(req.Email, token, language, ct);
+                var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
+                await emailService.SendPasswordResetEmailAsync(req.Email, token, language, ct);
 
-            logger.LogInformation(
-                "Password reset email sent to {Email}",
-                req.Email);
+                logger.LogInformation(
+                    "Password reset email sent to {Email}",
+                    req.Email);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Non-fatal: never let a send failure surface as a different response
+                // than the unregistered-email branch below — that would turn this
+                // endpoint into an enumeration oracle whenever the email provider is
+                // unhealthy. Logged at Error because a swallowed failure here means a
+                // user who requested a reset never receives one, with no other signal
+                // that it happened.
+                logger.LogError(ex,
+                    "Failed to send password reset email to {Email}.",
+                    req.Email);
+            }
         }
 
         // Always return OK to prevent email enumeration
