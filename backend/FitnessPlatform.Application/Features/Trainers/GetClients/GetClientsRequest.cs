@@ -31,7 +31,8 @@ public class GetClientsRequest
 
     /// <summary>
     /// Optional set of the caller's own <c>ClientTag.PublicId</c> values.
-    /// A client must carry every requested tag id via the caller's own link to match. An unknown
+    /// A client matches if it carries ANY of the requested tag ids via the caller's own link —
+    /// selecting more tags widens the result set, as a filter dropdown normally does. An unknown
     /// or a foreign (another coach's) tag id is never distinguished from a real one — both simply
     /// match nothing, never a 404, so tag ids stay non-enumerable from the outside.
     /// </summary>

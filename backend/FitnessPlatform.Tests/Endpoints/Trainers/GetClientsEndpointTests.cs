@@ -200,6 +200,40 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         client.HasActiveNutritionPlan.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task List_PlanWindowEndsToday_ClassifiesActive()
+    {
+        // The window is half-open [StartDate, StartDate + WeekCount*7), so the last in-window
+        // day is StartDate + WeekCount*7 - 1. A 1-week plan starting 6 days ago ends exactly today.
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Active");
+        client.HasActiveTrainingPlan.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task List_PlanStartsTomorrow_ClassifiesPaused()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(1), weekCount: 4);
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Paused");
+        client.HasActiveTrainingPlan.Should().BeFalse();
+    }
+
     // ── security: cross-coach scoping ────────────────────────────────────────
 
     [Fact]
@@ -265,6 +299,31 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
         body!.Clients.Should().ContainSingle(c => c.UserId == taggedClientId);
         body.Clients.Single().Tags.Should().ContainSingle(t => t.Name == "VIP");
+    }
+
+    [Fact]
+    public async Task List_MultipleTagIds_MatchesAnyRequestedTag_NotEveryOne()
+    {
+        // ANY-of, not ALL-of: a client matches if it carries at least one requested tag id —
+        // selecting more tags widens the result set, as a filter dropdown normally does.
+        var (http, trainerId) = await SetupTrainerAsync();
+        var firstTagId = await CreateTagAsync(trainerId, "First");
+        var secondTagId = await CreateTagAsync(trainerId, "Second");
+
+        var (firstOnlyClientId, firstOnlyPublicId) = await SetupLinkedClientAsync(trainerId);
+        var (secondOnlyClientId, secondOnlyPublicId) = await SetupLinkedClientAsync(trainerId);
+        var (bothClientId, bothPublicId) = await SetupLinkedClientAsync(trainerId);
+
+        await AssignTagsAsync(http, firstOnlyPublicId, firstTagId);
+        await AssignTagsAsync(http, secondOnlyPublicId, secondTagId);
+        await AssignTagsAsync(http, bothPublicId, firstTagId, secondTagId);
+
+        var response = await http.GetAsync(
+            $"/trainer/clients?tagIds={firstTagId}&tagIds={secondTagId}", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo(
+            [firstOnlyClientId, secondOnlyClientId, bothClientId]);
     }
 
     // ── filter chips ─────────────────────────────────────────────────────────
@@ -536,6 +595,13 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return tag.PublicId;
+    }
+
+    private static async Task AssignTagsAsync(HttpClient http, Guid clientPublicId, params Guid[] tagIds)
+    {
+        var response = await http.PutAsJsonAsync($"/trainer/clients/{clientPublicId}/tags",
+            new { TagIds = tagIds }, TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     private async Task SeedConversationWithMessageAsync(

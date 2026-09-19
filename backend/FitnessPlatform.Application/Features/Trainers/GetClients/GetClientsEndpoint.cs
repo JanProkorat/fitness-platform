@@ -24,9 +24,9 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClients;
 /// stored.
 /// </para>
 /// <para>
-/// Round trips per request: 1 SQL roster+facts pass, 2 Mongo plan projections (nutrition,
-/// training), 1 SQL tag lookup, and 2 lightweight SQL COUNTs for the Pending tab count — all
-/// independent of roster size and page size.
+/// Round trips per request: 1 SQL profile lookup, 1 SQL roster+facts pass, 2 Mongo plan
+/// projections (nutrition, training), 1 SQL tag lookup, and 2 lightweight SQL COUNTs for the
+/// Pending tab count — 7 total, all independent of roster size and page size.
 /// </para>
 /// <para>
 /// Ambiguities pinned for this endpoint (issue #1064): (1) <see cref="ClientTabCounts.Pending"/>
