@@ -1,125 +1,645 @@
-using FastEndpoints;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
-using FitnessPlatform.Application.Domain.Constants;
-using FitnessPlatform.Application.Features.Trainers.GetClients;
-using FitnessPlatform.Tests.Builders;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.Trainers;
 
-public class GetClientsEndpointTests
+/// <summary>
+/// Integration tests for <c>GET /trainer/clients</c>. Uses the Testcontainers-backed
+/// <see cref="FitnessApiFactory"/> host — never the mock-Mongo harness, which returns every
+/// seeded document regardless of <c>FilterDefinition</c> and would make every Active/Paused
+/// assertion below unfalsifiable.
+/// </summary>
+[Collection(TestCollection.Name)]
+public class GetClientsEndpointTests(FitnessApiFactory factory)
 {
-    private readonly Guid _trainerId = Guid.NewGuid();
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@get-clients-{tag}.com";
+
+    // ── basic shape ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_TrainerWithClients_ReturnsList()
+    public async Task List_NoStatusParam_ReturnsEveryLiveLinkExcludingArchived()
     {
-        var clientUser = EntityBuilder.User.WithEmail("linked-client@test.com")
-            .WithFirstName("Linked").WithLastName("Client").Build();
-        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
-        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
-        var link = EntityBuilder.ClientProfessionalLink
-            .WithId(42)
-            .WithClientProfile(clientProfile)
-            .WithProfessionalProfile(trainerProfile)
-            .Build();
+        // Pre-existing behaviour: omitting status must not silently default to "active" —
+        // it means every live link, Active and Paused combined, Archived excluded.
+        var (http, trainerId) = await SetupTrainerAsync();
 
-        var db = new MockDbBuilder()
-            .With(trainerProfile)
-            .With(clientProfile)
-            .With(link)
-            .Build();
+        var (activeClientId, _) = await SetupLinkedClientAsync(trainerId);
+        await SeedActiveTrainingPlanAsync(activeClientId, DateTime.UtcNow.AddDays(-1));
 
-        var ep = Factory.Create<GetClientsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
-                new System.Security.Claims.ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db);
+        var (pausedClientId, _) = await SetupLinkedClientAsync(trainerId);
+        // No plan seeded — pausedClientId stays Paused.
 
-        await ep.HandleAsync(new GetClientsRequest(), CancellationToken.None);
+        var (archivedClientId, archivedPublicId) = await SetupLinkedClientAsync(trainerId);
+        await SetLinkActiveAsync(archivedPublicId, false);
 
-        ep.Response.TotalCount.Should().Be(1);
-        ep.Response.Clients.Should().ContainSingle(c => c.Email == "linked-client@test.com");
-        ep.Response.Clients[0].LinkId.Should().Be(42);
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([activeClientId, pausedClientId]);
+        body.Clients.Should().NotContain(c => c.UserId == archivedClientId);
     }
 
     [Fact]
-    public async Task HandleAsync_NoProfessionalProfile_Returns404()
+    public async Task List_StatusArchived_ReturnsOnlyArchivedLinks()
     {
-        var db = new MockDbBuilder().Build();
+        var (http, trainerId) = await SetupTrainerAsync();
 
-        var ep = Factory.Create<GetClientsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
-                new System.Security.Claims.ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db);
+        var (_, activePublicId) = await SetupLinkedClientAsync(trainerId);
+        var (archivedClientId, archivedPublicId) = await SetupLinkedClientAsync(trainerId);
+        await SetLinkActiveAsync(archivedPublicId, false);
 
-        await ep.HandleAsync(new GetClientsRequest(), CancellationToken.None);
+        var response = await http.GetAsync("/trainer/clients?status=Archived", TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(404);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await Deserialize(response);
+
+        body!.Clients.Should().ContainSingle(c => c.UserId == archivedClientId);
+        body.Clients.Single().Status.Should().Be("Archived");
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
+    public async Task List_NoClaims_Returns401()
     {
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientsEndpoint>(db);
+        var http = factory.CreateClient();
 
-        await ep.HandleAsync(new GetClientsRequest(), CancellationToken.None);
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task HandleAsync_TrainerWithNoClients_ReturnsEmptyList()
+    public async Task List_ClientRole_Returns403()
     {
-        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
-        var db = new MockDbBuilder().With(trainerProfile).Build();
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client-role");
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Client", "Client");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
 
-        var ep = Factory.Create<GetClientsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
-                new System.Security.Claims.ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db);
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
 
-        await ep.HandleAsync(new GetClientsRequest(), CancellationToken.None);
-
-        ep.Response.TotalCount.Should().Be(0);
-        ep.Response.Clients.Should().BeEmpty();
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
-    public async Task HandleAsync_Pagination_RespectsPageSize()
+    public async Task List_NoProfessionalProfile_Returns404()
     {
-        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        // A caller authenticated with the Trainer role but with no ProfessionalProfile row
+        // cannot be produced through normal registration (it's created at registration time),
+        // so this mirrors the existing endpoint's guard by deleting the row post-registration.
+        var http = factory.CreateClient();
+        var email = UniqueEmail("no-profile");
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
 
-        var dbBuilder = new MockDbBuilder().With(trainerProfile);
-
-        for (var i = 0; i < 3; i++)
+        using (var scope = factory.Services.CreateScope())
         {
-            var clientUser = EntityBuilder.User.WithEmail($"client{i}@test.com")
-                .WithFirstName($"Client{i}").WithLastName("User").Build();
-            var clientProfile = EntityBuilder.ClientProfile.WithId(i + 1).WithUser(clientUser).Build();
-            var link = EntityBuilder.ClientProfessionalLink
-                .WithClientProfile(clientProfile)
-                .WithProfessionalProfile(trainerProfile)
-                .Build();
-
-            dbBuilder.With(clientUser).With(clientProfile).With(link);
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+            var profile = await db.ProfessionalProfiles
+                .FirstAsync(pp => pp.UserId == user.Id, TestContext.Current.CancellationToken);
+            db.ProfessionalProfiles.Remove(profile);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var db = dbBuilder.Build();
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
 
-        var ep = Factory.Create<GetClientsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
-                new System.Security.Claims.ClaimsIdentity(
-                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 
-        await ep.HandleAsync(new GetClientsRequest { Page = 1, PageSize = 2 }, TestContext.Current.CancellationToken);
+    // ── #840 join-key regression ────────────────────────────────────────────
 
-        ep.Response.TotalCount.Should().Be(3);
-        ep.Response.Clients.Should().HaveCount(2);
-        ep.Response.Page.Should().Be(1);
-        ep.Response.PageSize.Should().Be(2);
+    [Fact]
+    public async Task List_PlanKeyedOnApplicationUserId_ClassifiesActive_EvenThoughClientProfilePublicIdDiffers()
+    {
+        // The only shape that catches a regression back to keying on ClientProfile.PublicId:
+        // the plan's clientId is the ApplicationUser.Id, and ClientProfile.PublicId is a
+        // deliberately DIFFERENT Guid (which it always is — the two are unrelated identifiers).
+        // A join on PublicId would match zero documents and silently read Paused.
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, clientPublicId) = await SetupLinkedClientAsync(trainerId);
+
+        clientPublicId.Should().NotBe(clientUserId, "PublicId and the ApplicationUser join key must never coincide in this fixture");
+
+        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Active");
+        client.HasActiveTrainingPlan.Should().BeTrue();
+    }
+
+    // ── tab classification ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_ActivePlanWithNullStartDate_NeverClassifiesActive()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedActiveTrainingPlanAsync(clientUserId, startDate: null);
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Paused");
+        client.HasActiveTrainingPlan.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task List_NutritionOnlyLink_ClientHasActiveTrainingPlan_ClassifiesPausedAndOmitsTrainingPlan()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(
+            trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Paused");
+        client.HasActiveTrainingPlan.Should().BeFalse();
+        client.ActivePlans.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task List_GrantsNothingLink_AlwaysPaused()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(
+            trainerId, canViewNutritionPlans: false, canViewTrainingPlans: false);
+
+        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+
+        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        var client = body!.Clients.Should().ContainSingle(c => c.UserId == clientUserId).Subject;
+        client.Status.Should().Be("Paused");
+        client.HasActiveTrainingPlan.Should().BeFalse();
+        client.HasActiveNutritionPlan.Should().BeFalse();
+    }
+
+    // ── security: cross-coach scoping ────────────────────────────────────────
+
+    [Fact]
+    public async Task List_ArchivedTab_SecondCoachsArchivedLink_NeverAppearsInCallersArchivedTabOrTabCounts()
+    {
+        var (http, callerId) = await SetupTrainerAsync();
+        var (_, otherCoachId) = await SetupTrainerAsync();
+
+        var (_, otherArchivedPublicId) = await SetupLinkedClientAsync(otherCoachId);
+        await SetLinkActiveAsync(otherArchivedPublicId, false);
+
+        var (callerArchivedClientId, callerArchivedPublicId) = await SetupLinkedClientAsync(callerId);
+        await SetLinkActiveAsync(callerArchivedPublicId, false);
+
+        var response = await http.GetAsync("/trainer/clients?status=Archived", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Should().ContainSingle(c => c.UserId == callerArchivedClientId);
+        body.TabCounts.Archived.Should().Be(1, "the other coach's archived link must never inflate the caller's counts");
+    }
+
+    // ── tags: no existence oracle ────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_UnknownTagIdAndForeignTagId_BehaveIdentically_Returns200EmptyNever404()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        await SetupLinkedClientAsync(trainerId);
+
+        var (_, otherCoachId) = await SetupTrainerAsync();
+        var foreignTagId = await CreateTagAsync(otherCoachId, "Foreign");
+
+        var unknownResponse = await http.GetAsync(
+            $"/trainer/clients?tagIds={Guid.NewGuid()}", TestContext.Current.CancellationToken);
+        var foreignResponse = await http.GetAsync(
+            $"/trainer/clients?tagIds={foreignTagId}", TestContext.Current.CancellationToken);
+
+        unknownResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        foreignResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var unknownBody = await Deserialize(unknownResponse);
+        var foreignBody = await Deserialize(foreignResponse);
+
+        unknownBody!.Clients.Should().BeEmpty();
+        foreignBody!.Clients.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task List_OwnedTagId_FiltersToTaggedClientOnly()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var tagId = await CreateTagAsync(trainerId, "VIP");
+
+        var (taggedClientId, taggedPublicId) = await SetupLinkedClientAsync(trainerId);
+        var (_, _) = await SetupLinkedClientAsync(trainerId);
+
+        var assign = await http.PutAsJsonAsync($"/trainer/clients/{taggedPublicId}/tags",
+            new { TagIds = new[] { tagId } }, TestContext.Current.CancellationToken);
+        assign.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var response = await http.GetAsync($"/trainer/clients?tagIds={tagId}", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Should().ContainSingle(c => c.UserId == taggedClientId);
+        body.Clients.Single().Tags.Should().ContainSingle(t => t.Name == "VIP");
+    }
+
+    // ── filter chips ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_UnreadMessagesFilter_ReturnsOnlyClientsWithUnreadFromClient()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (unreadClientId, unreadPublicId) = await SetupLinkedClientAsync(trainerId);
+        var (readClientId, readPublicId) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, unreadClientId, senderIsClient: true, isRead: false);
+        await SeedConversationWithMessageAsync(trainerId, readClientId, senderIsClient: true, isRead: true);
+
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([unreadClientId]);
+        body.Clients.Single().UnreadMessageCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task List_NoMessagesFilter_ReturnsClientsWithNoConversationOrEmptyConversation()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (noConversationClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (hasMessagesClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, hasMessagesClientId, senderIsClient: true, isRead: true);
+
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=NoMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([noConversationClientId]);
+    }
+
+    [Fact]
+    public async Task List_NewCheckInsFilter_ReturnsRespondedNotYetReviewed_ScopedToGrantedProfession()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+
+        // Nutrition-only link — a Training-profession check-in must NOT count for this link,
+        // even though it targets the same client/professional pair.
+        var (clientUserId, _) = await SetupLinkedClientAsync(
+            trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Training,
+            respondedAt: DateTime.UtcNow, reviewedAt: null);
+
+        var trainingOnlyResponse = await http.GetAsync(
+            "/trainer/clients?filter=NewCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(trainingOnlyResponse))!.Clients.Should().BeEmpty(
+            "a Training check-in must not count for a link that only grants Nutrition");
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Nutrition,
+            respondedAt: DateTime.UtcNow, reviewedAt: null);
+
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=NewCheckIns", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clientUserId]);
+    }
+
+    [Fact]
+    public async Task List_MissingCheckInsFilter_ReturnsExpiredOrOverdueUnanswered()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Nutrition,
+            respondedAt: null, reviewedAt: null, status: WeeklyCheckInStatus.Expired);
+
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=MissingCheckIns", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([clientUserId]);
+    }
+
+    [Fact]
+    public async Task List_EndingSoonFilter_ReturnsActivePlanEndingWithinFourteenDays()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (endingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (notEndingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        // 1-week plan starting 6 days ago ends 1 day from now — within the 14-day window.
+        await SeedActiveTrainingPlanAsync(endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+        // 10-week plan starting today ends far beyond 14 days.
+        await SeedActiveTrainingPlanAsync(notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
+
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=EndingSoon", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([endingSoonClientId]);
+    }
+
+    [Fact]
+    public async Task List_FilterCounts_ComputedWithSearchAndTagsButNotChipFilterApplied()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (unreadClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (otherClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, unreadClientId, senderIsClient: true, isRead: false);
+
+        // Even though the request itself applies the UnreadMessages chip, FilterCounts.All must
+        // still report BOTH clients — the chip counts are computed as if no chip were selected.
+        var response = await http.GetAsync(
+            "/trainer/clients?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Clients.Select(c => c.UserId).Should().BeEquivalentTo([unreadClientId]);
+        body.FilterCounts.All.Should().Be(2);
+        body.FilterCounts.UnreadMessages.Should().Be(1);
+
+        _ = otherClientId;
+    }
+
+    // ── pagination ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_Pagination_RespectsPageSize()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        for (var i = 0; i < 3; i++)
+        {
+            await SetupLinkedClientAsync(trainerId);
+        }
+
+        var response = await http.GetAsync(
+            "/trainer/clients?page=1&pageSize=2", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.TotalCount.Should().Be(3);
+        body.Clients.Should().HaveCount(2);
+        body.Page.Should().Be(1);
+        body.PageSize.Should().Be(2);
+    }
+
+    // ── validation ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_PageLessThanOne_Returns400()
+    {
+        var (http, _) = await SetupTrainerAsync();
+
+        var response = await http.GetAsync("/trainer/clients?page=0", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_PageSizeOverLimit_Returns400()
+    {
+        var (http, _) = await SetupTrainerAsync();
+
+        var response = await http.GetAsync("/trainer/clients?pageSize=101", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_TooManyTagIds_Returns400()
+    {
+        var (http, _) = await SetupTrainerAsync();
+        var tagIds = string.Join('&', Enumerable.Range(0, 21).Select(_ => $"tagIds={Guid.NewGuid()}"));
+
+        var response = await http.GetAsync($"/trainer/clients?{tagIds}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_InvalidStatusValue_Returns400()
+    {
+        var (http, _) = await SetupTrainerAsync();
+
+        var response = await http.GetAsync("/trainer/clients?status=NotARealStatus", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    // ── fixtures ─────────────────────────────────────────────────────────────
+
+    private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("trainer");
+
+        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Trainer", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
+        TestHelpers.SetBearerToken(http, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.AsNoTracking()
+            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+
+        return (http, user.Id);
+    }
+
+    private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupLinkedClientAsync(
+        Guid professionalUserId, bool canViewNutritionPlans = true, bool canViewTrainingPlans = true)
+    {
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, professionalUserId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans, canViewTrainingPlans);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles.AsNoTracking()
+            .FirstAsync(cp => cp.UserId == clientUserId, TestContext.Current.CancellationToken);
+
+        return (clientUserId, clientProfile.PublicId);
+    }
+
+    private async Task SetLinkActiveAsync(Guid clientPublicId, bool isActive)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+        var link = await db.ClientProfessionalLinks
+            .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
+        link.IsActive = isActive;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedActiveTrainingPlanAsync(
+        Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = name,
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks = Enumerable.Range(1, weekCount).Select(n => new TrainingWeek { WeekNumber = n }).ToList()
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Guid> CreateTagAsync(Guid professionalUserId, string name)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var professionalProfile = await db.ProfessionalProfiles
+            .FirstAsync(pp => pp.UserId == professionalUserId, TestContext.Current.CancellationToken);
+
+        var tag = new ClientTag
+        {
+            PublicId = Guid.NewGuid(),
+            OwnerProfessionalProfileId = professionalProfile.Id,
+            Name = name,
+            ColorHex = "#3b82f6"
+        };
+        db.ClientTags.Add(tag);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return tag.PublicId;
+    }
+
+    private async Task SeedConversationWithMessageAsync(
+        Guid professionalUserId, Guid clientUserId, bool senderIsClient, bool isRead)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var conversation = new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.ChatMessages.Add(new ChatMessage
+        {
+            PublicId = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            SenderUserId = senderIsClient ? clientUserId : professionalUserId,
+            Text = "hello",
+            IsRead = isRead
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedWeeklyCheckInAsync(
+        Guid professionalUserId, Guid clientUserId, Profession profession,
+        DateTime? respondedAt, DateTime? reviewedAt, WeeklyCheckInStatus status = WeeklyCheckInStatus.Responded)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.WeeklyCheckIns.Add(new WeeklyCheckIn
+        {
+            Id = Guid.NewGuid(),
+            ClientUserId = clientUserId,
+            ProfessionalUserId = professionalUserId,
+            Profession = profession,
+            WeekStartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = status,
+            SentAt = DateTime.UtcNow.AddDays(-7),
+            DueAt = DateTime.UtcNow.AddDays(-1),
+            RespondedAt = respondedAt,
+            ReviewedByTrainerAt = reviewedAt,
+            DateCreated = DateTime.UtcNow,
+            DateModified = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<GetClientsResponseDto?> Deserialize(HttpResponseMessage response) =>
+        await response.Content.ReadFromJsonAsync<GetClientsResponseDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+    private sealed class GetClientsResponseDto
+    {
+        public List<ClientSummaryDto> Clients { get; set; } = [];
+        public int TotalCount { get; set; }
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public TabCountsDto TabCounts { get; set; } = new();
+        public FilterCountsDto FilterCounts { get; set; } = new();
+    }
+
+    private sealed class TabCountsDto
+    {
+        public int Active { get; set; }
+        public int Paused { get; set; }
+        public int Archived { get; set; }
+        public int Pending { get; set; }
+    }
+
+    private sealed class FilterCountsDto
+    {
+        public int All { get; set; }
+        public int UnreadMessages { get; set; }
+        public int NoMessages { get; set; }
+        public int NewCheckIns { get; set; }
+        public int MissingCheckIns { get; set; }
+        public int EndingSoon { get; set; }
+    }
+
+    private sealed class ClientSummaryDto
+    {
+        public long LinkId { get; set; }
+        public Guid PublicId { get; set; }
+        public Guid UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? AvatarBlobUrl { get; set; }
+        public List<TagDto> Tags { get; set; } = [];
+        public int UnreadMessageCount { get; set; }
+        public bool HasActiveNutritionPlan { get; set; }
+        public bool HasActiveTrainingPlan { get; set; }
+        public List<object> ActivePlans { get; set; } = [];
+    }
+
+    private sealed class TagDto
+    {
+        public Guid TagId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ColorHex { get; set; } = string.Empty;
     }
 }
