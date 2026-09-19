@@ -12,9 +12,9 @@ public class CreateRequestValidator : Validator<CreateRequestRequest>
     public CreateRequestValidator()
     {
         RuleFor(x => x)
-            .Must(x => (x.LinkId.HasValue) != (x.PendingInviteId.HasValue))
+            .Must(x => (x.ClientId.HasValue) != (x.PendingInviteId.HasValue))
             .WithErrorCode(ErrorCodes.PhotoDiaryRequestLinkXorInvite)
-            .WithMessage("Exactly one of linkId or pendingInviteId must be provided.");
+            .WithMessage("Exactly one of clientId or pendingInviteId must be provided.");
 
         RuleFor(x => x.DurationDays)
             .InclusiveBetween(1, 30)
