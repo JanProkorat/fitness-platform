@@ -111,8 +111,16 @@ public class UpdateClientTagEndpointTests(FitnessApiFactory factory)
         // UPDATE side: an explicit, uncommitted transaction deletes the tag and holds the row
         // lock, so the update request's own SELECT still observes the pre-commit row (proceeds
         // past the owner-filtered load) while its UPDATE blocks on the delete's lock. Committing
-        // the delete then lets the blocked UPDATE resume against a now-missing row, deterministically
-        // reproducing the 0-rows-affected DbUpdateConcurrencyException — not a scheduling race.
+        // the delete then lets the blocked UPDATE resume against a now-missing row, reproducing
+        // the 0-rows-affected DbUpdateConcurrencyException.
+        //
+        // The Postgres half of that is deterministic, but *reaching* the interleaving is not: the
+        // delay below races the HTTP pipeline's time-to-SELECT. If the pipeline is ever slower,
+        // the delete commits first and the ordinary pre-load guard returns the same 404 without
+        // exercising the catch at all — so this test can pass green with the catch removed. It
+        // cannot flake red, which is the safe direction, but it is timing-tolerant coverage, not
+        // a timing-independent proof. See ProfessionSlotRaceTests for the pattern that asserts on
+        // the blocking itself rather than on a sleep.
         var http = await SetupTrainerAsync();
         var tagId = await CreateTagAsync(http, "VIP", "#3b82f6");
 
