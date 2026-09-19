@@ -162,6 +162,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     /// </summary>
     public virtual DbSet<CoachSubscription> CoachSubscriptions { get; set; } = null!;
 
+    /// <summary>
+    /// Coach-owned tags used to label clients.
+    /// </summary>
+    public virtual DbSet<ClientTag> ClientTags { get; set; } = null!;
+
+    /// <summary>
+    /// Assignments of a <see cref="ClientTag"/> to a specific <see cref="ClientProfessionalLink"/>.
+    /// </summary>
+    public virtual DbSet<ClientTagAssignment> ClientTagAssignments { get; set; } = null!;
+
     /// <inheritdoc />
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
