@@ -105,6 +105,16 @@ public class UpdateClientTagEndpoint(IApplicationDbContext db)
                 ct);
             return;
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The owning professional concurrently deleted this tag between the owner-filtered
+            // load above and this save, so the UPDATE affected 0 rows. The tag no longer exists,
+            // so the owner-filtered load itself would now report the same 404 — matches
+            // DeleteClientTagEndpoint's own handling of a concurrent delete racing its own delete.
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound, ErrorCodes.ClientTagNotFound, "Client tag not found.", ct);
+            return;
+        }
 
         await Send.OkAsync(ClientTagDto.FromEntity(tag), ct);
     }

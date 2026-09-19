@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.ClientTags;
 
@@ -99,6 +102,42 @@ public class UpdateClientTagEndpointTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Update_TagDeletedConcurrently_Returns404()
+    {
+        // Forces the exact race DeleteClientTagEndpoint already guards against, but on the
+        // UPDATE side: an explicit, uncommitted transaction deletes the tag and holds the row
+        // lock, so the update request's own SELECT still observes the pre-commit row (proceeds
+        // past the owner-filtered load) while its UPDATE blocks on the delete's lock. Committing
+        // the delete then lets the blocked UPDATE resume against a now-missing row, deterministically
+        // reproducing the 0-rows-affected DbUpdateConcurrencyException — not a scheduling race.
+        var http = await SetupTrainerAsync();
+        var tagId = await CreateTagAsync(http, "VIP", "#3b82f6");
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
+
+        var tag = await db.ClientTags.FirstAsync(
+            t => t.PublicId == tagId, TestContext.Current.CancellationToken);
+        db.ClientTags.Remove(tag);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var updateTask = http.PutAsJsonAsync($"/trainer/client-tags/{tagId}",
+            new { Name = "Renamed", Description = (string?)null, ColorHex = "#ef4444" },
+            TestContext.Current.CancellationToken);
+
+        // Gives the update request's SELECT time to complete (and observe the still-visible,
+        // uncommitted-delete row) before the delete commits and releases the row lock the
+        // update's UPDATE statement is waiting on.
+        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+        await transaction.CommitAsync(TestContext.Current.CancellationToken);
+
+        var response = await updateTask;
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     private async Task<HttpClient> SetupTrainerAsync()

@@ -47,62 +47,14 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
             return;
         }
 
-        var professionalProfile = await db.ProfessionalProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.UserId == Guid.Parse(userId), ct);
+        var context = await LoadReplaceContextOrRespondAsync(Guid.Parse(userId), req, ct);
 
-        if (professionalProfile is null)
+        if (context is null)
         {
-            await Send.NotFoundAsync(ct);
             return;
         }
 
-        // Resolve client by PublicId. Existence is not distinguished from "no active link" below —
-        // both collapse to a bare 404 so client existence does not leak to a coach with no
-        // relationship to them.
-        var clientProfile = await db.ClientProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
-
-        if (clientProfile is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        // Tagging requires a live link but not either CanView* capability flag — a tag is
-        // coach-private relationship metadata, not plan data. Resolved by a direct query rather
-        // than IClientLinkAuthorizationService because the assignment needs the link's own row id,
-        // which the capability-only service does not expose.
-        var link = await db.ClientProfessionalLinks
-            .AsNoTracking()
-            .FirstOrDefaultAsync(l =>
-                l.ProfessionalProfileId == professionalProfile.Id &&
-                l.ClientProfileId == clientProfile.Id &&
-                l.IsActive, ct);
-
-        if (link is null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
-
-        var distinctTagIds = req.TagIds.Distinct().ToList();
-
-        var ownedTags = await db.ClientTags
-            .AsNoTracking()
-            .Where(t => t.OwnerProfessionalProfileId == professionalProfile.Id && distinctTagIds.Contains(t.PublicId))
-            .ToListAsync(ct);
-
-        if (ownedTags.Count != distinctTagIds.Count)
-        {
-            await this.SendProblemAsync(
-                StatusCodes.Status404NotFound,
-                ErrorCodes.ClientTagNotFound,
-                "One or more tags were not found.",
-                ct);
-            return;
-        }
+        var (_, clientProfile, link, ownedTags) = context.Value;
 
         var desiredTagIds = ownedTags.Select(t => t.Id).ToHashSet();
 
@@ -199,6 +151,87 @@ public class ReplaceClientTagAssignmentsEndpoint(IApplicationDbContext db)
         }, ct);
     }
 
+    /// <summary>
+    /// Runs the endpoint's five sequential guards — caller has a professional profile, the client
+    /// exists, the caller holds a live link to it, and every requested tag id resolves to a tag the
+    /// caller owns — and resolves the values the rest of <see cref="HandleAsync"/> needs. Returns
+    /// <see langword="null"/> when a guard has already written a response; the caller must just
+    /// return.
+    /// </summary>
+    private async Task<ReplaceContext?> LoadReplaceContextOrRespondAsync(
+        Guid userId, ReplaceClientTagAssignmentsRequest req, CancellationToken ct)
+    {
+        var professionalProfile = await db.ProfessionalProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct);
+
+        if (professionalProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return null;
+        }
+
+        // Resolve client by PublicId. Existence is not distinguished from "no active link" below —
+        // both collapse to a bare 404 so client existence does not leak to a coach with no
+        // relationship to them.
+        var clientProfile = await db.ClientProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cp => cp.PublicId == req.ClientId, ct);
+
+        if (clientProfile is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return null;
+        }
+
+        // Tagging requires a live link but not either CanView* capability flag — a tag is
+        // coach-private relationship metadata, not plan data. Resolved by a direct query rather
+        // than IClientLinkAuthorizationService because the assignment needs the link's own row id,
+        // which the capability-only service does not expose.
+        var link = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l =>
+                l.ProfessionalProfileId == professionalProfile.Id &&
+                l.ClientProfileId == clientProfile.Id &&
+                l.IsActive, ct);
+
+        if (link is null)
+        {
+            await Send.NotFoundAsync(ct);
+            return null;
+        }
+
+        var distinctTagIds = req.TagIds.Distinct().ToList();
+
+        var ownedTags = await db.ClientTags
+            .AsNoTracking()
+            .Where(t => t.OwnerProfessionalProfileId == professionalProfile.Id && distinctTagIds.Contains(t.PublicId))
+            .ToListAsync(ct);
+
+        if (ownedTags.Count != distinctTagIds.Count)
+        {
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound,
+                ErrorCodes.ClientTagNotFound,
+                "One or more tags were not found.",
+                ct);
+            return null;
+        }
+
+        return new ReplaceContext(professionalProfile, clientProfile, link, ownedTags);
+    }
+
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505";
+
+    /// <summary>
+    /// Values resolved by the endpoint's guard sequence that the rest of <see cref="HandleAsync"/>
+    /// needs. <see cref="ProfessionalProfile"/> is carried for completeness even though only the
+    /// guards themselves currently read it.
+    /// </summary>
+    private readonly record struct ReplaceContext(
+        ProfessionalProfile ProfessionalProfile,
+        ClientProfile ClientProfile,
+        ClientProfessionalLink Link,
+        List<ClientTag> OwnedTags);
 }
