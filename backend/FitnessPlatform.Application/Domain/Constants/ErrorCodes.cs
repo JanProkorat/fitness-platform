@@ -391,4 +391,19 @@ public static class ErrorCodes
 
     /// <summary>A tag with this Name already exists for the owning professional.</summary>
     public const string ClientTagNameAlreadyExists = "CLIENT_TAG_NAME_ALREADY_EXISTS";
+
+    // ── Messaging Broadcast (#1065) ────────────────────────────────────
+    /// <summary>The recipient list exceeds the maximum allowed size for a single broadcast.</summary>
+    public const string BroadcastRecipientLimitExceeded = "BROADCAST_RECIPIENT_LIMIT_EXCEEDED";
+
+    /// <summary>A recipient id does not resolve to a client with a live link to the caller.</summary>
+    public const string BroadcastRecipientNotLinked = "BROADCAST_RECIPIENT_NOT_LINKED";
+
+    /// <summary>
+    /// A recipient's personalized text (after {{firstName}}/{{fullName}} substitution) exceeds
+    /// the message column's storage limit, even though the pre-substitution template passed
+    /// validation. Rejected before any write — checked for every recipient up front, alongside
+    /// the authorization gates.
+    /// </summary>
+    public const string BroadcastMessageTooLongAfterSubstitution = "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION";
 }
