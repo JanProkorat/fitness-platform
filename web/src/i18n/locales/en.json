@@ -1852,7 +1852,6 @@
       "modeWorkflowDesc": "{{days}} days gradually, nutritionist sees photos live.",
       "modeHint": "Client selects the mode when they accept the request.",
       "senderInfo": "The client will see your name as the sender and your avatar. You will receive real-time notifications after photos are submitted.",
-      "linkIdMissing": "Unable to send: the client link ID is not yet available. This is a known backend gap — please contact support.",
       "send": "Send request",
       "sending": "Sending...",
       "successToast": "Photo diary request sent",

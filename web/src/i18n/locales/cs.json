@@ -1877,7 +1877,6 @@
       "modeWorkflowDesc": "{{days}} dní postupně, nutricionista vidí fotky živě.",
       "modeHint": "Klient si vybere způsob při akceptaci žádosti.",
       "senderInfo": "Klient uvidí tvé jméno jako odesilatele a tvůj avatar. Po odevzdání fotek budeš dostávat notifikace v reálném čase.",
-      "linkIdMissing": "Nelze odeslat: ID propojení klienta zatím není k dispozici. Toto je známý problém backendu — kontaktujte podporu.",
       "send": "Odeslat žádost",
       "sending": "Odesílání...",
       "successToast": "Žádost o foto-deník odeslána",

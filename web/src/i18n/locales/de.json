@@ -1851,7 +1851,6 @@
       "modeWorkflowDesc": "{{days}} Tage schrittweise, Ernährungsberater sieht Fotos live.",
       "modeHint": "Der Klient wählt den Modus bei der Annahme der Anfrage.",
       "senderInfo": "Der Klient sieht Ihren Namen als Absender und Ihren Avatar. Nach dem Einreichen der Fotos erhalten Sie Echtzeit-Benachrichtigungen.",
-      "linkIdMissing": "Senden nicht möglich: Die Client-Link-ID ist noch nicht verfügbar. Dies ist eine bekannte Backend-Lücke — bitte kontaktieren Sie den Support.",
       "send": "Anfrage senden",
       "sending": "Wird gesendet...",
       "successToast": "Fototagebuch-Anfrage gesendet",
