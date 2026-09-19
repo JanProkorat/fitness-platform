@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.GetClients;
 
 /// <summary>
@@ -19,4 +21,25 @@ public class GetClientsRequest
     /// Optional search filter by client name or email.
     /// </summary>
     public string? Search { get; set; }
+
+    /// <summary>
+    /// Optional tab selector. Omitted means every live link (<c>IsActive == true</c>) —
+    /// today's exact pre-existing behaviour, Active and Paused combined. Archived is only
+    /// returned when explicitly requested.
+    /// </summary>
+    public ClientListStatus? Status { get; set; }
+
+    /// <summary>
+    /// Optional set of the caller's own <c>ClientTag.PublicId</c> values.
+    /// A client must carry every requested tag id via the caller's own link to match. An unknown
+    /// or a foreign (another coach's) tag id is never distinguished from a real one — both simply
+    /// match nothing, never a 404, so tag ids stay non-enumerable from the outside.
+    /// </summary>
+    public List<Guid> TagIds { get; set; } = [];
+
+    /// <summary>
+    /// Optional filter chip narrowing the current tab further. Its own count is reported in
+    /// <see cref="GetClientsResponse.FilterCounts"/> without this filter applied.
+    /// </summary>
+    public ClientListFilter? Filter { get; set; }
 }
