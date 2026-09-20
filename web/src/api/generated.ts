@@ -3645,6 +3645,66 @@ export class ApiClient {
     }
 
     /**
+     * Get pending clients
+     * @return Merged pending rows
+     */
+    getPendingClientsEndpoint(signal?: AbortSignal): Promise<GetPendingClientsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/pending";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetPendingClientsEndpoint(_response);
+        });
+    }
+
+    protected processGetPendingClientsEndpoint(response: AxiosResponse): Promise<GetPendingClientsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetPendingClientsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetPendingClientsResponse>(null as any);
+    }
+
+    /**
      * Get trainer dashboard summary
      * @return Success
      */
@@ -3854,10 +3914,20 @@ export class ApiClient {
      * Get trainer's clients
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
+     * @param tagIds Optional set of the caller's own ClientTag.PublicId values.
+    A client matches if it carries ANY of the requested tag ids via the caller's own link —
+    selecting more tags widens the result set, as a filter dropdown normally does. An unknown
+    or a foreign (another coach's) tag id is never distinguished from a real one — both simply
+    match nothing, never a 404, so tag ids stay non-enumerable from the outside.
      * @param search (optional) Optional search filter by client name or email.
+     * @param status (optional) Optional tab selector. Omitted means every live link (IsActive == true) —
+    today's exact pre-existing behaviour, Active and Paused combined. Archived is only
+    returned when explicitly requested.
+     * @param filter (optional) Optional filter chip narrowing the current tab further. Its own count is reported in
+    FilterCounts without this filter applied.
      * @return Success
      */
-    getClientsEndpoint(page: number, pageSize: number, search?: string | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
+    getClientsEndpoint(page: number, pageSize: number, tagIds: string[], search?: string | null | undefined, status?: ClientListStatus | null | undefined, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<GetClientsResponse> {
         let url_ = this.baseUrl + "/trainer/clients?";
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
@@ -3867,8 +3937,16 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'pageSize' must be defined and cannot be null.");
         else
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (tagIds === undefined || tagIds === null)
+            throw new globalThis.Error("The parameter 'tagIds' must be defined and cannot be null.");
+        else
+            tagIds && tagIds.forEach(item => { url_ += "tagIds=" + encodeURIComponent("" + item) + "&"; });
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (filter !== undefined && filter !== null)
+            url_ += "filter=" + encodeURIComponent("" + filter) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -3907,6 +3985,13 @@ export class ApiClient {
             let resultData200  = _responseText;
             result200 = JSON.parse(resultData200);
             return Promise.resolve<GetClientsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -9993,6 +10078,77 @@ export class ApiClient {
     }
 
     /**
+     * Broadcast a message to several clients
+     * @return Message sent; SentCount is the distinct recipient count.
+     */
+    broadcastMessageEndpoint(broadcastMessageRequest: BroadcastMessageRequest, signal?: AbortSignal): Promise<BroadcastMessageResponse> {
+        let url_ = this.baseUrl + "/trainer/broadcast";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(broadcastMessageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processBroadcastMessageEndpoint(_response);
+        });
+    }
+
+    protected processBroadcastMessageEndpoint(response: AxiosResponse): Promise<BroadcastMessageResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<BroadcastMessageResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Empty/too-long text, more than 50 recipients, or a recipient\'s substituted text exceeds the storage limit.", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<BroadcastMessageResponse>(null as any);
+    }
+
+    /**
      * Archive conversation
      * @return No Content
      */
@@ -12413,6 +12569,347 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GenerateSessionPhotoUploadUrlResponse>(null as any);
+    }
+
+    /**
+     * Update a client tag
+     * @param tagId Public identifier of the tag to update, from the route.
+     * @return Tag updated
+     */
+    updateClientTagEndpoint(tagId: string, updateClientTagRequest: UpdateClientTagRequest, signal?: AbortSignal): Promise<ClientTagDto> {
+        let url_ = this.baseUrl + "/trainer/client-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateClientTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateClientTagEndpoint(_response);
+        });
+    }
+
+    protected processUpdateClientTagEndpoint(response: AxiosResponse): Promise<ClientTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientTagDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientTagDto>(null as any);
+    }
+
+    /**
+     * Delete a client tag
+     * @param tagId Public identifier of the tag to delete, from the route.
+     * @return Tag deleted
+     */
+    deleteClientTagEndpoint(tagId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/client-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteClientTagEndpoint(_response);
+        });
+    }
+
+    protected processDeleteClientTagEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Replace a client's tag assignments
+     * @param clientId Public identifier of the client, from the route.
+     * @return The resulting tag set
+     */
+    replaceClientTagAssignmentsEndpoint(clientId: string, replaceClientTagAssignmentsRequest: ReplaceClientTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceClientTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/tags";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceClientTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceClientTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceClientTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceClientTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceClientTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceClientTagAssignmentsResponse>(null as any);
+    }
+
+    /**
+     * List client tags
+     * @return The caller's tags
+     */
+    getClientTagsEndpoint(signal?: AbortSignal): Promise<GetClientTagsResponse> {
+        let url_ = this.baseUrl + "/trainer/client-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientTagsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientTagsEndpoint(response: AxiosResponse): Promise<GetClientTagsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetClientTagsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetClientTagsResponse>(null as any);
+    }
+
+    /**
+     * Create a client tag
+     * @return Success
+     */
+    createClientTagEndpoint(createClientTagRequest: CreateClientTagRequest, signal?: AbortSignal): Promise<ClientTagDto> {
+        let url_ = this.baseUrl + "/trainer/client-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createClientTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateClientTagEndpoint(_response);
+        });
+    }
+
+    protected processCreateClientTagEndpoint(response: AxiosResponse): Promise<ClientTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ClientTagDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ClientTagDto>(null as any);
     }
 
     /**
@@ -17774,6 +18271,39 @@ export interface GetProfessionalProfileResponse {
     acceptNewClients?: boolean;
 }
 
+/** Response model for the trainer's Pending tab. */
+export interface GetPendingClientsResponse {
+    /** Merged, unpaginated rows — unaccepted invites plus incoming pending requests, ordered by
+SentAt descending. */
+    rows?: PendingClientRow[];
+}
+
+/** A single Pending-tab row. Kind tells the client which existing action endpoint to call with PublicId — cancel an invite, or accept/reject a request. */
+export interface PendingClientRow {
+    /** Which source table this row came from. */
+    kind?: PendingRowKind;
+    /** Public identifier of the source row — PendingInvite.PublicId for
+Invite, ClientRequest.PublicId for
+Request. This is the id the row's action endpoint expects. */
+    publicId?: string;
+    /** First name of the prospective client. */
+    firstName?: string;
+    /** Last name of the prospective client. */
+    lastName?: string;
+    /** Email address of the prospective client. */
+    email?: string;
+    /** Optional message attached to the invite or request. */
+    message?: string | undefined;
+    /** When the invite was sent, or the request was submitted. */
+    sentAt?: string;
+}
+
+/** Discriminates a row on the trainer's Pending tab, which merges two otherwise-unrelated source tables: unaccepted PendingInvite rows and incoming ClientRequest rows. The client uses this to decide which action to offer (cancel an invite; accept or reject a request) and which existing endpoint to call with the row's PublicId. */
+export enum PendingRowKind {
+    Invite = "Invite",
+    Request = "Request",
+}
+
 /** Aggregated dashboard data for the trainer's client list. */
 export interface GetDashboardSummaryResponse {
     /** Per-client stats. */
@@ -17912,23 +18442,35 @@ export interface GetClientTimelineRequest {
 
 /** Response model for the trainer's client list. */
 export interface GetClientsResponse {
-    /** List of client summaries. */
+    /** List of client summaries for the requested page. */
     clients?: ClientSummary[];
-    /** Total number of clients matching the filter. */
+    /** Total number of clients matching the current tab, search, tags AND filter chip. */
     totalCount?: number;
     /** Current page number. */
     page?: number;
     /** Number of items per page. */
     pageSize?: number;
+    /** Counts of clients per status tab, computed with search and tagIds applied
+(so the counts track what the caller is currently narrowing down), but never with the
+tab or the filter chip itself applied — that would make comparing tabs meaningless.
+Pending is not narrowed by search or tags: those describe
+existing linked clients, and pending rows are not clients yet. */
+    tabCounts?: ClientTabCounts;
+    /** Counts of clients per filter chip, computed over the current tab with search and
+tagIds applied but the chip filter itself NOT applied — this is what lets the web
+client grey out a chip whose count is zero without losing the ability to select it. */
+    filterCounts?: ClientFilterCounts;
 }
 
 /** Summary of a client in the trainer's client list. */
 export interface ClientSummary {
-    /** Internal integer primary key of the ClientProfessionalLink row.
-Used to populate linkId on the photo-diary-request create form. */
-    linkId?: number;
     /** Client profile's public ID. */
     publicId?: string;
+    /** The client's ApplicationUser.Id — the join key shared with Mongo plan documents
+(NutritionPlan.ClientId / TrainingPlan.ClientId, #840) and with messaging
+(Conversation.ClientUserId). Distinct from PublicId, which is
+ClientProfile.PublicId and is not a valid join key against either. */
+    userId?: string;
     /** Client's email address. */
     email?: string;
     /** Client's first name. */
@@ -17939,10 +18481,101 @@ Used to populate linkId on the photo-diary-request create form. */
     isActive?: boolean;
     /** Date when the trainer-client relationship was established. */
     linkedAt?: string;
+    /** Derived tab status — see ClientListStatus. */
+    status?: ClientListStatus;
+    /** The client's avatar, if uploaded. Read straight off ApplicationUser.AvatarBlobUrl —
+same as GetDashboardSummaryEndpoint, no presigning at this layer. */
+    avatarBlobUrl?: string | undefined;
+    /** The caller's own tags assigned to this client, via the caller's own link. */
+    tags?: ClientTagSummaryDto[];
+    /** Number of unread messages sent BY the client to the caller. */
+    unreadMessageCount?: number;
+    /** Whether the client has an in-window Active nutrition plan. Always false when the
+link does not grant CanViewNutritionPlans — never computed for a domain the caller
+cannot see. */
+    hasActiveNutritionPlan?: boolean;
+    /** Whether the client has an in-window Active training plan. Always false when the
+link does not grant CanViewTrainingPlans. */
+    hasActiveTrainingPlan?: boolean;
+    /** The client's currently in-window Active plans, one per visible domain, for the row's
+hover popover. Omits any domain the link does not grant. */
+    activePlans?: ClientActivePlanDto[];
+}
+
+/** Derived status of a client on the trainer's clients list. Never stored — computed per request from the link's IsActive flag plus whether an in-window Active plan exists in a domain the link grants (see GetClientsEndpoint). */
+export enum ClientListStatus {
+    Active = "Active",
+    Paused = "Paused",
+    Archived = "Archived",
+}
+
+/** A coach-owned tag assigned to a client, as surfaced on the clients list. Declared locally to this slice rather than reusing Features/ClientTags/Shared/ClientTagDto — the list needs only the display fields, and importing a sibling feature's DTO would cross a feature boundary. */
+export interface ClientTagSummaryDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Display color as a lowercase 6-digit hex string. */
+    colorHex?: string;
+}
+
+/** A client's currently in-window Active plan, for the clients list hover popover. */
+export interface ClientActivePlanDto {
+    /** Plan display name. */
+    name?: string;
+    /** Which domain this plan belongs to. */
+    type?: Profession;
+    /** The plan's start date. */
+    startDate?: string | undefined;
+}
+
+/** Identifies the professional capacity in which a check-in setting or override applies. */
+export enum Profession {
+    Training = "Training",
+    Nutrition = "Nutrition",
+}
+
+/** Per-tab client counts. See TabCounts for scoping rules. */
+export interface ClientTabCounts {
+    /** Number of clients in the Active tab. */
+    active?: number;
+    /** Number of clients in the Paused tab. */
+    paused?: number;
+    /** Number of clients in the Archived tab. */
+    archived?: number;
+    /** Number of pending rows (unaccepted invites plus incoming pending requests) for the
+caller. Unfiltered by search or tags — see TabCounts. */
+    pending?: number;
+}
+
+/** Per-chip client counts over the current tab. See FilterCounts for scoping rules. */
+export interface ClientFilterCounts {
+    /** Total rows in the current tab (search and tags applied). */
+    all?: number;
+    /** Rows with at least one unread message from the client. */
+    unreadMessages?: number;
+    /** Rows with no conversation, or a conversation with zero messages. */
+    noMessages?: number;
+    /** Rows with a responded, not-yet-reviewed weekly check-in. */
+    newCheckIns?: number;
+    /** Rows with an expired or overdue-unanswered weekly check-in. */
+    missingCheckIns?: number;
+    /** Rows whose active plan window ends within 14 days. */
+    endingSoon?: number;
 }
 
 /** Request model for retrieving a trainer's client list with pagination. */
 export interface GetClientsRequest {
+}
+
+/** The surviving filter chips on the trainer's clients list. Each chip narrows the current tab's rows; its own count is computed with search and tag filters applied but the chip itself not applied, so a zero-count chip can be greyed out on the client. */
+export enum ClientListFilter {
+    All = "All",
+    UnreadMessages = "UnreadMessages",
+    NoMessages = "NoMessages",
+    NewCheckIns = "NewCheckIns",
+    MissingCheckIns = "MissingCheckIns",
+    EndingSoon = "EndingSoon",
 }
 
 /** Response model containing a client's progress data for the trainer view. */
@@ -19429,13 +20062,17 @@ export interface CreateRequestResponse {
     createdAt?: string;
 }
 
-/** Request body for creating a new photo diary request. Exactly one of LinkId or PendingInviteId must be set. */
+/** Request body for creating a new photo diary request. Exactly one of ClientId or PendingInviteId must be set. */
 export interface CreateRequestRequest {
-    /** Internal ID of an existing client-professional link.
-Mutually exclusive with PendingInviteId. */
-    linkId?: number | undefined;
-    /** Internal ID of a pending invite.
-Mutually exclusive with LinkId. */
+    /** Public identifier of the client (ClientProfile.PublicId) this request targets,
+resolved server-side to the caller's own active link. Mutually exclusive with
+PendingInviteId. */
+    clientId?: string | undefined;
+    /** Internal ID of a pending invite. Mutually exclusive with ClientId.
+Deliberately left as the internal long primary key, unlike ClientId:
+a pending invite has no client-facing identity yet — no ClientProfile exists until
+the invite is accepted — so there is no public Guid to address it by. Widening this
+arm to a public identifier is a separate, undecided change and knowingly out of scope here. */
     pendingInviteId?: number | undefined;
     /** Optional MongoDB external identifier of the nutrition or training plan this request is scoped to.
 When set, must belong to the same client as the link/invite. */
@@ -20222,6 +20859,21 @@ export interface ConversationContextResponse {
 }
 
 export interface GetConversationContextRequest {
+}
+
+/** Response for a message broadcast. */
+export interface BroadcastMessageResponse {
+    /** The number of distinct recipients the message was sent to. */
+    sentCount?: number;
+}
+
+/** Request to send the same text message to several clients at once. */
+export interface BroadcastMessageRequest {
+    /** The recipients' ClientProfile.PublicId. Duplicates are ignored. */
+    clientPublicIds: string[];
+    /** The message text. Supports {{firstName}} and {{fullName}} placeholders,
+substituted per recipient before the message is sent. */
+    text: string;
 }
 
 export interface ArchiveConversationRequest {
@@ -21365,6 +22017,63 @@ export interface GenerateSessionPhotoUploadUrlRequest {
     contentType: string;
     /** Declared file size in bytes. Must not exceed 10 MiB. */
     sizeBytes?: number;
+}
+
+/** A single client tag, as returned by every action in the ClientTags slice. */
+export interface ClientTagDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
+    colorHex?: string;
+}
+
+/** Request body for renaming, recoloring, or redescribing a client tag. TagId is bound from the route. */
+export interface UpdateClientTagRequest {
+    /** Tag label. Unique per owning professional. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
+}
+
+/** The resulting tag set assigned to the client, for the caller's link. */
+export interface ReplaceClientTagAssignmentsResponse {
+    /** Public identifier of the client the tags were assigned to. */
+    clientId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: ClientTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a client. ClientId is bound from the route. */
+export interface ReplaceClientTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment for the
+caller's link to this client. */
+    tagIds: string[];
+}
+
+/** The tags owned by the calling professional. */
+export interface GetClientTagsResponse {
+    /** The caller's tags, ordered by name. */
+    tags?: ClientTagDto[];
+}
+
+/** Request for deleting a client tag. Bodyless — TagId is bound from the route. */
+export interface DeleteClientTagRequest {
+}
+
+/** Request body for creating a client tag owned by the calling professional. */
+export interface CreateClientTagRequest {
+    /** Tag label. Unique per owning professional. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
 }
 
 /** Response model returned after sending a client request. */

@@ -70,15 +70,21 @@ public class CreateRequestEndpoint(
         Guid? clientUserId = null;
         string? inviteEmail = null;
 
-        if (req.LinkId.HasValue)
+        if (req.ClientId.HasValue)
         {
-            // Verify the link is owned by this professional and is active
+            // Resolve the client's live link to this professional in a single predicate — an
+            // unknown clientId, a clientId linked to a DIFFERENT professional, and a clientId
+            // whose link is archived (IsActive == false) must all collapse to the same 404, so
+            // client existence never leaks to a caller with no active relationship to them.
             link = await db.ClientProfessionalLinks
                 .AsNoTracking()
                 .Include(l => l.ClientProfile)
-                .FirstOrDefaultAsync(l => l.Id == req.LinkId.Value, ct);
+                .FirstOrDefaultAsync(l =>
+                    l.ClientProfile.PublicId == req.ClientId.Value &&
+                    l.ProfessionalProfileId == professionalProfile.Id &&
+                    l.IsActive, ct);
 
-            if (link is null || link.ProfessionalProfileId != professionalProfile.Id || !link.IsActive)
+            if (link is null)
             {
                 await SendProblemDetailsAsync(404, ErrorCodes.PhotoDiaryRequestLinkNotOwned,
                     "Link not found or does not belong to you.", ct);
@@ -151,7 +157,7 @@ public class CreateRequestEndpoint(
         {
             Id = Guid.NewGuid(),
             ProfessionalId = professionalId,
-            LinkId = req.LinkId,
+            LinkId = link?.Id,
             PendingInviteId = req.PendingInviteId,
             PlanId = req.PlanId,
             DurationDays = req.DurationDays,

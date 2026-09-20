@@ -689,7 +689,6 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
     private sealed class ClientSummaryDto
     {
-        public long LinkId { get; set; }
         public Guid PublicId { get; set; }
         public Guid UserId { get; set; }
         public string Email { get; set; } = string.Empty;

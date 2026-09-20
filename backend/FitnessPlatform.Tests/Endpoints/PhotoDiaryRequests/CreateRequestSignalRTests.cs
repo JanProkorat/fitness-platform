@@ -66,7 +66,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         return (http, user.Id);
     }
 
-    private async Task<long> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
+    private async Task<Guid> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)
     {
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -89,7 +89,7 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         };
         db.ClientProfessionalLinks.Add(link);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return link.Id;
+        return clientProfile.PublicId;
     }
 
     private async Task<long> InsertPendingInviteAsync(Guid professionalUserId, string inviteeEmail)
@@ -129,11 +129,11 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var (profHttp, profId, firstName, lastName) = await SetupProfessionalAsync();
         var (_, clientId) = await SetupClientAsync();
-        var linkId = await InsertLinkAsync(clientId, profId);
+        var clientPublicId = await InsertLinkAsync(clientId, profId);
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, DurationDays = 7 },
+            new { ClientId = clientPublicId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -159,11 +159,11 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var (profHttp, profId, _, _) = await SetupProfessionalAsync();
         var (_, clientId) = await SetupClientAsync();
-        var linkId = await InsertLinkAsync(clientId, profId);
+        var clientPublicId = await InsertLinkAsync(clientId, profId);
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, DurationDays = 14 },
+            new { ClientId = clientPublicId, DurationDays = 14 },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -253,11 +253,11 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
 
         var (profHttp, profId, _, _) = await SetupProfessionalAsync();
         var (_, clientId) = await SetupClientAsync();
-        var linkId = await InsertLinkAsync(clientId, profId);
+        var clientPublicId = await InsertLinkAsync(clientId, profId);
 
         var response = await profHttp.PostAsJsonAsync(
             "/trainer/photo-diary-requests",
-            new { LinkId = linkId, DurationDays = 7 },
+            new { ClientId = clientPublicId, DurationDays = 7 },
             TestContext.Current.CancellationToken);
 
         // The HTTP response must still be 200 even though the notifier threw

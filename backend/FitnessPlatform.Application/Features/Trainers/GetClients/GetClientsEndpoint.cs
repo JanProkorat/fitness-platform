@@ -428,7 +428,6 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
     private static ClientSummary BuildSummary(ClassifiedRow r, Dictionary<long, List<ClientTagSummaryDto>> tagsByLinkId) =>
         new()
         {
-            LinkId = r.Row.LinkId,
             PublicId = r.Row.ClientPublicId,
             UserId = r.Row.ClientUserId,
             Email = r.Row.Email,

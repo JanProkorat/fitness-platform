@@ -96,12 +96,6 @@ public class ClientFilterCounts
 public class ClientSummary
 {
     /// <summary>
-    /// Internal integer primary key of the ClientProfessionalLink row.
-    /// Used to populate <c>linkId</c> on the photo-diary-request create form.
-    /// </summary>
-    public long LinkId { get; set; }
-
-    /// <summary>
     /// Client profile's public ID.
     /// </summary>
     public Guid PublicId { get; set; }
