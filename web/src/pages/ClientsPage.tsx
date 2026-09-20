@@ -191,7 +191,7 @@ export default function ClientsPage() {
           <h1 className="text-title font-bold text-ink">{t('clients.title')}</h1>
           <p className="text-body text-muted-foreground">{t('clients.subtitle')}</p>
         </div>
-        <Button type="button" onClick={() => setAddClientOpen(true)}>
+        <Button type="button" size="lg" onClick={() => setAddClientOpen(true)}>
           {t('clients.inviteClient')}
         </Button>
       </div>

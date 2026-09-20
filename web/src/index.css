@@ -27,6 +27,7 @@
   /* ---- Tier 1: raw tokens (spec §3) ---- */
   --gf-ink: #0f172a; /* primary text, headings */
   --gf-ink-2: #334155; /* secondary text */
+  --gf-ink-3: #475569; /* selection-bar Cancel pill label (#1079) */
   --gf-muted: #64748b; /* labels, inactive nav, section headers */
   --gf-faint: #94a3b8; /* placeholder text */
   --gf-line: #e2e8f0; /* borders, hairlines */
@@ -89,6 +90,7 @@
   --gf-text-cta-title: clamp(24px, 3vw, 32px); /* closing CTA H2 */
 
   --gf-shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06); /* login panel + medallion */
+  --gf-shadow-selection-bar: 0 4px 12px rgba(0, 0, 0, 0.1); /* clients-page bulk-selection bar (Figma node 1:827, #1079) */
 
   --gf-panel-width: 440px; /* login panel column width */
   --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
@@ -153,6 +155,7 @@
      equivalent (the sidebar's dark active pill, secondary body text). */
   --color-ink: var(--gf-ink);
   --color-ink-2: var(--gf-ink-2);
+  --color-ink-3: var(--gf-ink-3);
   --color-faint: var(--gf-faint);
   --color-line: var(--gf-line);
   --color-paper: var(--gf-paper);
@@ -234,6 +237,7 @@
   --font-accent: var(--gf-font-accent);
 
   --shadow-panel: var(--gf-shadow-panel);
+  --shadow-selection-bar: var(--gf-shadow-selection-bar);
 
   --spacing-panel: var(--gf-panel-width);
   --spacing-collage-cell: var(--gf-collage-cell-min-height);
