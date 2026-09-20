@@ -4,8 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PendingRowKind, type PendingClientRow } from '@/api/clients';
+import {
+  useAcceptClientRequest,
+  useCancelPendingInvite,
+  useRejectClientRequest,
+} from '@/hooks/useClientsQueries';
 
-const COLUMN_COUNT = 4;
+const COLUMN_COUNT = 5;
 const SKELETON_ROW_COUNT = 3;
 
 interface Props {
@@ -21,11 +26,15 @@ interface Props {
  * `ClientSummary` — no avatar, status, tags, unread count or plans, and its
  * id means a different thing depending on `kind` (PendingInvite.PublicId vs
  * ClientRequest.PublicId). It is also unpaginated, so there is no pagination
- * control on this tab. Rows render read-only this phase — accept/reject/
- * cancel actions land in phase 4.
+ * control on this tab. Which action a row gets depends on `kind`: an Invite
+ * row can only be cancelled (the trainer sent it); a Request row can be
+ * accepted or rejected (the client sent it).
  */
 export default function PendingTable({ rows, isPending, isError, onRetry }: Props) {
   const { t } = useTranslation();
+  const cancelMutation = useCancelPendingInvite();
+  const acceptMutation = useAcceptClientRequest();
+  const rejectMutation = useRejectClientRequest();
 
   return (
     <Table>
@@ -35,6 +44,9 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
           <TableHead>{t('clients.pendingTable.columnEmail')}</TableHead>
           <TableHead>{t('clients.pendingTable.columnType')}</TableHead>
           <TableHead>{t('clients.pendingTable.columnSentAt')}</TableHead>
+          <TableHead className="w-40">
+            <span className="sr-only">{t('common.actions')}</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -70,26 +82,69 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
 
         {!isPending &&
           !isError &&
-          rows.map((row) => (
-            <TableRow key={`${row.kind}-${row.publicId}`}>
-              <TableCell>
-                <span className="font-medium text-foreground">
-                  {row.firstName} {row.lastName}
-                </span>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{row.email}</TableCell>
-              <TableCell>
-                <Badge variant={row.kind === PendingRowKind.Request ? 'secondary' : 'outline'}>
-                  {row.kind === PendingRowKind.Request
-                    ? t('clients.pendingTable.kindRequest')
-                    : t('clients.pendingTable.kindInvite')}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {row.sentAt ? new Date(row.sentAt).toLocaleDateString() : null}
-              </TableCell>
-            </TableRow>
-          ))}
+          rows.map((row) => {
+            const publicId = row.publicId ?? '';
+            const isCancelling = cancelMutation.isPending && cancelMutation.variables === publicId;
+            const isAccepting = acceptMutation.isPending && acceptMutation.variables?.publicId === publicId;
+            const isRejecting = rejectMutation.isPending && rejectMutation.variables?.publicId === publicId;
+
+            return (
+              <TableRow key={`${row.kind}-${row.publicId}`}>
+                <TableCell>
+                  <span className="font-medium text-foreground">
+                    {row.firstName} {row.lastName}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{row.email}</TableCell>
+                <TableCell>
+                  <Badge variant={row.kind === PendingRowKind.Request ? 'secondary' : 'outline'}>
+                    {row.kind === PendingRowKind.Request
+                      ? t('clients.pendingTable.kindRequest')
+                      : t('clients.pendingTable.kindInvite')}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.sentAt ? new Date(row.sentAt).toLocaleDateString() : null}
+                </TableCell>
+                <TableCell>
+                  {row.kind === PendingRowKind.Request ? (
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!publicId || isAccepting || isRejecting}
+                        onClick={() => acceptMutation.mutate({ publicId })}
+                      >
+                        {isAccepting ? t('common.saving') : t('clients.pendingTable.accept')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!publicId || isAccepting || isRejecting}
+                        onClick={() => rejectMutation.mutate({ publicId })}
+                      >
+                        {isRejecting ? t('common.saving') : t('clients.pendingTable.reject')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!publicId || isCancelling}
+                        onClick={() => cancelMutation.mutate(publicId)}
+                      >
+                        {isCancelling ? t('common.saving') : t('clients.pendingTable.cancel')}
+                      </Button>
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
       </TableBody>
     </Table>
   );

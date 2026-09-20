@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,9 @@ import ClientTagFilterPopover from '@/components/clients/ClientTagFilterPopover'
 import ClientsTable from '@/components/clients/ClientsTable';
 import PendingTable from '@/components/clients/PendingTable';
 import ClientsPagination from '@/components/clients/ClientsPagination';
+import ClientSelectionBar from '@/components/clients/ClientSelectionBar';
+import BroadcastDrawer from '@/components/clients/BroadcastDrawer';
+import AddClientDrawer from '@/components/clients/AddClientDrawer';
 
 const TAB_ORDER: ClientListTab[] = ['Active', 'Paused', 'Archived', 'Pending'];
 
@@ -41,6 +45,48 @@ export default function ClientsPage() {
   const { filters, setSearch, setTab, setChip, setTagIds, setPage, clearFilters } = useClientListParams();
 
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+
+  // Selection is page-local UI state, not a URL filter — clear it whenever
+  // the tab changes so a stale selection can't keep the bulk bar alive over
+  // rows that can no longer receive a broadcast (e.g. switching to Pending,
+  // which has no selection at all). Adjusted during render, same pattern as
+  // `syncedSearch` above — React's own "adjusting state when a prop changes"
+  // pattern — rather than a useEffect, which would call setState after an
+  // extra commit and trigger a second, avoidable render.
+  const [selectionTab, setSelectionTab] = useState(filters.tab);
+  if (filters.tab !== selectionTab) {
+    setSelectionTab(filters.tab);
+    setSelectedIds(new Set());
+  }
+
+  function toggleRow(id: string) {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleAll(ids: string[]) {
+    setSelectedIds((previous) => {
+      const allSelected = ids.length > 0 && ids.every((id) => previous.has(id));
+      if (allSelected) {
+        const next = new Set(previous);
+        for (const id of ids) {
+          next.delete(id);
+        }
+        return next;
+      }
+      return new Set([...previous, ...ids]);
+    });
+  }
 
   // Re-sync the local input when the URL's search value changes from
   // elsewhere (browser back/forward, clearFilters, a hand-edited URL).
@@ -75,9 +121,14 @@ export default function ClientsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-title font-bold text-ink">{t('clients.title')}</h1>
-        <p className="text-body text-muted-foreground">{t('clients.subtitle')}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-title font-bold text-ink">{t('clients.title')}</h1>
+          <p className="text-body text-muted-foreground">{t('clients.subtitle')}</p>
+        </div>
+        <Button type="button" onClick={() => setAddClientOpen(true)}>
+          {t('clients.inviteClient')}
+        </Button>
       </div>
 
       <Tabs value={filters.tab} onValueChange={(value) => setTab(value as ClientListTab)}>
@@ -131,6 +182,10 @@ export default function ClientsPage() {
             onRetry={() => void clientsQuery.refetch()}
             hasActiveFilter={hasActiveFilter}
             onClearFilters={clearFilters}
+            onInviteClient={() => setAddClientOpen(true)}
+            selectedIds={selectedIds}
+            onToggleRow={toggleRow}
+            onToggleAll={toggleAll}
           />
           <ClientsPagination
             page={filters.page}
@@ -140,6 +195,19 @@ export default function ClientsPage() {
           />
         </>
       )}
+
+      <ClientSelectionBar
+        count={selectedIds.size}
+        onBroadcast={() => setBroadcastOpen(true)}
+        onCancel={() => setSelectedIds(new Set())}
+      />
+      <BroadcastDrawer
+        open={broadcastOpen}
+        onOpenChange={setBroadcastOpen}
+        clientPublicIds={[...selectedIds]}
+        onSent={() => setSelectedIds(new Set())}
+      />
+      <AddClientDrawer open={addClientOpen} onOpenChange={setAddClientOpen} />
     </div>
   );
 }

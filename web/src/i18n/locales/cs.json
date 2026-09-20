@@ -346,7 +346,9 @@
       "plansAriaLabel_many": "{{count}} aktivního plánu",
       "plansAriaLabel_other": "{{count}} aktivních plánů",
       "planSince": "Od {{date}}",
-      "noActivePlans": "Žádné aktivní plány"
+      "noActivePlans": "Žádné aktivní plány",
+      "selectAll": "Vybrat všechny klienty na této stránce",
+      "selectRow": "Vybrat {{name}}"
     },
     "rowMenu": {
       "open": "Otevřít nabídku řádku",
@@ -362,7 +364,10 @@
       "columnSentAt": "Odesláno",
       "kindInvite": "Pozvánka odeslána",
       "kindRequest": "Přijata žádost",
-      "empty": "Žádné čekající pozvánky ani žádosti."
+      "empty": "Žádné čekající pozvánky ani žádosti.",
+      "accept": "Přijmout",
+      "reject": "Odmítnout",
+      "cancel": "Zrušit"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -568,6 +573,52 @@
       "Cut": "Redukce (deficit)",
       "Maintain": "Udržení",
       "Bulk": "Nabírání (surplus)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} vybraný klient",
+      "count_other": "{{count}} vybraných klientů",
+      "broadcast": "Odeslat zprávu",
+      "cancel": "Zrušit"
+    },
+    "broadcastDrawer": {
+      "title": "Hromadná zpráva",
+      "description_one": "Odeslat tuto zprávu {{count}} vybranému klientovi.",
+      "description_other": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "placeholder": "Napište zprávu...",
+      "insertFirstName": "Vložit křestní jméno",
+      "insertFullName": "Vložit celé jméno",
+      "send": "Odeslat",
+      "validation": {
+        "textRequired": "Text zprávy je povinný."
+      }
+    },
+    "tagPicker": {
+      "open": "Přiřadit štítky",
+      "createTag": "+ Vytvořit štítek",
+      "createTitle": "Vytvořit nový štítek",
+      "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
+      "nameLabel": "Název",
+      "colorLabel": "Barva",
+      "descriptionLabel": "Popis (nepovinné)",
+      "createSubmit": "Vytvořit štítek",
+      "validation": {
+        "nameRequired": "Název štítku je povinný."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Pozvat nového klienta",
+      "description": "Klient obdrží e-mailovou pozvánku k vytvoření účtu a propojení s vámi.",
+      "firstNameLabel": "Křestní jméno",
+      "lastNameLabel": "Příjmení",
+      "emailLabel": "E-mail",
+      "messageLabel": "Zpráva (nepovinné)",
+      "submit": "Odeslat pozvánku",
+      "validation": {
+        "firstNameRequired": "Křestní jméno je povinné.",
+        "lastNameRequired": "Příjmení je povinné.",
+        "emailRequired": "E-mail je povinný.",
+        "emailInvalid": "Zadejte platnou e-mailovou adresu."
+      }
     }
   },
   "profile": {
@@ -1054,7 +1105,16 @@
     "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-deník nebyl nalezen.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Tento foto-deník vám nepatří.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Hromadnou zprávu můžete odeslat najednou nejvýše 50 klientům.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Jeden z vybraných klientů s vámi již není propojen.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Po doplnění jmen je zpráva příliš dlouhá. Zkraťte prosím text.",
+    "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
+    "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
+    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního trenéra.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
+    "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",

@@ -338,7 +338,9 @@
       "plansAriaLabel_one": "{{count}} active plan",
       "plansAriaLabel_other": "{{count}} active plans",
       "planSince": "Since {{date}}",
-      "noActivePlans": "No active plans"
+      "noActivePlans": "No active plans",
+      "selectAll": "Select all clients on this page",
+      "selectRow": "Select {{name}}"
     },
     "rowMenu": {
       "open": "Open row menu",
@@ -354,7 +356,10 @@
       "columnSentAt": "Sent",
       "kindInvite": "Invite sent",
       "kindRequest": "Request received",
-      "empty": "No pending invites or requests."
+      "empty": "No pending invites or requests.",
+      "accept": "Accept",
+      "reject": "Reject",
+      "cancel": "Cancel"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",
@@ -551,6 +556,52 @@
       "Cut": "Cut (deficit)",
       "Maintain": "Maintain",
       "Bulk": "Bulk (surplus)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} client selected",
+      "count_other": "{{count}} clients selected",
+      "broadcast": "Broadcast",
+      "cancel": "Cancel"
+    },
+    "broadcastDrawer": {
+      "title": "Broadcast message",
+      "description_one": "Send this message to {{count}} selected client.",
+      "description_other": "Send this message to {{count}} selected clients.",
+      "placeholder": "Type your message...",
+      "insertFirstName": "Insert first name",
+      "insertFullName": "Insert full name",
+      "send": "Send",
+      "validation": {
+        "textRequired": "Message text is required."
+      }
+    },
+    "tagPicker": {
+      "open": "Assign tags",
+      "createTag": "+ Create tag",
+      "createTitle": "Create a new tag",
+      "createDescription": "Tags help you group and filter your clients.",
+      "nameLabel": "Name",
+      "colorLabel": "Color",
+      "descriptionLabel": "Description (optional)",
+      "createSubmit": "Create tag",
+      "validation": {
+        "nameRequired": "Tag name is required."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Invite a new client",
+      "description": "The client will receive an email invitation to create an account and connect with you.",
+      "firstNameLabel": "First name",
+      "lastNameLabel": "Last name",
+      "emailLabel": "Email",
+      "messageLabel": "Message (optional)",
+      "submit": "Send invitation",
+      "validation": {
+        "firstNameRequired": "First name is required.",
+        "lastNameRequired": "Last name is required.",
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Enter a valid email address."
+      }
     }
   },
   "profile": {
@@ -1037,7 +1088,16 @@
     "QuestionnaireResponseId": "This questionnaire response was not found or is not submitted yet.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Photo diary not found.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "This photo diary does not belong to you.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "The selected plan was not found or does not belong to this client.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "You can broadcast to at most 50 clients at once.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "One of the selected clients is no longer linked to you.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "The message is too long once names are inserted. Please shorten it.",
+    "DUPLICATE_PENDING_INVITE": "An invite to this email is already pending.",
+    "TOO_MANY_PENDING_INVITES": "You've reached the maximum number of pending invites. Wait for a response or cancel one first.",
+    "PROFESSION_ALREADY_OCCUPIED": "This client already has an active coach for this profession.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "The requested access exceeds your current roles.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
+    "CLIENT_TAG_NOT_FOUND": "This tag could not be found."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",

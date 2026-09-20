@@ -338,7 +338,9 @@
       "plansAriaLabel_one": "{{count}} aktiver Plan",
       "plansAriaLabel_other": "{{count}} aktive Pläne",
       "planSince": "Seit {{date}}",
-      "noActivePlans": "Keine aktiven Pläne"
+      "noActivePlans": "Keine aktiven Pläne",
+      "selectAll": "Alle Klienten auf dieser Seite auswählen",
+      "selectRow": "{{name}} auswählen"
     },
     "rowMenu": {
       "open": "Zeilenmenü öffnen",
@@ -354,7 +356,10 @@
       "columnSentAt": "Gesendet",
       "kindInvite": "Einladung gesendet",
       "kindRequest": "Anfrage erhalten",
-      "empty": "Keine ausstehenden Einladungen oder Anfragen."
+      "empty": "Keine ausstehenden Einladungen oder Anfragen.",
+      "accept": "Annehmen",
+      "reject": "Ablehnen",
+      "cancel": "Abbrechen"
     },
     "tags": {
       "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -550,6 +555,52 @@
       "Cut": "Reduktion (Defizit)",
       "Maintain": "Erhaltung",
       "Bulk": "Aufbau (Überschuss)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} Klient ausgewählt",
+      "count_other": "{{count}} Klienten ausgewählt",
+      "broadcast": "Nachricht senden",
+      "cancel": "Abbrechen"
+    },
+    "broadcastDrawer": {
+      "title": "Nachricht an mehrere Klienten",
+      "description_one": "Diese Nachricht an {{count}} ausgewählten Klienten senden.",
+      "description_other": "Diese Nachricht an {{count}} ausgewählte Klienten senden.",
+      "placeholder": "Nachricht eingeben...",
+      "insertFirstName": "Vorname einfügen",
+      "insertFullName": "Vollständigen Namen einfügen",
+      "send": "Senden",
+      "validation": {
+        "textRequired": "Nachrichtentext ist erforderlich."
+      }
+    },
+    "tagPicker": {
+      "open": "Tags zuweisen",
+      "createTag": "+ Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Klienten zu gruppieren und zu filtern.",
+      "nameLabel": "Name",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung (optional)",
+      "createSubmit": "Tag erstellen",
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Neuen Klienten einladen",
+      "description": "Der Klient erhält eine E-Mail-Einladung, ein Konto zu erstellen und sich mit Ihnen zu verbinden.",
+      "firstNameLabel": "Vorname",
+      "lastNameLabel": "Nachname",
+      "emailLabel": "E-Mail",
+      "messageLabel": "Nachricht (optional)",
+      "submit": "Einladung senden",
+      "validation": {
+        "firstNameRequired": "Vorname ist erforderlich.",
+        "lastNameRequired": "Nachname ist erforderlich.",
+        "emailRequired": "E-Mail ist erforderlich.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+      }
     }
   },
   "profile": {
@@ -1036,7 +1087,16 @@
     "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Sie können eine Nachricht gleichzeitig an höchstens 50 Klienten senden.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Einer der ausgewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Die Nachricht ist nach dem Einfügen der Namen zu lang. Bitte kürzen Sie den Text.",
+    "DUPLICATE_PENDING_INVITE": "Für diese E-Mail-Adresse besteht bereits eine offene Einladung.",
+    "TOO_MANY_PENDING_INVITES": "Sie haben die maximale Anzahl offener Einladungen erreicht. Warten Sie auf eine Antwort oder brechen Sie eine ab.",
+    "PROFESSION_ALREADY_OCCUPIED": "Dieser Klient hat für diesen Beruf bereits einen aktiven Coach.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Der angeforderte Zugriff übersteigt Ihre aktuellen Rollen.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
+    "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
