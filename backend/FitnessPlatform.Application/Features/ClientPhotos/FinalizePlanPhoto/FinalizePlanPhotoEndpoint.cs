@@ -66,6 +66,7 @@ public class FinalizePlanPhotoEndpoint(
                 + "When DiaryRequestId is provided the photo is linked to the diary request; "
                 + "the request must be owned by the calling client and in Accepted or InProgress "
                 + "status. The first photo upload for an Accepted request transitions it to InProgress.";
+            s.Response<PlanPhotoResponse>(StatusCodes.Status201Created, "Plan photo finalized");
         });
     }
 

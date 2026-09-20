@@ -26,7 +26,7 @@ public class CreateClientTagEndpoint(IApplicationDbContext db)
         {
             s.Summary = "Create a client tag";
             s.Description = "Creates a new tag owned by the calling professional.";
-            s.Responses[StatusCodes.Status201Created] = "Tag created";
+            s.Response<ClientTagDto>(StatusCodes.Status201Created, "Tag created");
             s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
             s.Responses[StatusCodes.Status404NotFound] = "Caller has no professional profile";
