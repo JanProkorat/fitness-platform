@@ -82,13 +82,16 @@ function ToastClose({
  * swipe dismiss and focus management come for free. Mount once, app-wide
  * (see App.tsx).
  *
- * Auto-dismiss timing is owned by the store (`useToastStore`'s own 5s
- * timer), not by Radix's per-root `duration` — the store is the single
- * source of truth for when a toast leaves the queue, so each Root's own
- * duration is disabled here to avoid two independent timers racing to
- * remove the same toast. Swipe-to-dismiss and the close button still go
- * through Radix's `onOpenChange`, which removes the toast immediately.
+ * Auto-dismiss timing is owned by Radix, not by the store — deliberately,
+ * and unlike the pre-strip implementation. Radix's per-root `duration`
+ * pauses while the toast is hovered or focused, which a blind store-side
+ * setTimeout cannot do; with both running, hovering to read a long error
+ * pauses one timer while the other fires anyway and removes the toast
+ * mid-read. Every exit path — the duration elapsing, swipe-to-dismiss, the
+ * close button — funnels through `onOpenChange`, which is what takes the
+ * toast out of the store's queue.
  */
+const TOAST_DURATION_MS = 5000
 function Toaster() {
   const toasts = useToastStore((s) => s.toasts)
   const removeToast = useToastStore((s) => s.removeToast)
@@ -99,7 +102,7 @@ function Toaster() {
         <ToastRoot
           key={toast.id}
           variant={toast.type}
-          duration={Infinity}
+          duration={TOAST_DURATION_MS}
           onOpenChange={(open) => {
             if (!open) {
               removeToast(toast.id)
