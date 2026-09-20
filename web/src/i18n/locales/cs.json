@@ -184,7 +184,9 @@
     "comingSoon": "Tato stránka je připravována.",
     "notFoundTitle": "Stránka nenalezena",
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
-    "backToClients": "Zpět na klienty"
+    "backToClients": "Zpět na klienty",
+    "openNavigation": "Otevřít navigaci",
+    "navigationTitle": "Navigace"
   },
   "sidebar": {
     "dashboard": "Dashboard",

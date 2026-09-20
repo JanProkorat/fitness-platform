@@ -184,7 +184,9 @@
     "comingSoon": "Diese Seite ist in Vorbereitung.",
     "notFoundTitle": "Seite nicht gefunden",
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
-    "backToClients": "Zurück zu Klienten"
+    "backToClients": "Zurück zu Klienten",
+    "openNavigation": "Navigation öffnen",
+    "navigationTitle": "Navigation"
   },
   "sidebar": {
     "dashboard": "Dashboard",

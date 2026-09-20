@@ -184,7 +184,9 @@
     "comingSoon": "This page is coming soon.",
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you're looking for doesn't exist.",
-    "backToClients": "Back to Clients"
+    "backToClients": "Back to Clients",
+    "openNavigation": "Open navigation",
+    "navigationTitle": "Navigation"
   },
   "sidebar": {
     "dashboard": "Dashboard",

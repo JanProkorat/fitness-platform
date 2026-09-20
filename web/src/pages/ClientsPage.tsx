@@ -132,14 +132,21 @@ export default function ClientsPage() {
       </div>
 
       <Tabs value={filters.tab} onValueChange={(value) => setTab(value as ClientListTab)}>
-        <TabsList>
-          {TAB_ORDER.map((tab) => (
-            <TabsTrigger key={tab} value={tab} className="gap-1.5">
-              {t(TAB_LABEL_KEY[tab])}
-              {tabCounts && <Badge variant="secondary">{tabCounts[TAB_COUNT_KEY[tab]] ?? 0}</Badge>}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* Below the width where all four tabs fit (phone-width shell fix,
+            see PLAN-1066-clients-page.md phase 5), the row scrolls within
+            its own container instead of being clipped by the shell's
+            `overflow-x-hidden` main region — a clipped-but-not-scrollable
+            "Pending" tab would be unreachable rather than merely narrow. */}
+        <div className="overflow-x-auto">
+          <TabsList>
+            {TAB_ORDER.map((tab) => (
+              <TabsTrigger key={tab} value={tab} className="gap-1.5">
+                {t(TAB_LABEL_KEY[tab])}
+                {tabCounts && <Badge variant="secondary">{tabCounts[TAB_COUNT_KEY[tab]] ?? 0}</Badge>}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
       </Tabs>
 
       {!isPendingTab && (
