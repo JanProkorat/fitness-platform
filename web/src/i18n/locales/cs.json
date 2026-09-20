@@ -311,6 +311,78 @@
   "clients": {
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
+    "tabs": {
+      "active": "Aktivní",
+      "paused": "Pozastavení",
+      "archived": "Archivovaní",
+      "pending": "Čekající"
+    },
+    "searchPlaceholder": "Hledat klienty...",
+    "chips": {
+      "groupLabel": "Filtrovat klienty",
+      "all": "Vše",
+      "unreadMessages": "Nepřečtené zprávy",
+      "noMessages": "Bez zpráv",
+      "newCheckIns": "Nové check-iny",
+      "missingCheckIns": "Chybějící check-iny",
+      "endingSoon": "Brzy končící"
+    },
+    "tagFilter": {
+      "label": "Štítky",
+      "empty": "Zatím jste nevytvořili žádné štítky."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Stav",
+      "columnTags": "Štítky",
+      "columnUnread": "Nepřečtené",
+      "columnPlans": "Plány",
+      "unreadTooltip_one": "{{count}} nepřečtená zpráva",
+      "unreadTooltip_few": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_many": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_other": "{{count}} nepřečtených zpráv",
+      "plansAriaLabel_one": "{{count}} aktivní plán",
+      "plansAriaLabel_few": "{{count}} aktivní plány",
+      "plansAriaLabel_many": "{{count}} aktivního plánu",
+      "plansAriaLabel_other": "{{count}} aktivních plánů",
+      "planSince": "Od {{date}}",
+      "noActivePlans": "Žádné aktivní plány"
+    },
+    "rowMenu": {
+      "open": "Otevřít nabídku řádku",
+      "viewDetail": "Otevřít detail klienta"
+    },
+    "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
+    "clearFilters": "Zrušit filtry",
+    "retry": "Zkusit znovu",
+    "pendingTable": {
+      "columnName": "Jméno",
+      "columnEmail": "E-mail",
+      "columnType": "Typ",
+      "columnSentAt": "Odesláno",
+      "kindInvite": "Pozvánka odeslána",
+      "kindRequest": "Přijata žádost",
+      "empty": "Žádné čekající pozvánky ani žádosti."
+    },
+    "tags": {
+      "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateError": "Štítek se nepodařilo upravit. Zkuste to prosím znovu.",
+      "deleteError": "Štítek se nepodařilo smazat. Zkuste to prosím znovu.",
+      "assignError": "Štítky klienta se nepodařilo upravit. Zkuste to prosím znovu."
+    },
+    "broadcast": {
+      "success": "Zpráva byla odeslána.",
+      "error": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "addClient": {
+      "success": "Pozvánka byla odeslána.",
+      "error": "Pozvánku se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "pending": {
+      "cancelError": "Pozvánku se nepodařilo zrušit. Zkuste to prosím znovu.",
+      "acceptError": "Žádost se nepodařilo přijmout. Zkuste to prosím znovu.",
+      "rejectError": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
+    },
     "inviteClient": "+ Pozvat klienta",
     "inviteNewClient": "Pozvat nového klienta",
     "inviteSent": "Pozvánka odeslána!",

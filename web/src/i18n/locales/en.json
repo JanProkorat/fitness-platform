@@ -307,6 +307,74 @@
   "clients": {
     "title": "Clients",
     "subtitle": "Client management and overview",
+    "tabs": {
+      "active": "Active",
+      "paused": "Paused",
+      "archived": "Archived",
+      "pending": "Pending"
+    },
+    "searchPlaceholder": "Search clients...",
+    "chips": {
+      "groupLabel": "Filter clients",
+      "all": "All",
+      "unreadMessages": "Unread messages",
+      "noMessages": "No messages",
+      "newCheckIns": "New check-ins",
+      "missingCheckIns": "Missing check-ins",
+      "endingSoon": "Ending soon"
+    },
+    "tagFilter": {
+      "label": "Tags",
+      "empty": "You haven't created any tags yet."
+    },
+    "table": {
+      "columnClient": "Client",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnUnread": "Unread",
+      "columnPlans": "Plans",
+      "unreadTooltip_one": "{{count}} unread message",
+      "unreadTooltip_other": "{{count}} unread messages",
+      "plansAriaLabel_one": "{{count}} active plan",
+      "plansAriaLabel_other": "{{count}} active plans",
+      "planSince": "Since {{date}}",
+      "noActivePlans": "No active plans"
+    },
+    "rowMenu": {
+      "open": "Open row menu",
+      "viewDetail": "Open client detail"
+    },
+    "noResultsForFilters": "No clients match your filters.",
+    "clearFilters": "Clear filters",
+    "retry": "Retry",
+    "pendingTable": {
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnType": "Type",
+      "columnSentAt": "Sent",
+      "kindInvite": "Invite sent",
+      "kindRequest": "Request received",
+      "empty": "No pending invites or requests."
+    },
+    "tags": {
+      "createError": "Couldn't create the tag. Please try again.",
+      "updateError": "Couldn't update the tag. Please try again.",
+      "deleteError": "Couldn't delete the tag. Please try again.",
+      "assignError": "Couldn't update this client's tags. Please try again."
+    },
+    "broadcast": {
+      "success": "Message sent.",
+      "error": "Couldn't send the message. Please try again."
+    },
+    "addClient": {
+      "success": "Invitation sent.",
+      "error": "Couldn't send the invitation. Please try again."
+    },
+    "pending": {
+      "cancelError": "Couldn't cancel the invite. Please try again.",
+      "acceptError": "Couldn't accept the request. Please try again.",
+      "rejectError": "Couldn't reject the request. Please try again."
+    },
     "inviteClient": "+ Invite client",
     "inviteNewClient": "Invite a new client",
     "inviteSent": "Invitation sent!",

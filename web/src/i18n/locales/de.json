@@ -307,6 +307,74 @@
   "clients": {
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
+    "tabs": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "archived": "Archiviert",
+      "pending": "Ausstehend"
+    },
+    "searchPlaceholder": "Klienten suchen...",
+    "chips": {
+      "groupLabel": "Klienten filtern",
+      "all": "Alle",
+      "unreadMessages": "Ungelesene Nachrichten",
+      "noMessages": "Keine Nachrichten",
+      "newCheckIns": "Neue Check-ins",
+      "missingCheckIns": "Fehlende Check-ins",
+      "endingSoon": "Endet bald"
+    },
+    "tagFilter": {
+      "label": "Tags",
+      "empty": "Sie haben noch keine Tags erstellt."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnUnread": "Ungelesen",
+      "columnPlans": "Pläne",
+      "unreadTooltip_one": "{{count}} ungelesene Nachricht",
+      "unreadTooltip_other": "{{count}} ungelesene Nachrichten",
+      "plansAriaLabel_one": "{{count}} aktiver Plan",
+      "plansAriaLabel_other": "{{count}} aktive Pläne",
+      "planSince": "Seit {{date}}",
+      "noActivePlans": "Keine aktiven Pläne"
+    },
+    "rowMenu": {
+      "open": "Zeilenmenü öffnen",
+      "viewDetail": "Klientendetail öffnen"
+    },
+    "noResultsForFilters": "Keine Klienten entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "retry": "Erneut versuchen",
+    "pendingTable": {
+      "columnName": "Name",
+      "columnEmail": "E-Mail",
+      "columnType": "Typ",
+      "columnSentAt": "Gesendet",
+      "kindInvite": "Einladung gesendet",
+      "kindRequest": "Anfrage erhalten",
+      "empty": "Keine ausstehenden Einladungen oder Anfragen."
+    },
+    "tags": {
+      "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateError": "Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "deleteError": "Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "assignError": "Tags des Klienten konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "broadcast": {
+      "success": "Nachricht gesendet.",
+      "error": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "addClient": {
+      "success": "Einladung gesendet.",
+      "error": "Einladung konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "pending": {
+      "cancelError": "Einladung konnte nicht storniert werden. Bitte versuchen Sie es erneut.",
+      "acceptError": "Anfrage konnte nicht angenommen werden. Bitte versuchen Sie es erneut.",
+      "rejectError": "Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
+    },
     "inviteClient": "+ Klient einladen",
     "inviteNewClient": "Neuen Klienten einladen",
     "inviteSent": "Einladung gesendet!",
