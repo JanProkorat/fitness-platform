@@ -29,7 +29,7 @@ export default function AppShell() {
       </div>
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
-        <SheetContent side="left" className="w-64 gap-0 p-0 lg:hidden">
+        <SheetContent side="left" className="w-60 gap-0 p-0 lg:hidden">
           <SheetTitle className="sr-only">{t('shell.navigationTitle')}</SheetTitle>
           <Sidebar onNavigate={() => setNavOpen(false)} />
         </SheetContent>

@@ -65,7 +65,7 @@ export default function Sidebar({ onNavigate }: Props) {
   const roleLabel = user ? formatRoleLabel(user.roles, t) : '';
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col gap-5 bg-sidebar-bg px-4 py-6">
+    <aside className="flex h-full w-60 shrink-0 flex-col gap-5 bg-sidebar-bg px-4 py-6">
       <div className="flex items-center justify-between gap-2 px-2 pb-3">
         <div className="flex items-center gap-2">
           <div className="flex size-8 items-center justify-center rounded-sm bg-brand text-body font-extrabold text-paper">
