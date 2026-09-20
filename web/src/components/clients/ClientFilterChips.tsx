@@ -39,9 +39,10 @@ interface Props {
 /**
  * The six surviving filter chips. A chip's count is computed with the
  * current tab/search/tags applied but the chip itself not — see
- * `ClientFilterCounts` in generated.ts — which is exactly what lets a
- * zero-count chip grey out here without losing the ability to select it
- * (clearing to an empty result is still a valid, if unhelpful, state).
+ * `ClientFilterCounts` in generated.ts — so a count of zero genuinely means
+ * "selecting this returns nothing", and the chip is disabled rather than
+ * merely greyed. The active chip is never disabled, or a coach who filtered
+ * down to zero rows could not clear the filter they just applied.
  *
  * Count sits BEFORE the label ("2 All", not "All 2") and the chip itself is
  * a solid pill (active = green fill, inactive = grey fill) per the Figma

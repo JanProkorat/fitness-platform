@@ -581,6 +581,8 @@
     },
     "selectionBar": {
       "count_one": "{{count}} vybraný klient",
+      "count_few": "{{count}} vybraní klienti",
+      "count_many": "{{count}} vybraných klientů",
       "count_other": "{{count}} vybraných klientů",
       "broadcast": "Odeslat zprávu",
       "cancel": "Zrušit"
@@ -588,6 +590,8 @@
     "broadcastDrawer": {
       "title": "Hromadná zpráva",
       "description_one": "Odeslat tuto zprávu {{count}} vybranému klientovi.",
+      "description_few": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "description_many": "Odeslat tuto zprávu {{count}} vybraným klientům.",
       "description_other": "Odeslat tuto zprávu {{count}} vybraným klientům.",
       "placeholder": "Napište zprávu...",
       "insertFirstName": "Vložit křestní jméno",
