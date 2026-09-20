@@ -123,6 +123,11 @@
 }
 
 @theme inline {
+  /* Any new --text-/--shadow-/--spacing-/--tracking-/--animate- key added
+     below must also be registered in web/src/lib/tw-theme-tokens.ts, or
+     tailwind-merge's cn() helper will misclassify it (#1078). This is
+     enforced by scripts/check-theme-tokens.mjs, wired as the first step of
+     `npm run build`. */
   --font-sans: var(--gf-font-sans);
 
   --color-background: var(--background);
