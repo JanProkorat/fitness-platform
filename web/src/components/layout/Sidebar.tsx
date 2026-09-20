@@ -16,7 +16,12 @@ const NAV_ITEMS = [
   { to: '/recipes', labelKey: 'sidebar.recipes', Icon: BookOpen },
 ] as const;
 
-export default function Sidebar() {
+interface Props {
+  /** Fired when a nav link is activated — used to close the mobile off-canvas drawer. */
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({ onNavigate }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -29,6 +34,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-2 rounded-sm px-3 py-2 text-body font-medium transition-colors',

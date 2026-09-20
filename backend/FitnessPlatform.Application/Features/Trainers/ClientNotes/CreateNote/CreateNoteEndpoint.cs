@@ -27,6 +27,7 @@ public class CreateNoteEndpoint(
         {
             s.Summary = "Create a trainer note for a client";
             s.Description = "Creates a private note visible only to the authoring trainer.";
+            s.Response<CreateNoteResponse>(StatusCodes.Status201Created, "Note created");
         });
     }
 
@@ -80,6 +81,6 @@ public class CreateNoteEndpoint(
         {
             NoteId = note.ExternalId,
             CreatedAt = note.CreatedAt
-        }, 201, ct);
+        }, StatusCodes.Status201Created, ct);
     }
 }

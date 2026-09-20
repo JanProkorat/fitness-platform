@@ -184,7 +184,9 @@
     "comingSoon": "Tato stránka je připravována.",
     "notFoundTitle": "Stránka nenalezena",
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
-    "backToClients": "Zpět na klienty"
+    "backToClients": "Zpět na klienty",
+    "openNavigation": "Otevřít navigaci",
+    "navigationTitle": "Navigace"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -311,6 +313,86 @@
   "clients": {
     "title": "Klienti",
     "subtitle": "Správa a přehled klientů",
+    "tabs": {
+      "active": "Aktivní",
+      "paused": "Pozastavení",
+      "archived": "Archivovaní",
+      "pending": "Čekající"
+    },
+    "searchPlaceholder": "Hledat klienty...",
+    "chips": {
+      "groupLabel": "Filtrovat klienty",
+      "all": "Vše",
+      "unreadMessages": "Nepřečtené zprávy",
+      "noMessages": "Bez zpráv",
+      "newCheckIns": "Nové check-iny",
+      "missingCheckIns": "Chybějící check-iny",
+      "endingSoon": "Brzy končící"
+    },
+    "tagFilter": {
+      "label": "Vybrat štítky",
+      "empty": "Zatím jste nevytvořili žádné štítky."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Stav",
+      "columnTags": "Štítky",
+      "columnUnread": "Nepřečtené",
+      "columnPlans": "Plány",
+      "unreadTooltip_one": "{{count}} nepřečtená zpráva",
+      "unreadTooltip_few": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_many": "{{count}} nepřečtené zprávy",
+      "unreadTooltip_other": "{{count}} nepřečtených zpráv",
+      "plansAriaLabel_one": "{{count}} aktivní plán",
+      "plansAriaLabel_few": "{{count}} aktivní plány",
+      "plansAriaLabel_many": "{{count}} aktivního plánu",
+      "plansAriaLabel_other": "{{count}} aktivních plánů",
+      "planSince": "Od {{date}}",
+      "noActivePlans": "Žádné aktivní plány",
+      "selectAll": "Vybrat všechny klienty na této stránce",
+      "selectRow": "Vybrat {{name}}"
+    },
+    "rowMenu": {
+      "open": "Otevřít nabídku řádku",
+      "viewDetail": "Otevřít detail klienta"
+    },
+    "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
+    "clearFilters": "Zrušit filtry",
+    "retry": "Zkusit znovu",
+    "pagination": {
+      "viewing": "Zobrazeno {{count}} z {{total}}"
+    },
+    "pendingTable": {
+      "columnName": "Jméno",
+      "columnEmail": "E-mail",
+      "columnType": "Typ",
+      "columnSentAt": "Odesláno",
+      "kindInvite": "Pozvánka odeslána",
+      "kindRequest": "Přijata žádost",
+      "empty": "Žádné čekající pozvánky ani žádosti.",
+      "accept": "Přijmout",
+      "reject": "Odmítnout",
+      "cancel": "Zrušit"
+    },
+    "tags": {
+      "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
+      "updateError": "Štítek se nepodařilo upravit. Zkuste to prosím znovu.",
+      "deleteError": "Štítek se nepodařilo smazat. Zkuste to prosím znovu.",
+      "assignError": "Štítky klienta se nepodařilo upravit. Zkuste to prosím znovu."
+    },
+    "broadcast": {
+      "success": "Zpráva byla odeslána.",
+      "error": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "addClient": {
+      "success": "Pozvánka byla odeslána.",
+      "error": "Pozvánku se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "pending": {
+      "cancelError": "Pozvánku se nepodařilo zrušit. Zkuste to prosím znovu.",
+      "acceptError": "Žádost se nepodařilo přijmout. Zkuste to prosím znovu.",
+      "rejectError": "Žádost se nepodařilo odmítnout. Zkuste to prosím znovu."
+    },
     "inviteClient": "+ Pozvat klienta",
     "inviteNewClient": "Pozvat nového klienta",
     "inviteSent": "Pozvánka odeslána!",
@@ -496,6 +578,56 @@
       "Cut": "Redukce (deficit)",
       "Maintain": "Udržení",
       "Bulk": "Nabírání (surplus)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} vybraný klient",
+      "count_few": "{{count}} vybraní klienti",
+      "count_many": "{{count}} vybraných klientů",
+      "count_other": "{{count}} vybraných klientů",
+      "broadcast": "Odeslat zprávu",
+      "cancel": "Zrušit"
+    },
+    "broadcastDrawer": {
+      "title": "Hromadná zpráva",
+      "description_one": "Odeslat tuto zprávu {{count}} vybranému klientovi.",
+      "description_few": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "description_many": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "description_other": "Odeslat tuto zprávu {{count}} vybraným klientům.",
+      "placeholder": "Napište zprávu...",
+      "insertFirstName": "Vložit křestní jméno",
+      "insertFullName": "Vložit celé jméno",
+      "send": "Odeslat",
+      "validation": {
+        "textRequired": "Text zprávy je povinný."
+      }
+    },
+    "tagPicker": {
+      "open": "Přiřadit štítky",
+      "createTag": "+ Vytvořit štítek",
+      "createTitle": "Vytvořit nový štítek",
+      "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
+      "nameLabel": "Název",
+      "colorLabel": "Barva",
+      "descriptionLabel": "Popis (nepovinné)",
+      "createSubmit": "Vytvořit štítek",
+      "validation": {
+        "nameRequired": "Název štítku je povinný."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Pozvat nového klienta",
+      "description": "Klient obdrží e-mailovou pozvánku k vytvoření účtu a propojení s vámi.",
+      "firstNameLabel": "Křestní jméno",
+      "lastNameLabel": "Příjmení",
+      "emailLabel": "E-mail",
+      "messageLabel": "Zpráva (nepovinné)",
+      "submit": "Odeslat pozvánku",
+      "validation": {
+        "firstNameRequired": "Křestní jméno je povinné.",
+        "lastNameRequired": "Příjmení je povinné.",
+        "emailRequired": "E-mail je povinný.",
+        "emailInvalid": "Zadejte platnou e-mailovou adresu."
+      }
     }
   },
   "profile": {
@@ -982,7 +1114,16 @@
     "QuestionnaireResponseId": "Tato odpověď na dotazník nebyla nalezena nebo ještě není vyplněná.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-deník nebyl nalezen.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Tento foto-deník vám nepatří.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Zvolený plán nebyl nalezen nebo nepatří tomuto klientovi.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Hromadnou zprávu můžete odeslat najednou nejvýše 50 klientům.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Jeden z vybraných klientů s vámi již není propojen.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Po doplnění jmen je zpráva příliš dlouhá. Zkraťte prosím text.",
+    "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
+    "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
+    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního trenéra.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
+    "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",

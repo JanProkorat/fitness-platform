@@ -184,7 +184,9 @@
     "comingSoon": "Diese Seite ist in Vorbereitung.",
     "notFoundTitle": "Seite nicht gefunden",
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
-    "backToClients": "Zurück zu Klienten"
+    "backToClients": "Zurück zu Klienten",
+    "openNavigation": "Navigation öffnen",
+    "navigationTitle": "Navigation"
   },
   "sidebar": {
     "dashboard": "Dashboard",
@@ -307,6 +309,82 @@
   "clients": {
     "title": "Klienten",
     "subtitle": "Verwaltung und Übersicht der Klienten",
+    "tabs": {
+      "active": "Aktiv",
+      "paused": "Pausiert",
+      "archived": "Archiviert",
+      "pending": "Ausstehend"
+    },
+    "searchPlaceholder": "Klienten suchen...",
+    "chips": {
+      "groupLabel": "Klienten filtern",
+      "all": "Alle",
+      "unreadMessages": "Ungelesene Nachrichten",
+      "noMessages": "Keine Nachrichten",
+      "newCheckIns": "Neue Check-ins",
+      "missingCheckIns": "Fehlende Check-ins",
+      "endingSoon": "Endet bald"
+    },
+    "tagFilter": {
+      "label": "Tags auswählen",
+      "empty": "Sie haben noch keine Tags erstellt."
+    },
+    "table": {
+      "columnClient": "Klient",
+      "columnStatus": "Status",
+      "columnTags": "Tags",
+      "columnUnread": "Ungelesen",
+      "columnPlans": "Pläne",
+      "unreadTooltip_one": "{{count}} ungelesene Nachricht",
+      "unreadTooltip_other": "{{count}} ungelesene Nachrichten",
+      "plansAriaLabel_one": "{{count}} aktiver Plan",
+      "plansAriaLabel_other": "{{count}} aktive Pläne",
+      "planSince": "Seit {{date}}",
+      "noActivePlans": "Keine aktiven Pläne",
+      "selectAll": "Alle Klienten auf dieser Seite auswählen",
+      "selectRow": "{{name}} auswählen"
+    },
+    "rowMenu": {
+      "open": "Zeilenmenü öffnen",
+      "viewDetail": "Klientendetail öffnen"
+    },
+    "noResultsForFilters": "Keine Klienten entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "retry": "Erneut versuchen",
+    "pagination": {
+      "viewing": "Anzeige {{count}} von {{total}}"
+    },
+    "pendingTable": {
+      "columnName": "Name",
+      "columnEmail": "E-Mail",
+      "columnType": "Typ",
+      "columnSentAt": "Gesendet",
+      "kindInvite": "Einladung gesendet",
+      "kindRequest": "Anfrage erhalten",
+      "empty": "Keine ausstehenden Einladungen oder Anfragen.",
+      "accept": "Annehmen",
+      "reject": "Ablehnen",
+      "cancel": "Abbrechen"
+    },
+    "tags": {
+      "createError": "Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateError": "Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "deleteError": "Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "assignError": "Tags des Klienten konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "broadcast": {
+      "success": "Nachricht gesendet.",
+      "error": "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "addClient": {
+      "success": "Einladung gesendet.",
+      "error": "Einladung konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "pending": {
+      "cancelError": "Einladung konnte nicht storniert werden. Bitte versuchen Sie es erneut.",
+      "acceptError": "Anfrage konnte nicht angenommen werden. Bitte versuchen Sie es erneut.",
+      "rejectError": "Anfrage konnte nicht abgelehnt werden. Bitte versuchen Sie es erneut."
+    },
     "inviteClient": "+ Klient einladen",
     "inviteNewClient": "Neuen Klienten einladen",
     "inviteSent": "Einladung gesendet!",
@@ -482,6 +560,52 @@
       "Cut": "Reduktion (Defizit)",
       "Maintain": "Erhaltung",
       "Bulk": "Aufbau (Überschuss)"
+    },
+    "selectionBar": {
+      "count_one": "{{count}} Klient ausgewählt",
+      "count_other": "{{count}} Klienten ausgewählt",
+      "broadcast": "Nachricht senden",
+      "cancel": "Abbrechen"
+    },
+    "broadcastDrawer": {
+      "title": "Nachricht an mehrere Klienten",
+      "description_one": "Diese Nachricht an {{count}} ausgewählten Klienten senden.",
+      "description_other": "Diese Nachricht an {{count}} ausgewählte Klienten senden.",
+      "placeholder": "Nachricht eingeben...",
+      "insertFirstName": "Vorname einfügen",
+      "insertFullName": "Vollständigen Namen einfügen",
+      "send": "Senden",
+      "validation": {
+        "textRequired": "Nachrichtentext ist erforderlich."
+      }
+    },
+    "tagPicker": {
+      "open": "Tags zuweisen",
+      "createTag": "+ Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Klienten zu gruppieren und zu filtern.",
+      "nameLabel": "Name",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung (optional)",
+      "createSubmit": "Tag erstellen",
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich."
+      }
+    },
+    "addClientDrawer": {
+      "title": "Neuen Klienten einladen",
+      "description": "Der Klient erhält eine E-Mail-Einladung, ein Konto zu erstellen und sich mit Ihnen zu verbinden.",
+      "firstNameLabel": "Vorname",
+      "lastNameLabel": "Nachname",
+      "emailLabel": "E-Mail",
+      "messageLabel": "Nachricht (optional)",
+      "submit": "Einladung senden",
+      "validation": {
+        "firstNameRequired": "Vorname ist erforderlich.",
+        "lastNameRequired": "Nachname ist erforderlich.",
+        "emailRequired": "E-Mail ist erforderlich.",
+        "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
+      }
     }
   },
   "profile": {
@@ -968,7 +1092,16 @@
     "QuestionnaireResponseId": "Diese Fragebogenantwort wurde nicht gefunden oder ist noch nicht ausgefüllt.",
     "PHOTO_DIARY_REQUEST_NOT_FOUND": "Foto-Tagebuch nicht gefunden.",
     "PHOTO_DIARY_REQUEST_FORBIDDEN": "Dieses Foto-Tagebuch gehört nicht Ihnen.",
-    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten."
+    "PHOTO_DIARY_REQUEST_PLAN_NOT_OWNED": "Der ausgewählte Plan wurde nicht gefunden oder gehört nicht zu diesem Klienten.",
+    "BROADCAST_RECIPIENT_LIMIT_EXCEEDED": "Sie können eine Nachricht gleichzeitig an höchstens 50 Klienten senden.",
+    "BROADCAST_RECIPIENT_NOT_LINKED": "Einer der ausgewählten Klienten ist nicht mehr mit Ihnen verknüpft.",
+    "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Die Nachricht ist nach dem Einfügen der Namen zu lang. Bitte kürzen Sie den Text.",
+    "DUPLICATE_PENDING_INVITE": "Für diese E-Mail-Adresse besteht bereits eine offene Einladung.",
+    "TOO_MANY_PENDING_INVITES": "Sie haben die maximale Anzahl offener Einladungen erreicht. Warten Sie auf eine Antwort oder brechen Sie eine ab.",
+    "PROFESSION_ALREADY_OCCUPIED": "Dieser Klient hat für diesen Beruf bereits einen aktiven Coach.",
+    "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Der angeforderte Zugriff übersteigt Ihre aktuellen Rollen.",
+    "CLIENT_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
+    "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",

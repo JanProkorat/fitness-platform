@@ -4353,7 +4353,7 @@ export class ApiClient {
 
     /**
      * Create a trainer note for a client
-     * @return Success
+     * @return Note created
      */
     createNoteEndpoint(clientId: string, createNoteRequest: CreateNoteRequest, signal?: AbortSignal): Promise<CreateNoteResponse> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/notes";
@@ -4396,12 +4396,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<CreateNoteResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<CreateNoteResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -4898,7 +4898,7 @@ export class ApiClient {
 
     /**
      * Create subscription plan
-     * @return Success
+     * @return Subscription plan created
      */
     createSubscriptionPlanEndpoint(createSubscriptionPlanRequest: CreateSubscriptionPlanRequest, signal?: AbortSignal): Promise<SubscriptionPlanDto> {
         let url_ = this.baseUrl + "/admin/subscription-plans";
@@ -4938,12 +4938,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<SubscriptionPlanDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<SubscriptionPlanDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -6958,7 +6958,7 @@ export class ApiClient {
 
     /**
      * Create questionnaire
-     * @return Success
+     * @return Questionnaire created
      */
     createQuestionnaireEndpoint(createQuestionnaireRequest: CreateQuestionnaireRequest, signal?: AbortSignal): Promise<GetTrainerQuestionnaireResponse> {
         let url_ = this.baseUrl + "/trainer/questionnaires";
@@ -6998,12 +6998,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetTrainerQuestionnaireResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetTrainerQuestionnaireResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -12843,7 +12843,7 @@ export class ApiClient {
 
     /**
      * Create a client tag
-     * @return Success
+     * @return Tag created
      */
     createClientTagEndpoint(createClientTagRequest: CreateClientTagRequest, signal?: AbortSignal): Promise<ClientTagDto> {
         let url_ = this.baseUrl + "/trainer/client-tags";
@@ -12883,12 +12883,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<ClientTagDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<ClientTagDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -13287,7 +13287,7 @@ export class ApiClient {
     /**
      * Finalize plan photo upload
      * @param planId Route: the plan's public identifier (NutritionPlan.ExternalId or TrainingPlan.ExternalId).
-     * @return Success
+     * @return Plan photo finalized
      */
     finalizePlanPhotoEndpoint(planId: string, finalizePlanPhotoRequest: FinalizePlanPhotoRequest, signal?: AbortSignal): Promise<PlanPhotoResponse> {
         let url_ = this.baseUrl + "/client/plans/{planId}/photos";
@@ -13330,12 +13330,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<PlanPhotoResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<PlanPhotoResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14596,7 +14596,7 @@ export class ApiClient {
 
     /**
      * Add a body measurement
-     * @return Success
+     * @return Measurement created
      */
     addMeasurementEndpoint(addMeasurementRequest: AddMeasurementRequest, signal?: AbortSignal): Promise<MeasurementDto> {
         let url_ = this.baseUrl + "/client/measurements";
@@ -14636,12 +14636,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<MeasurementDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<MeasurementDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
@@ -14815,7 +14815,7 @@ export class ApiClient {
     /**
      * Record a client's body measurement
      * @param clientId The client profile's public identifier (route parameter).
-     * @return Success
+     * @return Measurement created
      */
     addClientMeasurementEndpoint(clientId: string, addClientMeasurementRequest: AddClientMeasurementRequest, signal?: AbortSignal): Promise<MeasurementDto> {
         let url_ = this.baseUrl + "/trainer/clients/{clientId}/measurements";
@@ -14858,12 +14858,12 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<MeasurementDto>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<MeasurementDto>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
