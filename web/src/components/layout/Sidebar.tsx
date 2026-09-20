@@ -73,12 +73,16 @@ export default function Sidebar({ onNavigate }: Props) {
           </div>
           <span className="text-body font-bold text-paper">{t('common.appName')}</span>
         </div>
-        {/* Inert — no notification surface is built in v1, same as the
-            pre-#1073 top bar's bell (no onClick either). */}
+        {/* Inert — no notification surface is built in v1. Matches the
+            treatment of Help & Support / Settings below: a disabled
+            control with a "coming soon" title, not a live control that
+            does nothing on activation. */}
         <button
           type="button"
+          disabled
+          title={t('shell.comingSoon')}
           aria-label={t('notifications.title')}
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-paper"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground disabled:cursor-not-allowed"
         >
           <Bell className="size-4" aria-hidden="true" />
         </button>
