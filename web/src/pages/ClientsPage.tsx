@@ -106,8 +106,15 @@ export default function ClientsPage() {
 
   // Fires 300ms after the last keystroke settles; `setSearch` itself resets
   // page to 1 and uses `replace` so Back doesn't walk one step per keystroke.
+  //
+  // The equality guard is load-bearing, not a micro-optimisation: the debounce
+  // effect runs once on mount regardless of whether the value changed, and
+  // `setSearch` clears `page`. Without it, opening /clients?page=2 from a
+  // bookmark or a shared link silently snapped back to page 1 after 300ms.
   useDebouncedValue(searchInput, 300, () => {
-    setSearch(searchInput);
+    if (searchInput !== filters.search) {
+      setSearch(searchInput);
+    }
   });
 
   const isPendingTab = filters.tab === 'Pending';

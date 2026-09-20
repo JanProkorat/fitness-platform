@@ -19,11 +19,16 @@ import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListPara
 /**
  * Maps the page's tab — including the virtual `Pending` tab, which has no
  * corresponding `ClientListStatus` member — to the status the list endpoint
- * accepts. `Pending` maps to `Active` because `tabCounts`/`filterCounts` are
- * computed identically regardless of `status` (see `ClientTabCounts` /
- * `ClientFilterCounts` doc comments in generated.ts); any status returns the
- * same counts, and the Pending tab's own rows come from
- * `usePendingClients()`, never from this call.
+ * accepts. `Pending` maps to `Active` because **`tabCounts`** is computed over
+ * the whole roster and so is identical whatever `status` is sent — which is
+ * what the Pending tab actually needs, since its own badge lives on this
+ * response while its rows come from `usePendingClients()`.
+ *
+ * `filterCounts` is **not** status-independent — it is scoped to the current
+ * tab (see the `ClientFilterCounts` doc comment in generated.ts). That is
+ * harmless only because the chips are hidden on the Pending tab, so the
+ * Active-scoped counts are never rendered there. Show the chips on Pending
+ * and this mapping starts lying.
  */
 function tabToStatus(tab: ClientListTab): ClientListStatus {
   switch (tab) {
