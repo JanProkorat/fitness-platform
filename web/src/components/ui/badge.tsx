@@ -12,6 +12,9 @@ const badgeVariants = cva(
         secondary: "bg-secondary text-secondary-foreground",
         outline: "border-border bg-background text-foreground",
         destructive: "bg-destructive/10 text-destructive",
+        // Soft-fill status treatment (small rounded rect, not a pill) —
+        // Figma frame client-list-02, #1066 phase 6.
+        success: "rounded-sm bg-green-soft text-primary",
       },
     },
     defaultVariants: {

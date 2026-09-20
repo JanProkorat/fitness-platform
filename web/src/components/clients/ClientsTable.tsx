@@ -50,7 +50,7 @@ export default function ClientsTable({
 
   return (
     <Table>
-      <TableHeader>
+      <TableHeader className="bg-muted">
         <TableRow>
           <TableHead className="w-10">
             <Checkbox

@@ -34,6 +34,7 @@
   --gf-surface: #ffffff; /* cards, panels */
   --gf-pill: #1e1e22; /* active nav item, dark CTA */
   --gf-green: #15803d; /* primary action, accents */
+  --gf-green-dark: #166534; /* active filter chip's inner count badge (#1066 phase 6) */
 
   /* Not in the Figma wireframe (no error/destructive state designed yet) —
      a conventional red-600 placeholder so shadcn's destructive variants
@@ -149,6 +150,7 @@
   --color-surface: var(--gf-surface);
   --color-pill: var(--gf-pill);
   --color-brand: var(--gf-green);
+  --color-green-dark: var(--gf-green-dark);
 
   /* ---- Entry page additions (#1055) ---- */
   --color-line-soft: var(--gf-line-soft);

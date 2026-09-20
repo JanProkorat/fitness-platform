@@ -330,7 +330,7 @@
       "endingSoon": "Brzy končící"
     },
     "tagFilter": {
-      "label": "Štítky",
+      "label": "Vybrat štítky",
       "empty": "Zatím jste nevytvořili žádné štítky."
     },
     "table": {
@@ -359,6 +359,9 @@
     "noResultsForFilters": "Žádní klienti neodpovídají zvoleným filtrům.",
     "clearFilters": "Zrušit filtry",
     "retry": "Zkusit znovu",
+    "pagination": {
+      "viewing": "Zobrazeno {{count}} z {{total}}"
+    },
     "pendingTable": {
       "columnName": "Jméno",
       "columnEmail": "E-mail",

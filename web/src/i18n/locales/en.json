@@ -326,7 +326,7 @@
       "endingSoon": "Ending soon"
     },
     "tagFilter": {
-      "label": "Tags",
+      "label": "Select tags",
       "empty": "You haven't created any tags yet."
     },
     "table": {
@@ -351,6 +351,9 @@
     "noResultsForFilters": "No clients match your filters.",
     "clearFilters": "Clear filters",
     "retry": "Retry",
+    "pagination": {
+      "viewing": "Viewing {{count}} of {{total}}"
+    },
     "pendingTable": {
       "columnName": "Name",
       "columnEmail": "Email",

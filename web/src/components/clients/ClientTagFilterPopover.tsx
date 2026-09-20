@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tag as TagIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -53,10 +53,10 @@ export default function ClientTagFilterPopover({ selectedTagIds, onChange }: Pro
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <TagIcon className="size-4" aria-hidden="true" />
+        <Button type="button" variant="outline" size="sm" className="gap-2">
           {t('clients.tagFilter.label')}
           {selectedTagIds.length > 0 && <span className="text-caption">{selectedTagIds.length}</span>}
+          <ChevronDown className="size-3" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64">

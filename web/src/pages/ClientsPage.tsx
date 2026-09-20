@@ -4,11 +4,11 @@ import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { ClientListFilter, type ClientTabCounts } from '@/api/generated';
 import { useClientListParams, type ClientListTab } from '@/hooks/useClientListParams';
 import { useClients, usePendingClients } from '@/hooks/useClientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { cn } from '@/lib/utils';
 import ClientFilterChips from '@/components/clients/ClientFilterChips';
 import ClientTagFilterPopover from '@/components/clients/ClientTagFilterPopover';
 import ClientsTable from '@/components/clients/ClientsTable';
@@ -18,7 +18,10 @@ import ClientSelectionBar from '@/components/clients/ClientSelectionBar';
 import BroadcastDrawer from '@/components/clients/BroadcastDrawer';
 import AddClientDrawer from '@/components/clients/AddClientDrawer';
 
-const TAB_ORDER: ClientListTab[] = ['Active', 'Paused', 'Archived', 'Pending'];
+// Order matches the Figma wireframe (frame client-list-02, #1066 phase 6):
+// Active, Pending, Paused, Ended — "Ended" was renamed "Archived" earlier
+// in this issue, which is settled; only the ORDER changes here.
+const TAB_ORDER: ClientListTab[] = ['Active', 'Pending', 'Paused', 'Archived'];
 
 const TAB_LABEL_KEY: Record<ClientListTab, string> = {
   Active: 'clients.tabs.active',
@@ -138,20 +141,32 @@ export default function ClientsPage() {
             `overflow-x-hidden` main region — a clipped-but-not-scrollable
             "Pending" tab would be unreachable rather than merely narrow. */}
         <div className="overflow-x-auto">
-          <TabsList>
-            {TAB_ORDER.map((tab) => (
-              <TabsTrigger key={tab} value={tab} className="gap-1.5">
-                {t(TAB_LABEL_KEY[tab])}
-                {tabCounts && <Badge variant="secondary">{tabCounts[TAB_COUNT_KEY[tab]] ?? 0}</Badge>}
-              </TabsTrigger>
-            ))}
+          <TabsList variant="underline">
+            {TAB_ORDER.map((tab) => {
+              const isActiveTab = filters.tab === tab;
+              return (
+                <TabsTrigger key={tab} value={tab} variant="underline" className="gap-1.5">
+                  {t(TAB_LABEL_KEY[tab])}
+                  {tabCounts && (
+                    <span
+                      className={cn(
+                        'rounded-full px-1.5 py-0.5 text-label font-semibold',
+                        isActiveTab ? 'bg-primary text-primary-foreground' : 'bg-line text-muted-foreground',
+                      )}
+                    >
+                      {tabCounts[TAB_COUNT_KEY[tab]] ?? 0}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
         </div>
       </Tabs>
 
       {!isPendingTab && (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="relative w-full max-w-xs">
               <Search
                 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -181,7 +196,7 @@ export default function ClientsPage() {
           onRetry={() => void pendingQuery.refetch()}
         />
       ) : (
-        <>
+        <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <ClientsTable
             clients={clientsQuery.data?.clients ?? []}
             isPending={clientsQuery.isPending}
@@ -195,12 +210,13 @@ export default function ClientsPage() {
             onToggleAll={toggleAll}
           />
           <ClientsPagination
+            rowCount={(clientsQuery.data?.clients ?? []).length}
             page={filters.page}
             pageSize={filters.pageSize}
             totalCount={clientsQuery.data?.totalCount ?? 0}
             onPageChange={setPage}
           />
-        </>
+        </div>
       )}
 
       <ClientSelectionBar
