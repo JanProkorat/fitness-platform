@@ -145,14 +145,33 @@ export default function ClientsPage() {
   // filtered set, not just page 1) would need a second request per filter
   // change purely to re-validate the selection — not worth it here.
   //
-  // Pruning waits for `!clientsQuery.isPlaceholderData`: while
-  // `isPlaceholderData` is true, `clientsQuery.data` is still the PREVIOUS
-  // filter's page (`keepPreviousData`), and pruning against it would prune
-  // against the wrong set entirely. Adjusted during render, same pattern as
-  // `selectionTab`/`syncedSearch` above rather than a useEffect.
+  // Both halves of the guard are load-bearing, and `isPlaceholderData` alone
+  // is NOT enough:
+  //
+  //   `!isPlaceholderData` — while it is true, `clientsQuery.data` is still
+  //   the PREVIOUS filter's page (`keepPreviousData`), so pruning then would
+  //   prune against the wrong set entirely.
+  //
+  //   `isSuccess` — `isPlaceholderData` is only ever true while the query is
+  //   pending (query-core sets it inside a `status === 'pending'` branch), so
+  //   a FAILED fetch reports `isPlaceholderData: false` with `data`
+  //   undefined. Without this half, a filter change whose request errors
+  //   makes `visibleIds` empty and wipes the whole selection — not the
+  //   conservative over-prune argued above, but total loss, and worse than
+  //   the pre-pruning behaviour that kept everything. The table renders a
+  //   Retry button, so a failed fetch is a routine path, not a corner.
+  //
+  // `isSuccess` rather than `!isError` because it also covers the first-ever
+  // load, where `keepPreviousData` has no previous page to serve and the
+  // query sits pending with `data` undefined. And because the marker only
+  // advances inside the block, a successful Retry still prunes against real
+  // data — gating the read while advancing the marker would skip the prune
+  // forever after one failure.
+  //
+  // Adjusted during render, same pattern as `selectionTab`/`syncedSearch`.
   const filterKey = `${filters.search}|${filters.chip}|${[...filters.tagIds].sort().join(',')}`;
   const [prunedFilterKey, setPrunedFilterKey] = useState(filterKey);
-  if (filterKey !== prunedFilterKey && !clientsQuery.isPlaceholderData) {
+  if (filterKey !== prunedFilterKey && clientsQuery.isSuccess && !clientsQuery.isPlaceholderData) {
     setPrunedFilterKey(filterKey);
     const visibleIds = new Set((clientsQuery.data?.clients ?? []).map((client) => client.publicId ?? ''));
     setSelectedIds((previous) => {

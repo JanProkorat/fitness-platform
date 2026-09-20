@@ -19,10 +19,13 @@ import type { ClientListFilters, ClientListTab } from '@/hooks/useClientListPara
 /**
  * Maps the page's tab — including the virtual `Pending` tab, which has no
  * corresponding `ClientListStatus` member — to the status the list endpoint
- * accepts. `Pending` maps to `Active` because **`tabCounts`** is computed over
- * the whole roster and so is identical whatever `status` is sent — which is
- * what the Pending tab actually needs, since its own badge lives on this
- * response while its rows come from `usePendingClients()`.
+ * accepts. `Pending` maps to `Active` because **`tabCounts`** is computed with
+ * `search` and `tagIds` applied but never the tab or the chip (see the
+ * `ClientTabCounts` doc comment in generated.ts), so it is identical whatever
+ * `status` is sent — which is what the Pending tab needs, since its own badge
+ * lives on this response while its rows come from `usePendingClients()`.
+ * Note the badges therefore DO move with search and tags; it is only the tab
+ * and chip they ignore.
  *
  * `filterCounts` is **not** status-independent — it is scoped to the current
  * tab (see the `ClientFilterCounts` doc comment in generated.ts). That is
