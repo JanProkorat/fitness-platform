@@ -29,19 +29,19 @@ import {
  * token list and `scripts/check-theme-tokens.mjs` for the build-time check
  * that keeps it in sync with `index.css`'s `@theme inline` block.
  *
- * Known residual hazard: tailwind-merge's `font-size` group conflicts with
+ * Ordering convention: tailwind-merge's `font-size` group conflicts with
  * `leading` (a later font-size class removes an earlier `leading-*` in the
- * same call), which is correct for built-in sizes (they carry a paired
- * line-height) but not for this project's `--text-*` tokens, which are
- * bare sizes with no companion line-height. Left as tailwind-merge's
- * default rather than stripped, because removing it would reintroduce the
- * same bug in the other direction for built-in sizes (`text-sm`/`leading-*`
- * pairs are common and correctly deduped today). No shipped call site is
- * exposed to this today — every `CardDescription` usage (the one base
- * string pairing a token with `leading-*`) is invoked without a
- * `className` override — so there is nothing to compensate for yet; a
- * future caller passing a `text-*` size through `className` after a
- * `leading-*`-bearing base is the case to watch for.
+ * same call). As of #1079 every `--text-*` token carries its own paired
+ * `--text-*--line-height` in `index.css`'s `@theme inline` block, so this
+ * is no longer a hazard specific to this project's tokens — it is the same
+ * behaviour Tailwind's own built-in sizes have always had (`text-sm` /
+ * `text-lg` also carry a paired line-height, which is exactly why a later
+ * one correctly deletes an earlier stray `leading-*`). A deliberate
+ * per-use override — `CardDescription`'s `text-meta leading-relaxed` is
+ * the one shipped example — still works, but only when the `leading-*`
+ * comes AFTER its `text-*` sibling in the same `cn()` call; reversing the
+ * order lets the later `text-*` delete the override instead of the other
+ * way around. Keep new `cn()` calls to that ordering.
  */
 const twMerge = extendTailwindMerge({
   extend: {

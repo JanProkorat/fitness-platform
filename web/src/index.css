@@ -179,22 +179,57 @@
      (spec §6 / prototype --r-lg, 14px) for cards, panels, collage cells. */
   --radius-2xl: var(--gf-radius-lg);
 
+  /* Every --text-* token below is paired with a --text-*--line-height
+     modifier (#1079) -- Tailwind v4 resolves these together, so e.g.
+     `text-body` emits both `font-size` and `line-height` from one utility.
+     Three groups, not one ratio (see #1079's design ruling):
+       - control/heading tokens (title, body, label, tick, caption, meta,
+         panel-title, auth-title): 1.2, matching three measured Figma
+         boxes (nav section header 12/10, page title 34/28, filter-chip
+         badge 12/10).
+       - prose tokens (copy, subhead): 1.5, reproducing the un-paired
+         browser-default rendering these multi-line marketing paragraphs
+         already ship with (#1055) -- tightening them to 1.2 would cramp
+         running copy, worse in cs/de where strings run longer.
+       - clamp() tokens (hero, section-title, cta-title): unitless ratios
+         (the only correct form when font-size is viewport-dependent).
+         hero folds in the leading-[1.04] already shipped on
+         HeroSection.tsx's <h1>; section-title/cta-title get the same
+         "reproduce current rendering" treatment as the prose group, since
+         neither carries a shipped override or Figma evidence of its own.
+     lede is prose in role but keeps its own already-shipped 1.6 (folded
+     in from HeroSection.tsx's <p>), tighter than the 1.5 default because
+     that's what's already live on the signed-off page. */
   --text-title: var(--gf-text-title);
+  --text-title--line-height: 1.2;
   --text-body: var(--gf-text-body);
+  --text-body--line-height: 1.2;
   --text-label: var(--gf-text-label);
+  --text-label--line-height: 1.2;
 
   /* ---- Entry page scale (#1055) ---- */
   --text-tick: var(--gf-text-tick);
+  --text-tick--line-height: 1.2;
   --text-caption: var(--gf-text-caption);
+  --text-caption--line-height: 1.2;
   --text-meta: var(--gf-text-meta);
+  --text-meta--line-height: 1.2;
   --text-copy: var(--gf-text-copy);
+  --text-copy--line-height: 1.5;
   --text-subhead: var(--gf-text-subhead);
+  --text-subhead--line-height: 1.5;
   --text-lede: var(--gf-text-lede);
+  --text-lede--line-height: 1.6;
   --text-panel-title: var(--gf-text-panel-title);
+  --text-panel-title--line-height: 1.2;
   --text-auth-title: var(--gf-text-auth-title);
+  --text-auth-title--line-height: 1.2;
   --text-hero: var(--gf-text-hero);
+  --text-hero--line-height: 1.04;
   --text-section-title: var(--gf-text-section-title);
+  --text-section-title--line-height: 1.5;
   --text-cta-title: var(--gf-text-cta-title);
+  --text-cta-title--line-height: 1.5;
 
   --font-accent: var(--gf-font-accent);
 

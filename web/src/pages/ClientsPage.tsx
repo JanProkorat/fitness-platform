@@ -207,7 +207,7 @@ export default function ClientsPage() {
             {TAB_ORDER.map((tab) => {
               const isActiveTab = filters.tab === tab;
               return (
-                <TabsTrigger key={tab} value={tab} variant="underline" className="gap-1.5">
+                <TabsTrigger key={tab} value={tab} variant="underline" className="gap-1.5 text-body">
                   {t(TAB_LABEL_KEY[tab])}
                   {tabCounts && (
                     <span
@@ -239,7 +239,7 @@ export default function ClientsPage() {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder={t('clients.searchPlaceholder')}
-                className="pl-8"
+                className="h-8 pl-8"
                 aria-label={t('clients.searchPlaceholder')}
               />
             </div>

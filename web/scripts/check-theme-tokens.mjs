@@ -140,11 +140,21 @@ for (const { cssPrefix, exportName, isDefaultMatch } of NAMESPACES) {
   }
 
   // Forward check: every non-default-matching CSS key is registered.
+  //
+  // `[a-z0-9-]+` also matches a Tailwind v4 *modifier* key like
+  // `--text-body--line-height:` -- the '-' inside the class doesn't
+  // distinguish a single hyphen in a multi-word suffix ("section-title")
+  // from the double-hyphen that introduces a modifier ("body--line-height").
+  // A suffix containing '--' is always a modifier line for an already-
+  // declared base token, not a new token needing its own registry entry --
+  // skip it here so it's never checked against isDefaultMatch/registryValues.
   const keyRegex = new RegExp(`^\\s*${cssPrefix}([a-z0-9-]+)\\s*:`, 'gm');
   let match = keyRegex.exec(themeBlock);
   const cssSuffixes = [];
   while (match !== null) {
-    cssSuffixes.push(match[1]);
+    if (!match[1].includes('--')) {
+      cssSuffixes.push(match[1]);
+    }
     match = keyRegex.exec(themeBlock);
   }
 
