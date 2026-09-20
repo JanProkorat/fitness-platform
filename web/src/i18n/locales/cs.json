@@ -179,8 +179,6 @@
     "comingSoonHint": "Pracujeme na mobilní aplikaci GF Platform. Sledujte novinky!"
   },
   "shell": {
-    "searchPlaceholder": "Hledat...",
-    "accountMenu": "Nabídka účtu",
     "comingSoon": "Tato stránka je připravována.",
     "notFoundTitle": "Stránka nenalezena",
     "notFoundBody": "Stránka, kterou hledáte, neexistuje.",
@@ -205,6 +203,9 @@
     "clientsSection": "KLIENTI",
     "searchClients": "Hledat klienta...",
     "databaseSection": "DATABÁZE",
+    "clientManagementSection": "Správa klientů",
+    "nutritionSection": "Výživa",
+    "help": "Nápověda a podpora",
     "trainingPlan": "Tréninkový plán",
     "mealPlan": "Jídelníček",
     "questionnaires": "Dotazníky",
@@ -226,6 +227,12 @@
     "planSubmenu": {
       "empty": "Zatím žádné plány"
     }
+  },
+  "roles": {
+    "admin": "Administrátor",
+    "trainer": "Osobní trenér",
+    "nutritionist": "Výživový poradce",
+    "client": "Klient"
   },
   "dashboard": {
     "title": "Dashboard",

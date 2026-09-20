@@ -179,8 +179,6 @@
     "comingSoonHint": "Wir arbeiten an der mobilen GF Platform App. Bleiben Sie dran!"
   },
   "shell": {
-    "searchPlaceholder": "Suchen...",
-    "accountMenu": "Kontomenü",
     "comingSoon": "Diese Seite ist in Vorbereitung.",
     "notFoundTitle": "Seite nicht gefunden",
     "notFoundBody": "Die gesuchte Seite existiert nicht.",
@@ -205,6 +203,9 @@
     "clientsSection": "KLIENTEN",
     "searchClients": "Klient suchen...",
     "databaseSection": "DATENBANK",
+    "clientManagementSection": "Klientenverwaltung",
+    "nutritionSection": "Ernährung",
+    "help": "Hilfe & Support",
     "trainingPlan": "Trainingsplan",
     "mealPlan": "Ernährungsplan",
     "questionnaires": "Fragebögen",
@@ -226,6 +227,12 @@
     "planSubmenu": {
       "empty": "Noch keine Pläne"
     }
+  },
+  "roles": {
+    "admin": "Administrator",
+    "trainer": "Personal Trainer",
+    "nutritionist": "Ernährungsberater",
+    "client": "Klient"
   },
   "dashboard": {
     "title": "Dashboard",

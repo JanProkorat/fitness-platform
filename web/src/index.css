@@ -36,6 +36,10 @@
   --gf-green: #15803d; /* primary action, accents */
   --gf-green-dark: #166534; /* active filter chip's inner count badge (#1066 phase 6) */
 
+  /* ---- Dark sidebar (#1073) ---- */
+  --gf-sidebar-bg: #121214; /* sidebar ground — distinct from --gf-pill, see shell-inventory.md #2 */
+  --gf-sidebar-accent: var(--gf-pill); /* active nav item fill + profile-row hairline; same value as --gf-pill, exposed under its own name for clarity inside the sidebar */
+
   /* Not in the Figma wireframe (no error/destructive state designed yet) —
      a conventional red-600 placeholder so shadcn's destructive variants
      still resolve to something. One more file to touch when the brand's
@@ -151,6 +155,8 @@
   --color-pill: var(--gf-pill);
   --color-brand: var(--gf-green);
   --color-green-dark: var(--gf-green-dark);
+  --color-sidebar-bg: var(--gf-sidebar-bg);
+  --color-sidebar-accent: var(--gf-sidebar-accent);
 
   /* ---- Entry page additions (#1055) ---- */
   --color-line-soft: var(--gf-line-soft);
