@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
+import { Toaster } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth';
 import ProtectedRoute from '@/routes/ProtectedRoute';
 import AppShell from '@/components/layout/AppShell';
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </QueryClientProvider>
   );
 }

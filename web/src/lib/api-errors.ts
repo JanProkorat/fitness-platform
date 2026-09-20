@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import i18n from '@/i18n';
+import { useToastStore } from '@/stores/toast';
 
 interface ProblemDetailsError {
   name: string;
@@ -77,8 +78,24 @@ export function getApiErrorMessage(error: unknown, fallbackKey: string): string 
   return i18n.t(fallbackKey);
 }
 
-// Toast-dispatch wrappers (showApiError / showError / showSuccess) were
-// removed with the UI strip (feature/ui-redesign) — they only bridged to the
-// now-deleted `stores/toast.ts`. Re-add them once the new design system's
-// notification component lands; callers should use `getApiErrorMessage()` /
-// `getErrorCode()` above to get the translated message in the meantime.
+/**
+ * Shows a toast with a translated API error message.
+ */
+export function showApiError(error: unknown, fallbackKey: string) {
+  const message = getApiErrorMessage(error, fallbackKey);
+  useToastStore.getState().addToast(message, 'error');
+}
+
+/**
+ * Shows an error toast with a translated message.
+ */
+export function showError(messageKey: string) {
+  useToastStore.getState().addToast(i18n.t(messageKey), 'error');
+}
+
+/**
+ * Shows a success toast.
+ */
+export function showSuccess(messageKey: string) {
+  useToastStore.getState().addToast(i18n.t(messageKey), 'success');
+}
