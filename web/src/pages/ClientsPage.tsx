@@ -125,6 +125,42 @@ export default function ClientsPage() {
   const clientsQuery = useClients(filters);
   const pendingQuery = usePendingClients();
 
+  // Search/chip/tag changes don't clear the selection outright — they PRUNE
+  // it: drop any selected client the new filter excludes, keep the rest (a
+  // coach who ticks 10 and then narrows the list to 7 should still see 7
+  // selected). Paging within the same filter must NOT prune — `setPage`
+  // never touches `search`/`chip`/`tags`, so it never changes `filterKey`
+  // and this block never runs for it. `tagIds` is sorted to match
+  // `useClients`' own `tagIdsKey`, so re-picking the same tags in a
+  // different click order isn't treated as a filter change.
+  //
+  // We only ever have ONE page of the new filtered result (every filter
+  // setter also resets `page` to 1 — see useClientListParams), never the
+  // full result set, so a selected client who does survive the new filter
+  // but sits on page 2+ looks indistinguishable here from one the filter
+  // actually excludes. We deliberately resolve that ambiguity by dropping
+  // them (over-pruning): a shrunk selection is recoverable and visible in
+  // the bulk bar's count, whereas broadcasting to someone the coach can no
+  // longer see in the list is not. Getting this exact (matching the whole
+  // filtered set, not just page 1) would need a second request per filter
+  // change purely to re-validate the selection — not worth it here.
+  //
+  // Pruning waits for `!clientsQuery.isPlaceholderData`: while
+  // `isPlaceholderData` is true, `clientsQuery.data` is still the PREVIOUS
+  // filter's page (`keepPreviousData`), and pruning against it would prune
+  // against the wrong set entirely. Adjusted during render, same pattern as
+  // `selectionTab`/`syncedSearch` above rather than a useEffect.
+  const filterKey = `${filters.search}|${filters.chip}|${[...filters.tagIds].sort().join(',')}`;
+  const [prunedFilterKey, setPrunedFilterKey] = useState(filterKey);
+  if (filterKey !== prunedFilterKey && !clientsQuery.isPlaceholderData) {
+    setPrunedFilterKey(filterKey);
+    const visibleIds = new Set((clientsQuery.data?.clients ?? []).map((client) => client.publicId ?? ''));
+    setSelectedIds((previous) => {
+      const next = new Set([...previous].filter((id) => visibleIds.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }
+
   const tabCounts = clientsQuery.data?.tabCounts;
   const hasActiveFilter =
     filters.search !== '' || filters.chip !== ClientListFilter.All || filters.tagIds.length > 0;
