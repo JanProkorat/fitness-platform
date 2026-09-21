@@ -213,6 +213,36 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             }
         }
 
+        // Active training plan lookup, gated the same way as the nutrition lookup above — only
+        // for a status derivation that must agree with GetClientsEndpoint (#1094), not for any
+        // other field on this response.
+        TrainingPlan? activeTrainingPlan = null;
+        if (link.CanViewTrainingPlans)
+        {
+            try
+            {
+                var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
+                    Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
+
+                using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
+                var activeTrainingPlans = await trainingPlanCursor.ToListAsync(ct);
+                activeTrainingPlan = PlanWindowResolver.ResolveCurrentPlan(
+                    activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+            }
+            catch (MongoDB.Driver.MongoException ex)
+            {
+                // Status-derivation input only — log and treat as "no active training plan".
+                Logger.LogWarning(ex, "Mongo query for active TrainingPlan failed for client {ClientPublicId}; treating as no active training plan for status", clientProfile.PublicId);
+            }
+        }
+
+        var status = ClientStatusClassifier.Classify(
+            link.IsActive,
+            LinkCapabilities.FromLink(link),
+            activePlan is not null,
+            activeTrainingPlan is not null);
+
         OnboardingDataDto? onboarding = null;
         if (clientProfile.OnboardingData is { } od)
         {
@@ -267,6 +297,7 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             Goals = clientProfile.Goals,
             LinkedAt = link.DateUpdated ?? link.DateCreated,
             IsActive = link.IsActive,
+            Status = status,
             CanViewNutritionPlans = link.CanViewNutritionPlans,
             CanViewTrainingPlans = link.CanViewTrainingPlans,
             HasRegistered = clientProfile.User.EmailConfirmed,

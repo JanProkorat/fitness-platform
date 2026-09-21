@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -406,11 +407,11 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             }
         }
 
-        var status = !row.IsActive
-            ? ClientListStatus.Archived
-            : hasActiveNutritionPlan || hasActiveTrainingPlan
-                ? ClientListStatus.Active
-                : ClientListStatus.Paused;
+        var status = ClientStatusClassifier.Classify(
+            row.IsActive,
+            new LinkCapabilities(row.CanViewNutritionPlans, row.CanViewTrainingPlans),
+            hasActiveNutritionPlan,
+            hasActiveTrainingPlan);
 
         return new ClassifiedRow(row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans);
     }
