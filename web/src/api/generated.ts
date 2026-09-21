@@ -10078,6 +10078,83 @@ export class ApiClient {
     }
 
     /**
+     * Get a client's weekly message stats
+     * @param clientId The client profile's public identifier (route parameter).
+     * @param weeks Number of ISO weeks to return, oldest first, including the current partial week.
+    Defaults to 4.
+     * @return Exactly `weeks` rows, oldest first
+     */
+    getClientMessageStatsEndpoint(clientId: string, weeks: number, signal?: AbortSignal): Promise<WeeklyMessageStatsDto[]> {
+        let url_ = this.baseUrl + "/trainer/clients/{clientId}/message-stats?";
+        if (clientId === undefined || clientId === null)
+            throw new globalThis.Error("The parameter 'clientId' must be defined.");
+        url_ = url_.replace("{clientId}", encodeURIComponent("" + clientId));
+        if (weeks === undefined || weeks === null)
+            throw new globalThis.Error("The parameter 'weeks' must be defined and cannot be null.");
+        else
+            url_ += "weeks=" + encodeURIComponent("" + weeks) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetClientMessageStatsEndpoint(_response);
+        });
+    }
+
+    protected processGetClientMessageStatsEndpoint(response: AxiosResponse): Promise<WeeklyMessageStatsDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<WeeklyMessageStatsDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WeeklyMessageStatsDto[]>(null as any);
+    }
+
+    /**
      * Broadcast a message to several clients
      * @return Message sent; SentCount is the distinct recipient count.
      */
@@ -18636,6 +18713,11 @@ endpoints — it differs from ClientPublicId. */
     linkedAt?: string;
     /** Whether the trainer-client relationship is currently active. */
     isActive?: boolean;
+    /** Derived Active/Paused/Archived status — computed by
+Classify, the same derivation
+GetClientsEndpoint uses, so this value always agrees with the caller's clients-list
+status pill for the same client (#1094). */
+    status?: ClientListStatus;
     /** Whether this professional is permitted to view the client's nutrition plans.
 Mirrors ClientProfessionalLink.CanViewNutritionPlans. */
     canViewNutritionPlans?: boolean;
@@ -20847,6 +20929,23 @@ export interface ConversationContextResponse {
 }
 
 export interface GetConversationContextRequest {
+}
+
+/** One ISO week's coach vs. client message counts for a trainer/client conversation. */
+export interface WeeklyMessageStatsDto {
+    /** The Monday that starts this ISO week, in the caller's time zone. */
+    weekStart?: string;
+    /** Messages sent by the caller (the trainer/nutritionist) during this week. Every
+system-generated message in a coach-client thread (broadcasts, invite greetings, request
+accept/reject) is attributed to the coach, so this counts those alongside typed replies —
+not just messages the coach personally typed. */
+    coachMessages?: number;
+    /** Messages sent by the client during this week. */
+    clientMessages?: number;
+}
+
+/** Request model for retrieving a client's weekly coach/client message counts. */
+export interface GetClientMessageStatsRequest {
 }
 
 /** Response for a message broadcast. */
