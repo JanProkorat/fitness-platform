@@ -613,7 +613,7 @@
     },
     "tagPicker": {
       "open": "Přiřadit štítky",
-      "createTag": "+ Vytvořit štítek",
+      "createTag": "Vytvořit štítek",
       "createTitle": "Vytvořit nový štítek",
       "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
       "nameLabel": "Název",
