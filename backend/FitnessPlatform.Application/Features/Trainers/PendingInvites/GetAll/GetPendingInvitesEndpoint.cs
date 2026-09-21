@@ -54,8 +54,6 @@ public class GetPendingInvitesEndpoint(IApplicationDbContext db) : EndpointWitho
             {
                 Id = pi.Id,
                 PublicId = pi.PublicId,
-                FirstName = pi.FirstName,
-                LastName = pi.LastName,
                 Email = pi.Email,
                 Message = pi.Message,
                 SentAt = pi.SentAt,

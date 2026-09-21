@@ -115,9 +115,6 @@ public class DismissRequestEndpoint(
         if (request.Link?.ClientProfile?.User is { } user)
             return $"{user.FirstName} {user.LastName}".Trim();
 
-        if (request.PendingInvite is { } invite)
-            return $"{invite.FirstName} {invite.LastName}".Trim();
-
         return clientEmail ?? string.Empty;
     }
 }

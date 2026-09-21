@@ -76,8 +76,6 @@ public class GetPendingClientsEndpoint(IApplicationDbContext db) : EndpointWitho
             {
                 Kind = PendingRowKind.Invite,
                 PublicId = pi.PublicId,
-                FirstName = pi.FirstName,
-                LastName = pi.LastName,
                 Email = pi.Email,
                 Message = pi.Message,
                 SentAt = pi.SentAt

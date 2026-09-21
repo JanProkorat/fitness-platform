@@ -62,8 +62,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -75,6 +73,39 @@ public class CreatePendingInviteEndpointTests
         ep.Response.Id.Should().Be(captured!.Id);
         ep.Response.PublicId.Should().Be(captured.PublicId);
         ep.Response.Email.Should().Be("jane@test.com");
+    }
+
+    /// <summary>
+    /// The behaviour this issue exists to enable: an invite with an email and no message at all
+    /// still succeeds now that FirstName/LastName are no longer part of the request shape.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_EmailOnlyNoMessage_Returns200()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var ep = CreateEndpoint(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "email-only@test.com"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        captured.Should().NotBeNull();
+        captured!.Email.Should().Be("email-only@test.com");
+        captured.Message.Should().BeNull();
     }
 
     /// <summary>
@@ -110,8 +141,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
@@ -131,8 +160,6 @@ public class CreatePendingInviteEndpointTests
 
         var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -168,8 +195,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             RequestedScope = LinkCapabilityScope.TrainingOnly
         }, TestContext.Current.CancellationToken);
@@ -203,8 +228,6 @@ public class CreatePendingInviteEndpointTests
 
         var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             RequestedScope = LinkCapabilityScope.NutritionOnly
         }, TestContext.Current.CancellationToken);
@@ -231,8 +254,6 @@ public class CreatePendingInviteEndpointTests
         var existingInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
             IsAccepted = false
@@ -252,8 +273,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -275,8 +294,6 @@ public class CreatePendingInviteEndpointTests
         var existingInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Someone",
-            LastName = "Else",
             Email = "someone-else@test.com",
             SentAt = DateTime.UtcNow.AddDays(-1),
             IsAccepted = false
@@ -292,8 +309,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -314,8 +329,6 @@ public class CreatePendingInviteEndpointTests
         var acceptedInvite = new PendingInvite
         {
             ProfessionalProfileId = trainerProfile.Id,
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com",
             SentAt = DateTime.UtcNow.AddDays(-30),
             IsAccepted = true
@@ -331,8 +344,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -358,8 +369,6 @@ public class CreatePendingInviteEndpointTests
             builder = builder.With(new PendingInvite
             {
                 ProfessionalProfileId = trainerProfile.Id,
-                FirstName = "Existing",
-                LastName = $"Invitee{i}",
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
                 IsAccepted = false
@@ -376,8 +385,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "One",
-            LastName = "Too Many",
             Email = "one-too-many@test.com"
         }, TestContext.Current.CancellationToken);
 
@@ -404,8 +411,6 @@ public class CreatePendingInviteEndpointTests
             builder = builder.With(new PendingInvite
             {
                 ProfessionalProfileId = trainerProfile.Id,
-                FirstName = "Existing",
-                LastName = $"Invitee{i}",
                 Email = $"existing{i}@test.com",
                 SentAt = DateTime.UtcNow.AddDays(-1),
                 IsAccepted = false
@@ -418,8 +423,6 @@ public class CreatePendingInviteEndpointTests
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
-            FirstName = "Jane",
-            LastName = "Doe",
             Email = "jane@test.com"
         }, TestContext.Current.CancellationToken);
 

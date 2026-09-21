@@ -28,16 +28,6 @@ public class PendingInviteDto
     public Guid PublicId { get; set; }
 
     /// <summary>
-    /// First name of the invited client.
-    /// </summary>
-    public string FirstName { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Last name of the invited client.
-    /// </summary>
-    public string LastName { get; set; } = string.Empty;
-
-    /// <summary>
     /// Email address of the invited client.
     /// </summary>
     public string Email { get; set; } = string.Empty;

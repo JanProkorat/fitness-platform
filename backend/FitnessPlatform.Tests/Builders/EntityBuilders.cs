@@ -410,8 +410,6 @@ public class PendingInviteBuilder
 {
     private long _id;
     private long _professionalProfileId = 1;
-    private string _firstName = "Invited";
-    private string _lastName = "Client";
     private string _email = "invited@test.com";
     private DateTime _sentAt = DateTime.UtcNow;
     private bool _isAccepted;
@@ -427,16 +425,6 @@ public class PendingInviteBuilder
     /// Sets the professional profile ID.
     /// </summary>
     public PendingInviteBuilder WithProfessionalProfileId(long id) { _professionalProfileId = id; return this; }
-
-    /// <summary>
-    /// Sets the first name.
-    /// </summary>
-    public PendingInviteBuilder WithFirstName(string fn) { _firstName = fn; return this; }
-
-    /// <summary>
-    /// Sets the last name.
-    /// </summary>
-    public PendingInviteBuilder WithLastName(string ln) { _lastName = ln; return this; }
 
     /// <summary>
     /// Sets the email.
@@ -465,8 +453,6 @@ public class PendingInviteBuilder
     {
         Id = _id,
         ProfessionalProfileId = _professionalProfileId,
-        FirstName = _firstName,
-        LastName = _lastName,
         Email = _email,
         SentAt = _sentAt,
         IsAccepted = _isAccepted,
