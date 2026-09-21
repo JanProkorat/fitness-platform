@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -129,9 +130,15 @@ export default function ClientsTable({
                       avatarBlobUrl={client.avatarBlobUrl}
                     />
                     <div className="flex flex-col">
-                      <span className="font-medium text-foreground">
-                        {client.firstName} {client.lastName}
-                      </span>
+                      {rowId ? (
+                        <Link to={`/clients/${rowId}`} className="font-medium text-foreground hover:underline">
+                          {client.firstName} {client.lastName}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-foreground">
+                          {client.firstName} {client.lastName}
+                        </span>
+                      )}
                       <span className="text-caption text-muted-foreground">{client.email}</span>
                     </div>
                   </div>
@@ -168,7 +175,7 @@ export default function ClientsTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <ClientRowMenu />
+                  <ClientRowMenu publicId={rowId} />
                 </TableCell>
               </TableRow>
             );

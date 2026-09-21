@@ -1,18 +1,21 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
+interface Props {
+  /** The row's client public id. Empty when the row's ClientSummary carries no publicId. */
+  publicId: string;
+}
+
 /**
- * Row-level actions menu. "Open client detail" ships disabled-only — no
- * `Link`, no `to`/`href`, no `onSelect` — because page 4 (client detail)
- * does not exist yet and `App.tsx` is deliberately out of scope for this
- * issue, so a live link would fall through to NotFoundPage. Radix sets
- * `aria-disabled` and swallows selection on a disabled Item; the `title`
- * attribute gives a "not yet" hint on hover rather than a bare-looking
- * disabled row.
+ * Row-level actions menu. "Open client detail" links to `/clients/:clientId`
+ * (#1094) — a real page now that the client-detail route exists. Falls back
+ * to a disabled item for the (should-not-happen) case of a row with no
+ * `publicId`, rather than linking to a broken route.
  */
-export default function ClientRowMenu() {
+export default function ClientRowMenu({ publicId }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -23,9 +26,13 @@ export default function ClientRowMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled title={t('clients.comingSoon')}>
-          {t('clients.rowMenu.viewDetail')}
-        </DropdownMenuItem>
+        {publicId ? (
+          <DropdownMenuItem asChild>
+            <Link to={`/clients/${publicId}`}>{t('clients.rowMenu.viewDetail')}</Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled>{t('clients.rowMenu.viewDetail')}</DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -406,7 +406,6 @@
     "backToClients": "Clients",
     "clientDetail": "Client detail",
     "comingSoon": "Coming soon",
-    "comingSoonHint": "Client detail will be available in the next phase",
     "overview": "Overview",
     "compliance": "Compliance",
     "streak": "Day Streak",
@@ -2032,19 +2031,8 @@
     "weightKg": "Weight (kg)",
     "profileUpdated": "Client profile saved",
     "readOnlyFieldHint": "This field can't be edited from the trainer portal.",
-    "tabBarLabel": "Client tabs",
     "ageYears_one": "{{count}} year",
     "ageYears_other": "{{count}} years",
-    "tabs": {
-      "prehled": "Overview",
-      "mereni": "Measurements",
-      "fotky": "Photos",
-      "aktivita": "Activity",
-      "plany": "Plans",
-      "checkiny": "Check-ins",
-      "dotazniky": "Questionnaires",
-      "poznamky": "Notes"
-    },
     "verdict": {
       "unavailable": "Verdict unavailable",
       "onTrack": {
@@ -2266,6 +2254,78 @@
       "editAriaLabel": "Edit note",
       "deleteAriaLabel": "Delete note",
       "errorLoading": "Failed to load notes"
+    },
+    "overview": {
+      "backAriaLabel": "Back to clients",
+      "tbd": "TBD",
+      "header": {
+        "heightCm": "{{cm}} cm"
+      },
+      "actions": {
+        "chat": "Chat",
+        "tasks": "Tasks",
+        "notes": "Notes",
+        "info": "Info"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "development": "Development",
+        "nutrition": "Nutrition",
+        "workouts": "Workouts",
+        "storage": "Storage",
+        "payment": "Payment",
+        "automations": "Automations"
+      },
+      "stats": {
+        "rating": {
+          "label": "Average rating",
+          "caption": "Based on check-in answers"
+        },
+        "payments": {
+          "label": "Payments",
+          "caption": "No payments found for client"
+        },
+        "weight": {
+          "label": "Current weight",
+          "value": "{{kg}} kg",
+          "deltaThisWeek": "{{delta}} kg this week",
+          "goalWeight": "{{goal}} kg goal"
+        },
+        "clientSince": {
+          "label": "Client since",
+          "days_one": "{{count}} day",
+          "days_other": "{{count}} days",
+          "started": "Started {{date}}"
+        }
+      },
+      "mealPlan": {
+        "heading": "Current meal plan",
+        "detail": "{{kcal}} kcal • {{carb}} % Carb / {{protein}} % Protein / {{fat}} % Fat"
+      },
+      "workout": {
+        "heading": "Latest workout",
+        "exercises_one": "{{count}} Exercise",
+        "exercises_other": "{{count}} Exercises"
+      },
+      "checkInTrend": {
+        "heading": "Check-in trend",
+        "last15Days": "Last 15 days",
+        "legend": {
+          "completed": "Completed",
+          "missed": "Missed",
+          "upcoming": "Upcoming"
+        }
+      },
+      "messagesTrend": {
+        "heading": "Messages trend",
+        "last4Weeks": "Last 4 weeks",
+        "chartAriaLabel": "Coach and client messages per week, last 4 weeks",
+        "weekLabel": "W{{index}}",
+        "legend": {
+          "coach": "Coach Messages",
+          "client": "Client Messages"
+        }
+      }
     }
   },
   "messages": {
