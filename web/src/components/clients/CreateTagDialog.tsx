@@ -26,7 +26,6 @@ interface FormValues {
   description: string;
 }
 
-const DEFAULT_COLOR = '#3B82F6';
 const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 /**
@@ -47,6 +46,11 @@ const TAG_COLOR_PRESETS = [
   { hex: '#ec4899', labelKey: 'pink' },
   { hex: '#64748b', labelKey: 'grey' },
 ] as const;
+
+// The blue preset, uppercased — the form's default before the coach picks a
+// colour. Derived from the preset list rather than duplicated as a separate
+// literal, so there is one source for this value, not two spellings of it.
+const DEFAULT_COLOR = TAG_COLOR_PRESETS[4].hex.toUpperCase();
 
 interface Props {
   open: boolean;
@@ -112,6 +116,21 @@ export default function CreateTagDialog({ open, onOpenChange, onCreated }: Props
     (preset) => preset.hex.toLowerCase() === colorHex.toLowerCase(),
   )?.hex;
 
+  // Radix autofocuses the first focusable descendant (`#tag-name`) on mount.
+  // A mousedown on a swatch then blurs that input, and `mode: 'onTouched'`
+  // validates it — the dialog grows to fit the "required" message, which
+  // (being vertically centred) shifts the swatch row out from under the
+  // pointer before `click` fires, so the first swatch press is silently
+  // lost. Move focus to the dialog's own container instead — Radix's
+  // FocusScope dispatches this event on that container, which already
+  // carries `tabIndex={-1}`, so `.focus()` doesn't need an extra ref. Tab
+  // from there still reaches the name field first, so nothing is lost for
+  // keyboard users.
+  function handleOpenAutoFocus(event: Event) {
+    event.preventDefault();
+    (event.target as HTMLElement).focus();
+  }
+
   function onSubmit(values: FormValues) {
     createMutation.mutate(
       { name: values.name, colorHex: values.colorHex, description: values.description || undefined },
@@ -126,7 +145,7 @@ export default function CreateTagDialog({ open, onOpenChange, onCreated }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={handleOpenAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t('clients.tagPicker.createTitle')}</DialogTitle>
           <DialogDescription>{t('clients.tagPicker.createDescription')}</DialogDescription>
