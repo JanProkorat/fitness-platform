@@ -42,14 +42,14 @@ export default function HeroSection() {
         <p className="text-label font-semibold tracking-label text-muted-foreground uppercase">
           {t('entry.eyebrow')}
         </p>
-        <h1 className="mt-4 mb-4.5 max-w-[12em] text-hero leading-[1.04] font-bold tracking-[-.02em] text-ink">
+        <h1 className="mt-4 mb-4.5 max-w-[12em] text-hero font-bold tracking-[-.02em] text-ink">
           <span>{t('entry.headline.line1')}</span>
           <br />
           <span className="font-accent text-[1.06em] font-semibold tracking-[-.01em] text-brand italic">
             {t('entry.headline.accent')}
           </span>
         </h1>
-        <p className="max-w-[32em] text-lede leading-[1.6] text-ink-2">{t('entry.sub')}</p>
+        <p className="max-w-[32em] text-lede text-ink-2">{t('entry.sub')}</p>
         <ul className="mt-6.5 flex flex-wrap gap-2">
           {points.map((point) => (
             <li

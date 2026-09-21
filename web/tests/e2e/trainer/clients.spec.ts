@@ -64,4 +64,48 @@ test.describe('clients list page', () => {
     await expect(page.getByText('Invitation sent.', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Invite a new client' })).not.toBeVisible();
   });
+
+  /**
+   * #1079 — the type scale declared font sizes with no paired line-heights,
+   * so every control wrapped around a line of text came out ~25% taller
+   * than the wireframe. Measured, not eyeballed: a height assertion catches
+   * the pairing silently regressing back to the browser's unpaired
+   * `normal` line-height, which a visual/eyeball check would not.
+   */
+  test('control heights match the wireframe at 1920px (#1079)', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+
+    const activeTab = page.getByRole('tab', { name: /Active/ });
+    await expect(activeTab).toBeVisible();
+    const tabHeight = (await activeTab.boundingBox())?.height ?? 0;
+    expect(tabHeight).toBeGreaterThan(27);
+    expect(tabHeight).toBeLessThan(31);
+
+    const searchBox = page.getByPlaceholder('Search clients...');
+    await expect(searchBox).toBeVisible();
+    const searchHeight = (await searchBox.boundingBox())?.height ?? 0;
+    expect(searchHeight).toBeGreaterThan(30);
+    expect(searchHeight).toBeLessThan(34);
+
+    const navSectionHeader = page.getByText('Client management', { exact: true });
+    await expect(navSectionHeader).toBeVisible();
+    const navHeaderHeight = (await navSectionHeader.boundingBox())?.height ?? 0;
+    expect(navHeaderHeight).toBeGreaterThan(10);
+    expect(navHeaderHeight).toBeLessThan(14);
+
+    const pageTitle = page.getByRole('heading', { name: 'Clients' });
+    const pageTitleHeight = (await pageTitle.boundingBox())?.height ?? 0;
+    expect(pageTitleHeight).toBeGreaterThan(32);
+    expect(pageTitleHeight).toBeLessThan(36);
+
+    const allChip = page.getByRole('button', { name: /\bAll$/ });
+    const countBadge = allChip.locator('span').first();
+    await expect(countBadge).toBeVisible();
+    const badgeBox = await countBadge.boundingBox();
+    expect(badgeBox?.height ?? 0).toBeGreaterThan(14);
+    expect(badgeBox?.height ?? 0).toBeLessThan(18);
+    expect(badgeBox?.width ?? 0).toBeGreaterThan(badgeBox?.height ?? 0);
+  });
 });
