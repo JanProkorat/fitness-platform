@@ -42,8 +42,6 @@ public class CreatePendingInviteProfessionSlotTests(FitnessApiFactory factory)
     private static async Task<HttpResponseMessage> InviteAsync(HttpClient coach, string clientEmail) =>
         await coach.PostAsJsonAsync("/trainer/pending-invites", new
         {
-            FirstName = "Slot",
-            LastName = "Client",
             Email = clientEmail
         }, TestContext.Current.CancellationToken);
 
