@@ -96,6 +96,7 @@
   --gf-collage-cell-min-height: clamp(70px, 12vh, 140px); /* hero photo-collage cell */
   --gf-wrap-width: 1044px; /* marketing section content max-width, reused across bands */
   --gf-hero-content-width: 900px; /* hero headline/collage max-width, reused twice in HeroSection */
+  --gf-badge-min-width: 19px; /* filter-chip count badge floor (Figma node 1:693, #1079) — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
   --gf-tracking-label: 0.14em; /* eyebrow/section-label letter-spacing, reused 3x */
   /* 960px collapse breakpoint (spec §6) is declared as a literal directly
      in `--breakpoint-panel` below, not aliased through a --gf-* raw token:
@@ -243,6 +244,7 @@
   --spacing-collage-cell: var(--gf-collage-cell-min-height);
   --spacing-wrap: var(--gf-wrap-width);
   --spacing-hero-content: var(--gf-hero-content-width);
+  --spacing-badge-min: var(--gf-badge-min-width);
 
   --tracking-label: var(--gf-tracking-label);
 
