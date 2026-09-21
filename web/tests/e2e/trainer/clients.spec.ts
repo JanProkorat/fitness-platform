@@ -108,4 +108,39 @@ test.describe('clients list page', () => {
     expect(badgeBox?.height ?? 0).toBeLessThan(18);
     expect(badgeBox?.width ?? 0).toBeGreaterThan(badgeBox?.height ?? 0);
   });
+
+  /**
+   * #1081 — the "add client" drawer covers the default `side="right"`
+   * case (the off-canvas nav drawer in shell.responsive.spec.ts covers
+   * `side="left"`). See that spec's matching test for the full root-cause
+   * comment on why a CSS transition can't drive Radix's Presence.
+   */
+  test('the add-client drawer content and overlay animate with distinct enter/exit keyframes and suspend removal on close (#1081)', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: '+ Invite client' }).click();
+    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+
+    const dialog = page.getByRole('dialog');
+    const overlay = page.locator("[data-slot='sheet-overlay']");
+
+    // A. CSS contract.
+    await expect(dialog).toHaveCSS('animation-name', 'sheet-in-right');
+    await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-in');
+    const enterContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
+    const enterOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
+
+    await dialog.getByRole('button', { name: 'Close' }).click();
+
+    // B. Exit suspension — the actual regression test.
+    await expect(dialog).toHaveAttribute('data-state', 'closed');
+    await expect(dialog).toHaveCSS('animation-name', 'sheet-out-right');
+    await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-out');
+    const exitContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
+    const exitOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
+    expect(exitContentName).not.toBe(enterContentName);
+    expect(exitOverlayName).not.toBe(enterOverlayName);
+
+    await expect(dialog).toBeHidden();
+  });
 });

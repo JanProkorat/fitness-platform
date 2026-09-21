@@ -258,6 +258,27 @@
      same as any other CSS custom property that references one. */
   --animate-panel-in: panel-in 200ms ease-out;
   --animate-panel-out: panel-out 120ms ease-in forwards;
+
+  /* ---- Sheet (drawer) open/close (#1081) ----
+     Radix's Presence gates the close-unmount on the *name* of the
+     animation changing between the enter and exit state (see
+     @radix-ui/react-presence's usePresence: `isAnimating = prevAnimationName
+     !== currentAnimationName`). A single keyframe reused for both
+     directions via `animation-direction: reverse` computes to the SAME
+     animationName, so Presence sees no change and unmounts synchronously
+     regardless -- every side needs its own distinct enter/exit pair.
+     Durations match the sheetVariants they replace (content: 300ms in /
+     200ms out; overlay fade: 200ms both ways). */
+  --animate-sheet-in-right: sheet-in-right 300ms ease-out;
+  --animate-sheet-out-right: sheet-out-right 200ms ease-in forwards;
+  --animate-sheet-in-left: sheet-in-left 300ms ease-out;
+  --animate-sheet-out-left: sheet-out-left 200ms ease-in forwards;
+  --animate-sheet-in-top: sheet-in-top 300ms ease-out;
+  --animate-sheet-out-top: sheet-out-top 200ms ease-in forwards;
+  --animate-sheet-in-bottom: sheet-in-bottom 300ms ease-out;
+  --animate-sheet-out-bottom: sheet-out-bottom 200ms ease-in forwards;
+  --animate-sheet-overlay-in: sheet-overlay-in 200ms ease-out;
+  --animate-sheet-overlay-out: sheet-overlay-out 200ms ease-in forwards;
 }
 
 @keyframes panel-in {
@@ -279,6 +300,113 @@
   to {
     opacity: 0;
     transform: translateY(-6px);
+  }
+}
+
+@keyframes sheet-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheet-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes sheet-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheet-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes sheet-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes sheet-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* #1081 -- collapse duration rather than switching to `animation: none`:
+   removing the animation-name entirely would divert Presence to the
+   currentAnimationName === "none" branch (a different code path than the
+   one motion-enabled users exercise), so this keeps both motion modes on
+   the identical state machine while making the transition imperceptible.
+   Also not `motion-reduce:animate-none` -- that Tailwind variant compiles
+   to a bare class inside a media query (specificity 0,1,0), which loses
+   to the `data-[state=open]:animate-*` attribute selector (0,2,0)
+   regardless of source order, so the animation would silently keep
+   playing at full duration. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='sheet-content'],
+  [data-slot='sheet-overlay'] {
+    animation-duration: 1ms !important;
   }
 }
 
