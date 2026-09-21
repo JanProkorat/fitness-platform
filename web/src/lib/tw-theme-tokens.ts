@@ -44,4 +44,17 @@ export const SPACING_TOKENS = ['panel', 'wrap', 'collage-cell', 'hero-content', 
 export const TRACKING_TOKENS = ['label'] as const;
 
 /** `--animate-*` — same unknown-class shape as spacing. */
-export const ANIMATE_TOKENS = ['panel-in', 'panel-out'] as const;
+export const ANIMATE_TOKENS = [
+  'panel-in',
+  'panel-out',
+  'sheet-in-right',
+  'sheet-out-right',
+  'sheet-in-left',
+  'sheet-out-left',
+  'sheet-in-top',
+  'sheet-out-top',
+  'sheet-in-bottom',
+  'sheet-out-bottom',
+  'sheet-overlay-in',
+  'sheet-overlay-out',
+] as const;
