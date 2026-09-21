@@ -350,12 +350,15 @@
       "unreadTooltip_few": "{{count}} nepřečtené zprávy",
       "unreadTooltip_many": "{{count}} nepřečtené zprávy",
       "unreadTooltip_other": "{{count}} nepřečtených zpráv",
-      "plansAriaLabel_one": "{{count}} aktivní plán",
-      "plansAriaLabel_few": "{{count}} aktivní plány",
-      "plansAriaLabel_many": "{{count}} aktivního plánu",
-      "plansAriaLabel_other": "{{count}} aktivních plánů",
-      "planSince": "Od {{date}}",
+      "activePlanCount_one": "{{count}} aktivní plán",
+      "activePlanCount_few": "{{count}} aktivní plány",
+      "activePlanCount_many": "{{count}} aktivního plánu",
+      "activePlanCount_other": "{{count}} aktivních plánů",
       "noActivePlans": "Žádné aktivní plány",
+      "planType": {
+        "nutrition": "Výživa",
+        "training": "Trénink"
+      },
       "selectAll": "Vybrat všechny klienty na této stránce",
       "selectRow": "Vybrat {{name}}"
     },
@@ -610,7 +613,7 @@
     },
     "tagPicker": {
       "open": "Přiřadit štítky",
-      "createTag": "+ Vytvořit štítek",
+      "createTag": "Vytvořit štítek",
       "createTitle": "Vytvořit nový štítek",
       "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
       "nameLabel": "Název",

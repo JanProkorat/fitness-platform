@@ -160,7 +160,12 @@ export default function ClientsTable({
                   )}
                 </TableCell>
                 <TableCell>
-                  <PlanIconsCell activePlans={client.activePlans ?? []} />
+                  <PlanIconsCell
+                    activePlans={client.activePlans ?? []}
+                    firstName={client.firstName}
+                    lastName={client.lastName}
+                    avatarBlobUrl={client.avatarBlobUrl}
+                  />
                 </TableCell>
                 <TableCell>
                   <ClientRowMenu />
