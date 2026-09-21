@@ -624,14 +624,10 @@
     "addClientDrawer": {
       "title": "Pozvat nového klienta",
       "description": "Klient obdrží e-mailovou pozvánku k vytvoření účtu a propojení s vámi.",
-      "firstNameLabel": "Křestní jméno",
-      "lastNameLabel": "Příjmení",
       "emailLabel": "E-mail",
       "messageLabel": "Zpráva (nepovinné)",
       "submit": "Odeslat pozvánku",
       "validation": {
-        "firstNameRequired": "Křestní jméno je povinné.",
-        "lastNameRequired": "Příjmení je povinné.",
         "emailRequired": "E-mail je povinný.",
         "emailInvalid": "Zadejte platnou e-mailovou adresu."
       }

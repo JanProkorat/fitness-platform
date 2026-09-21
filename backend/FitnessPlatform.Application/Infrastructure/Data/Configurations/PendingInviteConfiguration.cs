@@ -14,14 +14,6 @@ public class PendingInviteConfiguration : IEntityTypeConfiguration<PendingInvite
     {
         builder.ToTable("pending_invites");
 
-        builder.Property(pi => pi.FirstName)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.Property(pi => pi.LastName)
-            .IsRequired()
-            .HasMaxLength(100);
-
         builder.Property(pi => pi.Email)
             .IsRequired()
             .HasMaxLength(256);
