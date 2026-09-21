@@ -614,11 +614,26 @@
       "createTitle": "Vytvořit nový štítek",
       "createDescription": "Štítky vám pomohou třídit a filtrovat klienty.",
       "nameLabel": "Název",
+      "namePlaceholder": "Zadejte název štítku",
       "colorLabel": "Barva",
-      "descriptionLabel": "Popis (nepovinné)",
+      "descriptionLabel": "Popis",
+      "descriptionPlaceholder": "Zadejte popis štítku",
+      "previewLabel": "Náhled",
+      "previewSampleName": "Náhled štítku",
       "createSubmit": "Vytvořit štítek",
+      "colors": {
+        "red": "Červená",
+        "orange": "Oranžová",
+        "yellow": "Žlutá",
+        "green": "Zelená",
+        "blue": "Modrá",
+        "purple": "Fialová",
+        "pink": "Růžová",
+        "grey": "Šedá"
+      },
       "validation": {
-        "nameRequired": "Název štítku je povinný."
+        "nameRequired": "Název štítku je povinný.",
+        "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
       }
     },
     "addClientDrawer": {

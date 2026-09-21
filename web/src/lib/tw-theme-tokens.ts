@@ -38,7 +38,7 @@ export const SHADOW_TOKENS = ['panel', 'selection-bar'] as const;
 
 /** `--spacing-*` — unknown to tailwind-merge without this (not deleted,
  * just never conflict-resolved). */
-export const SPACING_TOKENS = ['panel', 'wrap', 'collage-cell', 'hero-content', 'badge-min'] as const;
+export const SPACING_TOKENS = ['panel', 'wrap', 'collage-cell', 'hero-content', 'badge-min', 'swatch'] as const;
 
 /** `--tracking-*` — same unknown-class shape as spacing. */
 export const TRACKING_TOKENS = ['label'] as const;

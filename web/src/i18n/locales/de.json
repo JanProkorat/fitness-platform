@@ -592,11 +592,26 @@
       "createTitle": "Neuen Tag erstellen",
       "createDescription": "Tags helfen Ihnen, Ihre Klienten zu gruppieren und zu filtern.",
       "nameLabel": "Name",
+      "namePlaceholder": "Tag-Namen eingeben",
       "colorLabel": "Farbe",
-      "descriptionLabel": "Beschreibung (optional)",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
+      "previewLabel": "Vorschau",
+      "previewSampleName": "Tag-Vorschau",
       "createSubmit": "Tag erstellen",
+      "colors": {
+        "red": "Rot",
+        "orange": "Orange",
+        "yellow": "Gelb",
+        "green": "Grün",
+        "blue": "Blau",
+        "purple": "Violett",
+        "pink": "Rosa",
+        "grey": "Grau"
+      },
       "validation": {
-        "nameRequired": "Tagname ist erforderlich."
+        "nameRequired": "Tagname ist erforderlich.",
+        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
       }
     },
     "addClientDrawer": {

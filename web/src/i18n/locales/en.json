@@ -593,11 +593,26 @@
       "createTitle": "Create a new tag",
       "createDescription": "Tags help you group and filter your clients.",
       "nameLabel": "Name",
+      "namePlaceholder": "Enter tag name",
       "colorLabel": "Color",
-      "descriptionLabel": "Description (optional)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter tag description",
+      "previewLabel": "Preview",
+      "previewSampleName": "Tag Preview",
       "createSubmit": "Create tag",
+      "colors": {
+        "red": "Red",
+        "orange": "Orange",
+        "yellow": "Yellow",
+        "green": "Green",
+        "blue": "Blue",
+        "purple": "Purple",
+        "pink": "Pink",
+        "grey": "Grey"
+      },
       "validation": {
-        "nameRequired": "Tag name is required."
+        "nameRequired": "Tag name is required.",
+        "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
       }
     },
     "addClientDrawer": {
