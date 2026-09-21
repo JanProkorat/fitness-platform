@@ -24,9 +24,11 @@ seven-section sidebar; ours shows only the two v1 sections, by design.
 2. **No backend → the card still renders, with `TBD` in place of the value.**
 3. **The Messages trend gets a real endpoint** (weekly coach/client counts).
 
-Two derivations the user approved: the status pill is computed the way the
-clients list computes it; the daily check-in trend is TBD rather than
-redesigned as weekly.
+Two follow-on rulings: the **status pill comes from the backend** — the
+clients list's classification is promoted to a shared `ClientStatusClassifier`
+and exposed as `Status` on the dashboard response, because a page-side
+derivation cannot see a plan's window and would disagree with the list; and
+the daily check-in trend is TBD rather than redesigned as weekly.
 
 ## Structure, top to bottom
 
@@ -40,8 +42,10 @@ redesigned as weekly.
   Loss`. Omit any segment whose value is absent (sex is only known after
   onboarding).
 - Right, aligned with the title: four **outlined buttons** — `Chat`, `Tasks`,
-  `Notes`, `Info`. Per the issue: Chat and Notes are live links; Tasks is
-  disabled with `TBD`; Info is disabled with coming-soon.
+  `Notes`, `Info`. **All four render disabled** with the coming-soon
+  treatment (design review, 2026-09-21): the inbox is a placeholder until page
+  5 and no notes surface exists, so there is nothing for Chat or Notes to link
+  to. Tasks additionally shows `TBD` — no such concept exists in the backend.
 
 ### Tab bar
 
