@@ -19,7 +19,9 @@ keeping it over inventing a new one. If the Figma budget frees up, pulling the
 real node and replacing this file is worth doing.
 
 Everything in the "Structure" and "Differences" sections is directly visible in
-the image and is reliable. The palette section is explicitly not.
+the image and is reliable. **The palette section was originally an inference and
+has since been replaced with values sampled from the PNG** — see the correction
+note there, including the one slot the inference got wrong.
 
 ## Structure, top to bottom
 
@@ -35,14 +37,24 @@ at the top right.
    placeholder `Enter tag description`.
 5. **Color** — label, then:
    - a single row of **eight circular swatches**, left aligned, evenly spaced;
-     the selected one carries a visible ring offset from the circle's edge;
+     the selected one carries a **2px dark border on the circle itself**. An
+     earlier draft of this file said "a ring offset from the circle's edge" —
+     that was wrong. Sampling shows selected and unselected span the same 18px
+     with no white gap, so it is `border-2`, not an offset ring.
    - **below the row**, a full-width text input holding the hex value. In the
      reference it reads `#3B82F6` in normal (not placeholder) ink, i.e. it is
      the current value, not a hint.
 6. **Preview** — label, then a full-width panel with a light fill and a light
    border, padded, containing one small **tag pill**: a tag icon plus the text
-   `Tag Preview`, rendered in the chosen colour (a light tint behind, the
-   colour itself as the ink).
+   `Tag Preview`, rendered in the chosen colour — a light tint behind, the
+   colour itself as the ink.
+
+   **The reference's pill fill is a static mock value and must not be copied.**
+   It samples as `#E0F2FE`, which is not the selected blue composited over the
+   panel: its blue channel is *higher* than the panel's, which no alpha
+   composite can produce. So it cannot generalise to the other seven presets or
+   to a typed hex. Derive the fill the way `ClientTagPill` already does —
+   `${colorHex}1a` behind, `colorHex` as the ink.
 7. **Footer** — right aligned: `Cancel` (light, bordered) then `Create Tag`
    (solid green, white text).
 
@@ -58,18 +70,33 @@ at the top right.
 | Preview | a panel with a live tag pill | absent |
 | Footer | unchanged in shape | unchanged in shape |
 
-## The palette — inferred, confirm before hardcoding
+## The palette — MEASURED (this section was corrected)
 
-Only **one** value is certain: the selected blue is printed in the image as
-`#3B82F6`, and it already matches `CreateTagDialog.tsx`'s existing
-`DEFAULT_COLOR` (`#3b82f6`). Good corroboration that the design and the
-component agree on at least this one.
+**Superseded correction, 2026-09-21.** This section originally listed the
+palette as an inference and named slot 3 "amber". The design review sampled the
+committed PNG directly rather than trusting that, and **the inference was wrong
+on slot 3**: the pixels are yellow-500 `#EAB308`, not amber-500 `#F59E0B`.
+Pasting the guessed name's hex would have shipped that swatch wrong.
 
-The other seven are **an inference from how they look**, in left-to-right
-order: red, orange, amber, emerald, **blue (selected)**, violet, pink, slate.
-They read as a standard 500-weight ramp. Do not paste a guessed hex into the
-code without checking it against `create-tag-target.png` first, and say in the
-PR which values were confirmed by eye and which were assumed.
+All eight are exact Tailwind 500 values, sampled left to right:
+
+| # | Hex | Name |
+|---|---|---|
+| 1 | `#EF4444` | red |
+| 2 | `#F97316` | orange |
+| 3 | `#EAB308` | **yellow** — not amber |
+| 4 | `#10B981` | green |
+| 5 | `#3B82F6` | blue *(selected)* |
+| 6 | `#8B5CF6` | violet |
+| 7 | `#EC4899` | pink |
+| 8 | `#64748B` | grey |
+
+Use this list verbatim; do not re-sample. Store lowercase — the backend
+lowercases at `CreateClientTagEndpoint.cs:80` regardless — and display
+uppercase, as the reference does.
+
+**The swatch labels are the plain colour names above, not Tailwind's ramp
+names.** "emerald", "violet", "slate" are library jargon no coach says.
 
 ## Why the palette is not a design token
 
@@ -93,8 +120,8 @@ This also keeps the change clear of siblings #1079 and #1081, which both hold
   silently producing an unstyled preview pill. The existing `colorHex` Zod rule
   is only `min(1)`; a free-text hex field makes a real format rule worth having.
 - The swatches are colour choices, so **colour alone cannot be the only
-  indicator of which is selected** — the ring carries that, and each swatch
-  needs an accessible name and keyboard operation.
+  indicator of which is selected** — the 2px border carries that as a shape
+  difference, and each swatch needs an accessible name and keyboard operation.
 
 ## New copy, all three locales
 
