@@ -185,8 +185,6 @@ public class CreatePendingInviteEndpoint(
         var pendingInvite = new PendingInvite
         {
             ProfessionalProfileId = professionalProfile.Id,
-            FirstName = req.FirstName,
-            LastName = req.LastName,
             Email = req.Email,
             Message = req.Message,
             SentAt = DateTime.UtcNow,
@@ -276,8 +274,6 @@ public class CreatePendingInviteEndpoint(
         {
             Id = pendingInvite.Id,
             PublicId = pendingInvite.PublicId,
-            FirstName = pendingInvite.FirstName,
-            LastName = pendingInvite.LastName,
             Email = pendingInvite.Email,
             SentAt = pendingInvite.SentAt,
             QuestionnairePublicId = req.QuestionnairePublicId

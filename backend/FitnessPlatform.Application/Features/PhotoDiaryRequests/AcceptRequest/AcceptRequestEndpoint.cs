@@ -111,9 +111,8 @@ public class AcceptRequestEndpoint(
     }
 
     /// <summary>
-    /// Resolves a display name for the client: link-based pulls from
-    /// ClientProfile.User, invite-based pulls from PendingInvite first/last
-    /// name. Falls back to the email claim if neither is populated.
+    /// Resolves a display name for the client from the request's link navigation.
+    /// Falls back to the email claim if it is not populated.
     /// </summary>
     private static string ResolveClientName(
         Domain.Entities.PhotoDiaryRequest request,
@@ -121,9 +120,6 @@ public class AcceptRequestEndpoint(
     {
         if (request.Link?.ClientProfile?.User is { } user)
             return $"{user.FirstName} {user.LastName}".Trim();
-
-        if (request.PendingInvite is { } invite)
-            return $"{invite.FirstName} {invite.LastName}".Trim();
 
         return clientEmail ?? string.Empty;
     }

@@ -38,7 +38,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-ink/50 transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+        "fixed inset-0 z-50 bg-ink/50 data-[state=open]:animate-sheet-overlay-in data-[state=closed]:animate-sheet-overlay-out",
         className
       )}
       {...props}
@@ -46,17 +46,20 @@ function SheetOverlay({
   )
 }
 
+// Each side needs its own DISTINCT enter/exit @keyframes pair -- see the
+// #1081 comment on the --animate-sheet-* tokens in index.css for why a
+// single reversible keyframe doesn't work with Radix's Presence.
 const sheetVariants = cva(
-  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-panel transition-transform ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-300",
+  "fixed z-50 flex flex-col gap-4 border-border bg-card text-card-foreground shadow-panel",
   {
     variants: {
       side: {
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:translate-x-full data-[state=open]:translate-x-0 sm:max-w-sm",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 sm:max-w-sm",
-        top: "inset-x-0 top-0 h-auto border-b data-[state=closed]:-translate-y-full data-[state=open]:translate-y-0",
+          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=open]:animate-sheet-in-right data-[state=closed]:animate-sheet-out-right sm:max-w-sm",
+        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=open]:animate-sheet-in-left data-[state=closed]:animate-sheet-out-left sm:max-w-sm",
+        top: "inset-x-0 top-0 h-auto border-b data-[state=open]:animate-sheet-in-top data-[state=closed]:animate-sheet-out-top",
         bottom:
-          "inset-x-0 bottom-0 h-auto border-t data-[state=closed]:translate-y-full data-[state=open]:translate-y-0",
+          "inset-x-0 bottom-0 h-auto border-t data-[state=open]:animate-sheet-in-bottom data-[state=closed]:animate-sheet-out-bottom",
       },
     },
     defaultVariants: {

@@ -76,5 +76,55 @@ test.describe('app shell responsive behaviour', () => {
       await expect(dialog.getByText('Ingredients', { exact: true })).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Log out' })).toBeVisible();
     });
+
+    /**
+     * #1081 — the drawer's slide/fade was expressed as a CSS *transition*,
+     * which Radix's Presence (@radix-ui/react-presence) can't animate: a
+     * transition has no `animationName`, so `getAnimationName()` returns
+     * "none" and Presence unmounts the element on the SAME tick the close
+     * is triggered — open never animated either, because a transition
+     * needs a previous value and Radix mounts the element already in its
+     * final state. Fixed by expressing both states as `@keyframes`, with a
+     * DISTINCT keyframe name per direction (Presence gates the exit on
+     * `prevAnimationName !== currentAnimationName`, so a single keyframe
+     * reused via `animation-direction: reverse` still computes to the same
+     * name and still unmounts instantly).
+     */
+    test('the drawer content and overlay animate with distinct enter/exit keyframes and suspend removal on close (#1081)', async ({
+      page,
+    }) => {
+      await page.goto('/clients');
+      await page.waitForLoadState('networkidle');
+
+      await page.getByRole('button', { name: 'Open navigation' }).click();
+
+      const dialog = page.getByRole('dialog');
+      const overlay = page.locator("[data-slot='sheet-overlay']");
+      await expect(dialog).toBeVisible();
+
+      // A. CSS contract. `animation-name` persists in computed style after
+      // the animation ends, so this is not a transient assertion.
+      await expect(dialog).toHaveCSS('animation-name', 'sheet-in-left');
+      await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-in');
+      const enterContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
+      const enterOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
+
+      await dialog.getByRole('button', { name: 'Close' }).click();
+
+      // B. Exit suspension — the actual regression test. Before the fix
+      // this assertion failed: the element was already gone (unmounted on
+      // the same tick as the click) by the time Playwright could observe
+      // it, because there was no real CSS animation to suspend the removal
+      // on.
+      await expect(dialog).toHaveAttribute('data-state', 'closed');
+      await expect(dialog).toHaveCSS('animation-name', 'sheet-out-left');
+      await expect(overlay).toHaveCSS('animation-name', 'sheet-overlay-out');
+      const exitContentName = await dialog.evaluate((el) => getComputedStyle(el).animationName);
+      const exitOverlayName = await overlay.evaluate((el) => getComputedStyle(el).animationName);
+      expect(exitContentName).not.toBe(enterContentName);
+      expect(exitOverlayName).not.toBe(enterOverlayName);
+
+      await expect(dialog).toBeHidden();
+    });
   });
 });

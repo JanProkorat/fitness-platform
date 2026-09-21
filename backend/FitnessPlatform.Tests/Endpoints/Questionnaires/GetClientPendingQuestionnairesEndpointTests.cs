@@ -97,8 +97,6 @@ public class GetClientPendingQuestionnairesEndpointTests(FitnessApiFactory facto
         var invite = new PendingInvite
         {
             ProfessionalProfileId = profProfile.Id,
-            FirstName = "Test",
-            LastName = "Client",
             Email = inviteeEmail,
             SentAt = DateTime.UtcNow,
             IsAccepted = false,

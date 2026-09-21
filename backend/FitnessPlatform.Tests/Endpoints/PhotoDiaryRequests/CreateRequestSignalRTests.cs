@@ -103,8 +103,6 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
         var invite = new PendingInvite
         {
             ProfessionalProfileId = profProfile.Id,
-            FirstName = "Petr",
-            LastName = "Novak",
             Email = inviteeEmail,
             SentAt = DateTime.UtcNow,
             IsAccepted = false,

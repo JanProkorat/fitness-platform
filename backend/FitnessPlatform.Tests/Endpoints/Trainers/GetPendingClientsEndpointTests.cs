@@ -151,8 +151,6 @@ public class GetPendingClientsEndpointTests(FitnessApiFactory factory)
         {
             PublicId = Guid.NewGuid(),
             ProfessionalProfileId = professionalProfile.Id,
-            FirstName = "Invited",
-            LastName = "Person",
             Email = email,
             SentAt = sentAt,
             IsAccepted = isAccepted

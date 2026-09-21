@@ -158,10 +158,10 @@ public class PhotoDiaryRequestTests : IAsyncLifetime
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             INSERT INTO pending_invites
-                (professional_profile_id, first_name, last_name, email,
+                (professional_profile_id, email,
                  sent_at, is_accepted, public_id, date_created)
             VALUES
-                (@professionalProfileId, 'Jane', 'Doe', @email,
+                (@professionalProfileId, @email,
                  now(), false, @publicId, now())
             RETURNING id";
         cmd.Parameters.AddWithValue("professionalProfileId", professionalProfileId);
