@@ -603,14 +603,10 @@
     "addClientDrawer": {
       "title": "Invite a new client",
       "description": "The client will receive an email invitation to create an account and connect with you.",
-      "firstNameLabel": "First name",
-      "lastNameLabel": "Last name",
       "emailLabel": "Email",
       "messageLabel": "Message (optional)",
       "submit": "Send invitation",
       "validation": {
-        "firstNameRequired": "First name is required.",
-        "lastNameRequired": "Last name is required.",
         "emailRequired": "Email is required.",
         "emailInvalid": "Enter a valid email address."
       }

@@ -18099,10 +18099,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     id?: number;
     /** Public identifier of the pending invite. */
     publicId?: string;
-    /** First name of the invited client. */
-    firstName?: string;
-    /** Last name of the invited client. */
-    lastName?: string;
     /** Email address of the invited client. */
     email?: string;
     /** Optional introduction message. */
@@ -18128,10 +18124,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
     id?: number;
     /** Public identifier of the created pending invite. */
     publicId?: string;
-    /** First name of the invited client. */
-    firstName?: string;
-    /** Last name of the invited client. */
-    lastName?: string;
     /** Email address of the invited client. */
     email?: string;
     /** Timestamp when the invitation was sent. */
@@ -18142,10 +18134,6 @@ Used to populate pendingInviteId on the photo-diary-request create form. */
 
 /** Request model for creating a pending client invitation. */
 export interface CreatePendingInviteRequest {
-    /** First name of the invited client. */
-    firstName: string;
-    /** Last name of the invited client. */
-    lastName: string;
     /** Email address of the invited client. */
     email: string;
     /** Optional introduction message from the professional. */

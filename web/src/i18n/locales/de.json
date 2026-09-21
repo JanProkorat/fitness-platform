@@ -602,14 +602,10 @@
     "addClientDrawer": {
       "title": "Neuen Klienten einladen",
       "description": "Der Klient erhält eine E-Mail-Einladung, ein Konto zu erstellen und sich mit Ihnen zu verbinden.",
-      "firstNameLabel": "Vorname",
-      "lastNameLabel": "Nachname",
       "emailLabel": "E-Mail",
       "messageLabel": "Nachricht (optional)",
       "submit": "Einladung senden",
       "validation": {
-        "firstNameRequired": "Vorname ist erforderlich.",
-        "lastNameRequired": "Nachname ist erforderlich.",
         "emailRequired": "E-Mail ist erforderlich.",
         "emailInvalid": "Geben Sie eine gültige E-Mail-Adresse ein."
       }

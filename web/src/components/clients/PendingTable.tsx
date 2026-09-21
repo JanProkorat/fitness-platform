@@ -28,7 +28,9 @@ interface Props {
  * ClientRequest.PublicId). It is also unpaginated, so there is no pagination
  * control on this tab. Which action a row gets depends on `kind`: an Invite
  * row can only be cancelled (the trainer sent it); a Request row can be
- * accepted or rejected (the client sent it).
+ * accepted or rejected (the client sent it). Invite rows no longer carry a
+ * name (email-only invites), so the name column falls back to the email
+ * for them; Request rows still carry a real registered-user name.
  */
 export default function PendingTable({ rows, isPending, isError, onRetry }: Props) {
   const { t } = useTranslation();
@@ -87,13 +89,12 @@ export default function PendingTable({ rows, isPending, isError, onRetry }: Prop
             const isCancelling = cancelMutation.isPending && cancelMutation.variables === publicId;
             const isAccepting = acceptMutation.isPending && acceptMutation.variables?.publicId === publicId;
             const isRejecting = rejectMutation.isPending && rejectMutation.variables?.publicId === publicId;
+            const displayName = row.firstName || row.lastName ? `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim() : row.email;
 
             return (
               <TableRow key={`${row.kind}-${row.publicId}`}>
                 <TableCell>
-                  <span className="font-medium text-foreground">
-                    {row.firstName} {row.lastName}
-                  </span>
+                  <span className="font-medium text-foreground">{displayName}</span>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{row.email}</TableCell>
                 <TableCell>

@@ -49,8 +49,6 @@ test.describe('clients list page', () => {
     await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
 
     const uniqueSuffix = Date.now();
-    await page.getByLabel('First name').fill('QA');
-    await page.getByLabel('Last name').fill(`Invite${uniqueSuffix}`);
     await page.getByLabel('Email').fill(`qa.invite.${uniqueSuffix}@fitnessplatform.test`);
     await page.getByLabel('Email').press('Tab');
 
