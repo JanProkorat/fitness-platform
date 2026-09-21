@@ -185,7 +185,7 @@ export default function CreateTagDialog({ open, onOpenChange, onCreated }: Props
                   key={preset.hex}
                   value={preset.hex}
                   aria-label={t(`clients.tagPicker.colors.${preset.labelKey}`)}
-                  className="size-[18px] shrink-0 cursor-pointer rounded-full border-2 border-transparent outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=checked]:border-foreground"
+                  className="size-swatch shrink-0 cursor-pointer rounded-full border-2 border-transparent outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=checked]:border-foreground"
                   style={{ backgroundColor: preset.hex }}
                 />
               ))}
