@@ -141,4 +141,28 @@ test.describe('clients list page', () => {
 
     await expect(dialog).toBeHidden();
   });
+
+  /**
+   * #1091 — the plans-column popup had its content inverted relative to the
+   * wireframe: the plan name rendered bold on line 1 with the type conveyed
+   * only by an icon, and never as text. Restructured to a header (avatar +
+   * full name + active-plan count) followed by one block per plan: the bold
+   * type label with the start date right-aligned on line 1, the muted plan
+   * name demoted to line 2. The QA seed's trainer link grants
+   * CanViewTrainingPlans only (CanViewNutritionPlans is false), so the
+   * fixture client "QA Client" surfaces exactly one training plan.
+   */
+  test('the plans popup states the plan type as text and demotes the name to line 2 (#1091)', async ({ page }) => {
+    const trigger = page.getByRole('button', { name: '1 active plan' });
+    await trigger.hover();
+
+    const card = page.locator("[data-slot='hover-card-content']");
+    await expect(card).toBeVisible();
+
+    await expect(card.getByText('QA Client', { exact: false })).toBeVisible();
+    await expect(card.getByText('Training', { exact: true })).toBeVisible();
+    await expect(card.getByText('1 active plan', { exact: true })).toBeVisible();
+    await expect(card.getByText('QA Test Plan — ForTime fixture', { exact: false })).toBeVisible();
+    await expect(card.getByText('Since', { exact: false })).toHaveCount(0);
+  });
 });

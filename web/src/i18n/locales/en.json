@@ -344,10 +344,13 @@
       "columnPlans": "Plans",
       "unreadTooltip_one": "{{count}} unread message",
       "unreadTooltip_other": "{{count}} unread messages",
-      "plansAriaLabel_one": "{{count}} active plan",
-      "plansAriaLabel_other": "{{count}} active plans",
-      "planSince": "Since {{date}}",
+      "activePlanCount_one": "{{count}} active plan",
+      "activePlanCount_other": "{{count}} active plans",
       "noActivePlans": "No active plans",
+      "planType": {
+        "nutrition": "Nutrition",
+        "training": "Training"
+      },
       "selectAll": "Select all clients on this page",
       "selectRow": "Select {{name}}"
     },
