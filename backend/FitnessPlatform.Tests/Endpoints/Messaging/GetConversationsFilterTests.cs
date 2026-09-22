@@ -1,0 +1,343 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FitnessPlatform.Tests.Endpoints.Messaging;
+
+/// <summary>
+/// Integration tests for <c>GET /conversations</c>'s <c>filter</c> param (#1095) — the
+/// roster-driven path shared with <c>GET /conversations/filter-counts</c> via
+/// <c>ConversationRosterLoader</c>. Uses the Testcontainers-backed <see cref="FitnessApiFactory"/>
+/// host — never the mock-Mongo harness, which ignores <c>FilterDefinition</c> and would make the
+/// EndingSoon assertions unfalsifiable.
+/// </summary>
+[Collection(TestCollection.Name)]
+public class GetConversationsFilterTests(FitnessApiFactory factory)
+{
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@get-conv-filter-{tag}.com";
+    private const string Password = "TestPass1!";
+
+    // ── filter chips ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_UnreadMessagesFilter_ReturnsOnlyClientsWithUnreadFromClient()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (unreadClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (readClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, unreadClientId, senderIsClient: true, isRead: false);
+        await SeedConversationWithMessageAsync(trainerId, readClientId, senderIsClient: true, isRead: true);
+
+        var response = await http.GetAsync("/conversations?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Select(c => c.Participant.Id).Should().BeEquivalentTo([unreadClientId]);
+    }
+
+    [Fact]
+    public async Task List_NoMessagesFilter_LinkedClientWithNoConversation_SurfacesAsNullIdRow()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (noConvClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (hasMsgClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, hasMsgClientId, senderIsClient: true, isRead: true);
+
+        var response = await http.GetAsync("/conversations?filter=NoMessages", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Should().ContainSingle(c => c.Participant.Id == noConvClientId);
+        body!.Single(c => c.Participant.Id == noConvClientId).Id.Should().BeNull(
+            "a linked client with no conversation yet surfaces as a placeholder row");
+    }
+
+    [Fact]
+    public async Task List_NoMessagesFilter_ArchivedTrue_NullConversationRowNeverAppears()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        await SetupLinkedClientAsync(trainerId); // no conversation — the null-id row candidate
+
+        var response = await http.GetAsync(
+            "/conversations?filter=NoMessages&archived=true", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Should().BeEmpty(
+            "a null-conversation row has no archive state, so it never appears in the archived view");
+    }
+
+    [Fact]
+    public async Task List_NewCheckInsFilter_ScopedToGrantedProfession()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(
+            trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Training, respondedAt: DateTime.UtcNow, reviewedAt: null);
+
+        var trainingOnlyResponse = await http.GetAsync(
+            "/conversations?filter=NewCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(trainingOnlyResponse))!.Should().BeEmpty(
+            "a Training check-in must not count for a link that only grants Nutrition");
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Nutrition, respondedAt: DateTime.UtcNow, reviewedAt: null);
+
+        var response = await http.GetAsync("/conversations?filter=NewCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(response))!.Select(c => c.Participant.Id).Should().BeEquivalentTo([clientUserId]);
+    }
+
+    [Fact]
+    public async Task List_MissingCheckInsFilter_ReturnsExpiredOrOverdueUnanswered()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedWeeklyCheckInAsync(
+            trainerId, clientUserId, Profession.Training,
+            respondedAt: null, reviewedAt: null, status: WeeklyCheckInStatus.Expired);
+
+        var response = await http.GetAsync("/conversations?filter=MissingCheckIns", TestContext.Current.CancellationToken);
+        (await Deserialize(response))!.Select(c => c.Participant.Id).Should().BeEquivalentTo([clientUserId]);
+    }
+
+    [Fact]
+    public async Task List_EndingSoonFilter_ReturnsActivePlanEndingWithinFourteenDays()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (endingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (notEndingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        // 1-week plan starting 6 days ago ends 1 day from now — within the 14-day window.
+        await SeedActiveTrainingPlanAsync(endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+        // 10-week plan starting today ends far beyond 14 days.
+        await SeedActiveTrainingPlanAsync(notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
+
+        var response = await http.GetAsync("/conversations?filter=EndingSoon", TestContext.Current.CancellationToken);
+        (await Deserialize(response))!.Select(c => c.Participant.Id).Should().BeEquivalentTo([endingSoonClientId]);
+    }
+
+    // ── population contract ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_NonAllFilter_ExcludesClientWithDeactivatedLink_EvenWithUnreadMessages()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (formerClientId, formerPublicId) = await SetupLinkedClientAsync(trainerId);
+        await SeedConversationWithMessageAsync(trainerId, formerClientId, senderIsClient: true, isRead: false);
+        await SetLinkActiveAsync(formerPublicId, false);
+
+        var allResponse = await http.GetAsync("/conversations", TestContext.Current.CancellationToken);
+        (await Deserialize(allResponse))!.Should().ContainSingle(c => c.Participant.Id == formerClientId,
+            "filter=All (the default) keeps today's plain, link-state-agnostic query");
+
+        var unreadResponse = await http.GetAsync(
+            "/conversations?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        (await Deserialize(unreadResponse))!.Should().BeEmpty(
+            "the roster-driven filter path only includes live links — a former client is excluded " +
+            "regardless of its conversation's unread count");
+    }
+
+    [Fact]
+    public async Task List_ArchivedIsAppliedAfterTheFilterChip()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (clientId, _) = await SetupLinkedClientAsync(trainerId);
+        var conversationId = await SeedConversationWithMessageAsync(
+            trainerId, clientId, senderIsClient: true, isRead: false);
+        await ArchiveByProfessionalAsync(conversationId);
+
+        var activeResponse = await http.GetAsync(
+            "/conversations?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        (await Deserialize(activeResponse))!.Should().BeEmpty("archived conversations are excluded from the active view");
+
+        var archivedResponse = await http.GetAsync(
+            "/conversations?filter=UnreadMessages&archived=true", TestContext.Current.CancellationToken);
+        (await Deserialize(archivedResponse))!.Should().ContainSingle(c => c.Participant.Id == clientId);
+    }
+
+    // ── authorization ────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task List_ClientCaller_NonAllFilter_Returns400()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client-role");
+        await TestHelpers.RegisterAsync(http, email, Password, "Test", "Client", "Client");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, Password);
+        TestHelpers.SetBearerToken(http, token);
+
+        var response = await http.GetAsync("/conversations?filter=UnreadMessages", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_ClientCaller_FilterAll_Returns200()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("client-all");
+        await TestHelpers.RegisterAsync(http, email, Password, "Test", "Client", "Client");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, Password);
+        TestHelpers.SetBearerToken(http, token);
+
+        var response = await http.GetAsync("/conversations?filter=All", TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail("trainer");
+
+        await TestHelpers.RegisterAsync(http, email, Password, "Test", "Trainer", "Trainer");
+        var (token, _) = await TestHelpers.LoginAsync(http, email, Password);
+        TestHelpers.SetBearerToken(http, token);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.AsNoTracking()
+            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
+
+        return (http, user.Id);
+    }
+
+    private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupLinkedClientAsync(
+        Guid professionalUserId, bool canViewNutritionPlans = true, bool canViewTrainingPlans = true)
+    {
+        var clientUserId = await TestHelpers.RegisterLinkedClientAsync(
+            factory, professionalUserId, TestContext.Current.CancellationToken,
+            canViewNutritionPlans, canViewTrainingPlans);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles.AsNoTracking()
+            .FirstAsync(cp => cp.UserId == clientUserId, TestContext.Current.CancellationToken);
+
+        return (clientUserId, clientProfile.PublicId);
+    }
+
+    private async Task SetLinkActiveAsync(Guid clientPublicId, bool isActive)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+        var link = await db.ClientProfessionalLinks
+            .FirstAsync(l => l.ClientProfileId == clientProfile.Id, TestContext.Current.CancellationToken);
+        link.IsActive = isActive;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Guid> SeedConversationWithMessageAsync(
+        Guid professionalUserId, Guid clientUserId, bool senderIsClient, bool isRead)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var conversation = new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = professionalUserId,
+            ClientUserId = clientUserId
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.ChatMessages.Add(new ChatMessage
+        {
+            PublicId = Guid.NewGuid(),
+            ConversationId = conversation.Id,
+            SenderUserId = senderIsClient ? clientUserId : professionalUserId,
+            Text = "hello",
+            IsRead = isRead
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return conversation.PublicId;
+    }
+
+    private async Task ArchiveByProfessionalAsync(Guid conversationPublicId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var conversation = await db.Conversations
+            .FirstAsync(c => c.PublicId == conversationPublicId, TestContext.Current.CancellationToken);
+        conversation.ArchivedByProfessionalAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedWeeklyCheckInAsync(
+        Guid professionalUserId, Guid clientUserId, Profession profession,
+        DateTime? respondedAt, DateTime? reviewedAt, WeeklyCheckInStatus status = WeeklyCheckInStatus.Responded)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        db.WeeklyCheckIns.Add(new WeeklyCheckIn
+        {
+            Id = Guid.NewGuid(),
+            ClientUserId = clientUserId,
+            ProfessionalUserId = professionalUserId,
+            Profession = profession,
+            WeekStartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = status,
+            SentAt = DateTime.UtcNow.AddDays(-7),
+            DueAt = DateTime.UtcNow.AddDays(-1),
+            RespondedAt = respondedAt,
+            ReviewedByTrainerAt = reviewedAt,
+            DateCreated = DateTime.UtcNow,
+            DateModified = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task SeedActiveTrainingPlanAsync(
+        Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
+    {
+        using var scope = factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        await mongo.TrainingPlans.InsertOneAsync(new TrainingPlan
+        {
+            ExternalId = Guid.NewGuid(),
+            ClientId = clientUserId,
+            TrainerId = Guid.NewGuid(),
+            Name = name,
+            Status = TrainingPlanStatus.Active,
+            StartDate = startDate,
+            Weeks = Enumerable.Range(1, weekCount).Select(n => new TrainingWeek { WeekNumber = n }).ToList()
+        }, cancellationToken: TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<List<ConversationDto>?> Deserialize(HttpResponseMessage response) =>
+        await response.Content.ReadFromJsonAsync<List<ConversationDto>>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+    // ── Local response DTOs (per slice rules — no cross-feature imports) ─────
+
+    private sealed class ConversationDto
+    {
+        public Guid? Id { get; set; }
+        public ParticipantDto Participant { get; set; } = null!;
+        public int UnreadCount { get; set; }
+        public bool IsFormer { get; set; }
+    }
+
+    private sealed class ParticipantDto
+    {
+        public Guid Id { get; set; }
+        public Guid? ClientPublicId { get; set; }
+    }
+}
