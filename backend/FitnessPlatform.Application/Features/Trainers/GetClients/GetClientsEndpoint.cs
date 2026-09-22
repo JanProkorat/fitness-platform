@@ -119,14 +119,22 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             ? classified.Where(r => r.Status != ClientListStatus.Archived).ToList()
             : classified.Where(r => r.Status == req.Status.Value).ToList();
 
+        var counts = ClientRosterFilterClassifier.ComputeCounts(
+            tabFiltered,
+            r => r.Row.UnreadMessageCount > 0,
+            r => r.Row.ConversationMessageCount == 0,
+            r => r.Row.HasNewCheckIn,
+            r => r.Row.HasMissingCheckIn,
+            r => r.IsEndingSoon);
+
         var filterCounts = new ClientFilterCounts
         {
-            All = tabFiltered.Count,
-            UnreadMessages = tabFiltered.Count(r => r.Row.UnreadMessageCount > 0),
-            NoMessages = tabFiltered.Count(r => r.Row.ConversationMessageCount == 0),
-            NewCheckIns = tabFiltered.Count(r => r.Row.HasNewCheckIn),
-            MissingCheckIns = tabFiltered.Count(r => r.Row.HasMissingCheckIn),
-            EndingSoon = tabFiltered.Count(r => r.IsEndingSoon)
+            All = counts.All,
+            UnreadMessages = counts.UnreadMessages,
+            NoMessages = counts.NoMessages,
+            NewCheckIns = counts.NewCheckIns,
+            MissingCheckIns = counts.MissingCheckIns,
+            EndingSoon = counts.EndingSoon
         };
 
         var chipFiltered = ApplyChipFilter(tabFiltered, req.Filter);
@@ -150,16 +158,13 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
     }
 
     private static List<ClassifiedRow> ApplyChipFilter(List<ClassifiedRow> rows, ClientListFilter? filter) =>
-        filter switch
-        {
-            null or ClientListFilter.All => rows,
-            ClientListFilter.UnreadMessages => rows.Where(r => r.Row.UnreadMessageCount > 0).ToList(),
-            ClientListFilter.NoMessages => rows.Where(r => r.Row.ConversationMessageCount == 0).ToList(),
-            ClientListFilter.NewCheckIns => rows.Where(r => r.Row.HasNewCheckIn).ToList(),
-            ClientListFilter.MissingCheckIns => rows.Where(r => r.Row.HasMissingCheckIn).ToList(),
-            ClientListFilter.EndingSoon => rows.Where(r => r.IsEndingSoon).ToList(),
-            _ => rows
-        };
+        rows.Where(r => ClientRosterFilterClassifier.Matches(
+            filter,
+            r.Row.UnreadMessageCount > 0,
+            r.Row.ConversationMessageCount == 0,
+            r.Row.HasNewCheckIn,
+            r.Row.HasMissingCheckIn,
+            r.IsEndingSoon)).ToList();
 
     /// <summary>
     /// Single SQL pass over the caller's whole link roster (no <c>Include</c> of full plan
