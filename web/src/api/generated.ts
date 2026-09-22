@@ -9679,7 +9679,7 @@ export class ApiClient {
 
     /**
      * Start or get a conversation
-     * @return Success
+     * @return The existing or newly created conversation.
      */
     startConversationEndpoint(startConversationRequest: StartConversationRequest, signal?: AbortSignal): Promise<ConversationDto> {
         let url_ = this.baseUrl + "/conversations";
@@ -9750,14 +9750,21 @@ export class ApiClient {
 
     /**
      * Get conversations
-     * @return Success
+     * @param archived Whether to return the archived view instead of the active one.
+     * @param filter (optional) Optional filter chip narrowing the professional caller's roster the same way the
+    trainer's clients list does. Omitted or All returns every
+    conversation, matching this endpoint's pre-existing behaviour. Not valid for a client
+    caller — see GetConversationsEndpoint.
+     * @return Conversation list, newest activity first.
      */
-    getConversationsEndpoint(archived: boolean, signal?: AbortSignal): Promise<ConversationDto[]> {
+    getConversationsEndpoint(archived: boolean, filter?: ClientListFilter | null | undefined, signal?: AbortSignal): Promise<ConversationDto[]> {
         let url_ = this.baseUrl + "/conversations?";
         if (archived === undefined || archived === null)
             throw new globalThis.Error("The parameter 'archived' must be defined and cannot be null.");
         else
             url_ += "archived=" + encodeURIComponent("" + archived) + "&";
+        if (filter !== undefined && filter !== null)
+            url_ += "filter=" + encodeURIComponent("" + filter) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -9797,9 +9804,16 @@ export class ApiClient {
             result200 = JSON.parse(resultData200);
             return Promise.resolve<ConversationDto[]>(result200);
 
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("filter is not a member of ClientListFilter, or a non-All filter was requested by a Client caller.", status, _responseText, _headers, result400);
+
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("No caller claim on the request.", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -10012,6 +10026,66 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get conversation filter chip counts
+     * @return The six chip counts.
+     */
+    getConversationFilterCountsEndpoint(signal?: AbortSignal): Promise<GetConversationFilterCountsResponse> {
+        let url_ = this.baseUrl + "/conversations/filter-counts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetConversationFilterCountsEndpoint(_response);
+        });
+    }
+
+    protected processGetConversationFilterCountsEndpoint(response: AxiosResponse): Promise<GetConversationFilterCountsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetConversationFilterCountsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("No caller claim on the request.", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetConversationFilterCountsResponse>(null as any);
     }
 
     /**
@@ -20858,25 +20932,44 @@ export interface CalculateGoalsRequest {
 export interface UnarchiveConversationRequest {
 }
 
+/** A conversation as surfaced to the caller — used by both the conversation list and get-or-create-conversation responses. */
 export interface ConversationDto {
-    id?: string;
+    /** The conversation's Conversation.PublicId. Null for a live-roster placeholder row
+(a linked client with no conversation yet) that still matched the requested filter chip —
+see GetConversationsEndpoint's roster-filter path. */
+    id?: string | undefined;
+    /** The other party in the conversation. */
     participant?: ParticipantDto;
+    /** Preview text of the last message, truncated to 300 characters. */
     lastMessage?: string;
+    /** Timestamp of the last message, or the conversation's creation time if empty. */
     lastMessageAt?: string;
+    /** Whether the caller sent the last message. */
     lastMessageIsOwn?: boolean;
+    /** Number of unread messages sent by the other party. */
     unreadCount?: number;
+    /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
 }
 
+/** The other party in a conversation, as surfaced to the caller. */
 export interface ParticipantDto {
+    /** The participant's ApplicationUser.Id. */
     id?: string;
+    /** The participant's display name. */
     name?: string;
+    /** Two-letter initials fallback for the avatar badge. */
     initials?: string;
+    /** Whether the participant currently has a live SignalR connection. */
     online?: boolean;
     /** Avatar URL for the participant. For professionals, prefers the professional-profile
 avatar; falls back to the user-level avatar. For clients, uses the user-level avatar.
 Null when neither has been uploaded. */
     avatarBlobUrl?: string | undefined;
+    /** The client participant's ClientProfile.PublicId. Null when the participant is a
+professional (a professional-side conversation row has no client-profile identity to
+surface). Lets the inbox deep-link to /clients/:clientId without a second lookup. */
+    clientPublicId?: string | undefined;
 }
 
 export interface StartConversationRequest {
@@ -20915,7 +21008,24 @@ export interface MessageDto {
 export interface GetMessagesRequest {
 }
 
+/** Request model for listing the authenticated user's conversations. */
 export interface GetConversationsRequest {
+}
+
+/** Per-chip conversation counts for the inbox filter dropdown, over the caller's live client roster (live links only, archived links excluded). Independent of the archived display toggle — see GetConversationFilterCountsEndpoint. */
+export interface GetConversationFilterCountsResponse {
+    /** Total rows in the caller's live roster. */
+    all?: number;
+    /** Rows with at least one unread message from the client. */
+    unreadMessages?: number;
+    /** Rows with no conversation, or a conversation with zero messages. */
+    noMessages?: number;
+    /** Rows with a responded, not-yet-reviewed weekly check-in. */
+    newCheckIns?: number;
+    /** Rows with an expired or overdue-unanswered weekly check-in. */
+    missingCheckIns?: number;
+    /** Rows whose active plan window ends within 14 days. */
+    endingSoon?: number;
 }
 
 export interface ConversationContextResponse {
