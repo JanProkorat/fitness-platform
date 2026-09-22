@@ -21,7 +21,13 @@ namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 /// <param name="audit">Audit logging service.</param>
 /// <param name="complianceService">Service for calculating compliance metrics.</param>
 /// <param name="mongo">MongoDB context for reading active plan goal/macros.</param>
-public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService audit, IComplianceService complianceService, IMongoContext mongo)
+/// <param name="timeProvider">Clock abstraction — lets tests pin "now" deterministically.</param>
+public class GetClientDashboardEndpoint(
+    IApplicationDbContext db,
+    IAuditService audit,
+    IComplianceService complianceService,
+    IMongoContext mongo,
+    TimeProvider timeProvider)
     : Endpoint<GetClientDashboardRequest, GetClientDashboardResponse>
 {
     /// <inheritdoc />
@@ -182,6 +188,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             questionnaireResponsePublicId = qResponse.PublicId;
         }
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var today = DateOnly.FromDateTime(now);
+
         // Query the Active NutritionPlan whose date window contains today to source
         // goal + targetWeightKg plan-first. Fallback to OnboardingData only when the plan
         // value is null. Key: plan.ClientId == clientProfile.UserId — ApplicationUser.Id is
@@ -193,7 +202,14 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         // query at all, otherwise the plan's Goal/TargetWeightKg would win via the ??
         // fallback below and disclose the existence/values of a plan the caller has no
         // visibility into (#921).
+        //
+        // hasActiveNutritionPlan is resolved SEPARATELY from activePlan via the strict,
+        // window-only predicate shared with GetClientsEndpoint — activePlan keeps
+        // PlanWindowResolver.ResolveCurrentPlan's legacy single-candidate fallback (needed for
+        // the Goal/TargetWeightKg fields below), which would otherwise let an unranged plan
+        // read as Active here but Paused on the clients list (#1094).
         NutritionPlan? activePlan = null;
+        var hasActiveNutritionPlan = false;
         if (link.CanViewNutritionPlans)
         {
             try
@@ -204,7 +220,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
                 using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
                 var activePlans = await planCursor.ToListAsync(ct);
-                activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+                activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, now);
+                hasActiveNutritionPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
+                    activePlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
             }
             catch (MongoDB.Driver.MongoException ex)
             {
@@ -215,8 +233,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
         // Active training plan lookup, gated the same way as the nutrition lookup above — only
         // for a status derivation that must agree with GetClientsEndpoint (#1094), not for any
-        // other field on this response.
-        TrainingPlan? activeTrainingPlan = null;
+        // other field on this response. Resolved via the same strict, window-only predicate as
+        // the nutrition plan above — no legacy fallback needed since nothing else reads it.
+        var hasActiveTrainingPlan = false;
         if (link.CanViewTrainingPlans)
         {
             try
@@ -227,8 +246,8 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
 
                 using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
                 var activeTrainingPlans = await trainingPlanCursor.ToListAsync(ct);
-                activeTrainingPlan = PlanWindowResolver.ResolveCurrentPlan(
-                    activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, DateTime.UtcNow);
+                hasActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
+                    activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
             }
             catch (MongoDB.Driver.MongoException ex)
             {
@@ -240,8 +259,8 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
         var status = ClientStatusClassifier.Classify(
             link.IsActive,
             LinkCapabilities.FromLink(link),
-            activePlan is not null,
-            activeTrainingPlan is not null);
+            hasActiveNutritionPlan,
+            hasActiveTrainingPlan);
 
         OnboardingDataDto? onboarding = null;
         if (clientProfile.OnboardingData is { } od)
@@ -295,7 +314,9 @@ public class GetClientDashboardEndpoint(IApplicationDbContext db, IAuditService 
             HeightCm = clientProfile.HeightCm,
             WeightKg = clientProfile.WeightKg,
             Goals = clientProfile.Goals,
-            LinkedAt = link.DateUpdated ?? link.DateCreated,
+            // DateCreated, not DateUpdated — matches GetClientsEndpoint's "Client since" so a
+            // capability-flag toggle (which bumps DateUpdated) cannot move this date (#1094).
+            LinkedAt = link.DateCreated,
             IsActive = link.IsActive,
             Status = status,
             CanViewNutritionPlans = link.CanViewNutritionPlans,
