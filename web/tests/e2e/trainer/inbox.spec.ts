@@ -6,10 +6,24 @@
  * YouTube link; a third, conversation-less client keeps the "No messages"
  * filter non-zero on both the clients list and the inbox.
  */
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { trainerTest as test, expect, openClientContext } from '../fixtures/auth';
 
 const QA_CLIENT_NAME = /QA Client/;
+
+/**
+ * The inbox list row button for the "QA Client" conversation, scoped to an
+ * exact name match. The seeded, conversation-less "QA Client3" roster entry
+ * (see the file header comment) also renders a row once the "All" filter
+ * lists every live-roster client, so the unanchored `QA_CLIENT_NAME` regex
+ * alone resolves to two buttons — a strict-mode violation. Scoping to the
+ * row's `span.font-bold` name text via `exact: true` (same element
+ * `getInboxRowNames` below reads) excludes "QA Client3" without excluding
+ * the avatar's initials-fallback text ahead of it in DOM order.
+ */
+function qaClientRow(page: Page): Locator {
+  return page.getByRole('button').filter({ has: page.getByText('QA Client', { exact: true }) });
+}
 
 /** Every visible clients-list row's name link on the CURRENT tab, for filter-parity comparisons. */
 async function getClientsListNamesOnCurrentTab(page: Page): Promise<string[]> {
@@ -117,7 +131,7 @@ test.describe('inbox page', () => {
   test('list renders with unread dot, time, and last-message preview; opening the thread marks it read', async ({
     page,
   }) => {
-    const row = page.getByRole('button', { name: QA_CLIENT_NAME });
+    const row = qaClientRow(page);
     await expect(row).toBeVisible();
     await expect(row.locator('[role="status"]')).toBeVisible(); // unread dot
 
@@ -131,30 +145,30 @@ test.describe('inbox page', () => {
   });
 
   test('search narrows the list by participant name', async ({ page }) => {
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toBeVisible();
+    await expect(qaClientRow(page)).toBeVisible();
 
     await page.getByPlaceholder('Search chats...').fill('zzz-no-such-participant');
     await expect(page.getByText('No conversations found')).toBeVisible();
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toHaveCount(0);
+    await expect(qaClientRow(page)).toHaveCount(0);
 
     await page.getByPlaceholder('Search chats...').fill('QA Client');
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toBeVisible();
+    await expect(qaClientRow(page)).toBeVisible();
   });
 
   test('the Active/Archived switch changes the visible rows', async ({ page }) => {
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toBeVisible();
+    await expect(qaClientRow(page)).toBeVisible();
 
     await page.getByRole('button', { name: /Active/ }).click();
     await page.getByRole('menuitem', { name: 'Archived' }).click();
     await page.waitForLoadState('networkidle');
 
     // No conversation is seeded as archived — the active-view row disappears.
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toHaveCount(0);
+    await expect(qaClientRow(page)).toHaveCount(0);
 
     await page.getByRole('button', { name: /Archived/ }).click();
     await page.getByRole('menuitem', { name: 'Active' }).click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME })).toBeVisible();
+    await expect(qaClientRow(page)).toBeVisible();
   });
 
   test('the three domain-less filters render disabled with the coming-soon tooltip', async ({ page }) => {
@@ -202,7 +216,7 @@ test.describe('inbox page', () => {
   });
 
   test('a YouTube link in message text renders as an embedded preview card', async ({ page }) => {
-    await page.getByRole('button', { name: QA_CLIENT_NAME }).click();
+    await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
 
     const thumbnail = page.locator('img[src*="img.youtube.com"]');
@@ -210,7 +224,7 @@ test.describe('inbox page', () => {
   });
 
   test('sending a message appends it to the thread and updates the list preview', async ({ page }) => {
-    await page.getByRole('button', { name: QA_CLIENT_NAME }).click();
+    await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
 
     const uniqueText = `QA reply ${Date.now()}`;
@@ -221,7 +235,7 @@ test.describe('inbox page', () => {
     // both legitimately carry the same text, so each assertion is scoped to
     // avoid a strict-mode "resolved to 2 elements" violation.
     await expect(page.getByText(uniqueText, { exact: true }).last()).toBeVisible();
-    await expect(page.getByRole('button', { name: QA_CLIENT_NAME }).getByText(uniqueText)).toBeVisible();
+    await expect(qaClientRow(page).getByText(uniqueText)).toBeVisible();
   });
 
   test('the Show-client panel status pill equals the clients-list status pill, and the external link opens the client', async ({
@@ -234,7 +248,7 @@ test.describe('inbox page', () => {
 
     await page.goto('/inbox');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: QA_CLIENT_NAME }).click();
+    await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Show client' }).click();
@@ -283,7 +297,7 @@ test.describe('inbox page', () => {
     }
     const conversationId = match.id;
 
-    await page.getByRole('button', { name: QA_CLIENT_NAME }).click();
+    await qaClientRow(page).click();
     await page.waitForLoadState('networkidle');
 
     const { context: clientContext, accessToken } = await openClientContext(browser, baseURL ?? 'http://localhost:5173');

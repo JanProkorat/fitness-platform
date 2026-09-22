@@ -38,10 +38,10 @@ const FILTER_COUNT_KEY: Record<ClientListFilter, keyof GetConversationFilterCoun
   [ClientListFilter.EndingSoon]: 'endingSoon',
 };
 
-/** Disabled rows, positioned per the wireframe: after "All", after "No messages", and last. */
+/** Disabled rows, positioned per the wireframe: after "All", after "New check-ins", and last. */
 const DISABLED_ROWS = [
   { key: 'failedPayments', afterFilter: ClientListFilter.All },
-  { key: 'blockedAutomations', afterFilter: ClientListFilter.NoMessages },
+  { key: 'blockedAutomations', afterFilter: ClientListFilter.NewCheckIns },
 ] as const;
 
 interface Props {
