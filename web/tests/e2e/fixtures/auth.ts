@@ -51,7 +51,7 @@
  * service; it WOULD 429 if this suite were ever re-pointed at the
  * interactive dev API on :5001, where that limiter is active.
  */
-import { test as base, request as apiRequest } from '@playwright/test';
+import { test as base, request as apiRequest, type Browser, type BrowserContext } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -61,6 +61,8 @@ const ROLE_EMAILS: Record<Role, string> = {
   trainer: 'qa.trainer@fitnessplatform.test',
   nutritionist: 'qa.nutri@fitnessplatform.test',
 };
+
+const CLIENT_EMAIL = 'qa.client@fitnessplatform.test';
 
 interface LoginResponseBody {
   accessToken: string;
@@ -209,5 +211,57 @@ export const trainerTest = buildRoleTest('trainer');
 
 /** Use in tests/e2e/nutritionist/*.spec.ts. */
 export const nutritionistTest = buildRoleTest('nutritionist');
+
+export interface ClientContextResult {
+  context: BrowserContext;
+  /** The access token minted for this context's login — for driving the SignalR hub directly (e.g. `SendTyping`). */
+  accessToken: string;
+}
+
+/**
+ * Opens a SECOND, independently-authenticated browser context as
+ * qa.client — for a spec that needs two live parties in the same
+ * conversation at once (e.g. #1095's typing-indicator AC, driven through
+ * the real SignalR hub). Mints its own fresh refresh AND access token via
+ * POST /auth/login rather than reusing `.auth/client.json` verbatim: see
+ * `buildRoleTest`'s header comment on why a second context inside one test
+ * attempt must mint its own token, not replay one another context/attempt
+ * already consumed (theft-detection would revoke the whole family).
+ */
+export async function openClientContext(browser: Browser, baseURL: string): Promise<ClientContextResult> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error(
+      '[openClientContext] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.',
+    );
+  }
+
+  const apiContext = await apiRequest.newContext({ baseURL });
+  let refreshToken: string;
+  let accessToken: string;
+  try {
+    const response = await apiContext.post('/auth/login', { data: { email: CLIENT_EMAIL, password } });
+    if (!response.ok()) {
+      throw new Error(
+        `[openClientContext] POST /auth/login for qa.client returned ${response.status()} ${response.statusText()}.`,
+      );
+    }
+    ({ refreshToken, accessToken } = (await response.json()) as LoginResponseBody);
+  } finally {
+    await apiContext.dispose();
+  }
+
+  const templatePath = path.resolve('.auth/client.json');
+  const template = JSON.parse(await readFile(templatePath, 'utf-8')) as StorageStateTemplate;
+  const localStorage = (template.origins[0]?.localStorage ?? []).map((entry) =>
+    entry.name === 'refreshToken' ? { ...entry, value: refreshToken } : entry,
+  );
+
+  const context = await browser.newContext({
+    storageState: { cookies: template.cookies, origins: [{ origin: baseURL, localStorage }] },
+  });
+
+  return { context, accessToken };
+}
 
 export { expect } from '@playwright/test';
