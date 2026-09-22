@@ -2289,7 +2289,9 @@
           "label": "Current weight",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg this week",
-          "goalWeight": "{{goal}} kg goal"
+          "goalWeight": "{{goal}} kg goal",
+          "empty": "—",
+          "noMeasurements": "No measurements yet"
         },
         "clientSince": {
           "label": "Client since",

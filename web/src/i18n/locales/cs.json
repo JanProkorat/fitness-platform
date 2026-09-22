@@ -2330,7 +2330,9 @@
           "label": "Aktuální váha",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg tento týden",
-          "goalWeight": "cíl {{goal}} kg"
+          "goalWeight": "cíl {{goal}} kg",
+          "empty": "—",
+          "noMeasurements": "Zatím žádná měření"
         },
         "clientSince": {
           "label": "Klientem od",

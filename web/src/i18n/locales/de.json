@@ -2288,7 +2288,9 @@
           "label": "Aktuelles Gewicht",
           "value": "{{kg}} kg",
           "deltaThisWeek": "{{delta}} kg diese Woche",
-          "goalWeight": "Ziel {{goal}} kg"
+          "goalWeight": "Ziel {{goal}} kg",
+          "empty": "—",
+          "noMeasurements": "Noch keine Messungen"
         },
         "clientSince": {
           "label": "Klient seit",

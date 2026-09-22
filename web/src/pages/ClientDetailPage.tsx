@@ -156,9 +156,17 @@ export default function ClientDetailPage() {
         <StatCard
           label={t('clientDetail.overview.stats.weight.label')}
           value={
-            currentWeightKg != null ? t('clientDetail.overview.stats.weight.value', { kg: currentWeightKg }) : <TbdValue />
+            currentWeightKg != null
+              ? t('clientDetail.overview.stats.weight.value', { kg: currentWeightKg })
+              : t('clientDetail.overview.stats.weight.empty')
           }
-          caption={weightCaptionParts.length > 0 ? weightCaptionParts.join(' • ') : undefined}
+          caption={
+            currentWeightKg == null
+              ? t('clientDetail.overview.stats.weight.noMeasurements')
+              : weightCaptionParts.length > 0
+                ? weightCaptionParts.join(' • ')
+                : undefined
+          }
         />
         <StatCard
           label={t('clientDetail.overview.stats.clientSince.label')}
