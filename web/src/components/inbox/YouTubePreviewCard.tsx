@@ -4,7 +4,11 @@ import { youtubeThumbnailUrl, youtubeWatchUrl } from '@/lib/youtube';
 
 interface Props {
   videoId: string;
-  /** The caller-typed message text — the only caption source available; never invent a duration. */
+  /**
+   * The caller-typed message text with the matched YouTube URL already
+   * stripped out (see `stripUrlFromCaption`) — empty when the message was
+   * nothing but the link. Never invent a duration.
+   */
   caption: string;
   alignEnd?: boolean;
 }
@@ -26,7 +30,11 @@ export default function YouTubePreviewCard({ videoId, caption, alignEnd }: Props
       rel="noopener noreferrer"
       className={cn('flex max-w-[280px] flex-col gap-1', alignEnd && 'self-end')}
     >
-      <img src={youtubeThumbnailUrl(videoId)} alt="" className="w-full rounded-xl border border-border object-cover" />
+      <img
+        src={youtubeThumbnailUrl(videoId)}
+        alt=""
+        className="aspect-video w-full rounded-xl border border-border object-cover"
+      />
       <span className="truncate text-caption text-muted-foreground">
         {caption ? `${caption} • ` : ''}
         {t('inbox.video.label')}

@@ -61,3 +61,18 @@ export function youtubeThumbnailUrl(videoId: string): string {
 export function youtubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
+
+/**
+ * Removes the matched URL from a message's text so the preview card's
+ * caption reads as a title rather than repeating the raw link, then trims
+ * any punctuation/whitespace the URL leaves dangling (e.g. a trailing
+ * "check this out: "). Returns an empty string when the message was
+ * nothing but the URL, so the caller falls back to the video label alone.
+ */
+export function stripUrlFromCaption(text: string, url: string): string {
+  return text
+    .replace(url, '')
+    .trim()
+    .replace(/[\s:,;.-]+$/, '')
+    .trim();
+}
