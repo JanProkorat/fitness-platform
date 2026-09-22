@@ -2330,6 +2330,54 @@
       }
     }
   },
+  "inbox": {
+    "activeView": "Active",
+    "archivedView": "Archived",
+    "searchPlaceholder": "Search chats...",
+    "emptyState": {
+      "title": "Select a chat to begin messaging",
+      "subtitle": "Your client inbox, workout questions, and onboarding metrics live here."
+    },
+    "filters": {
+      "groupLabel": "Filter conversations",
+      "all": "All",
+      "failedPayments": "Failed payments",
+      "unreadMessages": "Unread messages",
+      "noMessages": "No messages",
+      "newCheckIns": "New check-ins",
+      "blockedAutomations": "Blocked automations",
+      "missingCheckIns": "Missing check-ins",
+      "endingSoon": "Ending soon",
+      "tasksOverdue": "Tasks overdue"
+    },
+    "row": {
+      "yesterday": "Yesterday",
+      "unreadAriaLabel": "Unread"
+    },
+    "noConversations": "No conversations found",
+    "thread": {
+      "showClient": "Show client",
+      "hideClient": "Hide client",
+      "settingsAriaLabel": "Conversation settings",
+      "openClientProfileAriaLabel": "Open client profile",
+      "loadingOlder": "Loading older messages…"
+    },
+    "typingIndicator": "Typing…",
+    "composer": {
+      "placeholder": "Type your message here...",
+      "sendAriaLabel": "Send message",
+      "attachFileAriaLabel": "Attach file",
+      "attachImageAriaLabel": "Attach image",
+      "sendError": "Could not send the message. Please try again."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Could not open this chat."
+    },
+    "loadError": "Could not load the inbox."
+  },
   "messages": {
     "title": "Messages",
     "searchPlaceholder": "Search...",
