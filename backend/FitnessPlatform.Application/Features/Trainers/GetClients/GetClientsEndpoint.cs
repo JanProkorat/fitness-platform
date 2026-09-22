@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -285,11 +286,13 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
     /// <summary>
     /// Groups Active-status plan candidates by client and keeps only the one (if any) whose
-    /// window contains <paramref name="today"/>. Deliberately NOT
+    /// window contains <paramref name="today"/>, via
+    /// <see cref="PlanWindowResolver.ResolveCurrentPlanStrict{T}"/>. Deliberately NOT
     /// <see cref="PlanWindowResolver.ResolveCurrentPlan{T}"/> — that method's single-candidate
     /// legacy fallback would classify an unranged (no <c>StartDate</c>) plan as current. Here a
     /// plan with no <c>StartDate</c> never counts as Active, regardless of how many candidates a
-    /// client has.
+    /// client has. <c>GetClientDashboardEndpoint</c> shares this same strict resolution for its
+    /// own status inputs so the two endpoints can never disagree (#1094).
     /// </summary>
     private static Dictionary<Guid, PlanWindowProjection> ResolveCurrentPlanByClient(
         List<PlanWindowProjection> candidates, DateOnly today)
@@ -298,11 +301,8 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         foreach (var group in candidates.GroupBy(p => p.ClientId))
         {
-            var current = group
-                .Where(p => p.StartDate is not null &&
-                            PlanWindowResolver.IsWithinWindow(p.StartDate!.Value, p.WeekCount, today))
-                .OrderByDescending(p => p.StartDate)
-                .FirstOrDefault();
+            var current = PlanWindowResolver.ResolveCurrentPlanStrict(
+                group, p => p.StartDate, p => p.WeekCount, today);
 
             if (current is not null)
             {
@@ -406,11 +406,11 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
             }
         }
 
-        var status = !row.IsActive
-            ? ClientListStatus.Archived
-            : hasActiveNutritionPlan || hasActiveTrainingPlan
-                ? ClientListStatus.Active
-                : ClientListStatus.Paused;
+        var status = ClientStatusClassifier.Classify(
+            row.IsActive,
+            new LinkCapabilities(row.CanViewNutritionPlans, row.CanViewTrainingPlans),
+            hasActiveNutritionPlan,
+            hasActiveTrainingPlan);
 
         return new ClassifiedRow(row, status, hasActiveNutritionPlan, hasActiveTrainingPlan, isEndingSoon, activePlans);
     }

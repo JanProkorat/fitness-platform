@@ -414,7 +414,6 @@
     "backToClients": "Klienti",
     "clientDetail": "Detail klienta",
     "comingSoon": "Připravuje se",
-    "comingSoonHint": "Detail klienta bude dostupný v další fázi",
     "overview": "Přehled",
     "compliance": "Compliance",
     "streak": "Série dní",
@@ -2065,21 +2064,10 @@
     "weightKg": "Váha (kg)",
     "profileUpdated": "Profil klienta uložen",
     "readOnlyFieldHint": "Toto pole nelze z portálu trenéra upravit.",
-    "tabBarLabel": "Záložky klienta",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",
     "ageYears_many": "{{count}} let",
     "ageYears_other": "{{count}} let",
-    "tabs": {
-      "prehled": "Přehled",
-      "mereni": "Měření",
-      "fotky": "Fotky",
-      "aktivita": "Aktivita",
-      "plany": "Plány",
-      "checkiny": "Check-iny",
-      "dotazniky": "Dotazníky",
-      "poznamky": "Poznámky"
-    },
     "verdict": {
       "unavailable": "Hodnocení není k dispozici",
       "onTrack": {
@@ -2307,6 +2295,84 @@
       "editAriaLabel": "Upravit poznámku",
       "deleteAriaLabel": "Smazat poznámku",
       "errorLoading": "Poznámky se nepodařilo načíst"
+    },
+    "overview": {
+      "backAriaLabel": "Zpět na klienty",
+      "tbd": "TBD",
+      "header": {
+        "heightCm": "{{cm}} cm"
+      },
+      "actions": {
+        "chat": "Chat",
+        "tasks": "Úkoly",
+        "notes": "Poznámky",
+        "info": "Info"
+      },
+      "tabs": {
+        "overview": "Přehled",
+        "development": "Vývoj",
+        "nutrition": "Výživa",
+        "workouts": "Tréninky",
+        "storage": "Úložiště",
+        "payment": "Platby",
+        "automations": "Automatizace"
+      },
+      "stats": {
+        "rating": {
+          "label": "Průměrné hodnocení",
+          "caption": "Na základě odpovědí z check-inů"
+        },
+        "payments": {
+          "label": "Platby",
+          "caption": "Pro klienta nebyly nalezeny žádné platby"
+        },
+        "weight": {
+          "label": "Aktuální váha",
+          "value": "{{kg}} kg",
+          "deltaThisWeek": "{{delta}} kg tento týden",
+          "goalWeight": "cíl {{goal}} kg",
+          "empty": "—",
+          "noMeasurements": "Zatím žádná měření"
+        },
+        "clientSince": {
+          "label": "Klientem od",
+          "days_one": "{{count}} den",
+          "days_few": "{{count}} dny",
+          "days_many": "{{count}} dní",
+          "days_other": "{{count}} dní",
+          "started": "Začátek {{date}}"
+        }
+      },
+      "mealPlan": {
+        "heading": "Aktuální jídelníček",
+        "detail": "{{kcal}} kcal • {{carb}} % Sacharidy / {{protein}} % Bílkoviny / {{fat}} % Tuky"
+      },
+      "workout": {
+        "heading": "Poslední trénink",
+        "exercises_one": "{{count}} cvik",
+        "exercises_few": "{{count}} cviky",
+        "exercises_many": "{{count}} cviků",
+        "exercises_other": "{{count}} cviků"
+      },
+      "checkInTrend": {
+        "heading": "Trend check-inů",
+        "last15Days": "Posledních 15 dní",
+        "legend": {
+          "completed": "Splněno",
+          "missed": "Zmeškáno",
+          "upcoming": "Nadcházející"
+        }
+      },
+      "messagesTrend": {
+        "heading": "Trend zpráv",
+        "last4Weeks": "Poslední 4 týdny",
+        "chartAriaLabel": "Zprávy trenéra a klienta za poslední 4 týdny",
+        "weekLabel": "W{{index}}",
+        "legend": {
+          "coach": "Zprávy trenéra",
+          "client": "Zprávy klienta"
+        }
+      }
     }
   },
   "messages": {

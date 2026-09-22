@@ -14,6 +14,7 @@ import VerifyEmailPage from '@/pages/VerifyEmailPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import DownloadAppPage from '@/pages/DownloadAppPage';
 import ClientsPage from '@/pages/ClientsPage';
+import ClientDetailPage from '@/pages/ClientDetailPage';
 import InboxPage from '@/pages/InboxPage';
 import IngredientsPage from '@/pages/IngredientsPage';
 import RecipesPage from '@/pages/RecipesPage';
@@ -62,6 +63,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:clientId" element={<ClientDetailPage />} />
               <Route path="/inbox" element={<InboxPage />} />
               <Route path="/ingredients" element={<IngredientsPage />} />
               <Route path="/recipes" element={<RecipesPage />} />

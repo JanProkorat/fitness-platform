@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 
 /// <summary>
@@ -67,6 +69,14 @@ public class GetClientDashboardResponse
     /// Whether the trainer-client relationship is currently active.
     /// </summary>
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// Derived Active/Paused/Archived status — computed by
+    /// <see cref="Domain.Services.ClientStatusClassifier.Classify"/>, the same derivation
+    /// <c>GetClientsEndpoint</c> uses, so this value always agrees with the caller's clients-list
+    /// status pill for the same client (#1094).
+    /// </summary>
+    public ClientListStatus Status { get; set; }
 
     /// <summary>
     /// Whether this professional is permitted to view the client's nutrition plans.

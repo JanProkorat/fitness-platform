@@ -108,6 +108,47 @@ public class PlanWindowResolverTests
     }
 
     [Fact]
+    public void ResolveCurrentPlanStrict_SolePlanWithoutStartDate_ReturnsNull()
+    {
+        // Unlike ResolveCurrentPlan's legacy single-candidate fallback, the strict resolver never
+        // treats an unranged sole candidate as current — this is what GetClientDashboardEndpoint
+        // now shares with GetClientsEndpoint for status derivation (#1094).
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+        var unrangedPlan = new FakePlan(Guid.NewGuid(), null, 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [unrangedPlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ResolveCurrentPlanStrict_SinglePlanWithTodayInWindow_ReturnsIt()
+    {
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+        var plan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [plan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().Be(plan);
+    }
+
+    [Fact]
+    public void ResolveCurrentPlanStrict_NoPlanWindowContainsToday_ReturnsNull()
+    {
+        var today = DateOnly.FromDateTime(new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+
+        var pastPlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 2);
+        var futurePlan = new FakePlan(Guid.NewGuid(), new DateTime(2026, 5, 4, 0, 0, 0, DateTimeKind.Utc), 2);
+
+        var result = PlanWindowResolver.ResolveCurrentPlanStrict(
+            [pastPlan, futurePlan], p => p.StartDate, p => p.WeekCount, today);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public void IsWithinWindow_FirstDayOfWindow_ReturnsTrue()
     {
         var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);

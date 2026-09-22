@@ -81,7 +81,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -119,7 +119,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -160,7 +160,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -202,7 +202,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -244,7 +244,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -286,7 +286,7 @@ public class GetClientDashboardPermissionFlagsTests
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(
             ctx => ctx.Request.HttpContext.User = TrainerPrincipal(_trainerId),
-            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo());
+            db, _audit, _complianceService, PlanTestHelpers.CreateMockMongo(), TimeProvider.System);
 
         // Act
         await ep.HandleAsync(new GetClientDashboardRequest

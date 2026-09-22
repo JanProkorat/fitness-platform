@@ -1935,6 +1935,21 @@ public static class QaSeedRunner
     /// The plan has 1 week (Status=Published) with 1 day (Monday) containing
     /// Breakfast, Lunch, and Dinner meals.
     /// </summary>
+    /// <remarks>
+    /// #1094 — carries a <c>StartDate</c> anchored to the Monday of the current
+    /// (seed-time) week so <c>PlanWindowResolver</c>'s <c>[StartDate, StartDate +
+    /// weeks*7)</c> window covers today, and a <c>GlobalSettings</c> block so
+    /// GET /nutrition/plans/{id} returns non-null macro targets. Same anchoring
+    /// idiom as <see cref="EnsureTrainingPlanAsync"/>'s #898 fix (daysUntilMonday),
+    /// applied in place to this SAME plan rather than as a second competing Active
+    /// plan: the client has only ever had one Active nutrition plan, so
+    /// <c>PlanWindowResolver.ResolveCurrentPlan</c>'s legacy single-candidate
+    /// fallback already selected it everywhere (GetTodayPlan, GetWeekPlan,
+    /// LogMealEaten, etc.) — giving it an explicit window keeps every one of
+    /// those call sites resolving to this exact plan via the window branch
+    /// instead of the fallback branch, with no second Active nutrition plan
+    /// introduced to make that resolution ambiguous.
+    /// </remarks>
     private static async Task EnsureNutritionPlanAsync(
         IMongoContext mongo,
         Guid clientUserId,
@@ -1954,6 +1969,13 @@ public static class QaSeedRunner
 
         var now = DateTime.UtcNow;
 
+        // #1094 — same anchoring idiom as EnsureTrainingPlanAsync's #898 fix: anchor
+        // StartDate to the Monday of the current (seed-time) week. A 1-week plan means
+        // a 7-day window, valid for 7 days after seeding; POST /test/reset drops the
+        // Mongo collections and re-seeds (re-anchoring to the new current Monday).
+        var daysUntilMonday = ((int)now.DayOfWeek == 0 ? 7 : (int)now.DayOfWeek) - 1;
+        var startDate = now.Date.AddDays(-daysUntilMonday);
+
         var plan = new NutritionPlan
         {
             ExternalId     = QaNutritionPlanExternalId,
@@ -1961,8 +1983,21 @@ public static class QaSeedRunner
             NutritionistId = nutriUserId,
             Name           = "QA Test Nutrition Plan",
             Status         = NutritionPlanStatus.Active,
+            StartDate      = startDate,
             DateCreated    = now,
             Version        = 1,
+            // #1094 — 190/250/82.222g would round to non-exact percentages; these
+            // three gram values were chosen so 4*protein + 4*carbs + 9*fat sums to
+            // DailyKcal EXACTLY (640 + 960 + 900 = 2500), which is what keeps the
+            // client-detail meal-plan card's three rounded percentages (26/38/36)
+            // summing to 100 rather than drifting to 99 or 101.
+            GlobalSettings = new GlobalNutritionSettings
+            {
+                DailyKcal     = 2500,
+                ProteinGrams  = 160,
+                CarbsGrams    = 240,
+                FatGrams      = 100,
+            },
             Weeks =
             [
                 new PlanWeek

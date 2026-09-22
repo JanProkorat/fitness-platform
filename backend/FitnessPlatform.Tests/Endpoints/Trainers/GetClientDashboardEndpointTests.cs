@@ -2,6 +2,7 @@ using FastEndpoints;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.GetClientDashboard;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -45,7 +46,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -88,7 +89,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -117,7 +118,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -137,7 +138,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -151,7 +152,7 @@ public class GetClientDashboardEndpointTests
     public async Task HandleAsync_NoClaims_Returns401()
     {
         var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService, EmptyMongo());
+        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {
@@ -189,7 +190,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         // Act — must not throw
         await ep.HandleAsync(new GetClientDashboardRequest
@@ -201,6 +202,85 @@ public class GetClientDashboardEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(200);
         ep.Response.CompliancePercent.Should().BeNull();
         ep.Response.CurrentStreak.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_LinkedClient_NoActivePlans_StatusIsPaused()
+    {
+        // EmptyMongo() seeds no documents at all, so the result is reliable even though
+        // PlanTestHelpers.CreateMockMongo ignores FilterDefinition — see the design review note
+        // on this endpoint's status test: a seeded-plan case would be unfalsifiable on this mock
+        // Mongo harness, but an unconditionally empty seed returns "no active plan" regardless of
+        // whether the filter itself was honored.
+        var clientUser = EntityBuilder.User.WithEmail("status@test.com")
+            .WithFirstName("Status").WithLastName("Client").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.Response.Status.Should().Be(ClientListStatus.Paused);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ActiveNutritionPlanWithNullStartDate_StatusIsPaused()
+    {
+        // A lone Active plan with no StartDate is legacy/unranged data. PlanWindowResolver's
+        // single-candidate fallback (used for the Goal/TargetWeightKg fields via activePlan)
+        // would treat it as current, but the strict, window-only predicate this endpoint shares
+        // with GetClientsEndpoint (PlanWindowResolver.ResolveCurrentPlanStrict) never counts an
+        // unranged plan as current for status purposes — see GetClientsEndpointTests's
+        // List_ActivePlanWithNullStartDate_NeverClassifiesActive, which pins the same rule on the
+        // clients list (#1094).
+        var clientUser = EntityBuilder.User.WithEmail("unranged@test.com")
+            .WithFirstName("Unranged").WithLastName("Client").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var unrangedPlan = PlanTestHelpers.CreatePlan(clientId: clientUser.Id, status: NutritionPlanStatus.Active);
+        var mongo = PlanTestHelpers.CreateMockMongo(plans: [unrangedPlan]);
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, mongo, TimeProvider.System);
+
+        await ep.HandleAsync(new GetClientDashboardRequest
+        {
+            ClientId = clientProfile.PublicId
+        }, TestContext.Current.CancellationToken);
+
+        ep.Response.Status.Should().Be(ClientListStatus.Paused);
     }
 
     [Fact]
@@ -225,7 +305,7 @@ public class GetClientDashboardEndpointTests
             ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
                 new System.Security.Claims.ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
-            db, _audit, _complianceService, EmptyMongo());
+            db, _audit, _complianceService, EmptyMongo(), TimeProvider.System);
 
         await ep.HandleAsync(new GetClientDashboardRequest
         {

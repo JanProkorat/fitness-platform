@@ -646,6 +646,55 @@ public class QaSeedRunnerTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// #1094 — the QA nutrition plan must carry a <c>StartDate</c> anchored to the current
+    /// week's Monday so <c>PlanWindowResolver</c>'s window <c>[StartDate, StartDate +
+    /// weeks*7)</c> covers today, and a <c>GlobalSettings</c> block whose three gram values
+    /// sum to <c>DailyKcal</c> exactly — the AC 7 macro card relies on
+    /// GET /nutrition/plans/{id} returning non-null globalSettings for the client's active
+    /// nutrition plan.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_NutritionPlan_StartDateAnchoredToCurrentMondayWithGlobalSettings()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+
+        var plan = await mongo.NutritionPlans
+            .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
+            .FirstOrDefaultAsync(ct);
+
+        plan.Should().NotBeNull("the QA nutrition plan must be seeded");
+        plan!.StartDate.Should().NotBeNull(
+            "the QA nutrition plan must have a StartDate — otherwise PlanWindowResolver treats it as " +
+            "unranged and it never matches today's window");
+        plan.StartDate!.Value.DayOfWeek.Should().Be(DayOfWeek.Monday,
+            "StartDate must anchor to a Monday so PlanDay.DayOfWeek=1 maps to that exact date");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var windowStart = DateOnly.FromDateTime(plan.StartDate.Value);
+        var windowEnd = windowStart.AddDays(plan.Weeks.Count * 7);
+        today.Should().BeOnOrAfter(windowStart, "today must fall within the plan's resolved window");
+        today.Should().BeBefore(windowEnd, "today must fall within the plan's resolved window");
+
+        plan.GlobalSettings.Should().NotBeNull("the AC 7 macro card needs a non-null globalSettings block");
+        plan.GlobalSettings!.DailyKcal.Should().Be(2500);
+        plan.GlobalSettings.ProteinGrams.Should().Be(160);
+        plan.GlobalSettings.CarbsGrams.Should().Be(240);
+        plan.GlobalSettings.FatGrams.Should().Be(100);
+
+        var kcalFromGrams = 4 * plan.GlobalSettings.ProteinGrams!.Value
+            + 4 * plan.GlobalSettings.CarbsGrams!.Value
+            + 9 * plan.GlobalSettings.FatGrams!.Value;
+        kcalFromGrams.Should().Be(plan.GlobalSettings.DailyKcal!.Value,
+            "the three gram values must sum to DailyKcal exactly so the three rounded macro " +
+            "percentages sum to 100 rather than drifting to 99 or 101");
+    }
+
+    /// <summary>
     /// The main QA training plan (dddddddd-...) Standard section must have prescribed sets
     /// on both exercises so the planned-vs-actual WorkoutLog has concrete prescription values
     /// to compare against.

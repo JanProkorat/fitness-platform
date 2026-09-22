@@ -253,6 +253,16 @@ Plan shape:
 ```
 NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
   Status: Active
+  StartDate: <Monday of the current (seed-time) week>
+  GlobalSettings:
+    DailyKcal:    2500
+    ProteinGrams: 160   (640 kcal)
+    CarbsGrams:   240   (960 kcal)
+    FatGrams:     100   (900 kcal)
+    — chosen so 4*protein + 4*carbs + 9*fat sums to DailyKcal EXACTLY
+      (640 + 960 + 900 = 2500), which is what keeps the client-detail
+      meal-plan card's three rounded percentages (26/38/36) summing to
+      100 rather than drifting to 99 or 101 (#1094).
   Weeks:
     Week 1 (Status = Published, DatePublished set)
       Day 1 (Monday)
@@ -260,6 +270,20 @@ NutritionPlan (ExternalId = dddddddd-eeee-ffff-0000-111111111111)
         Meal 2 — Lunch      (12:00, no foods pre-loaded)
         Meal 3 — Dinner     (18:00, no foods pre-loaded)
 ```
+
+> **Note on StartDate (#1094).** Anchored to the Monday of the current
+> (seed-time) week — same anchoring idiom as the ForTime training plan's
+> #898 fix — so `PlanWindowResolver`'s `[StartDate, StartDate + weeks*7)`
+> window (here 1 week, i.e. 7 days) covers today. This is the SAME plan
+> the client has always had (`QaNutritionPlanExternalId`), not a second
+> Active nutrition plan: giving it an explicit window keeps every
+> `ResolveCurrentPlan` call site (`GetTodayPlan`, `GetWeekPlan`,
+> `LogMealEaten`, `GetShoppingList`, the client-detail dashboard, …)
+> resolving to this exact plan via the window branch instead of via the
+> resolver's legacy single-candidate fallback — the plan they resolve to
+> does not change, only how it's matched. A harness left running for more
+> than 7 days without a `/test/reset` will see the window go stale until
+> the next reset re-anchors it, same caveat as the training plan.
 
 ### Blob assets
 
