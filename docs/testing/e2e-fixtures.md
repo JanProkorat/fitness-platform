@@ -54,8 +54,9 @@ docker ps --format '{{.Names}}'
 | Nutritionist | `qa.nutri@fitnessplatform.test`  | `33333333-3333-3333-3333-333333333333`    |
 | Client 2     | `qa.client2@fitnessplatform.test`| `55555555-5555-5555-5555-555555555555`    |
 | Trainer 2    | `qa.trainer2@fitnessplatform.test`| `66666666-6666-6666-6666-666666666666`   |
+| Client 3     | `qa.client3@fitnessplatform.test`| `77777777-7777-7777-7777-777777777777`    |
 
-The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
+The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
 All three accounts share the password held in `QA_SEED_PASSWORD` in your local `.env.test` (gitignored). Copy `.env.test.example` to `.env.test` and fill `JWT_SECRET` (≥32 chars) and `QA_SEED_PASSWORD` before the first `npm run e2e:up`. The seed runner refuses to start if `QA_SEED_PASSWORD` is unset, so a missing env file fails fast instead of creating users with a default password.
 
@@ -551,6 +552,73 @@ professional-scoping in `GetClientResponsesEndpoint` (`r.ProfessionalId ==
 <calling professional>`) means the QA trainer's call returns the #715
 trainer-owned response and the QA nutritionist's call returns this
 #720 nutritionist-owned response — never both.
+
+---
+
+## Seeded inbox conversation + weekly check-ins (#1095)
+
+A conversation between the QA trainer and the QA client, a third client
+linked only to the QA trainer, and two `WeeklyCheckIn` rows — seeded so the
+inbox's filter chips (`UnreadMessages`, `NoMessages`, `NewCheckIns`,
+`MissingCheckIns`) each have at least one matching row, and the trainer's
+clients-list `'1 active plan'` locator stays unique to the QA client's
+seeded training plan.
+
+### Stable GUIDs
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `Client3UserId` | `77777777-7777-7777-7777-777777777777` | Third client's `ApplicationUser.Id` |
+| `Client3ProfilePublicId` | `77777777-7777-7777-aaaa-000000000001` | Third client's `ClientProfile.PublicId` |
+| `QaInboxConversationId` | `00000000-0000-0000-aabb-000000000001` | `Conversation.PublicId` (qa.trainer ↔ qa.client) |
+| `QaInboxMessage1Id` | `00000000-0000-0000-aabb-000000000002` | Client's opening message (read) |
+| `QaInboxMessage2Id` | `00000000-0000-0000-aabb-000000000003` | Coach's reply containing a YouTube URL (read) |
+| `QaInboxMessage3Id` | `00000000-0000-0000-aabb-000000000004` | Client's second message (**unread**) |
+| `QaWeeklyCheckInRespondedUnreviewedId` | `00000000-0000-0000-aabb-000000000005` | Responded, not yet reviewed — `NewCheckIns` chip |
+| `QaWeeklyCheckInExpiredId` | `00000000-0000-0000-aabb-000000000006` | Expired unanswered — `MissingCheckIns` chip |
+
+### Fixture shape
+
+- **Third client** (`qa.client3@fitnessplatform.test`) — linked to the QA
+  trainer only (`ProfessionalRole = Trainer`, `IsActive = true`). No
+  conversation, no active plan. Exists so the `NoMessages` filter chip has a
+  guaranteed non-zero row, and so `clients.spec.ts`'s strict-mode `'1 active
+  plan'` locator stays unique to the QA client's own plan.
+- **Conversation** (qa.trainer ↔ qa.client) — three messages, oldest first:
+  a client message (read), a coach reply containing
+  `https://www.youtube.com/watch?v=dQw4w9WgXcQ` (read — exercises the
+  inbox's YouTube-preview-card rendering), and a second client message left
+  **unread** (exercises the `UnreadMessages` filter chip and the
+  conversation-row unread dot). Dated via the two-pass
+  insert-then-`ExecuteUpdateAsync` trick (`GetMessagesEndpointTests
+  .SeedMessagesAsync`) so `DateCreated` values are deterministic rather than
+  whatever `ApplyTimestamps` stamps on insert.
+- **Weekly check-ins** — both scoped to `Profession.Training` (the only
+  profession the qa.trainer↔qa.client link grants): one `Responded` with
+  `ReviewedByTrainerAt = null` (`NewCheckIns` chip), one `Expired` with no
+  response (`MissingCheckIns` chip). Distinct `WeekStartDate` values avoid
+  the `(ClientUserId, ProfessionalUserId, Profession, WeekStartDate)` unique
+  index.
+
+All of the above is part of the **Rich** seed kind only — `QA_SEED_KIND=minimal`
+skips the conversation, the check-ins, and the third client entirely.
+
+### Curl recipe — fetch the QA trainer's inbox
+
+```bash
+API_URL=$(scripts/test-env ports | jq -r '.api_url')
+
+ACCESS=$(curl -sk -X POST "$API_URL/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"qa.trainer@fitnessplatform.test","password":"<QA_SEED_PASSWORD>"}' \
+  | jq -r '.accessToken')
+
+# Conversation list, default filter=All
+curl -sk -H "Authorization: Bearer $ACCESS" "$API_URL/conversations" | jq '.'
+
+# Filter-chip counts for the dropdown
+curl -sk -H "Authorization: Bearer $ACCESS" "$API_URL/conversations/filter-counts" | jq '.'
+```
 
 ---
 
