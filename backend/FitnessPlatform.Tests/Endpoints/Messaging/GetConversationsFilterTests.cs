@@ -63,6 +63,71 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task List_AllFilter_LinkedClientWithNoConversation_SurfacesAsNullIdRow()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        var (noConvClientId, _) = await SetupLinkedClientAsync(trainerId);
+        var (hasMsgClientId, _) = await SetupLinkedClientAsync(trainerId);
+
+        await SeedConversationWithMessageAsync(trainerId, hasMsgClientId, senderIsClient: true, isRead: true);
+
+        var response = await http.GetAsync("/conversations?filter=All", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Should().ContainSingle(c => c.Participant.Id == noConvClientId);
+        body!.Single(c => c.Participant.Id == noConvClientId).Id.Should().BeNull(
+            "a linked client with no conversation yet surfaces as a placeholder row under All too");
+
+        var countsResponse = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
+        var counts = await countsResponse.Content.ReadFromJsonAsync<FilterCountsResponse>(
+            JsonOptions, TestContext.Current.CancellationToken);
+
+        body!.Count.Should().Be(counts!.All,
+            "with no off-roster conversations in play, All's row count must equal filter-counts.all");
+    }
+
+    [Fact]
+    public async Task List_AllFilter_AsClient_ReturnsOnlyRealConversations_NoNullIdRows()
+    {
+        var http = factory.CreateClient();
+        var clientEmail = UniqueEmail("client-all-real");
+        await TestHelpers.RegisterAsync(http, clientEmail, Password, "Test", "Client", "Client");
+        var (clientToken, _) = await TestHelpers.LoginAsync(http, clientEmail, Password);
+        TestHelpers.SetBearerToken(http, clientToken);
+
+        var trainerHttp = factory.CreateClient();
+        var trainerEmail = UniqueEmail("client-all-real-trainer");
+        await TestHelpers.RegisterAsync(trainerHttp, trainerEmail, Password, "Test", "Trainer", "Trainer");
+        var (trainerToken, _) = await TestHelpers.LoginAsync(trainerHttp, trainerEmail, Password);
+        TestHelpers.SetBearerToken(trainerHttp, trainerToken);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var trainerUserId = (await db.Users.AsNoTracking()
+                .FirstAsync(u => u.Email == trainerEmail, TestContext.Current.CancellationToken)).Id;
+            var clientUserId = (await db.Users.AsNoTracking()
+                .FirstAsync(u => u.Email == clientEmail, TestContext.Current.CancellationToken)).Id;
+
+            db.Conversations.Add(new Conversation
+            {
+                PublicId = Guid.NewGuid(),
+                ProfessionalUserId = trainerUserId,
+                ClientUserId = clientUserId
+            });
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var response = await http.GetAsync("/conversations?filter=All", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body!.Should().ContainSingle();
+        body!.Should().OnlyContain(c => c.Id != null,
+            "a Client caller never gets a live-roster placeholder row — only its real conversations");
+    }
+
+    [Fact]
     public async Task List_NoMessagesFilter_ArchivedTrue_NullConversationRowNeverAppears()
     {
         var (http, trainerId) = await SetupTrainerAsync();
@@ -74,6 +139,21 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
 
         body!.Should().BeEmpty(
             "a null-conversation row has no archive state, so it never appears in the archived view");
+    }
+
+    [Fact]
+    public async Task List_AllFilter_ArchivedTrue_NullConversationRowNeverAppears()
+    {
+        var (http, trainerId) = await SetupTrainerAsync();
+        await SetupLinkedClientAsync(trainerId); // no conversation — the null-id row candidate
+
+        var response = await http.GetAsync(
+            "/conversations?filter=All&archived=true", TestContext.Current.CancellationToken);
+        var body = await Deserialize(response);
+
+        body!.Should().BeEmpty(
+            "a null-conversation row has no archive state, so it never appears in the archived view, " +
+            "even under All");
     }
 
     [Fact]
@@ -339,5 +419,10 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     {
         public Guid Id { get; set; }
         public Guid? ClientPublicId { get; set; }
+    }
+
+    private sealed class FilterCountsResponse
+    {
+        public int All { get; set; }
     }
 }

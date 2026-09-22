@@ -16,15 +16,25 @@ namespace FitnessPlatform.Application.Features.Messaging.GetConversations;
 /// Returns conversations for the authenticated user (professional or client).
 /// </summary>
 /// <remarks>
-/// A professional caller may additionally narrow the list with <see cref="GetConversationsRequest.Filter"/>
-/// — the same six-way chip set <c>GetClientsEndpoint</c> exposes. <see cref="ClientListFilter.All"/>
-/// (the default) keeps today's plain conversation query, including any <c>IsFormer</c> row. Any
-/// other filter switches to the live-roster path (<see cref="ConversationRosterLoader"/>, live
-/// links only): every linked client is classified, whether or not a conversation exists yet, and
-/// a client with no conversation whose facts still match the chip is returned as a placeholder
-/// row with <see cref="ConversationDto.Id"/> null. <c>archived</c> is applied after the chip —
-/// a placeholder row (no conversation, so nothing to archive) survives only when
-/// <c>archived=false</c>. A Client caller may never request a chip other than All.
+/// A Client caller always gets today's plain, link-state-agnostic conversation query (including
+/// any <c>IsFormer</c> row) and may never request a chip other than
+/// <see cref="ClientListFilter.All"/>.
+/// <para/>
+/// A professional caller always goes through the live-roster path
+/// (<see cref="ConversationRosterLoader"/>, live links only): every linked client is classified
+/// against <see cref="GetConversationsRequest.Filter"/> — the same six-way chip set
+/// <c>GetClientsEndpoint</c> exposes — whether or not a conversation exists yet, and a client with
+/// no conversation whose facts still match the chip is returned as a placeholder row with
+/// <see cref="ConversationDto.Id"/> null. <c>archived</c> is applied after the chip — a
+/// placeholder row (no conversation, so nothing to archive) survives only when
+/// <c>archived=false</c>.
+/// <para/>
+/// <see cref="ClientListFilter.All"/> (or an omitted filter) additionally unions in every
+/// conversation whose client is NOT on the live roster (a deactivated/former link, including any
+/// <c>IsFormer</c> row) — the population the plain query always returned — so a professional's
+/// All view never loses a conversation just because the underlying link ended. Every other chip
+/// stays roster-only: a former client's conversation, however unread, does not surface under
+/// UnreadMessages once its link is deactivated.
 /// </remarks>
 /// <param name="db">Database context.</param>
 /// <param name="mongo">MongoDB context — plan-window lookups for the EndingSoon chip.</param>
@@ -77,12 +87,6 @@ public class GetConversationsEndpoint(
             return;
         }
 
-        if (req.Filter is null || req.Filter == ClientListFilter.All)
-        {
-            await Send.OkAsync(await LoadPlainConversationsAsync(isProfessional: true, userGuid, req.Archived, ct), ct);
-            return;
-        }
-
         var professionalProfile = await db.ProfessionalProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(pp => pp.UserId == userGuid, ct);
@@ -108,24 +112,38 @@ public class GetConversationsEndpoint(
             .Where(r => req.Archived
                 ? r.ConversationPublicId is not null && r.IsArchivedByProfessional
                 : r.ConversationPublicId is null || !r.IsArchivedByProfessional)
-            .OrderByDescending(r => r.LastMessageAt)
             .Select(r => BuildFromRosterRow(r, userGuid))
             .ToList();
+
+        if (req.Filter is null || req.Filter == ClientListFilter.All)
+        {
+            var rosterClientIds = roster.Select(r => r.ClientUserId).ToHashSet();
+            var offRosterConversations = await LoadPlainConversationsAsync(
+                isProfessional: true, userGuid, req.Archived, ct, excludedClientUserIds: rosterClientIds);
+            displayed.AddRange(offRosterConversations);
+        }
+
+        displayed = displayed.OrderByDescending(c => c.LastMessageAt).ToList();
 
         SetPresence(displayed);
         await Send.OkAsync(displayed, ct);
     }
 
     /// <summary>
-    /// Today's pre-existing query, unchanged apart from the shared DTO types and the
-    /// professional-side participant now carrying <see cref="ParticipantDto.ClientPublicId"/>.
+    /// Today's pre-existing query — unchanged for a Client caller. A professional caller also
+    /// reaches this from the All chip, restricted via <paramref name="excludedClientUserIds"/> to
+    /// the clients NOT already represented by a live-roster row, so a former/deactivated-link
+    /// conversation (including any <c>IsFormer</c> one) still surfaces once, never duplicated with
+    /// its roster row.
     /// </summary>
     private async Task<List<ConversationDto>> LoadPlainConversationsAsync(
-        bool isProfessional, Guid userGuid, bool archived, CancellationToken ct)
+        bool isProfessional, Guid userGuid, bool archived, CancellationToken ct,
+        IReadOnlySet<Guid>? excludedClientUserIds = null)
     {
         var conversations = await db.Conversations
             .AsNoTracking()
             .Where(c => isProfessional ? c.ProfessionalUserId == userGuid : c.ClientUserId == userGuid)
+            .Where(c => excludedClientUserIds == null || !excludedClientUserIds.Contains(c.ClientUserId))
             .Where(c => isProfessional
                 ? (archived ? c.ArchivedByProfessionalAt != null : c.ArchivedByProfessionalAt == null)
                 : (archived ? c.ArchivedByClientAt != null : c.ArchivedByClientAt == null))
