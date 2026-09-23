@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Messaging.Shared;
@@ -19,11 +20,15 @@ namespace FitnessPlatform.Application.Features.Messaging.StartConversation;
 /// <remarks>
 /// A first message requires a currently live link between the caller and the participant — an
 /// unknown participant profile 404s, and a resolvable participant with no live link 404s with
-/// <see cref="ErrorCodes.NotLinkedToClient"/>. A conversation that already exists for the pair is
-/// always returned, regardless of link liveness — reopening a thread from a former collaboration
-/// must not be blocked by the same check that gates starting a new one. Capability flags
-/// (<c>CanViewNutritionPlans</c>/<c>CanViewTrainingPlans</c>) are deliberately not checked —
-/// messaging ignores them, same as <c>BroadcastMessageEndpoint</c>.
+/// <see cref="ErrorCodes.NotLinkedToClient"/>, unless the caller is a Client with a
+/// <see cref="ClientRequestStatus.Pending"/> <see cref="ClientRequest"/> to that professional —
+/// mobile sends the join request and the intro chat message back-to-back
+/// (<c>useCollaboration.ts</c>), before the professional has accepted. The professional-caller
+/// path is unchanged: a professional never gets this exception. A conversation that already
+/// exists for the pair is always returned, regardless of link liveness — reopening a thread from
+/// a former collaboration must not be blocked by the same check that gates starting a new one.
+/// Capability flags (<c>CanViewNutritionPlans</c>/<c>CanViewTrainingPlans</c>) are deliberately
+/// not checked — messaging ignores them, same as <c>BroadcastMessageEndpoint</c>.
 /// </remarks>
 /// <param name="db">Relational database context.</param>
 /// <param name="linkAuthorizationService">Resolves whether the caller has a live link to the participant.</param>
@@ -46,7 +51,9 @@ public class StartConversationEndpoint(
             s.Responses[StatusCodes.Status200OK] = "The existing or newly created conversation.";
             s.Responses[StatusCodes.Status404NotFound] = "The participant id does not resolve to a " +
                                                            "profile, or no conversation exists yet and " +
-                                                           "the caller has no live link to the participant.";
+                                                           "the caller has no live link to the participant " +
+                                                           "(a Client caller with a pending join request " +
+                                                           "to that professional is exempt).";
         });
     }
 
@@ -124,9 +131,22 @@ public class StartConversationEndpoint(
 
         if (capabilities is null)
         {
-            await this.SendProblemAsync(
-                404, ErrorCodes.NotLinkedToClient, "The caller has no active link with this participant.", ct);
-            return;
+            // A Client caller with no live link may still start the conversation if they have a
+            // pending join request to this professional (see class remarks). The professional
+            // caller path never satisfies this — isProfessional short-circuits the query.
+            var hasPendingJoinRequest = !isProfessional && await db.ClientRequests
+                .AsNoTracking()
+                .AnyAsync(r =>
+                    r.ClientProfile.UserId == clientUserId &&
+                    r.ProfessionalProfile.UserId == professionalUserId &&
+                    r.Status == ClientRequestStatus.Pending, ct);
+
+            if (!hasPendingJoinRequest)
+            {
+                await this.SendProblemAsync(
+                    404, ErrorCodes.NotLinkedToClient, "The caller has no active link with this participant.", ct);
+                return;
+            }
         }
 
         var conversation = new Conversation

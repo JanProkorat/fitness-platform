@@ -48,7 +48,12 @@ public class GetConversationFilterCountsEndpoint(
     public override async Task HandleAsync(CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
-        if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
+
+        if (userId is null)
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
 
         var userGuid = Guid.Parse(userId);
 

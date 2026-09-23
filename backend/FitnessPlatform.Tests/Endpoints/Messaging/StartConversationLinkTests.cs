@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
@@ -13,7 +15,9 @@ namespace FitnessPlatform.Tests.Endpoints.Messaging;
 /// Integration tests for the link-liveness gate <c>StartConversationEndpoint</c> now enforces
 /// (#1095): a first message requires a currently live link, but reopening an existing
 /// conversation never checks link liveness — closes the pre-existing hole where any trainer
-/// could open a thread with any client.
+/// could open a thread with any client. Also covers the pending-join-request exception: a
+/// Client caller with no live link may still start a conversation if they have a Pending
+/// <see cref="ClientRequest"/> to that professional (mobile's join-then-message flow).
 /// </summary>
 [Collection(TestCollection.Name)]
 public class StartConversationLinkTests(FitnessApiFactory factory)
@@ -109,6 +113,74 @@ public class StartConversationLinkTests(FitnessApiFactory factory)
             "an existing conversation must always be reopenable, even after the link ends");
     }
 
+    [Fact]
+    public async Task StartConversation_ClientCaller_PendingJoinRequest_NoLiveLink_Returns200Creates()
+    {
+        var (_, trainerUserId, trainerPublicId) = await SetupTrainerWithIdsAsync();
+        var (clientHttp, clientUserId, _) = await SetupUnlinkedClientWithIdsAsync();
+
+        await SeedClientRequestAsync(clientUserId, trainerUserId, ClientRequestStatus.Pending);
+
+        var resp = await clientHttp.PostAsJsonAsync(
+            "/conversations", new { ParticipantId = trainerPublicId }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK,
+            "a client with a pending join request may start the intro chat before the coach accepts (#1095)");
+    }
+
+    [Fact]
+    public async Task StartConversation_ClientCaller_RejectedJoinRequest_NoLiveLink_Returns404()
+    {
+        var (_, trainerUserId, trainerPublicId) = await SetupTrainerWithIdsAsync();
+        var (clientHttp, clientUserId, _) = await SetupUnlinkedClientWithIdsAsync();
+
+        await SeedClientRequestAsync(clientUserId, trainerUserId, ClientRequestStatus.Rejected);
+
+        var resp = await clientHttp.PostAsJsonAsync(
+            "/conversations", new { ParticipantId = trainerPublicId }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "a rejected join request does not grant the pending-request exception");
+    }
+
+    [Fact]
+    public async Task StartConversation_ClientCaller_AcceptedThenEndedJoinRequest_NoLiveLink_Returns404()
+    {
+        var (_, trainerUserId, trainerPublicId) = await SetupTrainerWithIdsAsync();
+        var (clientHttp, clientUserId, clientPublicId) = await SetupUnlinkedClientWithIdsAsync();
+
+        await SeedClientRequestAsync(clientUserId, trainerUserId, ClientRequestStatus.Accepted);
+
+        // The collaboration existed and has since ended — a formerly-active link, now
+        // deactivated — and no conversation exists yet for this pair.
+        await SeedFormerLinkAsync(clientPublicId, trainerPublicId);
+
+        var resp = await clientHttp.PostAsJsonAsync(
+            "/conversations", new { ParticipantId = trainerPublicId }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "an accepted-then-ended request does not grant the pending-request exception");
+    }
+
+    [Fact]
+    public async Task StartConversation_ProfessionalCaller_PendingRequestFromClient_NoLiveLink_Returns404()
+    {
+        // Unchanged path: the pending-request exception only applies when the CALLER is the
+        // Client. A professional caller gets no exception even if the same pending row exists.
+        var (trainerHttp, trainerUserId) = await SetupTrainerAsync();
+        var (_, clientUserId, clientPublicId) = await SetupUnlinkedClientWithIdsAsync();
+
+        await SeedClientRequestAsync(clientUserId, trainerUserId, ClientRequestStatus.Pending);
+
+        var resp = await trainerHttp.PostAsJsonAsync(
+            "/conversations", new { ParticipantId = clientPublicId }, TestContext.Current.CancellationToken);
+
+        resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var problem = await resp.Content.ReadFromJsonAsync<ProblemDetailsDto>(
+            JsonOptions, TestContext.Current.CancellationToken);
+        problem!.ErrorCode.Should().Be("NOT_LINKED_TO_CLIENT");
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
@@ -157,6 +229,67 @@ public class StartConversationLinkTests(FitnessApiFactory factory)
             .FirstAsync(cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
 
         return (http, profile.PublicId);
+    }
+
+    private async Task<(HttpClient Http, Guid UserId, Guid PublicId)> SetupUnlinkedClientWithIdsAsync()
+    {
+        var (http, publicId) = await SetupUnlinkedClientAsync();
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var profile = await db.ClientProfiles.AsNoTracking()
+            .FirstAsync(cp => cp.PublicId == publicId, TestContext.Current.CancellationToken);
+
+        return (http, profile.UserId, publicId);
+    }
+
+    /// <summary>
+    /// Seeds a <see cref="ClientRequest"/> row directly (bypassing the send/accept/reject
+    /// endpoints) so a test can pin an arbitrary <see cref="ClientRequestStatus"/>.
+    /// </summary>
+    private async Task SeedClientRequestAsync(Guid clientUserId, Guid professionalUserId, ClientRequestStatus status)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(cp => cp.UserId == clientUserId, TestContext.Current.CancellationToken);
+        var professionalProfile = await db.ProfessionalProfiles
+            .FirstAsync(pp => pp.UserId == professionalUserId, TestContext.Current.CancellationToken);
+
+        db.ClientRequests.Add(new ClientRequest
+        {
+            PublicId = Guid.NewGuid(),
+            ClientProfileId = clientProfile.Id,
+            ProfessionalProfileId = professionalProfile.Id,
+            Status = status,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Seeds an already-deactivated <see cref="ClientProfessionalLink"/> — simulates a
+    /// collaboration that existed and has since ended, without going through the live-link
+    /// registration + deactivation round trip.
+    /// </summary>
+    private async Task SeedFormerLinkAsync(Guid clientPublicId, Guid professionalPublicId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var clientProfile = await db.ClientProfiles
+            .FirstAsync(cp => cp.PublicId == clientPublicId, TestContext.Current.CancellationToken);
+        var professionalProfile = await db.ProfessionalProfiles
+            .FirstAsync(pp => pp.PublicId == professionalPublicId, TestContext.Current.CancellationToken);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = false,
+            DateCreated = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private async Task<(Guid ClientUserId, Guid ClientPublicId)> SetupLinkedClientAsync(Guid trainerUserId)
