@@ -226,7 +226,9 @@ export default function ThreadPane({
 
       <Composer
         conversationId={conversationId}
-        onSend={(payload) => sendMessageMutation.mutate(payload)}
+        onSend={async (payload) => {
+          await sendMessageMutation.mutateAsync(payload);
+        }}
         isSending={sendMessageMutation.isPending}
         onTyping={handleTyping}
       />

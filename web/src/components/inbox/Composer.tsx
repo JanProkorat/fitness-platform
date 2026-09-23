@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ImagePreviewChip from '@/components/inbox/ImagePreviewChip';
 import { useRequestChatImageUploadUrl } from '@/hooks/useInboxQueries';
-import { showApiError } from '@/lib/api-errors';
+import { showApiError, showError } from '@/lib/api-errors';
 
 /** Chat image allowlist — mirrors the server's `ChatImagePolicy.AllowedContentTypes` (jpeg/png/webp
  * only, narrower than the shared avatar/food-image allowlist which also admits heic/heif). This is
@@ -31,7 +31,9 @@ interface PendingImage {
 
 interface Props {
   conversationId: string;
-  onSend: (payload: ComposerSendPayload) => void;
+  /** Returns the send mutation's own promise so the composer can defer clearing
+   * the draft (text + pending image) until the send actually resolves. */
+  onSend: (payload: ComposerSendPayload) => Promise<void>;
   isSending: boolean;
   onTyping?: () => void;
 }
@@ -97,10 +99,12 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
 
     if (!ALLOWED_IMAGE_CONTENT_TYPES.includes(file.type)) {
       setImageError(t('apiErrors.INVALID_IMAGE_CONTENT_TYPE'));
+      showError('apiErrors.INVALID_IMAGE_CONTENT_TYPE');
       return;
     }
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
       setImageError(t('apiErrors.IMAGE_TOO_LARGE'));
+      showError('apiErrors.IMAGE_TOO_LARGE');
       return;
     }
 
@@ -112,6 +116,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
     } catch {
       URL.revokeObjectURL(previewUrl);
       setImageError(t('apiErrors.INVALID_IMAGE_CONTENT_TYPE'));
+      showError('apiErrors.INVALID_IMAGE_CONTENT_TYPE');
     }
   }
 
@@ -122,24 +127,31 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
     }
 
     if (!pendingImage) {
-      onSend({ text: trimmed });
-      setValue('');
+      try {
+        await onSend({ text: trimmed });
+        setValue('');
+      } catch {
+        // The send mutation's own onError already raised a toast; keep the
+        // draft text in place so the user can retry without retyping it.
+      }
       return;
     }
 
+    let uploadId: string;
     try {
-      const { uploadUrl, uploadId } = await requestUploadUrlMutation.mutateAsync({
+      const uploadUrlResponse = await requestUploadUrlMutation.mutateAsync({
         contentType: pendingImage.file.type,
         sizeBytes: pendingImage.file.size,
       });
 
-      if (!uploadUrl || !uploadId) {
+      if (!uploadUrlResponse.uploadUrl || !uploadUrlResponse.uploadId) {
         throw new Error('Upload URL response missing uploadUrl/uploadId');
       }
+      uploadId = uploadUrlResponse.uploadId;
 
       // A plain fetch PUT to the pre-signed MinIO URL — never through the axios instance, which
       // would attach the API's Authorization header and Content-Type this presigned URL doesn't expect.
-      const putResponse = await fetch(uploadUrl, {
+      const putResponse = await fetch(uploadUrlResponse.uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': pendingImage.file.type },
         body: pendingImage.file,
@@ -147,8 +159,15 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
       if (!putResponse.ok) {
         throw new Error(`Image upload PUT failed with status ${putResponse.status}`);
       }
+    } catch (error) {
+      // Upload-phase failure (request-URL mint or the MinIO PUT itself) — the pending
+      // image and caption are kept so the user can retry the same attachment.
+      showApiError(error, 'inbox.composer.imageUploadError');
+      return;
+    }
 
-      onSend({
+    try {
+      await onSend({
         text: trimmed,
         imageUploadId: uploadId,
         imageWidth: pendingImage.width,
@@ -156,15 +175,21 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
       });
       removePendingImage();
       setValue('');
-    } catch (error) {
-      showApiError(error, 'inbox.composer.imageUploadError');
+    } catch {
+      // The bytes are already uploaded to blob storage; the send mutation's own
+      // onError already raised a toast. Keep the pending image + caption staged
+      // so the user can retry the send without re-picking or re-uploading the file.
     }
   }
 
   return (
     <div className="flex flex-col gap-2 border-t border-border p-4">
       {pendingImage && <ImagePreviewChip previewUrl={pendingImage.previewUrl} onRemove={removePendingImage} />}
-      {imageError && <p className="px-1 text-caption text-danger">{imageError}</p>}
+      {imageError && (
+        <p data-testid="composer-image-error" className="px-1 text-caption text-danger">
+          {imageError}
+        </p>
+      )}
       <div className="flex items-end gap-2">
         <div className="flex flex-1 items-end gap-1 rounded-3xl border border-input bg-background px-2 py-1.5">
           <Button

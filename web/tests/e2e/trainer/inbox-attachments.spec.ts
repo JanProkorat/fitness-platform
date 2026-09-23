@@ -19,12 +19,17 @@ import { request as apiRequest, type Locator, type Page } from '@playwright/test
 import { readFileSync } from 'node:fs';
 import { Buffer } from 'node:buffer';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { trainerTest as test, expect, openClientContext } from '../fixtures/auth';
 
 const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
 
-const VALID_IMAGE_PATH = path.resolve('tests/e2e/fixtures/chat-image.jpg');
-const DISGUISED_IMAGE_PATH = path.resolve('tests/e2e/fixtures/chat-image-disguised.jpg');
+// ESM-safe __dirname substitute (package.json has "type":"module"), same pattern as
+// playwright.config.ts. Resolving against __dirname rather than process.cwd() keeps
+// these paths correct no matter which directory `playwright test` is invoked from.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const VALID_IMAGE_PATH = path.resolve(__dirname, '..', 'fixtures', 'chat-image.jpg');
+const DISGUISED_IMAGE_PATH = path.resolve(__dirname, '..', 'fixtures', 'chat-image-disguised.jpg');
 
 interface LoginResponseBody {
   accessToken: string;
@@ -160,7 +165,10 @@ test.describe('inbox chat image attachments', () => {
       buffer: oversizedBuffer,
     });
 
-    await expect(page.getByText(/too large/i)).toBeVisible();
+    // Both surfaces fire off the same client-side rejection: an inline note under the
+    // composer (persists) and a toast (auto-dismisses) — see Composer.tsx's handleFileSelected.
+    await expect(page.getByTestId('composer-image-error')).toHaveText(/too large/i);
+    await expect(page.locator('[data-slot="toast-title"]')).toHaveText(/too large/i);
     await expect(page.getByAltText('Image preview')).toHaveCount(0);
     expect(uploadUrlRequested).toBe(false);
   });
