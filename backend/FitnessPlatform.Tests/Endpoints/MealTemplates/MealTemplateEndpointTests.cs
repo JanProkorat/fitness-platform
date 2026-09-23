@@ -13,30 +13,23 @@ using FitnessPlatform.Application.Features.MealTemplates.SearchMealTemplates;
 using FitnessPlatform.Application.Features.MealTemplates.UpdateMealTemplate;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.MealTemplates;
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="MealTemplateEndpointTests"/>.
-/// Boots ONCE for the collection (#1104) instead of per fact.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
 /// </summary>
-public class MealTemplateMongoContainerFixture : IAsyncLifetime
+public class MealTemplateMongoContainerFixture(SharedTestContainers sharedContainers)
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string ConnectionString => sharedContainers.MongoConnectionString;
 
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-    }
-
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("mealtemplate");
 }
 
 [CollectionDefinition("MealTemplateEndpoint")]
@@ -73,8 +66,8 @@ public class MealTemplateEndpointTests : IAsyncLifetime
 
     public MealTemplateEndpointTests(MealTemplateMongoContainerFixture containerFixture)
     {
-        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
-        var database = mongoClient.GetDatabase("fitness_mealtemplate_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var database = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _templates = database.GetCollection<MealTemplate>("mealTemplates");
         _plans = database.GetCollection<NutritionPlan>("nutritionPlans");
 

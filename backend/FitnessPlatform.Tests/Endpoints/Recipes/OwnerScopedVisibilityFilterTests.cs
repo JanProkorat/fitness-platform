@@ -9,30 +9,22 @@ using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="OwnerScopedVisibilityFilterTests"/>.
-/// Boots ONCE for the collection (#1104) instead of per fact.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
 /// </summary>
-public class OwnerScopedVisibilityMongoContainerFixture : IAsyncLifetime
+public class OwnerScopedVisibilityMongoContainerFixture(SharedTestContainers sharedContainers)
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string ConnectionString => sharedContainers.MongoConnectionString;
 
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-    }
-
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("ownerscopedvisibility");
 }
 
 [CollectionDefinition("OwnerScopedVisibilityFilter")]
@@ -63,8 +55,8 @@ public class OwnerScopedVisibilityFilterTests
 
     public OwnerScopedVisibilityFilterTests(OwnerScopedVisibilityMongoContainerFixture containerFixture)
     {
-        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_ownerscopedvisibility_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _recipes = mongoDb.GetCollection<Recipe>("recipes");
         _foods = mongoDb.GetCollection<Food>("foods");
 

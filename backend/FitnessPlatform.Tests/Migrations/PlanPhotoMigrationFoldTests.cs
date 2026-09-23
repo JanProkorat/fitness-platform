@@ -4,30 +4,32 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Migrations;
 
 /// <summary>
-/// Shared Testcontainers Postgres fixture for <see cref="PlanPhotoMigrationFoldTests"/>.
-/// Boots ONCE for the collection (#1104) instead of per fact — each fact resets the
-/// schema back to empty in its own <see cref="IAsyncLifetime.InitializeAsync"/> (see
-/// <see cref="PlanPhotoMigrationFoldTests"/>' remarks) before stepping through
-/// migrations itself.
+/// Shared-container Postgres fixture for <see cref="PlanPhotoMigrationFoldTests"/> (#1104
+/// Phase B — see <see cref="SharedTestContainers"/>): creates its own database inside the one
+/// shared server once for the collection instead of per fact — each fact resets the schema
+/// back to empty in its own <see cref="IAsyncLifetime.InitializeAsync"/> (see
+/// <see cref="PlanPhotoMigrationFoldTests"/>' remarks) before stepping through migrations
+/// itself.
 /// </summary>
-public class PlanPhotoMigrationFoldContainerFixture : IAsyncLifetime
+public class PlanPhotoMigrationFoldContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+    public string ConnectionString { get; private set; } = string.Empty;
 
-    public async ValueTask InitializeAsync() => await Postgres.StartAsync();
+    public async ValueTask InitializeAsync() =>
+        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("plan_photo_migration_fold");
 
-    public async ValueTask DisposeAsync() => await Postgres.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 /// <summary>
-/// Defines a dedicated collection so the Postgres container boots once for the class.
+/// Defines a dedicated collection so the fixture's database is created once for the class.
 /// </summary>
 [CollectionDefinition("PlanPhotoMigrationFold")]
 public class PlanPhotoMigrationFoldCollection : ICollectionFixture<PlanPhotoMigrationFoldContainerFixture>;
@@ -55,19 +57,19 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
     private const string PreviousMigration = "20260422153619_AddProfessionalProfileAvatarBlobUrl";
     private const string NewMigration = "20260425164316_AddPlanPhotoRetireProgressPhoto";
 
-    private PostgreSqlContainer Postgres => containerFixture.Postgres;
+    private string ConnectionString => containerFixture.ConnectionString;
 
     private ApplicationDbContext _db = null!;
 
     public async ValueTask InitializeAsync()
     {
-        await using (var resetDb = BuildContext(Postgres.GetConnectionString()))
+        await using (var resetDb = BuildContext(ConnectionString))
         {
             await resetDb.Database.ExecuteSqlRawAsync("DROP SCHEMA IF EXISTS public CASCADE");
             await resetDb.Database.ExecuteSqlRawAsync("CREATE SCHEMA public");
         }
 
-        _db = BuildContext(Postgres.GetConnectionString());
+        _db = BuildContext(ConnectionString);
     }
 
     public async ValueTask DisposeAsync()
@@ -93,7 +95,7 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
 
     private async Task<(long ClientProfileId, Guid UserId)> CreateUserAndClientProfileAsync()
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
 
         var userId = Guid.NewGuid();
@@ -149,7 +151,7 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
         DateTime takenAt,
         DateTime dateCreated)
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -170,7 +172,7 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
     private async Task RebuildContextAsync()
     {
         await _db.DisposeAsync();
-        _db = BuildContext(Postgres.GetConnectionString());
+        _db = BuildContext(ConnectionString);
     }
 
     // ── tests ─────────────────────────────────────────────────────────────────
@@ -244,7 +246,7 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
         // After the migration ran, progress_photos no longer exists, so the
         // IF EXISTS guard exits early and the INSERT is skipped entirely.
         // This proves the idempotency — running the fold SQL N times is safe.
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -341,7 +343,7 @@ public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture 
         // Seed one orphaned progress_photos row whose client_profile_id does NOT exist.
         // The FK constraint on progress_photos.client_profile_id prevents a normal INSERT,
         // so we disable FK triggers for this session, insert the orphan, then re-enable.
-        await using (var conn = new NpgsqlConnection(Postgres.GetConnectionString()))
+        await using (var conn = new NpgsqlConnection(ConnectionString))
         {
             await conn.OpenAsync(ct);
 

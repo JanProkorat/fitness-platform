@@ -6,31 +6,27 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Shared Testcontainers Postgres fixture for <see cref="NotificationServiceTests"/>. Boots
-/// ONCE for the collection (#1104) instead of per fact.
+/// Shared-container Postgres fixture for <see cref="NotificationServiceTests"/> (#1104 Phase B
+/// — see <see cref="SharedTestContainers"/>): creates its own database inside the one shared
+/// server once for the collection instead of per fact.
 /// </summary>
-public class NotificationServiceContainerFixture : IAsyncLifetime
+public class NotificationServiceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    // Wide timeout to tolerate Docker contention on the dev machine (see #336).
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+    public string ConnectionString { get; private set; } = string.Empty;
 
     public async ValueTask InitializeAsync()
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Postgres.StartAsync(cts.Token);
+        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("notification_service");
 
-        await using var db = BuildDbContext(Postgres.GetConnectionString());
+        await using var db = BuildDbContext(ConnectionString);
         await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync() => await Postgres.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public static ApplicationDbContext BuildDbContext(string connectionString)
     {
@@ -62,7 +58,7 @@ public class NotificationServiceCollection : ICollectionFixture<NotificationServ
 public class NotificationServiceTests(NotificationServiceContainerFixture containerFixture) : IAsyncLifetime
 {
     private ApplicationDbContext _db =
-        NotificationServiceContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
+        NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString);
     private FakePushNotificationService _push = null!;
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
@@ -80,7 +76,7 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
         var ct = TestContext.Current.CancellationToken;
         var userId = Guid.NewGuid();
 
-        await using var conn = new NpgsqlConnection(containerFixture.Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.ConnectionString);
         await conn.OpenAsync(ct);
 
         await using var cmd = conn.CreateCommand();
@@ -115,7 +111,7 @@ public class NotificationServiceTests(NotificationServiceContainerFixture contai
     {
         // Rebuild DbContext for a clean tracked-entity cache each call.
         _db.Dispose();
-        _db = NotificationServiceContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
+        _db = NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString);
         _push = new FakePushNotificationService();
 
         return new NotificationService(_db, _push);

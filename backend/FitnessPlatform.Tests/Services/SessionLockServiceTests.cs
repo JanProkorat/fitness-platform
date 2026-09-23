@@ -3,33 +3,26 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="SessionLockServiceTests"/>. Boots ONCE
-/// for the collection (#1104) instead of per fact, and creates the unique <c>sessionId</c>
-/// index — mirroring production's <c>MongoIndexInitializer</c> — once rather than per test.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>): gets its own database name inside that one shared
+/// server instead of its own container, and creates the unique <c>sessionId</c> index —
+/// mirroring production's <c>MongoIndexInitializer</c> — once for the collection.
 /// </summary>
-public class SessionLockServiceContainerFixture : IAsyncLifetime
+public class SessionLockServiceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
     public IMongoContext MongoContext { get; private set; } = null!;
 
     public async ValueTask InitializeAsync()
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(Mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_sessionlock_test");
+        var mongoClient = new MongoClient(sharedContainers.MongoConnectionString);
+        var mongoDb = mongoClient.GetDatabase(SharedTestContainers.CreateMongoDatabaseName("sessionlock"));
         MongoContext = new MongoContext(mongoDb);
 
         // Create the unique index on sessionId that SessionLockService depends on.
@@ -40,7 +33,7 @@ public class SessionLockServiceContainerFixture : IAsyncLifetime
         await MongoContext.SessionLocks.Indexes.CreateOneAsync(uniqueIndex);
     }
 
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 [CollectionDefinition("SessionLockService")]

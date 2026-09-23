@@ -3,11 +3,11 @@ using FastEndpoints.Testing;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
 
@@ -30,23 +30,15 @@ internal sealed class LibrarySearchProbeEndpoint : EndpointWithoutRequest
 }
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="LibrarySearchHelperTests"/>. Boots ONCE
-/// for the collection (#1104) instead of per fact.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
 /// </summary>
-public class LibrarySearchHelperMongoContainerFixture : IAsyncLifetime
+public class LibrarySearchHelperMongoContainerFixture(SharedTestContainers sharedContainers)
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string ConnectionString => sharedContainers.MongoConnectionString;
 
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-    }
-
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("librarysearch");
 }
 
 [CollectionDefinition("LibrarySearchHelper")]
@@ -78,8 +70,8 @@ public class LibrarySearchHelperTests : IAsyncLifetime
 
     public LibrarySearchHelperTests(LibrarySearchHelperMongoContainerFixture containerFixture)
     {
-        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_librarysearch_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
     }
 

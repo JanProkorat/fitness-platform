@@ -12,8 +12,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Endpoints.Testing;
 
@@ -30,10 +28,11 @@ namespace FitnessPlatform.Tests.Endpoints.Testing;
 /// replaces the non-DB services (email, blob, push) with no-op fakes.
 /// Derived classes configure the environment name and Testing:Enabled value.
 /// </summary>
-public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>, IAsyncLifetime
+public abstract class ResetEndpointFactoryBase(SharedTestContainers sharedContainers)
+    : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     /// <summary>
     /// ASPNETCORE_ENVIRONMENT to use for this factory instance.
@@ -74,7 +73,7 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
                 services.Remove(pgDescriptor);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -91,8 +90,8 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -137,37 +136,28 @@ public abstract class ResetEndpointFactoryBase : WebApplicationFactory<Program>,
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        // GetType().Name distinguishes the three concrete gate-combination factories
+        // (ResetEndpointEnabledFactory / DisabledFactory / ProductionFactory) so each gets
+        // its own isolated database inside the shared containers without every subclass
+        // having to declare its own name prefix.
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync(GetType().Name);
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName(GetType().Name);
 
         // Apply migrations + seed roles (not QA users — the reset endpoint handles that)
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        // Dispose the Testcontainers but intentionally skip base.DisposeAsync().
-        //
-        // base.DisposeAsync() disposes the root IServiceProvider, which clears
-        // FastEndpoints' process-global ServiceResolver.Provider. Any Factory.Create<T>()
-        // call running concurrently (standalone unit tests without a [Collection] attribute)
-        // would then throw ObjectDisposedException. Skipping base.DisposeAsync() keeps the
-        // provider alive until the process exits — safe for test code where the process is
-        // short-lived. Containers are the only external resource that needs explicit cleanup.
-        //
-        // See also: FitnessApiFactory (same pattern, #296).
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Intentionally skip base.DisposeAsync() — see FitnessApiFactory's matching remark. No
+    // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 /// <summary>
 /// Gate: Testing:Enabled=true + Development environment — the happy path.
 /// The reset endpoint MUST be registered and callable.
 /// </summary>
-public class ResetEndpointEnabledFactory : ResetEndpointFactoryBase
+public class ResetEndpointEnabledFactory(SharedTestContainers sharedContainers)
+    : ResetEndpointFactoryBase(sharedContainers)
 {
     protected override string EnvironmentName => "Development";
     protected override bool TestingEnabled => true;
@@ -176,7 +166,8 @@ public class ResetEndpointEnabledFactory : ResetEndpointFactoryBase
 /// <summary>
 /// Gate: Testing:Enabled=false (any environment) — endpoint must NOT be registered.
 /// </summary>
-public class ResetEndpointDisabledFactory : ResetEndpointFactoryBase
+public class ResetEndpointDisabledFactory(SharedTestContainers sharedContainers)
+    : ResetEndpointFactoryBase(sharedContainers)
 {
     protected override string EnvironmentName => "Development";
     protected override bool TestingEnabled => false;
@@ -188,7 +179,8 @@ public class ResetEndpointDisabledFactory : ResetEndpointFactoryBase
 /// must succeed (return 204) even when the environment is not "Development".
 /// Using "Staging" to simulate a non-Development CI test harness environment.
 /// </summary>
-public class ResetEndpointProductionFactory : ResetEndpointFactoryBase
+public class ResetEndpointProductionFactory(SharedTestContainers sharedContainers)
+    : ResetEndpointFactoryBase(sharedContainers)
 {
     protected override string EnvironmentName => "Staging";
     protected override bool TestingEnabled => true;

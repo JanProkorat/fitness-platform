@@ -12,22 +12,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Endpoints.SessionExecutions;
 
 // ── Test factory ─────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Dedicated factory for WorkoutLog uniqueness tests. Runs in its own Testcontainers
-/// to avoid polluting the shared Integration collection's MongoDB instance with
-/// scenarios that modify existing data.
+/// Dedicated factory for WorkoutLog uniqueness tests. Uses the shared Postgres/Mongo
+/// Testcontainers (#1104 Phase B — see <see cref="SharedTestContainers"/>), each in its own
+/// database, to avoid polluting the shared Integration collection's data with scenarios that
+/// modify existing data.
 /// </summary>
-public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class WorkoutLogUniquenessFactory(SharedTestContainers sharedContainers)
+    : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     /// <summary>
     /// The IMongoContext resolved from the running host's DI container.
@@ -57,7 +57,7 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
             if (pgDesc is not null) services.Remove(pgDesc);
 
             services.AddDbContext<Application.Infrastructure.Data.ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -70,8 +70,8 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_uniqueness_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -112,9 +112,8 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("workoutlog_uniqueness");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("workoutlog_uniqueness");
 
         await Application.Infrastructure.Data.ApplicationDbContextSeed.SeedAsync(Services);
 
@@ -122,12 +121,9 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
         MongoContext = scope.ServiceProvider.GetRequiredService<IMongoContext>();
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Intentionally skip base.DisposeAsync() — see FitnessApiFactory's matching remark. No
+    // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 // ── Collection definition ─────────────────────────────────────────────────────
@@ -153,7 +149,7 @@ public class WorkoutLogUniquenessCollection : ICollectionFixture<WorkoutLogUniqu
 /// these index scenarios from the shared Integration collection.
 /// </summary>
 [Collection("WorkoutLogUniqueness")]
-public class WorkoutLogCompletionUniquenessTests(WorkoutLogUniquenessFactory factory)
+public class WorkoutLogCompletionUniquenessTests(WorkoutLogUniquenessFactory factory, SharedTestContainers sharedContainers)
 {
     private readonly WorkoutLogUniquenessFactory _factory = factory;
 
@@ -369,11 +365,8 @@ public class WorkoutLogCompletionUniquenessTests(WorkoutLogUniquenessFactory fac
         var ct = TestContext.Current.CancellationToken;
         var today = DateTime.UtcNow;
 
-        await using var mongoContainer = new MongoDbBuilder("mongo:7").Build();
-        await mongoContainer.StartAsync(ct);
-
-        var mongoClient = new MongoClient(mongoContainer.GetConnectionString());
-        var db = mongoClient.GetDatabase("null_key_test");
+        var mongoClient = new MongoClient(sharedContainers.MongoConnectionString);
+        var db = mongoClient.GetDatabase(SharedTestContainers.CreateMongoDatabaseName("null_key"));
         var executionsColl = db.GetCollection<SessionExecution>("sessionExecutions");
 
         var clientId = Guid.NewGuid();

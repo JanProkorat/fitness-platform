@@ -4,60 +4,39 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Npgsql;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Shared Testcontainers Postgres + Mongo fixture for
-/// <see cref="PhotoDescriptionBackfillServiceTests"/>. Boots ONCE for the collection (#1104)
-/// instead of per fact.
+/// Shared-container Postgres + Mongo fixture for
+/// <see cref="PhotoDescriptionBackfillServiceTests"/> (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>): creates its own Postgres database and its own Mongo
+/// database name inside the two shared servers once for the collection instead of per fact.
 /// </summary>
-public class PhotoDescriptionBackfillContainerFixture : IAsyncLifetime
+public class PhotoDescriptionBackfillContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    // Bumped from the Testcontainers default of 60s to 180s because this test's
-    // PostgreSQL + MongoDB containers regularly contend with a developer- (or
-    // qa-tester-) started compose harness on the same host. The harness's
-    // `postgres-test` / `mongo-test` services and these test containers share
-    // the docker socket, the image-pull bandwidth, and the kernel-level network
-    // stack, so a parallel boot can push the test container's readiness probe
-    // past the 60s default and surface as
-    // `DockerContainer.ThrowIfContainerNotRunningAsync` during InitializeAsync.
-    // 180s gives headroom without making genuine container-boot failures hang
-    // too long. See #336.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string PostgresConnectionString { get; private set; } = string.Empty;
 
-    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+    public string MongoConnectionString => sharedContainers.MongoConnectionString;
+
+    public string MongoDatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("backfill");
 
     public async ValueTask InitializeAsync()
     {
-        // Pass an extended-deadline cancellation token to StartAsync so the
-        // default Testcontainers wait-strategy gets up to StartupTimeout to
-        // observe the container becoming healthy. The IWaitStrategy
-        // implementation respects the CT, so this is the canonical
-        // single-call way to widen the readiness window without replacing
-        // the default strategy entirely.
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Task.WhenAll(Postgres.StartAsync(cts.Token), Mongo.StartAsync(cts.Token));
+        PostgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("photo_description_backfill");
 
         // Apply all EF migrations so the full schema (including plan_photos) is available.
-        await using var db = BuildDbContext(Postgres.GetConnectionString());
+        await using var db = BuildDbContext(PostgresConnectionString);
         await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await Task.WhenAll(
-            Postgres.DisposeAsync().AsTask(),
-            Mongo.DisposeAsync().AsTask());
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public static ApplicationDbContext BuildDbContext(string connectionString)
     {
@@ -93,9 +72,10 @@ public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContai
     : IAsyncLifetime
 {
     private ApplicationDbContext _db =
-        PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
+        PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.PostgresConnectionString);
     private readonly IMongoContext _mongoCtx =
-        new MongoContext(new MongoClient(containerFixture.Mongo.GetConnectionString()).GetDatabase("fitness_backfill_test"));
+        new MongoContext(new MongoClient(containerFixture.MongoConnectionString)
+            .GetDatabase(containerFixture.MongoDatabaseName));
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
@@ -112,7 +92,7 @@ public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContai
         var ct     = TestContext.Current.CancellationToken;
         var userId = Guid.NewGuid();
 
-        await using var conn = new NpgsqlConnection(containerFixture.Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.PostgresConnectionString);
         await conn.OpenAsync(ct);
 
         // Insert a minimal user row (all NOT NULL columns that don't have DB defaults).
@@ -174,7 +154,7 @@ public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContai
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await using var conn = new NpgsqlConnection(containerFixture.Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.PostgresConnectionString);
         await conn.OpenAsync(ct);
 
         await using var cmd = conn.CreateCommand();
@@ -209,7 +189,7 @@ public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContai
     {
         // Rebuild context so the tracked-entity cache is clean for each invocation.
         _db.Dispose();
-        _db = PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
+        _db = PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.PostgresConnectionString);
 
         return new PhotoDescriptionBackfillService(
             _db,

@@ -17,8 +17,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Seed;
 
@@ -101,10 +99,10 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
 /// blob service.  The TestingEnabled flag is set so QaSeedRunner's password check
 /// is satisfied via the env var set in <see cref="ConfigureWebHost"/>.
 /// </summary>
-public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class QaSeedRunnerFactory(SharedTestContainers sharedContainers) : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     public TrackingBlobStorageService BlobStorage { get; } = new();
 
@@ -133,7 +131,7 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
             if (pgDesc is not null) services.Remove(pgDesc);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -146,8 +144,8 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -190,22 +188,17 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("qa_seed_runner");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("qa_seed_runner");
 
         // Apply migrations + seed roles.
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        // Skip base.DisposeAsync() to avoid disposing the root IServiceProvider
-        // while other tests may be holding a reference (see FitnessApiFactory comment).
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Skip base.DisposeAsync() to avoid disposing the root IServiceProvider while other tests
+    // may be holding a reference (see FitnessApiFactory comment). No Testcontainer to dispose
+    // here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 // ---------------------------------------------------------------------------

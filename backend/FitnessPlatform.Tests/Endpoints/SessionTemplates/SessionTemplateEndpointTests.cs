@@ -12,30 +12,23 @@ using FitnessPlatform.Application.Features.SessionTemplates.SaveSessionTemplateF
 using FitnessPlatform.Application.Features.SessionTemplates.SearchSessionTemplates;
 using FitnessPlatform.Application.Features.SessionTemplates.UpdateSessionTemplate;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.SessionTemplates;
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="SessionTemplateEndpointTests"/>.
-/// Boots ONCE for the collection (#1104) instead of per fact.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
 /// </summary>
-public class SessionTemplateMongoContainerFixture : IAsyncLifetime
+public class SessionTemplateMongoContainerFixture(SharedTestContainers sharedContainers)
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string ConnectionString => sharedContainers.MongoConnectionString;
 
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-    }
-
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("sessiontemplate");
 }
 
 [CollectionDefinition("SessionTemplateEndpoint")]
@@ -70,8 +63,8 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
 
     public SessionTemplateEndpointTests(SessionTemplateMongoContainerFixture containerFixture)
     {
-        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
-        var database = mongoClient.GetDatabase("fitness_sessiontemplate_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var database = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _templates = database.GetCollection<SessionTemplate>("sessionTemplates");
         _plans = database.GetCollection<TrainingPlan>("trainingPlans");
 

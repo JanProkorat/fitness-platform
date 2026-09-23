@@ -2,30 +2,31 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Domain;
 
 /// <summary>
-/// Shared Testcontainers Postgres fixture for <see cref="PhotoDiaryRequestTests"/>. Boots ONCE
-/// for the collection (#1104) instead of per fact — safe without an explicit reset because
-/// every fact seeds its own rows under fresh <c>Guid.NewGuid()</c> ids.
+/// Shared-container Postgres fixture for <see cref="PhotoDiaryRequestTests"/> (#1104 Phase B —
+/// see <see cref="SharedTestContainers"/>): creates its own database inside the one shared
+/// server instead of its own container, then migrates it — safe without an explicit
+/// per-fact reset because every fact seeds its own rows under fresh <c>Guid.NewGuid()</c> ids.
 /// </summary>
-public class PhotoDiaryRequestContainerFixture : IAsyncLifetime
+public class PhotoDiaryRequestContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+    public string ConnectionString { get; private set; } = string.Empty;
 
     public async ValueTask InitializeAsync()
     {
-        await Postgres.StartAsync();
+        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("photo_diary_request");
 
-        await using var db = BuildContext(Postgres.GetConnectionString());
+        await using var db = BuildContext(ConnectionString);
         await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync() => await Postgres.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     public static ApplicationDbContext BuildContext(string connectionString)
     {
@@ -55,7 +56,7 @@ public class PhotoDiaryRequestCollection : ICollectionFixture<PhotoDiaryRequestC
 [Collection("PhotoDiaryRequest")]
 public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerFixture) : IAsyncLifetime
 {
-    private PostgreSqlContainer Postgres => containerFixture.Postgres;
+    private string ConnectionString => containerFixture.ConnectionString;
 
     private ApplicationDbContext _db = null!;
 
@@ -63,7 +64,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
 
     public ValueTask InitializeAsync()
     {
-        _db = BuildContext(Postgres.GetConnectionString());
+        _db = BuildContext(ConnectionString);
         return ValueTask.CompletedTask;
     }
 
@@ -80,7 +81,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     private async Task RebuildContextAsync()
     {
         await _db.DisposeAsync();
-        _db = BuildContext(Postgres.GetConnectionString());
+        _db = BuildContext(ConnectionString);
     }
 
     // ── Seed helpers ─────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     private async Task<Guid> CreateUserAsync()
     {
         var userId = Guid.NewGuid();
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -120,7 +121,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     /// <summary>Creates a ProfessionalProfile row and returns its internal id.</summary>
     private async Task<long> CreateProfessionalProfileAsync(Guid userId)
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -137,7 +138,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     /// <summary>Creates a ClientProfile row and returns its internal id.</summary>
     private async Task<long> CreateClientProfileAsync(Guid userId)
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -154,7 +155,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     /// <summary>Creates a ClientProfessionalLink and returns its internal id.</summary>
     private async Task<long> CreateLinkAsync(long clientProfileId, long professionalProfileId)
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         // professional_role is stored as integer: Nutritionist = 2
@@ -177,7 +178,7 @@ public class PhotoDiaryRequestTests(PhotoDiaryRequestContainerFixture containerF
     /// <summary>Creates a PendingInvite row and returns its internal id.</summary>
     private async Task<long> CreatePendingInviteAsync(long professionalProfileId)
     {
-        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"

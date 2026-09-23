@@ -1,31 +1,22 @@
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
 
 /// <summary>
-/// Shared Testcontainers Mongo fixture for <see cref="RecipeVersionLegacyIntegrationTests"/>.
-/// Boots ONCE for the collection (#1104) instead of per fact — safe without an explicit
-/// reset because every fact seeds its own document under a fresh <c>Guid.NewGuid()</c>
-/// external id.
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
 /// </summary>
-public class RecipeVersionLegacyMongoContainerFixture : IAsyncLifetime
+public class RecipeVersionLegacyMongoContainerFixture(SharedTestContainers sharedContainers)
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string ConnectionString => sharedContainers.MongoConnectionString;
 
-    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Mongo.StartAsync(cts.Token);
-    }
-
-    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("recipe_legacy_doc");
 }
 
 [CollectionDefinition("RecipeVersionLegacyIntegration")]
@@ -51,8 +42,8 @@ public class RecipeVersionLegacyIntegrationTests
 
     public RecipeVersionLegacyIntegrationTests(RecipeVersionLegacyMongoContainerFixture containerFixture)
     {
-        var client = new MongoClient(containerFixture.Mongo.GetConnectionString());
-        var db = client.GetDatabase("fitness_recipe_legacy_doc_test");
+        var client = new MongoClient(containerFixture.ConnectionString);
+        var db = client.GetDatabase(containerFixture.DatabaseName);
         _recipes = db.GetCollection<Recipe>("recipes");
         _rawRecipes = db.GetCollection<BsonDocument>("recipes");
     }
