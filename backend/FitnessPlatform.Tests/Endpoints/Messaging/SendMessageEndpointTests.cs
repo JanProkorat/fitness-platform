@@ -254,6 +254,43 @@ public class SendMessageEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task HandleAsync_ImageOnlyMessage_PersistsImageBlobUrlAsBuildPublicUrlForm()
+    {
+        // Asserts SendMessageEndpoint stores blobStorage.BuildPublicUrl(finalPath) — the form
+        // MinioBlobStorageService.GenerateReadUrlAsync's TryExtractContainerPath can reverse —
+        // rather than the bare finalPath it used to store (root cause of #1096: chat images
+        // returned imageUrl: "" because the real service fails closed on a bare path). This test
+        // host uses FakeBlobStorageService, whose BuildPublicUrl is deliberately an identity
+        // function (see its own doc comment), so it cannot by itself distinguish the fixed call
+        // from the pre-fix bug — MinioBlobStorageServiceTests'
+        // GenerateReadUrlAsync_ChatImageBarePath_FailsClosed_NotBugSymptom /
+        // _ChatImagePublicUrlForm_RoundTripsToSignedUrl pair proves the real-service contract
+        // this call must satisfy. What this test proves is the source-level invariant: the
+        // persisted value is exactly blobStorage.BuildPublicUrl(finalPath), not a raw path built
+        // by hand.
+        var ct = TestContext.Current.CancellationToken;
+        var (trainerHttp, _, conversationId, trainerUserId) = await SetupConversationAsync();
+
+        var uploadId = await SeedStagedImageAsync(trainerHttp, conversationId, trainerUserId, ValidJpegBytes);
+
+        var response = await trainerHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages",
+            new { Text = "", ImageUploadId = uploadId },
+            ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SendMessageResponseDto>(cancellationToken: ct);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var blobStorage = scope.ServiceProvider.GetRequiredService<IBlobStorageService>();
+        var message = await db.ChatMessages.AsNoTracking().FirstAsync(m => m.PublicId == body!.Id, ct);
+
+        var finalPath = ChatImagePolicy.BuildFinalContainerPath(conversationId, body!.Id, "jpg");
+        message.ImageBlobUrl.Should().Be(blobStorage.BuildPublicUrl(finalPath));
+    }
+
+    [Fact]
     public async Task HandleAsync_TextAndImage_BothPersisted()
     {
         var ct = TestContext.Current.CancellationToken;

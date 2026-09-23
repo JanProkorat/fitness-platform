@@ -106,7 +106,13 @@ public class SendMessageEndpoint(
             await blobStorage.UploadAsync(finalPath, staged.Data, sniffedContentType, ct);
             await blobStorage.DeleteAsync(stagingPath, ct);
 
-            imageBlobUrl = finalPath;
+            // Store the full public-URL form, not the bare container path — every other caller
+            // of GenerateReadUrlAsync (e.g. GetPlanPhotosEndpoint) stores BuildPublicUrl's output,
+            // and GenerateReadUrlAsync's TryExtractContainerPath reverses exactly that form. A
+            // bare path fails the prefix match and GenerateReadUrlAsync fails closed to
+            // string.Empty for every chat image (see MinioBlobStorageServiceTests for the
+            // round-trip contract this depends on).
+            imageBlobUrl = blobStorage.BuildPublicUrl(finalPath);
             imageContentType = sniffedContentType;
             imageSizeBytes = staged.SizeBytes;
         }

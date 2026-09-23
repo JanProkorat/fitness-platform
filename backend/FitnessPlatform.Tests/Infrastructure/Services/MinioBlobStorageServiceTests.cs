@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Features.Messaging.Shared;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
@@ -179,6 +180,43 @@ public class MinioBlobStorageServiceTests
             "extraction of a BuildPublicUrl-produced URL must succeed, not fail closed, in this PublicUrlIncludesBucket branch");
         result.Should().NotBe(storedBlobUrl, "a signed URL must differ from the stored canonical value");
         result!.Should().Contain(containerPath, "the signed URL must still resolve to the same underlying object");
+    }
+
+    // ── GenerateReadUrlAsync — chat image container-path shape (SendMessageEndpoint) ──────────
+
+    [Fact]
+    public async Task GenerateReadUrlAsync_ChatImageBarePath_FailsClosed_NotBugSymptom()
+    {
+        // Reproduces the SendMessageEndpoint bug directly: it used to store the BARE container
+        // path returned by ChatImagePolicy.BuildFinalContainerPath (e.g.
+        // "chat/<conversationId>/<messageId>.jpg") instead of running it through BuildPublicUrl.
+        // TryExtractContainerPath expects the full "{publicBase}/{bucket}/" prefix, so a bare
+        // path never matches and GenerateReadUrlAsync fails closed to string.Empty — this is the
+        // exact "Could not derive a container path" warning observed on the compose harness for
+        // every chat image.
+        var service = CreateService(out _);
+        var barePath = ChatImagePolicy.BuildFinalContainerPath(Guid.NewGuid(), Guid.NewGuid(), "jpg");
+
+        var result = await service.GenerateReadUrlAsync(barePath, CancellationToken.None);
+
+        result.Should().Be(string.Empty, "a bare container path is exactly the pre-fix stored value and must fail closed");
+    }
+
+    [Fact]
+    public async Task GenerateReadUrlAsync_ChatImagePublicUrlForm_RoundTripsToSignedUrl()
+    {
+        // The fix: SendMessageEndpoint now stores blobStorage.BuildPublicUrl(finalPath), not the
+        // bare finalPath (see the test above). This proves that stored form round-trips through
+        // the REAL MinioBlobStorageService into a non-empty signed URL, using the exact
+        // ChatImagePolicy path shape SendMessageEndpoint builds.
+        var service = CreateService(out _);
+        var finalPath = ChatImagePolicy.BuildFinalContainerPath(Guid.NewGuid(), Guid.NewGuid(), "jpg");
+        var storedImageBlobUrl = service.BuildPublicUrl(finalPath);
+
+        var result = await service.GenerateReadUrlAsync(storedImageBlobUrl, CancellationToken.None);
+
+        result.Should().NotBeNullOrEmpty("the stored public-URL form must resolve to a signed read URL, not fail closed");
+        result!.Should().Contain(finalPath, "the signed URL must still resolve to the same underlying chat image object");
     }
 
     // ── NormalizeToCanonicalUrl ─────────────────────────────────────────────────
