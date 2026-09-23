@@ -270,8 +270,11 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
     {
         var trainerClient = factory.CreateClient();
         var trainerEmail = UniqueEmail();
+        // Unique surname so the search below finds this trainer on page 1 however many
+        // professionals other tests have left in the shared database.
+        var trainerLastName = $"AvatarTrainer{Guid.NewGuid():N}";
 
-        await TestHelpers.RegisterAsync(trainerClient, trainerEmail, TestPassword, "Frank", "AvatarTrainer", "Trainer");
+        await TestHelpers.RegisterAsync(trainerClient, trainerEmail, TestPassword, "Frank", trainerLastName, "Trainer");
         var (trainerToken, _) = await TestHelpers.LoginAsync(trainerClient, trainerEmail, TestPassword);
         TestHelpers.SetBearerToken(trainerClient, trainerToken);
 
@@ -289,7 +292,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(searchClient, clientToken);
 
         var searchResp = await searchClient.GetAsync(
-            "/professionals/search",
+            $"/professionals/search?search={trainerLastName}",
             TestContext.Current.CancellationToken);
 
         searchResp.StatusCode.Should().Be(HttpStatusCode.OK);
