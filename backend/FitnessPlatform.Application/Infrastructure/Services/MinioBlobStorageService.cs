@@ -305,6 +305,13 @@ public class MinioBlobStorageService : IBlobStorageService
             new GetObjectArgs()
                 .WithBucket(_bucketName)
                 .WithObject(containerPath)
+                // Bounds the GET to exactly the size just observed by StatObjectAsync above via
+                // an HTTP Range request. StatObjectAsync and GetObjectAsync are two separate calls
+                // and a presigned PUT enforces no length (see the interface doc), so the object
+                // could otherwise be swapped for a larger one in between — without this, a
+                // CopyTo(buffer) with no bound would read the swapped object's full (larger) body
+                // into memory regardless of the size check above.
+                .WithOffsetAndLength(0, stat.Size)
                 .WithCallbackStream(stream => stream.CopyTo(buffer)),
             ct);
 

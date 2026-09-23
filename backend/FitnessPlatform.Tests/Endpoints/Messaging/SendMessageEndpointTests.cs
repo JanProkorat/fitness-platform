@@ -357,6 +357,33 @@ public class SendMessageEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
+    public async Task HandleAsync_NullTextWithImageUploadId_Returns200_WithEmptyText()
+    {
+        // An explicit JSON "text": null overrides SendMessageRequest.Text's string.Empty default
+        // (System.Text.Json deserializes null into a non-nullable reference property when
+        // RespectNullableAnnotations is not enabled — it isn't, here). The validator's Must rule
+        // treats null the same as empty via IsNullOrWhiteSpace, so a null text with a valid
+        // ImageUploadId passes validation and reaches the handler, which must not NRE on
+        // req.Text.Trim() (root cause of #1096's image-then-500 orphaned-blob bug).
+        var ct = TestContext.Current.CancellationToken;
+        var (trainerHttp, _, conversationId, trainerUserId) = await SetupConversationAsync();
+
+        var uploadId = await SeedStagedImageAsync(trainerHttp, conversationId, trainerUserId, ValidJpegBytes);
+
+        var response = await trainerHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages",
+            new { Text = (string?)null, ImageUploadId = uploadId },
+            ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<SendMessageResponseDto>(cancellationToken: ct);
+
+        body.Should().NotBeNull();
+        body!.Text.Should().BeEmpty();
+        body.ImageUrl.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
     public async Task HandleAsync_TextAndImage_BothPersisted()
     {
         var ct = TestContext.Current.CancellationToken;

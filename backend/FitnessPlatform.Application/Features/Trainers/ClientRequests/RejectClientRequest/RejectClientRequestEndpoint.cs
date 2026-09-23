@@ -130,6 +130,7 @@ public class RejectClientRequestEndpoint(
                 : req.Statement;
             conversation.LastMessageAt = DateTime.UtcNow;
             conversation.LastMessageSenderId = userGuid;
+            conversation.LastMessageHasImage = false;
 
             await db.SaveChangesAsync(ct);
 

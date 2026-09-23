@@ -124,7 +124,8 @@ public class SendMessageEndpoint(
             PublicId = messageId ?? Guid.Empty,
             ConversationId = conversation.Id,
             SenderUserId = userGuid,
-            Text = req.Text.Trim(),
+            // An explicit JSON null overrides the string.Empty default; image-only sends allow it.
+            Text = (req.Text ?? string.Empty).Trim(),
             IsRead = false,
             ImageBlobUrl = imageBlobUrl,
             ImageContentType = imageContentType,
