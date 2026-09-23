@@ -230,6 +230,43 @@ public class MinioBlobStorageService : IBlobStorageService
             ct);
     }
 
+    /// <inheritdoc />
+    public async Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct)
+    {
+        await EnsureBucketWithPublicReadAsync(ct);
+
+        Minio.DataModel.ObjectStat stat;
+        try
+        {
+            stat = await _client.StatObjectAsync(
+                new StatObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(containerPath),
+                ct);
+        }
+        catch (Minio.Exceptions.ObjectNotFoundException)
+        {
+            return null;
+        }
+
+        if (stat.Size > maxBytesToDownload)
+        {
+            // Report the real size without ever reading the (potentially attacker-inflated) body
+            // into memory — a pre-signed PUT enforces no length, see the interface doc.
+            return new BlobObject(stat.Size, null);
+        }
+
+        using var buffer = new MemoryStream();
+        await _client.GetObjectAsync(
+            new GetObjectArgs()
+                .WithBucket(_bucketName)
+                .WithObject(containerPath)
+                .WithCallbackStream(stream => stream.CopyTo(buffer)),
+            ct);
+
+        return new BlobObject(stat.Size, buffer.ToArray());
+    }
+
     /// <summary>
     /// For local MinIO (ManageBucket=true): ensures the bucket exists AND has
     /// a public-read policy. Idempotent — safe to call on every upload.

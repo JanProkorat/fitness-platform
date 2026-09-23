@@ -125,6 +125,30 @@ public interface IBlobStorageService
     /// <param name="containerPath">The container/bucket path including the object key.</param>
     /// <param name="ct">Cancellation token.</param>
     Task DeleteAsync(string containerPath, CancellationToken ct);
+
+    /// <summary>
+    /// Reads an object's actual size and, only when it does not exceed
+    /// <paramref name="maxBytesToDownload"/>, its raw bytes.
+    ///
+    /// <para>
+    /// A pre-signed PUT URL from <see cref="GenerateUploadUrlAsync"/> binds neither content type
+    /// nor length, so the object actually present at <paramref name="containerPath"/> may be
+    /// arbitrarily large regardless of what the caller declared when the upload URL was minted.
+    /// This method stats the object first and only downloads its bytes when the real size is
+    /// within <paramref name="maxBytesToDownload"/> — an oversized object never gets read into
+    /// memory, only reported.
+    /// </para>
+    /// </summary>
+    /// <param name="containerPath">The container/bucket path including the object key.</param>
+    /// <param name="maxBytesToDownload">
+    /// The caller's size cap. When the object's actual size exceeds this, the returned
+    /// <see cref="BlobObject.Data"/> is <c>null</c> — the bytes are never downloaded — but
+    /// <see cref="BlobObject.SizeBytes"/> still carries the real size so the caller can reject the
+    /// object as oversized.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The object's size and (when within the cap) its bytes, or <c>null</c> if no object exists at this path.</returns>
+    Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct);
 }
 
 /// <summary>
@@ -133,3 +157,13 @@ public interface IBlobStorageService
 /// <param name="UploadUrl">The pre-signed URL the client should PUT the file to.</param>
 /// <param name="BlobUrl">The permanent URL where the blob will be accessible after upload.</param>
 public record BlobUploadUrl(string UploadUrl, string BlobUrl);
+
+/// <summary>
+/// Result of <see cref="IBlobStorageService.DownloadAsync"/>.
+/// </summary>
+/// <param name="SizeBytes">The object's actual size in blob storage.</param>
+/// <param name="Data">
+/// The object's raw bytes, or <c>null</c> when <paramref name="SizeBytes"/> exceeded the caller's
+/// requested cap and the bytes were never downloaded.
+/// </param>
+public record BlobObject(long SizeBytes, byte[]? Data);

@@ -60,25 +60,56 @@ public class FakeBlobStorageService : IBlobStorageService
     /// <inheritdoc />
     public Task UploadAsync(string containerPath, byte[] data, string contentType, CancellationToken ct)
     {
-        // Record the upload so tests can assert it was called.
+        // Record the upload so tests can assert it was called, and keep the bytes so
+        // DownloadAsync can read them back.
         UploadedPaths.Add(containerPath);
+        _objects[containerPath] = data;
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
     public Task<bool> ObjectExistsAsync(string containerPath, CancellationToken ct)
     {
-        // An object "exists" in the fake if it was previously uploaded via UploadAsync.
-        return Task.FromResult(UploadedPaths.Contains(containerPath));
+        // An object "exists" in the fake if it was uploaded via UploadAsync or seeded via
+        // SeedObject — the latter simulates a client PUT to a presigned upload URL, which this
+        // fake never actually receives over HTTP.
+        return Task.FromResult(UploadedPaths.Contains(containerPath) || _objects.ContainsKey(containerPath));
     }
 
     /// <inheritdoc />
     public Task DeleteAsync(string containerPath, CancellationToken ct)
     {
-        // No-op in tests — deletion is silent.
         DeletedPaths.Add(containerPath);
+        _objects.Remove(containerPath);
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct)
+    {
+        if (!_objects.TryGetValue(containerPath, out var data))
+        {
+            return Task.FromResult<BlobObject?>(null);
+        }
+
+        return Task.FromResult<BlobObject?>(data.Length > maxBytesToDownload
+            ? new BlobObject(data.Length, null)
+            : new BlobObject(data.Length, data));
+    }
+
+    /// <summary>
+    /// Seeds a staged object's bytes directly, simulating a client's PUT to the presigned upload
+    /// URL returned by <see cref="GenerateUploadUrlAsync"/> — this fake has no real HTTP endpoint
+    /// to receive that PUT, so a test calls this instead to make <see cref="DownloadAsync"/> and
+    /// <see cref="ObjectExistsAsync"/> see the "uploaded" bytes.
+    /// </summary>
+    public void SeedObject(string containerPath, byte[] data) => _objects[containerPath] = data;
+
+    /// <summary>
+    /// In-memory object bytes, keyed by container path. Populated by <see cref="UploadAsync"/>
+    /// (server-side uploads) and by <see cref="SeedObject"/> (simulated client uploads).
+    /// </summary>
+    private readonly Dictionary<string, byte[]> _objects = new();
 
     /// <summary>
     /// Paths passed to <see cref="UploadAsync"/> during the test run.
