@@ -190,7 +190,7 @@
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
-    "inbox": "Posteingang",
+    "inbox": "Nachrichten",
     "ingredients": "Zutaten",
     "foods": "Lebensmittel",
     "plans": "Pläne",
@@ -2351,6 +2351,7 @@
     },
     "row": {
       "yesterday": "Gestern",
+      "noConversationYet": "Noch keine Nachrichten — schreiben Sie zuerst",
       "unreadAriaLabel": "Ungelesen"
     },
     "noConversations": "Keine Gespräche gefunden",

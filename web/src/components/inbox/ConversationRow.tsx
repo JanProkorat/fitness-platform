@@ -38,6 +38,9 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
   const { t, i18n } = useTranslation();
   const participant = conversation.participant;
   const hasUnread = (conversation.unreadCount ?? 0) > 0;
+  // A placeholder row carries no conversation, so its lastMessageAt is the
+  // default date — show nothing rather than 1 Jan, and invite the coach to write.
+  const hasConversation = conversation.id != null;
 
   return (
     <button
@@ -59,11 +62,13 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-body font-bold text-ink">{participant?.name}</span>
           <span className="shrink-0 text-caption text-muted-foreground">
-            {formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday'))}
+            {hasConversation ? formatRowTime(conversation.lastMessageAt, i18n.language, t('inbox.row.yesterday')) : ''}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-caption text-muted-foreground">{conversation.lastMessage || '—'}</span>
+          <span className="truncate text-caption text-muted-foreground">
+            {hasConversation ? conversation.lastMessage || '—' : t('inbox.row.noConversationYet')}
+          </span>
           {hasUnread && (
             <span
               className="size-2 shrink-0 rounded-full bg-primary"

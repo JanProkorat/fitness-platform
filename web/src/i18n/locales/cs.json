@@ -190,7 +190,7 @@
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
-    "inbox": "Doručená pošta",
+    "inbox": "Zprávy",
     "ingredients": "Suroviny",
     "foods": "Potraviny",
     "plans": "Plány",
@@ -2397,6 +2397,7 @@
     },
     "row": {
       "yesterday": "Včera",
+      "noConversationYet": "Zatím bez zpráv — napište první",
       "unreadAriaLabel": "Nepřečteno"
     },
     "noConversations": "Nebyly nalezeny žádné konverzace",
