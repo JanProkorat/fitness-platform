@@ -1122,7 +1122,10 @@
     "PROFESSION_ALREADY_OCCUPIED": "This client already has an active coach for this profession.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "The requested access exceeds your current roles.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
-    "CLIENT_TAG_NOT_FOUND": "This tag could not be found."
+    "CLIENT_TAG_NOT_FOUND": "This tag could not be found.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Only JPEG, PNG or WebP images are supported.",
+    "IMAGE_TOO_LARGE": "Image is too large — the maximum size is 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "The image upload could not be found. Please attach it again."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",
@@ -2356,13 +2359,18 @@
       "unreadAriaLabel": "Unread"
     },
     "noConversations": "No conversations found",
+    "list": {
+      "photoMarker": "📷 Photo"
+    },
     "thread": {
       "showClient": "Show client",
       "hideClient": "Hide client",
       "clientPanelTitle": "Client details",
       "settingsAriaLabel": "Conversation settings",
       "openClientProfileAriaLabel": "Open client profile",
-      "loadingOlder": "Loading older messages…"
+      "loadingOlder": "Loading older messages…",
+      "imageAlt": "Attached image",
+      "imageUnavailable": "Image unavailable"
     },
     "typingIndicator": "Typing…",
     "composer": {
@@ -2370,7 +2378,10 @@
       "sendAriaLabel": "Send message",
       "attachFileAriaLabel": "Attach file",
       "attachImageAriaLabel": "Attach image",
-      "sendError": "Could not send the message. Please try again."
+      "sendError": "Could not send the message. Please try again.",
+      "imagePreviewAlt": "Image preview",
+      "removeImageAriaLabel": "Remove image",
+      "imageUploadError": "Could not upload the image. Please try again."
     },
     "video": {
       "label": "Video"

@@ -67,7 +67,9 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-caption text-muted-foreground">
-            {hasConversation ? conversation.lastMessage || '—' : t('inbox.row.noConversationYet')}
+            {hasConversation
+              ? conversation.lastMessage || (conversation.lastMessageHasImage ? t('inbox.list.photoMarker') : '—')
+              : t('inbox.row.noConversationYet')}
           </span>
           {hasUnread && (
             <span

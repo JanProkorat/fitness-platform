@@ -1143,7 +1143,10 @@
     "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního trenéra.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
-    "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít."
+    "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Podporovány jsou pouze obrázky JPEG, PNG nebo WebP.",
+    "IMAGE_TOO_LARGE": "Obrázek je příliš velký — maximální velikost je 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Nahraný obrázek nebyl nalezen. Přiložte ho prosím znovu."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",
@@ -2401,13 +2404,18 @@
       "unreadAriaLabel": "Nepřečteno"
     },
     "noConversations": "Nebyly nalezeny žádné konverzace",
+    "list": {
+      "photoMarker": "📷 Fotka"
+    },
     "thread": {
       "showClient": "Zobrazit klienta",
       "hideClient": "Skrýt klienta",
       "clientPanelTitle": "Detail klienta",
       "settingsAriaLabel": "Nastavení konverzace",
       "openClientProfileAriaLabel": "Otevřít profil klienta",
-      "loadingOlder": "Načítání starších zpráv…"
+      "loadingOlder": "Načítání starších zpráv…",
+      "imageAlt": "Přiložený obrázek",
+      "imageUnavailable": "Obrázek není dostupný"
     },
     "typingIndicator": "Píše…",
     "composer": {
@@ -2415,7 +2423,10 @@
       "sendAriaLabel": "Odeslat zprávu",
       "attachFileAriaLabel": "Přiložit soubor",
       "attachImageAriaLabel": "Přiložit obrázek",
-      "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+      "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
+      "imagePreviewAlt": "Náhled obrázku",
+      "removeImageAriaLabel": "Odebrat obrázek",
+      "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."
     },
     "video": {
       "label": "Video"

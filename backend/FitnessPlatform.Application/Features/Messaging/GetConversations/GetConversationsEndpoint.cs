@@ -179,6 +179,7 @@ public class GetConversationsEndpoint(
                 LastMessageIsOwn = c.LastMessageSenderId == userGuid,
                 UnreadCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId != userGuid),
                 IsFormer = c.IsFormer,
+                LastMessageHasImage = c.LastMessageHasImage,
             })
             .ToListAsync(ct);
 
@@ -209,6 +210,7 @@ public class GetConversationsEndpoint(
             LastMessageIsOwn = row.LastMessageSenderId == userGuid,
             UnreadCount = row.UnreadMessageCount,
             IsFormer = false, // the live roster never includes a former collaboration.
+            LastMessageHasImage = row.LastMessageHasImage,
         };
 
     private void SetPresence(List<ConversationDto> conversations)

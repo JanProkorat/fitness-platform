@@ -247,6 +247,13 @@ public static class ErrorCodes
     /// </summary>
     public const string InvalidImageSubPath = "INVALID_IMAGE_SUB_PATH";
 
+    /// <summary>
+    /// A chat message's <c>ImageUploadId</c> has no staged object at send time — never PUT to the
+    /// presigned upload URL, already consumed by an earlier send, or staged by another user or
+    /// conversation.
+    /// </summary>
+    public const string ChatImageUploadNotFound = "CHAT_IMAGE_UPLOAD_NOT_FOUND";
+
     // ── Photo Diary Requests ─────────────────────────────────────────
     /// <summary>Photo diary request not found or does not belong to the caller.</summary>
     public const string PhotoDiaryRequestNotFound = "PHOTO_DIARY_REQUEST_NOT_FOUND";

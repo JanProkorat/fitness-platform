@@ -10229,6 +10229,80 @@ export class ApiClient {
     }
 
     /**
+     * Generate a chat image upload URL
+     * @return Upload URL and uploadId
+     */
+    generateChatImageUploadUrlEndpoint(conversationId: string, generateChatImageUploadUrlRequest: GenerateChatImageUploadUrlRequest, signal?: AbortSignal): Promise<GenerateChatImageUploadUrlResponse> {
+        let url_ = this.baseUrl + "/conversations/{conversationId}/messages/image-upload-url";
+        if (conversationId === undefined || conversationId === null)
+            throw new globalThis.Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(generateChatImageUploadUrlRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGenerateChatImageUploadUrlEndpoint(_response);
+        });
+    }
+
+    protected processGenerateChatImageUploadUrlEndpoint(response: AxiosResponse): Promise<GenerateChatImageUploadUrlResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GenerateChatImageUploadUrlResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GenerateChatImageUploadUrlResponse>(null as any);
+    }
+
+    /**
      * Broadcast a message to several clients
      * @return Message sent; SentCount is the distinct recipient count.
      */
@@ -20948,6 +21022,10 @@ see GetConversationsEndpoint's roster-filter path. */
     lastMessageIsOwn?: boolean;
     /** Number of unread messages sent by the other party. */
     unreadCount?: number;
+    /** Whether the last message carries an image attachment. The client renders a localized
+photo marker instead of raw text when this is true and LastMessage is
+empty — never a literal stored in the database. */
+    lastMessageHasImage?: boolean;
     /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
 }
@@ -20983,10 +21061,21 @@ export interface SendMessageResponse {
     text?: string;
     timestamp?: string;
     isRead?: boolean;
+    /** Short-lived signed URL for the image attachment, or null for a text-only message. */
+    imageUrl?: string | undefined;
+    imageWidth?: number | undefined;
+    imageHeight?: number | undefined;
 }
 
 export interface SendMessageRequest {
-    text: string;
+    text?: string;
+    /** References a staged upload from GenerateChatImageUploadUrlEndpoint. Optional —
+when absent, the message is text-only. */
+    imageUploadId?: string | undefined;
+    /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
+    imageWidth?: number | undefined;
+    /** Client-reported layout hint. Never trusted for security; ignored unless ImageUploadId is set. */
+    imageHeight?: number | undefined;
 }
 
 export interface MarkConversationReadRequest {
@@ -21003,6 +21092,10 @@ export interface MessageDto {
     text?: string;
     timestamp?: string;
     isRead?: boolean;
+    /** Short-lived signed URL for the image attachment, or null for a text-only message. */
+    imageUrl?: string | undefined;
+    imageWidth?: number | undefined;
+    imageHeight?: number | undefined;
 }
 
 export interface GetMessagesRequest {
@@ -21056,6 +21149,20 @@ not just messages the coach personally typed. */
 
 /** Request model for retrieving a client's weekly coach/client message counts. */
 export interface GetClientMessageStatsRequest {
+}
+
+/** Response for a chat image upload-url request. */
+export interface GenerateChatImageUploadUrlResponse {
+    /** The pre-signed URL the client should PUT the image bytes to. */
+    uploadUrl?: string;
+    /** The identifier to pass as SendMessageRequest.ImageUploadId once the PUT completes. */
+    uploadId?: string;
+}
+
+/** Request for generating a chat image upload URL. */
+export interface GenerateChatImageUploadUrlRequest {
+    contentType?: string;
+    sizeBytes?: number;
 }
 
 /** Response for a message broadcast. */

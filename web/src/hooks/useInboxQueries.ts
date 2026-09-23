@@ -4,10 +4,12 @@ import {
   getConversations,
   getMessages,
   markConversationRead,
+  requestChatImageUploadUrl,
   sendMessage,
   startConversation,
 } from '@/api/conversations';
 import { showApiError } from '@/lib/api-errors';
+import type { ChatImageUploadUrlPayload, SendMessagePayload } from '@/api/conversations';
 import type { ClientListFilter } from '@/api/generated';
 
 const MESSAGES_PAGE_SIZE = 30;
@@ -66,11 +68,11 @@ export function useConversationMessages(conversationId: string | undefined) {
   });
 }
 
-/** Sends a text message in the given conversation and refreshes the thread + the list preview. */
+/** Sends a text message, an image, or both in the given conversation and refreshes the thread + the list preview. */
 export function useSendMessage(conversationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (text: string) => sendMessage(conversationId!, text),
+    mutationFn: (payload: SendMessagePayload) => sendMessage(conversationId!, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations', conversationId, 'messages'] });
       queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
@@ -78,6 +80,16 @@ export function useSendMessage(conversationId: string | undefined) {
     onError: (error) => {
       showApiError(error, 'inbox.composer.sendError');
     },
+  });
+}
+
+/**
+ * Mints a pre-signed upload URL for a chat image attachment. No cache invalidation — this is a
+ * one-shot side-effecting step consumed inline by Composer.tsx's submit flow, not cached data.
+ */
+export function useRequestChatImageUploadUrl(conversationId: string | undefined) {
+  return useMutation({
+    mutationFn: (payload: ChatImageUploadUrlPayload) => requestChatImageUploadUrl(conversationId!, payload),
   });
 }
 

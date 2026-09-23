@@ -50,6 +50,11 @@ export default function ThreadPane({
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const scrollRef = useRef<HTMLDivElement>(null);
+  /** Wraps the message list's actual content (loading indicator + bubbles).
+   * `ResizeObserver` watches this, not `scrollRef` itself — the scroll
+   * container's own border box is pinned by the flex layout and never
+   * resizes when `scrollHeight` grows; only its content does. */
+  const contentRef = useRef<HTMLDivElement>(null);
   const lastTypingSentAtRef = useRef(0);
   const previousConversationIdRef = useRef<string | undefined>(undefined);
   /** The conversation id for which the one-time "jump to newest" has already run. */
@@ -137,6 +142,35 @@ export default function ThreadPane({
     });
   }, [messagesQuery.isFetchingNextPage]);
 
+  // Keep the list pinned to the bottom when its content grows after the
+  // initial render — a chat image or a YouTube preview card that has no
+  // declared dimensions reserves no space up front, so it can still widen
+  // its row once it finishes loading, after the "jump to newest" scroll
+  // above already ran. Only re-pins while the reader is already at the
+  // bottom (isNearBottomRef), so it never yanks someone reading history,
+  // and it never fights the older-page anchor-restore effect above, which
+  // runs precisely when the reader has scrolled up and isNearBottomRef is
+  // false. Setting scrollTop to scrollHeight lands exactly at the bottom,
+  // so the scroll event handleScroll fires from also keeps isNearBottomRef
+  // true — it doesn't need a separate guard against flipping it false.
+  useEffect(() => {
+    const content = contentRef.current;
+    const container = scrollRef.current;
+    if (!content || !container) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      if (!isNearBottomRef.current) {
+        return;
+      }
+      container.scrollTop = container.scrollHeight;
+    });
+    observer.observe(content);
+
+    return () => observer.disconnect();
+  }, [conversationId]);
+
   function handleScroll() {
     const el = scrollRef.current;
     if (!el) {
@@ -168,33 +202,33 @@ export default function ThreadPane({
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <ThreadHeader participant={participant} showClientPanel={showClientPanel} onToggleClientPanel={onToggleClientPanel} />
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        data-testid="thread-message-list"
-        className="flex flex-1 flex-col gap-2 overflow-y-auto p-4"
-      >
-        {messagesQuery.isFetchingNextPage && (
-          <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
-        )}
-        {messages.map((message, index) => (
-          <div key={message.id ?? index} className="flex flex-col gap-2">
-            {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
-            <MessageBubble
-              message={message}
-              isOwn={Boolean(user) && message.senderId === user?.publicId}
-              otherParticipant={participant}
-              ownInitials={ownInitials}
-              ownAvatarBlobUrl={user?.avatarBlobUrl ?? undefined}
-            />
-          </div>
-        ))}
+      <div ref={scrollRef} onScroll={handleScroll} data-testid="thread-message-list" className="flex-1 overflow-y-auto p-4">
+        <div ref={contentRef} className="flex flex-col gap-2">
+          {messagesQuery.isFetchingNextPage && (
+            <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
+          )}
+          {messages.map((message, index) => (
+            <div key={message.id ?? index} className="flex flex-col gap-2">
+              {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
+              <MessageBubble
+                message={message}
+                isOwn={Boolean(user) && message.senderId === user?.publicId}
+                otherParticipant={participant}
+                ownInitials={ownInitials}
+                ownAvatarBlobUrl={user?.avatarBlobUrl ?? undefined}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {isOtherPartyTyping && <TypingIndicator />}
 
       <Composer
-        onSend={(text) => sendMessageMutation.mutate(text)}
+        conversationId={conversationId}
+        onSend={async (payload) => {
+          await sendMessageMutation.mutateAsync(payload);
+        }}
         isSending={sendMessageMutation.isPending}
         onTyping={handleTyping}
       />

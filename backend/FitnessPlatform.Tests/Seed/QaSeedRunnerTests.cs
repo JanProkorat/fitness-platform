@@ -79,6 +79,15 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
         _objects.Remove(containerPath);
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Test double only — the seed-idempotency tests in this file never exercise the download
+    /// contract, so this doesn't need real bytes. Reports existence via <see cref="_objects"/>
+    /// with no content, matching no known seed-runner consumer.
+    /// </remarks>
+    public Task<BlobObject?> DownloadAsync(string containerPath, long maxBytesToDownload, CancellationToken ct) =>
+        Task.FromResult(_objects.Contains(containerPath) ? new BlobObject(0, []) : null);
 }
 
 /// <summary>

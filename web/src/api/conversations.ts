@@ -10,6 +10,7 @@ import { apiClient } from '@/api/client';
 import type {
   ClientListFilter,
   ConversationDto,
+  GenerateChatImageUploadUrlResponse,
   GetConversationFilterCountsResponse,
   GetMessagesResponse,
   ParticipantDto,
@@ -19,6 +20,7 @@ import type {
 export type {
   ClientListFilter,
   ConversationDto,
+  GenerateChatImageUploadUrlResponse,
   GetConversationFilterCountsResponse,
   GetMessagesResponse,
   ParticipantDto,
@@ -55,9 +57,37 @@ export async function getMessages(conversationId: string, params: GetMessagesPar
   return apiClient.getMessagesEndpoint(conversationId, params.limit, params.cursor);
 }
 
-/** POST /conversations/{id}/messages — text only, ≤4000 chars (validated server-side). */
-export async function sendMessage(conversationId: string, text: string): Promise<SendMessageResponse> {
-  return apiClient.sendMessageEndpoint(conversationId, { text });
+export interface SendMessagePayload {
+  /** ≤4000 chars, validated server-side. Optional when `imageUploadId` is set (image-only message). */
+  text?: string;
+  /** References a staged upload from `requestChatImageUploadUrl`. Omit for a text-only message. */
+  imageUploadId?: string;
+  /** Client-reported layout hint, read from the file before upload. Never trusted for security. */
+  imageWidth?: number;
+  /** Client-reported layout hint, read from the file before upload. Never trusted for security. */
+  imageHeight?: number;
+}
+
+/** POST /conversations/{id}/messages — text, an image, or both. */
+export async function sendMessage(conversationId: string, payload: SendMessagePayload): Promise<SendMessageResponse> {
+  return apiClient.sendMessageEndpoint(conversationId, payload);
+}
+
+export interface ChatImageUploadUrlPayload {
+  contentType: string;
+  sizeBytes: number;
+}
+
+/**
+ * POST /conversations/{id}/messages/image-upload-url — mints a short-lived pre-signed PUT URL
+ * plus the `uploadId` to reference from `sendMessage`'s `imageUploadId`. The caller PUTs the raw
+ * file bytes to `uploadUrl` directly (not through this API client — see Composer.tsx).
+ */
+export async function requestChatImageUploadUrl(
+  conversationId: string,
+  payload: ChatImageUploadUrlPayload,
+): Promise<GenerateChatImageUploadUrlResponse> {
+  return apiClient.generateChatImageUploadUrlEndpoint(conversationId, payload);
 }
 
 /** POST /conversations/{id}/read — marks every message from the other party read. */
