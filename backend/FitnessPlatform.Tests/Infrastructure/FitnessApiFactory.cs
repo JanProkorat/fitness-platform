@@ -3,6 +3,7 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -108,6 +109,11 @@ public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebAppli
             services.AddSingleton<FakePushNotificationService>();
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
+
+            // #1104: PBKDF2 at the production default (100,000 iterations) is deliberately slow
+            // and dominates every real register/login round trip in the suite. Test-host-only —
+            // never touches the production default in Program.cs.
+            services.Configure<PasswordHasherOptions>(o => o.IterationCount = 1);
 
             // #726: prevent the background schedulers/worker from ever starting in
             // this test host — see TestHostedServiceExtensions for the full root
