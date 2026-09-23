@@ -1,84 +1,231 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Image, Paperclip } from 'lucide-react';
+import { ArrowUp, Image as ImageIcon, Loader2, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import ImagePreviewChip from '@/components/inbox/ImagePreviewChip';
+import { useRequestChatImageUploadUrl } from '@/hooks/useInboxQueries';
+import { showApiError } from '@/lib/api-errors';
+
+/** Chat image allowlist — mirrors the server's `ChatImagePolicy.AllowedContentTypes` (jpeg/png/webp
+ * only, narrower than the shared avatar/food-image allowlist which also admits heic/heif). This is
+ * a client-side pre-check only; the server re-sniffs the bytes and never trusts this. */
+const ALLOWED_IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const FILE_PICKER_ACCEPT = ALLOWED_IMAGE_CONTENT_TYPES.join(',');
+/** Mirrors the server's `ImageUploadService.MaxImageSizeBytes` (5 MiB). */
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
+export interface ComposerSendPayload {
+  text: string;
+  imageUploadId?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+}
+
+interface PendingImage {
+  file: File;
+  previewUrl: string;
+  width: number;
+  height: number;
+}
 
 interface Props {
-  onSend: (text: string) => void;
+  conversationId: string;
+  onSend: (payload: ComposerSendPayload) => void;
   isSending: boolean;
   onTyping?: () => void;
 }
 
+/** Reads a File's natural pixel dimensions via a throwaway <img> — a layout hint only, never trusted for security. */
+function readImageDimensions(previewUrl: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error('Failed to read image dimensions'));
+    img.src = previewUrl;
+  });
+}
+
 /**
  * Message composer, pinned to the bottom of the thread pane. Enter sends;
- * Shift+Enter inserts a newline. The paperclip (file attachments) is
- * disabled for v1; the image button is disabled until #1096 (chat image
- * attachments) lands.
+ * Shift+Enter inserts a newline. The paperclip (file attachments) stays
+ * disabled for v1; the image button (#1096) stages a jpeg/png/webp file,
+ * shows a preview chip, and on send requests a pre-signed upload URL, PUTs
+ * the bytes directly to blob storage, then submits the message with the
+ * resulting `imageUploadId`.
  */
-export default function Composer({ onSend, isSending, onTyping }: Props) {
+export default function Composer({ conversationId, onSend, isSending, onTyping }: Props) {
   const { t } = useTranslation();
   const [value, setValue] = useState('');
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const requestUploadUrlMutation = useRequestChatImageUploadUrl(conversationId);
+  const isUploading = requestUploadUrlMutation.isPending;
+  const isBusy = isSending || isUploading;
 
-  function submit() {
-    const trimmed = value.trim();
-    if (!trimmed || isSending) {
+  // Revoke the staged image's object URL whenever it's replaced or the composer unmounts —
+  // otherwise every picked/removed image leaks its blob for the life of the tab.
+  useEffect(() => {
+    return () => {
+      if (pendingImage) {
+        URL.revokeObjectURL(pendingImage.previewUrl);
+      }
+    };
+  }, [pendingImage]);
+
+  function removePendingImage() {
+    if (pendingImage) {
+      URL.revokeObjectURL(pendingImage.previewUrl);
+    }
+    setPendingImage(null);
+    setImageError(null);
+  }
+
+  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Reset the input so re-selecting the same file after removing it fires onChange again.
+    event.target.value = '';
+    if (!file) {
       return;
     }
-    onSend(trimmed);
-    setValue('');
+
+    if (pendingImage) {
+      URL.revokeObjectURL(pendingImage.previewUrl);
+      setPendingImage(null);
+    }
+
+    if (!ALLOWED_IMAGE_CONTENT_TYPES.includes(file.type)) {
+      setImageError(t('apiErrors.INVALID_IMAGE_CONTENT_TYPE'));
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setImageError(t('apiErrors.IMAGE_TOO_LARGE'));
+      return;
+    }
+
+    setImageError(null);
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      const { width, height } = await readImageDimensions(previewUrl);
+      setPendingImage({ file, previewUrl, width, height });
+    } catch {
+      URL.revokeObjectURL(previewUrl);
+      setImageError(t('apiErrors.INVALID_IMAGE_CONTENT_TYPE'));
+    }
+  }
+
+  async function submit() {
+    const trimmed = value.trim();
+    if (isBusy || (!trimmed && !pendingImage)) {
+      return;
+    }
+
+    if (!pendingImage) {
+      onSend({ text: trimmed });
+      setValue('');
+      return;
+    }
+
+    try {
+      const { uploadUrl, uploadId } = await requestUploadUrlMutation.mutateAsync({
+        contentType: pendingImage.file.type,
+        sizeBytes: pendingImage.file.size,
+      });
+
+      if (!uploadUrl || !uploadId) {
+        throw new Error('Upload URL response missing uploadUrl/uploadId');
+      }
+
+      // A plain fetch PUT to the pre-signed MinIO URL — never through the axios instance, which
+      // would attach the API's Authorization header and Content-Type this presigned URL doesn't expect.
+      const putResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': pendingImage.file.type },
+        body: pendingImage.file,
+      });
+      if (!putResponse.ok) {
+        throw new Error(`Image upload PUT failed with status ${putResponse.status}`);
+      }
+
+      onSend({
+        text: trimmed,
+        imageUploadId: uploadId,
+        imageWidth: pendingImage.width,
+        imageHeight: pendingImage.height,
+      });
+      removePendingImage();
+      setValue('');
+    } catch (error) {
+      showApiError(error, 'inbox.composer.imageUploadError');
+    }
   }
 
   return (
-    <div className="flex items-end gap-2 border-t border-border p-4">
-      <div className="flex flex-1 items-end gap-1 rounded-3xl border border-input bg-background px-2 py-1.5">
+    <div className="flex flex-col gap-2 border-t border-border p-4">
+      {pendingImage && <ImagePreviewChip previewUrl={pendingImage.previewUrl} onRemove={removePendingImage} />}
+      {imageError && <p className="px-1 text-caption text-danger">{imageError}</p>}
+      <div className="flex items-end gap-2">
+        <div className="flex flex-1 items-end gap-1 rounded-3xl border border-input bg-background px-2 py-1.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled
+            title={t('shell.comingSoon')}
+            aria-label={t('inbox.composer.attachFileAriaLabel')}
+          >
+            <Paperclip className="size-4" aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={isBusy}
+            aria-label={t('inbox.composer.attachImageAriaLabel')}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImageIcon className="size-4" aria-hidden="true" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={FILE_PICKER_ACCEPT}
+            className="hidden"
+            onChange={(event) => void handleFileSelected(event)}
+          />
+          <Textarea
+            value={value}
+            onChange={(event) => {
+              setValue(event.target.value);
+              onTyping?.();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+            placeholder={t('inbox.composer.placeholder')}
+            rows={1}
+            className="min-h-8 flex-1 resize-none border-none bg-transparent px-1 py-1 shadow-none focus-visible:ring-0"
+          />
+        </div>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-sm"
-          disabled
-          title={t('shell.comingSoon')}
-          aria-label={t('inbox.composer.attachFileAriaLabel')}
+          size="icon"
+          className="shrink-0 rounded-full"
+          disabled={(!value.trim() && !pendingImage) || isBusy}
+          onClick={() => void submit()}
+          aria-label={t('inbox.composer.sendAriaLabel')}
         >
-          <Paperclip className="size-4" aria-hidden="true" />
+          {isBusy ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <ArrowUp className="size-4" aria-hidden="true" />
+          )}
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          disabled
-          title={t('shell.comingSoon')}
-          aria-label={t('inbox.composer.attachImageAriaLabel')}
-        >
-          <Image className="size-4" aria-hidden="true" />
-        </Button>
-        <Textarea
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-            onTyping?.();
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              submit();
-            }
-          }}
-          placeholder={t('inbox.composer.placeholder')}
-          rows={1}
-          className="min-h-8 flex-1 resize-none border-none bg-transparent px-1 py-1 shadow-none focus-visible:ring-0"
-        />
       </div>
-      <Button
-        type="button"
-        size="icon"
-        className="shrink-0 rounded-full"
-        disabled={!value.trim() || isSending}
-        onClick={submit}
-        aria-label={t('inbox.composer.sendAriaLabel')}
-      >
-        <ArrowUp className="size-4" aria-hidden="true" />
-      </Button>
     </div>
   );
 }

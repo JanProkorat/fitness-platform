@@ -1121,7 +1121,10 @@
     "PROFESSION_ALREADY_OCCUPIED": "Dieser Klient hat für diesen Beruf bereits einen aktiven Coach.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Der angeforderte Zugriff übersteigt Ihre aktuellen Rollen.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
-    "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden."
+    "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden.",
+    "INVALID_IMAGE_CONTENT_TYPE": "Es werden nur JPEG-, PNG- oder WebP-Bilder unterstützt.",
+    "IMAGE_TOO_LARGE": "Das Bild ist zu groß — die maximale Größe beträgt 5 MB.",
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Der Bild-Upload wurde nicht gefunden. Bitte fügen Sie es erneut an."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
@@ -2355,13 +2358,18 @@
       "unreadAriaLabel": "Ungelesen"
     },
     "noConversations": "Keine Gespräche gefunden",
+    "list": {
+      "photoMarker": "📷 Foto"
+    },
     "thread": {
       "showClient": "Kunde anzeigen",
       "hideClient": "Kunde ausblenden",
       "clientPanelTitle": "Kundendetails",
       "settingsAriaLabel": "Gesprächseinstellungen",
       "openClientProfileAriaLabel": "Kundenprofil öffnen",
-      "loadingOlder": "Ältere Nachrichten werden geladen…"
+      "loadingOlder": "Ältere Nachrichten werden geladen…",
+      "imageAlt": "Angehängtes Bild",
+      "imageUnavailable": "Bild nicht verfügbar"
     },
     "typingIndicator": "Schreibt gerade…",
     "composer": {
@@ -2369,7 +2377,10 @@
       "sendAriaLabel": "Nachricht senden",
       "attachFileAriaLabel": "Datei anhängen",
       "attachImageAriaLabel": "Bild anhängen",
-      "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+      "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "imagePreviewAlt": "Bildvorschau",
+      "removeImageAriaLabel": "Bild entfernen",
+      "imageUploadError": "Das Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut."
     },
     "video": {
       "label": "Video"

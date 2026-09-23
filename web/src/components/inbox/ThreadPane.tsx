@@ -194,7 +194,8 @@ export default function ThreadPane({
       {isOtherPartyTyping && <TypingIndicator />}
 
       <Composer
-        onSend={(text) => sendMessageMutation.mutate(text)}
+        conversationId={conversationId}
+        onSend={(payload) => sendMessageMutation.mutate(payload)}
         isSending={sendMessageMutation.isPending}
         onTyping={handleTyping}
       />
