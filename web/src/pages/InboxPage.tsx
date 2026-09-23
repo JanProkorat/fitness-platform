@@ -8,12 +8,21 @@ import ThreadEmptyState from '@/components/inbox/ThreadEmptyState';
 import ClientSidePanel from '@/components/inbox/ClientSidePanel';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { useConversationFilterCounts, useConversations, useStartConversation } from '@/hooks/useInboxQueries';
+import { getConversations } from '@/api/conversations';
+import {
+  useConversationFilterCounts,
+  useConversations,
+  useMarkConversationRead,
+  useStartConversation,
+} from '@/hooks/useInboxQueries';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useAuthStore } from '@/stores/auth';
-import { ClientListFilter } from '@/api/generated';
+import { ClientListFilter, type ConversationDto } from '@/api/generated';
 
 const TYPING_INDICATOR_TIMEOUT_MS = 3500;
+/** Debounces the mark-read call for messages landing in the already-open thread,
+ * so a burst (several messages in a row) collapses into one request. */
+const OPEN_THREAD_MARK_READ_DEBOUNCE_MS = 800;
 
 interface NewMessagePayload {
   conversationId: string;
@@ -22,6 +31,11 @@ interface NewMessagePayload {
 interface TypingPayload {
   conversationId: string;
   senderId: string;
+}
+
+interface UserPresencePayload {
+  userId: string;
+  isOnline: boolean;
 }
 
 /**
@@ -45,11 +59,13 @@ export default function InboxPage() {
   const [showClientPanel, setShowClientPanel] = useState(false);
   const [isOtherPartyTyping, setIsOtherPartyTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const deepLinkHandledRef = useRef(false);
 
   const conversationsQuery = useConversations(archived, filter);
   const countsQuery = useConversationFilterCounts();
   const startConversationMutation = useStartConversation();
+  const markReadMutation = useMarkConversationRead();
 
   const conversations = useMemo(() => conversationsQuery.data ?? [], [conversationsQuery.data]);
   const selectedConversation = conversations.find((c) => c.participant?.id === selectedParticipantId);
@@ -61,6 +77,16 @@ export default function InboxPage() {
       clearTimeout(typingTimeoutRef.current);
     }
   }, [selectedConversation?.id]);
+
+  // Cancel any in-flight debounced mark-read call on unmount.
+  useEffect(
+    () => () => {
+      if (markReadDebounceRef.current) {
+        clearTimeout(markReadDebounceRef.current);
+      }
+    },
+    [],
+  );
 
   // `?client=<publicId>` deep-link entry from the client-detail page's Chat
   // button: select the matching row if a conversation already exists,
@@ -78,7 +104,24 @@ export default function InboxPage() {
       setSelectedParticipantId(existingRow.participant?.id);
     } else {
       startConversationMutation.mutate(clientParam, {
-        onSuccess: (conversation) => setSelectedParticipantId(conversation.participant?.id),
+        onSuccess: async (conversation) => {
+          setSelectedParticipantId(conversation.participant?.id);
+          // POST /conversations gets-or-creates: the returned conversation may
+          // already exist but be archived, and an archived thread never shows
+          // up in the Active-filtered list `existingRow` just searched. Probe
+          // the archived list and switch views instead of landing on a silent
+          // empty state (a freshly-created conversation is always active, so
+          // it simply won't match here and `archived` stays put).
+          if (!archived && conversation.id) {
+            const archivedConversations = await queryClient.fetchQuery({
+              queryKey: ['conversations', 'list', true, ClientListFilter.All],
+              queryFn: () => getConversations(true, ClientListFilter.All),
+            });
+            if (archivedConversations.some((c) => c.id === conversation.id)) {
+              setArchived(true);
+            }
+          }
+        },
       });
     }
 
@@ -115,6 +158,18 @@ export default function InboxPage() {
         queryClient.invalidateQueries({ queryKey: ['conversations', conversationId, 'messages'] });
         queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
         queryClient.invalidateQueries({ queryKey: ['conversations', 'filter-counts'] });
+
+        // A message landing in the thread that's already open would otherwise
+        // re-light its unread dot until the reader re-opens it. Debounced so a
+        // burst of messages collapses into one mark-read call.
+        if (conversationId === selectedConversation?.id) {
+          if (markReadDebounceRef.current) {
+            clearTimeout(markReadDebounceRef.current);
+          }
+          markReadDebounceRef.current = setTimeout(() => {
+            markReadMutation.mutate(conversationId);
+          }, OPEN_THREAD_MARK_READ_DEBOUNCE_MS);
+        }
       },
       typing: (payload: unknown) => {
         const { conversationId, senderId } = payload as TypingPayload;
@@ -127,14 +182,29 @@ export default function InboxPage() {
         }
         typingTimeoutRef.current = setTimeout(() => setIsOtherPartyTyping(false), TYPING_INDICATOR_TIMEOUT_MS);
       },
-      userPresence: () => {
-        queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
+      userPresence: (payload: unknown) => {
+        const { userId, isOnline } = payload as UserPresencePayload;
+        // Patch the affected participant's online flag in every cached list
+        // variant (Active/Archived x each filter chip) instead of refetching
+        // the whole roster on every presence flicker.
+        queryClient.setQueriesData<ConversationDto[]>({ queryKey: ['conversations', 'list'] }, (previous) =>
+          previous?.map((conversation) => {
+            if (!conversation.participant || conversation.participant.id !== userId) {
+              return conversation;
+            }
+            return { ...conversation, participant: { ...conversation.participant, online: isOnline } };
+          }),
+        );
       },
       conversationunarchived: () => {
         queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
       },
     }),
-    [queryClient, selectedConversation?.id, currentUserId],
+    // markReadMutation.mutate is the stable bound function off useMutation's
+    // observer; the wrapping object is a fresh reference every render, so
+    // depending on the whole object would re-register the handlers on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, selectedConversation?.id, currentUserId, markReadMutation.mutate],
   );
   useSignalR(signalRHandlers);
 

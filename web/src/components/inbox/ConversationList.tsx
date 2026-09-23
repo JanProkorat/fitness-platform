@@ -58,7 +58,7 @@ export default function ConversationList({
   }, [conversations, search]);
 
   return (
-    <div className="flex h-full w-[235px] shrink-0 flex-col border-r border-border">
+    <div className="flex h-full w-60 shrink-0 flex-col border-r border-border">
       <div className="flex items-center justify-between gap-2 p-4 pb-3">
         <h1 className="text-title font-bold text-ink">{t('sidebar.inbox')}</h1>
         <DropdownMenu>

@@ -114,6 +114,23 @@ async function sendTypingViaHub(page: Page, accessToken: string, conversationId:
   );
 }
 
+/**
+ * Whether the thread's message list is scrolled to (or within a few px of)
+ * its bottom — the direct signal for "the newest message is in view" that
+ * doesn't depend on Playwright's viewport-intersection visibility check,
+ * which doesn't account for an ancestor's own scroll offset.
+ */
+async function isThreadScrolledToBottom(page: Page): Promise<boolean> {
+  const SCROLL_BOTTOM_SLACK_PX = 4;
+  return page.evaluate((slack) => {
+    const el = document.querySelector('[data-testid="thread-message-list"]');
+    if (!(el instanceof HTMLElement)) {
+      return false;
+    }
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= slack;
+  }, SCROLL_BOTTOM_SLACK_PX);
+}
+
 test.describe('inbox page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/inbox');
@@ -324,6 +341,60 @@ test.describe('inbox page', () => {
 
       await expect(page.getByText('Typing…')).toBeVisible({ timeout: 1000 });
       await expect(page.getByText('Typing…')).toHaveCount(0, { timeout: 4000 });
+    } finally {
+      await clientContext.close();
+    }
+  });
+
+  test('a long thread opens scrolled to the newest message, and stays there after sending (#1099 rework)', async ({
+    page,
+    browser,
+    baseURL,
+  }) => {
+    // Same id-recovery pattern as the newmessage test above.
+    const listResponsePromise = page.waitForResponse((r) => r.url().includes('/conversations?') && r.status() === 200);
+    await page.goto('/inbox');
+    const listBody = (await (await listResponsePromise).json()) as Array<{
+      id?: string;
+      participant?: { name?: string };
+    }>;
+    const match = listBody.find((r) => r.participant?.name?.includes('QA Client'));
+    if (!match?.id) {
+      throw new Error('QA Client conversation id not found');
+    }
+    const conversationId = match.id;
+
+    const { context: clientContext, accessToken } = await openClientContext(browser, baseURL ?? 'http://localhost:5173');
+
+    try {
+      // Seed enough messages to overflow the viewport — the seeded fixture
+      // thread alone (3 messages) fit on screen and hid this bug entirely.
+      const clientApi = await clientContext.request;
+      const OVERFLOW_MESSAGE_COUNT = 30;
+      let newestSeededText = '';
+      for (let i = 0; i < OVERFLOW_MESSAGE_COUNT; i += 1) {
+        newestSeededText = `QA scroll fixture ${Date.now()}-${i}`;
+        const response = await clientApi.post(`/conversations/${conversationId}/messages`, {
+          data: { text: newestSeededText },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        expect(response.ok()).toBe(true);
+      }
+
+      await qaClientRow(page).click();
+      await page.waitForLoadState('networkidle');
+
+      // On a cold cache the thread must open scrolled to the newest message,
+      // not stranded at the oldest one loaded (the rework's root cause).
+      await expect(page.getByText(newestSeededText, { exact: true }).last()).toBeVisible();
+      await expect.poll(() => isThreadScrolledToBottom(page)).toBe(true);
+
+      const ownReply = `QA trainer reply ${Date.now()}`;
+      await page.getByPlaceholder('Type your message here...').fill(ownReply);
+      await page.getByRole('button', { name: 'Send message' }).click();
+
+      await expect(page.getByText(ownReply, { exact: true }).last()).toBeVisible();
+      await expect.poll(() => isThreadScrolledToBottom(page)).toBe(true);
     } finally {
       await clientContext.close();
     }

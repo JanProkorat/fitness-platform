@@ -40,8 +40,8 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
       ) : (
         <div
           className={cn(
-            'max-w-[420px] rounded-2xl px-3.5 py-2.5 text-body break-words',
-            isOwn ? 'bg-sidebar-bg text-white' : 'bg-bubble text-foreground',
+            'max-w-105 whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-body break-words',
+            isOwn ? 'bg-sidebar-bg text-paper' : 'bg-bubble text-foreground',
           )}
         >
           {text}

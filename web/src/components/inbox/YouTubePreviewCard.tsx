@@ -28,7 +28,7 @@ export default function YouTubePreviewCard({ videoId, caption, alignEnd }: Props
       href={youtubeWatchUrl(videoId)}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn('flex max-w-[280px] flex-col gap-1', alignEnd && 'self-end')}
+      className={cn('flex max-w-70 flex-col gap-1', alignEnd && 'self-end')}
     >
       <img
         src={youtubeThumbnailUrl(videoId)}
