@@ -132,8 +132,15 @@ public class WorkoutLogUniquenessFactory : WebApplicationFactory<Program>, IAsyn
 
 // ── Collection definition ─────────────────────────────────────────────────────
 
+/// <summary>
+/// Boots <see cref="WorkoutLogUniquenessFactory"/> ONCE for the whole collection
+/// rather than per test (#1104). Safe without an explicit reset because every fact
+/// generates its own unique client/session GUIDs (see the class remarks below) —
+/// the same isolation-by-unique-data pattern the shared "Integration" collection
+/// already relies on for its ~106 files.
+/// </summary>
 [CollectionDefinition("WorkoutLogUniqueness")]
-public class WorkoutLogUniquenessCollection;
+public class WorkoutLogUniquenessCollection : ICollectionFixture<WorkoutLogUniquenessFactory>;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -146,12 +153,9 @@ public class WorkoutLogUniquenessCollection;
 /// these index scenarios from the shared Integration collection.
 /// </summary>
 [Collection("WorkoutLogUniqueness")]
-public class WorkoutLogCompletionUniquenessTests : IAsyncLifetime
+public class WorkoutLogCompletionUniquenessTests(WorkoutLogUniquenessFactory factory)
 {
-    private readonly WorkoutLogUniquenessFactory _factory = new();
-
-    public async ValueTask InitializeAsync() => await _factory.InitializeAsync();
-    public async ValueTask DisposeAsync() => await _factory.DisposeAsync();
+    private readonly WorkoutLogUniquenessFactory _factory = factory;
 
     private IMongoContext Mongo
     {

@@ -16,6 +16,29 @@ using Testcontainers.MongoDb;
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="OwnerScopedVisibilityFilterTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact.
+/// </summary>
+public class OwnerScopedVisibilityMongoContainerFixture : IAsyncLifetime
+{
+    // Wide timeout to absorb contention when the compose harness is also running.
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("OwnerScopedVisibilityFilter")]
+public class OwnerScopedVisibilityFilterCollection : ICollectionFixture<OwnerScopedVisibilityMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for the own-or-public visibility filter guard added in #992
 /// to <see cref="SearchRecipesEndpoint"/>, <see cref="GetRecipeEndpoint"/>, and
 /// <see cref="SearchFoodsEndpoint"/>. Boots a real MongoDB container because
@@ -27,25 +50,20 @@ namespace FitnessPlatform.Tests.Endpoints.Recipes;
 /// <see cref="IMongoContext"/> substitute whose Recipes/Foods properties return real,
 /// containerised collections.
 /// </summary>
-public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
+/// <remarks>
+/// Isolated by unique <c>Guid.NewGuid()</c> external ids per fact (no reset needed) —
+/// the same pattern the shared "Integration" collection already relies on (#1104).
+/// </remarks>
+[Collection("OwnerScopedVisibilityFilter")]
+public class OwnerScopedVisibilityFilterTests
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<Recipe> _recipes;
+    private readonly IMongoCollection<Food> _foods;
+    private readonly IMongoContext _mongoContext;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<Recipe> _recipes = null!;
-    private IMongoCollection<Food> _foods = null!;
-    private IMongoContext _mongoContext = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public OwnerScopedVisibilityFilterTests(OwnerScopedVisibilityMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
+        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
         var mongoDb = mongoClient.GetDatabase("fitness_ownerscopedvisibility_test");
         _recipes = mongoDb.GetCollection<Recipe>("recipes");
         _foods = mongoDb.GetCollection<Food>("foods");
@@ -54,11 +72,6 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         mongoContext.Recipes.Returns(_recipes);
         mongoContext.Foods.Returns(_foods);
         _mongoContext = mongoContext;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

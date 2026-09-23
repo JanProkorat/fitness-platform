@@ -8,6 +8,30 @@ using Testcontainers.MongoDb;
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="RecipeVersionLegacyIntegrationTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact — safe without an explicit
+/// reset because every fact seeds its own document under a fresh <c>Guid.NewGuid()</c>
+/// external id.
+/// </summary>
+public class RecipeVersionLegacyMongoContainerFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("RecipeVersionLegacyIntegration")]
+public class RecipeVersionLegacyIntegrationCollection : ICollectionFixture<RecipeVersionLegacyMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration test that proves the MongoDB.Driver 3.x deserialization
 /// behavior for legacy <see cref="Recipe"/> documents missing the <c>version</c> field
 /// (every recipe currently stored predates the field — see #1032), and verifies the
@@ -19,29 +43,18 @@ namespace FitnessPlatform.Tests.Endpoints.Recipes;
 /// the <c>FilterDefinition</c> entirely, so a version-filter assertion there would pass whether
 /// or not the filter is correct.
 /// </summary>
-public class RecipeVersionLegacyIntegrationTests : IAsyncLifetime
+[Collection("RecipeVersionLegacyIntegration")]
+public class RecipeVersionLegacyIntegrationTests
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<Recipe> _recipes;
+    private readonly IMongoCollection<BsonDocument> _rawRecipes;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<Recipe> _recipes = null!;
-    private IMongoCollection<BsonDocument> _rawRecipes = null!;
-
-    public async ValueTask InitializeAsync()
+    public RecipeVersionLegacyIntegrationTests(RecipeVersionLegacyMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var client = new MongoClient(_mongo.GetConnectionString());
+        var client = new MongoClient(containerFixture.Mongo.GetConnectionString());
         var db = client.GetDatabase("fitness_recipe_legacy_doc_test");
         _recipes = db.GetCollection<Recipe>("recipes");
         _rawRecipes = db.GetCollection<BsonDocument>("recipes");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     private static BsonDocument CreateLegacyRawDoc(Guid externalId, Guid nutritionistId)

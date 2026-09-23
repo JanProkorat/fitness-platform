@@ -203,10 +203,17 @@ public class ResetEndpointProductionFactory : ResetEndpointFactoryBase
 /// the shared "Integration" collection because each test needs its own factory
 /// with distinct startup configuration. Using a named collection ensures the
 /// reset tests run serially with each other, which avoids Testcontainer port
-/// exhaustion from multiple MongoDB instances starting simultaneously.
+/// exhaustion from multiple MongoDB instances starting simultaneously. Boots
+/// all three gate-combination factories ONCE for the whole collection rather
+/// than per test (#1104) — safe because every fact's own <c>POST /test/reset</c>
+/// call performs a full drop-schema/drop-collections wipe as its first action,
+/// so no fact ever depends on state left behind by a previous one.
 /// </summary>
 [CollectionDefinition("ResetTests")]
-public class ResetTestsCollection;
+public class ResetTestsCollection :
+    ICollectionFixture<ResetEndpointEnabledFactory>,
+    ICollectionFixture<ResetEndpointDisabledFactory>,
+    ICollectionFixture<ResetEndpointProductionFactory>;
 
 /// <summary>
 /// Integration tests for <c>POST /test/reset</c>. Tests are NOT in the shared
@@ -215,22 +222,13 @@ public class ResetTestsCollection;
 /// "ResetTests" collection so they run serially with each other.
 /// </summary>
 [Collection("ResetTests")]
-public class ResetTestStateEndpointTests : IAsyncLifetime
+public class ResetTestStateEndpointTests(
+    ResetEndpointEnabledFactory enabledFactory,
+    ResetEndpointDisabledFactory disabledFactory,
+    ResetEndpointProductionFactory productionFactory)
 {
     // The enabled factory is reused across multiple tests in this class.
-    private readonly ResetEndpointEnabledFactory _enabledFactory = new();
-
-    // Gate-disabled factories are scoped to their single test via local variables.
-
-    public async ValueTask InitializeAsync()
-    {
-        await _enabledFactory.InitializeAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _enabledFactory.DisposeAsync();
-    }
+    private readonly ResetEndpointEnabledFactory _enabledFactory = enabledFactory;
 
     // ── Happy path ──────────────────────────────────────────────────────────
 
@@ -429,10 +427,7 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
     [Fact]
     public async Task Reset_TestingDisabled_GateRejects_Returns404()
     {
-        await using var factory = new ResetEndpointDisabledFactory();
-        await factory.InitializeAsync();
-
-        var client = factory.CreateClient();
+        var client = disabledFactory.CreateClient();
         var response = await client.PostAsync("/test/reset", null, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound,
@@ -450,10 +445,7 @@ public class ResetTestStateEndpointTests : IAsyncLifetime
     [Fact]
     public async Task Reset_TestingEnabled_NonDevelopment_Succeeds()
     {
-        await using var factory = new ResetEndpointProductionFactory();
-        await factory.InitializeAsync();
-
-        var client = factory.CreateClient();
+        var client = productionFactory.CreateClient();
         var response = await client.PostAsync("/test/reset", null, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent,

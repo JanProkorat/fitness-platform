@@ -15,13 +15,11 @@ using Testcontainers.PostgreSql;
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Testcontainers integration tests for <see cref="PhotoDescriptionBackfillService"/>.
-///
-/// Boots real PostgreSQL (all migrations applied) and MongoDB containers, seeds
-/// minimal data, then verifies that the backfill copies Mongo notes into
-/// <c>PlanPhoto.Description</c> correctly and that a second invocation is a no-op.
+/// Shared Testcontainers Postgres + Mongo fixture for
+/// <see cref="PhotoDescriptionBackfillServiceTests"/>. Boots ONCE for the collection (#1104)
+/// instead of per fact.
 /// </summary>
-public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
+public class PhotoDescriptionBackfillContainerFixture : IAsyncLifetime
 {
     // Bumped from the Testcontainers default of 60s to 180s because this test's
     // PostgreSQL + MongoDB containers regularly contend with a developer- (or
@@ -35,13 +33,8 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
     // too long. See #336.
     private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer   _mongo    = new MongoDbBuilder("mongo:7").Build();
-
-    private ApplicationDbContext _db       = null!;
-    private IMongoContext        _mongoCtx = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
+    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
 
     public async ValueTask InitializeAsync()
     {
@@ -52,29 +45,21 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
         // single-call way to widen the readiness window without replacing
         // the default strategy entirely.
         using var cts = new CancellationTokenSource(StartupTimeout);
-        await Task.WhenAll(_postgres.StartAsync(cts.Token), _mongo.StartAsync(cts.Token));
-
-        _db = BuildDbContext(_postgres.GetConnectionString());
+        await Task.WhenAll(Postgres.StartAsync(cts.Token), Mongo.StartAsync(cts.Token));
 
         // Apply all EF migrations so the full schema (including plan_photos) is available.
-        await _db.Database.MigrateAsync(TestContext.Current.CancellationToken);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb     = mongoClient.GetDatabase("fitness_backfill_test");
-        _mongoCtx = new MongoContext(mongoDb);
+        await using var db = BuildDbContext(Postgres.GetConnectionString());
+        await db.Database.MigrateAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        await _db.DisposeAsync();
         await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
+            Postgres.DisposeAsync().AsTask(),
+            Mongo.DisposeAsync().AsTask());
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    private static ApplicationDbContext BuildDbContext(string connectionString)
+    public static ApplicationDbContext BuildDbContext(string connectionString)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)
@@ -84,6 +69,37 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
             .Options;
         return new ApplicationDbContext(options);
     }
+}
+
+[CollectionDefinition("PhotoDescriptionBackfill")]
+public class PhotoDescriptionBackfillCollection : ICollectionFixture<PhotoDescriptionBackfillContainerFixture>;
+
+/// <summary>
+/// Testcontainers integration tests for <see cref="PhotoDescriptionBackfillService"/>.
+///
+/// Boots real PostgreSQL (all migrations applied) and MongoDB containers, seeds
+/// minimal data, then verifies that the backfill copies Mongo notes into
+/// <c>PlanPhoto.Description</c> correctly and that a second invocation is a no-op.
+/// </summary>
+/// <remarks>
+/// Isolated without an explicit reset (#1104): every fact inserts its own
+/// <c>Description IS NULL</c> row under fresh ids, <c>BackfillAsync</c> only ever
+/// matches rows still missing a description, and once a row is backfilled it permanently
+/// drops out of that match set — so an earlier fact's already-processed rows can never
+/// contribute to a later fact's count, even sharing one Postgres/Mongo pair.
+/// </remarks>
+[Collection("PhotoDescriptionBackfill")]
+public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContainerFixture containerFixture)
+    : IAsyncLifetime
+{
+    private ApplicationDbContext _db =
+        PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
+    private readonly IMongoContext _mongoCtx =
+        new MongoContext(new MongoClient(containerFixture.Mongo.GetConnectionString()).GetDatabase("fitness_backfill_test"));
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public async ValueTask DisposeAsync() => await _db.DisposeAsync();
 
     /// <summary>
     /// Inserts a minimal ApplicationUser + ClientProfile into Postgres via raw SQL,
@@ -96,7 +112,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
         var ct     = TestContext.Current.CancellationToken;
         var userId = Guid.NewGuid();
 
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.Postgres.GetConnectionString());
         await conn.OpenAsync(ct);
 
         // Insert a minimal user row (all NOT NULL columns that don't have DB defaults).
@@ -158,7 +174,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.Postgres.GetConnectionString());
         await conn.OpenAsync(ct);
 
         await using var cmd = conn.CreateCommand();
@@ -193,7 +209,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
     {
         // Rebuild context so the tracked-entity cache is clean for each invocation.
         _db.Dispose();
-        _db = BuildDbContext(_postgres.GetConnectionString());
+        _db = PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.Postgres.GetConnectionString());
 
         return new PhotoDescriptionBackfillService(
             _db,

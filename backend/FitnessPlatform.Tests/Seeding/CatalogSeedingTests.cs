@@ -119,22 +119,30 @@ public class CatalogSeedingFactory : WebApplicationFactory<Program>, IAsyncLifet
 
 /// <summary>
 /// Defines a separate collection for catalog seeding tests so they run serially and don't
-/// contend with the shared Integration collection's Testcontainers.
+/// contend with the shared Integration collection's Testcontainers. Boots
+/// <see cref="CatalogSeedingFactory"/> ONCE for the collection rather than per test — see
+/// <see cref="CatalogSeedingTests.InitializeAsync"/> for the per-test reset (#1104).
 /// </summary>
 [CollectionDefinition("CatalogSeedingTests")]
-public class CatalogSeedingTestsCollection;
+public class CatalogSeedingTestsCollection : ICollectionFixture<CatalogSeedingFactory>;
 
 /// <summary>
 /// Integration tests for the public-catalog seeding pipeline (#809): system admin user,
 /// foods/recipes/exercises/workout templates loaded from the embedded JSON seed data.
 /// </summary>
+/// <remarks>
+/// Resets Postgres + Mongo to a pristine state before each fact — several facts assert
+/// exact document counts (e.g. "184 foods, no duplicates") that must not see a prior
+/// fact's seeded rows now that the factory is shared across the class instead of booted
+/// fresh per test (#1104).
+/// </remarks>
 [Collection("CatalogSeedingTests")]
-public class CatalogSeedingTests : IAsyncLifetime
+public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
 {
-    private readonly CatalogSeedingFactory _factory = new();
+    private readonly CatalogSeedingFactory _factory = factory;
 
-    public async ValueTask InitializeAsync() => await _factory.InitializeAsync();
-    public async ValueTask DisposeAsync() => await _factory.DisposeAsync();
+    public async ValueTask InitializeAsync() => await _factory.Services.ResetPostgresAndMongoAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Running MongoSeeder.SeedAsync twice must be idempotent: document counts stay at the

@@ -20,6 +20,28 @@ using Testcontainers.MongoDb;
 namespace FitnessPlatform.Tests.Endpoints.SessionTemplates;
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="SessionTemplateEndpointTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact.
+/// </summary>
+public class SessionTemplateMongoContainerFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("SessionTemplateEndpoint")]
+public class SessionTemplateEndpointCollection : ICollectionFixture<SessionTemplateMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for the SessionTemplate sharing-library feature (#860) —
 /// visibility matrix across all three guard classes (read-guarded reads, read-guarded write
 /// (<c>copy</c>), write-guarded mutations), the PUT/DELETE ownership + version-CAS paths
@@ -28,25 +50,27 @@ namespace FitnessPlatform.Tests.Endpoints.SessionTemplates;
 /// rather than NSubstitute-mocked collections, because the loaders and the search helper
 /// exercise real MongoDB filter/sort semantics that a mock cannot faithfully reproduce.
 /// </summary>
+/// <remarks>
+/// Unique <c>Guid.NewGuid()</c> external ids per fact are NOT sufficient isolation here
+/// (unlike the sibling classes converted in #1104): the search endpoint under test matches
+/// "own template at any visibility OR ANY owner's Public template", so a Public-visibility
+/// document seeded by an earlier fact stays a permanent match for every later fact's search
+/// once the Mongo container is shared across the whole class. Each fact drops both
+/// collections in its own <see cref="IAsyncLifetime.InitializeAsync"/> to restore the
+/// empty-collection starting point every per-test-boot fact used to get for free.
+/// </remarks>
+[Collection("SessionTemplateEndpoint")]
 public class SessionTemplateEndpointTests : IAsyncLifetime
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
     private readonly PlanConcurrencyGuard _guard = new();
 
-    private IMongoContext _mongoContext = null!;
-    private IMongoCollection<SessionTemplate> _templates = null!;
-    private IMongoCollection<TrainingPlan> _plans = null!;
+    private readonly IMongoContext _mongoContext;
+    private readonly IMongoCollection<SessionTemplate> _templates;
+    private readonly IMongoCollection<TrainingPlan> _plans;
 
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public SessionTemplateEndpointTests(SessionTemplateMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
+        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
         var database = mongoClient.GetDatabase("fitness_sessiontemplate_test");
         _templates = database.GetCollection<SessionTemplate>("sessionTemplates");
         _plans = database.GetCollection<TrainingPlan>("trainingPlans");
@@ -57,10 +81,13 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
         _mongoContext = mongoContext;
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask InitializeAsync()
     {
-        await _mongo.DisposeAsync();
+        await _templates.DeleteManyAsync(FilterDefinition<SessionTemplate>.Empty);
+        await _plans.DeleteManyAsync(FilterDefinition<TrainingPlan>.Empty);
     }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ── helpers ─────────────────────────────────────────────────────────────
 

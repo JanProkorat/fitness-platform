@@ -79,6 +79,20 @@ public sealed class TrackingBlobStorageService : IBlobStorageService
         _objects.Remove(containerPath);
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Clears both the presence set and the call log. Part of #1104: with
+    /// <see cref="QaSeedRunnerFactory"/> now shared across the whole test class instead of
+    /// booted fresh per fact, clearing only <see cref="UploadCalls"/> left <c>_objects</c>
+    /// carrying a prior fact's uploaded keys — <c>QaSeedRunner</c>'s own idempotency check
+    /// (<c>ObjectExistsAsync</c>) then saw the blob as "already present" and skipped the
+    /// upload the next fact expected to observe.
+    /// </summary>
+    public void Reset()
+    {
+        _objects.Clear();
+        UploadCalls.Clear();
+    }
 }
 
 /// <summary>
@@ -201,22 +215,38 @@ public class QaSeedRunnerFactory : WebApplicationFactory<Program>, IAsyncLifetim
 /// <summary>
 /// Defines a separate collection for QaSeedRunner tests so they run serially
 /// and don't contend with the shared Integration collection's Testcontainers.
+/// Boots <see cref="QaSeedRunnerFactory"/> ONCE for the whole collection (mirrors
+/// <see cref="Infrastructure.TestCollection"/>) rather than per test — see
+/// <see cref="QaSeedRunnerTests.InitializeAsync"/> for the per-test reset that
+/// keeps each fact's assertions pristine despite the shared host (#1104).
 /// </summary>
 [CollectionDefinition("SeedTests")]
-public class SeedTestsCollection;
+public class SeedTestsCollection : ICollectionFixture<QaSeedRunnerFactory>;
 
 /// <summary>
 /// Idempotency integration tests for <see cref="QaSeedRunner.SeedAsync"/>.
 /// All helpers must be individually idempotent: re-running over a partially or
 /// fully seeded stack must converge without throwing on duplicate keys.
 /// </summary>
+/// <remarks>
+/// Resets Postgres + Mongo to a pristine state before each fact (same
+/// drop-schema/drop-collections technique as <c>ResetTestStateEndpoint</c>) because
+/// several facts assert exact counts or exercise different QA_SEED_KIND branches
+/// that must not see a prior fact's leftover state now that the factory is shared
+/// across the whole class instead of booted fresh per test (#1104).
+/// </remarks>
 [Collection("SeedTests")]
-public class QaSeedRunnerTests : IAsyncLifetime
+public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
 {
-    private readonly QaSeedRunnerFactory _factory = new();
+    private readonly QaSeedRunnerFactory _factory = factory;
 
-    public async ValueTask InitializeAsync() => await _factory.InitializeAsync();
-    public async ValueTask DisposeAsync()    => await _factory.DisposeAsync();
+    public async ValueTask InitializeAsync()
+    {
+        await _factory.Services.ResetPostgresAndMongoAsync();
+        _factory.BlobStorage.Reset();
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Running SeedAsync twice must be idempotent: all counts stay at 1

@@ -21,6 +21,28 @@ using Testcontainers.MongoDb;
 namespace FitnessPlatform.Tests.Endpoints.MealTemplates;
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="MealTemplateEndpointTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact.
+/// </summary>
+public class MealTemplateMongoContainerFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("MealTemplateEndpoint")]
+public class MealTemplateEndpointCollection : ICollectionFixture<MealTemplateMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for the MealTemplate sharing-library feature (#859) —
 /// visibility matrix across all three guard classes (read-guarded reads, read-guarded write
 /// (<c>copy</c>), write-guarded mutations), the PUT/DELETE ownership + version-CAS paths, the
@@ -29,26 +51,29 @@ namespace FitnessPlatform.Tests.Endpoints.MealTemplates;
 /// (#858) rather than NSubstitute-mocked collections, because the loaders and the search helper
 /// exercise real MongoDB filter/sort semantics that a mock cannot faithfully reproduce.
 /// </summary>
+/// <remarks>
+/// Unique <c>Guid.NewGuid()</c> external ids per fact are NOT sufficient isolation here
+/// (mirrors the fix applied to the sibling <c>SessionTemplateEndpointTests</c> in #1104):
+/// the search endpoint under test matches "own template at any visibility OR ANY owner's
+/// Public template", so a Public-visibility document seeded by an earlier fact stays a
+/// permanent match for every later fact's search once the Mongo container is shared across
+/// the whole class. Each fact drops both collections in its own
+/// <see cref="IAsyncLifetime.InitializeAsync"/> to restore the empty-collection starting
+/// point every per-test-boot fact used to get for free.
+/// </remarks>
+[Collection("MealTemplateEndpoint")]
 public class MealTemplateEndpointTests : IAsyncLifetime
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
     private readonly MacroCalculatorService _macroCalculator = new();
     private readonly PlanConcurrencyGuard _guard = new();
 
-    private IMongoContext _mongoContext = null!;
-    private IMongoCollection<MealTemplate> _templates = null!;
-    private IMongoCollection<NutritionPlan> _plans = null!;
+    private readonly IMongoContext _mongoContext;
+    private readonly IMongoCollection<MealTemplate> _templates;
+    private readonly IMongoCollection<NutritionPlan> _plans;
 
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public MealTemplateEndpointTests(MealTemplateMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
+        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
         var database = mongoClient.GetDatabase("fitness_mealtemplate_test");
         _templates = database.GetCollection<MealTemplate>("mealTemplates");
         _plans = database.GetCollection<NutritionPlan>("nutritionPlans");
@@ -59,10 +84,13 @@ public class MealTemplateEndpointTests : IAsyncLifetime
         _mongoContext = mongoContext;
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask InitializeAsync()
     {
-        await _mongo.DisposeAsync();
+        await _templates.DeleteManyAsync(FilterDefinition<MealTemplate>.Empty);
+        await _plans.DeleteManyAsync(FilterDefinition<NutritionPlan>.Empty);
     }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ── helpers ─────────────────────────────────────────────────────────────
 

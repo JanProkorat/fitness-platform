@@ -9,6 +9,30 @@ using Testcontainers.MongoDb;
 namespace FitnessPlatform.Tests.Endpoints.Exercises;
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="LegacyDocumentIntegrationTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact — safe without an
+/// explicit reset because every fact seeds its own document under a fresh
+/// <c>Guid.NewGuid()</c> external id.
+/// </summary>
+public class LegacyDocumentMongoContainerFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("LegacyDocumentIntegration")]
+public class LegacyDocumentIntegrationCollection : ICollectionFixture<LegacyDocumentMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration test that proves the MongoDB.Driver 3.x deserialization
 /// behavior for legacy Exercise documents missing the <c>version</c> field, and
 /// verifies the fix makes legacy documents updatable/deletable on their first write.
@@ -19,29 +43,18 @@ namespace FitnessPlatform.Tests.Endpoints.Exercises;
 /// initializer). Result: every legacy custom exercise was permanently un-updatable
 /// and un-deletable (the version-guarded write always matched 0 documents → 409).
 /// </summary>
-public class LegacyDocumentIntegrationTests : IAsyncLifetime
+[Collection("LegacyDocumentIntegration")]
+public class LegacyDocumentIntegrationTests
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<Exercise> _exercises;
+    private readonly IMongoCollection<BsonDocument> _rawExercises;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<Exercise> _exercises = null!;
-    private IMongoCollection<BsonDocument> _rawExercises = null!;
-
-    public async ValueTask InitializeAsync()
+    public LegacyDocumentIntegrationTests(LegacyDocumentMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var client = new MongoClient(_mongo.GetConnectionString());
+        var client = new MongoClient(containerFixture.Mongo.GetConnectionString());
         var db = client.GetDatabase("fitness_legacy_doc_test");
         _exercises = db.GetCollection<Exercise>("exercises");
         _rawExercises = db.GetCollection<BsonDocument>("exercises");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     private BsonDocument CreateLegacyRawDoc(Guid externalId, Guid trainerId)

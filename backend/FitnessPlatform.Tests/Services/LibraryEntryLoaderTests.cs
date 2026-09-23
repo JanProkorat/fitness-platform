@@ -31,6 +31,29 @@ internal sealed class LibraryEntryLoaderProbeEndpoint : EndpointWithoutRequest
 }
 
 /// <summary>
+/// Shared Testcontainers Mongo fixture for <see cref="LibraryEntryLoaderTests"/>. Boots ONCE
+/// for the collection (#1104) instead of per fact.
+/// </summary>
+public class LibraryEntryLoaderMongoContainerFixture : IAsyncLifetime
+{
+    // Wide timeout to absorb contention when the compose harness is also running.
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+
+    public MongoDbContainer Mongo { get; } = new MongoDbBuilder("mongo:7").Build();
+
+    public async ValueTask InitializeAsync()
+    {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        await Mongo.StartAsync(cts.Token);
+    }
+
+    public async ValueTask DisposeAsync() => await Mongo.DisposeAsync();
+}
+
+[CollectionDefinition("LibraryEntryLoader")]
+public class LibraryEntryLoaderCollection : ICollectionFixture<LibraryEntryLoaderMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for
 /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> and
 /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> (issue
@@ -38,19 +61,26 @@ internal sealed class LibraryEntryLoaderProbeEndpoint : EndpointWithoutRequest
 /// actual production entry point a consumer would call, rather than two hand-picked sub-calls
 /// sharing hardcoded literals.
 /// </summary>
-public class LibraryEntryLoaderTests : IAsyncLifetime
+/// <remarks>
+/// Isolated by a unique <c>ExternalId</c> per fact — no reset needed despite the shared
+/// Mongo container (#1104).
+/// </remarks>
+[Collection("LibraryEntryLoader")]
+public class LibraryEntryLoaderTests
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
     private static readonly LibraryDenial MealTemplateDenial = new(
         "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
         "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
         "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.");
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private readonly IMongoCollection<TestLibraryDocument> _collection;
 
-    private IMongoCollection<TestLibraryDocument> _collection = null!;
+    public LibraryEntryLoaderTests(LibraryEntryLoaderMongoContainerFixture containerFixture)
+    {
+        var mongoClient = new MongoClient(containerFixture.Mongo.GetConnectionString());
+        var mongoDb = mongoClient.GetDatabase("fitness_libraryentryloader_test");
+        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
+    }
 
     /// <summary>Stand-in sharing-library document implementing <see cref="ILibraryDocument"/>.</summary>
     private sealed class TestLibraryDocument : ILibraryDocument
@@ -77,23 +107,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
 
         [BsonElement("version")]
         public int Version { get; set; } = 1;
-    }
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_libraryentryloader_test");
-        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     /// <summary>

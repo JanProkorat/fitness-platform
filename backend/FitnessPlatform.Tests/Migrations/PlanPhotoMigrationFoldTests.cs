@@ -11,6 +11,28 @@ using Testcontainers.PostgreSql;
 namespace FitnessPlatform.Tests.Migrations;
 
 /// <summary>
+/// Shared Testcontainers Postgres fixture for <see cref="PlanPhotoMigrationFoldTests"/>.
+/// Boots ONCE for the collection (#1104) instead of per fact — each fact resets the
+/// schema back to empty in its own <see cref="IAsyncLifetime.InitializeAsync"/> (see
+/// <see cref="PlanPhotoMigrationFoldTests"/>' remarks) before stepping through
+/// migrations itself.
+/// </summary>
+public class PlanPhotoMigrationFoldContainerFixture : IAsyncLifetime
+{
+    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+
+    public async ValueTask InitializeAsync() => await Postgres.StartAsync();
+
+    public async ValueTask DisposeAsync() => await Postgres.DisposeAsync();
+}
+
+/// <summary>
+/// Defines a dedicated collection so the Postgres container boots once for the class.
+/// </summary>
+[CollectionDefinition("PlanPhotoMigrationFold")]
+public class PlanPhotoMigrationFoldCollection : ICollectionFixture<PlanPhotoMigrationFoldContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration test that:
 /// 1. Boots a fresh PostgreSQL container.
 /// 2. Seeds two rows into the legacy <c>progress_photos</c> table
@@ -20,26 +42,37 @@ namespace FitnessPlatform.Tests.Migrations;
 ///    <see cref="PlanPhotoCategory.Body"/> and that running the migration
 ///    a second time does not duplicate rows (idempotency guarantee).
 /// </summary>
-public class PlanPhotoMigrationFoldTests : IAsyncLifetime
+/// <remarks>
+/// Each fact drives the schema through specific migration states (down to
+/// <c>PreviousMigration</c>, then up to <c>NewMigration</c>) rather than relying on a
+/// fully-migrated host, so a shared container (#1104) needs the schema reset back to
+/// genuinely empty — no <c>__EFMigrationsHistory</c> rows — before every fact, not
+/// migrated to latest like the other converted classes in this change.
+/// </remarks>
+[Collection("PlanPhotoMigrationFold")]
+public class PlanPhotoMigrationFoldTests(PlanPhotoMigrationFoldContainerFixture containerFixture) : IAsyncLifetime
 {
     private const string PreviousMigration = "20260422153619_AddProfessionalProfileAvatarBlobUrl";
     private const string NewMigration = "20260425164316_AddPlanPhotoRetireProgressPhoto";
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16")
-        .Build();
+    private PostgreSqlContainer Postgres => containerFixture.Postgres;
 
     private ApplicationDbContext _db = null!;
 
     public async ValueTask InitializeAsync()
     {
-        await _postgres.StartAsync();
-        _db = BuildContext(_postgres.GetConnectionString());
+        await using (var resetDb = BuildContext(Postgres.GetConnectionString()))
+        {
+            await resetDb.Database.ExecuteSqlRawAsync("DROP SCHEMA IF EXISTS public CASCADE");
+            await resetDb.Database.ExecuteSqlRawAsync("CREATE SCHEMA public");
+        }
+
+        _db = BuildContext(Postgres.GetConnectionString());
     }
 
     public async ValueTask DisposeAsync()
     {
         await _db.DisposeAsync();
-        await _postgres.DisposeAsync();
     }
 
     private static ApplicationDbContext BuildContext(string connectionString)
@@ -60,7 +93,7 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
 
     private async Task<(long ClientProfileId, Guid UserId)> CreateUserAndClientProfileAsync()
     {
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
         await conn.OpenAsync(TestContext.Current.CancellationToken);
 
         var userId = Guid.NewGuid();
@@ -116,7 +149,7 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
         DateTime takenAt,
         DateTime dateCreated)
     {
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
         await conn.OpenAsync(TestContext.Current.CancellationToken);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -137,7 +170,7 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
     private async Task RebuildContextAsync()
     {
         await _db.DisposeAsync();
-        _db = BuildContext(_postgres.GetConnectionString());
+        _db = BuildContext(Postgres.GetConnectionString());
     }
 
     // ── tests ─────────────────────────────────────────────────────────────────
@@ -211,7 +244,7 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
         // After the migration ran, progress_photos no longer exists, so the
         // IF EXISTS guard exits early and the INSERT is skipped entirely.
         // This proves the idempotency — running the fold SQL N times is safe.
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(Postgres.GetConnectionString());
         await conn.OpenAsync(ct);
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
@@ -308,7 +341,7 @@ public class PlanPhotoMigrationFoldTests : IAsyncLifetime
         // Seed one orphaned progress_photos row whose client_profile_id does NOT exist.
         // The FK constraint on progress_photos.client_profile_id prevents a normal INSERT,
         // so we disable FK triggers for this session, insert the orphan, then re-enable.
-        await using (var conn = new NpgsqlConnection(_postgres.GetConnectionString()))
+        await using (var conn = new NpgsqlConnection(Postgres.GetConnectionString()))
         {
             await conn.OpenAsync(ct);
 

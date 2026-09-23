@@ -52,25 +52,44 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// <c>FitnessApiFactory</c> on purpose — dropping <c>weekly_check_ins</c> inside the shared
 /// fixture would poison every sibling in <c>TestCollection</c>.
 /// </summary>
-public class SchedulerResilienceTests : IAsyncLifetime
+/// <summary>
+/// Shared Testcontainers Postgres fixture for <see cref="SchedulerResilienceTests"/>. Boots
+/// ONCE for the collection (#1104) instead of per fact — each fact resets the schema back to
+/// fully-migrated in its own <see cref="IAsyncLifetime.InitializeAsync"/> because every fact
+/// drops a table (<c>weekly_check_ins</c> or <c>photo_diary_reminder_logs</c>) that must exist
+/// before that fact runs.
+/// </summary>
+public class SchedulerResilienceContainerFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16")
-        .Build();
+    public PostgreSqlContainer Postgres { get; } = new PostgreSqlBuilder("postgres:16").Build();
+
+    public async ValueTask InitializeAsync() => await Postgres.StartAsync();
+
+    public async ValueTask DisposeAsync() => await Postgres.DisposeAsync();
+}
+
+[CollectionDefinition("SchedulerResilience")]
+public class SchedulerResilienceCollection : ICollectionFixture<SchedulerResilienceContainerFixture>;
+
+[Collection("SchedulerResilience")]
+public class SchedulerResilienceTests(SchedulerResilienceContainerFixture containerFixture) : IAsyncLifetime
+{
+    private PostgreSqlContainer Postgres => containerFixture.Postgres;
 
     public async ValueTask InitializeAsync()
     {
-        await _postgres.StartAsync();
-
         await using var db = BuildContext();
+        await db.Database.ExecuteSqlRawAsync("DROP SCHEMA IF EXISTS public CASCADE");
+        await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA public");
         await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     private ApplicationDbContext BuildContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(Postgres.GetConnectionString())
             .UseSnakeCaseNamingConvention()
             .ConfigureWarnings(w =>
                 w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
@@ -140,7 +159,7 @@ public class SchedulerResilienceTests : IAsyncLifetime
 
     private async Task DropTableAsync(string table)
     {
-        await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var connection = new NpgsqlConnection(Postgres.GetConnectionString());
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = $"DROP TABLE {table} CASCADE;";
