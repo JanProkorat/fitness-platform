@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -38,19 +40,18 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";
 
     /// <summary>
-    /// Registers a user and returns their <c>ApplicationUser.Id</c>.
+    /// Creates a user and returns their <c>ApplicationUser.Id</c>. #1104: built directly via
+    /// <see cref="TestActors"/> — this test's subject is the row-lock, not registration.
     /// </summary>
     private async Task<Guid> RegisterAndResolveUserIdAsync(string email, string role)
     {
-        var http = factory.CreateClient();
-        var response = await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Race", "Subject", role);
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var userRole = Enum.Parse<UserRole>(role, ignoreCase: true);
+        var builder = userRole == UserRole.Client
+            ? TestActors.Client(factory)
+            : TestActors.Professional(factory, userRole);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.AsNoTracking()
-            .FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return user.Id;
+        var actor = await builder.WithEmail(email).CreateAsync(TestContext.Current.CancellationToken);
+        return actor.UserId;
     }
 
     /// <summary>
@@ -153,16 +154,18 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
         var inviteA = await CreateNutritionistInviteAsync(clientEmail);
         var inviteB = await CreateNutritionistInviteAsync(clientEmail);
 
-        var registerResponse = await TestHelpers.RegisterAsync(
-            factory.CreateClient(), clientEmail, "TestPass1!", "Dual", "Invitee", "Client");
-        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        // #1104: the client actor is built directly via TestActors — this test's subject is the
+        // accept-invite race, not registration. Two separate HttpClients carrying the SAME
+        // identity, matching "the client races their own two accepts from two tabs".
+        var clientActor = await TestActors.Client(factory)
+            .WithEmail(clientEmail)
+            .CreateAsync(ct);
 
-        // Two separate clients so the two accepts really are two concurrent connections.
-        var clientOne = factory.CreateClient();
+        var clientOne = clientActor.Http;
         var clientTwo = factory.CreateClient();
-        var (token, _) = await TestHelpers.LoginAsync(clientOne, clientEmail, "TestPass1!");
-        TestHelpers.SetBearerToken(clientOne, token);
-        TestHelpers.SetBearerToken(clientTwo, token);
+        TestHelpers.SetBearerToken(
+            clientTwo,
+            TestTokenFactory.CreateAccessToken(factory, clientActor.UserId, clientEmail, ["Client"]));
 
         var responses = await Task.WhenAll(
             clientOne.PostAsJsonAsync($"/client/invites/{inviteA}/accept", new { }, ct),
@@ -199,13 +202,11 @@ public class ProfessionSlotRaceTests(FitnessApiFactory factory)
     /// </summary>
     private async Task<Guid> CreateNutritionistInviteAsync(string clientEmail)
     {
-        var coachHttp = factory.CreateClient();
-        var coachEmail = UniqueEmail("dual-invite-coach");
-        await TestHelpers.RegisterAsync(coachHttp, coachEmail, "TestPass1!", "Nutri", "Coach", "Nutritionist");
-        var (coachToken, _) = await TestHelpers.LoginAsync(coachHttp, coachEmail, "TestPass1!");
-        TestHelpers.SetBearerToken(coachHttp, coachToken);
+        var coach = await TestActors.Nutritionist(factory)
+            .WithEmail(UniqueEmail("dual-invite-coach"))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        var response = await coachHttp.PostAsJsonAsync("/trainer/pending-invites", new
+        var response = await coach.Http.PostAsJsonAsync("/trainer/pending-invites", new
         {
             FirstName = "Dual",
             LastName = "Invitee",

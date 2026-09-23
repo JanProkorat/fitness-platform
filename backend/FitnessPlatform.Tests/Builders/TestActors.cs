@@ -57,6 +57,13 @@ public static class TestActors
     /// </summary>
     public static LinkBuilder Link(FitnessApiFactory factory, Actor professional, Actor client) =>
         new(factory, professional.ProfileId, client.ProfileId);
+
+    /// <summary>
+    /// Builds a <see cref="ClientProfessionalLink"/> from raw profile ids — for fixtures that
+    /// already hold ids rather than full <see cref="Actor"/> records.
+    /// </summary>
+    public static LinkBuilder Link(FitnessApiFactory factory, long professionalProfileId, long clientProfileId) =>
+        new(factory, professionalProfileId, clientProfileId);
 }
 
 /// <summary>
@@ -152,6 +159,12 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
     private DateTime _dateCreated = DateTime.UtcNow;
 
     /// <summary>
+    /// The link's public id, pre-generated so callers can read it without a second DB round
+    /// trip after <see cref="CreateAsync"/> completes.
+    /// </summary>
+    public Guid PublicId { get; } = Guid.NewGuid();
+
+    /// <summary>
     /// Sets the professional role recorded on the link (defaults to <see cref="UserRole.Trainer"/>).
     /// </summary>
     public LinkBuilder AsRole(UserRole role) { _professionalRole = role; return this; }
@@ -186,7 +199,7 @@ public sealed class LinkBuilder(FitnessApiFactory factory, long professionalProf
 
         var link = new ClientProfessionalLink
         {
-            PublicId = Guid.NewGuid(),
+            PublicId = PublicId,
             ProfessionalProfileId = professionalProfileId,
             ClientProfileId = clientProfileId,
             ProfessionalRole = _professionalRole,
