@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,9 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
         var (clientToken, _) = await TestHelpers.LoginAsync(clientHttp, clientEmail, Password);
         TestHelpers.SetBearerToken(clientHttp, clientToken);
 
+        // A live link is required to start a NEW conversation — see StartConversationEndpoint.
+        await LinkAsync(trainerEmail, clientEmail);
+
         // Start conversation
         var convResp = await clientHttp.PostAsJsonAsync(
             "/conversations",
@@ -66,6 +70,36 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
         var conversationId = convBody!.Id;
 
         return (trainerHttp, clientHttp, conversationId);
+    }
+
+    /// <summary>
+    /// Creates a live <c>ClientProfessionalLink</c> between the two registered users so
+    /// <c>POST /conversations</c> can start a NEW conversation — a first message requires a
+    /// currently live link (StartConversationEndpoint, #1095).
+    /// </summary>
+    private async Task LinkAsync(string trainerEmail, string clientEmail)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var trainerUserId = (await db.Users.FirstAsync(u => u.Email == trainerEmail, ct)).Id;
+        var clientUserId = (await db.Users.FirstAsync(u => u.Email == clientEmail, ct)).Id;
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == clientUserId, ct);
+        var professionalProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == trainerUserId, ct);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = true,
+            DateCreated = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     /// <summary>

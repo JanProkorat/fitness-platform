@@ -5,17 +5,20 @@
  * no project at all).
  *
  * Verifies the wireframe's layout contract: the six not-yet-built tabs and
- * all four header buttons render disabled with the shell's coming-soon
- * treatment, every card the backend cannot supply a value for shows the
- * literal TBD placeholder, the Messages trend widget renders its four
- * W1-W4 groups, and — the AC this issue's backend slice exists for — the
- * detail page's status pill text equals the same client's status badge on
- * the clients list, asserted by comparison rather than a hardcoded word.
+ * the three still-unbuilt header buttons render disabled with the shell's
+ * coming-soon treatment, every card the backend cannot supply a value for
+ * shows the literal TBD placeholder, the Messages trend widget renders its
+ * four W1-W4 groups, and — the AC this issue's backend slice exists for —
+ * the detail page's status pill text equals the same client's status badge
+ * on the clients list, asserted by comparison rather than a hardcoded word.
+ *
+ * Chat went live in #1095 — it is no longer in DISABLED_BUTTON_NAMES; its
+ * own assertion below checks it navigates to `/inbox?client=<publicId>`.
  */
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 const DISABLED_TAB_NAMES = ['Development', 'Nutrition', 'Workouts', 'Storage', 'Payment', 'Automations'];
-const DISABLED_BUTTON_NAMES = ['Chat', 'Tasks', 'Notes', 'Info'];
+const DISABLED_BUTTON_NAMES = ['Tasks', 'Notes', 'Info'];
 
 test.describe('client detail page — overview tab', () => {
   test('renders the layout contract: coming-soon tabs/buttons, TBD cards, W1-W4 trend labels, and a status pill matching the clients list', async ({
@@ -50,10 +53,17 @@ test.describe('client detail page — overview tab', () => {
       await expect(tab).toBeDisabled();
     }
 
-    // All four header action buttons render disabled.
+    // The three still-unbuilt header action buttons render disabled.
     for (const buttonName of DISABLED_BUTTON_NAMES) {
       await expect(page.getByRole('button', { name: new RegExp(buttonName) })).toBeDisabled();
     }
+
+    // Chat is live (#1095) — it's a link, not a disabled button, and it
+    // carries this client's publicId as the inbox deep-link query param.
+    const chatLink = page.getByRole('link', { name: 'Chat' });
+    await expect(chatLink).toBeVisible();
+    const chatHref = await chatLink.getAttribute('href');
+    expect(chatHref).toMatch(/^\/inbox\?client=[0-9a-f-]{36}$/);
 
     // TBD cards — average rating, payments, the check-in trend, and the
     // Tasks button all render the literal TBD placeholder unconditionally,

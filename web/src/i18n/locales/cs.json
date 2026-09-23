@@ -190,7 +190,7 @@
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienti",
-    "inbox": "Doručená pošta",
+    "inbox": "Zprávy",
     "ingredients": "Suroviny",
     "foods": "Potraviny",
     "plans": "Plány",
@@ -2374,6 +2374,56 @@
         }
       }
     }
+  },
+  "inbox": {
+    "activeView": "Aktivní",
+    "archivedView": "Archivováno",
+    "searchPlaceholder": "Hledat konverzace...",
+    "emptyState": {
+      "title": "Vyberte konverzaci pro zahájení zprávy",
+      "subtitle": "Zde najdete zprávy od klientů, dotazy k tréninku a údaje z onboardingu."
+    },
+    "filters": {
+      "groupLabel": "Filtrovat konverzace",
+      "all": "Vše",
+      "failedPayments": "Neúspěšné platby",
+      "unreadMessages": "Nepřečtené zprávy",
+      "noMessages": "Bez zpráv",
+      "newCheckIns": "Nové check-iny",
+      "blockedAutomations": "Blokované automatizace",
+      "missingCheckIns": "Chybějící check-iny",
+      "endingSoon": "Brzy končí",
+      "tasksOverdue": "Prošlé úkoly"
+    },
+    "row": {
+      "yesterday": "Včera",
+      "noConversationYet": "Zatím bez zpráv — napište první",
+      "unreadAriaLabel": "Nepřečteno"
+    },
+    "noConversations": "Nebyly nalezeny žádné konverzace",
+    "thread": {
+      "showClient": "Zobrazit klienta",
+      "hideClient": "Skrýt klienta",
+      "clientPanelTitle": "Detail klienta",
+      "settingsAriaLabel": "Nastavení konverzace",
+      "openClientProfileAriaLabel": "Otevřít profil klienta",
+      "loadingOlder": "Načítání starších zpráv…"
+    },
+    "typingIndicator": "Píše…",
+    "composer": {
+      "placeholder": "Napište zprávu...",
+      "sendAriaLabel": "Odeslat zprávu",
+      "attachFileAriaLabel": "Přiložit soubor",
+      "attachImageAriaLabel": "Přiložit obrázek",
+      "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Tuto konverzaci se nepodařilo otevřít."
+    },
+    "loadError": "Doručenou poštu se nepodařilo načíst."
   },
   "messages": {
     "title": "Zprávy",

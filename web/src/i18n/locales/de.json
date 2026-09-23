@@ -190,7 +190,7 @@
     "dashboard": "Dashboard",
     "profile": "Profil",
     "clients": "Klienten",
-    "inbox": "Posteingang",
+    "inbox": "Nachrichten",
     "ingredients": "Zutaten",
     "foods": "Lebensmittel",
     "plans": "Pläne",
@@ -2328,6 +2328,56 @@
         }
       }
     }
+  },
+  "inbox": {
+    "activeView": "Aktiv",
+    "archivedView": "Archiviert",
+    "searchPlaceholder": "Chats durchsuchen...",
+    "emptyState": {
+      "title": "Wählen Sie einen Chat aus, um eine Unterhaltung zu beginnen",
+      "subtitle": "Ihr Kunden-Posteingang, Trainingsfragen und Onboarding-Kennzahlen finden Sie hier."
+    },
+    "filters": {
+      "groupLabel": "Gespräche filtern",
+      "all": "Alle",
+      "failedPayments": "Fehlgeschlagene Zahlungen",
+      "unreadMessages": "Ungelesene Nachrichten",
+      "noMessages": "Keine Nachrichten",
+      "newCheckIns": "Neue Check-ins",
+      "blockedAutomations": "Blockierte Automatisierungen",
+      "missingCheckIns": "Fehlende Check-ins",
+      "endingSoon": "Endet bald",
+      "tasksOverdue": "Überfällige Aufgaben"
+    },
+    "row": {
+      "yesterday": "Gestern",
+      "noConversationYet": "Noch keine Nachrichten — schreiben Sie zuerst",
+      "unreadAriaLabel": "Ungelesen"
+    },
+    "noConversations": "Keine Gespräche gefunden",
+    "thread": {
+      "showClient": "Kunde anzeigen",
+      "hideClient": "Kunde ausblenden",
+      "clientPanelTitle": "Kundendetails",
+      "settingsAriaLabel": "Gesprächseinstellungen",
+      "openClientProfileAriaLabel": "Kundenprofil öffnen",
+      "loadingOlder": "Ältere Nachrichten werden geladen…"
+    },
+    "typingIndicator": "Schreibt gerade…",
+    "composer": {
+      "placeholder": "Nachricht eingeben...",
+      "sendAriaLabel": "Nachricht senden",
+      "attachFileAriaLabel": "Datei anhängen",
+      "attachImageAriaLabel": "Bild anhängen",
+      "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut."
+    },
+    "video": {
+      "label": "Video"
+    },
+    "deepLink": {
+      "error": "Dieser Chat konnte nicht geöffnet werden."
+    },
+    "loadError": "Der Posteingang konnte nicht geladen werden."
   },
   "messages": {
     "title": "Nachrichten",

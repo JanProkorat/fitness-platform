@@ -36,6 +36,8 @@
   --gf-pill: #1e1e22; /* active nav item, dark CTA */
   --gf-green: #15803d; /* primary action, accents */
   --gf-green-dark: #166534; /* active filter chip's inner count badge (#1066 phase 6) */
+  --gf-bubble: #f1f5f9; /* incoming chat bubble fill, #1095 — distinct from --gf-line
+    (borders) and --gf-paper (page ground, which is why bg-muted was invisible here) */
 
   /* ---- Dark sidebar (#1073) ---- */
   --gf-sidebar-bg: #121214; /* sidebar ground — distinct from --gf-pill, see shell-inventory.md #2 */
@@ -165,6 +167,7 @@
   --color-pill: var(--gf-pill);
   --color-brand: var(--gf-green);
   --color-green-dark: var(--gf-green-dark);
+  --color-bubble: var(--gf-bubble);
   --color-sidebar-bg: var(--gf-sidebar-bg);
   --color-sidebar-accent: var(--gf-sidebar-accent);
 

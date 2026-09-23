@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +41,37 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
 
         body.Should().NotBeNull();
         return body!.BlobUrl;
+    }
+
+    /// <summary>
+    /// Creates a live <c>ClientProfessionalLink</c> between the two registered users so
+    /// <c>POST /conversations</c> can start a NEW conversation — a first message requires a
+    /// currently live link (StartConversationEndpoint, #1095).
+    /// </summary>
+    private async Task LinkAsync(string trainerEmail, string clientEmail)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider
+            .GetRequiredService<FitnessPlatform.Application.Infrastructure.Data.ApplicationDbContext>();
+
+        var trainerUserId = (await db.Users.FirstAsync(u => u.Email == trainerEmail, ct)).Id;
+        var clientUserId = (await db.Users.FirstAsync(u => u.Email == clientEmail, ct)).Id;
+        var clientProfile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == clientUserId, ct);
+        var professionalProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == trainerUserId, ct);
+
+        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalProfileId = professionalProfile.Id,
+            ClientProfileId = clientProfile.Id,
+            ProfessionalRole = UserRole.Trainer,
+            IsActive = true,
+            CanViewNutritionPlans = true,
+            CanViewTrainingPlans = true,
+            DateCreated = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     // ── POST /conversations ──────────────────────────────────────────────────
@@ -85,6 +118,8 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(clientHttp, clientEmail, Password, "Bob", "Client", "Client");
         var (clientToken, _) = await TestHelpers.LoginAsync(clientHttp, clientEmail, Password);
         TestHelpers.SetBearerToken(clientHttp, clientToken);
+
+        await LinkAsync(trainerEmail, clientEmail);
 
         var resp = await clientHttp.PostAsJsonAsync(
             "/conversations",
@@ -143,6 +178,8 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         var (clientToken, _) = await TestHelpers.LoginAsync(clientHttp, clientEmail, Password);
         TestHelpers.SetBearerToken(clientHttp, clientToken);
 
+        await LinkAsync(trainerEmail, clientEmail);
+
         var resp = await clientHttp.PostAsJsonAsync(
             "/conversations",
             new { ParticipantId = profPublicId },
@@ -198,6 +235,8 @@ public class ParticipantAvatarTests(FitnessApiFactory factory)
         await TestHelpers.RegisterAsync(clientHttp, clientEmail, Password, "Frank", "Client", "Client");
         var (clientToken, _) = await TestHelpers.LoginAsync(clientHttp, clientEmail, Password);
         TestHelpers.SetBearerToken(clientHttp, clientToken);
+
+        await LinkAsync(trainerEmail, clientEmail);
 
         // Start conversation so it appears in the list
         await clientHttp.PostAsJsonAsync(

@@ -3,7 +3,10 @@ using FastEndpoints;
 using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
-using FitnessPlatform.Application.Features.Messaging.GetConversations;
+using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Messaging.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +17,27 @@ namespace FitnessPlatform.Application.Features.Messaging.StartConversation;
 /// Accepts a participant profile PublicId (ClientProfile or ProfessionalProfile)
 /// and resolves it to the correct user.
 /// </summary>
-public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<StartConversationRequest, ConversationDto>
+/// <remarks>
+/// A first message requires a currently live link between the caller and the participant — an
+/// unknown participant profile 404s, and a resolvable participant with no live link 404s with
+/// <see cref="ErrorCodes.NotLinkedToClient"/>, unless the caller is a Client with a
+/// <see cref="ClientRequestStatus.Pending"/> <see cref="ClientRequest"/> to that professional —
+/// mobile sends the join request and the intro chat message back-to-back
+/// (<c>useCollaboration.ts</c>), before the professional has accepted. The professional-caller
+/// path is unchanged: a professional never gets this exception. A conversation that already
+/// exists for the pair is always returned, regardless of link liveness — reopening a thread from
+/// a former collaboration must not be blocked by the same check that gates starting a new one.
+/// Capability flags (<c>CanViewNutritionPlans</c>/<c>CanViewTrainingPlans</c>) are deliberately
+/// not checked — messaging ignores them, same as <c>BroadcastMessageEndpoint</c>.
+/// </remarks>
+/// <param name="db">Relational database context.</param>
+/// <param name="linkAuthorizationService">Resolves whether the caller has a live link to the participant.</param>
+public class StartConversationEndpoint(
+    IApplicationDbContext db,
+    IClientLinkAuthorizationService linkAuthorizationService)
+    : Endpoint<StartConversationRequest, ConversationDto>
 {
+    /// <inheritdoc />
     public override void Configure()
     {
         Post("/conversations");
@@ -23,10 +45,19 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
         Summary(s =>
         {
             s.Summary = "Start or get a conversation";
-            s.Description = "Gets an existing conversation with the specified participant. Creates one if it doesn't exist. Pass the participant's profile PublicId.";
+            s.Description = "Gets an existing conversation with the specified participant. Creates " +
+                             "one if it doesn't exist and the caller currently has a live link with " +
+                             "the participant. Pass the participant's profile PublicId.";
+            s.Responses[StatusCodes.Status200OK] = "The existing or newly created conversation.";
+            s.Responses[StatusCodes.Status404NotFound] = "The participant id does not resolve to a " +
+                                                           "profile, or no conversation exists yet and " +
+                                                           "the caller has no live link to the participant " +
+                                                           "(a Client caller with a pending join request " +
+                                                           "to that professional is exempt).";
         });
     }
 
+    /// <inheritdoc />
     public override async Task HandleAsync(StartConversationRequest req, CancellationToken ct)
     {
         var userId = User.FindFirstValue(AppClaims.UserId);
@@ -42,6 +73,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
         // For professionals the avatar falls back from profile-level to user-level;
         // for clients only the user-level avatar exists (ClientProfile has no AvatarBlobUrl).
         string? participantAvatarBlobUrl;
+        Guid? participantClientPublicId;
 
         if (isProfessional)
         {
@@ -58,6 +90,7 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             otherUser = client.User;
             // ClientProfile has no dedicated AvatarBlobUrl; use the user-level avatar.
             participantAvatarBlobUrl = client.User.AvatarBlobUrl;
+            participantClientPublicId = client.PublicId;
         }
         else
         {
@@ -74,9 +107,11 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
             otherUser = prof.User;
             // Prefer the professional-profile avatar; fall back to the user-level avatar.
             participantAvatarBlobUrl = prof.AvatarBlobUrl ?? prof.User.AvatarBlobUrl;
+            participantClientPublicId = null;
         }
 
-        // Check if conversation already exists
+        // A conversation that already exists is always reopened, regardless of link liveness —
+        // see the class remarks. Only starting a NEW conversation requires a live link.
         var existing = await db.Conversations
             .Include(c => c.Messages)
             .FirstOrDefaultAsync(c =>
@@ -84,23 +119,34 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
 
         if (existing is not null)
         {
-            await Send.OkAsync(new ConversationDto
-            {
-                Id = existing.PublicId,
-                Participant = new ParticipantDto
-                {
-                    Id = otherUser.Id,
-                    Name = otherUser.FirstName + " " + otherUser.LastName,
-                    Initials = ComputeInitials(otherUser.FirstName, otherUser.LastName, otherUser.Email),
-                    Online = false,
-                    AvatarBlobUrl = participantAvatarBlobUrl,
-                },
-                LastMessage = existing.LastMessageText ?? "",
-                LastMessageAt = existing.LastMessageAt ?? existing.DateCreated,
-                LastMessageIsOwn = existing.LastMessageSenderId == userGuid,
-                UnreadCount = existing.Messages.Count(m => !m.IsRead && m.SenderUserId != userGuid),
-            }, ct);
+            await Send.OkAsync(
+                BuildResponse(existing, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid), ct);
             return;
+        }
+
+        // No conversation yet — a first message requires a currently live link between the
+        // caller and the participant. Capability flags are not checked (see class remarks).
+        var capabilities = await linkAuthorizationService.GetCapabilitiesByClientUserIdAsync(
+            professionalUserId, clientUserId, ct);
+
+        if (capabilities is null)
+        {
+            // A Client caller with no live link may still start the conversation if they have a
+            // pending join request to this professional (see class remarks). The professional
+            // caller path never satisfies this — isProfessional short-circuits the query.
+            var hasPendingJoinRequest = !isProfessional && await db.ClientRequests
+                .AsNoTracking()
+                .AnyAsync(r =>
+                    r.ClientProfile.UserId == clientUserId &&
+                    r.ProfessionalProfile.UserId == professionalUserId &&
+                    r.Status == ClientRequestStatus.Pending, ct);
+
+            if (!hasPendingJoinRequest)
+            {
+                await this.SendProblemAsync(
+                    404, ErrorCodes.NotLinkedToClient, "The caller has no active link with this participant.", ct);
+                return;
+            }
         }
 
         var conversation = new Conversation
@@ -112,7 +158,17 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
         db.Conversations.Add(conversation);
         await db.SaveChangesAsync(ct);
 
-        await Send.OkAsync(new ConversationDto
+        await Send.OkAsync(
+            BuildResponse(conversation, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid), ct);
+    }
+
+    private static ConversationDto BuildResponse(
+        Conversation conversation,
+        ApplicationUser otherUser,
+        string? participantAvatarBlobUrl,
+        Guid? participantClientPublicId,
+        Guid callerUserId) =>
+        new()
         {
             Id = conversation.PublicId,
             Participant = new ParticipantDto
@@ -122,13 +178,13 @@ public class StartConversationEndpoint(IApplicationDbContext db) : Endpoint<Star
                 Initials = ComputeInitials(otherUser.FirstName, otherUser.LastName, otherUser.Email),
                 Online = false,
                 AvatarBlobUrl = participantAvatarBlobUrl,
+                ClientPublicId = participantClientPublicId,
             },
-            LastMessage = "",
-            LastMessageAt = conversation.DateCreated,
-            LastMessageIsOwn = false,
-            UnreadCount = 0,
-        }, ct);
-    }
+            LastMessage = conversation.LastMessageText ?? "",
+            LastMessageAt = conversation.LastMessageAt ?? conversation.DateCreated,
+            LastMessageIsOwn = conversation.LastMessageSenderId == callerUserId,
+            UnreadCount = conversation.Messages.Count(m => !m.IsRead && m.SenderUserId != callerUserId),
+        };
 
     /// <summary>
     /// Computes a two-letter initials fallback for a participant's avatar badge.

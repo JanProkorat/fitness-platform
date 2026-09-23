@@ -406,4 +406,8 @@ public static class ErrorCodes
     /// the authorization gates.
     /// </summary>
     public const string BroadcastMessageTooLongAfterSubstitution = "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION";
+
+    // ── Messaging Inbox Filter (#1095) ──────────────────────────────────
+    /// <summary>A non-All conversation filter chip was requested by a caller who is not a professional.</summary>
+    public const string FilterRequiresProfessionalCaller = "FILTER_REQUIRES_PROFESSIONAL_CALLER";
 }

@@ -32,16 +32,23 @@ test.describe('clients list page', () => {
   });
 
   test('selecting a filter chip updates the URL and marks the chip active', async ({ page }) => {
-    // "No messages" is the QA seed fixture's one non-zero non-"All" chip
-    // (the single seeded client has no unread messages) — the others start
-    // disabled at count 0, so this is the one chip guaranteed clickable
-    // against the deterministic seed baseline.
-    const noMessagesChip = page.getByRole('button', { name: /No messages/ });
-    await noMessagesChip.click();
+    // "No messages" was the QA seed fixture's one non-zero non-"All" chip
+    // pre-#1095. It reads 0 on this tab now: #1095 seeded a NEW third
+    // client (qa.client3, no conversation, no active plan) specifically to
+    // keep this chip populated, but a plan-less live-linked client is
+    // classified Paused (ClientStatusClassifier.Classify — #1094), not
+    // Active, so it doesn't appear on this page's default Active tab at
+    // all (it's on the Paused tab; see inbox.spec.ts's filter-parity test,
+    // which unions Active+Paused to match the inbox's tab-independent
+    // roster and finds it there). "Unread messages" is the chip #1095
+    // actually left non-zero on the Active tab — the original QA Client
+    // now has a seeded conversation with one unread message.
+    const unreadMessagesChip = page.getByRole('button', { name: /Unread messages/ });
+    await unreadMessagesChip.click();
     await page.waitForLoadState('networkidle');
 
-    await expect(page).toHaveURL(/chip=NoMessages/);
-    await expect(noMessagesChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(/chip=UnreadMessages/);
+    await expect(unreadMessagesChip).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('inviting a new client sends the invite and closes the drawer', async ({ page }) => {

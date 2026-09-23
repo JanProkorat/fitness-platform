@@ -290,6 +290,39 @@ public class QaSeedRunnerTests : IAsyncLifetime
             .Should().Be(1, "avatar must be uploaded exactly once — idempotency guard prevents re-upload");
         _factory.BlobStorage.UploadCalls.Count(k => k == QaSeedRunner.QaFoodImageBlobKey)
             .Should().Be(1, "food image must be uploaded exactly once — idempotency guard prevents re-upload");
+
+        // #1095 — third client (no conversation, no active plan) linked to qa.trainer exactly once.
+        var client3Count = await db.Users.CountAsync(u => u.Email == QaSeedRunner.Client3Email, ct);
+        client3Count.Should().Be(1, "the QA third-client (#1095) user must be created exactly once");
+
+        var client3Profile = await db.ClientProfiles.FirstAsync(cp => cp.UserId == QaSeedRunner.Client3UserId, ct);
+        var trainerProfile = await db.ProfessionalProfiles.FirstAsync(pp => pp.UserId == QaSeedRunner.TrainerUserId, ct);
+        var client3LinkCount = await db.ClientProfessionalLinks.CountAsync(
+            l => l.ClientProfileId == client3Profile.Id && l.ProfessionalProfileId == trainerProfile.Id, ct);
+        client3LinkCount.Should().Be(1, "the qa.trainer <-> client3 link must be created exactly once");
+
+        // #1095 — inbox conversation + its three messages, created exactly once.
+        var conversationCount = await db.Conversations.CountAsync(
+            c => c.PublicId == QaSeedRunner.QaInboxConversationId, ct);
+        conversationCount.Should().Be(1, "the QA inbox conversation must be created exactly once");
+
+        var inboxMessageIds = new[]
+        {
+            QaSeedRunner.QaInboxMessage1Id,
+            QaSeedRunner.QaInboxMessage2Id,
+            QaSeedRunner.QaInboxMessage3Id,
+        };
+        var inboxMessageCount = await db.ChatMessages.CountAsync(m => inboxMessageIds.Contains(m.PublicId), ct);
+        inboxMessageCount.Should().Be(3, "all three QA inbox messages must be present with no duplicates");
+
+        // #1095 — the two weekly check-in fixtures, created exactly once.
+        var checkInIds = new[]
+        {
+            QaSeedRunner.QaWeeklyCheckInRespondedUnreviewedId,
+            QaSeedRunner.QaWeeklyCheckInExpiredId,
+        };
+        var checkInCount = await db.WeeklyCheckIns.CountAsync(w => checkInIds.Contains(w.Id), ct);
+        checkInCount.Should().Be(2, "both QA weekly check-in fixtures must be present with no duplicates");
     }
 
     /// <summary>
@@ -361,6 +394,15 @@ public class QaSeedRunnerTests : IAsyncLifetime
             Builders<NutritionPlan>.Filter.Empty,
             cancellationToken: ct))
             .Should().Be(0, "minimal seed skips the nutrition plan");
+
+        // #1095 — the inbox conversation, its messages, the weekly check-ins, and the third
+        // client's link are all part of the Rich-only fixture set.
+        (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaInboxConversationId, ct))
+            .Should().Be(0, "minimal seed skips the QA inbox conversation");
+        (await db.WeeklyCheckIns.CountAsync(ct))
+            .Should().Be(0, "minimal seed skips all weekly check-ins");
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.Client3Email, ct))
+            .Should().Be(0, "minimal seed skips the third client");
 
         // No blob uploads in minimal mode.
         _factory.BlobStorage.UploadCalls.Should().BeEmpty("minimal seed skips both image blobs");
@@ -1464,9 +1506,11 @@ public class QaSeedRunnerTests : IAsyncLifetime
         answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
 
         // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
-        // nutritionist↔client link = 3 total.
+        // nutritionist↔client link + the #1095 qa.trainer↔client3 link = 4 total.
         var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
-        linkCount.Should().Be(3, "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720), no duplicates on re-seed");
+        linkCount.Should().Be(4,
+            "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720) + 1 qa.trainer↔client3 " +
+            "link (#1095), no duplicates on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
