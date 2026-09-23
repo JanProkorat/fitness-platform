@@ -36,6 +36,41 @@ public class ChatMessage : PublicTimestampableEntity
     public bool IsRead { get; set; }
 
     /// <summary>
+    /// The permanent blob storage key of this message's image attachment
+    /// (<c>chat/{conversationPublicId}/{messagePublicId}.{ext}</c>), or null when the message
+    /// carries no image. Never rendered directly — always resolved through
+    /// <c>IBlobStorageService.GenerateReadUrlAsync</c> before reaching a response.
+    /// </summary>
+    [MaxLength(1000)]
+    public string? ImageBlobUrl { get; set; }
+
+    /// <summary>
+    /// The sniffed content type of the image attachment (<c>image/jpeg</c>, <c>image/png</c>, or
+    /// <c>image/webp</c>) — the type actually detected from the file's magic bytes, not the
+    /// client-declared one. Null when the message carries no image.
+    /// </summary>
+    [MaxLength(32)]
+    public string? ImageContentType { get; set; }
+
+    /// <summary>
+    /// The image attachment's byte size, as measured on the staged object. Null when the message
+    /// carries no image.
+    /// </summary>
+    public long? ImageSizeBytes { get; set; }
+
+    /// <summary>
+    /// The image attachment's width in pixels, as reported by the client. A layout hint only —
+    /// never trusted for security. Null when the message carries no image.
+    /// </summary>
+    public int? ImageWidth { get; set; }
+
+    /// <summary>
+    /// The image attachment's height in pixels, as reported by the client. A layout hint only —
+    /// never trusted for security. Null when the message carries no image.
+    /// </summary>
+    public int? ImageHeight { get; set; }
+
+    /// <summary>
     /// Navigation property to the conversation.
     /// </summary>
     public Conversation Conversation { get; set; } = null!;

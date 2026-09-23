@@ -61,6 +61,13 @@ public class Conversation : PublicTimestampableEntity
     public bool IsFormer { get; set; }
 
     /// <summary>
+    /// Whether the last message in this conversation carries an image attachment. Set explicitly
+    /// on every send (true or false) — never inferred from <see cref="LastMessageText"/>, which
+    /// stays an empty string for an image-only message rather than a literal marker.
+    /// </summary>
+    public bool LastMessageHasImage { get; set; }
+
+    /// <summary>
     /// Messages in this conversation.
     /// </summary>
     public ICollection<ChatMessage> Messages { get; set; } = [];
