@@ -7,6 +7,11 @@ import { cn } from '@/lib/utils';
 import { extractYouTubeVideoId, findFirstUrl, stripUrlFromCaption } from '@/lib/youtube';
 import type { MessageDto, ParticipantDto } from '@/api/generated';
 
+/** Matches the `max-w-80` (20rem) Tailwind token on the image bubble wrapper below — the
+ * reserved box (see `imageBoxStyle`) must never exceed what that token already caps the
+ * bubble to, so the two stay tied together rather than drifting apart. */
+const IMAGE_BUBBLE_MAX_WIDTH_PX = 320;
+
 interface Props {
   message: MessageDto;
   isOwn: boolean;
@@ -34,9 +39,19 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
   const firstUrl = message.imageUrl ? null : findFirstUrl(text);
   const videoId = firstUrl ? extractYouTubeVideoId(firstUrl) : null;
   const caption = videoId && firstUrl ? stripUrlFromCaption(text, firstUrl) : '';
-  const aspectRatioStyle =
+  // A definite pixel width (never upscaled past the stored size) alongside aspect-ratio
+  // reserves the image's box before the file has loaded. `aspect-ratio` alone is not enough:
+  // it computes height from the box's own width, and before load the `<img>` has no intrinsic
+  // size and its containing block (the max-w-80 wrapper below) has no definite width either —
+  // both resolve to 0, so the thread scrolls to a `scrollHeight` that grows again once the
+  // image loads (#1096 QA finding: newest image cut off by ~40px). Falls back to the previous,
+  // unreserved behaviour when dimensions are missing.
+  const imageBoxStyle =
     message.imageWidth && message.imageHeight
-      ? { aspectRatio: `${message.imageWidth} / ${message.imageHeight}` }
+      ? {
+          width: Math.min(message.imageWidth, IMAGE_BUBBLE_MAX_WIDTH_PX),
+          aspectRatio: `${message.imageWidth} / ${message.imageHeight}`,
+        }
       : undefined;
 
   return (
@@ -53,7 +68,7 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
         >
           {imageLoadFailed ? (
             <div
-              style={aspectRatioStyle}
+              style={imageBoxStyle}
               className="flex flex-col items-center justify-center gap-1.5 p-6 text-caption text-muted-foreground"
             >
               <ImageOff className="size-6" aria-hidden="true" />
@@ -64,7 +79,7 @@ export default function MessageBubble({ message, isOwn, otherParticipant, ownIni
               <img
                 src={message.imageUrl}
                 alt={t('inbox.thread.imageAlt')}
-                style={aspectRatioStyle}
+                style={imageBoxStyle}
                 className="block w-full object-cover"
                 onError={() => setImageLoadFailed(true)}
               />
