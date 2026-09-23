@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,10 @@ namespace FitnessPlatform.Application.Features.Messaging.GetMessages;
 /// <summary>
 /// Returns paginated messages for a conversation.
 /// </summary>
-public class GetMessagesEndpoint(IApplicationDbContext db) : Endpoint<GetMessagesRequest, GetMessagesResponse>
+/// <param name="db">Relational database context.</param>
+/// <param name="blobStorage">Signs each message's stored image key into a short-lived read URL.</param>
+public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService blobStorage)
+    : Endpoint<GetMessagesRequest, GetMessagesResponse>
 {
     public override void Configure()
     {
@@ -66,23 +70,59 @@ public class GetMessagesEndpoint(IApplicationDbContext db) : Endpoint<GetMessage
             }
         }
 
-        var items = await query
+        var rows = await query
             .Take(limit)
-            .Select(m => new MessageDto
+            .Select(m => new MessageRow
             {
                 Id = m.PublicId,
                 SenderId = m.SenderUserId,
                 Text = m.Text,
                 Timestamp = m.DateCreated,
                 IsRead = m.IsRead,
+                ImageBlobUrl = m.ImageBlobUrl,
+                ImageWidth = m.ImageWidth,
+                ImageHeight = m.ImageHeight,
             })
             .ToListAsync(ct);
+
+        // Sign each stored image key into a fresh, short-lived read URL — never surface
+        // ImageBlobUrl (the permanent, unsigned identity value) to the client.
+        var items = new List<MessageDto>(rows.Count);
+        foreach (var row in rows)
+        {
+            items.Add(new MessageDto
+            {
+                Id = row.Id,
+                SenderId = row.SenderId,
+                Text = row.Text,
+                Timestamp = row.Timestamp,
+                IsRead = row.IsRead,
+                ImageUrl = row.ImageBlobUrl is not null
+                    ? await blobStorage.GenerateReadUrlAsync(row.ImageBlobUrl, ct) ?? string.Empty
+                    : null,
+                ImageWidth = row.ImageWidth,
+                ImageHeight = row.ImageHeight,
+            });
+        }
 
         Guid? nextCursor = null;
         if (items.Count == limit)
             nextCursor = items[^1].Id;
 
         await Send.OkAsync(new GetMessagesResponse { Items = items, Cursor = nextCursor }, ct);
+    }
+
+    /// <summary>Internal EF projection shape — carries the raw, unsigned <c>ImageBlobUrl</c> before signing.</summary>
+    private sealed class MessageRow
+    {
+        public Guid Id { get; set; }
+        public Guid SenderId { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public bool IsRead { get; set; }
+        public string? ImageBlobUrl { get; set; }
+        public int? ImageWidth { get; set; }
+        public int? ImageHeight { get; set; }
     }
 }
 
@@ -106,4 +146,10 @@ public class MessageDto
     public string Text { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsRead { get; set; }
+
+    /// <summary>Short-lived signed URL for the image attachment, or null for a text-only message.</summary>
+    public string? ImageUrl { get; set; }
+
+    public int? ImageWidth { get; set; }
+    public int? ImageHeight { get; set; }
 }

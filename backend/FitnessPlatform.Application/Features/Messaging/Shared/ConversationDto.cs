@@ -28,6 +28,13 @@ public class ConversationDto
     /// <summary>Number of unread messages sent by the other party.</summary>
     public int UnreadCount { get; set; }
 
+    /// <summary>
+    /// Whether the last message carries an image attachment. The client renders a localized
+    /// photo marker instead of raw text when this is true and <see cref="LastMessage"/> is
+    /// empty — never a literal stored in the database.
+    /// </summary>
+    public bool LastMessageHasImage { get; set; }
+
     /// <summary>Whether the professional-client collaboration has ended.</summary>
     public bool IsFormer { get; set; }
 }

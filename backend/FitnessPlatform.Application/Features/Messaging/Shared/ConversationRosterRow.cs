@@ -43,6 +43,12 @@ public sealed class ConversationRosterRow
     /// <summary>The last message's sender, or <c>null</c> when no conversation exists.</summary>
     public Guid? LastMessageSenderId { get; init; }
 
+    /// <summary>
+    /// Whether the last message carries an image attachment. False when no conversation
+    /// exists.
+    /// </summary>
+    public bool LastMessageHasImage { get; init; }
+
     /// <summary>Whether the caller (the professional) has archived this conversation.</summary>
     public bool IsArchivedByProfessional { get; init; }
 
