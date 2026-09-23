@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -86,6 +87,37 @@ public class GenerateChatImageUploadUrlEndpointTests(FitnessApiFactory factory)
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Registers a user with a publicly-registerable role, then swaps it out-of-band for
+    /// <see cref="UserRole.Admin"/> via <see cref="UserManager{TUser}"/> (Admin is intentionally
+    /// excluded from public self-registration — see <c>RegisterValidator</c>), so the resulting
+    /// caller holds ONLY the Admin role — none of Trainer/Nutritionist/Client — to prove the
+    /// endpoint's role gate rejects a genuinely excluded role.
+    /// </summary>
+    private async Task<HttpClient> SetupAdminOnlyCallerAsync(CancellationToken ct)
+    {
+        var http = factory.CreateClient();
+        var email = UniqueEmail();
+        await TestHelpers.RegisterAsync(http, email, Password, "Ada", "Admin", "Client");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await userManager.FindByEmailAsync(email);
+            var removeResult = await userManager.RemoveFromRoleAsync(user!, nameof(UserRole.Client));
+            removeResult.Succeeded.Should().BeTrue(
+                $"RemoveFromRoleAsync failed: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}");
+            var addResult = await userManager.AddToRoleAsync(user!, nameof(UserRole.Admin));
+            addResult.Succeeded.Should().BeTrue(
+                $"AddToRoleAsync failed: {string.Join(", ", addResult.Errors.Select(e => e.Description))}");
+        }
+
+        var (accessToken, _) = await TestHelpers.LoginAsync(http, email, Password);
+        TestHelpers.SetBearerToken(http, accessToken);
+
+        return http;
+    }
+
     // ── Tests ────────────────────────────────────────────────────────────────
 
     [Fact]
@@ -134,6 +166,24 @@ public class GenerateChatImageUploadUrlEndpointTests(FitnessApiFactory factory)
             ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task HandleAsync_CallerRoleNotAllowed_Returns403()
+    {
+        // Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Client) genuinely excludes
+        // Admin — the FastEndpoints role gate rejects it before the handler ever runs.
+        var ct = TestContext.Current.CancellationToken;
+        var (_, _, conversationId) = await SetupConversationAsync();
+
+        var adminHttp = await SetupAdminOnlyCallerAsync(ct);
+
+        var response = await adminHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages/image-upload-url",
+            new { ContentType = "image/jpeg", SizeBytes = 1024 },
+            ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
