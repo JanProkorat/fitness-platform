@@ -47,7 +47,7 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
 
   if (dashboardQuery.isPending) {
     return (
-      <div className="flex h-full w-[300px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 pt-12">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -56,7 +56,7 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
 
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
-      <div className="flex h-full w-[300px] shrink-0 items-center justify-center border-l border-border p-4">
+      <div className="flex min-h-0 flex-1 items-center justify-center p-4">
         <p className="text-caption text-muted-foreground">{t('common.loadError')}</p>
       </div>
     );
@@ -69,7 +69,7 @@ export default function ClientSidePanel({ clientPublicId }: Props) {
   const activeTrainingPlan = plansQuery.data?.plans?.find((p) => p.planType === 'Training' && p.status === 'Active');
 
   return (
-    <div className="flex h-full w-[300px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border p-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 pt-12">
       <ClientIdentityBlock dashboard={dashboard} headingLevel="h2" />
 
       <ClientOverviewStats dashboard={dashboard} measurements={measurementsQuery.data?.items ?? []} columns={2} />

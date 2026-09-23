@@ -2359,6 +2359,7 @@
     "thread": {
       "showClient": "Show client",
       "hideClient": "Hide client",
+      "clientPanelTitle": "Client details",
       "settingsAriaLabel": "Conversation settings",
       "openClientProfileAriaLabel": "Open client profile",
       "loadingOlder": "Loading older messages…"

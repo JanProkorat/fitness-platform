@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import ConversationList from '@/components/inbox/ConversationList';
 import ThreadPane from '@/components/inbox/ThreadPane';
 import ThreadEmptyState from '@/components/inbox/ThreadEmptyState';
 import ClientSidePanel from '@/components/inbox/ClientSidePanel';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import { useConversationFilterCounts, useConversations, useStartConversation } from '@/hooks/useInboxQueries';
 import { useSignalR } from '@/hooks/useSignalR';
 import { useAuthStore } from '@/stores/auth';
@@ -30,6 +33,7 @@ interface TypingPayload {
  * pixel sizes here are estimates, repo tokens win.
  */
 export default function InboxPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((s) => s.user?.publicId);
@@ -134,8 +138,18 @@ export default function InboxPage() {
   );
   useSignalR(signalRHandlers);
 
+  const isClientPanelOpen = showClientPanel && Boolean(selectedConversation?.participant?.clientPublicId);
+
   return (
-    <div className="-m-6 flex h-screen overflow-hidden">
+    // The drawer is fixed to the viewport's right edge at the sheet's sm:max-w-sm (24rem);
+    // reserving the same width here, in step with its slide, keeps own messages, the header
+    // toggle and the send button visible instead of hidden beneath it.
+    <div
+      className={cn(
+        '-m-6 flex h-screen overflow-hidden transition-[padding] duration-300 ease-out motion-reduce:transition-none',
+        isClientPanelOpen && 'sm:pr-96',
+      )}
+    >
       <ConversationList
         archived={archived}
         onArchivedChange={setArchived}
@@ -164,9 +178,28 @@ export default function InboxPage() {
         <ThreadEmptyState />
       )}
 
-      {showClientPanel && selectedConversation?.participant?.clientPublicId && (
-        <ClientSidePanel clientPublicId={selectedConversation.participant.clientPublicId} />
-      )}
+      {/* Non-modal, backdrop-free drawer: it slides in over the thread's right edge while
+          the list, thread and composer stay usable. Outside clicks and focus are left
+          alone so typing a reply never dismisses it. */}
+      <Sheet
+        open={isClientPanelOpen}
+        onOpenChange={setShowClientPanel}
+        modal={false}
+      >
+        <SheetContent
+          side="right"
+          hideOverlay
+          aria-describedby={undefined}
+          onInteractOutside={(event) => event.preventDefault()}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="gap-0"
+        >
+          <SheetTitle className="sr-only">{t('inbox.thread.clientPanelTitle')}</SheetTitle>
+          {selectedConversation?.participant?.clientPublicId && (
+            <ClientSidePanel clientPublicId={selectedConversation.participant.clientPublicId} />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

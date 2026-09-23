@@ -2358,6 +2358,7 @@
     "thread": {
       "showClient": "Kunde anzeigen",
       "hideClient": "Kunde ausblenden",
+      "clientPanelTitle": "Kundendetails",
       "settingsAriaLabel": "Gesprächseinstellungen",
       "openClientProfileAriaLabel": "Kundenprofil öffnen",
       "loadingOlder": "Ältere Nachrichten werden geladen…"

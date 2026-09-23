@@ -72,14 +72,18 @@ function SheetContent({
   className,
   children,
   side = "right",
+  hideOverlay = false,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> &
-  VariantProps<typeof sheetVariants>) {
+  VariantProps<typeof sheetVariants> & {
+    /** Omit the dimming backdrop — pair with `modal={false}` on `Sheet` so the page behind stays usable. */
+    hideOverlay?: boolean
+  }) {
   const { t } = useTranslation()
 
   return (
     <SheetPortal>
-      <SheetOverlay />
+      {!hideOverlay && <SheetOverlay />}
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(sheetVariants({ side }), className)}

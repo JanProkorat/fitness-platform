@@ -2404,6 +2404,7 @@
     "thread": {
       "showClient": "Zobrazit klienta",
       "hideClient": "Skrýt klienta",
+      "clientPanelTitle": "Detail klienta",
       "settingsAriaLabel": "Nastavení konverzace",
       "openClientProfileAriaLabel": "Otevřít profil klienta",
       "loadingOlder": "Načítání starších zpráv…"
