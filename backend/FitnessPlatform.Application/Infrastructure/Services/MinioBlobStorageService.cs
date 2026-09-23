@@ -300,6 +300,12 @@ public class MinioBlobStorageService : IBlobStorageService
             return new BlobObject(stat.Size, null);
         }
 
+        if (stat.Size == 0)
+        {
+            // WithOffsetAndLength(0, 0) sends no Range header, so a GET here would be unbounded.
+            return new BlobObject(0, []);
+        }
+
         using var buffer = new MemoryStream();
         await _client.GetObjectAsync(
             new GetObjectArgs()
