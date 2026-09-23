@@ -176,9 +176,9 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
       removePendingImage();
       setValue('');
     } catch {
-      // The bytes are already uploaded to blob storage; the send mutation's own
-      // onError already raised a toast. Keep the pending image + caption staged
-      // so the user can retry the send without re-picking or re-uploading the file.
+      // The send mutation's own onError already raised a toast. Keep the pending
+      // image + caption staged so the user can retry without re-picking the file
+      // (a retry uploads it again under a fresh upload id).
     }
   }
 
@@ -186,7 +186,7 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
     <div className="flex flex-col gap-2 border-t border-border p-4">
       {pendingImage && <ImagePreviewChip previewUrl={pendingImage.previewUrl} onRemove={removePendingImage} />}
       {imageError && (
-        <p data-testid="composer-image-error" className="px-1 text-caption text-danger">
+        <p data-testid="composer-image-error" className="px-1 text-caption text-destructive">
           {imageError}
         </p>
       )}
