@@ -1,8 +1,10 @@
 /**
- * #1096 — Chat image attachments (web slice). Path is under trainer/ so
- * playwright.config.ts's role-subfolder testMatch collects it (see
- * inbox.spec.ts's own header comment). Reuses #1095's QA seed: a
- * conversation between qa.trainer and "QA Client".
+ * #1096 — Chat image attachments (web slice). Path is under trainer/, but
+ * playwright.config.ts runs it under its own `trainer-media` project (not
+ * `trainer`) because it mutates the seeded QA Client conversation's read
+ * state, which inbox.spec.ts and clients.spec.ts depend on staying unread.
+ * `trainer-media` depends on `trainer` so it always runs last. Reuses
+ * #1095's QA seed: a conversation between qa.trainer and "QA Client".
  *
  * Fixtures: `../fixtures/chat-image.jpg` (a genuine tiny JPEG) and
  * `../fixtures/chat-image-disguised.jpg` (a plain-text file with a `.jpg`

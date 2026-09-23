@@ -163,6 +163,21 @@ export default defineConfig({
       name: 'trainer',
       dependencies: ['setup'],
       testMatch: /trainer\/.+\.spec\.ts/,
+      testIgnore: [/trainer\/inbox-attachments\.spec\.ts/],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Trainer-media specs ──────────────────────────────────────────────────
+    // inbox-attachments.spec.ts only. Split out of `trainer` (#1096) because it
+    // mutates the seeded QA Client conversation's read state, which
+    // inbox.spec.ts and clients.spec.ts both depend on staying unread.
+    // `dependencies: ['trainer']` makes it run after every trainer test.
+    {
+      name: 'trainer-media',
+      dependencies: ['trainer'],
+      testMatch: /trainer\/inbox-attachments\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
