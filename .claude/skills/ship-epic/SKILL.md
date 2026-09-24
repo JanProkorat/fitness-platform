@@ -411,8 +411,8 @@ Follow `.claude/CLAUDE.md` rules 6 and 7 literally. Summary:
    the dispatch — that's how `pr-reviewer` knows to open the PR
    against the epic branch and (later) treat the merge as a
    sub-issue auto-merge.
-3. Loop dev → qa → review until `pr-reviewer` returns OVERALL ✅
-   READY FOR MERGE.
+3. Loop dev → (qa ∥ review, delta-only — `.claude/CLAUDE.md` rule 7d)
+   until `pr-reviewer` returns OVERALL ✅ READY FOR MERGE.
 4. **Do NOT pause for the user.** Proceed straight to 1d.
 
 ### 1d. Auto-merge into the epic branch

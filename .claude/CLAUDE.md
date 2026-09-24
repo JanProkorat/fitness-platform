@@ -207,7 +207,9 @@ artifacts are generated — always read the per-scene source):
    d. After fixes, push a settled head, then run a **rework round** (#1106):
       - **Delta only.** Pass both agents `since: <sha of their last verdict>`;
         they check `git diff <since>..HEAD` (plus what it touches), not the
-        whole branch. The first review of a PR is always full.
+        whole branch. The first review of a PR is always full. If the round
+        merged the base branch in, review only the PR's own new changes —
+        compare `git diff origin/<base>...<since>` with `git diff origin/<base>...HEAD`.
       - **In parallel.** Dispatch `qa-tester` and `pr-reviewer` (`mode:
         re-review`) together; commit nothing while they read.
       - **Skip QA when no AC behaviour changed** — test-only, docs,
