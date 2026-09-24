@@ -180,6 +180,7 @@ public class GetConversationsEndpoint(
                 UnreadCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId != userGuid),
                 IsFormer = c.IsFormer,
                 LastMessageHasImage = c.LastMessageHasImage,
+                LastMessageEventType = c.LastMessageEventType,
             })
             .ToListAsync(ct);
 
@@ -211,6 +212,7 @@ public class GetConversationsEndpoint(
             UnreadCount = row.UnreadMessageCount,
             IsFormer = false, // the live roster never includes a former collaboration.
             LastMessageHasImage = row.LastMessageHasImage,
+            LastMessageEventType = row.LastMessageEventType,
         };
 
     private void SetPresence(List<ConversationDto> conversations)

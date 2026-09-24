@@ -185,6 +185,7 @@ public class StartConversationEndpoint(
             LastMessageIsOwn = conversation.LastMessageSenderId == callerUserId,
             UnreadCount = conversation.Messages.Count(m => !m.IsRead && m.SenderUserId != callerUserId),
             LastMessageHasImage = conversation.LastMessageHasImage,
+            LastMessageEventType = conversation.LastMessageEventType,
         };
 
     /// <summary>

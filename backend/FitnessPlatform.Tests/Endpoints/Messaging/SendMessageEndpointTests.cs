@@ -375,6 +375,72 @@ public class SendMessageEndpointTests(FitnessApiFactory factory)
         body.ImageUrl.Should().NotBeNullOrEmpty();
     }
 
+    /// <summary>
+    /// <c>SendMessageRequest</c> carries no <c>kind</c>/<c>eventType</c> field (#1100 C6) — extra
+    /// JSON properties on the body are silently ignored by model binding, so a client can never
+    /// forge an event row through this endpoint. The persisted message stays plain Text.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_BodyCarriesKindAndEventType_IgnoredByBinding_PersistsPlainTextOnly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (trainerHttp, _, conversationId, _) = await SetupConversationAsync();
+
+        var response = await trainerHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages",
+            new { Text = "hi", Kind = "Event", EventType = "Accepted" },
+            ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var conv = await db.Conversations.FirstAsync(c => c.PublicId == conversationId, ct);
+        var message = await db.ChatMessages.AsNoTracking().FirstAsync(m => m.ConversationId == conv.Id, ct);
+
+        message.Kind.Should().Be(ChatMessageKind.Text);
+        message.EventType.Should().BeNull();
+    }
+
+    /// <summary>
+    /// A conversation whose last message was a cooperation event (<c>LastMessageEventType</c>
+    /// set) must have that field reset to null once a plain message is sent — #1100 C6, "RULING
+    /// preview field".
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_Success_ResetsConversationLastMessageEventType()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (trainerHttp, _, conversationId, trainerUserId) = await SetupConversationAsync();
+
+        Guid clientUserId;
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var conv = await db.Conversations.FirstAsync(c => c.PublicId == conversationId, ct);
+            clientUserId = conv.ClientUserId;
+
+            var seedService = scope.ServiceProvider.GetRequiredService<IConversationSeedService>();
+            await seedService.AppendCooperationEventAsync(
+                trainerUserId, clientUserId, trainerUserId, ChatEventType.Accepted,
+                sourceId: Guid.NewGuid(), messageText: null, createConversationIfMissing: false, ct);
+
+            var convAfterEvent = await db.Conversations.AsNoTracking().FirstAsync(c => c.PublicId == conversationId, ct);
+            convAfterEvent.LastMessageEventType.Should().Be(ChatEventType.Accepted,
+                "test setup must actually leave the conversation with an event-typed last message");
+        }
+
+        var response = await trainerHttp.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages", new { Text = "back to normal" }, ct);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var verifyScope = factory.Services.CreateScope();
+        var verifyDb = verifyScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var convAfterMessage = await verifyDb.Conversations.AsNoTracking().FirstAsync(c => c.PublicId == conversationId, ct);
+        convAfterMessage.LastMessageEventType.Should().BeNull(
+            "a plain-text send must reset LastMessageEventType — it is not still-event once superseded");
+    }
+
     // ── Local helpers ────────────────────────────────────────────────────────
 
     private static async Task<List<SendMessageResponseDto>> GetMessagesAsync(

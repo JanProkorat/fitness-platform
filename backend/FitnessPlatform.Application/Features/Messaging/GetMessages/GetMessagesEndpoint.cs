@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -82,6 +83,8 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
                 ImageBlobUrl = m.ImageBlobUrl,
                 ImageWidth = m.ImageWidth,
                 ImageHeight = m.ImageHeight,
+                Kind = m.Kind,
+                EventType = m.EventType,
             })
             .ToListAsync(ct);
 
@@ -102,6 +105,8 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
                     : null,
                 ImageWidth = row.ImageWidth,
                 ImageHeight = row.ImageHeight,
+                Kind = row.Kind,
+                EventType = row.EventType,
             });
         }
 
@@ -123,6 +128,8 @@ public class GetMessagesEndpoint(IApplicationDbContext db, IBlobStorageService b
         public string? ImageBlobUrl { get; set; }
         public int? ImageWidth { get; set; }
         public int? ImageHeight { get; set; }
+        public ChatMessageKind Kind { get; set; }
+        public ChatEventType? EventType { get; set; }
     }
 }
 
@@ -152,4 +159,10 @@ public class MessageDto
 
     public int? ImageWidth { get; set; }
     public int? ImageHeight { get; set; }
+
+    /// <summary>Discriminates a plain message from a system-generated cooperation event.</summary>
+    public ChatMessageKind Kind { get; set; }
+
+    /// <summary>The cooperation event type, when <see cref="Kind"/> is <see cref="ChatMessageKind.Event"/>.</summary>
+    public ChatEventType? EventType { get; set; }
 }
