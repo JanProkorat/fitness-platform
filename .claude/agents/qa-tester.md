@@ -482,6 +482,18 @@ static-only changes.
    `scope:*` labels are present, every one of them is in-scope for
    testing.
 
+4. **`since: <sha>`** (rework rounds only) — the head of your last
+   verdict. Then this is a **delta check**:
+   - Read your last handoff (`state/handoff-qa-<issue>.json`); keep its
+     evidence and extend it.
+   - Re-verify only the ACs the delta (`git diff <since>..HEAD`) can
+     affect; carry the others forward with "unchanged since <since>".
+   - Build, plus scoped tests for the touched classes/specs only. Use
+     the CI run ids and full-suite counts the orchestrator hands over
+     instead of re-running the whole surface; spot-check them.
+   - pr-reviewer may be reading the same head in parallel — change
+     nothing in the worktree.
+
 If the orchestrator forgets the issue number, stop and ask — do not
 guess from the branch name.
 
