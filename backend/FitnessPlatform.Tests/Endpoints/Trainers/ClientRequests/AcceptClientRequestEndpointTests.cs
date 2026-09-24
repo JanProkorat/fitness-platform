@@ -30,6 +30,7 @@ public class AcceptClientRequestEndpointTests
     private readonly Guid _professionalUserId = Guid.NewGuid();
     private readonly INotificationService _notificationService = Substitute.For<INotificationService>();
     private readonly IRealtimeNotifier _notifier = Substitute.For<IRealtimeNotifier>();
+    private readonly IConversationSeedService _conversationSeedService = Substitute.For<IConversationSeedService>();
     private readonly UserManager<ApplicationUser> _userManager = EndpointTestHelpers.CreateFakeUserManager();
 
     private static Claim[] MultiRoleClaims(Guid userId, params string[] roles) =>
@@ -53,7 +54,7 @@ public class AcceptClientRequestEndpointTests
         Factory.Create<AcceptClientRequestEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(MultiRoleClaims(_professionalUserId, callerRoles))),
-            db, _notifier, _notificationService, _userManager,
+            db, _notifier, _notificationService, _conversationSeedService, _userManager,
             Substitute.For<ILogger<AcceptClientRequestEndpoint>>());
 
     /// <summary>
