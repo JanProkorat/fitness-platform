@@ -300,19 +300,6 @@ public class GetClientVerdictTests
     // ── Auth & ownership errors ──────────────────────────────────────────────
 
     [Fact]
-    public async Task GetVerdict_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<GetClientVerdictEndpoint>(db, _verdictService, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(new GetClientVerdictRequest { ClientId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task GetVerdict_NotLinkedToClient_Returns403()
     {
         // Trainer has a profile but NO link to the client

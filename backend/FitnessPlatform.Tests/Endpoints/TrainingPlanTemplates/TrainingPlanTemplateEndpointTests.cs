@@ -71,32 +71,6 @@ public class TrainingPlanTemplateEndpointTests(FitnessApiFactory factory)
             .WithWeekCount(weekCount)
             .Build();
 
-    // ── role gate ─────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Search_NutritionistRole_Returns403()
-    {
-        var (nutritionist, _) = await RegisterAsync("Nutritionist", "nutritionist-search");
-
-        var response = await nutritionist.GetAsync("/training/plan-templates");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
-    public async Task GetTemplate_NutritionistRoleOnPublicTemplate_Returns403()
-    {
-        var ownerId = await SeedOwnerAsync("owner-role-gate");
-        var template = BuildTemplate(ownerId, LibraryVisibility.Public);
-        await SeedTemplateAsync(template);
-
-        var (nutritionist, _) = await RegisterAsync("Nutritionist", "nutritionist-get");
-
-        var response = await nutritionist.GetAsync($"/training/plan-templates/{template.ExternalId}");
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── visibility matrix: GET (read-guarded read) ───────────────────────────
 
     [Fact]

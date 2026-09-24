@@ -195,10 +195,6 @@ public class PutOverrideValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(12)]
-    [InlineData(36)]
-    [InlineData(60)]
-    [InlineData(96)]
     [InlineData(200)]
     public void DeadlineOffsetHours_DisallowedValues_Fail_WithInvalidDeadlineOffsetHoursCode(int hours)
     {

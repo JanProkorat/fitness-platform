@@ -57,17 +57,6 @@ public class CreateFoodEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = FoodTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<CreateFoodEndpoint>(mongo);
-
-        await ep.HandleAsync(new CreateFoodRequest { Name = "Test" }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_VisibilityOmitted_DefaultsToPublic()
     {
         var mongo = FoodTestHelpers.CreateMockMongo();

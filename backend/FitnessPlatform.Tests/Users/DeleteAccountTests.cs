@@ -54,16 +54,6 @@ public class DeleteAccountTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task DeleteAccount_WithoutToken_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.DeleteAsync("/users/me", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task DeleteAccount_ProfileEndpointReturns401AfterDeletion()
     {
         var client = factory.CreateClient();

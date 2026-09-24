@@ -3,11 +3,41 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
+
+/// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>): gets its own database name inside that one shared
+/// server instead of its own container, and creates the unique <c>sessionId</c> index —
+/// mirroring production's <c>MongoIndexInitializer</c> — once for the collection.
+/// </summary>
+public class SessionLockServiceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
+{
+    public IMongoContext MongoContext { get; private set; } = null!;
+
+    public async ValueTask InitializeAsync()
+    {
+        var mongoClient = new MongoClient(sharedContainers.MongoConnectionString);
+        var mongoDb = mongoClient.GetDatabase(SharedTestContainers.CreateMongoDatabaseName("sessionlock"));
+        MongoContext = new MongoContext(mongoDb);
+
+        // Create the unique index on sessionId that SessionLockService depends on.
+        // In production this is done by MongoIndexInitializer at startup.
+        var uniqueIndex = new CreateIndexModel<Application.Domain.Documents.SessionLock>(
+            Builders<Application.Domain.Documents.SessionLock>.IndexKeys.Ascending(l => l.SessionId),
+            new CreateIndexOptions { Name = "idx_sessionlock_sessionId", Unique = true });
+        await MongoContext.SessionLocks.Indexes.CreateOneAsync(uniqueIndex);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
+
+[CollectionDefinition("SessionLockService")]
+public class SessionLockServiceCollection : ICollectionFixture<SessionLockServiceContainerFixture>;
 
 /// <summary>
 /// Testcontainers integration tests for <see cref="SessionLockService"/>.
@@ -15,42 +45,16 @@ namespace FitnessPlatform.Tests.Services;
 /// Boots a real MongoDB container, seeds the <c>sessionLocks</c> collection, and verifies
 /// the acquire/release/refresh/getState contracts including E11000 duplicate-key handling.
 /// </summary>
-public class SessionLockServiceTests : IAsyncLifetime
+/// <remarks>
+/// Isolated by unique per-test session/plan/client/trainer GUIDs (see
+/// <see cref="NewIds"/>) — no reset needed despite the shared Mongo container (#1104).
+/// </remarks>
+[Collection("SessionLockService")]
+public class SessionLockServiceTests(SessionLockServiceContainerFixture containerFixture)
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoContext  _mongoCtx = null!;
-    private ISessionLockService _sut = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb     = mongoClient.GetDatabase("fitness_sessionlock_test");
-        _mongoCtx = new MongoContext(mongoDb);
-
-        // Create the unique index on sessionId that SessionLockService depends on.
-        // In production this is done by MongoIndexInitializer at startup.
-        var uniqueIndex = new CreateIndexModel<Application.Domain.Documents.SessionLock>(
-            Builders<Application.Domain.Documents.SessionLock>.IndexKeys.Ascending(l => l.SessionId),
-            new CreateIndexOptions { Name = "idx_sessionlock_sessionId", Unique = true });
-        await _mongoCtx.SessionLocks.Indexes.CreateOneAsync(
-            uniqueIndex, cancellationToken: TestContext.Current.CancellationToken);
-
-        _sut = new SessionLockService(_mongoCtx, NullLogger<SessionLockService>.Instance);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
-    }
+    private readonly IMongoContext _mongoCtx = containerFixture.MongoContext;
+    private readonly ISessionLockService _sut =
+        new SessionLockService(containerFixture.MongoContext, NullLogger<SessionLockService>.Instance);
 
     // ── helpers ──────────────────────────────────────────────────────────────
 

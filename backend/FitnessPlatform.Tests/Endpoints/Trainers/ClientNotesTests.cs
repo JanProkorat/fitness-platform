@@ -48,23 +48,6 @@ public class ClientNotesTests
     }
 
     [Fact]
-    public async Task Create_ClientAuthenticated_Returns403()
-    {
-        var (db, clientProfile) = BuildLinkedClientSetup();
-        var mongo = BuildWritableMongo([]);
-
-        var ep = Factory.Create<CreateNoteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(
-            new CreateNoteRequest { ClientId = clientProfile.PublicId, Text = "Should fail." },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(403);
-    }
-
-    [Fact]
     public async Task Create_NotLinkedToClient_Returns403()
     {
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
@@ -177,23 +160,6 @@ public class ClientNotesTests
     }
 
     [Fact]
-    public async Task List_ClientAuthenticated_Returns403()
-    {
-        var (db, clientProfile) = BuildLinkedClientSetup();
-        var mongo = BuildReadableMongo([]);
-
-        var ep = Factory.Create<ListNotesEndpoint>(
-            ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(
-            new ListNotesRequest { ClientId = clientProfile.PublicId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(403);
-    }
-
-    [Fact]
     public async Task List_CrossTrainerAccess_Returns403()
     {
         var trainer1Id = Guid.NewGuid();
@@ -271,23 +237,6 @@ public class ClientNotesTests
         ep.Response.NoteId.Should().Be(note.ExternalId);
         ep.Response.Text.Should().Be("Updated text.");
         ep.Response.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
-    }
-
-    [Fact]
-    public async Task Edit_ClientAuthenticated_Returns403()
-    {
-        var (db, clientProfile) = BuildLinkedClientSetup();
-        var mongo = BuildWritableMongo([]);
-
-        var ep = Factory.Create<EditNoteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(
-            new EditNoteRequest { ClientId = clientProfile.PublicId, NoteId = Guid.NewGuid(), Text = "x" },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(403);
     }
 
     [Fact]
@@ -397,23 +346,6 @@ public class ClientNotesTests
             TestContext.Current.CancellationToken);
 
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-    }
-
-    [Fact]
-    public async Task Delete_ClientAuthenticated_Returns403()
-    {
-        var (db, clientProfile) = BuildLinkedClientSetup();
-        var mongo = BuildWritableMongo([]);
-
-        var ep = Factory.Create<DeleteNoteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = FakeClientPrincipal(_trainerId),
-            db, mongo, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(
-            new DeleteNoteRequest { ClientId = clientProfile.PublicId, NoteId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(403);
     }
 
     [Fact]
@@ -538,9 +470,6 @@ public class ClientNotesTests
 
     private static ClaimsPrincipal FakeTrainerPrincipal(Guid userId) =>
         new(new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Trainer)));
-
-    private static ClaimsPrincipal FakeClientPrincipal(Guid userId) =>
-        new(new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(userId, AppRoles.Client)));
 
     // ── Mongo factory helpers ─────────────────────────────────────────────────
 

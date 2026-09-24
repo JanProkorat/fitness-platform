@@ -333,6 +333,9 @@ public class WeeklyCheckInSchedulerTests(FitnessApiFactory factory)
             .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
 
         notification.Should().NotBeNull("the scheduler must create a WeeklyCheckInRequested notification");
+        notification!.Title.Should().Be("Planning next week");
+        notification.Body.Should().Contain("is planning next week");
+        notification.IsRead.Should().BeFalse("a freshly created notification must not start as read");
     }
 
     /// <summary>

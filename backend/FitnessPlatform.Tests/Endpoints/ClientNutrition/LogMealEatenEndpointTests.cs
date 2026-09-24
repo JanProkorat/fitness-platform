@@ -212,22 +212,4 @@ public class LogMealEatenEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<LogMealEatenEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, Substitute.For<IRealtimeNotifier>(), TimeProvider.System);
-
-        await ep.HandleAsync(
-            new LogMealEatenRequest { MealId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

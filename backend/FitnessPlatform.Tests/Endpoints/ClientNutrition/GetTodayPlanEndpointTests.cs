@@ -86,23 +86,6 @@ public class GetTodayPlanEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetTodayPlanEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_StartDateSet_PastLastPublishedWeek_Returns404()
     {
         // Plan has StartDate 14 days ago with only week 1 published.

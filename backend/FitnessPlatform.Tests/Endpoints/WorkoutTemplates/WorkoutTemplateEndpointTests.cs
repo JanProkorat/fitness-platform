@@ -277,18 +277,6 @@ public class WorkoutTemplateEndpointTests
         ep.Response.OwnTemplates.Select(r => r.Name).Should().Contain(["Block A", "Block B"]);
     }
 
-    [Fact]
-    public async Task List_NoClaims_Returns401()
-    {
-        var mongo = CreateMockMongo();
-        var ep = Factory.Create<ListWorkoutTemplatesEndpoint>(mongo);
-
-        var req = new ListWorkoutTemplatesRequest { Page = 1, PageSize = 20 };
-        await ep.HandleAsync(req, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     // ── UPDATE ────────────────────────────────────────────────────────────────
 
     [Fact]

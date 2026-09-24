@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -40,22 +41,17 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@cross-domain-{tag}.com";
 
     // ── shared fixture helpers (mirrors CrossRoleLinkAccessTests) ────────────
+    // #1104: actors are built directly via TestActors (UserManager/ApplicationDbContext),
+    // bypassing the /auth/register + /auth/login HTTP round trip. Signatures/return shapes are
+    // unchanged so every call site below is untouched.
 
     private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterProfessionalAsync(string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Trainer", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Trainer(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ProfessionalProfiles.FirstAsync(
-            p => p.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (client, profile.Id, user.Id);
+        return (actor.Http, actor.ProfileId, actor.UserId);
     }
 
     /// <summary>
@@ -66,35 +62,20 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterProfessionalWithRolesAsync(
         string tag, params string[] roles)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Pro", roles);
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Professional(factory, roles.Select(r => Enum.Parse<UserRole>(r, ignoreCase: true)).ToArray())
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ProfessionalProfiles.FirstAsync(
-            p => p.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (client, profile.Id, user.Id);
+        return (actor.Http, actor.ProfileId, actor.UserId);
     }
 
     private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)> RegisterClientAsync(string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ClientProfiles.FirstAsync(
-            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (profile.PublicId, profile.Id, user.Id);
+        return (actor.PublicId, actor.ProfileId, actor.UserId);
     }
 
     /// <summary>
@@ -103,27 +84,11 @@ public class CrossDomainPlanAccessTests(FitnessApiFactory factory)
     /// <see cref="QuestionnaireResponse.LinkId"/> seeding).
     /// </summary>
     private async Task<long> LinkAsync(
-        long professionalProfileId, long clientProfileId, bool canViewNutritionPlans, bool canViewTrainingPlans)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        var link = new ClientProfessionalLink
-        {
-            PublicId = Guid.NewGuid(),
-            ProfessionalProfileId = professionalProfileId,
-            ClientProfileId = clientProfileId,
-            ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
-            CanViewNutritionPlans = canViewNutritionPlans,
-            CanViewTrainingPlans = canViewTrainingPlans,
-            DateCreated = DateTime.UtcNow
-        };
-        db.ClientProfessionalLinks.Add(link);
-
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return link.Id;
-    }
+        long professionalProfileId, long clientProfileId, bool canViewNutritionPlans, bool canViewTrainingPlans) =>
+        await TestActors.Link(factory, professionalProfileId, clientProfileId)
+            .CanViewNutritionPlans(canViewNutritionPlans)
+            .CanViewTrainingPlans(canViewTrainingPlans)
+            .CreateAsync(TestContext.Current.CancellationToken);
 
     /// <summary>
     /// Seeds one nutrition plan, one training plan, a meal log, a completed workout

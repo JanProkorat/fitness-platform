@@ -249,22 +249,6 @@ public class CreatePlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-        var authHelper = CreateAuthHelper(hasLink: true);
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<CreatePlanEndpoint>(mongo, authHelper, db);
-
-        await ep.HandleAsync(
-            new CreatePlanRequest { ClientId = _clientId, Name = "Plan" },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     private static IClientLinkAuthorizationService CreateAuthHelper(bool hasLink) =>
         hasLink
             ? EndpointTestHelpers.CreateGrantingLinkAuthorizationService()

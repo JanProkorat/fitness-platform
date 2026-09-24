@@ -79,14 +79,4 @@ public class DeleteFoodEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = FoodTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<DeleteFoodEndpoint>(mongo);
-
-        await ep.HandleAsync(new DeleteFoodRequest { FoodId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

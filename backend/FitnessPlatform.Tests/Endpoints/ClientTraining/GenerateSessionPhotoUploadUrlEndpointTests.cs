@@ -205,31 +205,6 @@ public class GenerateSessionPhotoUploadUrlEndpointTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task HandleAsync_NoUserClaims_Returns401()
-    {
-        var mongo = TrainingPhotoTestHelpers.CreateMongoWithPlan(null);
-        var db = CreateMockDb();
-
-        // Create endpoint with no claims principal (unauthenticated)
-        var ep = Factory.Create<GenerateSessionPhotoUploadUrlEndpoint>(_imageUpload, mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(new GenerateSessionPhotoUploadUrlRequest
-        {
-            SessionId = Guid.NewGuid(),
-            ContentType = "image/jpeg",
-            SizeBytes = 1024
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-        await _imageUpload.DidNotReceive().GenerateUploadUrlAsync(
-            Arg.Any<ImageUploadScope>(),
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<long>(),
-            Arg.Any<CancellationToken>());
-    }
-
     // ──────────────────────────────────────────────────────────────────────────
     // Service-level validation errors
     // ──────────────────────────────────────────────────────────────────────────

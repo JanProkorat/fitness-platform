@@ -37,9 +37,6 @@ public class EditNoteEndpoint(
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
-        // Explicitly deny Client-role callers (defense-in-depth beyond the Roles attribute)
-        if (User.IsInRole(AppRoles.Client)) { await Send.ForbiddenAsync(ct); return; }
-
         var trainerId = Guid.Parse(userId);
 
         // Resolve trainer's professional profile

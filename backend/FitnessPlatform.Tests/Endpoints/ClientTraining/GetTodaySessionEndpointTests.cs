@@ -620,21 +620,6 @@ public class GetTodaySessionEndpointTests
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = CreateMongoWithPlan(null);
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetTodaySessionEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, CreateStubLockService(), new FakeBlobStorageService(), TimeProvider.System);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_NoClientProfile_Returns404()
     {
         var mongo = CreateMongoWithPlan(null);

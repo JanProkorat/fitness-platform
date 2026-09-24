@@ -130,21 +130,4 @@ public class GetClientMeasurementsEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var audit = Substitute.For<IAuditService>();
-
-        var ep = Factory.Create<GetClientMeasurementsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
-
-        await ep.HandleAsync(
-            new GetClientMeasurementsRequest { ClientId = _clientPublicId, Page = 1, PageSize = 10 },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

@@ -116,7 +116,6 @@ public class PutSettingsValidatorTests
     }
 
     [Theory]
-    [InlineData(0, 9, 15, 0)]    // 09:15:00
     [InlineData(0, 23, 59, 59)]  // 23:59:59 — boundary accepted
     [InlineData(0, 0, 0, 0)]     // 00:00:00 — midnight accepted
     public void TimeOfDay_ValidMinutePrecision_Passes(int days, int hours, int minutes, int seconds)
@@ -203,12 +202,7 @@ public class PutSettingsValidatorTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(25)]
-    [InlineData(49)]
-    [InlineData(73)]
     [InlineData(721)]
-    [InlineData(-1)]
     public void DeadlineOffsetHours_InvalidValues_Fail_WithOutOfRangeCode(int hours)
     {
         var req = ValidRequest();

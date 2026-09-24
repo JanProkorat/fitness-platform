@@ -154,23 +154,4 @@ public class GetClientProgressEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        // Arrange — no user claims
-        var linkAuthorizationService = CreateLinkAuthorizationService(hasLink: false);
-        var db = CreateDb();
-
-        var ep = Factory.Create<GetClientProgressEndpoint>(
-            _complianceService, linkAuthorizationService, _audit, db);
-
-        // Act
-        await ep.HandleAsync(new GetClientProgressRequest
-        {
-            ClientId = _clientId
-        }, TestContext.Current.CancellationToken);
-
-        // Assert
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

@@ -6,47 +6,29 @@ using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Testcontainers integration tests for <see cref="NotificationService"/> — verifies the
-/// #788 fix: notifications are localized to the RECIPIENT's stored
-/// <see cref="ApplicationUser.Language"/> at write time (title/body persisted already
-/// translated), independent of whichever user/process triggered the notification, and
-/// fall back to English when the recipient has no stored language.
+/// Shared-container Postgres fixture for <see cref="NotificationServiceTests"/> (#1104 Phase B
+/// — see <see cref="SharedTestContainers"/>): creates its own database inside the one shared
+/// server once for the collection instead of per fact.
 /// </summary>
-public class NotificationServiceTests : IAsyncLifetime
+public class NotificationServiceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    // Wide timeout to tolerate Docker contention on the dev machine (see #336).
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-
-    private ApplicationDbContext _db = null!;
-    private FakePushNotificationService _push = null!;
-
-    // ── IAsyncLifetime ────────────────────────────────────────────────────────
+    public string ConnectionString { get; private set; } = string.Empty;
 
     public async ValueTask InitializeAsync()
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _postgres.StartAsync(cts.Token);
+        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("notification_service");
 
-        _db = BuildDbContext(_postgres.GetConnectionString());
-        await _db.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        await using var db = BuildDbContext(ConnectionString);
+        await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await _db.DisposeAsync();
-        await _postgres.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    // ── helpers ───────────────────────────────────────────────────────────────
-
-    private static ApplicationDbContext BuildDbContext(string connectionString)
+    public static ApplicationDbContext BuildDbContext(string connectionString)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)
@@ -56,6 +38,34 @@ public class NotificationServiceTests : IAsyncLifetime
             .Options;
         return new ApplicationDbContext(options);
     }
+}
+
+[CollectionDefinition("NotificationService")]
+public class NotificationServiceCollection : ICollectionFixture<NotificationServiceContainerFixture>;
+
+/// <summary>
+/// Testcontainers integration tests for <see cref="NotificationService"/> — verifies the
+/// #788 fix: notifications are localized to the RECIPIENT's stored
+/// <see cref="ApplicationUser.Language"/> at write time (title/body persisted already
+/// translated), independent of whichever user/process triggered the notification, and
+/// fall back to English when the recipient has no stored language.
+/// </summary>
+/// <remarks>
+/// Isolated by a fresh <c>Guid.NewGuid()</c> recipient per fact (see <see cref="SeedUserAsync"/>)
+/// — no reset needed despite the shared Postgres container (#1104).
+/// </remarks>
+[Collection("NotificationService")]
+public class NotificationServiceTests(NotificationServiceContainerFixture containerFixture) : IAsyncLifetime
+{
+    private ApplicationDbContext _db =
+        NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString);
+    private FakePushNotificationService _push = null!;
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public async ValueTask DisposeAsync() => await _db.DisposeAsync();
+
+    // ── helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Inserts a minimal user row via raw SQL with the given stored language
@@ -66,7 +76,7 @@ public class NotificationServiceTests : IAsyncLifetime
         var ct = TestContext.Current.CancellationToken;
         var userId = Guid.NewGuid();
 
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.ConnectionString);
         await conn.OpenAsync(ct);
 
         await using var cmd = conn.CreateCommand();
@@ -101,7 +111,7 @@ public class NotificationServiceTests : IAsyncLifetime
     {
         // Rebuild DbContext for a clean tracked-entity cache each call.
         _db.Dispose();
-        _db = BuildDbContext(_postgres.GetConnectionString());
+        _db = NotificationServiceContainerFixture.BuildDbContext(containerFixture.ConnectionString);
         _push = new FakePushNotificationService();
 
         return new NotificationService(_db, _push);

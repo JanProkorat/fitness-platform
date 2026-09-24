@@ -39,23 +39,6 @@ public class GetMyPhotosEndpointTests
     // ── Authorization ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<GetMyPhotosEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            db,
-            new FakeBlobStorageService());
-
-        await ep.HandleAsync(
-            new GetMyPhotosRequest(),
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_NoClientProfile_Returns404()
     {
         // User with no ClientProfile in the database

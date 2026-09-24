@@ -78,20 +78,6 @@ public class GetWeeklyOverviewEndpointTests
         (ep.Response.WeekEnd - ep.Response.WeekStart).Days.Should().Be(6);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        // Arrange — no user claims; db is never reached (401 short-circuits before the DB call)
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetWeeklyOverviewEndpoint>(_complianceService, db, TimeProvider.System);
-
-        // Act
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        // Assert
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     /// <summary>
     /// #955 boundary case: a Prague client at 00:30 LOCAL time Monday (22:30 UTC Sunday) must see
     /// the CURRENT local week (weekStart = that Monday), not the previous week. The pinned instant

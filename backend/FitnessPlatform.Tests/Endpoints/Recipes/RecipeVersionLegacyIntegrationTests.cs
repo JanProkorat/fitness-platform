@@ -1,11 +1,26 @@
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
+
+/// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class RecipeVersionLegacyMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("recipe_legacy_doc");
+}
+
+[CollectionDefinition("RecipeVersionLegacyIntegration")]
+public class RecipeVersionLegacyIntegrationCollection : ICollectionFixture<RecipeVersionLegacyMongoContainerFixture>;
 
 /// <summary>
 /// Testcontainers integration test that proves the MongoDB.Driver 3.x deserialization
@@ -19,29 +34,18 @@ namespace FitnessPlatform.Tests.Endpoints.Recipes;
 /// the <c>FilterDefinition</c> entirely, so a version-filter assertion there would pass whether
 /// or not the filter is correct.
 /// </summary>
-public class RecipeVersionLegacyIntegrationTests : IAsyncLifetime
+[Collection("RecipeVersionLegacyIntegration")]
+public class RecipeVersionLegacyIntegrationTests
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<Recipe> _recipes;
+    private readonly IMongoCollection<BsonDocument> _rawRecipes;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<Recipe> _recipes = null!;
-    private IMongoCollection<BsonDocument> _rawRecipes = null!;
-
-    public async ValueTask InitializeAsync()
+    public RecipeVersionLegacyIntegrationTests(RecipeVersionLegacyMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var client = new MongoClient(_mongo.GetConnectionString());
-        var db = client.GetDatabase("fitness_recipe_legacy_doc_test");
+        var client = new MongoClient(containerFixture.ConnectionString);
+        var db = client.GetDatabase(containerFixture.DatabaseName);
         _recipes = db.GetCollection<Recipe>("recipes");
         _rawRecipes = db.GetCollection<BsonDocument>("recipes");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     private static BsonDocument CreateLegacyRawDoc(Guid externalId, Guid nutritionistId)

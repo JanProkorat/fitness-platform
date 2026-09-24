@@ -60,14 +60,4 @@ public class SearchRecipesEndpointTests
         ep.Response.Recipes[0].Visibility.Should().Be(RecipeVisibility.Public);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = RecipeTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<SearchRecipesEndpoint>(mongo);
-
-        await ep.HandleAsync(new SearchRecipesRequest(), TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

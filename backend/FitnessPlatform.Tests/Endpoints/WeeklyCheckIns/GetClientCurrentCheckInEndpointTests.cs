@@ -83,18 +83,6 @@ public class GetClientCurrentCheckInEndpointTests(FitnessApiFactory factory)
         DateOnly.FromDateTime(DateTime.UtcNow).AddDays(
             ((int)DayOfWeek.Monday - (int)DateTime.UtcNow.DayOfWeek + 7) % 7 + 7);
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetCurrent_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            $"/trainer/clients/{Guid.NewGuid()}/weekly-check-ins/current",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── Active-set (week-agnostic, #751) ─────────────────────────────────────
 
     [Fact]

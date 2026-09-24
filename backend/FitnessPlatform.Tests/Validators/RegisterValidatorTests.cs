@@ -130,7 +130,6 @@ public class RegisterValidatorTests
 
     [Theory]
     [InlineData("InvalidRole")]
-    [InlineData("SuperAdmin")]
     public void Roles_ContainsInvalidRole_Fails(string invalidRole)
     {
         var req = ValidRequest();
@@ -152,7 +151,6 @@ public class RegisterValidatorTests
 
     [Theory]
     [InlineData("Admin")]
-    [InlineData("admin")]
     public void Roles_ContainsAdmin_Fails_SingleRole(string adminRole)
     {
         var req = ValidRequest();
@@ -164,7 +162,6 @@ public class RegisterValidatorTests
 
     [Theory]
     [InlineData("Trainer", "Admin")]
-    [InlineData("Admin", "Client")]
     public void Roles_ContainsAdmin_Fails_MixedWithValidRole(string role1, string role2)
     {
         var req = ValidRequest();

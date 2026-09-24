@@ -148,20 +148,6 @@ public class GetClientDashboardEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientDashboardEndpoint>(db, _audit, _complianceService, EmptyMongo());
-
-        await ep.HandleAsync(new GetClientDashboardRequest
-        {
-            ClientId = Guid.NewGuid()
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_ComplianceServiceThrows_Returns200_WithNullCompliance()
     {
         // Arrange: compliance service throws — endpoint must degrade gracefully

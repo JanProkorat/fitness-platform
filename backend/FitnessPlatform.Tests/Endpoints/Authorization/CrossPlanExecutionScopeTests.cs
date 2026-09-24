@@ -3,13 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -41,58 +39,31 @@ public class CrossPlanExecutionScopeTests(FitnessApiFactory factory)
 
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@cross-plan-{tag}.com";
 
+    // #1104: actors are built directly via TestActors, bypassing the /auth/register +
+    // /auth/login HTTP round trip. Signatures/return shapes are unchanged.
+
     private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterTrainerAsync(
         string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Trainer", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Trainer(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ProfessionalProfiles.FirstAsync(
-            pp => pp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (client, profile.Id, user.Id);
+        return (actor.Http, actor.ProfileId, actor.UserId);
     }
 
     private async Task<(long ClientProfileId, Guid ClientUserId)> RegisterClientAsync(string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ClientProfiles.FirstAsync(
-            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (profile.Id, user.Id);
+        return (actor.ProfileId, actor.UserId);
     }
 
-    private async Task LinkAsync(long professionalProfileId, long clientProfileId)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
-        {
-            PublicId = Guid.NewGuid(),
-            ProfessionalProfileId = professionalProfileId,
-            ClientProfileId = clientProfileId,
-            ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
-            CanViewNutritionPlans = true,
-            CanViewTrainingPlans = true,
-            DateCreated = DateTime.UtcNow
-        });
-
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
+    private async Task LinkAsync(long professionalProfileId, long clientProfileId) =>
+        await TestActors.Link(factory, professionalProfileId, clientProfileId)
+            .CreateAsync(TestContext.Current.CancellationToken);
 
     /// <summary>
     /// Seeds a plan with one published session and returns the plan and session ids.

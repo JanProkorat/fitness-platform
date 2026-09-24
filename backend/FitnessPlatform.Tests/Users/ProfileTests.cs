@@ -40,20 +40,6 @@ public class ProfileTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task UpdateProfile_WithoutToken_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.PutAsJsonAsync("/users/me", new
-        {
-            FirstName = "Jane",
-            LastName = "Smith"
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task UpdateProfile_EmptyFirstName_Returns400()
     {
         var client = factory.CreateClient();

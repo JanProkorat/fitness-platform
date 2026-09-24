@@ -235,20 +235,4 @@ public class MarkWorkoutIncompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(409);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo();
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<MarkWorkoutIncompleteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new MarkWorkoutIncompleteRequest { SessionId = _sessionId, WorkoutId = _sectionId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

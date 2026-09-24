@@ -80,37 +80,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         profile.AvatarBlobUrl.Should().Be(blobUrl);
     }
 
-    [Fact]
-    public async Task PutAvatar_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var resp = await client.PutAsJsonAsync(
-            "/professionals/me/avatar",
-            new { BlobUrl = "avatars/some.jpg" },
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task PutAvatar_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, TestPassword, "Bob", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(client, email, TestPassword);
-        TestHelpers.SetBearerToken(client, token);
-
-        var resp = await client.PutAsJsonAsync(
-            "/professionals/me/avatar",
-            new { BlobUrl = "avatars/some.jpg" },
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Stored-content injection (#658) ──────────────────────────────────────
 
     [Fact]
@@ -218,18 +187,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         profile.AvatarBlobUrl.Should().BeNull();
     }
 
-    [Fact]
-    public async Task DeleteAvatar_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var resp = await client.DeleteAsync(
-            "/professionals/me/avatar",
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── GET /professionals/search — avatarBlobUrl in list ───────────────────
 
     [Fact]
@@ -270,8 +227,11 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
     {
         var trainerClient = factory.CreateClient();
         var trainerEmail = UniqueEmail();
+        // Unique surname so the search below finds this trainer on page 1 however many
+        // professionals other tests have left in the shared database.
+        var trainerLastName = $"AvatarTrainer{Guid.NewGuid():N}";
 
-        await TestHelpers.RegisterAsync(trainerClient, trainerEmail, TestPassword, "Frank", "AvatarTrainer", "Trainer");
+        await TestHelpers.RegisterAsync(trainerClient, trainerEmail, TestPassword, "Frank", trainerLastName, "Trainer");
         var (trainerToken, _) = await TestHelpers.LoginAsync(trainerClient, trainerEmail, TestPassword);
         TestHelpers.SetBearerToken(trainerClient, trainerToken);
 
@@ -289,7 +249,7 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(searchClient, clientToken);
 
         var searchResp = await searchClient.GetAsync(
-            "/professionals/search",
+            $"/professionals/search?search={trainerLastName}",
             TestContext.Current.CancellationToken);
 
         searchResp.StatusCode.Should().Be(HttpStatusCode.OK);

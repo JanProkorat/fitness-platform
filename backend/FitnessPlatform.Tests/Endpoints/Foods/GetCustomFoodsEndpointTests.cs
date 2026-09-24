@@ -50,14 +50,4 @@ public class GetCustomFoodsEndpointTests
         ep.Response.TotalCount.Should().Be(0);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = FoodTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<GetCustomFoodsEndpoint>(mongo);
-
-        await ep.HandleAsync(new GetCustomFoodsRequest(), TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

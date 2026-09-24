@@ -24,10 +24,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # The suite is ~15 min; restore+build adds a few more. Without this the
-    # job inherits the 6-hour default, so a hang burns runner time unnoticed
-    # instead of failing loudly. Raise it if the suite legitimately grows.
-    timeout-minutes: 40
+    # The test chunks have their own 5-minute budget (see "Test suite size and
+    # time budget" below); restore+build adds a few more. Without this the job
+    # inherits the 6-hour default, so a hang burns runner time unnoticed.
+    timeout-minutes: 20
 
     defaults:
       run:
@@ -183,8 +183,12 @@ jobs:
       # Verified on develop 2026-08-07: 1445 + 449 + 122 = 2016, identical to
       # a single unfiltered run. Those counts are indicative, not asserted —
       # they grow as tests are added.
+      - name: Record test start time
+        run: echo "TESTS_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Run tests — Endpoints
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Endpoints*'
+        shell: bash  # pipefail: keep the test exit code through tee
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Endpoints*' | tee test-chunk-1.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
@@ -193,7 +197,8 @@ jobs:
           JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
 
       - name: Run tests — Services, Validators, Infrastructure
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Services*' -namespace 'FitnessPlatform.Tests.Validators*' -namespace 'FitnessPlatform.Tests.Infrastructure*'
+        shell: bash  # pipefail: keep the test exit code through tee
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace 'FitnessPlatform.Tests.Services*' -namespace 'FitnessPlatform.Tests.Validators*' -namespace 'FitnessPlatform.Tests.Infrastructure*' | tee test-chunk-2.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
@@ -204,13 +209,39 @@ jobs:
       # Complement of the two chunks above — see the "exhaustive by
       # construction" note. Every namespace not matched there runs here.
       - name: Run tests — remaining namespaces
-        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace- 'FitnessPlatform.Tests.Endpoints*' -namespace- 'FitnessPlatform.Tests.Services*' -namespace- 'FitnessPlatform.Tests.Validators*' -namespace- 'FitnessPlatform.Tests.Infrastructure*'
+        shell: bash  # pipefail: keep the test exit code through tee
+        run: ./FitnessPlatform.Tests/bin/Release/net10.0/FitnessPlatform.Tests -namespace- 'FitnessPlatform.Tests.Endpoints*' -namespace- 'FitnessPlatform.Tests.Services*' -namespace- 'FitnessPlatform.Tests.Validators*' -namespace- 'FitnessPlatform.Tests.Infrastructure*' | tee test-chunk-3.txt
         env:
           POSTGRES_PASSWORD: test_password
           MONGO_PASSWORD: test_password
           MINIO_ACCESS_KEY: test
           MINIO_SECRET_KEY: test
           JWT_SECRET: ci-test-jwt-secret-must-be-at-least-32-characters-long!!
+
+      # Growth guard (#1104): fails when the three chunks together run longer than the
+      # budget, so the suite can't quietly drift back to 15+ minutes. Test COUNT is
+      # reported, not limited — adding a useful test is fine; making the suite slow isn't.
+      # See .claude/rules/testing.md before raising the budget.
+      - name: Test suite size and time budget
+        env:
+          TEST_TIME_BUDGET_SECONDS: 300
+        run: |
+          elapsed=$(( $(date +%s) - TESTS_STARTED_AT ))
+          total=$(grep -hoE 'Total: [0-9]+' test-chunk-*.txt | awk '{sum += $2} END {print sum + 0}')
+          {
+            echo "### Backend test suite"
+            echo "| Tests | Time | Budget |"
+            echo "|---|---|---|"
+            echo "| $total | ${elapsed}s | ${TEST_TIME_BUDGET_SECONDS}s |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::Could not read a test count from the runner output — the 'Total: N' summary line changed. Fix the parser in this step."
+            exit 1
+          fi
+          if [ "$elapsed" -gt "$TEST_TIME_BUDGET_SECONDS" ]; then
+            echo "::error::Backend tests took ${elapsed}s, over the ${TEST_TIME_BUDGET_SECONDS}s budget. See .claude/rules/testing.md."
+            exit 1
+          fi
 
       # Coverage collection was previously wired through VSTest's
       # `--collect:"XPlat Code Coverage"` option, which Microsoft.Testing.Platform

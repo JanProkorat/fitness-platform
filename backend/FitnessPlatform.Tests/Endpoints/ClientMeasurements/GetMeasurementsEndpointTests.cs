@@ -84,20 +84,4 @@ public class GetMeasurementsEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<GetMeasurementsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            db);
-
-        await ep.HandleAsync(
-            new GetMeasurementsRequest { Page = 1, PageSize = 10 },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

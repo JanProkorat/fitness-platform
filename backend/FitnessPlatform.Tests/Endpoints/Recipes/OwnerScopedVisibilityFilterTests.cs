@@ -9,11 +9,26 @@ using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.Recipes;
+
+/// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class OwnerScopedVisibilityMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("ownerscopedvisibility");
+}
+
+[CollectionDefinition("OwnerScopedVisibilityFilter")]
+public class OwnerScopedVisibilityFilterCollection : ICollectionFixture<OwnerScopedVisibilityMongoContainerFixture>;
 
 /// <summary>
 /// Testcontainers integration tests for the own-or-public visibility filter guard added in #992
@@ -27,26 +42,28 @@ namespace FitnessPlatform.Tests.Endpoints.Recipes;
 /// <see cref="IMongoContext"/> substitute whose Recipes/Foods properties return real,
 /// containerised collections.
 /// </summary>
+/// <remarks>
+/// A unique <c>Guid.NewGuid()</c> external id per fact is NOT sufficient isolation on its own:
+/// <see cref="SearchRecipesEndpoint"/> and <see cref="SearchFoodsEndpoint"/> match on
+/// visibility, not on identity, so a Public row seeded by one fact stays a permanent match for
+/// every later fact's search once the Mongo collection is shared across the whole class (the
+/// fixture is <c>ICollectionFixture</c>-scoped, one database per class run, not per fact). CI's
+/// first run of #1104 failed exactly this way — two facts each insert a recipe/food named
+/// "Others Public" and a later <c>ContainSingle</c>/<c>TotalCount</c> assertion saw both. Each
+/// fact clears both collections in its own <see cref="IAsyncLifetime.InitializeAsync"/>, mirroring
+/// <see cref="FitnessPlatform.Tests.Services.LibrarySearchHelperTests"/>.
+/// </remarks>
+[Collection("OwnerScopedVisibilityFilter")]
 public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<Recipe> _recipes;
+    private readonly IMongoCollection<Food> _foods;
+    private readonly IMongoContext _mongoContext;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<Recipe> _recipes = null!;
-    private IMongoCollection<Food> _foods = null!;
-    private IMongoContext _mongoContext = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public OwnerScopedVisibilityFilterTests(OwnerScopedVisibilityMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_ownerscopedvisibility_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _recipes = mongoDb.GetCollection<Recipe>("recipes");
         _foods = mongoDb.GetCollection<Food>("foods");
 
@@ -56,10 +73,13 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         _mongoContext = mongoContext;
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask InitializeAsync()
     {
-        await _mongo.DisposeAsync();
+        await _recipes.DeleteManyAsync(FilterDefinition<Recipe>.Empty);
+        await _foods.DeleteManyAsync(FilterDefinition<Food>.Empty);
     }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ── helpers ──────────────────────────────────────────────────────────────
 

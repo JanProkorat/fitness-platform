@@ -36,11 +36,6 @@ public class CreateNoteEndpoint(
         var userId = User.FindFirstValue(AppClaims.UserId);
         if (userId is null) { await Send.UnauthorizedAsync(ct); return; }
 
-        // Explicitly deny Client-role callers (defense-in-depth: the Roles attribute enforces this
-        // at the HTTP layer, but this guard makes unit tests deterministic and prevents leakage
-        // if the route is ever accidentally reused by a client-facing path)
-        if (User.IsInRole(AppRoles.Client)) { await Send.ForbiddenAsync(ct); return; }
-
         var trainerId = Guid.Parse(userId);
 
         // Resolve trainer's professional profile

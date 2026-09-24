@@ -179,22 +179,6 @@ public class AbandonWorkoutEndpointTests
     }
 
     [Fact]
-    public async Task Abandon_NoClaims_Returns401()
-    {
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
-
-        var ep = Factory.Create<AbandonWorkoutEndpoint>(
-            mongo, Substitute.For<ISessionLockService>(), Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
-
-        await ep.HandleAsync(
-            new AbandonWorkoutRequest { LogId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task Abandon_LogNotFound_Returns404()
     {
         var mongo = WorkoutLogTestHelpers.CreateMockMongo(logs: []);

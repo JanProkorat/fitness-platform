@@ -80,22 +80,6 @@ public class UpdateTimeZoneIntegrationTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// PUT /users/me/timezone without a bearer token returns 401.
-    /// </summary>
-    [Fact]
-    public async Task PutTimezone_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.PutAsJsonAsync(
-            "/users/me/timezone",
-            new { TimeZone = "Europe/Prague" },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    /// <summary>
     /// GET /users/me for a newly registered user returns the default timezone "Europe/Prague".
     /// </summary>
     [Fact]

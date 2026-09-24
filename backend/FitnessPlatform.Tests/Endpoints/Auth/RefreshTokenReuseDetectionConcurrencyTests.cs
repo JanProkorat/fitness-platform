@@ -13,8 +13,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Endpoints.Auth;
 
@@ -32,10 +30,11 @@ namespace FitnessPlatform.Tests.Endpoints.Auth;
 /// polluting the shared Integration collection's database with concurrency
 /// scenarios that fire raw concurrent HTTP requests.
 /// </summary>
-public class RefreshTokenConcurrencyFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class RefreshTokenConcurrencyFactory(SharedTestContainers sharedContainers)
+    : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -59,7 +58,7 @@ public class RefreshTokenConcurrencyFactory : WebApplicationFactory<Program>, IA
             if (pgDesc is not null) services.Remove(pgDesc);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -73,8 +72,8 @@ public class RefreshTokenConcurrencyFactory : WebApplicationFactory<Program>, IA
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_refresh_concurrency_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -115,19 +114,15 @@ public class RefreshTokenConcurrencyFactory : WebApplicationFactory<Program>, IA
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("refresh_concurrency");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("refresh_concurrency");
 
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Intentionally skip base.DisposeAsync() — see FitnessApiFactory's matching remark. No
+    // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 // ── Collection definition ─────────────────────────────────────────────────────
