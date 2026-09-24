@@ -69,6 +69,32 @@ public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
             "order — ApplicationDbContext.ApplyTimestamps guarantees a strictly increasing " +
             "DateCreated across rows added within one SaveChangesAsync batch specifically so this " +
             "does not depend on the system clock's resolution");
+
+        // Strict DateCreated comparison, re-read fresh from Postgres via AsNoTracking (not the
+        // in-memory tracked entities, which would still carry the pre-truncation tick-bumped
+        // value and mask a bug where Postgres' microsecond column precision rounds a smaller
+        // bump away on write). The (Kind, Id) tiebreak above proves ordering; this proves the
+        // ordering is genuinely carried by DateCreated itself, not falling back to Id.
+        var eventDateCreated = await db.ChatMessages
+            .AsNoTracking()
+            .Where(m => m.Conversation.ProfessionalUserId == trainer.UserId
+                        && m.Conversation.ClientUserId == client.UserId
+                        && m.Kind == ChatMessageKind.Event)
+            .Select(m => m.DateCreated)
+            .SingleAsync(ct);
+
+        var messageDateCreated = await db.ChatMessages
+            .AsNoTracking()
+            .Where(m => m.Conversation.ProfessionalUserId == trainer.UserId
+                        && m.Conversation.ClientUserId == client.UserId
+                        && m.Kind == ChatMessageKind.Text)
+            .Select(m => m.DateCreated)
+            .SingleAsync(ct);
+
+        eventDateCreated.Should().BeBefore(messageDateCreated,
+            "ApplyTimestamps bumps the tie by a whole microsecond (Postgres' timestamp column " +
+            "precision) — a single-tick bump would round away on write and the two rows would " +
+            "come back with an IDENTICAL DateCreated, ordering resting on Id alone");
     }
 
     [Fact]

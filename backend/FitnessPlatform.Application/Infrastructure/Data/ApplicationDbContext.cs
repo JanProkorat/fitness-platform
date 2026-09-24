@@ -449,7 +449,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         // on DateCreated ordering — the same one GetMessagesEndpoint queries by — to sort the
         // event before the message deterministically). ChangeTracker.Entries<T>() enumerates
         // Added entries in the order they were added to the context, so this preserves that
-        // order as the tie-breaker instead of leaving it to same-tick luck.
+        // order as the tie-breaker instead of leaving it to same-tick luck. The bump is a whole
+        // microsecond (not a single tick) because Postgres' timestamp column only stores
+        // microsecond precision — a 1-tick bump gets rounded away on write and the values come
+        // back identical.
         DateTime? lastAssignedDateCreated = null;
 
         foreach (var entry in entries)
@@ -460,7 +463,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
                 if (lastAssignedDateCreated is { } previous && dateCreated <= previous)
                 {
-                    dateCreated = previous.AddTicks(1);
+                    dateCreated = previous.AddTicks(TimeSpan.TicksPerMicrosecond);
                 }
 
                 entry.Entity.DateCreated = dateCreated;

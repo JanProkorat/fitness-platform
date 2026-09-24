@@ -89,7 +89,9 @@ public class DeletePendingInviteEndpoint(
             .ToListAsync(ct);
 
         foreach (var token in matchingTokens)
+        {
             token.IsUsed = true;
+        }
 
         // A neutral Withdrawn event only when the invite hadn't already been accepted (an
         // accepted thread already reads "accepted"; withdrawing it afterward would be a

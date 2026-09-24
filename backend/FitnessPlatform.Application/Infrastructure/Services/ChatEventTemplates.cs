@@ -78,7 +78,9 @@ public static class ChatEventTemplates
         var normalizedLanguage = Normalize(language);
 
         if (!Templates.TryGetValue(normalizedLanguage, out var languageTemplates))
+        {
             languageTemplates = Templates[FallbackLanguage];
+        }
 
         if (!languageTemplates.TryGetValue(eventType, out var template)
             && !Templates[FallbackLanguage].TryGetValue(eventType, out template))

@@ -274,6 +274,9 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             return;
         }
 
+        // kind/eventType are stringified explicitly — the SignalR hub's JSON protocol does
+        // not share the REST pipeline's JsonStringEnumConverter, so an unconverted enum here
+        // would serialize as an integer while every REST response sends the string name.
         await notifier.NotifyAsync(recipientUserId, "newmessage", new
         {
             conversationId = conversation.PublicId,
@@ -282,8 +285,8 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             senderName = actorName,
             text = lastMessage.Text,
             timestamp = lastMessage.DateCreated,
-            kind = lastMessage.Kind,
-            eventType = textMessage is null ? eventType : (ChatEventType?)null,
+            kind = lastMessage.Kind.ToString(),
+            eventType = textMessage is null ? eventType.ToString() : null,
         }, ct);
     }
 

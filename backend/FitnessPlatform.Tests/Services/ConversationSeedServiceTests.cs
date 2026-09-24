@@ -426,4 +426,41 @@ public class ConversationSeedServiceTests
         await _notifier.Received(1).NotifyAsync(
             professionalId, "newmessage", Arg.Any<object>(), Arg.Any<CancellationToken>());
     }
+
+    /// <summary>
+    /// Wire-shape regression guard: the SignalR hub's JSON protocol does not share the
+    /// REST pipeline's <c>JsonStringEnumConverter</c> (Program.cs), so an unconverted enum
+    /// serializes as an integer over the hub while REST always sends the string name. The
+    /// web client's <c>NewMessagePayload</c> (InboxPage.tsx) types both fields as strings —
+    /// this must hold even though the payload itself is an untyped anonymous object.
+    /// </summary>
+    [Fact]
+    public async Task AppendCooperationEvent_Broadcast_SerializesKindAndEventTypeAsStrings()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var professional = MakeUser(professionalId, "Coach", "Carl");
+        var client = MakeUser(clientId, "Jane", "Client");
+
+        var db = new MockDbBuilder().With(professional).With(client).Build();
+        var service = new ConversationSeedService(db, _notifier);
+
+        await service.AppendCooperationEventAsync(
+            professionalId, clientId, professionalId, ChatEventType.Declined, Guid.NewGuid(),
+            messageText: null, createConversationIfMissing: true,
+            TestContext.Current.CancellationToken);
+
+        var call = _notifier.ReceivedCalls()
+            .Single(c => c.GetMethodInfo().Name == nameof(_notifier.NotifyAsync));
+        var payload = call.GetArguments()[2]!;
+        var payloadType = payload.GetType();
+
+        var kind = payloadType.GetProperty("kind")!.GetValue(payload);
+        var eventType = payloadType.GetProperty("eventType")!.GetValue(payload);
+
+        kind.Should().BeOfType<string>();
+        kind.Should().Be(nameof(ChatMessageKind.Event));
+        eventType.Should().BeOfType<string>();
+        eventType.Should().Be(nameof(ChatEventType.Declined));
+    }
 }
