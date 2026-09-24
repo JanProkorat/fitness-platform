@@ -60,13 +60,28 @@ async function loginAsClient2(baseURL: string): Promise<{ api: APIRequestContext
   return { api, accessToken };
 }
 
-/** Sends a fresh client request from qa.client2 to qa.trainer. */
+/**
+ * Sends a fresh client request from qa.client2 to qa.trainer. Throws with the
+ * response status + body on failure — rather than a bare `expect(...).toBe(true)`
+ * — so a leftover Pending request from a previous failed run (RequestAlreadyPending)
+ * reads as exactly that in the test output, instead of a bare "expected true,
+ * received false" that gives no hint the cause is upstream state, not this call.
+ */
 async function sendClient2Request(api: APIRequestContext, accessToken: string, message: string): Promise<void> {
   const response = await api.post('/client/requests', {
     data: { professionalPublicId: TRAINER_PROFESSIONAL_PUBLIC_ID, message },
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  expect(response.ok()).toBe(true);
+  if (!response.ok()) {
+    const body = await response.text();
+    throw new Error(
+      `[inbox-cooperation-events] POST /client/requests as qa.client2 returned ` +
+        `${response.status()} ${response.statusText()}: ${body}. If this is ` +
+        'RequestAlreadyPending, qa.client2 has a leftover Pending request from an ' +
+        'earlier failed run — the decline test must reject it before the accept ' +
+        'test can send a second one.',
+    );
+  }
 }
 
 /**
@@ -106,10 +121,18 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
 
     const requestedRow = client2Row(page);
     await expect(requestedRow).toBeVisible();
-    await expect(requestedRow.getByText('QA Client2 asked to collaborate with you')).toBeVisible();
+    // The Requested event is immediately followed by the request's own Text message
+    // (ConversationSeedService.AppendCooperationEventAsync writes [event, message] in
+    // one batch for a non-blank message), so the MESSAGE — not the event — is the
+    // newest row: LastMessageEventType resets to null and the list preview reads the
+    // message text, not the "asked to collaborate" banner. The banner only becomes the
+    // list preview when the event itself is the newest row — see the Declined
+    // assertion below, where the reject carries no statement.
+    await expect(requestedRow.getByText('Hi, I would like to work with you.')).toBeVisible();
 
     await requestedRow.click();
     await page.waitForLoadState('networkidle');
+    // Inside the thread both rows render: the Requested banner, then the message bubble.
     await expect(page.getByText('QA Client2 asked to collaborate with you').last()).toBeVisible();
 
     await page.goto('/clients?tab=Pending');
@@ -147,7 +170,9 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
 
     const requestedRow = client2Row(page);
     await expect(requestedRow).toBeVisible();
-    await expect(requestedRow.getByText('QA Client2 asked to collaborate with you')).toBeVisible();
+    // Same reasoning as the decline test above: the request's own Text message is the
+    // newest row, so the list preview reads the message text, not the event banner.
+    await expect(requestedRow.getByText('Hi again, I would like to work with you.')).toBeVisible();
 
     await page.goto('/clients?tab=Pending');
     await page.waitForLoadState('networkidle');
