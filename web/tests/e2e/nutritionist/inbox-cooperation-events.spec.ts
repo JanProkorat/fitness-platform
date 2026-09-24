@@ -1,26 +1,23 @@
 /**
- * #1100 — Cooperation-event banners in the coach's inbox (invite/request/accept/
- * decline/withdraw rendered inline in the thread and as the list preview).
+ * #1100 — Cooperation-event banners in the nutritionist's inbox (the accept
+ * half of `trainer/inbox-cooperation-events.spec.ts`'s decline flow).
  *
  * QA fixture: qa.client2 (`QaSeedRunner.Client2Email`) starts UNLINKED from
- * qa.trainer — its seeded link is with qa.trainer2 instead — so it's the one QA
- * account free to drive a fresh client-request flow without colliding with
- * #1095's already-linked qa.client/qa.client3 fixtures. `global-setup.ts` calls
- * POST /test/reset before this project runs, so qa.client2 is guaranteed
- * unlinked at the start of every run.
+ * qa.nutri — its only seeded link is with qa.trainer2 (Training profession),
+ * so qa.client2's Nutrition slot is free. `global-setup.ts` calls POST
+ * /test/reset before this project runs, so qa.client2 is guaranteed unlinked
+ * from qa.nutri at the start of every run.
  *
- * This file drives ONLY the decline (reject) flow against qa.trainer. The
- * matching accept flow lives in `tests/e2e/nutritionist/inbox-cooperation-events.spec.ts`,
- * driven against qa.nutri instead of qa.trainer: qa.client2's seeded link with
- * qa.trainer2 already occupies its Training profession slot, so
- * AcceptClientRequestEndpoint correctly 400s with PROFESSION_ALREADY_OCCUPIED
- * (#1009 one-coach-per-profession) when qa.trainer tries to accept — that's
- * this repo's real business rule, not a defect in #1100. qa.client2's
- * Nutrition slot is free, so qa.nutri can accept it. Declining doesn't touch
- * the profession-slot check (RejectClientRequestEndpoint has no such guard),
- * so it stays here against qa.trainer. The two tests no longer share a
- * professional and don't interfere with each other, so there is no ordering
- * dependency between this file and the nutritionist one.
+ * This flow runs against qa.nutri rather than qa.trainer specifically
+ * because AcceptClientRequestEndpoint enforces #1009's one-coach-per-
+ * profession rule: qa.client2's seeded qa.trainer2 link already occupies its
+ * Training slot, so qa.trainer accepting a second Training request 400s with
+ * PROFESSION_ALREADY_OCCUPIED — a real business rule, not a defect in #1100.
+ * Accepting into the (free) Nutrition slot via qa.nutri has no such conflict.
+ * The sibling decline test stays on qa.trainer instead, since
+ * RejectClientRequestEndpoint has no profession-slot check. The two tests no
+ * longer share a professional and don't interfere with each other — no
+ * ordering dependency between this file and the trainer one.
  *
  * Coach-side pending/declined/withdrawn threads only ever appear under the All
  * filter chip — an off-roster conversation (no live link) is loaded only when
@@ -29,17 +26,19 @@
  * relying on the page's own All-by-default initial state, so this spec keeps
  * catching a regression even if that default ever changes.
  *
- * The decline action itself is driven through the Clients page's existing
+ * The accept action itself is driven through the Clients page's existing
  * Pending tab (`PendingTable.tsx`) — the inbox thread has no accept/decline
  * affordance of its own on web (RULING (6): `GET /conversations/{id}/context`
- * is mobile-only and web never calls it).
+ * is mobile-only and web never calls it). Both `AcceptClientRequestEndpoint`
+ * and `PendingTable.tsx`'s route are role-agnostic between Trainer and
+ * Nutritionist, so this drives identically to the trainer-side flow.
  */
 import { request as apiRequest, type APIRequestContext, type Page } from '@playwright/test';
-import { trainerTest as test, expect } from '../fixtures/auth';
+import { nutritionistTest as test, expect } from '../fixtures/auth';
 
 const CLIENT2_EMAIL = 'qa.client2@fitnessplatform.test';
-/** QaSeedRunner.TrainerProfilePublicId — qa.trainer's ProfessionalProfile.PublicId. */
-const TRAINER_PROFESSIONAL_PUBLIC_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+/** QaSeedRunner.NutriProfilePublicId — qa.nutri's ProfessionalProfile.PublicId. */
+const NUTRITIONIST_PROFESSIONAL_PUBLIC_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 const CLIENT2_DISPLAY_NAME = 'QA Client2';
 
 interface LoginResponseBody {
@@ -67,23 +66,25 @@ async function loginAsClient2(baseURL: string): Promise<{ api: APIRequestContext
 }
 
 /**
- * Sends a fresh client request from qa.client2 to qa.trainer. Throws with the
+ * Sends a fresh client request from qa.client2 to qa.nutri. Throws with the
  * response status + body on failure — rather than a bare `expect(...).toBe(true)`
- * — so a leftover Pending request from a previous failed run (RequestAlreadyPending)
- * reads as exactly that in the test output, instead of a bare "expected true,
- * received false" that gives no hint the cause is upstream state, not this call.
+ * — so a leftover Pending request from a previous failed run
+ * (RequestAlreadyPending), or a profession-slot conflict
+ * (PROFESSION_ALREADY_OCCUPIED), reads as exactly that in the test output,
+ * instead of a bare "expected true, received false" that gives no hint the
+ * cause is upstream state, not this call.
  */
 async function sendClient2Request(api: APIRequestContext, accessToken: string, message: string): Promise<void> {
   const response = await api.post('/client/requests', {
-    data: { professionalPublicId: TRAINER_PROFESSIONAL_PUBLIC_ID, message },
+    data: { professionalPublicId: NUTRITIONIST_PROFESSIONAL_PUBLIC_ID, message },
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok()) {
     const body = await response.text();
     throw new Error(
-      `[inbox-cooperation-events] POST /client/requests as qa.client2 (-> qa.trainer) returned ` +
+      `[inbox-cooperation-events] POST /client/requests as qa.client2 (-> qa.nutri) returned ` +
         `${response.status()} ${response.statusText()}: ${body}. If this is ` +
-        'RequestAlreadyPending, qa.client2 has a leftover Pending request against qa.trainer ' +
+        'RequestAlreadyPending, qa.client2 has a leftover Pending request against qa.nutri ' +
         'from an earlier failed run.',
     );
   }
@@ -92,8 +93,9 @@ async function sendClient2Request(api: APIRequestContext, accessToken: string, m
 /**
  * Opens the filter dropdown and explicitly (re)selects "All" — the only chip
  * that surfaces an off-roster (no live link) conversation. Same trigger-button
- * pattern as `inbox.spec.ts`'s filter-parity test: the default `ClientListFilter.All`
- * state means the trigger is already labelled "All (n)" on a fresh `/inbox` visit.
+ * pattern as `trainer/inbox.spec.ts`'s filter-parity test: the default
+ * `ClientListFilter.All` state means the trigger is already labelled "All (n)"
+ * on a fresh `/inbox` visit.
  */
 async function selectAllFilter(page: Page): Promise<void> {
   await page.getByRole('button', { name: /^All \(\d+\)$/ }).click();
@@ -102,14 +104,14 @@ async function selectAllFilter(page: Page): Promise<void> {
 }
 
 /** The inbox list row for qa.client2, scoped to an exact name match (same reasoning as
- * `inbox.spec.ts`'s `qaClientRow` — "QA Client2" would otherwise also match a
+ * `trainer/inbox.spec.ts`'s `qaClientRow` — "QA Client2" would otherwise also match a
  * substring search against "QA Client"/"QA Client3"). */
 function client2Row(page: Page) {
   return page.getByRole('button').filter({ has: page.getByText(CLIENT2_DISPLAY_NAME, { exact: true }) });
 }
 
 test.describe('inbox cooperation-event banners (#1100)', () => {
-  test('a client request the coach declines shows the Requested banner, then the Declined banner, in both the thread and the list preview', async ({
+  test('a client request the nutritionist accepts shows the Requested banner, then the Accepted banner, in both the thread and the list preview', async ({
     page,
     baseURL,
   }) => {
@@ -131,8 +133,8 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     // one batch for a non-blank message), so the MESSAGE — not the event — is the
     // newest row: LastMessageEventType resets to null and the list preview reads the
     // message text, not the "asked to collaborate" banner. The banner only becomes the
-    // list preview when the event itself is the newest row — see the Declined
-    // assertion below, where the reject carries no statement.
+    // list preview when the event itself is the newest row — see the Accepted
+    // assertion below, where the accept carries no statement.
     await expect(requestedRow.getByText('Hi, I would like to work with you.')).toBeVisible();
 
     await requestedRow.click();
@@ -144,17 +146,17 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     await page.waitForLoadState('networkidle');
     const pendingRow = page.getByRole('row', { name: /QA Client2/ });
     await expect(pendingRow).toBeVisible();
-    await pendingRow.getByRole('button', { name: 'Reject' }).click();
+    await pendingRow.getByRole('button', { name: 'Accept' }).click();
     await expect(pendingRow).toHaveCount(0);
 
     await page.goto('/inbox');
     await page.waitForLoadState('networkidle');
     await selectAllFilter(page);
 
-    const declinedRow = client2Row(page);
-    await expect(declinedRow.getByText("You declined QA Client2's request")).toBeVisible();
-    await declinedRow.click();
+    const acceptedRow = client2Row(page);
+    await expect(acceptedRow.getByText("You accepted QA Client2's request")).toBeVisible();
+    await acceptedRow.click();
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText("You declined QA Client2's request").last()).toBeVisible();
+    await expect(page.getByText("You accepted QA Client2's request").last()).toBeVisible();
   });
 });
