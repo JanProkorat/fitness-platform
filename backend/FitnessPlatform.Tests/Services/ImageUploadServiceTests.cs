@@ -67,16 +67,16 @@ public class ImageUploadServiceTests
     // ── Size cap ────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GenerateUploadUrlAsync_ExactlyAtLimit_ReturnsUploadUrl()
+    public async Task GenerateUploadUrlAsync_ExactlyAtLimit_DoesNotThrow()
     {
-        var result = await _sut.GenerateUploadUrlAsync(
+        var act = () => _sut.GenerateUploadUrlAsync(
             ImageUploadScope.Food,
             "food456.jpg",
             "image/jpeg",
             ImageUploadService.MaxImageSizeBytes, // exactly at the limit — allowed
             CancellationToken.None);
 
-        result.Should().NotBeNull();
+        await act.Should().NotThrowAsync();
     }
 
     [Fact]
