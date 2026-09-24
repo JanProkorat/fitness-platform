@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -34,36 +35,27 @@ public class PendingInviteConversationSeeder(
 
         foreach (var invite in invites)
         {
-            // seedIntoExisting: false — intentional "one conversation per coach" behavior.
-            // If this coach has already sent a message-bearing invite to this email before
-            // (so the professional/client conversation already exists from a prior loop
-            // iteration or an earlier invite-creation-time seed), a SECOND message-bearing
-            // invite from the SAME coach reuses that existing conversation and does NOT
-            // seed its message again — matching AcceptClientInviteEndpoint /
-            // AcceptInvitationEndpoint's re-accept idempotency. This is deliberate, not a
-            // bug: it prevents a coach who re-invites the same client from re-delivering
-            // (or duplicating) an old opening message. Only distinct coaches inviting the
-            // same email each get their own conversation seeded here.
+            // Writes the SAME rows the immediate verified-account path in
+            // CreatePendingInviteEndpoint writes: the Invited event, then the invite's
+            // message beneath it if it carries one. A message-less invite still gets a
+            // thread here — the banner alone (R4 + the maintainer's message-less=yes
+            // ruling) — this is no longer gated on a non-empty Message the way the
+            // pre-#1100 seeder was.
             //
-            // Match the existing accept-time gate (AcceptClientInviteEndpoint /
-            // AcceptInvitationEndpoint): only seed for invites carrying a non-empty
-            // message — never create an empty conversation shell for a message-less invite.
-            if (string.IsNullOrWhiteSpace(invite.Message))
-            {
-                continue;
-            }
-
-            var professionalUser = invite.ProfessionalProfile.User;
-            var professionalName = $"{professionalUser.FirstName} {professionalUser.LastName}";
-
-            await conversationSeedService.GetOrSeedConversationAsync(
+            // Keyed on invite.PublicId via the (conversation, eventType, sourceId) unique
+            // index inside AppendCooperationEventAsync, so this is idempotent: a no-op if
+            // the immediate invite-time path already wrote it for an account that was
+            // already verified when the invite was created, and a later accept's own
+            // "ensure Invited" re-check is likewise a no-op against this row.
+            await conversationSeedService.AppendCooperationEventAsync(
                 invite.ProfessionalProfile.UserId,
                 newUser.Id,
                 invite.ProfessionalProfile.UserId,
-                professionalName,
+                ChatEventType.Invited,
+                invite.PublicId,
                 invite.Message,
-                seedIntoExisting: false,
-                ct: ct);
+                createConversationIfMissing: true,
+                ct);
         }
     }
 }

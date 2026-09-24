@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
@@ -8,11 +9,13 @@ using NSubstitute;
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Unit tests for <see cref="PendingInviteConversationSeeder"/> — the account-creation-time
-/// seam extracted for #803/#817 (invite messages not surfacing as a chat conversation until
-/// the client accepts). <see cref="IConversationSeedService"/> is substituted so these tests
-/// verify only the "which invites qualify, and with what arguments" lookup logic; the actual
-/// get-or-create-conversation + seed-message behavior is covered by
+/// Unit tests for <see cref="PendingInviteConversationSeeder"/> — the email-verification-time
+/// seam (moved from RegisterEndpoint to VerifyEmailEndpoint for #1100, R4) that seeds an
+/// Invited cooperation event (plus the invite's message, if any) for every non-accepted
+/// PendingInvite addressed to the just-verified email. <see cref="IConversationSeedService"/>
+/// is substituted so these tests verify only the "which invites qualify, and with what
+/// arguments" lookup logic; the actual get-or-create-conversation + event/message write
+/// behavior is covered by
 /// <see cref="FitnessPlatform.Tests.Services.ConversationSeedServiceTests"/>. No Docker
 /// required — the Postgres DbSets are mocked.
 /// </summary>
@@ -42,7 +45,7 @@ public class PendingInviteConversationSeederTests
     }
 
     [Fact]
-    public async Task SeedForNewUserAsync_MatchingInviteWithMessage_SeedsConversation()
+    public async Task SeedForNewUserAsync_MatchingInviteWithMessage_AppendsInvitedEventWithMessage()
     {
         var newUser = NewUser("client@example.com");
         var professional = MakeProfessional("Coach", "Carl");
@@ -63,13 +66,19 @@ public class PendingInviteConversationSeederTests
 
         await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
 
-        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
             professional.UserId, newUser.Id, professional.UserId,
-            "Coach Carl", "Welcome aboard!", seedIntoExisting: false, TestContext.Current.CancellationToken);
+            ChatEventType.Invited, invite.PublicId, "Welcome aboard!",
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
     }
 
+    /// <summary>
+    /// R4 + the maintainer's message-less=yes ruling: a message-less invite still seeds a
+    /// thread now — the banner alone — unlike the pre-#1100 seeder, which skipped it
+    /// entirely to avoid an empty conversation shell.
+    /// </summary>
     [Fact]
-    public async Task SeedForNewUserAsync_MatchingInviteWithoutMessage_DoesNotCreateEmptyConversationShell()
+    public async Task SeedForNewUserAsync_MatchingInviteWithoutMessage_StillAppendsInvitedEvent()
     {
         var newUser = NewUser("nomessage@example.com");
         var professional = MakeProfessional("Coach", "Carl");
@@ -87,35 +96,14 @@ public class PendingInviteConversationSeederTests
 
         await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
 
-        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professional.UserId, newUser.Id, professional.UserId,
+            ChatEventType.Invited, invite.PublicId, null,
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
     }
 
     [Fact]
-    public async Task SeedForNewUserAsync_WhitespaceOnlyMessage_DoesNotCreateEmptyConversationShell()
-    {
-        var newUser = NewUser("whitespace@example.com");
-        var professional = MakeProfessional("Coach", "Carl");
-        var invite = new PendingInvite
-        {
-            ProfessionalProfileId = professional.Id,
-            ProfessionalProfile = professional,
-            Email = "whitespace@example.com",
-            Message = "   ",
-            IsAccepted = false
-        };
-
-        var db = new MockDbBuilder().With(invite).Build();
-        var seeder = new PendingInviteConversationSeeder(db, _conversationSeedService);
-
-        await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
-
-        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
-    }
-
-    [Fact]
-    public async Task SeedForNewUserAsync_MultiplePendingInvites_SeedsOnePerQualifyingInvite()
+    public async Task SeedForNewUserAsync_MultiplePendingInvites_AppendsOneEventPerQualifyingInvite()
     {
         var newUser = NewUser("multi@example.com");
         var coach1 = MakeProfessional("Coach", "One");
@@ -143,12 +131,14 @@ public class PendingInviteConversationSeederTests
 
         await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
 
-        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
             coach1.UserId, newUser.Id, coach1.UserId,
-            "Coach One", "Hi from coach one", seedIntoExisting: false, TestContext.Current.CancellationToken);
-        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
+            ChatEventType.Invited, invite1.PublicId, "Hi from coach one",
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
             coach2.UserId, newUser.Id, coach2.UserId,
-            "Coach Two", "Hi from coach two", seedIntoExisting: false, TestContext.Current.CancellationToken);
+            ChatEventType.Invited, invite2.PublicId, "Hi from coach two",
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -161,13 +151,13 @@ public class PendingInviteConversationSeederTests
 
         await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
 
-        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 
     /// <summary>
     /// An already-accepted invite must never be re-seeded from this helper — it either was
-    /// already seeded earlier (at invite-creation time, or by an earlier register call) or
+    /// already seeded earlier (at invite-creation time, or by an earlier verification) or
     /// belongs to a fully-consumed relationship. The lookup filters on <c>!IsAccepted</c>.
     /// </summary>
     [Fact]
@@ -189,7 +179,7 @@ public class PendingInviteConversationSeederTests
 
         await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
 
-        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 }

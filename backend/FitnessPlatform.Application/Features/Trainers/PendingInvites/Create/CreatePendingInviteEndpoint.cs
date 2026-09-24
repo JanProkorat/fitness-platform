@@ -16,14 +16,18 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
 /// Also creates an in-app notification and sends a real-time event if the client already has an
-/// account. Does NOT seed a chat message — see the claude-security F8 note in
-/// <see cref="HandleAsync"/>; that side effect is deferred to acceptance time.
+/// account. If that account's email is already verified, immediately seeds the professional-
+/// client conversation with an Invited cooperation event — see the maintainer ruling in
+/// <see cref="HandleAsync"/>. For an unverified or nonexistent account, the identical rows are
+/// written later, once the email is verified, by <c>VerifyEmailEndpoint</c> via
+/// <see cref="IPendingInviteConversationSeeder"/>.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
     IEmailService emailService,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <summary>
@@ -227,13 +231,21 @@ public class CreatePendingInviteEndpoint(
 
         if (existingUser is not null)
         {
-            // claude-security F8: this branch used to ALSO seed a conversation and write the
-            // caller's free-text message into it, before the invitee had agreed to anything.
-            // That let any professional account drop attacker-written prose straight into an
-            // arbitrary stranger's message stream, addressed only by guessing their email.
-            // The conversation seed is deferred to acceptance — AcceptClientInviteEndpoint and
-            // AcceptInvitationEndpoint both already seed it from the invite's stored Message
-            // (#768), so nothing is lost, it just waits for consent.
+            // MAINTAINER RULING 2026-09-23 (closed, do not reopen): F8 is reversed. This branch
+            // used to defer the conversation seed to acceptance — claude-security's original F8
+            // finding was that seeding it here let any professional account drop attacker-written
+            // prose straight into an arbitrary stranger's message stream, addressed only by
+            // guessing their email. The maintainer's call: for a VERIFIED account, seed the
+            // conversation and write the Invited event (plus the message beneath it, if any)
+            // immediately below, instead of waiting for accept.
+            //
+            // Accepted risk: an authenticated professional who already knows a registered,
+            // verified email address can write an entry into that account's own message thread
+            // before the invitee has agreed to anything. This is bounded, not open-ended — by
+            // AppPolicies.PendingInviteRateLimit and by MaxOutstandingInvitesPerProfessional
+            // (200) above, both of which cap the fan-out a single abusive account can build.
+            // An unverified or nonexistent account gets no thread here — VerifyEmailEndpoint
+            // seeds the identical rows once the account is verified (R4).
             //
             // The notification and realtime event below stay: their payload is composed here
             // from the professional's own profile and the invite id, the invitee needs some
@@ -264,6 +276,21 @@ public class CreatePendingInviteEndpoint(
                     message = pendingInvite.Message
                 },
                 ct);
+
+            // Verified accounts only (R4) — an unverified invitee gets no thread until
+            // VerifyEmailEndpoint seeds the identical rows.
+            if (existingUser.EmailConfirmed)
+            {
+                await conversationSeedService.AppendCooperationEventAsync(
+                    professionalProfile.UserId,
+                    existingUser.Id,
+                    professionalProfile.UserId,
+                    ChatEventType.Invited,
+                    pendingInvite.PublicId,
+                    pendingInvite.Message,
+                    createConversationIfMissing: true,
+                    ct);
+            }
         }
 
         logger.LogInformation(
