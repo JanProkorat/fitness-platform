@@ -209,6 +209,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(m => m.Conversation).WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId);
             e.HasOne(m => m.Sender).WithMany().HasForeignKey(m => m.SenderUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(m => new { m.ConversationId, m.DateCreated });
+
+            // Deduplicates a re-processed cooperation event (double-accept, retried
+            // withdraw) — only one Event row per (conversation, type, source) can exist.
+            // Partial: plain text rows carry a null EventSourceId and are unconstrained.
+            e.HasIndex(m => new { m.ConversationId, m.EventType, m.EventSourceId })
+                .IsUnique()
+                .HasFilter("event_source_id IS NOT NULL");
         });
 
         builder.Entity<WeeklyCheckInSetting>(e =>
