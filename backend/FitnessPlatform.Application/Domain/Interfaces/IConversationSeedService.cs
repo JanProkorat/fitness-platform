@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Interfaces;
 
@@ -65,5 +66,59 @@ public interface IConversationSeedService
         string senderName,
         string? messageText,
         bool seedIntoExisting,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Appends a system-generated cooperation event (invite sent, request accepted, etc.) to the
+    /// professional-client conversation, writing a single <see cref="ChatMessage"/> row with
+    /// <see cref="ChatMessageKind.Event"/> and, when <paramref name="messageText"/> is non-blank,
+    /// a second plain <see cref="ChatMessageKind.Text"/> row beneath it — both authored by
+    /// <paramref name="actorUserId"/> and both committed in a single <c>SaveChangesAsync</c> call
+    /// (the FIX 1 pattern from <see cref="GetOrSeedConversationAsync"/>) via the
+    /// <see cref="Conversation"/> navigation property.
+    /// </summary>
+    /// <param name="professionalUserId">The professional participant's user id.</param>
+    /// <param name="clientUserId">The client participant's user id.</param>
+    /// <param name="actorUserId">
+    /// The user who raised the event — must equal either <paramref name="professionalUserId"/>
+    /// or <paramref name="clientUserId"/>. Becomes the written row(s)' <c>SenderUserId</c>; no
+    /// separate actor-name payload is stored.
+    /// </param>
+    /// <param name="eventType">The cooperation event type.</param>
+    /// <param name="sourceId">
+    /// The public id of the domain row that raised the event (a <c>PendingInvite.PublicId</c> or
+    /// a <c>ClientRequest.PublicId</c>), or null for a source with no stable id (e.g. a
+    /// token-only invite). Paired with <paramref name="eventType"/> and the conversation to
+    /// deduplicate a re-processed event via the partial unique index on
+    /// (ConversationId, EventType, EventSourceId).
+    /// </param>
+    /// <param name="messageText">
+    /// An optional free-text message (an invite's personal note, an accept-time statement) to
+    /// seed beneath the event row. A null/whitespace value seeds the event only.
+    /// </param>
+    /// <param name="createConversationIfMissing">
+    /// <c>true</c>: get-or-create the conversation, matching <see cref="GetOrSeedConversationAsync"/>'s
+    /// behavior. <c>false</c>: only append when a conversation already exists — this is a no-op
+    /// (no conversation created, no event written, no broadcast) when the professional and client
+    /// have no conversation yet. Used for a neutral "withdrawn" event, which must never create a
+    /// thread just to announce there is nothing to see.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <remarks>
+    /// Concurrency: a re-processed event for the same <paramref name="eventType"/> +
+    /// <paramref name="sourceId"/> (a double-accept, a retried withdraw) hits the partial unique
+    /// index on (ConversationId, EventType, EventSourceId). The resulting
+    /// <see cref="Microsoft.EntityFrameworkCore.DbUpdateException"/> is caught internally and
+    /// treated as a no-op — the whole batch (event row and, if present, its message row) rolls
+    /// back together, and no "newmessage" broadcast is sent.
+    /// </remarks>
+    Task AppendCooperationEventAsync(
+        Guid professionalUserId,
+        Guid clientUserId,
+        Guid actorUserId,
+        ChatEventType eventType,
+        Guid? sourceId,
+        string? messageText,
+        bool createConversationIfMissing,
         CancellationToken ct);
 }

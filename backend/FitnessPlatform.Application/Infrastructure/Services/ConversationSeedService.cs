@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -114,6 +115,112 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
         }
 
         return conversation;
+    }
+
+    /// <inheritdoc />
+    public async Task AppendCooperationEventAsync(
+        Guid professionalUserId,
+        Guid clientUserId,
+        Guid actorUserId,
+        ChatEventType eventType,
+        Guid? sourceId,
+        string? messageText,
+        bool createConversationIfMissing,
+        CancellationToken ct)
+    {
+        var conversation = await db.Conversations
+            .FirstOrDefaultAsync(c =>
+                c.ProfessionalUserId == professionalUserId &&
+                c.ClientUserId == clientUserId, ct);
+
+        if (conversation is null)
+        {
+            if (!createConversationIfMissing)
+            {
+                return;
+            }
+
+            conversation = new Conversation
+            {
+                ProfessionalUserId = professionalUserId,
+                ClientUserId = clientUserId,
+            };
+            db.Conversations.Add(conversation);
+        }
+
+        var recipientUserId = actorUserId == professionalUserId ? clientUserId : professionalUserId;
+
+        var actorUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == actorUserId, ct);
+        var actorName = actorUser is not null ? $"{actorUser.FirstName} {actorUser.LastName}" : string.Empty;
+
+        // The fallback line is rendered in the CLIENT's language regardless of which
+        // participant is the actor — this is the same row both participants read.
+        var clientUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == clientUserId, ct);
+        var eventText = ChatEventTemplates.Resolve(eventType, clientUser?.Language, actorName);
+
+        // Added to the change tracker BEFORE the optional message below, so a single
+        // SaveChangesAsync batch inserts the event row first — the event must
+        // deterministically sort before the message in GetMessages'
+        // (DateCreated, Id) order.
+        var eventMessage = new ChatMessage
+        {
+            Conversation = conversation,
+            SenderUserId = actorUserId,
+            Kind = ChatMessageKind.Event,
+            EventType = eventType,
+            EventSourceId = sourceId,
+            Text = eventText,
+            IsRead = false,
+        };
+        db.ChatMessages.Add(eventMessage);
+
+        ChatMessage? textMessage = null;
+
+        if (!string.IsNullOrWhiteSpace(messageText))
+        {
+            textMessage = new ChatMessage
+            {
+                Conversation = conversation,
+                SenderUserId = actorUserId,
+                Kind = ChatMessageKind.Text,
+                Text = messageText.Trim(),
+                IsRead = false,
+            };
+            db.ChatMessages.Add(textMessage);
+        }
+
+        var lastMessage = textMessage ?? eventMessage;
+        conversation.LastMessageText = lastMessage.Text.Length > 300 ? lastMessage.Text[..300] : lastMessage.Text;
+        conversation.LastMessageAt = DateTime.UtcNow;
+        conversation.LastMessageSenderId = actorUserId;
+        conversation.LastMessageHasImage = false;
+        conversation.LastMessageEventType = textMessage is null ? eventType : null;
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            // A re-processed event for the same (conversation, eventType, sourceId) — a
+            // double-accept, a retried withdraw — hits the partial unique index on
+            // chat_messages. Swallow it as a no-op: the whole batch (event row and,
+            // if present, its message row, plus a brand-new conversation shell) rolls
+            // back together, so nothing is half-written. No broadcast.
+            return;
+        }
+
+        await notifier.NotifyAsync(recipientUserId, "newmessage", new
+        {
+            conversationId = conversation.PublicId,
+            messageId = lastMessage.PublicId,
+            senderId = actorUserId,
+            senderName = actorName,
+            text = lastMessage.Text,
+            timestamp = lastMessage.DateCreated,
+            kind = lastMessage.Kind,
+            eventType = textMessage is null ? eventType : (ChatEventType?)null,
+        }, ct);
     }
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
