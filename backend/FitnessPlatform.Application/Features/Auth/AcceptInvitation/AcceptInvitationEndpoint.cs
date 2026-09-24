@@ -198,23 +198,24 @@ public class AcceptInvitationEndpoint(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        // If the invite carried a personal message, surface it as the first message
-        // in the client-professional conversation so it shows up on the client's
-        // Messages screen (#768). Gated on pendingInvite (only set inside the
-        // !existingLink branch, i.e. a brand-new link) so a replayed/expired token
-        // — which already throws above — can never reach here twice, and gated on
-        // non-empty text so we don't create an empty conversation shell for invites
-        // that had no message.
-        if (pendingInvite is not null && !string.IsNullOrWhiteSpace(pendingInvite.Message))
+        // Ensure the invite's Invited event + message exist (idempotent no-op if already
+        // written by CreatePendingInvite or VerifyEmail's seed), then record this Accepted
+        // event. A token-only invite with no matching PendingInvite (InviteClientEndpoint —
+        // out of #1100's scope) writes Accepted with a null source, relying on the token's
+        // own IsUsed guard for idempotency instead of the (conversation, eventType,
+        // sourceId) index.
+        if (pendingInvite is not null)
         {
-            var professionalName = professionalUser is not null
-                ? $"{professionalUser.FirstName} {professionalUser.LastName}"
-                : "Professional";
-
-            await conversationSeedService.GetOrSeedConversationAsync(
+            await conversationSeedService.AppendCooperationEventAsync(
                 invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
-                professionalName, pendingInvite.Message, seedIntoExisting: false, ct: ct);
+                ChatEventType.Invited, pendingInvite.PublicId, pendingInvite.Message,
+                createConversationIfMissing: true, ct);
         }
+
+        await conversationSeedService.AppendCooperationEventAsync(
+            invitation.ProfessionalProfile.UserId, userGuid, userGuid,
+            ChatEventType.Accepted, pendingInvite?.PublicId, messageText: null,
+            createConversationIfMissing: true, ct);
 
         // Audit: new data sharing relationship established
         await audit.LogAsync(

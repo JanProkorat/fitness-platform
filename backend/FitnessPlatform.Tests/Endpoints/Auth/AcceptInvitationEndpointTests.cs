@@ -190,9 +190,64 @@ public class AcceptInvitationEndpointTests
 
         ep.ValidationFailed.Should().BeFalse();
         pendingInvite.IsAccepted.Should().BeTrue();
-        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
-            _trainerId, _userId, _trainerId, Arg.Any<string>(), pendingInvite.Message,
-            seedIntoExisting: false, Arg.Any<CancellationToken>());
+
+        // Ensures the Invited event + message exist (idempotent no-op if already written by
+        // CreatePendingInvite or VerifyEmail's seed), then records Accepted — both keyed on
+        // the PendingInvite's PublicId.
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            _trainerId, _userId, _trainerId,
+            ChatEventType.Invited, pendingInvite.PublicId, pendingInvite.Message,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            _trainerId, _userId, _userId,
+            ChatEventType.Accepted, pendingInvite.PublicId, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// A token-only invite (no matching PendingInvite — e.g. InviteClientEndpoint, out of
+    /// #1100's scope) writes Accepted with a null source, relying on the token's own
+    /// IsUsed guard for idempotency, and never writes an Invited event (there is no invite
+    /// row to key it on).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_TokenWithNoPendingInvite_WritesAcceptedWithNullSource()
+    {
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var invitation = EntityBuilder.InvitationToken
+            .WithToken("token-only-invite")
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(invitation)
+            .Build();
+
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("T").WithLastName("R").Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
+        userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
+
+        var ep = Factory.Create<AcceptInvitationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService);
+
+        await ep.HandleAsync(new AcceptInvitationRequest { Token = "token-only-invite" }, TestContext.Current.CancellationToken);
+
+        ep.ValidationFailed.Should().BeFalse();
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            _trainerId, _userId, _userId,
+            ChatEventType.Accepted, null, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+        await _conversationSeedService.DidNotReceive().AppendCooperationEventAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid>(),
+            ChatEventType.Invited, Arg.Any<Guid?>(), Arg.Any<string?>(),
+            Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>
