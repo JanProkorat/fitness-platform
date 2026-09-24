@@ -183,22 +183,21 @@ public class AcceptClientInviteEndpoint(
             await db.SaveChangesAsync(ct);
         }
 
-        // If the invite carried a personal message, surface it as the first message
-        // in the client-professional conversation so it shows up on the client's
-        // Messages screen (#768). Gated on newLink (a brand-new link) so re-processing
-        // an already-accepted invite — which 404s above via the !pi.IsAccepted filter —
-        // can never reach here twice, and gated on non-empty text so we don't create an
-        // empty conversation shell for invites that had no message.
-        if (newLink is not null && !string.IsNullOrWhiteSpace(invite.Message))
-        {
-            var professionalName = professionalUser is not null
-                ? $"{professionalUser.FirstName} {professionalUser.LastName}"
-                : "Professional";
+        // Ensure the invite's Invited event + message exist (idempotent no-op if the
+        // immediate invite-time or VerifyEmail-time seed already wrote them — e.g. this
+        // invite's target account was unverified at invite time and only became verified
+        // later), then record this Accepted event. Both keyed on invite.PublicId via the
+        // partial unique index inside AppendCooperationEventAsync, so a double-accept
+        // writes at most one Accepted row and never duplicates the message.
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
+            ChatEventType.Invited, invite.PublicId, invite.Message,
+            createConversationIfMissing: true, ct);
 
-            await conversationSeedService.GetOrSeedConversationAsync(
-                invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
-                professionalName, invite.Message, seedIntoExisting: false, ct: ct);
-        }
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, userGuid,
+            ChatEventType.Accepted, invite.PublicId, messageText: null,
+            createConversationIfMissing: true, ct);
 
         // Notify the professional that their invite was accepted
         var clientName = $"{caller.FirstName} {caller.LastName}";

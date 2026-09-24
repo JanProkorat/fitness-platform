@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,10 @@ namespace FitnessPlatform.Application.Features.Client.Invites.Decline;
 /// <summary>
 /// Client declines a pending invite. Marks it as accepted (consumed) without creating a link.
 /// </summary>
-public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNotifier notifier) : Endpoint<DeclineClientInviteRequest>
+public class DeclineClientInviteEndpoint(
+    IApplicationDbContext db,
+    IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService) : Endpoint<DeclineClientInviteRequest>
 {
     public override void Configure()
     {
@@ -55,6 +59,19 @@ public class DeclineClientInviteEndpoint(IApplicationDbContext db, IRealtimeNoti
         // Mark as consumed so it no longer appears as pending
         invite.IsAccepted = true;
         await db.SaveChangesAsync(ct);
+
+        // Ensure the invite's Invited event + message exist (idempotent no-op if already
+        // written), then record this Declined event — same "ensure then append" shape as
+        // the accept paths.
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, invite.ProfessionalProfile.UserId,
+            ChatEventType.Invited, invite.PublicId, invite.Message,
+            createConversationIfMissing: true, ct);
+
+        await conversationSeedService.AppendCooperationEventAsync(
+            invite.ProfessionalProfile.UserId, userGuid, userGuid,
+            ChatEventType.Declined, invite.PublicId, messageText: null,
+            createConversationIfMissing: true, ct);
 
         // Notify the professional that the invite was declined
         var clientName = $"{caller.FirstName} {caller.LastName}";

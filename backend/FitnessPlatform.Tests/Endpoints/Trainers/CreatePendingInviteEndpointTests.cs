@@ -26,19 +26,28 @@ public class CreatePendingInviteEndpointTests
     private static CreatePendingInviteEndpoint CreateEndpoint(
         Application.Infrastructure.Data.IApplicationDbContext db,
         Guid callerId,
+        params string[] roles) =>
+        CreateEndpointWithSeedService(db, callerId, roles).Endpoint;
+
+    private static (CreatePendingInviteEndpoint Endpoint, IConversationSeedService ConversationSeedService) CreateEndpointWithSeedService(
+        Application.Infrastructure.Data.IApplicationDbContext db,
+        Guid callerId,
         params string[] roles)
     {
         var emailService = Substitute.For<IEmailService>();
         var notificationService = Substitute.For<INotificationService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
+        var conversationSeedService = Substitute.For<IConversationSeedService>();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
-        return Factory.Create<CreatePendingInviteEndpoint>(
+        var ep = Factory.Create<CreatePendingInviteEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailService, notificationService, notifier, logger);
+            db, emailService, notificationService, notifier, conversationSeedService, logger);
+
+        return (ep, conversationSeedService);
     }
 
     [Fact]
@@ -109,35 +118,37 @@ public class CreatePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// claude-security F8 — superseding the #768 regression contract this test used to assert
-    /// (a chat message seeded immediately into an existing user's account for an email match
-    /// with no relationship check). That immediate seed, plus the accompanying notification and
-    /// realtime push, is exactly the abuse vector: a free professional account could drop
-    /// attacker-written text into any registered user's message stream. The side effect is now
-    /// deferred to acceptance time — this test proves the endpoint no longer writes anything into
-    /// the invited user's inbox at creation time, only the PendingInvite/InvitationToken rows and
-    /// the outbound email.
+    /// MAINTAINER RULING 2026-09-23 (F8 reversed): for a VERIFIED existing CLIENT account,
+    /// the endpoint now immediately seeds the professional-client conversation with an
+    /// Invited cooperation event (plus the invite's message beneath it) — superseding the
+    /// #768/F8 regression contract this test used to assert (that nothing was seeded at
+    /// creation time). The accepted risk is documented at the call site; see the
+    /// maintainer-ruling comment in CreatePendingInviteEndpoint.HandleAsync.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_ExistingUserWithMessage_DoesNotSeedConversationImmediately()
+    public async Task HandleAsync_ExistingVerifiedUserWithMessage_SeedsInvitedEventImmediately()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
         var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
             .WithFirstName("Jane").WithLastName("Doe").Build();
+        existingUser.EmailConfirmed = true;
+        existingUser.NormalizedEmail = "JANE@TEST.COM";
+        var existingClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(existingUser).Build();
 
         var db = new MockDbBuilder()
             .With(trainerUser)
             .With(trainerProfile)
             .With(existingUser)
+            .With(existingClientProfile)
             .Build();
 
         PendingInvite? captured = null;
         db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
             .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        var ep = CreateEndpoint(db, _trainerId, AppRoles.Trainer);
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
@@ -145,11 +156,152 @@ public class CreatePendingInviteEndpointTests
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(200,
-            "the invite is still created successfully — only the immediate side effect is removed");
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
         captured.Should().NotBeNull();
-        captured!.Message.Should().Be("Looking forward to coaching you!",
-            "the message is still stored on the invite for the accept-time seed to use later");
+        captured!.Message.Should().Be("Looking forward to coaching you!");
+
+        await conversationSeedService.Received(1).AppendCooperationEventAsync(
+            trainerProfile.UserId, existingUser.Id, trainerProfile.UserId,
+            ChatEventType.Invited, captured.PublicId, "Looking forward to coaching you!",
+            createConversationIfMissing: true, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// R4: invite threads exist only for VERIFIED accounts. An existing but unverified
+    /// account gets no thread at invite-creation time — VerifyEmailEndpoint seeds the
+    /// identical rows once the account is verified.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ExistingUnverifiedUser_DoesNotSeedConversationImmediately()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
+            .WithFirstName("Jane").WithLastName("Doe").Build();
+        existingUser.EmailConfirmed = false;
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(existingUser)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "jane@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// No account at all for the invited email — same no-thread outcome as an unverified
+    /// account, for the same reason (nothing exists yet to key a Conversation on).
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_NoAccountForEmail_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "nobody-yet@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// #1108 review — the R4 gate must key on the invitee being a CLIENT, not merely
+    /// verified: a verified peer professional's own email must get no thread, matching
+    /// VerifyEmailEndpoint's ClientProfile-only seed.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var peerProfessionalUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("peer@test.com")
+            .WithFirstName("Peer").WithLastName("Pro").Build();
+        peerProfessionalUser.EmailConfirmed = true;
+        peerProfessionalUser.NormalizedEmail = "PEER@TEST.COM";
+        var peerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(peerProfessionalUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(peerProfessionalUser)
+            .With(peerProfile)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "peer@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// #1108 review — a self-invite (the caller's own email, verified, and holding a
+    /// ClientProfile so the client-only gate above alone would have let it through) must
+    /// still get no thread. No other guard in this endpoint rejects a self-invite outright
+    /// (the invite/token/email are still created) — this is the only place that stops it
+    /// from writing into the caller's own message stream.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_SelfInvite_VerifiedAndHoldsClientProfile_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        trainerUser.EmailConfirmed = true;
+        trainerUser.NormalizedEmail = "TRAINER@TEST.COM";
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        // Dual-role account (holds both a ProfessionalProfile and a ClientProfile) so the
+        // client-only gate alone would have let this through — isolates the self-check.
+        var trainerClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(trainerClientProfile)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "trainer@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 
     [Fact]

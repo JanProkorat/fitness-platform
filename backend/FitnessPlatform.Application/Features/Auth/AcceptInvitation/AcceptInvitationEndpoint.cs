@@ -198,22 +198,23 @@ public class AcceptInvitationEndpoint(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        // If the invite carried a personal message, surface it as the first message
-        // in the client-professional conversation so it shows up on the client's
-        // Messages screen (#768). Gated on pendingInvite (only set inside the
-        // !existingLink branch, i.e. a brand-new link) so a replayed/expired token
-        // — which already throws above — can never reach here twice, and gated on
-        // non-empty text so we don't create an empty conversation shell for invites
-        // that had no message.
-        if (pendingInvite is not null && !string.IsNullOrWhiteSpace(pendingInvite.Message))
+        // Only for a NEWLY created link (#1108 review) — an already-linked client
+        // re-using this token would otherwise get a fresh, undeduplicated Accepted
+        // banner on every re-use, since a null-source event has no index to dedupe on.
+        if (!existingLink)
         {
-            var professionalName = professionalUser is not null
-                ? $"{professionalUser.FirstName} {professionalUser.LastName}"
-                : "Professional";
+            if (pendingInvite is not null)
+            {
+                await conversationSeedService.AppendCooperationEventAsync(
+                    invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
+                    ChatEventType.Invited, pendingInvite.PublicId, pendingInvite.Message,
+                    createConversationIfMissing: true, ct);
+            }
 
-            await conversationSeedService.GetOrSeedConversationAsync(
-                invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
-                professionalName, pendingInvite.Message, seedIntoExisting: false, ct: ct);
+            await conversationSeedService.AppendCooperationEventAsync(
+                invitation.ProfessionalProfile.UserId, userGuid, userGuid,
+                ChatEventType.Accepted, pendingInvite?.PublicId, messageText: null,
+                createConversationIfMissing: true, ct);
         }
 
         // Audit: new data sharing relationship established

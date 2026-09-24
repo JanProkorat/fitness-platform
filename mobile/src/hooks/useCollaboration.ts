@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
-import { startConversation, sendMessage } from '../api/messages'
 import { getMyRequests, type ClientRequestDto } from '../api/professionals'
 import { getCollaborations, endCollaboration, type CollaborationDto } from '../api/profile'
 import { useAuthStore, type ActiveCollaborator, type PendingRequest } from '../stores/auth'
@@ -145,18 +144,6 @@ export function useCollaboration() {
   const sendRequestMutation = useMutation({
     mutationFn: async ({ trainerId, message }: { trainerId: string; message?: string }) => {
       await api.post('/client/requests', { professionalPublicId: trainerId, message })
-      // Send the introduction as a chat message
-      if (message) {
-        try {
-          const conversation = await startConversation(trainerId)
-          const conversationId = conversation.id ?? ''
-          if (conversationId) {
-            await sendMessage(conversationId, message)
-          }
-        } catch {
-          // Request was sent — chat message is a best-effort addition
-        }
-      }
     },
     onMutate: ({ trainerId }) => {
       // Optimistic update so button changes immediately

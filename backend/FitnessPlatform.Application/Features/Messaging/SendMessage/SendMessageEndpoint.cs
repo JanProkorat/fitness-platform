@@ -3,6 +3,7 @@ using FastEndpoints;
 using FluentValidation;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Messaging.Shared;
@@ -127,6 +128,9 @@ public class SendMessageEndpoint(
             // An explicit JSON null overrides the string.Empty default; image-only sends allow it.
             Text = (req.Text ?? string.Empty).Trim(),
             IsRead = false,
+            // SendMessageRequest carries no kind/eventType field — a client can never write
+            // anything but a plain text message through this endpoint.
+            Kind = ChatMessageKind.Text,
             ImageBlobUrl = imageBlobUrl,
             ImageContentType = imageContentType,
             ImageSizeBytes = imageSizeBytes,
@@ -143,6 +147,7 @@ public class SendMessageEndpoint(
         conversation.LastMessageAt = DateTime.UtcNow;
         conversation.LastMessageSenderId = userGuid;
         conversation.LastMessageHasImage = hasImage;
+        conversation.LastMessageEventType = null;
 
         await db.SaveChangesAsync(ct);
 

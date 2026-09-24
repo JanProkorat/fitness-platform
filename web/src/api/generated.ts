@@ -21026,6 +21026,9 @@ see GetConversationsEndpoint's roster-filter path. */
 photo marker instead of raw text when this is true and LastMessage is
 empty — never a literal stored in the database. */
     lastMessageHasImage?: boolean;
+    /** The cooperation event type of the last message, when it was a system-generated event
+row rather than plain text. Null when the last message is plain text. */
+    lastMessageEventType?: ChatEventType | undefined;
     /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
 }
@@ -21048,6 +21051,15 @@ Null when neither has been uploaded. */
 professional (a professional-side conversation row has no client-profile identity to
 surface). Lets the inbox deep-link to /clients/:clientId without a second lookup. */
     clientPublicId?: string | undefined;
+}
+
+/** The kind of professional-client cooperation event a ChatMessage with Event represents. The actor is the row's SenderUserId — no separate actor-name payload is stored. */
+export enum ChatEventType {
+    Invited = "Invited",
+    Requested = "Requested",
+    Accepted = "Accepted",
+    Declined = "Declined",
+    Withdrawn = "Withdrawn",
 }
 
 export interface StartConversationRequest {
@@ -21096,6 +21108,16 @@ export interface MessageDto {
     imageUrl?: string | undefined;
     imageWidth?: number | undefined;
     imageHeight?: number | undefined;
+    /** Discriminates a plain message from a system-generated cooperation event. */
+    kind?: ChatMessageKind;
+    /** The cooperation event type, when Kind is Event. */
+    eventType?: ChatEventType | undefined;
+}
+
+/** Discriminates a ChatMessage row between free-form text authored by a participant and a system-generated cooperation event (invite sent, request accepted, etc.) rendered inline in the same thread. */
+export enum ChatMessageKind {
+    Text = "Text",
+    Event = "Event",
 }
 
 export interface GetMessagesRequest {

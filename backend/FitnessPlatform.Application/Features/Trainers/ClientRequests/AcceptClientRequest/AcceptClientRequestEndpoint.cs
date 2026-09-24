@@ -20,6 +20,7 @@ public class AcceptClientRequestEndpoint(
     IApplicationDbContext db,
     IRealtimeNotifier notifier,
     INotificationService notificationService,
+    IConversationSeedService conversationSeedService,
     UserManager<ApplicationUser> userManager,
     ILogger<AcceptClientRequestEndpoint> logger)
     : Endpoint<AcceptClientRequestRequest>
@@ -261,6 +262,19 @@ public class AcceptClientRequestEndpoint(
                 RequestPublicId = other.PublicId,
                 ClientName = clientName
             }, ct);
+
+            // A neutral Withdrawn event in the sibling professional's own thread, written only
+            // when one already exists (R3) — the client withdrew from that professional's
+            // consideration, not this one.
+            await conversationSeedService.AppendCooperationEventAsync(
+                other.ProfessionalProfile.UserId,
+                clientRequest.ClientProfile.UserId,
+                clientRequest.ClientProfile.UserId,
+                ChatEventType.Withdrawn,
+                other.PublicId,
+                messageText: null,
+                createConversationIfMissing: false,
+                ct);
         }
 
         // Save status changes for cancelled requests
@@ -297,49 +311,18 @@ public class AcceptClientRequestEndpoint(
             }, ct);
         }
 
-        // Send statement as a chat message if provided
-        if (!string.IsNullOrWhiteSpace(req.Statement))
-        {
-            var conversation = await db.Conversations
-                .FirstOrDefaultAsync(c =>
-                    c.ProfessionalUserId == userGuid &&
-                    c.ClientUserId == clientRequest.ClientProfile.UserId, ct);
-
-            if (conversation is null)
-            {
-                conversation = new Conversation
-                {
-                    ProfessionalUserId = userGuid,
-                    ClientUserId = clientRequest.ClientProfile.UserId,
-                };
-                db.Conversations.Add(conversation);
-                await db.SaveChangesAsync(ct);
-            }
-
-            var chatMessage = new ChatMessage
-            {
-                ConversationId = conversation.Id,
-                SenderUserId = userGuid,
-                Text = req.Statement,
-                IsRead = false,
-            };
-            db.ChatMessages.Add(chatMessage);
-
-            conversation.LastMessageText = req.Statement.Length > 300
-                ? req.Statement[..300]
-                : req.Statement;
-            conversation.LastMessageAt = DateTime.UtcNow;
-            conversation.LastMessageSenderId = userGuid;
-            conversation.LastMessageHasImage = false;
-
-            await db.SaveChangesAsync(ct);
-
-            await notifier.NotifyAsync(clientRequest.ClientProfile.UserId, "newmessage", new
-            {
-                ConversationId = conversation.PublicId,
-                SenderName = profName,
-            }, ct);
-        }
+        // Append the Accepted cooperation event — always written, even with a blank statement
+        // (RULING 7). A non-blank statement becomes a plain Text row beneath it, authored by
+        // the coach, via the same seam call.
+        await conversationSeedService.AppendCooperationEventAsync(
+            userGuid,
+            clientRequest.ClientProfile.UserId,
+            userGuid,
+            ChatEventType.Accepted,
+            clientRequest.PublicId,
+            req.Statement,
+            createConversationIfMissing: true,
+            ct);
 
         logger.LogInformation(
             "Client request {RequestId} accepted by professional {ProfessionalId}",

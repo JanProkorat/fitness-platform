@@ -100,6 +100,11 @@ public class MockDbBuilder
     public MockDbBuilder With(QuestionnaireResponse response) { _questionnaireResponses.Add(response); return this; }
 
     /// <summary>
+    /// Adds an <see cref="EmailVerificationToken"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(EmailVerificationToken token) { _emailVerificationTokens.Add(token); return this; }
+
+    /// <summary>
     /// Adds a <see cref="WeeklyCheckInSetting"/> to the mock context.
     /// </summary>
     public MockDbBuilder With(WeeklyCheckInSetting setting) { _weeklyCheckInSettings.Add(setting); return this; }

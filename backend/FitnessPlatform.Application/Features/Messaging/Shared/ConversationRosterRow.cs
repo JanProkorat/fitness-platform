@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Messaging.Shared;
 
 /// <summary>
@@ -48,6 +50,12 @@ public sealed class ConversationRosterRow
     /// exists.
     /// </summary>
     public bool LastMessageHasImage { get; init; }
+
+    /// <summary>
+    /// The cooperation event type of the last message, when it was a system-generated event
+    /// row. Null when no conversation exists, or the last message is plain text.
+    /// </summary>
+    public ChatEventType? LastMessageEventType { get; init; }
 
     /// <summary>Whether the caller (the professional) has archived this conversation.</summary>
     public bool IsArchivedByProfessional { get; init; }

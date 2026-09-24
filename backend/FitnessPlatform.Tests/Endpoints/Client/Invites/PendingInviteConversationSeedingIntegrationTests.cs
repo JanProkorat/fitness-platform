@@ -1,27 +1,35 @@
+using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using FluentAssertions;
 using FitnessPlatform.Tests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FitnessPlatform.Tests.Endpoints.Client.Invites;
 
 /// <summary>
-/// End-to-end (real Postgres via Testcontainers) coverage for the account-creation-time
-/// conversation seed introduced by #803/#817: a prospective client invited before they have
-/// an account must see the coach's opening message in Messages as soon as they register —
-/// not only after they accept the invite.
+/// End-to-end (real Postgres via Testcontainers) coverage for the email-verification-time
+/// conversation seed (#803/#817, moved from RegisterEndpoint to VerifyEmailEndpoint for
+/// #1100 — R4: invite threads exist only for VERIFIED accounts): a prospective client
+/// invited before they have an account must see the coach's Invited cooperation event (and
+/// opening message, if any) in Messages as soon as they verify their email — not only after
+/// they accept the invite, and never while the account is still unverified.
 /// </summary>
 /// <remarks>
 /// Root cause: <c>Conversation</c> is keyed on (ProfessionalUserId, ClientUserId) — both real
 /// ApplicationUser ids — so it cannot be seeded at invite-creation time for a prospective
 /// client with no account yet. <c>PendingInviteConversationSeeder</c> closes the gap at the
-/// earliest possible seam (account creation), called from RegisterEndpoint /
+/// earliest VERIFIED seam (email verification), called from VerifyEmailEndpoint /
 /// GoogleSocialLoginEndpoint / AppleSocialLoginEndpoint.
 /// </remarks>
 [Collection(TestCollection.Name)]
 public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory factory)
 {
+    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
+    // container so assertions never see another factory's zombie worker traffic.
+    private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
+
     private static string UniqueEmail(string prefix) => $"{prefix}-{Guid.NewGuid():N}@test.com";
 
     /// <summary>
@@ -49,20 +57,37 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         return invite!.PublicId;
     }
 
+    /// <summary>
+    /// Registers the client and verifies their email via the real <c>/auth/verify-email</c>
+    /// endpoint, using the token the (fake) email service captured for
+    /// <paramref name="clientEmail"/> during registration. This is the seam under test.
+    /// </summary>
+    private async Task RegisterAndVerifyAsync(HttpClient clientClient, string clientEmail)
+    {
+        var registerResponse = await TestHelpers.RegisterAsync(
+            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var verification = EmailService.SentVerifications.Should().ContainSingle(
+                v => v.Email == clientEmail)
+            .Subject;
+
+        var verifyResponse = await clientClient.PostAsJsonAsync(
+            "/auth/verify-email", new { Token = verification.Token },
+            cancellationToken: TestContext.Current.CancellationToken);
+        verifyResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     [Fact]
-    public async Task Register_WithMessageBearingPendingInvite_ConversationVisibleBeforeAccept()
+    public async Task VerifyEmail_WithMessageBearingPendingInvite_ConversationVisibleBeforeAccept()
     {
         var trainerClient = factory.CreateClient();
         var clientEmail = UniqueEmail("client");
 
         await CreateTrainerInviteAsync(trainerClient, clientEmail, "Welcome aboard, let's get started!");
 
-        // Register the invited client — this is the seam under test: the invite carried no
-        // account at creation time, so the conversation could not be seeded until now.
         var clientClient = factory.CreateClient();
-        var registerResponse = await TestHelpers.RegisterAsync(
-            clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
-        registerResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        await RegisterAndVerifyAsync(clientClient, clientEmail);
 
         var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
         TestHelpers.SetBearerToken(clientClient, clientAccessToken);
@@ -80,14 +105,19 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         conversations[0].Participant.Name.Should().Be("Coach Carl");
     }
 
+    /// <summary>
+    /// R4: invite threads exist only for VERIFIED accounts. Registering alone (no email
+    /// verification yet) must not seed anything — this is the behavior the old #803/#817
+    /// seed-at-RegisterEndpoint test used to prove; it now proves the opposite, since the
+    /// seed moved to VerifyEmailEndpoint.
+    /// </summary>
     [Fact]
-    public async Task Register_WithMessagelessPendingInvite_DoesNotCreateEmptyConversationShell()
+    public async Task Register_WithoutVerifyingEmail_DoesNotSeedConversation()
     {
         var trainerClient = factory.CreateClient();
-        var clientEmail = UniqueEmail("client-nomsg");
+        var clientEmail = UniqueEmail("client-unverified");
 
-        // Invite carries no message at all.
-        await CreateTrainerInviteAsync(trainerClient, clientEmail, message: null);
+        await CreateTrainerInviteAsync(trainerClient, clientEmail, "Welcome aboard, let's get started!");
 
         var clientClient = factory.CreateClient();
         var registerResponse = await TestHelpers.RegisterAsync(
@@ -103,15 +133,45 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        // No empty conversation shell — the message-less invite must not surface any
-        // conversation until the client actually accepts (which still creates the
-        // client-professional link, but a conversation shell without a message is
-        // never desirable clutter in Messages).
-        conversations.Should().BeEmpty();
+        conversations.Should().BeEmpty("the account is not yet verified — no invite thread must exist");
+    }
+
+    /// <summary>
+    /// R4 + the maintainer's message-less=yes ruling: a message-less invite still gets its
+    /// own thread once the account is verified — the Invited banner alone, with no personal
+    /// message beneath it. This used to assert the opposite (no conversation at all) before
+    /// #1100; superseded on purpose.
+    /// </summary>
+    [Fact]
+    public async Task VerifyEmail_WithMessagelessPendingInvite_CreatesThreadWithBannerOnly()
+    {
+        var trainerClient = factory.CreateClient();
+        var clientEmail = UniqueEmail("client-nomsg");
+
+        // Invite carries no message at all.
+        await CreateTrainerInviteAsync(trainerClient, clientEmail, message: null);
+
+        var clientClient = factory.CreateClient();
+        await RegisterAndVerifyAsync(clientClient, clientEmail);
+
+        var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
+        TestHelpers.SetBearerToken(clientClient, clientAccessToken);
+
+        var conversationsResponse = await clientClient.GetAsync("/conversations", TestContext.Current.CancellationToken);
+        conversationsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var conversations = await conversationsResponse.Content.ReadFromJsonAsync<List<ConversationResult>>(
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        conversations.Should().ContainSingle(
+            "a message-less invite still creates a thread now — the Invited banner alone");
+        conversations![0].LastMessage.Should().Be(
+            "Coach Carl sent an invite to collaborate.",
+            "the write-time English fallback line from ChatEventTemplates, absent a personal message");
     }
 
     [Fact]
-    public async Task Accept_AfterRegisterEarlySeed_IsIdempotent_NoDuplicateMessage()
+    public async Task Accept_AfterVerifyEmailEarlySeed_IsIdempotent_NoDuplicateMessage()
     {
         var trainerClient = factory.CreateClient();
         var clientEmail = UniqueEmail("client-idem");
@@ -119,11 +179,11 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         await CreateTrainerInviteAsync(trainerClient, clientEmail, "Looking forward to working with you!");
 
         var clientClient = factory.CreateClient();
-        await TestHelpers.RegisterAsync(clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
+        await RegisterAndVerifyAsync(clientClient, clientEmail);
         var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
         TestHelpers.SetBearerToken(clientClient, clientAccessToken);
 
-        // Sanity: the conversation was already seeded at register time.
+        // Sanity: the conversation was already seeded at verify-email time.
         var conversationsBeforeAccept = await (await clientClient.GetAsync(
                 "/conversations", TestContext.Current.CancellationToken))
             .Content.ReadFromJsonAsync<List<ConversationResult>>(cancellationToken: TestContext.Current.CancellationToken);
@@ -142,8 +202,8 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
             TestContext.Current.CancellationToken);
         acceptResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // The accept-time seed call is a no-op once the conversation already exists (#768
-        // seedIntoExisting: false contract) — no duplicate message, still one conversation.
+        // The accept path's "ensure Invited" re-check is a no-op once the Invited event (and
+        // message) already exist — no duplicate message, still one conversation.
         var conversationsAfterAccept = await (await clientClient.GetAsync(
                 "/conversations", TestContext.Current.CancellationToken))
             .Content.ReadFromJsonAsync<List<ConversationResult>>(cancellationToken: TestContext.Current.CancellationToken);
@@ -155,12 +215,16 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         var messages = await messagesResponse.Content.ReadFromJsonAsync<GetMessagesResult>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        messages!.Items.Should().ContainSingle(
-            "the invite message must be delivered exactly once, not duplicated by the later accept");
+        // Rows now include the Invited event and the Accepted event alongside the message —
+        // the read side (GetMessagesEndpoint) does not yet distinguish Kind (that lands in a
+        // later commit), so this asserts on occurrence count of the personal message text
+        // rather than the total row count.
+        messages!.Items.Count(m => m.Text == "Looking forward to working with you!").Should().Be(
+            1, "the invite message must be delivered exactly once, not duplicated by the later accept");
     }
 
     [Fact]
-    public async Task Decline_AfterRegisterEarlySeedAndMessageExchange_PreservesConversationHistory()
+    public async Task Decline_AfterVerifyEmailEarlySeedAndMessageExchange_PreservesConversationHistory()
     {
         var trainerClient = factory.CreateClient();
         var clientEmail = UniqueEmail("client-decline");
@@ -168,7 +232,7 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
         await CreateTrainerInviteAsync(trainerClient, clientEmail, "Hope to hear from you soon.");
 
         var clientClient = factory.CreateClient();
-        await TestHelpers.RegisterAsync(clientClient, clientEmail, "TestPass1!", "Prospective", "Client", "Client");
+        await RegisterAndVerifyAsync(clientClient, clientEmail);
         var (clientAccessToken, _) = await TestHelpers.LoginAsync(clientClient, clientEmail, "TestPass1!");
         TestHelpers.SetBearerToken(clientClient, clientAccessToken);
 
@@ -197,20 +261,21 @@ public class PendingInviteConversationSeedingIntegrationTests(FitnessApiFactory 
             TestContext.Current.CancellationToken);
         declineResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        // Decline must never touch conversations — the seeded opening message AND the
-        // client's own reply must both survive.
+        // Decline must never erase conversation history — the seeded opening message AND the
+        // client's own reply must both survive (the decline itself also writes a Declined
+        // event row, so LastMessage now reflects that, not the earlier plain-text reply).
         var conversationsAfterDecline = await (await clientClient.GetAsync(
                 "/conversations", TestContext.Current.CancellationToken))
             .Content.ReadFromJsonAsync<List<ConversationResult>>(cancellationToken: TestContext.Current.CancellationToken);
         conversationsAfterDecline.Should().ContainSingle();
-        conversationsAfterDecline![0].LastMessage.Should().Be("Thanks, I have a question before I decide.");
 
         var messagesResponse = await clientClient.GetAsync(
             $"/conversations/{conversationId}/messages", TestContext.Current.CancellationToken);
         var messages = await messagesResponse.Content.ReadFromJsonAsync<GetMessagesResult>(
             cancellationToken: TestContext.Current.CancellationToken);
 
-        messages!.Items.Should().HaveCount(2, "both the coach's opening message and the client's reply must survive a decline");
+        messages!.Items.Should().Contain(m => m.Text == "Thanks, I have a question before I decide.",
+            "the client's own reply, sent before declining, must survive");
     }
 
     private record CreatePendingInviteResult(Guid PublicId);

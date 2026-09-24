@@ -72,6 +72,7 @@ public static class ConversationRosterLoader
                 LastMessageAt = c.LastMessageAt,
                 LastMessageSenderId = c.LastMessageSenderId,
                 LastMessageHasImage = c.LastMessageHasImage,
+                LastMessageEventType = c.LastMessageEventType,
                 ArchivedByProfessionalAt = c.ArchivedByProfessionalAt,
                 MessageCount = c.Messages.Count,
                 UnreadMessageCount = c.Messages.Count(m => !m.IsRead && m.SenderUserId == c.ClientUserId)
@@ -125,6 +126,7 @@ public static class ConversationRosterLoader
                 LastMessageAt = conversation?.LastMessageAt ?? DateTime.MinValue,
                 LastMessageSenderId = conversation?.LastMessageSenderId,
                 LastMessageHasImage = conversation?.LastMessageHasImage ?? false,
+                LastMessageEventType = conversation?.LastMessageEventType,
                 IsArchivedByProfessional = conversation?.ArchivedByProfessionalAt is not null,
                 ConversationMessageCount = conversation?.MessageCount ?? 0,
                 UnreadMessageCount = conversation?.UnreadMessageCount ?? 0,
@@ -258,6 +260,7 @@ public static class ConversationRosterLoader
         public DateTime? LastMessageAt { get; init; }
         public Guid? LastMessageSenderId { get; init; }
         public bool LastMessageHasImage { get; init; }
+        public ChatEventType? LastMessageEventType { get; init; }
         public DateTime? ArchivedByProfessionalAt { get; init; }
         public int MessageCount { get; init; }
         public int UnreadMessageCount { get; init; }

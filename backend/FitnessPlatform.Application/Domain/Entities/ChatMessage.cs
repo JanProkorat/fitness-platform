@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FitnessPlatform.Application.Domain.Common;
+using FitnessPlatform.Application.Domain.Enums;
 
 namespace FitnessPlatform.Application.Domain.Entities;
 
@@ -20,12 +21,34 @@ public class ChatMessage : PublicTimestampableEntity
     public long ConversationId { get; set; }
 
     /// <summary>
-    /// The user who sent this message.
+    /// The user who sent this message. For an <see cref="Kind"/> of
+    /// <see cref="ChatMessageKind.Event"/>, this is the event's actor.
     /// </summary>
     public Guid SenderUserId { get; set; }
 
     /// <summary>
-    /// The message text content.
+    /// Discriminates a plain message from a system-generated cooperation event.
+    /// </summary>
+    public ChatMessageKind Kind { get; set; } = ChatMessageKind.Text;
+
+    /// <summary>
+    /// The cooperation event type, when <see cref="Kind"/> is
+    /// <see cref="ChatMessageKind.Event"/>. Null for a plain text message.
+    /// </summary>
+    public ChatEventType? EventType { get; set; }
+
+    /// <summary>
+    /// The public id of the domain row that raised this event (a
+    /// <c>PendingInvite.PublicId</c> or a <c>ClientRequest.PublicId</c>), used to
+    /// deduplicate a re-processed event via the partial unique index on
+    /// (ConversationId, EventType, EventSourceId). Null for a plain text message.
+    /// </summary>
+    public Guid? EventSourceId { get; set; }
+
+    /// <summary>
+    /// The message text content. For an event row, this is a fallback line
+    /// rendered in the client's language at write time
+    /// (<c>Infrastructure.Services.ChatEventTemplates</c>).
     /// </summary>
     [MaxLength(MaxTextLength)]
     public string Text { get; set; } = string.Empty;

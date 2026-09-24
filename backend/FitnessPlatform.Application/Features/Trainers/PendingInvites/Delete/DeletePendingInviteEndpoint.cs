@@ -16,7 +16,8 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Delete;
 public class DeletePendingInviteEndpoint(
     IApplicationDbContext db,
     INotificationService notificationService,
-    IRealtimeNotifier notifier) : Endpoint<DeletePendingInviteRequest>
+    IRealtimeNotifier notifier,
+    IConversationSeedService conversationSeedService) : Endpoint<DeletePendingInviteRequest>
 {
     /// <inheritdoc />
     public override void Configure()
@@ -76,6 +77,34 @@ public class DeletePendingInviteEndpoint(
         var invitedUser = await db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == pendingInvite.Email, ct);
+
+        // Invalidate any still-usable token for this invite — otherwise the invitee's email
+        // link (AcceptInvitationEndpoint) still works after the coach withdraws in-app, and
+        // the thread would read "withdrawn" then "accepted" for an invite that no longer
+        // exists. Mirrors AcceptClientInviteEndpoint's matching-tokens marking.
+        var matchingTokens = await db.InvitationTokens
+            .Where(t => t.ProfessionalProfileId == pendingInvite.ProfessionalProfileId
+                        && t.Email == pendingInvite.Email
+                        && !t.IsUsed)
+            .ToListAsync(ct);
+
+        foreach (var token in matchingTokens)
+        {
+            token.IsUsed = true;
+        }
+
+        // A neutral Withdrawn event only when the invite hadn't already been accepted (an
+        // accepted thread already reads "accepted"; withdrawing it afterward would be a
+        // stale/incorrect signal) and only into a conversation that already exists —
+        // withdrawing an invite that never got a thread (unverified/no account) must never
+        // create one just to announce there is nothing to see.
+        if (!pendingInvite.IsAccepted && invitedUser is not null)
+        {
+            await conversationSeedService.AppendCooperationEventAsync(
+                professionalProfile.UserId, invitedUser.Id, professionalProfile.UserId,
+                ChatEventType.Withdrawn, pendingInvite.PublicId, messageText: null,
+                createConversationIfMissing: false, ct);
+        }
 
         db.PendingInvites.Remove(pendingInvite);
         await db.SaveChangesAsync(ct);

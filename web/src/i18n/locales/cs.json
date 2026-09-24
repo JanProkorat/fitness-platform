@@ -2417,6 +2417,19 @@
       "imageAlt": "Přiložený obrázek",
       "imageUnavailable": "Obrázek není dostupný"
     },
+    "events": {
+      "invited": "Pozvali jste {{name}} ke spolupráci",
+      "requested": "{{name}} vás požádal/a o spolupráci",
+      "accepted": {
+        "own": "Přijali jste žádost od {{name}}",
+        "other": "{{name}} přijal/a vaši pozvánku"
+      },
+      "declined": {
+        "own": "Odmítli jste žádost od {{name}}",
+        "other": "{{name}} odmítl/a vaši pozvánku"
+      },
+      "withdrawn": "Nabídka spolupráce byla zrušena"
+    },
     "typingIndicator": "Píše…",
     "composer": {
       "placeholder": "Napište zprávu...",

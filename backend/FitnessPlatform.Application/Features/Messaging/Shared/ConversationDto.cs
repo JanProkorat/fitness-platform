@@ -1,3 +1,5 @@
+using FitnessPlatform.Application.Domain.Enums;
+
 namespace FitnessPlatform.Application.Features.Messaging.Shared;
 
 /// <summary>
@@ -34,6 +36,12 @@ public class ConversationDto
     /// empty — never a literal stored in the database.
     /// </summary>
     public bool LastMessageHasImage { get; set; }
+
+    /// <summary>
+    /// The cooperation event type of the last message, when it was a system-generated event
+    /// row rather than plain text. Null when the last message is plain text.
+    /// </summary>
+    public ChatEventType? LastMessageEventType { get; set; }
 
     /// <summary>Whether the professional-client collaboration has ended.</summary>
     public bool IsFormer { get; set; }

@@ -114,7 +114,7 @@ public class AcceptClientInviteEndpointTests
     }
 
     [Fact]
-    public async Task Accept_WithInviteMessage_SeedsConversationMessage()
+    public async Task Accept_WithInviteMessage_EnsuresInvitedEventWithMessage_ThenWritesAccepted()
     {
         // Arrange — invite carries a personal message from the professional (#768).
         var clientId = Guid.NewGuid();
@@ -144,20 +144,21 @@ public class AcceptClientInviteEndpointTests
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-        await _conversationSeedService.Received(1).GetOrSeedConversationAsync(
-            professionalProfile.UserId,
-            clientId,
-            professionalProfile.UserId,
-            Arg.Any<string>(),
-            invite.Message,
-            seedIntoExisting: false,
-            Arg.Any<CancellationToken>());
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, professionalProfile.UserId,
+            ChatEventType.Invited, inviteId, invite.Message,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, clientId,
+            ChatEventType.Accepted, inviteId, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Accept_WithoutInviteMessage_DoesNotSeedConversation()
+    public async Task Accept_WithoutInviteMessage_StillWritesInvitedAndAcceptedEvents()
     {
-        // Arrange — invite has no message; must not create an empty conversation shell.
+        // Arrange — invite has no message; the Invited event is still ensured (banner
+        // only) and Accepted is still written — only the message text is null now.
         var clientId = Guid.NewGuid();
         var inviteId = Guid.NewGuid();
         var clientUser = CreateUser(clientId, "client@example.com");
@@ -184,8 +185,14 @@ public class AcceptClientInviteEndpointTests
 
         // Assert
         ep.HttpContext.Response.StatusCode.Should().Be(204);
-        await _conversationSeedService.DidNotReceiveWithAnyArgs().GetOrSeedConversationAsync(
-            default, default, default, default!, default, default, TestContext.Current.CancellationToken);
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, professionalProfile.UserId,
+            ChatEventType.Invited, inviteId, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
+        await _conversationSeedService.Received(1).AppendCooperationEventAsync(
+            professionalProfile.UserId, clientId, clientId,
+            ChatEventType.Accepted, inviteId, null,
+            createConversationIfMissing: true, Arg.Any<CancellationToken>());
     }
 
     /// <summary>
