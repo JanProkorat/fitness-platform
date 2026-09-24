@@ -80,9 +80,6 @@ public class UpdateTimeZoneIntegrationTests(FitnessApiFactory factory)
     }
 
     /// <summary>
-    /// PUT /users/me/timezone without a bearer token returns 401.
-    /// </summary>
-    /// <summary>
     /// GET /users/me for a newly registered user returns the default timezone "Europe/Prague".
     /// </summary>
     [Fact]

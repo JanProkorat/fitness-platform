@@ -12,6 +12,27 @@ using Npgsql;
 namespace FitnessPlatform.Tests.Infrastructure.Services;
 
 /// <summary>
+/// Shared-container Postgres fixture for <see cref="SchedulerResilienceTests"/> (#1104 Phase B
+/// — see <see cref="SharedTestContainers"/>): creates its own database inside the one shared
+/// server once for the collection instead of per fact — each fact resets the schema back to
+/// fully-migrated in its own <see cref="IAsyncLifetime.InitializeAsync"/> because every fact
+/// drops a table (<c>weekly_check_ins</c> or <c>photo_diary_reminder_logs</c>) that must exist
+/// before that fact runs.
+/// </summary>
+public class SchedulerResilienceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
+{
+    public string ConnectionString { get; private set; } = string.Empty;
+
+    public async ValueTask InitializeAsync() =>
+        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("scheduler_resilience");
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+}
+
+[CollectionDefinition("SchedulerResilience")]
+public class SchedulerResilienceCollection : ICollectionFixture<SchedulerResilienceContainerFixture>;
+
+/// <summary>
 /// Regression coverage for #906. <see cref="WeeklyCheckInScheduler"/> and
 /// <see cref="PhotoDiaryReminderScheduler"/> used to seed their tick cursor in an unguarded
 /// block sitting between the alignment delay and the tick loop. That was the only
@@ -51,27 +72,6 @@ namespace FitnessPlatform.Tests.Infrastructure.Services;
 /// <c>FitnessApiFactory</c> on purpose — dropping <c>weekly_check_ins</c> inside the shared
 /// fixture would poison every sibling in <c>TestCollection</c>.
 /// </summary>
-/// <summary>
-/// Shared-container Postgres fixture for <see cref="SchedulerResilienceTests"/> (#1104 Phase B
-/// — see <see cref="SharedTestContainers"/>): creates its own database inside the one shared
-/// server once for the collection instead of per fact — each fact resets the schema back to
-/// fully-migrated in its own <see cref="IAsyncLifetime.InitializeAsync"/> because every fact
-/// drops a table (<c>weekly_check_ins</c> or <c>photo_diary_reminder_logs</c>) that must exist
-/// before that fact runs.
-/// </summary>
-public class SchedulerResilienceContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
-{
-    public string ConnectionString { get; private set; } = string.Empty;
-
-    public async ValueTask InitializeAsync() =>
-        ConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("scheduler_resilience");
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-}
-
-[CollectionDefinition("SchedulerResilience")]
-public class SchedulerResilienceCollection : ICollectionFixture<SchedulerResilienceContainerFixture>;
-
 [Collection("SchedulerResilience")]
 public class SchedulerResilienceTests(SchedulerResilienceContainerFixture containerFixture) : IAsyncLifetime
 {

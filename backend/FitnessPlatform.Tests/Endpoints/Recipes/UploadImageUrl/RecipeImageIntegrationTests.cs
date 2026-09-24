@@ -131,11 +131,6 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         body!.BlobUrl.Should().Be($"recipes/{recipeId}/gallery-0.jpg");
     }
 
-    // ── Role gate: upload-url ──────────────────────────────────────────────────
-
-    /// <summary>Trainer token → 403 on POST /recipes/{id}/image/upload-url.</summary>
-    /// <summary>Client token → 403 on POST /recipes/{id}/image/upload-url.</summary>
-    /// <summary>No token → 401 on POST /recipes/{id}/image/upload-url.</summary>
     // ── Ownership gate: upload-url ─────────────────────────────────────────────
 
     /// <summary>
@@ -324,10 +319,6 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
             "the Problem Details payload must carry the RECIPE_GALLERY_FULL error code");
     }
 
-    // ── Role gate: confirm ─────────────────────────────────────────────────────
-
-    /// <summary>Trainer token → 403 on PUT /recipes/{id}/image.</summary>
-    /// <summary>Client token → 403 on PUT /recipes/{id}/image.</summary>
     // ── Ownership check on confirm ─────────────────────────────────────────────
 
     /// <summary>

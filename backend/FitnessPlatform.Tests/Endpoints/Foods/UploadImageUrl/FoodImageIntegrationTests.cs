@@ -123,11 +123,6 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
         body!.BlobUrl.Should().Be($"foods/{foodId}/gallery-0.jpg");
     }
 
-    // ── Role gate: upload-url ──────────────────────────────────────────────────
-
-    /// <summary>Trainer token → 403 on POST /foods/{foodId}/image/upload-url.</summary>
-    /// <summary>Client token → 403 on POST /foods/{foodId}/image/upload-url.</summary>
-    /// <summary>No token → 401 on POST /foods/{foodId}/image/upload-url.</summary>
     // ── Ownership check: upload-url ────────────────────────────────────────────
 
     /// <summary>
@@ -240,10 +235,6 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
             "the confirmed gallery blob URL must appear in galleryImageUrls");
     }
 
-    // ── Role gate: confirm ─────────────────────────────────────────────────────
-
-    /// <summary>Trainer token → 403 on PUT /foods/{foodId}/image.</summary>
-    /// <summary>Client token → 403 on PUT /foods/{foodId}/image.</summary>
     // ── Ownership check on confirm ─────────────────────────────────────────────
 
     /// <summary>
