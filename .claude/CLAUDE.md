@@ -51,6 +51,7 @@ Project-local workflow agents (also in `.claude/agents/`):
 | Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
 | i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
+| Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
 
 ## Scope → stack map
 
