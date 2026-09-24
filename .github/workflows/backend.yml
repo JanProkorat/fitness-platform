@@ -234,6 +234,10 @@ jobs:
             echo "|---|---|---|"
             echo "| $total | ${elapsed}s | ${TEST_TIME_BUDGET_SECONDS}s |"
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::Could not read a test count from the runner output — the 'Total: N' summary line changed. Fix the parser in this step."
+            exit 1
+          fi
           if [ "$elapsed" -gt "$TEST_TIME_BUDGET_SECONDS" ]; then
             echo "::error::Backend tests took ${elapsed}s, over the ${TEST_TIME_BUDGET_SECONDS}s budget. See .claude/rules/testing.md."
             exit 1

@@ -34,10 +34,14 @@ Test a behaviour at the cheapest layer that can prove it, and once.
   endpoints that deliberately require only a login; adding to it is a reviewed
   exception.
 - **Don't add a per-endpoint "no auth → 401" or "wrong role → 403" test.** The
-  architecture test plus the pipeline canaries (`SessionTemplateRoleGateIntegrationTests`,
-  `SubscriptionPlanRoleGateIntegrationTests`) cover the framework behaviour.
-  Exception: endpoints in the allow-list keep their 401 test — it is their only
-  auth coverage.
+  architecture test covers every endpoint's declaration, including that
+  allow-listed routes still require a login. The real pipeline is proven once
+  by canaries: `DismissRequestEndpointTests.Dismiss_Unauthenticated_Returns401`
+  and `PutSettingsEndpointTests.PutSettings_Unauthenticated_Returns401` for 401,
+  `SessionTemplateRoleGateIntegrationTests` and
+  `SubscriptionPlanRoleGateIntegrationTests` for wrong-role 403.
+- Allow-listed endpoints keep their unit `HandleAsync_NoClaims_Returns401`
+  tests — those test the endpoint's own missing-claim guard.
 - **Do add a 403/404 test for every ownership, link or capability check** —
   that is app logic, not framework (`rules/api-design.md#authorization`).
 
@@ -67,9 +71,12 @@ Rule-by-rule coverage lives in the validator's own tests. The endpoint gets
   (`Infrastructure/SharedTestContainers.cs`, an assembly fixture). A fixture
   gets its own database inside them (`CreatePostgresDatabaseAsync`,
   `CreateMongoDatabaseName`).
-- Isolate with unique data (fresh GUIDs, unique emails and names). Reset a
-  database only when the test asserts exact counts
-  (`Infrastructure/DatabaseResetFixtureExtensions.cs`).
+- Isolate with unique data (fresh GUIDs, unique emails and names). A test that
+  asserts an exact count or "contains a single" over a shared collection must
+  clear that collection first (or `Infrastructure/DatabaseResetFixtureExtensions.cs`
+  for a whole database) — otherwise it passes or fails by test order, which
+  differs between machines (#1104's first CI run failed this way after three
+  green local runs).
 - **A list or search assertion must filter to the test's own data.** Hundreds
   of rows from other tests share the database; "my item is on page 1" passes
   or fails depending on test order (found in #1104,
