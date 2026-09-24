@@ -150,6 +150,18 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             db.Conversations.Add(conversation);
         }
 
+        // Cheap pre-check for the common no-op case (VerifyEmail's seed, then
+        // CreatePendingInvite's or AcceptInvitation's own "ensure Invited" call, all
+        // targeting the same sourceId) — avoids the 23505-driven EF error log the
+        // catch block below produces on every one of those. A brand-new conversation
+        // can't already carry this row, so skip the query there (#1108 review).
+        if (sourceId.HasValue && !isNewConversation && await db.ChatMessages
+                .AsNoTracking()
+                .AnyAsync(m => m.ConversationId == conversation.Id && m.EventType == eventType && m.EventSourceId == sourceId, ct))
+        {
+            return;
+        }
+
         // Captured before any LastMessage* mutation below, so a duplicate-event
         // rollback (see the catch block) can restore exactly what was persisted —
         // IApplicationDbContext does not expose EF's Entry()/OriginalValues, and
@@ -217,13 +229,9 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            // Untrack our losing rows regardless of which index was hit — Remove() on an
-            // entity still in the Added state just untracks it (no DELETE is issued). If
-            // this is skipped, these Added rows survive in the change tracker and the
-            // CALLER's next unrelated SaveChangesAsync (e.g. AcceptClientInvite saving the
-            // link right after this call) re-issues the same INSERTs and hits the same
-            // 23505 again, surfacing as a 500 for an operation that has nothing to do with
-            // this event.
+            // Untrack our losing Added rows (Remove() on an Added entity just untracks
+            // it, no DELETE) — otherwise they'd survive to re-INSERT and re-throw 23505
+            // on the caller's next unrelated SaveChangesAsync.
             if (textMessage is not null)
             {
                 db.ChatMessages.Remove(textMessage);
@@ -235,13 +243,8 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
 
             if (isNewConversation && constraintName == ConversationIdentityIndexName)
             {
-                // A concurrent request won the (ProfessionalUserId, ClientUserId) conversation
-                // row first — the FIX 2 race from GetOrSeedConversationAsync, not a duplicate
-                // event. Untrack our losing conversation shell and retry the SAME event append
-                // once — the retry's own query re-fetches and tracks the winner's row, so the
-                // event is not silently dropped just because we lost the conversation-creation
-                // race. isNewConversation is guaranteed false on the retry (the winner's row
-                // now exists), so this branch cannot recurse a second time.
+                // A concurrent request won the conversation-identity race, not a duplicate
+                // event — untrack our losing shell and retry once against the now-existing row.
                 db.Conversations.Remove(conversation);
 
                 await AppendCooperationEventAsync(
@@ -250,14 +253,9 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
                 return;
             }
 
-            // A re-processed event for the same (conversation, eventType, sourceId) — a
-            // double-accept, a retried withdraw — hit the partial unique index on
-            // chat_messages. Swallow it as a no-op: no broadcast. If the conversation
-            // already existed, its tracked entity still carries our in-memory LastMessage*
-            // mutations even though they were never persisted (the whole batch rolled
-            // back) — restore the values captured before this method touched them, so a
-            // later unrelated SaveChangesAsync on this context can't silently commit a
-            // phantom preview for an event that was never actually written.
+            // A genuinely re-processed event hit the partial unique index — swallow it as
+            // a no-op (no broadcast) and restore the conversation's pre-mutation
+            // LastMessage* values so a later save can't commit a phantom preview.
             if (!isNewConversation)
             {
                 conversation.LastMessageText = originalLastMessageText;

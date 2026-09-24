@@ -97,6 +97,14 @@ public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
             "come back with an IDENTICAL DateCreated, ordering resting on Id alone");
     }
 
+    /// <summary>
+    /// #1108 review: the second call is now caught by the existence pre-check (a plain
+    /// SELECT, no exception, no error log) rather than the 23505-driven rollback path —
+    /// that path stays covered at the mock layer
+    /// (<c>ConversationSeedServiceTests.AppendCooperationEvent_DuplicateSource_UniqueViolation_UntracksLosersAndRevertsLastMessage</c>),
+    /// where a forced throw can exercise it deterministically. This test still proves the
+    /// real Postgres round trip is idempotent end to end.
+    /// </summary>
     [Fact]
     public async Task AppendCooperationEvent_DuplicateSource_ExactlyOneRowPair_SubsequentSaveSucceeds_LastMessageUnchanged()
     {
@@ -117,7 +125,8 @@ public class ConversationSeedServiceIntegrationTests(FitnessApiFactory factory)
             .AsNoTracking()
             .FirstAsync(c => c.ProfessionalUserId == trainer.UserId && c.ClientUserId == client.UserId, ct);
 
-        // Re-processed: same conversation, same eventType, same sourceId. Must be a no-op.
+        // Re-processed: same conversation, same eventType, same sourceId. Must be a no-op —
+        // now via the pre-check, not the unique-index exception.
         await service.AppendCooperationEventAsync(
             trainer.UserId, client.UserId, trainer.UserId, ChatEventType.Invited, sourceId,
             "First message", createConversationIfMissing: true, ct);

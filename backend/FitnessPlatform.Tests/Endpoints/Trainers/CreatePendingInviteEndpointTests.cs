@@ -118,12 +118,12 @@ public class CreatePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// MAINTAINER RULING 2026-09-23 (F8 reversed): for a VERIFIED existing account, the
-    /// endpoint now immediately seeds the professional-client conversation with an Invited
-    /// cooperation event (plus the invite's message beneath it) — superseding the #768/F8
-    /// regression contract this test used to assert (that nothing was seeded at creation
-    /// time). The accepted risk is documented at the call site; see the maintainer-ruling
-    /// comment in CreatePendingInviteEndpoint.HandleAsync.
+    /// MAINTAINER RULING 2026-09-23 (F8 reversed): for a VERIFIED existing CLIENT account,
+    /// the endpoint now immediately seeds the professional-client conversation with an
+    /// Invited cooperation event (plus the invite's message beneath it) — superseding the
+    /// #768/F8 regression contract this test used to assert (that nothing was seeded at
+    /// creation time). The accepted risk is documented at the call site; see the
+    /// maintainer-ruling comment in CreatePendingInviteEndpoint.HandleAsync.
     /// </summary>
     [Fact]
     public async Task HandleAsync_ExistingVerifiedUserWithMessage_SeedsInvitedEventImmediately()
@@ -134,11 +134,14 @@ public class CreatePendingInviteEndpointTests
         var existingUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("jane@test.com")
             .WithFirstName("Jane").WithLastName("Doe").Build();
         existingUser.EmailConfirmed = true;
+        existingUser.NormalizedEmail = "JANE@TEST.COM";
+        var existingClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(existingUser).Build();
 
         var db = new MockDbBuilder()
             .With(trainerUser)
             .With(trainerProfile)
             .With(existingUser)
+            .With(existingClientProfile)
             .Build();
 
         PendingInvite? captured = null;
@@ -218,6 +221,81 @@ public class CreatePendingInviteEndpointTests
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "nobody-yet@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// #1108 review — the R4 gate must key on the invitee being a CLIENT, not merely
+    /// verified: a verified peer professional's own email must get no thread, matching
+    /// VerifyEmailEndpoint's ClientProfile-only seed.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var peerProfessionalUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("peer@test.com")
+            .WithFirstName("Peer").WithLastName("Pro").Build();
+        peerProfessionalUser.EmailConfirmed = true;
+        peerProfessionalUser.NormalizedEmail = "PEER@TEST.COM";
+        var peerProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(peerProfessionalUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(peerProfessionalUser)
+            .With(peerProfile)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "peer@test.com",
+            Message = "Looking forward to coaching you!"
+        }, TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// #1108 review — a self-invite (the caller's own email, verified, and holding a
+    /// ClientProfile so the client-only gate above alone would have let it through) must
+    /// still get no thread. No other guard in this endpoint rejects a self-invite outright
+    /// (the invite/token/email are still created) — this is the only place that stops it
+    /// from writing into the caller's own message stream.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_SelfInvite_VerifiedAndHoldsClientProfile_DoesNotSeedConversation()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        trainerUser.EmailConfirmed = true;
+        trainerUser.NormalizedEmail = "TRAINER@TEST.COM";
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        // Dual-role account (holds both a ProfessionalProfile and a ClientProfile) so the
+        // client-only gate alone would have let this through — isolates the self-check.
+        var trainerClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(trainerUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(trainerClientProfile)
+            .Build();
+
+        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+
+        await ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "trainer@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 

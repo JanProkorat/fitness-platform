@@ -198,24 +198,24 @@ public class AcceptInvitationEndpoint(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        // Ensure the invite's Invited event + message exist (idempotent no-op if already
-        // written by CreatePendingInvite or VerifyEmail's seed), then record this Accepted
-        // event. A token-only invite with no matching PendingInvite (InviteClientEndpoint —
-        // out of #1100's scope) writes Accepted with a null source, relying on the token's
-        // own IsUsed guard for idempotency instead of the (conversation, eventType,
-        // sourceId) index.
-        if (pendingInvite is not null)
+        // Only for a NEWLY created link (#1108 review) — an already-linked client
+        // re-using this token would otherwise get a fresh, undeduplicated Accepted
+        // banner on every re-use, since a null-source event has no index to dedupe on.
+        if (!existingLink)
         {
+            if (pendingInvite is not null)
+            {
+                await conversationSeedService.AppendCooperationEventAsync(
+                    invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
+                    ChatEventType.Invited, pendingInvite.PublicId, pendingInvite.Message,
+                    createConversationIfMissing: true, ct);
+            }
+
             await conversationSeedService.AppendCooperationEventAsync(
-                invitation.ProfessionalProfile.UserId, userGuid, invitation.ProfessionalProfile.UserId,
-                ChatEventType.Invited, pendingInvite.PublicId, pendingInvite.Message,
+                invitation.ProfessionalProfile.UserId, userGuid, userGuid,
+                ChatEventType.Accepted, pendingInvite?.PublicId, messageText: null,
                 createConversationIfMissing: true, ct);
         }
-
-        await conversationSeedService.AppendCooperationEventAsync(
-            invitation.ProfessionalProfile.UserId, userGuid, userGuid,
-            ChatEventType.Accepted, pendingInvite?.PublicId, messageText: null,
-            createConversationIfMissing: true, ct);
 
         // Audit: new data sharing relationship established
         await audit.LogAsync(

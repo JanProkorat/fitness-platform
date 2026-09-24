@@ -442,17 +442,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         var entries = ChangeTracker.Entries<ITimestampable>();
 
-        // Guarantees a strictly increasing DateCreated across entities added within the
-        // SAME SaveChangesAsync batch, even if the system clock's resolution returns the
-        // identical tick for consecutive DateTime.UtcNow reads (#1100 — ConversationSeedService
-        // inserts a cooperation-event row and an optional message row in one batch, and relies
-        // on DateCreated ordering — the same one GetMessagesEndpoint queries by — to sort the
-        // event before the message deterministically). ChangeTracker.Entries<T>() enumerates
-        // Added entries in the order they were added to the context, so this preserves that
-        // order as the tie-breaker instead of leaving it to same-tick luck. The bump is a whole
-        // microsecond (not a single tick) because Postgres' timestamp column only stores
-        // microsecond precision — a 1-tick bump gets rounded away on write and the values come
-        // back identical.
+        // Guarantees strictly increasing DateCreated across entities Added in the same
+        // batch, tie-broken by add-order with a whole-microsecond bump (Postgres' column
+        // precision) — needed for GetMessagesEndpoint's (DateCreated, Id) ordering (#1100).
         DateTime? lastAssignedDateCreated = null;
 
         foreach (var entry in entries)

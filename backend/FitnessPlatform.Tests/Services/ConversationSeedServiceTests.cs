@@ -319,6 +319,56 @@ public class ConversationSeedServiceTests
     }
 
     /// <summary>
+    /// #1108 review — the pre-check added to avoid the 23505-driven EF error log on the
+    /// happy-path no-op (VerifyEmail's seed, then CreatePendingInvite's or
+    /// AcceptInvitation's own "ensure Invited" call, all targeting the same sourceId):
+    /// a matching (conversation, eventType, sourceId) row already exists, so the call must
+    /// return before adding anything, saving, or broadcasting.
+    /// </summary>
+    [Fact]
+    public async Task AppendCooperationEvent_SourceIdAlreadyRecorded_IsNoOp_NoAddNoSaveNoBroadcast()
+    {
+        var professionalId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var sourceId = Guid.NewGuid();
+        var professional = MakeUser(professionalId, "Coach", "Carl");
+        var client = MakeUser(clientId, "Jane", "Client");
+        var existingConversation = new Conversation
+        {
+            ProfessionalUserId = professionalId,
+            ClientUserId = clientId,
+            LastMessageText = "Already recorded",
+        };
+        var existingEvent = new ChatMessage
+        {
+            ConversationId = existingConversation.Id,
+            SenderUserId = professionalId,
+            Kind = ChatMessageKind.Event,
+            EventType = ChatEventType.Invited,
+            EventSourceId = sourceId,
+            Text = "Already recorded",
+        };
+
+        var db = new MockDbBuilder()
+            .With(professional)
+            .With(client)
+            .With(existingConversation)
+            .With(existingEvent)
+            .Build();
+        var service = new ConversationSeedService(db, _notifier);
+
+        await service.AppendCooperationEventAsync(
+            professionalId, clientId, professionalId, ChatEventType.Invited, sourceId,
+            messageText: "Looking forward to working together!", createConversationIfMissing: true,
+            TestContext.Current.CancellationToken);
+
+        db.ChatMessages.DidNotReceive().Add(Arg.Any<ChatMessage>());
+        await db.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
+        existingConversation.LastMessageText.Should().Be("Already recorded");
+    }
+
+    /// <summary>
     /// RULING (8) idempotency — a re-processed event for the same
     /// (conversation, eventType, sourceId) hits the partial unique index on
     /// chat_messages. The whole batch (event row, plus a brand-new conversation shell)

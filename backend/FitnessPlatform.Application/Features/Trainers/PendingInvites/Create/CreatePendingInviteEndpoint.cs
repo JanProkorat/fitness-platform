@@ -16,11 +16,11 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// Endpoint for creating a pending client invitation.
 /// Creates both a PendingInvite record and an InvitationToken, then sends the invitation email.
 /// Also creates an in-app notification and sends a real-time event if the client already has an
-/// account. If that account's email is already verified, immediately seeds the professional-
-/// client conversation with an Invited cooperation event — see the maintainer ruling in
-/// <see cref="HandleAsync"/>. For an unverified or nonexistent account, the identical rows are
-/// written later, once the email is verified, by <c>VerifyEmailEndpoint</c> via
-/// <see cref="IPendingInviteConversationSeeder"/>.
+/// account. If that account belongs to a CLIENT and its email is already verified, immediately
+/// seeds the professional-client conversation with an Invited cooperation event — see the
+/// maintainer ruling in <see cref="HandleAsync"/>. For an unverified or nonexistent client
+/// account, the identical rows are written later, once the email is verified, by
+/// <c>VerifyEmailEndpoint</c> via <see cref="IPendingInviteConversationSeeder"/>.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
@@ -277,9 +277,14 @@ public class CreatePendingInviteEndpoint(
                 },
                 ct);
 
-            // Verified accounts only (R4) — an unverified invitee gets no thread until
-            // VerifyEmailEndpoint seeds the identical rows.
-            if (existingUser.EmailConfirmed)
+            // Verified CLIENT accounts only (R4), never a self-invite — an unverified
+            // invitee gets no thread until VerifyEmailEndpoint seeds the identical rows,
+            // and a verified peer professional or the caller's own email gets no thread
+            // at all (#1108 review: EmailConfirmed alone let a professional seed a
+            // conversation into a peer's or their own message stream).
+            if (existingUser.EmailConfirmed
+                && inviteeClientProfileId != 0
+                && existingUser.Id != professionalProfile.UserId)
             {
                 await conversationSeedService.AppendCooperationEventAsync(
                     professionalProfile.UserId,

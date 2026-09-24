@@ -89,8 +89,7 @@ public interface IConversationSeedService
     /// The public id of the domain row that raised the event (a <c>PendingInvite.PublicId</c> or
     /// a <c>ClientRequest.PublicId</c>), or null for a source with no stable id (e.g. a
     /// token-only invite). Paired with <paramref name="eventType"/> and the conversation to
-    /// deduplicate a re-processed event via the partial unique index on
-    /// (ConversationId, EventType, EventSourceId).
+    /// deduplicate a re-processed event.
     /// </param>
     /// <param name="messageText">
     /// An optional free-text message (an invite's personal note, an accept-time statement) to
@@ -98,19 +97,14 @@ public interface IConversationSeedService
     /// </param>
     /// <param name="createConversationIfMissing">
     /// <c>true</c>: get-or-create the conversation, matching <see cref="GetOrSeedConversationAsync"/>'s
-    /// behavior. <c>false</c>: only append when a conversation already exists — this is a no-op
-    /// (no conversation created, no event written, no broadcast) when the professional and client
-    /// have no conversation yet. Used for a neutral "withdrawn" event, which must never create a
-    /// thread just to announce there is nothing to see.
+    /// behavior. <c>false</c>: only append when a conversation already exists — a neutral
+    /// "withdrawn" event must never create a thread just to announce there is nothing to see.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     /// <remarks>
-    /// Concurrency: a re-processed event for the same <paramref name="eventType"/> +
-    /// <paramref name="sourceId"/> (a double-accept, a retried withdraw) hits the partial unique
-    /// index on (ConversationId, EventType, EventSourceId). The resulting
-    /// <see cref="Microsoft.EntityFrameworkCore.DbUpdateException"/> is caught internally and
-    /// treated as a no-op — the whole batch (event row and, if present, its message row) rolls
-    /// back together, and no "newmessage" broadcast is sent.
+    /// Idempotency: a re-processed event for the same <paramref name="eventType"/> +
+    /// <paramref name="sourceId"/> is a no-op — a pre-check catches the common case, and the
+    /// partial unique index on (ConversationId, EventType, EventSourceId) backstops a genuine race.
     /// </remarks>
     Task AppendCooperationEventAsync(
         Guid professionalUserId,

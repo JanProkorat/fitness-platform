@@ -308,6 +308,55 @@ public class AcceptInvitationEndpointTests
         db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
     }
 
+    /// <summary>
+    /// #1108 review — an already-linked client re-using the invite token (existingLink is
+    /// true, so no new ClientProfessionalLink is created) must get no repeat Accepted
+    /// banner. A null-source event has no partial-unique-index to dedupe on, so without
+    /// this gate every token re-use would write a fresh one.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_ClientAlreadyLinkedToInvitingProfessional_WritesNoCooperationEvent()
+    {
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();
+        var invitation = EntityBuilder.InvitationToken
+            .WithToken("already-linked-token")
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+        var clientProfile = new ClientProfile { Id = 1, UserId = _userId };
+        var existingLink = EntityBuilder.ClientProfessionalLink
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(invitation)
+            .With(clientProfile)
+            .With(existingLink)
+            .Build();
+
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("T").WithLastName("R").Build();
+
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
+        userManager.FindByIdAsync(_trainerId.ToString()).Returns(trainerUser);
+        userManager.GetRolesAsync(trainerUser).Returns(["Trainer"]);
+
+        var ep = Factory.Create<AcceptInvitationEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_userId))),
+            db, userManager, _audit, _notificationService, _notifier, _conversationSeedService);
+
+        await ep.HandleAsync(new AcceptInvitationRequest { Token = "already-linked-token" }, TestContext.Current.CancellationToken);
+
+        ep.ValidationFailed.Should().BeFalse();
+        invitation.IsUsed.Should().BeTrue();
+        db.ClientProfessionalLinks.DidNotReceive().Add(Arg.Any<ClientProfessionalLink>());
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public async Task HandleAsync_ExpiredToken_ThrowsError()
     {
