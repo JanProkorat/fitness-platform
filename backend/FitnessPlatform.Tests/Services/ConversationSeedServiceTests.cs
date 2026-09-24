@@ -324,8 +324,18 @@ public class ConversationSeedServiceTests
     /// chat_messages. The whole batch (event row, plus a brand-new conversation shell)
     /// rolls back together and no broadcast is sent.
     /// </summary>
+    /// <summary>
+    /// Fix-round regression guard (coordinator review after the initial C2 handoff): the
+    /// catch block must untrack its losing Added rows — otherwise they survive in the
+    /// change tracker and the CALLER's next unrelated SaveChangesAsync (e.g. the invite
+    /// endpoint saving the accepted link right after this call) re-issues the same
+    /// INSERTs and hits 23505 again, a 500 for an operation unrelated to this event. It
+    /// must also revert the EXISTING conversation's in-memory LastMessage* mutations,
+    /// which were never persisted (the whole batch rolled back) — otherwise a later
+    /// unrelated save on this context silently commits a phantom preview.
+    /// </summary>
     [Fact]
-    public async Task AppendCooperationEvent_DuplicateSource_UniqueViolation_NoOpNoEmit()
+    public async Task AppendCooperationEvent_DuplicateSource_UniqueViolation_UntracksLosersAndRevertsLastMessage()
     {
         var professionalId = Guid.NewGuid();
         var clientId = Guid.NewGuid();
@@ -335,6 +345,11 @@ public class ConversationSeedServiceTests
         {
             ProfessionalUserId = professionalId,
             ClientUserId = clientId,
+            LastMessageText = "Earlier chat",
+            LastMessageAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            LastMessageSenderId = clientId,
+            LastMessageHasImage = true,
+            LastMessageEventType = null,
         };
 
         // Build mock DbSets BEFORE configuring Returns (MockDbBuilder's own note on
@@ -348,7 +363,12 @@ public class ConversationSeedServiceTests
         db.Conversations.Returns(conversationsSet);
         db.ChatMessages.Returns(chatMessagesSet);
 
-        var pgEx = new PostgresException("duplicate key value violates unique constraint", "ERROR", "ERROR", "23505");
+        // Constraint name matches the chat_messages partial unique index — not the
+        // conversations identity index — so this is the "duplicate event" branch, not
+        // the "concurrent first-contact" retry branch.
+        var pgEx = new PostgresException(
+            "duplicate key value violates unique constraint", "ERROR", "ERROR", "23505",
+            constraintName: "ix_chat_messages_conversation_id_event_type_event_source_id");
         db.SaveChangesAsync(Arg.Any<CancellationToken>())
             .Returns<int>(_ => throw new DbUpdateException("conflict", pgEx));
 
@@ -356,11 +376,24 @@ public class ConversationSeedServiceTests
 
         await service.AppendCooperationEventAsync(
             professionalId, clientId, professionalId, ChatEventType.Accepted, Guid.NewGuid(),
-            messageText: null, createConversationIfMissing: true,
+            messageText: "Glad to have you!", createConversationIfMissing: true,
             TestContext.Current.CancellationToken);
 
         // No exception propagated, and no broadcast — the whole batch rolled back.
         await _notifier.DidNotReceiveWithAnyArgs().NotifyAsync(default, default!, default!, TestContext.Current.CancellationToken);
+
+        // The losing event row AND its message row must be untracked so a later save
+        // on this context can't re-attempt their INSERTs.
+        db.ChatMessages.Received(1).Remove(Arg.Is<ChatMessage>(m => m.Kind == ChatMessageKind.Event));
+        db.ChatMessages.Received(1).Remove(Arg.Is<ChatMessage>(m => m.Kind == ChatMessageKind.Text));
+
+        // The existing conversation's LastMessage* must read exactly as it did before
+        // this call ever touched it — not the phantom values this call computed.
+        existingConversation.LastMessageText.Should().Be("Earlier chat");
+        existingConversation.LastMessageAt.Should().Be(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        existingConversation.LastMessageSenderId.Should().Be(clientId);
+        existingConversation.LastMessageHasImage.Should().BeTrue();
+        existingConversation.LastMessageEventType.Should().BeNull();
     }
 
     [Fact]

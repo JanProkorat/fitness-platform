@@ -133,6 +133,8 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
                 c.ProfessionalUserId == professionalUserId &&
                 c.ClientUserId == clientUserId, ct);
 
+        var isNewConversation = conversation is null;
+
         if (conversation is null)
         {
             if (!createConversationIfMissing)
@@ -147,6 +149,19 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             };
             db.Conversations.Add(conversation);
         }
+
+        // Captured before any LastMessage* mutation below, so a duplicate-event
+        // rollback (see the catch block) can restore exactly what was persisted —
+        // IApplicationDbContext does not expose EF's Entry()/OriginalValues, and
+        // doesn't need to: reassigning these captured values makes the tracked
+        // entity's current values equal its original snapshot again, which is all
+        // EF's default snapshot change tracking needs to see it as Unchanged on the
+        // next SaveChangesAsync.
+        var originalLastMessageText = isNewConversation ? null : conversation.LastMessageText;
+        var originalLastMessageAt = isNewConversation ? null : conversation.LastMessageAt;
+        var originalLastMessageSenderId = isNewConversation ? null : conversation.LastMessageSenderId;
+        var originalLastMessageHasImage = !isNewConversation && conversation.LastMessageHasImage;
+        var originalLastMessageEventType = isNewConversation ? null : conversation.LastMessageEventType;
 
         var recipientUserId = actorUserId == professionalUserId ? clientUserId : professionalUserId;
 
@@ -202,11 +217,60 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
+            // Untrack our losing rows regardless of which index was hit — Remove() on an
+            // entity still in the Added state just untracks it (no DELETE is issued). If
+            // this is skipped, these Added rows survive in the change tracker and the
+            // CALLER's next unrelated SaveChangesAsync (e.g. AcceptClientInvite saving the
+            // link right after this call) re-issues the same INSERTs and hits the same
+            // 23505 again, surfacing as a 500 for an operation that has nothing to do with
+            // this event.
+            if (textMessage is not null)
+            {
+                db.ChatMessages.Remove(textMessage);
+            }
+
+            db.ChatMessages.Remove(eventMessage);
+
+            var constraintName = (ex.InnerException as PostgresException)?.ConstraintName;
+
+            if (isNewConversation && constraintName == ConversationIdentityIndexName)
+            {
+                // A concurrent request won the (ProfessionalUserId, ClientUserId) conversation
+                // row first — the FIX 2 race from GetOrSeedConversationAsync, not a duplicate
+                // event. Untrack our losing conversation shell and retry the SAME event append
+                // once — the retry's own query re-fetches and tracks the winner's row, so the
+                // event is not silently dropped just because we lost the conversation-creation
+                // race. isNewConversation is guaranteed false on the retry (the winner's row
+                // now exists), so this branch cannot recurse a second time.
+                db.Conversations.Remove(conversation);
+
+                await AppendCooperationEventAsync(
+                    professionalUserId, clientUserId, actorUserId, eventType, sourceId,
+                    messageText, createConversationIfMissing: false, ct);
+                return;
+            }
+
             // A re-processed event for the same (conversation, eventType, sourceId) — a
-            // double-accept, a retried withdraw — hits the partial unique index on
-            // chat_messages. Swallow it as a no-op: the whole batch (event row and,
-            // if present, its message row, plus a brand-new conversation shell) rolls
-            // back together, so nothing is half-written. No broadcast.
+            // double-accept, a retried withdraw — hit the partial unique index on
+            // chat_messages. Swallow it as a no-op: no broadcast. If the conversation
+            // already existed, its tracked entity still carries our in-memory LastMessage*
+            // mutations even though they were never persisted (the whole batch rolled
+            // back) — restore the values captured before this method touched them, so a
+            // later unrelated SaveChangesAsync on this context can't silently commit a
+            // phantom preview for an event that was never actually written.
+            if (!isNewConversation)
+            {
+                conversation.LastMessageText = originalLastMessageText;
+                conversation.LastMessageAt = originalLastMessageAt;
+                conversation.LastMessageSenderId = originalLastMessageSenderId;
+                conversation.LastMessageHasImage = originalLastMessageHasImage;
+                conversation.LastMessageEventType = originalLastMessageEventType;
+            }
+            else
+            {
+                db.Conversations.Remove(conversation);
+            }
+
             return;
         }
 
@@ -222,6 +286,15 @@ public class ConversationSeedService(IApplicationDbContext db, IRealtimeNotifier
             eventType = textMessage is null ? eventType : (ChatEventType?)null,
         }, ct);
     }
+
+    /// <summary>
+    /// The unique index name (snake_case, per the Npgsql naming convention) backing
+    /// <c>Conversation</c>'s (ProfessionalUserId, ClientUserId) identity constraint —
+    /// see <see cref="ApplicationDbContext"/>'s <c>OnModelCreating</c>. Used to tell a
+    /// concurrent first-contact race apart from a duplicate cooperation event, which
+    /// hits the chat_messages partial unique index instead.
+    /// </summary>
+    private const string ConversationIdentityIndexName = "ix_conversations_professional_user_id_client_user_id";
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505";

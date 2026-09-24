@@ -442,11 +442,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         var entries = ChangeTracker.Entries<ITimestampable>();
 
+        // Guarantees a strictly increasing DateCreated across entities added within the
+        // SAME SaveChangesAsync batch, even if the system clock's resolution returns the
+        // identical tick for consecutive DateTime.UtcNow reads (#1100 — ConversationSeedService
+        // inserts a cooperation-event row and an optional message row in one batch, and relies
+        // on DateCreated ordering — the same one GetMessagesEndpoint queries by — to sort the
+        // event before the message deterministically). ChangeTracker.Entries<T>() enumerates
+        // Added entries in the order they were added to the context, so this preserves that
+        // order as the tie-breaker instead of leaving it to same-tick luck.
+        DateTime? lastAssignedDateCreated = null;
+
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.DateCreated = DateTime.UtcNow;
+                var dateCreated = DateTime.UtcNow;
+
+                if (lastAssignedDateCreated is { } previous && dateCreated <= previous)
+                {
+                    dateCreated = previous.AddTicks(1);
+                }
+
+                entry.Entity.DateCreated = dateCreated;
+                lastAssignedDateCreated = dateCreated;
             }
 
             if (entry.State == EntityState.Modified)
