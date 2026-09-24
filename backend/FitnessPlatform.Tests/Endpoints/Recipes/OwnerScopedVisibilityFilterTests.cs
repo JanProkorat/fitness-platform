@@ -43,11 +43,18 @@ public class OwnerScopedVisibilityFilterCollection : ICollectionFixture<OwnerSco
 /// containerised collections.
 /// </summary>
 /// <remarks>
-/// Isolated by unique <c>Guid.NewGuid()</c> external ids per fact (no reset needed) —
-/// the same pattern the shared "Integration" collection already relies on (#1104).
+/// A unique <c>Guid.NewGuid()</c> external id per fact is NOT sufficient isolation on its own:
+/// <see cref="SearchRecipesEndpoint"/> and <see cref="SearchFoodsEndpoint"/> match on
+/// visibility, not on identity, so a Public row seeded by one fact stays a permanent match for
+/// every later fact's search once the Mongo collection is shared across the whole class (the
+/// fixture is <c>ICollectionFixture</c>-scoped, one database per class run, not per fact). CI's
+/// first run of #1104 failed exactly this way — two facts each insert a recipe/food named
+/// "Others Public" and a later <c>ContainSingle</c>/<c>TotalCount</c> assertion saw both. Each
+/// fact clears both collections in its own <see cref="IAsyncLifetime.InitializeAsync"/>, mirroring
+/// <see cref="FitnessPlatform.Tests.Services.LibrarySearchHelperTests"/>.
 /// </remarks>
 [Collection("OwnerScopedVisibilityFilter")]
-public class OwnerScopedVisibilityFilterTests
+public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 {
     private readonly IMongoCollection<Recipe> _recipes;
     private readonly IMongoCollection<Food> _foods;
@@ -65,6 +72,14 @@ public class OwnerScopedVisibilityFilterTests
         mongoContext.Foods.Returns(_foods);
         _mongoContext = mongoContext;
     }
+
+    public async ValueTask InitializeAsync()
+    {
+        await _recipes.DeleteManyAsync(FilterDefinition<Recipe>.Empty);
+        await _foods.DeleteManyAsync(FilterDefinition<Food>.Empty);
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
