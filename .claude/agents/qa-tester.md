@@ -946,7 +946,9 @@ A malformed handoff exits non-zero — fix and re-run.
 - Say PASS on the basis of "the build is green" alone. The build being
   green is a precondition — it is not proof the AC is met.
 - Skip step 3a because "the change looks small". The regression gate
-  runs on every dispatch.
+  runs on every dispatch — on a delta check (input 4) that means the
+  build plus scoped tests for the touched code, with the orchestrator's
+  full-suite and CI evidence spot-checked.
 - Skip step 5 when a prototype is linked. Prototype fidelity is part
   of the contract whenever the issue references a scene.
 - PASS a web or mobile AC on static checks alone when Playwright was

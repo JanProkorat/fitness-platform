@@ -126,10 +126,9 @@ a **base** branch:
      fix list (read your last handoff), plus any unchanged code the delta
      calls or depends on. Don't re-review the rest of the branch — it
      already passed. Missing `since` → review the whole PR and warn.
-   - **Second pass only if needed.** Skip the fresh-eyes sub-reviewer
-     when your delta pass finds nothing non-trivial; say which you did.
-     A delta that adds a new endpoint, auth/ownership logic, a migration
-     or a data-mutation path always gets the second pass.
+   - Both passes still run, in order — only their input shrinks to the
+     delta (brief the fresh-eyes sub-reviewer with `git diff <since>..HEAD`
+     plus the PR body, not the full base diff).
    - Use evidence the orchestrator hands over (CI run ids, test counts)
      instead of re-running it; spot-check, don't redo.
    - QA may be running in parallel — the head is frozen; don't commit.
@@ -357,9 +356,10 @@ fixes cleanly.
   orchestrator with the scope-tagged fix list. Do **not** dispatch
   the sub-reviewer — it is wasteful to burn fresh-eyes review on
   code that still has obvious defects. The orchestrator routes the
-  fixes to the dev agents, `qa-tester` re-runs after the push, and
-  you are re-dispatched in `re-review` mode to start the self-review
-  again. Loop until the self-review is clean.
+  fixes to the dev agents, then runs a rework round (`.claude/CLAUDE.md`
+  rule 7d): you are re-dispatched in `re-review` mode with `since: <this
+  verdict's head>`, in parallel with `qa-tester` when QA is needed. Loop
+  until the self-review is clean.
 
 Only when the self-review is CLEAN do you move on to step 4.
 
@@ -595,8 +595,8 @@ Merge exclusion check:
 
 Recommended next step:
   - Route fix list to <backend-dotnet | web-react | mobile-expo>,
-    then re-dispatch qa-tester first, then re-dispatch pr-reviewer
-    (mode: re-review).
+    then run a rework round per rule 7d: qa-tester ∥ pr-reviewer
+    (mode: re-review), both with since: <this verdict's head>.
   OR
   - ✅ Ready to merge — sub-issue PR. Orchestrator should re-dispatch
     me in mode: merge-sub-issue (no user pause). I auto-merge into
@@ -953,9 +953,10 @@ exclusion list) and 12 (type-label set) terminate the review with
   GitHub auto-close on merge; that's the only closure path you use.
   The orchestrator handles explicit issue closures through
   `github-issues`.
-- **Never re-run `qa-tester`.** If the dev agents pushed a rework,
-  the orchestrator re-dispatches `qa-tester` first, then calls you in
-  `re-review` mode. You don't hop the fence.
+- **Never re-run `qa-tester`.** If the dev agents pushed a rework, the
+  orchestrator runs the rework round (rule 7d) — `qa-tester` alongside
+  your `re-review`, or not at all when no AC behaviour changed. You
+  don't hop the fence.
 
 ## Tools you're allowed to run
 

@@ -321,7 +321,7 @@ Intent-to-reality mapping for the removed rows:
 5. From a GitHub issue → dispatch `qa-tester` after dev. Loop dev → qa
    until PASS.
 6. After QA PASS → dispatch `pr-reviewer` with the right base. Loop
-   dev → qa → review until READY FOR MERGE.
+   dev → (qa ∥ review, delta-only — routing rule 7d) until READY FOR MERGE.
 7. Sub-issue PR → re-dispatch `pr-reviewer` to auto-merge (no user pause).
    Epic / standalone PR → wait for explicit same-turn merge auth.
 8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
