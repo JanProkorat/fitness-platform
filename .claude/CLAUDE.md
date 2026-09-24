@@ -129,7 +129,8 @@ artifacts are generated — always read the per-scene source):
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
    b. Orchestrator dispatches `qa-tester` with the issue number.
    c. ❌ FAIL → route the fix list to the owning dev sub-agent, then re-run
-      `qa-tester`. Iterate until at least the static + bash-smoke surface
+      `qa-tester` on the delta (`since: <sha of its last verdict>`, see
+      rule 7d). Iterate until at least the static + bash-smoke surface
       passes (PASS / PARTIAL / INTERACTIVE-REQUIRED).
    c2. ⚠️ INTERACTIVE-REQUIRED → orchestrator runs the interactive QA
       playbook on the main thread (see rule 6.5), consolidates evidence
@@ -203,9 +204,18 @@ artifacts are generated — always read the per-scene source):
       must be clean for READY FOR MERGE.
    c. 🔁 NEEDS REWORK → `pr-reviewer` returns a scope-tagged fix list.
       Orchestrator routes each section to the owning dev sub-agent.
-   d. After fixes, **re-dispatch `qa-tester` first** (rework can regress
-      ACs), then re-dispatch `pr-reviewer` against the same PR. Iterate
-      dev → qa → review until READY FOR MERGE.
+   d. After fixes, push a settled head, then run a **rework round** (#1106):
+      - **Delta only.** Pass both agents `since: <sha of their last verdict>`;
+        they check `git diff <since>..HEAD` (plus what it touches), not the
+        whole branch. The first review of a PR is always full.
+      - **In parallel.** Dispatch `qa-tester` and `pr-reviewer` (`mode:
+        re-review`) together; commit nothing while they read.
+      - **Skip QA when no AC behaviour changed** — test-only, docs,
+        wording or CI-config fixes. CI plus the delta review gate that
+        round. Say in the dispatch which case it is and why.
+      - Hand over evidence (exact commands, counts, CI run ids) so they
+        spot-check instead of re-running.
+      Iterate dev → (qa ∥ review) until READY FOR MERGE.
    e. READY FOR MERGE → hand off to the merge gate (rule 8). Skip only for
       tasks that don't produce a PR (doc-only commits, infra-only tweaks
       the user explicitly merges out-of-band).

@@ -120,7 +120,19 @@ a **base** branch:
 
 2. `mode: re-review`
    - Inputs: PR number, branch name, summary of what the dev agents
-     changed since last review. (Base is read off the existing PR.)
+     changed since last review, and **`since: <sha>`** — the head of your
+     last verdict. (Base is read off the existing PR.)
+   - **Delta only.** Review `git diff <since>..HEAD` against your previous
+     fix list (read your last handoff), plus any unchanged code the delta
+     calls or depends on. Don't re-review the rest of the branch — it
+     already passed. Missing `since` → review the whole PR and warn.
+   - **Second pass only if needed.** Skip the fresh-eyes sub-reviewer
+     when your delta pass finds nothing non-trivial; say which you did.
+     A delta that adds a new endpoint, auth/ownership logic, a migration
+     or a data-mutation path always gets the second pass.
+   - Use evidence the orchestrator hands over (CI run ids, test counts)
+     instead of re-running it; spot-check, don't redo.
+   - QA may be running in parallel — the head is frozen; don't commit.
    - Output: same shape as `open-and-review`.
 
 3. `mode: merge` — **PRs against `develop` or `main`** (epic PR,
