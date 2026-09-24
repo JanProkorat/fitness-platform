@@ -26,6 +26,12 @@ const OPEN_THREAD_MARK_READ_DEBOUNCE_MS = 800;
 
 interface NewMessagePayload {
   conversationId: string;
+  /** Present on every push; a plain-text send omits `eventType` (implicitly Text/null). Unused
+   * here beyond typing the payload — the broad invalidation below already refreshes the thread's
+   * messages and the list's `lastMessageEventType` preview for a cooperation-event push exactly
+   * as it does for a text one. */
+  kind?: string;
+  eventType?: string;
 }
 
 interface TypingPayload {

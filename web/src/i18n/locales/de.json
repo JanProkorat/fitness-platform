@@ -2371,6 +2371,19 @@
       "imageAlt": "Angehängtes Bild",
       "imageUnavailable": "Bild nicht verfügbar"
     },
+    "events": {
+      "invited": "Sie haben {{name}} zur Zusammenarbeit eingeladen",
+      "requested": "{{name}} hat um Zusammenarbeit mit Ihnen gebeten",
+      "accepted": {
+        "own": "Sie haben die Anfrage von {{name}} angenommen",
+        "other": "{{name}} hat Ihre Einladung angenommen"
+      },
+      "declined": {
+        "own": "Sie haben die Anfrage von {{name}} abgelehnt",
+        "other": "{{name}} hat Ihre Einladung abgelehnt"
+      },
+      "withdrawn": "Das Kooperationsangebot wurde zurückgezogen"
+    },
     "typingIndicator": "Schreibt gerade…",
     "composer": {
       "placeholder": "Nachricht eingeben...",

@@ -2372,6 +2372,19 @@
       "imageAlt": "Attached image",
       "imageUnavailable": "Image unavailable"
     },
+    "events": {
+      "invited": "You invited {{name}} to collaborate",
+      "requested": "{{name}} asked to collaborate with you",
+      "accepted": {
+        "own": "You accepted {{name}}'s request",
+        "other": "{{name}} accepted your invitation"
+      },
+      "declined": {
+        "own": "You declined {{name}}'s request",
+        "other": "{{name}} declined your invitation"
+      },
+      "withdrawn": "The collaboration offer was withdrawn"
+    },
     "typingIndicator": "Typing…",
     "composer": {
       "placeholder": "Type your message here...",

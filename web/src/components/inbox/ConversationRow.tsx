@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import ParticipantAvatar from '@/components/inbox/ParticipantAvatar';
+import { getEventPreviewText } from '@/lib/chatEvents';
 import { cn } from '@/lib/utils';
 import type { ConversationDto } from '@/api/generated';
 
@@ -68,7 +69,9 @@ export default function ConversationRow({ conversation, isSelected, onSelect }: 
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-caption text-muted-foreground">
             {hasConversation
-              ? conversation.lastMessage || (conversation.lastMessageHasImage ? t('inbox.list.photoMarker') : '—')
+              ? conversation.lastMessageEventType != null
+                ? getEventPreviewText(t, conversation.lastMessageEventType, conversation.lastMessageIsOwn ?? false, participant?.name ?? '')
+                : conversation.lastMessage || (conversation.lastMessageHasImage ? t('inbox.list.photoMarker') : '—')
               : t('inbox.row.noConversationYet')}
           </span>
           {hasUnread && (

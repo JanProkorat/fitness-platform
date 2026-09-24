@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import Composer from '@/components/inbox/Composer';
 import DateSeparator from '@/components/inbox/DateSeparator';
+import EventBanner from '@/components/inbox/EventBanner';
 import MessageBubble from '@/components/inbox/MessageBubble';
 import ThreadHeader from '@/components/inbox/ThreadHeader';
 import TypingIndicator from '@/components/inbox/TypingIndicator';
 import { useConversationMessages, useMarkConversationRead, useSendMessage } from '@/hooks/useInboxQueries';
 import { invokeHub } from '@/hooks/useSignalR';
 import { useAuthStore } from '@/stores/auth';
+import { ChatMessageKind } from '@/api/generated';
 import type { MessageDto, ParticipantDto } from '@/api/generated';
 
 const SCROLL_TOP_THRESHOLD_PX = 80;
@@ -207,18 +209,25 @@ export default function ThreadPane({
           {messagesQuery.isFetchingNextPage && (
             <p className="py-1 text-center text-caption text-muted-foreground">{t('inbox.thread.loadingOlder')}</p>
           )}
-          {messages.map((message, index) => (
-            <div key={message.id ?? index} className="flex flex-col gap-2">
-              {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
-              <MessageBubble
-                message={message}
-                isOwn={Boolean(user) && message.senderId === user?.publicId}
-                otherParticipant={participant}
-                ownInitials={ownInitials}
-                ownAvatarBlobUrl={user?.avatarBlobUrl ?? undefined}
-              />
-            </div>
-          ))}
+          {messages.map((message, index) => {
+            const isOwn = Boolean(user) && message.senderId === user?.publicId;
+            return (
+              <div key={message.id ?? index} className="flex flex-col gap-2">
+                {startsNewDay(message, messages[index - 1]) && message.timestamp && <DateSeparator iso={message.timestamp} />}
+                {message.kind === ChatMessageKind.Event ? (
+                  <EventBanner message={message} isOwn={isOwn} participantName={participant.name ?? ''} />
+                ) : (
+                  <MessageBubble
+                    message={message}
+                    isOwn={isOwn}
+                    otherParticipant={participant}
+                    ownInitials={ownInitials}
+                    ownAvatarBlobUrl={user?.avatarBlobUrl ?? undefined}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
