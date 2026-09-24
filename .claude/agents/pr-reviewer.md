@@ -380,6 +380,8 @@ to what a real external reviewer would have:
   origin/<base>...<branch>`, where `<base>` is what the PR is
   targeting — `develop`, an epic branch, or `main`). Read the base
   off `gh pr view <n> --json baseRefName` rather than hardcoding it.
+  In `re-review` mode with `since`, pass `git diff <since>..HEAD`
+  instead (see the re-review inputs).
 - The repo's code-review skill name (`review`) and its location.
 - The merge exclusion list and the `type:*`-label → strategy mapping
   (so the sub-reviewer can flag issues that would block merge).
