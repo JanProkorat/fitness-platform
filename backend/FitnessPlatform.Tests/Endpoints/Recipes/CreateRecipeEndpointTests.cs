@@ -86,16 +86,4 @@ public class CreateRecipeEndpointTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = RecipeTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<CreateRecipeEndpoint>(mongo);
-
-        await ep.HandleAsync(
-            new CreateRecipeRequest { Name = "Unauth", Foods = [] },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

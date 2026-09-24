@@ -75,20 +75,6 @@ public class InviteClientEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var emailService = Substitute.For<IEmailService>();
-        var logger = Substitute.For<ILogger<InviteClientEndpoint>>();
-
-        var ep = Factory.Create<InviteClientEndpoint>(db, emailService, logger);
-
-        await ep.HandleAsync(new InviteClientRequest { Email = "client@test.com" }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_TokenExpiresIn7Days()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")

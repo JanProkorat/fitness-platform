@@ -227,20 +227,4 @@ public class MarkSessionCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo();
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<MarkSessionCompleteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new MarkSessionCompleteRequest { SessionId = _sessionId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

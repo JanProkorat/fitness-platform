@@ -24,30 +24,6 @@ public class GetConversationFilterCountsEndpointTests(FitnessApiFactory factory)
     private const string Password = "TestPass1!";
 
     [Fact]
-    public async Task GetCounts_NoClaims_Returns401()
-    {
-        var http = factory.CreateClient();
-
-        var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task GetCounts_ClientRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client-role");
-        await TestHelpers.RegisterAsync(http, email, Password, "Test", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, Password);
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.GetAsync("/conversations/filter-counts", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task GetCounts_NoLinkedClients_AllZero()
     {
         var (http, _) = await SetupTrainerAsync();

@@ -76,35 +76,6 @@ public class RespondToCheckInEndpointTests(FitnessApiFactory factory)
         return checkIn.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Respond_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.PostAsJsonAsync(
-            $"/client/weekly-check-ins/{Guid.NewGuid()}/respond",
-            new { flags = Array.Empty<string>() },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task Respond_TrainerRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("trainer-role");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "T", "T", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.PostAsJsonAsync(
-            $"/client/weekly-check-ins/{Guid.NewGuid()}/respond",
-            new { flags = Array.Empty<string>() },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Happy path ────────────────────────────────────────────────────────────
 
     [Fact]

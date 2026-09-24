@@ -31,9 +31,10 @@ You have a private, project-local memory (`memory: local`). Use it to avoid re-f
 
 You run the code-review gate (rule 7 of `.claude/CLAUDE.md`) and the
 merge gate (rule 8 — split into 8a auto-merge for sub-issue PRs, and 8b
-authorized merge for epic / standalone PRs). You are invoked by the
-orchestrator **only after** `qa-tester` has returned OVERALL ✅ PASS —
-you do not re-run acceptance-criteria checks yourself.
+authorized merge for epic / standalone PRs). Your first `open-and-review`
+dispatch comes **only after** `qa-tester` has returned OVERALL ✅ PASS;
+`re-review` rounds may run alongside `qa-tester`, or without it, per rule
+7d. Either way you do not re-run acceptance-criteria checks yourself.
 
 The repo uses an **epic-branch model** (see `.claude/CLAUDE.md` →
 "Epic-branch model"). Sub-issues of an epic branch off, and PR into,
@@ -127,7 +128,18 @@ a **base** branch:
 
 2. `mode: re-review`
    - Inputs: PR number, branch name, summary of what the dev agents
-     changed since last review. (Base is read off the existing PR.)
+     changed since last review, and **`since: <sha>`** — the head of your
+     last verdict. (Base is read off the existing PR.)
+   - **Delta only.** Review `git diff <since>..HEAD` against your previous
+     fix list (read your last handoff), plus any unchanged code the delta
+     calls or depends on. Don't re-review the rest of the branch — it
+     already passed. Missing `since` → review the whole PR and warn.
+   - Both passes still run, in order — only their input shrinks to the
+     delta (brief the fresh-eyes sub-reviewer with `git diff <since>..HEAD`
+     plus the PR body, not the full base diff).
+   - Use evidence the orchestrator hands over (CI run ids, test counts)
+     instead of re-running it; spot-check, don't redo.
+   - QA may be running in parallel — the head is frozen; don't commit.
    - Output: same shape as `open-and-review`.
 
 3. `mode: merge` — **PRs against `develop` or `main`** (epic PR,
@@ -352,9 +364,10 @@ fixes cleanly.
   orchestrator with the scope-tagged fix list. Do **not** dispatch
   the sub-reviewer — it is wasteful to burn fresh-eyes review on
   code that still has obvious defects. The orchestrator routes the
-  fixes to the dev agents, `qa-tester` re-runs after the push, and
-  you are re-dispatched in `re-review` mode to start the self-review
-  again. Loop until the self-review is clean.
+  fixes to the dev agents, then runs a rework round (`.claude/CLAUDE.md`
+  rule 7d): you are re-dispatched in `re-review` mode with `since: <this
+  verdict's head>`, in parallel with `qa-tester` when QA is needed. Loop
+  until the self-review is clean.
 
 Only when the self-review is CLEAN do you move on to step 4.
 
@@ -375,6 +388,8 @@ to what a real external reviewer would have:
   origin/<base>...<branch>`, where `<base>` is what the PR is
   targeting — `develop`, an epic branch, or `main`). Read the base
   off `gh pr view <n> --json baseRefName` rather than hardcoding it.
+  In `re-review` mode with `since`, pass `git diff <since>..HEAD`
+  instead (see the re-review inputs).
 - The repo's code-review skill name (`review`) and its location.
 - The merge exclusion list and the `type:*`-label → strategy mapping
   (so the sub-reviewer can flag issues that would block merge).
@@ -613,8 +628,8 @@ Merge exclusion check:
 
 Recommended next step:
   - Route fix list to <backend-dotnet | web-react | mobile-expo>,
-    then re-dispatch qa-tester first, then re-dispatch pr-reviewer
-    (mode: re-review).
+    then run a rework round per rule 7d: qa-tester ∥ pr-reviewer
+    (mode: re-review), both with since: <this verdict's head>.
   OR
   - ✅ Ready to merge — sub-issue PR. Orchestrator should re-dispatch
     me in mode: merge-sub-issue (no user pause). I auto-merge into
@@ -971,9 +986,10 @@ exclusion list) and 12 (type-label set) terminate the review with
   GitHub auto-close on merge; that's the only closure path you use.
   The orchestrator handles explicit issue closures through
   `github-issues`.
-- **Never re-run `qa-tester`.** If the dev agents pushed a rework,
-  the orchestrator re-dispatches `qa-tester` first, then calls you in
-  `re-review` mode. You don't hop the fence.
+- **Never re-run `qa-tester`.** If the dev agents pushed a rework, the
+  orchestrator runs the rework round (rule 7d) — `qa-tester` alongside
+  your `re-review`, or not at all when no AC behaviour changed. You
+  don't hop the fence.
 
 ## Tools you're allowed to run
 

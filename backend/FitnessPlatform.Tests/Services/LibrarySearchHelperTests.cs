@@ -3,11 +3,11 @@ using FastEndpoints.Testing;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
 
@@ -30,6 +30,21 @@ internal sealed class LibrarySearchProbeEndpoint : EndpointWithoutRequest
 }
 
 /// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class LibrarySearchHelperMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("librarysearch");
+}
+
+[CollectionDefinition("LibrarySearchHelper")]
+public class LibrarySearchHelperCollection : ICollectionFixture<LibrarySearchHelperMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for <see cref="LibrarySearchHelper"/> (issue #858). Boots
 /// a real MongoDB container because the generic
 /// <c>Builders&lt;TDoc&gt;.Filter.Eq(d => d.OwnerId, ...)</c> / <c>Sort</c> expressions built
@@ -39,14 +54,31 @@ internal sealed class LibrarySearchProbeEndpoint : EndpointWithoutRequest
 /// collection, never a mock. The same fixture also proves the DateCreated-desc/ExternalId-asc
 /// paging order is deterministic when several documents share one DateCreated value.
 /// </summary>
+/// <remarks>
+/// A unique <c>callerId</c>/<c>ownerId</c> GUID per fact is NOT sufficient isolation on its
+/// own: <see cref="LibrarySearchHelper.SearchAsync{TDoc}"/> matches "own (mine) OR ANY
+/// owner's Public-visibility entry", so a Public entry seeded by one fact stays a permanent
+/// match for every later fact's search once the Mongo collection is shared across the whole
+/// class (#1104; confirmed empirically — 4 facts asserting exact <c>totalCount</c> failed
+/// before this fix). Each fact drops the collection in its own
+/// <see cref="IAsyncLifetime.InitializeAsync"/>.
+/// </remarks>
+[Collection("LibrarySearchHelper")]
 public class LibrarySearchHelperTests : IAsyncLifetime
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<TestLibraryDocument> _collection;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    public LibrarySearchHelperTests(LibrarySearchHelperMongoContainerFixture containerFixture)
+    {
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
+        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
+    }
 
-    private IMongoCollection<TestLibraryDocument> _collection = null!;
+    public async ValueTask InitializeAsync() =>
+        await _collection.DeleteManyAsync(FilterDefinition<TestLibraryDocument>.Empty);
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Stand-in sharing-library document implementing <see cref="ILibraryDocument"/>, plus one
@@ -80,23 +112,6 @@ public class LibrarySearchHelperTests : IAsyncLifetime
 
         [BsonElement("version")]
         public int Version { get; set; } = 1;
-    }
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_librarysearch_test");
-        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

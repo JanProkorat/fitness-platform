@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -35,35 +36,27 @@ public class CrossRoleLinkAccessTests(FitnessApiFactory factory)
     /// Registers a professional under <paramref name="initialRole"/> and authenticates the
     /// returned client with that role's access token.
     /// </summary>
+    /// <remarks>
+    /// #1104: built directly via <see cref="TestActors"/> — the register/login HTTP round trip
+    /// is not the thing under test here; only <see cref="SelfAssignRoleAsync"/> (below) is, and
+    /// it still goes through the real <c>/users/me/roles</c> endpoint.
+    /// </remarks>
     private async Task<(HttpClient Client, Guid UserId)> RegisterProfessionalAsync(string tag, string initialRole)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", initialRole, initialRole);
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Professional(factory, Enum.Parse<UserRole>(initialRole, ignoreCase: true))
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-
-        return (client, user.Id);
+        return (actor.Http, actor.UserId);
     }
 
     private async Task<(Guid ClientPublicId, long ClientProfileId)> RegisterClientAsync(string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ClientProfiles.FirstAsync(
-            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (profile.PublicId, profile.Id);
+        return (actor.PublicId, actor.ProfileId);
     }
 
     private async Task<long> GetProfessionalProfileIdAsync(Guid professionalUserId)
@@ -81,25 +74,12 @@ public class CrossRoleLinkAccessTests(FitnessApiFactory factory)
     /// (never re-stamped afterward — that stale-false is exactly what #903 closes).
     /// </summary>
     private async Task LinkAsync(
-        long professionalProfileId, long clientProfileId, UserRole role, bool canViewTrainingPlans, bool canViewNutritionPlans)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        db.ClientProfessionalLinks.Add(new ClientProfessionalLink
-        {
-            PublicId = Guid.NewGuid(),
-            ProfessionalProfileId = professionalProfileId,
-            ClientProfileId = clientProfileId,
-            ProfessionalRole = role,
-            IsActive = true,
-            CanViewTrainingPlans = canViewTrainingPlans,
-            CanViewNutritionPlans = canViewNutritionPlans,
-            DateCreated = DateTime.UtcNow
-        });
-
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
+        long professionalProfileId, long clientProfileId, UserRole role, bool canViewTrainingPlans, bool canViewNutritionPlans) =>
+        await TestActors.Link(factory, professionalProfileId, clientProfileId)
+            .AsRole(role)
+            .CanViewTrainingPlans(canViewTrainingPlans)
+            .CanViewNutritionPlans(canViewNutritionPlans)
+            .CreateAsync(TestContext.Current.CancellationToken);
 
     /// <summary>
     /// Self-assigns <paramref name="role"/> via <c>POST /users/me/roles</c> and re-authenticates

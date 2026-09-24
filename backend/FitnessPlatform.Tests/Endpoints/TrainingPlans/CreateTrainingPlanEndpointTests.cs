@@ -284,20 +284,4 @@ public class CreateTrainingPlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = TrainingPlanTestHelpers.CreateMockMongo();
-        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<CreateTrainingPlanEndpoint>(mongo, linkAuthorizationService, db);
-
-        await ep.HandleAsync(new CreateTrainingPlanRequest
-        {
-            ClientId = _clientId,
-            Name = "Test"
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

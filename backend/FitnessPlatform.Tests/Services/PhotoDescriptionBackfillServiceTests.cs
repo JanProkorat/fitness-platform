@@ -4,77 +4,41 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Npgsql;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Services;
 
 /// <summary>
-/// Testcontainers integration tests for <see cref="PhotoDescriptionBackfillService"/>.
-///
-/// Boots real PostgreSQL (all migrations applied) and MongoDB containers, seeds
-/// minimal data, then verifies that the backfill copies Mongo notes into
-/// <c>PlanPhoto.Description</c> correctly and that a second invocation is a no-op.
+/// Shared-container Postgres + Mongo fixture for
+/// <see cref="PhotoDescriptionBackfillServiceTests"/> (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>): creates its own Postgres database and its own Mongo
+/// database name inside the two shared servers once for the collection instead of per fact.
 /// </summary>
-public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
+public class PhotoDescriptionBackfillContainerFixture(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    // Bumped from the Testcontainers default of 60s to 180s because this test's
-    // PostgreSQL + MongoDB containers regularly contend with a developer- (or
-    // qa-tester-) started compose harness on the same host. The harness's
-    // `postgres-test` / `mongo-test` services and these test containers share
-    // the docker socket, the image-pull bandwidth, and the kernel-level network
-    // stack, so a parallel boot can push the test container's readiness probe
-    // past the 60s default and surface as
-    // `DockerContainer.ThrowIfContainerNotRunningAsync` during InitializeAsync.
-    // 180s gives headroom without making genuine container-boot failures hang
-    // too long. See #336.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    public string PostgresConnectionString { get; private set; } = string.Empty;
 
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer   _mongo    = new MongoDbBuilder("mongo:7").Build();
+    public string MongoConnectionString => sharedContainers.MongoConnectionString;
 
-    private ApplicationDbContext _db       = null!;
-    private IMongoContext        _mongoCtx = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
+    public string MongoDatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("backfill");
 
     public async ValueTask InitializeAsync()
     {
-        // Pass an extended-deadline cancellation token to StartAsync so the
-        // default Testcontainers wait-strategy gets up to StartupTimeout to
-        // observe the container becoming healthy. The IWaitStrategy
-        // implementation respects the CT, so this is the canonical
-        // single-call way to widen the readiness window without replacing
-        // the default strategy entirely.
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await Task.WhenAll(_postgres.StartAsync(cts.Token), _mongo.StartAsync(cts.Token));
-
-        _db = BuildDbContext(_postgres.GetConnectionString());
+        PostgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("photo_description_backfill");
 
         // Apply all EF migrations so the full schema (including plan_photos) is available.
-        await _db.Database.MigrateAsync(TestContext.Current.CancellationToken);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb     = mongoClient.GetDatabase("fitness_backfill_test");
-        _mongoCtx = new MongoContext(mongoDb);
+        await using var db = BuildDbContext(PostgresConnectionString);
+        await db.Database.MigrateAsync();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await _db.DisposeAsync();
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    private static ApplicationDbContext BuildDbContext(string connectionString)
+    public static ApplicationDbContext BuildDbContext(string connectionString)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(connectionString)
@@ -84,6 +48,38 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
             .Options;
         return new ApplicationDbContext(options);
     }
+}
+
+[CollectionDefinition("PhotoDescriptionBackfill")]
+public class PhotoDescriptionBackfillCollection : ICollectionFixture<PhotoDescriptionBackfillContainerFixture>;
+
+/// <summary>
+/// Testcontainers integration tests for <see cref="PhotoDescriptionBackfillService"/>.
+///
+/// Boots real PostgreSQL (all migrations applied) and MongoDB containers, seeds
+/// minimal data, then verifies that the backfill copies Mongo notes into
+/// <c>PlanPhoto.Description</c> correctly and that a second invocation is a no-op.
+/// </summary>
+/// <remarks>
+/// Isolated without an explicit reset (#1104): every fact inserts its own
+/// <c>Description IS NULL</c> row under fresh ids, <c>BackfillAsync</c> only ever
+/// matches rows still missing a description, and once a row is backfilled it permanently
+/// drops out of that match set — so an earlier fact's already-processed rows can never
+/// contribute to a later fact's count, even sharing one Postgres/Mongo pair.
+/// </remarks>
+[Collection("PhotoDescriptionBackfill")]
+public class PhotoDescriptionBackfillServiceTests(PhotoDescriptionBackfillContainerFixture containerFixture)
+    : IAsyncLifetime
+{
+    private ApplicationDbContext _db =
+        PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.PostgresConnectionString);
+    private readonly IMongoContext _mongoCtx =
+        new MongoContext(new MongoClient(containerFixture.MongoConnectionString)
+            .GetDatabase(containerFixture.MongoDatabaseName));
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public async ValueTask DisposeAsync() => await _db.DisposeAsync();
 
     /// <summary>
     /// Inserts a minimal ApplicationUser + ClientProfile into Postgres via raw SQL,
@@ -96,7 +92,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
         var ct     = TestContext.Current.CancellationToken;
         var userId = Guid.NewGuid();
 
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.PostgresConnectionString);
         await conn.OpenAsync(ct);
 
         // Insert a minimal user row (all NOT NULL columns that don't have DB defaults).
@@ -158,7 +154,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
-        await using var conn = new NpgsqlConnection(_postgres.GetConnectionString());
+        await using var conn = new NpgsqlConnection(containerFixture.PostgresConnectionString);
         await conn.OpenAsync(ct);
 
         await using var cmd = conn.CreateCommand();
@@ -193,7 +189,7 @@ public class PhotoDescriptionBackfillServiceTests : IAsyncLifetime
     {
         // Rebuild context so the tracked-entity cache is clean for each invocation.
         _db.Dispose();
-        _db = BuildDbContext(_postgres.GetConnectionString());
+        _db = PhotoDescriptionBackfillContainerFixture.BuildDbContext(containerFixture.PostgresConnectionString);
 
         return new PhotoDescriptionBackfillService(
             _db,

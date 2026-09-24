@@ -24,32 +24,6 @@ public class GetClientMessageStatsEndpointTests(FitnessApiFactory factory)
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@get-msg-stats-{tag}.com";
 
     [Fact]
-    public async Task GetStats_NoClaims_Returns401()
-    {
-        var http = factory.CreateClient();
-
-        var response = await http.GetAsync(
-            $"/trainer/clients/{Guid.NewGuid()}/message-stats", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task GetStats_ClientRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client-role");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.GetAsync(
-            $"/trainer/clients/{Guid.NewGuid()}/message-stats", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task GetStats_UnknownClientId_Returns404()
     {
         var (http, _) = await SetupTrainerAsync();

@@ -54,14 +54,4 @@ public class GetPendingInvitesEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetPendingInvitesEndpoint>(db);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

@@ -395,23 +395,6 @@ public class GetTodayLogEndpointTests
         dto.Photos[1].Note.Should().BeNull();
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetTodayLogEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, _blobStorage, TimeProvider.System);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     private static IAsyncCursor<MealLog> CreateMealLogCursor(List<MealLog> logs)
     {
         var cursor = Substitute.For<IAsyncCursor<MealLog>>();

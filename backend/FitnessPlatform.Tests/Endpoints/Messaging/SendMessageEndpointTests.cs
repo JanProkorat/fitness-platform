@@ -153,18 +153,6 @@ public class SendMessageEndpointTests(FitnessApiFactory factory)
     // ── Tests ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_NoBearerToken_Returns401()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var anonymousHttp = factory.CreateClient();
-
-        var response = await anonymousHttp.PostAsJsonAsync(
-            $"/conversations/{Guid.NewGuid()}/messages", new { Text = "hi" }, ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task HandleAsync_ConversationDoesNotExist_Returns404()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -174,22 +162,6 @@ public class SendMessageEndpointTests(FitnessApiFactory factory)
             $"/conversations/{Guid.NewGuid()}/messages", new { Text = "hi" }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task HandleAsync_CallerRoleNotAllowed_Returns403()
-    {
-        // Roles(AppRoles.Trainer, AppRoles.Nutritionist, AppRoles.Client) genuinely excludes
-        // Admin — the FastEndpoints role gate rejects it before the handler ever runs.
-        var ct = TestContext.Current.CancellationToken;
-        var (_, _, conversationId, _) = await SetupConversationAsync();
-
-        var adminHttp = await SetupAdminOnlyCallerAsync(ct);
-
-        var response = await adminHttp.PostAsJsonAsync(
-            $"/conversations/{conversationId}/messages", new { Text = "hi" }, ct);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

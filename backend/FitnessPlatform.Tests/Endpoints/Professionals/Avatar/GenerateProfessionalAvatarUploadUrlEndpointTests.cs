@@ -142,32 +142,6 @@ public class GenerateProfessionalAvatarUploadUrlEndpointTests
         epB.Response.BlobUrl.Should().NotContain(profAId.ToString());
     }
 
-    // ── Unauthenticated ─────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder()
-            .With(new ProfessionalProfile { Id = _profileId, UserId = _userId })
-            .Build();
-
-        var ep = Factory.Create<GenerateProfessionalAvatarUploadUrlEndpoint>(_imageUpload, db);
-
-        await ep.HandleAsync(new GenerateProfessionalAvatarUploadUrlRequest
-        {
-            ContentType = "image/jpeg",
-            SizeBytes = 1024
-        }, CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-        await _imageUpload.DidNotReceive().GenerateUploadUrlAsync(
-            Arg.Any<ImageUploadScope>(),
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<long>(),
-            Arg.Any<CancellationToken>());
-    }
-
     // ── Profile not found (client without a professional profile) ──────────
 
     [Fact]

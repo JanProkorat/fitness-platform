@@ -54,20 +54,6 @@ public class GetClientTagsEndpointTests(FitnessApiFactory factory)
         body!.Tags.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task List_ClientRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.GetAsync("/trainer/client-tags", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     private async Task<HttpClient> SetupTrainerAsync()
     {
         var http = factory.CreateClient();

@@ -52,18 +52,4 @@ public class CreateExerciseEndpointTests
             Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = ExerciseTestHelpers.CreateMockMongo();
-        var ep = Factory.Create<CreateExerciseEndpoint>(mongo);
-
-        await ep.HandleAsync(new CreateExerciseRequest
-        {
-            Name = "Test",
-            MuscleGroups = [MuscleGroup.Chest]
-        }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

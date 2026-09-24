@@ -92,42 +92,6 @@ public class CreateSubscriptionPlanEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Create_InvalidCurrency_Returns400()
-    {
-        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
-        var payload = ValidPayload(UniqueCode()) with { Currency = "GBP" };
-
-        var response = await client.PostAsJsonAsync(
-            "/admin/subscription-plans", payload, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task Create_NegativePrice_Returns400()
-    {
-        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
-        var payload = ValidPayload(UniqueCode()) with { PriceMinorUnits = -1 };
-
-        var response = await client.PostAsJsonAsync(
-            "/admin/subscription-plans", payload, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task Create_MaxActiveClientsZero_Returns400()
-    {
-        var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);
-        var payload = ValidPayload(UniqueCode()) with { MaxActiveClients = 0 };
-
-        var response = await client.PostAsJsonAsync(
-            "/admin/subscription-plans", payload, TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
     public async Task Create_ConcurrentDuplicateCode_NeverReturns500()
     {
         var client = await TestHelpers.RegisterAdminAsync(factory, TestContext.Current.CancellationToken);

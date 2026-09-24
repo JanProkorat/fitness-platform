@@ -5,11 +5,11 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Services;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
 
@@ -31,6 +31,21 @@ internal sealed class LibraryEntryLoaderProbeEndpoint : EndpointWithoutRequest
 }
 
 /// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class LibraryEntryLoaderMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("libraryentryloader");
+}
+
+[CollectionDefinition("LibraryEntryLoader")]
+public class LibraryEntryLoaderCollection : ICollectionFixture<LibraryEntryLoaderMongoContainerFixture>;
+
+/// <summary>
 /// Testcontainers integration tests for
 /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForReadOrRespondAsync{TDoc}"/> and
 /// <see cref="LibraryDenialExtensions.LoadLibraryEntryForWriteOrRespondAsync{TDoc}"/> (issue
@@ -38,19 +53,26 @@ internal sealed class LibraryEntryLoaderProbeEndpoint : EndpointWithoutRequest
 /// actual production entry point a consumer would call, rather than two hand-picked sub-calls
 /// sharing hardcoded literals.
 /// </summary>
-public class LibraryEntryLoaderTests : IAsyncLifetime
+/// <remarks>
+/// Isolated by a unique <c>ExternalId</c> per fact — no reset needed despite the shared
+/// Mongo container (#1104).
+/// </remarks>
+[Collection("LibraryEntryLoader")]
+public class LibraryEntryLoaderTests
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
     private static readonly LibraryDenial MealTemplateDenial = new(
         "MEAL_TEMPLATE_NOT_FOUND", "Meal template not found.",
         "MEAL_TEMPLATE_NOT_OWNED", "Meal template belongs to another owner.",
         "MEAL_TEMPLATE_VERSION_CONFLICT", "Meal template was modified by another request.");
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private readonly IMongoCollection<TestLibraryDocument> _collection;
 
-    private IMongoCollection<TestLibraryDocument> _collection = null!;
+    public LibraryEntryLoaderTests(LibraryEntryLoaderMongoContainerFixture containerFixture)
+    {
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
+        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
+    }
 
     /// <summary>Stand-in sharing-library document implementing <see cref="ILibraryDocument"/>.</summary>
     private sealed class TestLibraryDocument : ILibraryDocument
@@ -77,23 +99,6 @@ public class LibraryEntryLoaderTests : IAsyncLifetime
 
         [BsonElement("version")]
         public int Version { get; set; } = 1;
-    }
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
-    {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_libraryentryloader_test");
-        _collection = mongoDb.GetCollection<TestLibraryDocument>("testLibraryEntries");
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     /// <summary>

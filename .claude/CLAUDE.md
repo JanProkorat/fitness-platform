@@ -51,6 +51,7 @@ Project-local workflow agents (also in `.claude/agents/`):
 | Hardcoded-value bans, write-locked generated files | [`rules/code-style.md`](rules/code-style.md) |
 | i18n mechanism (generic) — locale list is repo-specific, see below | [`rules/i18n.md`](rules/i18n.md), "Locales" below |
 | Verification surfaces per scope | [`rules/verification-contract.md`](rules/verification-contract.md) |
+| Backend test layers, builders, isolation, CI time budget | [`rules/testing.md`](rules/testing.md) |
 
 ## Scope → stack map
 
@@ -128,7 +129,8 @@ artifacts are generated — always read the per-scene source):
       JSON (see [`schemas/dev-handoff.v1.json`](schemas/dev-handoff.v1.json)).
    b. Orchestrator dispatches `qa-tester` with the issue number.
    c. ❌ FAIL → route the fix list to the owning dev sub-agent, then re-run
-      `qa-tester`. Iterate until at least the static + bash-smoke surface
+      `qa-tester` on the delta (`since: <sha of its last verdict>`, see
+      rule 7d). Iterate until at least the static + bash-smoke surface
       passes (PASS / PARTIAL / INTERACTIVE-REQUIRED).
    c2. ⚠️ INTERACTIVE-REQUIRED → orchestrator runs the interactive QA
       playbook on the main thread (see rule 6.5), consolidates evidence
@@ -202,9 +204,20 @@ artifacts are generated — always read the per-scene source):
       must be clean for READY FOR MERGE.
    c. 🔁 NEEDS REWORK → `pr-reviewer` returns a scope-tagged fix list.
       Orchestrator routes each section to the owning dev sub-agent.
-   d. After fixes, **re-dispatch `qa-tester` first** (rework can regress
-      ACs), then re-dispatch `pr-reviewer` against the same PR. Iterate
-      dev → qa → review until READY FOR MERGE.
+   d. After fixes, push a settled head, then run a **rework round** (#1106):
+      - **Delta only.** Pass both agents `since: <sha of their last verdict>`;
+        they check `git diff <since>..HEAD` (plus what it touches), not the
+        whole branch. The first review of a PR is always full. If the round
+        merged the base branch in, review only the PR's own new changes —
+        compare `git diff origin/<base>...<since>` with `git diff origin/<base>...HEAD`.
+      - **In parallel.** Dispatch `qa-tester` and `pr-reviewer` (`mode:
+        re-review`) together; commit nothing while they read.
+      - **Skip QA when no AC behaviour changed** — test-only, docs,
+        wording or CI-config fixes. CI plus the delta review gate that
+        round. Say in the dispatch which case it is and why.
+      - Hand over evidence (exact commands, counts, CI run ids) so they
+        spot-check instead of re-running.
+      Iterate dev → (qa ∥ review) until READY FOR MERGE.
    e. READY FOR MERGE → hand off to the merge gate (rule 8). Skip only for
       tasks that don't produce a PR (doc-only commits, infra-only tweaks
       the user explicitly merges out-of-band).
@@ -310,7 +323,7 @@ Intent-to-reality mapping for the removed rows:
 5. From a GitHub issue → dispatch `qa-tester` after dev. Loop dev → qa
    until PASS.
 6. After QA PASS → dispatch `pr-reviewer` with the right base. Loop
-   dev → qa → review until READY FOR MERGE.
+   dev → (qa ∥ review, delta-only — routing rule 7d) until READY FOR MERGE.
 7. Sub-issue PR → re-dispatch `pr-reviewer` to auto-merge (no user pause).
    Epic / standalone PR → wait for explicit same-turn merge auth.
 8. After merge to `develop` (epic or standalone) → invoke `notion-docs`

@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.PhotoDiaryRequests;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,30 +41,22 @@ public class CreateRequestSignalRTests(FitnessApiFactory factory)
     private async Task<(HttpClient Http, Guid UserId, string FirstName, string LastName)>
         SetupProfessionalAsync(string firstName = "Jana", string lastName = "Novakova")
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("prof");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", firstName, lastName, "Nutritionist");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
+        var actor = await TestActors.Nutritionist(factory)
+            .WithEmail(UniqueEmail("prof"))
+            .WithName(firstName, lastName)
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id, firstName, lastName);
+        return (actor.Http, actor.UserId, firstName, lastName);
     }
 
     private async Task<(HttpClient Http, Guid UserId)> SetupClientAsync()
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Petr", "Novak", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail("client"))
+            .WithName("Petr", "Novak")
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id);
+        return (actor.Http, actor.UserId);
     }
 
     private async Task<Guid> InsertLinkAsync(Guid clientUserId, Guid professionalUserId)

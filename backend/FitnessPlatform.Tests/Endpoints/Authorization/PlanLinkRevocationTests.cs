@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints.TrainingPlans;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
@@ -48,39 +49,27 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
     private static string UniqueEmail(string tag) => $"{Guid.NewGuid():N}@plan-link-{tag}.com";
 
     // ── fixture helpers (mirrors CrossDomainPlanAccessTests) ─────────────────
+    // #1104: actors are built directly via TestActors, bypassing the /auth/register +
+    // /auth/login HTTP round trip. Signatures/return shapes are unchanged.
 
     private async Task<(HttpClient Http, long ProfessionalProfileId, Guid ProfessionalUserId)> RegisterProfessionalAsync(
         string tag, params string[] roles)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Pro", roles);
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Professional(
+                factory, roles.Select(r => Enum.Parse<UserRole>(r, ignoreCase: true)).ToArray())
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ProfessionalProfiles.FirstAsync(
-            p => p.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (client, profile.Id, user.Id);
+        return (actor.Http, actor.ProfileId, actor.UserId);
     }
 
     private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)> RegisterClientAsync(string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        await TestHelpers.LoginAsync(client, email, "TestPass1!");
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ClientProfiles.FirstAsync(
-            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (profile.PublicId, profile.Id, user.Id);
+        return (actor.PublicId, actor.ProfileId, actor.UserId);
     }
 
     /// <summary>
@@ -91,19 +80,11 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
     private async Task<(HttpClient Http, long ClientProfileId, Guid ClientUserId)> RegisterClientWithSessionAsync(
         string tag)
     {
-        var client = factory.CreateClient();
-        var email = UniqueEmail(tag);
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, token);
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail(tag))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        var profile = await db.ClientProfiles.FirstAsync(
-            cp => cp.UserId == user.Id, TestContext.Current.CancellationToken);
-
-        return (client, profile.Id, user.Id);
+        return (actor.Http, actor.ProfileId, actor.UserId);
     }
 
     private async Task<Guid> LinkAsync(
@@ -113,23 +94,16 @@ public class PlanLinkRevocationTests(FitnessApiFactory factory)
         bool canViewTrainingPlans = true,
         bool isActive = true)
     {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var link = TestActors.Link(factory, professionalProfileId, clientProfileId)
+            .CanViewNutritionPlans(canViewNutritionPlans)
+            .CanViewTrainingPlans(canViewTrainingPlans);
 
-        var link = new ClientProfessionalLink
+        if (!isActive)
         {
-            PublicId = Guid.NewGuid(),
-            ProfessionalProfileId = professionalProfileId,
-            ClientProfileId = clientProfileId,
-            ProfessionalRole = UserRole.Trainer,
-            IsActive = isActive,
-            CanViewNutritionPlans = canViewNutritionPlans,
-            CanViewTrainingPlans = canViewTrainingPlans,
-            DateCreated = DateTime.UtcNow
-        };
-        db.ClientProfessionalLinks.Add(link);
+            link.Inactive();
+        }
 
-        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await link.CreateAsync(TestContext.Current.CancellationToken);
         return link.PublicId;
     }
 

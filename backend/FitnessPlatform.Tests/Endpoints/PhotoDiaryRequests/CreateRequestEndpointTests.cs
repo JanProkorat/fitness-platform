@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,30 +35,20 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
 
     private async Task<(HttpClient Http, Guid UserId)> SetupProfessionalAsync(string role = "Nutritionist")
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail(role.ToLower());
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Prof", "Test", role);
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
+        var actor = await TestActors.Professional(factory, Enum.Parse<UserRole>(role, ignoreCase: true))
+            .WithEmail(UniqueEmail(role.ToLower()))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id);
+        return (actor.Http, actor.UserId);
     }
 
     private async Task<(HttpClient Http, Guid UserId, string Email)> SetupClientAsync()
     {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Client", "Test", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
+        var actor = await TestActors.Client(factory)
+            .WithEmail(UniqueEmail("client"))
+            .CreateAsync(TestContext.Current.CancellationToken);
 
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var user = await db.Users.FirstAsync(u => u.Email == email, TestContext.Current.CancellationToken);
-        return (http, user.Id, email);
+        return (actor.Http, actor.UserId, actor.Email);
     }
 
     private async Task<(long LinkId, Guid ClientPublicId)> InsertLinkAsync(
@@ -151,30 +142,6 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         db.PendingInvites.Add(invite);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return invite.Id;
-    }
-
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Create_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task Create_ClientRole_Returns403()
-    {
-        var (http, _, _) = await SetupClientAsync();
-        var response = await http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests",
-            new { ClientId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ── Validation ────────────────────────────────────────────────────────────

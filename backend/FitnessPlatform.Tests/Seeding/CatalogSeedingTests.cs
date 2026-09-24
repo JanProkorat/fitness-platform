@@ -13,8 +13,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Seeding;
 
@@ -29,10 +27,10 @@ namespace FitnessPlatform.Tests.Seeding;
 /// WebApplicationFactory that wires up real Postgres + Mongo via Testcontainers for
 /// public-catalog-seeding tests (issue #809).
 /// </summary>
-public class CatalogSeedingFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class CatalogSeedingFactory(SharedTestContainers sharedContainers) : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16").Build();
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -54,7 +52,7 @@ public class CatalogSeedingFactory : WebApplicationFactory<Program>, IAsyncLifet
             if (pgDesc is not null) services.Remove(pgDesc);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -66,8 +64,8 @@ public class CatalogSeedingFactory : WebApplicationFactory<Program>, IAsyncLifet
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -99,42 +97,45 @@ public class CatalogSeedingFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("catalog_seeding");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("catalog_seeding");
 
         // Applies migrations, seeds roles, and — per #809 — the system admin user.
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        // Skip base.DisposeAsync() — see QaSeedRunnerFactory / FitnessApiFactory for the
-        // ObjectDisposedException rationale (FastEndpoints' process-global ServiceResolver).
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Skip base.DisposeAsync() — see QaSeedRunnerFactory / FitnessApiFactory for the
+    // ObjectDisposedException rationale (FastEndpoints' process-global ServiceResolver). No
+    // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 /// <summary>
 /// Defines a separate collection for catalog seeding tests so they run serially and don't
-/// contend with the shared Integration collection's Testcontainers.
+/// contend with the shared Integration collection's Testcontainers. Boots
+/// <see cref="CatalogSeedingFactory"/> ONCE for the collection rather than per test — see
+/// <see cref="CatalogSeedingTests.InitializeAsync"/> for the per-test reset (#1104).
 /// </summary>
 [CollectionDefinition("CatalogSeedingTests")]
-public class CatalogSeedingTestsCollection;
+public class CatalogSeedingTestsCollection : ICollectionFixture<CatalogSeedingFactory>;
 
 /// <summary>
 /// Integration tests for the public-catalog seeding pipeline (#809): system admin user,
 /// foods/recipes/exercises/workout templates loaded from the embedded JSON seed data.
 /// </summary>
+/// <remarks>
+/// Resets Postgres + Mongo to a pristine state before each fact — several facts assert
+/// exact document counts (e.g. "184 foods, no duplicates") that must not see a prior
+/// fact's seeded rows now that the factory is shared across the class instead of booted
+/// fresh per test (#1104).
+/// </remarks>
 [Collection("CatalogSeedingTests")]
-public class CatalogSeedingTests : IAsyncLifetime
+public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
 {
-    private readonly CatalogSeedingFactory _factory = new();
+    private readonly CatalogSeedingFactory _factory = factory;
 
-    public async ValueTask InitializeAsync() => await _factory.InitializeAsync();
-    public async ValueTask DisposeAsync() => await _factory.DisposeAsync();
+    public async ValueTask InitializeAsync() => await _factory.Services.ResetPostgresAndMongoAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     /// <summary>
     /// Running MongoSeeder.SeedAsync twice must be idempotent: document counts stay at the

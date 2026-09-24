@@ -3,26 +3,24 @@ using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using FitnessPlatform.Application.Infrastructure.Services;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Infrastructure;
 
 /// <summary>
-/// Custom WebApplicationFactory that uses Testcontainers for real PostgreSQL and MongoDB instances.
-/// Replaces the email service with a no-op fake and disables rate limiting for tests.
+/// Custom WebApplicationFactory that uses the shared Postgres/Mongo Testcontainers (#1104
+/// Phase B — see <see cref="SharedTestContainers"/>), each in its own database inside those
+/// shared servers. Replaces the email service with a no-op fake and disables rate limiting
+/// for tests.
 /// </summary>
-public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class FitnessApiFactory(SharedTestContainers sharedContainers) : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16")
-        .Build();
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7")
-        .Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -51,7 +49,7 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 services.Remove(descriptor);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -68,8 +66,8 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -112,6 +110,11 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             services.AddSingleton<IPushNotificationService>(
                 sp => sp.GetRequiredService<FakePushNotificationService>());
 
+            // #1104: PBKDF2 at the production default (100,000 iterations) is deliberately slow
+            // and dominates every real register/login round trip in the suite. Test-host-only —
+            // never touches the production default in Program.cs.
+            services.Configure<PasswordHasherOptions>(o => o.IterationCount = 1);
+
             // #726: prevent the background schedulers/worker from ever starting in
             // this test host — see TestHostedServiceExtensions for the full root
             // cause (zombie BackgroundService timers ticking against a disposed
@@ -130,28 +133,25 @@ public class FitnessApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("fitness_api");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("fitness_api");
 
         // Apply migrations and seed
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
+    public new ValueTask DisposeAsync()
     {
-        // Dispose the Testcontainers but intentionally skip base.DisposeAsync().
-        //
-        // base.DisposeAsync() disposes the root IServiceProvider, which clears
-        // FastEndpoints' process-global ServiceResolver.Provider. Any Factory.Create<T>()
-        // call running concurrently (standalone unit tests without a [Collection] attribute)
-        // would then throw ObjectDisposedException. Skipping base.DisposeAsync() keeps the
-        // provider alive until the process exits — safe for test code where the process is
-        // short-lived. Containers are the only external resource that needs explicit cleanup.
+        // Intentionally skip base.DisposeAsync() — no Testcontainer to dispose here anymore
+        // (#1104 Phase B: the shared containers outlive this factory and are disposed once by
+        // SharedTestContainers itself), but the reason for skipping the base call is unchanged:
+        // it disposes the root IServiceProvider, which clears FastEndpoints' process-global
+        // ServiceResolver.Provider. Any Factory.Create<T>() call running concurrently
+        // (standalone unit tests without a [Collection] attribute) would then throw
+        // ObjectDisposedException. Skipping base.DisposeAsync() keeps the provider alive until
+        // the process exits — safe for test code where the process is short-lived.
         //
         // See also: ResetEndpointFactoryBase (same pattern, #296).
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
+        return ValueTask.CompletedTask;
     }
 }

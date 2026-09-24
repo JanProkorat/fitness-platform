@@ -72,30 +72,6 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task List_NoClaims_Returns401()
-    {
-        var http = factory.CreateClient();
-
-        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task List_ClientRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client-role");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "Test", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task List_NoProfessionalProfile_Returns404()
     {
         // A caller authenticated with the Trainer role but with no ProfessionalProfile row

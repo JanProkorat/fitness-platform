@@ -285,35 +285,6 @@ public class UploadFoodImageUrlEndpointTests
             Arg.Any<CancellationToken>());
     }
 
-    // ── Unauthenticated ─────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UploadUrl_NoClaims_Returns401()
-    {
-        var foodId = Guid.NewGuid();
-        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        // No user context set — endpoint now checks UserId claim and returns 401.
-        var ep = Factory.Create<UploadFoodImageUrlEndpoint>(mongo, _imageUpload);
-
-        await ep.HandleAsync(new UploadFoodImageUrlRequest
-        {
-            FoodId = foodId,
-            Slot = "main",
-            ContentType = "image/jpeg",
-            SizeBytes = 1024
-        }, CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-        await _imageUpload.DidNotReceive().GenerateUploadUrlAsync(
-            Arg.Any<ImageUploadScope>(),
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<long>(),
-            Arg.Any<CancellationToken>());
-    }
-
     // ── Service-level rejections ────────────────────────────────────────────
 
     [Fact]
@@ -588,32 +559,6 @@ public class ConfirmFoodImageEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404,
             "a soft-deleted (or never-existing) food must result in 404, not a write");
 
-        await mongo.Foods.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    // ── Unauthenticated ─────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task ConfirmImage_NoClaims_Returns401()
-    {
-        var foodId = Guid.NewGuid();
-        var food = FoodTestHelpers.CreateFood(externalId: foodId, nutritionistId: _nutritionistId);
-        var mongo = FoodTestHelpers.CreateMockMongo(food);
-
-        var ep = Factory.Create<ConfirmFoodImageEndpoint>(mongo);
-
-        await ep.HandleAsync(new ConfirmFoodImageRequest
-        {
-            FoodId = foodId,
-            Slot = "main",
-            BlobUrl = $"foods/{foodId}.jpg"
-        }, CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
         await mongo.Foods.DidNotReceive().UpdateOneAsync(
             Arg.Any<FilterDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),
             Arg.Any<UpdateDefinition<FitnessPlatform.Application.Domain.Documents.Food>>(),

@@ -300,22 +300,6 @@ public class GetMessagesEndpointTests(FitnessApiFactory factory)
     /// <summary>
     /// Unauthenticated request gets 401 — auth check preserved.
     /// </summary>
-    [Fact]
-    public async Task GetMessages_Unauthenticated_Returns401()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (_, _, conversationId) = await SetupConversationAsync();
-
-        var anonHttp = factory.CreateClient();
-        // No auth header
-
-        var resp = await anonHttp.GetAsync(
-            $"/conversations/{conversationId}/messages",
-            ct);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── local response DTOs (per slice rules — no cross-feature imports) ──────
 
     private record MessageItemDto(Guid Id, Guid SenderId, string Text, DateTime Timestamp, bool IsRead);

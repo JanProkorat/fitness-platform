@@ -13,8 +13,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
-using Testcontainers.MongoDb;
-using Testcontainers.PostgreSql;
 
 namespace FitnessPlatform.Tests.Endpoints.Auth;
 
@@ -60,13 +58,11 @@ internal sealed class TestClientIpStartupFilter : IStartupFilter
 /// (b) registers <see cref="TestClientIpStartupFilter"/> so tests can steer the rate-limit
 ///     partition key via an X-Test-Client-IP request header.
 /// </summary>
-public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class RateLimitEnabledFactory(SharedTestContainers sharedContainers)
+    : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16")
-        .Build();
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7")
-        .Build();
+    private string _postgresConnectionString = string.Empty;
+    private string _mongoDatabaseName = string.Empty;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -98,7 +94,7 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
                 services.Remove(descriptor);
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(_postgres.GetConnectionString())
+                options.UseNpgsql(_postgresConnectionString)
                     .ConfigureWarnings(w => w.Ignore(
                         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
@@ -113,8 +109,8 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
 
             services.AddSingleton<IMongoDatabase>(_ =>
             {
-                var client = new MongoClient(_mongo.GetConnectionString());
-                return client.GetDatabase("fitness_ratelimit_test");
+                var client = new MongoClient(sharedContainers.MongoConnectionString);
+                return client.GetDatabase(_mongoDatabaseName);
             });
             services.AddSingleton<IMongoContext, MongoContext>();
 
@@ -156,20 +152,24 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
 
     public async ValueTask InitializeAsync()
     {
-        await Task.WhenAll(
-            _postgres.StartAsync(),
-            _mongo.StartAsync());
+        _postgresConnectionString = await sharedContainers.CreatePostgresDatabaseAsync("ratelimit");
+        _mongoDatabaseName = SharedTestContainers.CreateMongoDatabaseName("ratelimit");
 
         await ApplicationDbContextSeed.SeedAsync(Services);
     }
 
-    public new async ValueTask DisposeAsync()
-    {
-        await Task.WhenAll(
-            _postgres.DisposeAsync().AsTask(),
-            _mongo.DisposeAsync().AsTask());
-    }
+    // Intentionally skip base.DisposeAsync() — see FitnessApiFactory's matching remark. No
+    // Testcontainer to dispose here anymore (#1104 Phase B); SharedTestContainers owns that.
+    public new ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
+
+/// <summary>
+/// Defines a dedicated collection so <see cref="RateLimitEnabledFactory"/> boots ONCE for
+/// the whole class instead of per test (#1104) — see <see cref="RateLimitPolicyTests"/>'
+/// remarks for how the shared in-memory rate-limiter state is kept isolated per fact.
+/// </summary>
+[CollectionDefinition("RateLimitPolicyTests")]
+public class RateLimitPolicyTestsCollection : ICollectionFixture<RateLimitEnabledFactory>;
 
 /// <summary>
 /// Integration tests for the split rate-limit policy introduced in issue #521.
@@ -180,30 +180,19 @@ public class RateLimitEnabledFactory : WebApplicationFactory<Program>, IAsyncLif
 /// requests from that client land in the SAME rate-limit bucket — making exhaustion
 /// assertions meaningful and deterministic.
 /// </summary>
-public class RateLimitPolicyTests : IAsyncLifetime
+/// <remarks>
+/// The ASP.NET Core rate limiter keeps its partition buckets in process memory for the
+/// lifetime of the host. Now that <see cref="RateLimitEnabledFactory"/> is shared across
+/// the whole class instead of booted fresh per test (#1104), a fixed IP literal reused by
+/// two facts would let one fact's exhausted bucket leak into the next. Each fact below
+/// generates its own fresh IP via <see cref="UniqueTrustedIp"/> / <see cref="UniqueUntrustedIp"/>
+/// rather than sharing a class-level constant, so no two facts — now or in the future — can
+/// collide on the same partition key.
+/// </remarks>
+[Collection("RateLimitPolicyTests")]
+public class RateLimitPolicyTests(RateLimitEnabledFactory factory)
 {
-    private readonly RateLimitEnabledFactory _factory = new();
-
-    // Three stable "virtual IPs" used to isolate test buckets from each other.
-    // They are in the 10.0.0.0/8 private range which is trusted by UseForwardedHeaders
-    // (KnownIPNetworks in Program.cs).
-    private const string Ip1 = "10.0.1.1";
-    private const string Ip2 = "10.0.1.2";
-    private const string Ip3 = "10.0.1.3";
-
-    // These IPs are NOT in any KnownIPNetworks range — useful for the untrusted-proxy test.
-    private const string UntrustedIp = "203.0.113.5";
-
-    public async ValueTask InitializeAsync() => await _factory.InitializeAsync();
-
-    public async ValueTask DisposeAsync()
-    {
-        // Do NOT call _factory.Dispose() — that calls base.Dispose() which disposes
-        // the root IServiceProvider, clearing FastEndpoints' process-global
-        // ServiceResolver.Provider and causing ObjectDisposedException in concurrent tests.
-        // See the same comment in FitnessApiFactory.DisposeAsync for the full explanation.
-        await _factory.DisposeAsync();
-    }
+    private readonly RateLimitEnabledFactory _factory = factory;
 
     /// <summary>
     /// Creates an HttpClient that stamps every request with a fixed X-Test-Client-IP so
@@ -221,6 +210,21 @@ public class RateLimitPolicyTests : IAsyncLifetime
 
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@ratelimit-test.com";
 
+    /// <summary>
+    /// A fresh IP inside the 10.0.0.0/8 private range trusted by UseForwardedHeaders
+    /// (KnownIPNetworks in Program.cs). Generated per call so no two facts sharing the
+    /// collection-scoped host ever land in the same rate-limit bucket.
+    /// </summary>
+    private static string UniqueTrustedIp() =>
+        $"10.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}.{Random.Shared.Next(1, 255)}";
+
+    /// <summary>
+    /// A fresh IP in the TEST-NET-3 documentation range (203.0.113.0/24) — public, not in
+    /// any KnownIPNetworks range. Generated per call for the same isolation reason as
+    /// <see cref="UniqueTrustedIp"/>.
+    /// </summary>
+    private static string UniqueUntrustedIp() => $"203.0.113.{Random.Shared.Next(1, 255)}";
+
     // ---------------------------------------------------------------------------
     // AC-4: /auth/refresh on its own policy cannot exhaust the /auth/login budget
     // ---------------------------------------------------------------------------
@@ -237,7 +241,7 @@ public class RateLimitPolicyTests : IAsyncLifetime
     [Fact]
     public async Task LoginBudget_IsExhaustedAfter10Attempts_SameIp()
     {
-        using var client = CreateClientWithIp(Ip1);
+        using var client = CreateClientWithIp(UniqueTrustedIp());
 
         // Exhaust the login budget: PermitLimit = 10 for AppPolicies.AuthRateLimit.
         // We use 10 different emails so we don't hit a 401 (wrong-password) that might
@@ -280,7 +284,7 @@ public class RateLimitPolicyTests : IAsyncLifetime
     [Fact]
     public async Task RefreshCalls_DoNotExhaustLoginBudget()
     {
-        using var client = CreateClientWithIp(Ip2);
+        using var client = CreateClientWithIp(UniqueTrustedIp());
 
         // Register + login to obtain a valid refresh token chain.
         // Registration calls /auth/register which is on the 'auth' policy —
@@ -329,7 +333,7 @@ public class RateLimitPolicyTests : IAsyncLifetime
     [Fact]
     public async Task ExhaustedLoginBudget_DoesNotBlock_RefreshEndpoint()
     {
-        using var client = CreateClientWithIp(Ip3);
+        using var client = CreateClientWithIp(UniqueTrustedIp());
 
         // Seed a user and obtain a refresh token BEFORE exhausting the budget.
         var email = UniqueEmail();
@@ -387,9 +391,9 @@ public class RateLimitPolicyTests : IAsyncLifetime
     public async Task ForwardedFor_DifferentIPs_ArePartitionedSeparately()
     {
         // Use a trusted proxy IP as the immediate peer — 10.0.0.0/8 is in KnownIPNetworks.
-        const string trustedProxyIp = "10.0.2.1";
-        const string forwardedIp1   = "203.0.113.10"; // public "client IP" #1
-        const string forwardedIp2   = "203.0.113.11"; // public "client IP" #2
+        var trustedProxyIp = UniqueTrustedIp();
+        var forwardedIp1   = UniqueUntrustedIp(); // public "client IP" #1
+        var forwardedIp2   = UniqueUntrustedIp(); // public "client IP" #2
 
         // Client whose underlying TestServer connection looks like it's coming from
         // the trusted proxy. Every request also carries an X-Forwarded-For header that
@@ -441,7 +445,7 @@ public class RateLimitPolicyTests : IAsyncLifetime
     [Fact]
     public async Task PendingInviteBudget_PartitionedByProfessional_NotSharedAcrossAccountsOnSameIp()
     {
-        const string sharedIp = "10.0.4.1";
+        var sharedIp = UniqueTrustedIp();
         const int permitLimit = 30;
 
         using var client1 = CreateClientWithIp(sharedIp);

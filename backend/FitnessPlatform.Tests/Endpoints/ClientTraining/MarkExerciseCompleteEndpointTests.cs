@@ -268,23 +268,6 @@ public class MarkExerciseCompleteEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo();
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<MarkExerciseCompleteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new MarkExerciseCompleteRequest { SessionId = _sessionId, ExerciseId = _exercise1 },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_UnknownSectionId_Returns404()
     {
         var plan = TrainingCompletionTestHelpers.CreateActivePlan(

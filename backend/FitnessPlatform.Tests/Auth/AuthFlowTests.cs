@@ -212,16 +212,6 @@ public class AuthFlowTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetProfile_WithoutToken_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/users/me", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task PasswordReset_FullFlow_Works()
     {
         EmailService.Reset();

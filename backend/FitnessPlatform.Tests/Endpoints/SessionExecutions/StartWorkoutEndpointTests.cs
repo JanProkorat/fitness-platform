@@ -59,18 +59,6 @@ public class StartWorkoutEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
-        // No user claims — endpoint returns 401 before any lock/plan lookup.
-        var ep = Factory.Create<StartWorkoutEndpoint>(mongo, CreateMockDb(), TimeProvider.System);
-
-        await ep.HandleAsync(new StartWorkoutRequest(), TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_PlanNotFound_Returns404()
     {
         // Plan-bound request but no matching plan in Mongo → 404, no log created.

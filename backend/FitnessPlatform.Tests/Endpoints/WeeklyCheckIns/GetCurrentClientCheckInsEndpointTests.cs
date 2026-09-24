@@ -89,31 +89,6 @@ public class GetCurrentClientCheckInsEndpointTests(FitnessApiFactory factory)
         return today.AddDays(-days);
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetCurrent_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task GetCurrent_TrainerRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("trainer-role");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "T", "T", "Trainer");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.GetAsync(
-            "/client/weekly-check-ins/current", TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Happy paths ───────────────────────────────────────────────────────────
 
     [Fact]

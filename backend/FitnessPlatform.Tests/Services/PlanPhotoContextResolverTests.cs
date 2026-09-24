@@ -2,12 +2,27 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Services;
+
+/// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class PlanPhotoContextResolverMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("planphotocontextresolver");
+}
+
+[CollectionDefinition("PlanPhotoContextResolver")]
+public class PlanPhotoContextResolverCollection : ICollectionFixture<PlanPhotoContextResolverMongoContainerFixture>;
 
 /// <summary>
 /// Testcontainers integration tests for <see cref="PlanPhotoContextResolver"/> (#1038). Boots a
@@ -21,26 +36,17 @@ namespace FitnessPlatform.Tests.Services;
 /// <see cref="IMongoContext"/> substitute whose NutritionPlans/TrainingPlans properties return
 /// real, containerised collections.
 /// </summary>
-public class PlanPhotoContextResolverTests : IAsyncLifetime
+[Collection("PlanPhotoContextResolver")]
+public class PlanPhotoContextResolverTests
 {
-    // Wide timeout to absorb contention when the compose harness is also running.
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
+    private readonly IMongoCollection<NutritionPlan> _nutritionPlans;
+    private readonly IMongoCollection<TrainingPlan> _trainingPlans;
+    private readonly IMongoContext _mongoContext;
 
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
-
-    private IMongoCollection<NutritionPlan> _nutritionPlans = null!;
-    private IMongoCollection<TrainingPlan> _trainingPlans = null!;
-    private IMongoContext _mongoContext = null!;
-
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public PlanPhotoContextResolverTests(PlanPhotoContextResolverMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var mongoDb = mongoClient.GetDatabase("fitness_planphotocontextresolver_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _nutritionPlans = mongoDb.GetCollection<NutritionPlan>("nutritionPlans");
         _trainingPlans = mongoDb.GetCollection<TrainingPlan>("trainingPlans");
 
@@ -48,11 +54,6 @@ public class PlanPhotoContextResolverTests : IAsyncLifetime
         mongoContext.NutritionPlans.Returns(_nutritionPlans);
         mongoContext.TrainingPlans.Returns(_trainingPlans);
         _mongoContext = mongoContext;
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _mongo.DisposeAsync();
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

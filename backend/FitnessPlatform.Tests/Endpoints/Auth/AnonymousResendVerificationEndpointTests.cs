@@ -351,9 +351,9 @@ public class AnonymousResendVerificationEndpointTests(FitnessApiFactory factory)
 /// <see cref="RateLimitEnabledFactory"/> (defined in RateLimitPolicyTests.cs) rather than
 /// the shared <see cref="FitnessApiFactory"/>, which disables rate limiting for isolation.
 /// </summary>
-public class AnonymousResendVerificationRateLimitTests : IAsyncLifetime
+public class AnonymousResendVerificationRateLimitTests(SharedTestContainers sharedContainers) : IAsyncLifetime
 {
-    private readonly RateLimitEnabledFactory _factory = new();
+    private readonly RateLimitEnabledFactory _factory = new(sharedContainers);
 
     // Per-host singleton (#726 refinement) — resolved from this factory's own DI
     // container so assertions never see another factory's zombie worker traffic.

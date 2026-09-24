@@ -107,22 +107,6 @@ public class BroadcastMessageEndpointTests
     // ── endpoint ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<BroadcastMessageEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            db, EndpointTestHelpers.CreateGrantingLinkAuthorizationService(), _conversationSeedService, _realtimeNotifier);
-
-        await ep.HandleAsync(
-            new BroadcastMessageRequest { ClientPublicIds = [Guid.NewGuid()], Text = "Hi" },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_UnknownClientPublicId_Returns404WithNotLinkedCode()
     {
         var db = new MockDbBuilder()

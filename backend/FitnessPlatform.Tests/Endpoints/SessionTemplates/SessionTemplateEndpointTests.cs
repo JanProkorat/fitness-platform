@@ -12,12 +12,27 @@ using FitnessPlatform.Application.Features.SessionTemplates.SaveSessionTemplateF
 using FitnessPlatform.Application.Features.SessionTemplates.SearchSessionTemplates;
 using FitnessPlatform.Application.Features.SessionTemplates.UpdateSessionTemplate;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
+using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using MongoDB.Driver;
 using NSubstitute;
-using Testcontainers.MongoDb;
 
 namespace FitnessPlatform.Tests.Endpoints.SessionTemplates;
+
+/// <summary>
+/// Thin per-collection handle onto the shared Mongo container (#1104 Phase B — see
+/// <see cref="SharedTestContainers"/>). Each collection using this fixture gets its own
+/// database name inside that one shared server instead of its own container.
+/// </summary>
+public class SessionTemplateMongoContainerFixture(SharedTestContainers sharedContainers)
+{
+    public string ConnectionString => sharedContainers.MongoConnectionString;
+
+    public string DatabaseName { get; } = SharedTestContainers.CreateMongoDatabaseName("sessiontemplate");
+}
+
+[CollectionDefinition("SessionTemplateEndpoint")]
+public class SessionTemplateEndpointCollection : ICollectionFixture<SessionTemplateMongoContainerFixture>;
 
 /// <summary>
 /// Testcontainers integration tests for the SessionTemplate sharing-library feature (#860) —
@@ -28,26 +43,28 @@ namespace FitnessPlatform.Tests.Endpoints.SessionTemplates;
 /// rather than NSubstitute-mocked collections, because the loaders and the search helper
 /// exercise real MongoDB filter/sort semantics that a mock cannot faithfully reproduce.
 /// </summary>
+/// <remarks>
+/// Unique <c>Guid.NewGuid()</c> external ids per fact are NOT sufficient isolation here
+/// (unlike the sibling classes converted in #1104): the search endpoint under test matches
+/// "own template at any visibility OR ANY owner's Public template", so a Public-visibility
+/// document seeded by an earlier fact stays a permanent match for every later fact's search
+/// once the Mongo container is shared across the whole class. Each fact drops both
+/// collections in its own <see cref="IAsyncLifetime.InitializeAsync"/> to restore the
+/// empty-collection starting point every per-test-boot fact used to get for free.
+/// </remarks>
+[Collection("SessionTemplateEndpoint")]
 public class SessionTemplateEndpointTests : IAsyncLifetime
 {
-    private static readonly TimeSpan StartupTimeout = TimeSpan.FromSeconds(180);
-
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:7").Build();
     private readonly PlanConcurrencyGuard _guard = new();
 
-    private IMongoContext _mongoContext = null!;
-    private IMongoCollection<SessionTemplate> _templates = null!;
-    private IMongoCollection<TrainingPlan> _plans = null!;
+    private readonly IMongoContext _mongoContext;
+    private readonly IMongoCollection<SessionTemplate> _templates;
+    private readonly IMongoCollection<TrainingPlan> _plans;
 
-    // ── IAsyncLifetime ───────────────────────────────────────────────────────
-
-    public async ValueTask InitializeAsync()
+    public SessionTemplateEndpointTests(SessionTemplateMongoContainerFixture containerFixture)
     {
-        using var cts = new CancellationTokenSource(StartupTimeout);
-        await _mongo.StartAsync(cts.Token);
-
-        var mongoClient = new MongoClient(_mongo.GetConnectionString());
-        var database = mongoClient.GetDatabase("fitness_sessiontemplate_test");
+        var mongoClient = new MongoClient(containerFixture.ConnectionString);
+        var database = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _templates = database.GetCollection<SessionTemplate>("sessionTemplates");
         _plans = database.GetCollection<TrainingPlan>("trainingPlans");
 
@@ -57,10 +74,13 @@ public class SessionTemplateEndpointTests : IAsyncLifetime
         _mongoContext = mongoContext;
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask InitializeAsync()
     {
-        await _mongo.DisposeAsync();
+        await _templates.DeleteManyAsync(FilterDefinition<SessionTemplate>.Empty);
+        await _plans.DeleteManyAsync(FilterDefinition<TrainingPlan>.Empty);
     }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
