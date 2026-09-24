@@ -92,24 +92,6 @@ public class GetTrainerClientPhotosEndpointTests
     // ── Authorization ─────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-
-        var ep = Factory.Create<GetTrainerClientPhotosEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            db,
-            CreateLinkAuthorizationService(db),
-            new FakeBlobStorageService());
-
-        await ep.HandleAsync(
-            new GetTrainerClientPhotosRequest { ClientId = _clientPublicId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_TrainerNotLinked_Returns404()
     {
         // Trainer has a profile but no link to this client

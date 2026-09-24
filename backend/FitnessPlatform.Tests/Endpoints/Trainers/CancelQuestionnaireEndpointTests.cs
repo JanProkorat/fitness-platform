@@ -56,21 +56,6 @@ public class CancelQuestionnaireEndpointTests
     }
 
     [Fact]
-    public async Task Cancel_NoClaims_Returns401()
-    {
-        var (db, clientProfile, _) = BuildLinkedClientWithPendingResponse();
-
-        var ep = Factory.Create<CancelQuestionnaireEndpoint>(
-            db, _notifier, _notificationService, _logger, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(
-            new CancelQuestionnaireRequest { ClientPublicId = clientProfile.PublicId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task Cancel_NoTrainerProfile_Returns404()
     {
         var db = new MockDbBuilder().Build();

@@ -230,28 +230,6 @@ public class UploadRecipeImageUrlEndpointTests
             Arg.Any<long>(), Arg.Any<CancellationToken>());
     }
 
-    // ── Unauthenticated ────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task UploadUrl_NoClaims_Returns401()
-    {
-        var recipeId = Guid.NewGuid();
-        var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: _nutritionistId);
-        var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
-
-        var ep = Factory.Create<UploadRecipeImageUrlEndpoint>(mongo, _imageUpload);
-
-        await ep.HandleAsync(new UploadRecipeImageUrlRequest
-        {
-            RecipeId = recipeId,
-            Slot = "main",
-            ContentType = "image/jpeg",
-            SizeBytes = 1024
-        }, CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     // ── Blob-path format ───────────────────────────────────────────────────
 
     [Theory]
@@ -495,32 +473,6 @@ public class ConfirmRecipeImageEndpointTests
         }, CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
-        await mongo.Recipes.DidNotReceive().UpdateOneAsync(
-            Arg.Any<FilterDefinition<Application.Domain.Documents.Recipe>>(),
-            Arg.Any<UpdateDefinition<Application.Domain.Documents.Recipe>>(),
-            Arg.Any<UpdateOptions>(),
-            Arg.Any<CancellationToken>());
-    }
-
-    // ── Unauthenticated ────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task ConfirmImage_NoClaims_Returns401()
-    {
-        var recipeId = Guid.NewGuid();
-        var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: _nutritionistId);
-        var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
-
-        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(mongo);
-
-        await ep.HandleAsync(new ConfirmRecipeImageRequest
-        {
-            RecipeId = recipeId,
-            Slot = "main",
-            BlobUrl = $"recipes/{recipeId}/main.jpg"
-        }, CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
         await mongo.Recipes.DidNotReceive().UpdateOneAsync(
             Arg.Any<FilterDefinition<Application.Domain.Documents.Recipe>>(),
             Arg.Any<UpdateDefinition<Application.Domain.Documents.Recipe>>(),

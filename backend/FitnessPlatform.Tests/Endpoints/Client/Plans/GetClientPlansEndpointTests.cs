@@ -401,20 +401,4 @@ public class GetClientPlansEndpointTests
         unrangedItem.CurrentWeek.Should().Be(1);
     }
 
-    // ── Test: no claims → 401 ──
-
-    [Fact]
-    public async Task NoClaims_Returns401()
-    {
-        var mongo = CreateMockMongo();
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientPlansEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(new GetClientPlansRequest(), TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

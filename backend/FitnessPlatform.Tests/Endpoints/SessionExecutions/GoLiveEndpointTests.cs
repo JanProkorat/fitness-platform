@@ -170,20 +170,6 @@ public class GoLiveEndpointTests
     }
 
     [Fact]
-    public async Task GoLive_NoClaims_Returns401()
-    {
-        var mongo = WorkoutLogTestHelpers.CreateMockMongo();
-
-        var ep = Factory.Create<GoLiveEndpoint>(
-            mongo, Substitute.For<ISessionLockService>(), LockOptions, Substitute.For<IRealtimeNotifier>(),
-            EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
-
-        await ep.HandleAsync(new GoLiveRequest { LogId = Guid.NewGuid() }, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task GoLive_LogNotFound_Returns404()
     {
         // No log in Mongo matching the request

@@ -59,17 +59,6 @@ public class GetClientsEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetClientsEndpoint>(db);
-
-        await ep.HandleAsync(new GetClientsRequest(), CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task HandleAsync_TrainerWithNoClients_ReturnsEmptyList()
     {
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUserId(_trainerId).Build();

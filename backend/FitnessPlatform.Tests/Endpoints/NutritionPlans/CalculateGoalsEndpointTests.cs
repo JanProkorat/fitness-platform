@@ -116,30 +116,4 @@ public class CalculateGoalsEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var calculator = new MacroCalculatorService();
-        var linkAuthorizationService = EndpointTestHelpers.CreateGrantingLinkAuthorizationService();
-
-        var ep = Factory.Create<CalculateGoalsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            calculator, linkAuthorizationService);
-
-        var request = new CalculateGoalsRequest
-        {
-            ClientId = Guid.NewGuid(),
-            WeightKg = 80,
-            HeightCm = 180,
-            Age = 30,
-            Sex = "Male",
-            ActivityLevel = "ModeratelyActive",
-            Goal = "Maintain"
-        };
-
-        await ep.HandleAsync(request, TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

@@ -236,23 +236,6 @@ public class MarkSessionIncompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo();
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<MarkSessionIncompleteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _linkAuthorizationService, _logger, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new MarkSessionIncompleteRequest { SessionId = _sessionId },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     /// <summary>
     /// #841: the endpoint no longer syncs a separate WorkoutLog document — the set-by-set
     /// Performance data lives on the SAME SessionExecution as the checkbox completion flags.

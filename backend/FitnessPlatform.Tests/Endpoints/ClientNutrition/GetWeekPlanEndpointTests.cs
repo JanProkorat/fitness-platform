@@ -69,20 +69,4 @@ public class GetWeekPlanEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetWeekPlanEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

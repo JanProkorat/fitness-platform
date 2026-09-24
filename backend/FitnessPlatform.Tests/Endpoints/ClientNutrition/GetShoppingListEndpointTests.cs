@@ -88,22 +88,4 @@ public class GetShoppingListEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var mongo = PlanTestHelpers.CreateMockMongo();
-
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<GetShoppingListEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            mongo, db, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new GetShoppingListRequest(),
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
 }

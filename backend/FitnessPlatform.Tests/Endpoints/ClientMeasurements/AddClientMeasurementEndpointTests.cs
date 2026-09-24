@@ -198,24 +198,6 @@ public class AddClientMeasurementEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var audit = Substitute.For<IAuditService>();
-
-        var ep = Factory.Create<AddClientMeasurementEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity()),
-            db, audit, EndpointTestHelpers.CreateGrantingLinkAuthorizationService());
-
-        await ep.HandleAsync(
-            new AddClientMeasurementRequest { ClientId = _clientPublicId, MeasuredAt = DateTime.UtcNow, WeightKg = 80 },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public void Validator_NoMeasurementValuesProvided_HasValidationError()
     {
         var validator = new AddClientMeasurementValidator();

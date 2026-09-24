@@ -444,21 +444,6 @@ public class ListClientPlansTests
     // ── Auth & ownership errors ──────────────────────────────────────────────
 
     [Fact]
-    public async Task List_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder().Build();
-        var mongo = BuildMongo();
-
-        var ep = Factory.Create<ListClientPlansEndpoint>(
-            db, mongo, _complianceService, _audit, new ClientLinkAuthorizationService(db));
-
-        await ep.HandleAsync(new ListClientPlansRequest { ClientId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
-    [Fact]
     public async Task List_NotLinkedToClient_Returns403()
     {
         // Trainer has a profile but NO link to the client

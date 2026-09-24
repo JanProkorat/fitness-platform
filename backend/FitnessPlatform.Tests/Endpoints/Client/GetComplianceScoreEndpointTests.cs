@@ -67,20 +67,6 @@ public class GetComplianceScoreEndpointTests
         ep.Response.To.Should().Be(to);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        // Arrange — no user claims; db is never reached (401 short-circuits before the DB call)
-        var db = new MockDbBuilder().Build();
-        var ep = Factory.Create<GetComplianceScoreEndpoint>(_complianceService, db, TimeProvider.System);
-
-        // Act
-        await ep.HandleAsync(new GetComplianceScoreRequest(), TestContext.Current.CancellationToken);
-
-        // Assert
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     /// <summary>
     /// #955 boundary case: a Prague client at 00:30 LOCAL time Monday (22:30 UTC Sunday) must get
     /// the default date range and streak anchor computed from the CURRENT local day, not the

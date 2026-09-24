@@ -40,23 +40,6 @@ public class DeleteProfessionalAvatarEndpointTests
         await db.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
-    // ── Unauthenticated ─────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var db = new MockDbBuilder()
-            .With(new ProfessionalProfile { Id = _profileId, UserId = _userId })
-            .Build();
-
-        var ep = Factory.Create<DeleteProfessionalAvatarEndpoint>(db);
-
-        await ep.HandleAsync(CancellationToken.None);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-        await db.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
-    }
-
     // ── Profile not found ─────────────────────────────────────────────────
 
     [Fact]

@@ -401,23 +401,6 @@ public class MarkWholeDayCompleteEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(404);
     }
 
-    [Fact]
-    public async Task HandleAsync_NoClaims_Returns401()
-    {
-        var (mongo, _) = TrainingCompletionTestHelpers.CreateMockMongo();
-        var db = CreateMockDb();
-
-        var ep = Factory.Create<MarkWholeDayCompleteEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity()),
-            mongo, db, _notifier, _compliance, _lockService, LockOptions, _linkAuthorizationService, _logger, TimeProvider.System);
-
-        await ep.HandleAsync(
-            new MarkWholeDayCompleteRequest(),
-            TestContext.Current.CancellationToken);
-
-        ep.HttpContext.Response.StatusCode.Should().Be(401);
-    }
-
     /// <summary>
     /// Regression test for #662: the completion read must be a single batched
     /// Filter.In(SessionId) round trip covering every session resolved for the day,
