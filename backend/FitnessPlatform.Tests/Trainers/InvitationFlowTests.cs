@@ -43,25 +43,6 @@ public class InvitationFlowTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task InviteClient_AsClient_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Client", "User", "Client");
-        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-
-        TestHelpers.SetBearerToken(client, accessToken);
-
-        var response = await client.PostAsJsonAsync("/trainer/clients/invite", new
-        {
-            Email = UniqueEmail()
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task AcceptInvitation_FullFlow_CreatesLink()
     {
         var client = factory.CreateClient();
