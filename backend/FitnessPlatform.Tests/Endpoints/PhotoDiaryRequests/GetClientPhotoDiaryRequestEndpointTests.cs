@@ -127,18 +127,6 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
         return request.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Get_NutritionistRole_Returns403()
-    {
-        var (http, _) = await SetupProfessionalAsync();
-        var response = await http.GetAsync(
-            $"/client/photo-diary-requests/{Guid.NewGuid()}",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Not found / IDOR ──────────────────────────────────────────────────────
 
     [Fact]

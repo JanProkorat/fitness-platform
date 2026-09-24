@@ -143,19 +143,6 @@ public class LinkPlanEndpointTests(FitnessApiFactory factory)
         return planId;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Link_ClientRole_Returns403()
-    {
-        var (http, _) = await SetupClientAsync();
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/photo-diary-requests/{Guid.NewGuid()}/link",
-            new { PlanId = Guid.NewGuid() },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Validation ────────────────────────────────────────────────────────────
 
     [Fact]

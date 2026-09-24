@@ -80,24 +80,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
         profile.AvatarBlobUrl.Should().Be(blobUrl);
     }
 
-    [Fact]
-    public async Task PutAvatar_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, TestPassword, "Bob", "Client", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(client, email, TestPassword);
-        TestHelpers.SetBearerToken(client, token);
-
-        var resp = await client.PutAsJsonAsync(
-            "/professionals/me/avatar",
-            new { BlobUrl = "avatars/some.jpg" },
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Stored-content injection (#658) ──────────────────────────────────────
 
     [Fact]

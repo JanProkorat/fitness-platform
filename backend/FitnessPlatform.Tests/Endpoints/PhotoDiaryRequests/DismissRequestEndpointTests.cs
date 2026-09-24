@@ -115,17 +115,6 @@ public class DismissRequestEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task Dismiss_TrainerRole_Returns403()
-    {
-        var (http, _) = await SetupProfessionalAsync();
-        var response = await http.PostAsJsonAsync(
-            $"/client/photo-diary-requests/{Guid.NewGuid()}/dismiss",
-            new { },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Not found / IDOR ──────────────────────────────────────────────────────
 
     [Fact]

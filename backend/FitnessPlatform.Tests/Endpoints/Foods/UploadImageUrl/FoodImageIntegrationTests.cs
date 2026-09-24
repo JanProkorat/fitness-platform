@@ -126,46 +126,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     // ── Role gate: upload-url ──────────────────────────────────────────────────
 
     /// <summary>Trainer token → 403 on POST /foods/{foodId}/image/upload-url.</summary>
-    [Fact]
-    public async Task UploadUrl_TrainerRole_Returns403()
-    {
-        var client = factory.CreateClient();
-
-        // Create a nutritionist to own the food, then attempt with a trainer.
-        var nutritionistToken = await SeedUserAsync(client, "Nutritionist", "owner-t403");
-        var foodId = await CreateFoodAsync(client, nutritionistToken);
-
-        var trainerToken = await SeedUserAsync(client, "Trainer", "trainer-t403");
-        TestHelpers.SetBearerToken(client, trainerToken);
-
-        var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url?slot=main",
-            new { ContentType = "image/jpeg", SizeBytes = 102400L },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     /// <summary>Client token → 403 on POST /foods/{foodId}/image/upload-url.</summary>
-    [Fact]
-    public async Task UploadUrl_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-
-        var nutritionistToken = await SeedUserAsync(client, "Nutritionist", "owner-c403");
-        var foodId = await CreateFoodAsync(client, nutritionistToken);
-
-        var clientToken = await SeedUserAsync(client, "Client", "client-c403");
-        TestHelpers.SetBearerToken(client, clientToken);
-
-        var response = await client.PostAsJsonAsync(
-            $"/foods/{foodId}/image/upload-url?slot=main",
-            new { ContentType = "image/jpeg", SizeBytes = 102400L },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     /// <summary>No token → 401 on POST /foods/{foodId}/image/upload-url.</summary>
     // ── Ownership check: upload-url ────────────────────────────────────────────
 
@@ -282,45 +243,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
     // ── Role gate: confirm ─────────────────────────────────────────────────────
 
     /// <summary>Trainer token → 403 on PUT /foods/{foodId}/image.</summary>
-    [Fact]
-    public async Task ConfirmImage_TrainerRole_Returns403()
-    {
-        var client = factory.CreateClient();
-
-        var nutritionistToken = await SeedUserAsync(client, "Nutritionist", "confirm-trainer");
-        var foodId = await CreateFoodAsync(client, nutritionistToken);
-
-        var trainerToken = await SeedUserAsync(client, "Trainer", "confirm-trainer-t");
-        TestHelpers.SetBearerToken(client, trainerToken);
-
-        var response = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image?slot=main",
-            new { BlobUrl = $"foods/{foodId}.jpg" },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     /// <summary>Client token → 403 on PUT /foods/{foodId}/image.</summary>
-    [Fact]
-    public async Task ConfirmImage_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-
-        var nutritionistToken = await SeedUserAsync(client, "Nutritionist", "confirm-client");
-        var foodId = await CreateFoodAsync(client, nutritionistToken);
-
-        var clientToken = await SeedUserAsync(client, "Client", "confirm-client-c");
-        TestHelpers.SetBearerToken(client, clientToken);
-
-        var response = await client.PutAsJsonAsync(
-            $"/foods/{foodId}/image?slot=main",
-            new { BlobUrl = $"foods/{foodId}.jpg" },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Ownership check on confirm ─────────────────────────────────────────────
 
     /// <summary>

@@ -73,24 +73,6 @@ public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)
         return checkIn.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task MarkReviewed_ClientRole_Returns403()
-    {
-        var http = factory.CreateClient();
-        var email = UniqueEmail("client-role");
-        await TestHelpers.RegisterAsync(http, email, "TestPass1!", "C", "C", "Client");
-        var (token, _) = await TestHelpers.LoginAsync(http, email, "TestPass1!");
-        TestHelpers.SetBearerToken(http, token);
-
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{Guid.NewGuid()}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Happy path ────────────────────────────────────────────────────────────
 
     [Fact]

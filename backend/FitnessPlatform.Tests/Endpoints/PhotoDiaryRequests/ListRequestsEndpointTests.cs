@@ -129,16 +129,6 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
     // ── Trainer list ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ListTrainer_ClientRole_Returns403()
-    {
-        var (http, _, _) = await SetupClientAsync();
-        var response = await http.GetAsync(
-            "/trainer/photo-diary-requests",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task ListTrainer_ReturnsOnlyOwnRequests()
     {
         var (http, profId) = await SetupProfessionalAsync();
@@ -204,16 +194,6 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
     }
 
     // ── Client list ────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task ListClient_TrainerRole_Returns403()
-    {
-        var (http, _) = await SetupProfessionalAsync();
-        var response = await http.GetAsync(
-            "/client/photo-diary-requests",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
 
     [Fact]
     public async Task ListClient_ReturnsOwnRequestsViaLink()

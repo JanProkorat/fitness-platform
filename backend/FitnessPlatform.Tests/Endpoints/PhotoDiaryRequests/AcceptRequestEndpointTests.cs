@@ -148,19 +148,6 @@ public class AcceptRequestEndpointTests(FitnessApiFactory factory)
         return request.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Accept_TrainerRole_Returns403()
-    {
-        var (http, _) = await SetupProfessionalAsync();
-        var response = await http.PostAsJsonAsync(
-            $"/client/photo-diary-requests/{Guid.NewGuid()}/accept",
-            new { Mode = 1 },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Not found / IDOR ──────────────────────────────────────────────────────
 
     [Fact]

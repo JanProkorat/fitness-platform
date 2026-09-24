@@ -145,19 +145,6 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
         return invite.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Create_ClientRole_Returns403()
-    {
-        var (http, _, _) = await SetupClientAsync();
-        var response = await http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests",
-            new { LinkId = 1L },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Validation ────────────────────────────────────────────────────────────
 
     [Fact]

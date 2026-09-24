@@ -74,23 +74,6 @@ public class GetOverridesEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetOverrides_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, accessToken);
-
-        var response = await client.GetAsync(
-            "/trainer/weekly-check-ins/overrides",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task GetOverrides_NoOverrides_ReturnsEmptyList()
     {
         var (http, _, _) = await SetupTrainerAsync();

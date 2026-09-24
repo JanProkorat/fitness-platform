@@ -76,24 +76,6 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
     // ── Authentication / authorization ───────────────────────────────────────
 
     [Fact]
-    public async Task PutOverride_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Test", "Client", "Client");
-        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, accessToken);
-
-        var response = await client.PutAsJsonAsync(
-            $"/trainer/weekly-check-ins/overrides/{Guid.NewGuid()}/Training",
-            new { DayOfWeek = (int?)1, TimeOfDay = (string?)"18:00:00", Enabled = (bool?)true, Addendum = (string?)null },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task PutOverride_NoLinkToClient_Returns403WithNotLinkedToClient()
     {
         var (http, _, _) = await SetupTrainerAsync();

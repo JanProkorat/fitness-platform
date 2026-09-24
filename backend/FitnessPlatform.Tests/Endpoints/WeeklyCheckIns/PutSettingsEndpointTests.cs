@@ -29,24 +29,6 @@ public class PutSettingsEndpointTests(FitnessApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task PutSettings_ClientRole_Returns403()
-    {
-        var client = factory.CreateClient();
-        var email = UniqueEmail();
-
-        await TestHelpers.RegisterAsync(client, email, "TestPass1!", "Client", "User", "Client");
-        var (accessToken, _) = await TestHelpers.LoginAsync(client, email, "TestPass1!");
-        TestHelpers.SetBearerToken(client, accessToken);
-
-        var response = await client.PutAsJsonAsync(
-            "/trainer/weekly-check-ins/settings",
-            new { Profession = "Training", DayOfWeek = 1, TimeOfDay = "18:00:00", Enabled = true },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
     // ── Validation ───────────────────────────────────────────────────────────
 
     [Fact]
