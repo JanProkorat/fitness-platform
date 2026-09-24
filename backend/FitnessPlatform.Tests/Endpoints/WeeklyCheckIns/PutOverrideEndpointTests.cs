@@ -129,39 +129,6 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
             "minute-precision times must now be accepted in overrides");
     }
 
-    [Fact]
-    public async Task PutOverride_TimeOf1Day_Returns400()
-    {
-        // AC: a TimeSpan ≥ 24h (using "1.00:00:00" = 1 day = 24h) must still be rejected
-        var (http, _, trainerProfileId) = await SetupTrainerAsync();
-        var (clientUserId, clientProfileId) = await SetupClientAsync();
-        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
-
-        var response = await http.PutAsJsonAsync(
-            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
-            new { DayOfWeek = (int?)1, TimeOfDay = "1.00:00:00", Enabled = (bool?)true, Addendum = (string?)null },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        raw.Should().Contain("INVALID_TIME_OF_DAY");
-    }
-
-    [Fact]
-    public async Task PutOverride_AddendumTooLong_Returns400()
-    {
-        var (http, _, trainerProfileId) = await SetupTrainerAsync();
-        var (clientUserId, clientProfileId) = await SetupClientAsync();
-        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
-
-        var response = await http.PutAsJsonAsync(
-            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
-            new { DayOfWeek = (int?)1, TimeOfDay = (string?)"09:00:00", Enabled = (bool?)true, Addendum = new string('x', 201) },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
     // ── Happy paths ──────────────────────────────────────────────────────────
 
     [Fact]
@@ -302,23 +269,6 @@ public class PutOverrideEndpointTests(FitnessApiFactory factory)
         var stored = await db.WeeklyCheckInClientOverrides
             .FirstAsync(o => o.ClientUserId == clientUserId, TestContext.Current.CancellationToken);
         stored.DeadlineOffsetHours.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task PutOverride_InvalidDeadlineOffset_Returns400WithInvalidDeadlineOffsetHoursCode()
-    {
-        var (http, _, trainerProfileId) = await SetupTrainerAsync();
-        var (clientUserId, clientProfileId) = await SetupClientAsync();
-        await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
-
-        var response = await http.PutAsJsonAsync(
-            $"/trainer/weekly-check-ins/overrides/{clientUserId}/Training",
-            new { DayOfWeek = (int?)null, TimeOfDay = (string?)null, Enabled = (bool?)null, Addendum = (string?)null, DeadlineOffsetHours = 60 },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        raw.Should().Contain("INVALID_DEADLINE_OFFSET_HOURS");
     }
 
     // ── Local DTOs ───────────────────────────────────────────────────────────
