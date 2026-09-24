@@ -69,6 +69,7 @@ public class EndpointAuthorizationTests(FitnessApiFactory factory)
             "the FastEndpoints route table must be populated by the time the host is built");
 
         var violations = new List<string>();
+        var seenAllowListEntries = new HashSet<(string Method, string Route)>();
 
         foreach (var endpoint in routeEndpoints)
         {
@@ -78,15 +79,35 @@ public class EndpointAuthorizationTests(FitnessApiFactory factory)
             var hasRoles = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>()
                 .Any(a => !string.IsNullOrWhiteSpace(a.Roles));
 
+            var requiresLogin = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>().Any();
+
             foreach (var method in methods)
             {
-                if (isAnonymous || hasRoles || AuthenticatedNoRoleAllowList.Contains((method, route)))
+                if (AuthenticatedNoRoleAllowList.Contains((method, route)))
+                {
+                    seenAllowListEntries.Add((method, route));
+
+                    // An allow-listed route is exempt from roles only — it must still require a login.
+                    if (isAnonymous || !requiresLogin)
+                    {
+                        violations.Add($"{method} {route} is allow-listed as login-only but does not require a login");
+                    }
+
+                    continue;
+                }
+
+                if (isAnonymous || hasRoles)
                 {
                     continue;
                 }
 
                 violations.Add($"{method} {route} ({endpoint.DisplayName})");
             }
+        }
+
+        foreach (var (method, route) in AuthenticatedNoRoleAllowList.Except(seenAllowListEntries))
+        {
+            violations.Add($"{method} {route} is in the allow-list but no longer exists — remove the entry");
         }
 
         violations.Should().BeEmpty(
