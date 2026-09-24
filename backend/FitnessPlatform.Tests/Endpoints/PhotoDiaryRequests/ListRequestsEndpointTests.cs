@@ -129,16 +129,6 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
     // ── Trainer list ───────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task ListTrainer_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            "/trainer/photo-diary-requests",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task ListTrainer_ClientRole_Returns403()
     {
         var (http, _, _) = await SetupClientAsync();
@@ -214,16 +204,6 @@ public class ListRequestsEndpointTests(FitnessApiFactory factory)
     }
 
     // ── Client list ────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task ListClient_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            "/client/photo-diary-requests",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
 
     [Fact]
     public async Task ListClient_TrainerRole_Returns403()

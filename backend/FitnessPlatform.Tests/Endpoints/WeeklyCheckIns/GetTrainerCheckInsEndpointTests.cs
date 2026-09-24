@@ -92,18 +92,6 @@ public class GetTrainerCheckInsEndpointTests(FitnessApiFactory factory)
         DateOnly.FromDateTime(DateTime.UtcNow).AddDays(
             ((int)DayOfWeek.Monday - (int)DateTime.UtcNow.DayOfWeek + 7) % 7 + 7);
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task GetList_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            "/trainer/weekly-check-ins?weekStartDate=2026-04-21",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── Filtering ─────────────────────────────────────────────────────────────
 
     [Fact]

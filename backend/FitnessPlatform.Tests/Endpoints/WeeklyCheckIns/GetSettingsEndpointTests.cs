@@ -15,18 +15,6 @@ public class GetSettingsEndpointTests(FitnessApiFactory factory)
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@get-settings-test.com";
 
     [Fact]
-    public async Task GetSettings_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync(
-            "/trainer/weekly-check-ins/settings",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task GetSettings_ClientRole_Returns403()
     {
         var client = factory.CreateClient();

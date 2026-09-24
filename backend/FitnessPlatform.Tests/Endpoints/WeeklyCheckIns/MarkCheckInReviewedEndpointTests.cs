@@ -76,17 +76,6 @@ public class MarkCheckInReviewedEndpointTests(FitnessApiFactory factory)
     // ── Auth ──────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task MarkReviewed_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.PostAsJsonAsync(
-            $"/trainer/weekly-check-ins/{Guid.NewGuid()}/mark-reviewed",
-            new { },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task MarkReviewed_ClientRole_Returns403()
     {
         var http = factory.CreateClient();

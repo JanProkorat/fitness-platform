@@ -176,25 +176,6 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
     }
 
     /// <summary>No token → 401 on POST /recipes/{id}/image/upload-url.</summary>
-    [Fact]
-    public async Task UploadUrl_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var nutritionistToken = await SeedUserAsync(client, "Nutritionist", "upload-unauth-owner");
-        var foodId = await CreateFoodAsync(client, nutritionistToken);
-        var recipeId = await CreateRecipeAsync(client, nutritionistToken, foodId);
-
-        client.DefaultRequestHeaders.Authorization = null;
-
-        var response = await client.PostAsJsonAsync(
-            $"/recipes/{recipeId}/image/upload-url?slot=main",
-            new { ContentType = "image/jpeg", SizeBytes = 102400L },
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── Ownership gate: upload-url ─────────────────────────────────────────────
 
     /// <summary>

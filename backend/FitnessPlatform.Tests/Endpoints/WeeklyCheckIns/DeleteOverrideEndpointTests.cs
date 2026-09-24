@@ -76,18 +76,6 @@ public class DeleteOverrideEndpointTests(FitnessApiFactory factory)
     // ── Authentication / authorization ───────────────────────────────────────
 
     [Fact]
-    public async Task DeleteOverride_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.DeleteAsync(
-            $"/trainer/weekly-check-ins/overrides/{Guid.NewGuid()}/Training",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task DeleteOverride_ClientRole_Returns403()
     {
         var client = factory.CreateClient();

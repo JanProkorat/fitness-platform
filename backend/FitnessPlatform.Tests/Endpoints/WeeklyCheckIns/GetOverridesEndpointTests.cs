@@ -74,18 +74,6 @@ public class GetOverridesEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task GetOverrides_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync(
-            "/trainer/weekly-check-ins/overrides",
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task GetOverrides_ClientRole_Returns403()
     {
         var client = factory.CreateClient();

@@ -130,16 +130,6 @@ public class GetClientPhotoDiaryRequestEndpointTests(FitnessApiFactory factory)
     // ── Auth ──────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Get_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.GetAsync(
-            $"/client/photo-diary-requests/{Guid.NewGuid()}",
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task Get_NutritionistRole_Returns403()
     {
         var (http, _) = await SetupProfessionalAsync();

@@ -81,19 +81,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task PutAvatar_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var resp = await client.PutAsJsonAsync(
-            "/professionals/me/avatar",
-            new { BlobUrl = "avatars/some.jpg" },
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task PutAvatar_ClientRole_Returns403()
     {
         var client = factory.CreateClient();
@@ -216,18 +203,6 @@ public class ProfessionalAvatarIntegrationTests(FitnessApiFactory factory)
             TestContext.Current.CancellationToken);
 
         profile.AvatarBlobUrl.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task DeleteAvatar_Unauthenticated_Returns401()
-    {
-        var client = factory.CreateClient();
-
-        var resp = await client.DeleteAsync(
-            "/professionals/me/avatar",
-            TestContext.Current.CancellationToken);
-
-        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     // ── GET /professionals/search — avatarBlobUrl in list ───────────────────

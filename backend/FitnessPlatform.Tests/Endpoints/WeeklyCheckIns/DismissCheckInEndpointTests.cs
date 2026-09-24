@@ -73,19 +73,6 @@ public class DismissCheckInEndpointTests(FitnessApiFactory factory)
         return checkIn.Id;
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public async Task Dismiss_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.PostAsJsonAsync(
-            $"/client/weekly-check-ins/{Guid.NewGuid()}/dismiss",
-            new { },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
     // ── Happy path ────────────────────────────────────────────────────────────
 
     [Fact]

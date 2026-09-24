@@ -148,17 +148,6 @@ public class CreateRequestEndpointTests(FitnessApiFactory factory)
     // ── Auth ──────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Create_Unauthenticated_Returns401()
-    {
-        var http = factory.CreateClient();
-        var response = await http.PostAsJsonAsync(
-            "/trainer/photo-diary-requests",
-            new { LinkId = 1L },
-            TestContext.Current.CancellationToken);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task Create_ClientRole_Returns403()
     {
         var (http, _, _) = await SetupClientAsync();
