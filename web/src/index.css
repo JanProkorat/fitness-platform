@@ -64,6 +64,24 @@
      aliased to --destructive) used as the icon's ink color on top of it. ---- */
   --gf-danger-soft: #fee2e2; /* soft red wash — warn/invalid status icon backdrop */
 
+  /* ---- Toast stacking (#1109) ----
+     A plain custom property, deliberately NOT declared inside the
+     `@theme inline` block below: Tailwind v4 has no `--z-*` theme
+     namespace (unlike `--spacing-*`/`--shadow-*`/etc.), so a `--z-toast`
+     entry there would compile to nothing and silently fail to generate a
+     `z-toast` utility class (verified against this project's installed
+     tailwindcss 4.2.4 — `z-toast` produced zero output while
+     `z-[var(--z-toast)]` correctly emitted `z-index: var(--z-toast)`).
+     Consumed via that arbitrary-value syntax on the toast viewport so the
+     numeric constant still lives in exactly one place. Both SheetOverlay
+     and SheetContent sit at z-50 (sheet.tsx:41,:53) and the sheet portal
+     renders after the toast viewport in the DOM, so an error toast raised
+     while a drawer is open needs a strictly higher stacking value to stay
+     visible and clickable. dialog.tsx is untouched — same z-50 issue would
+     apply there, but this fix is scoped to the toast/drawer collision this
+     issue reports. */
+  --z-toast: 100;
+
   --gf-radius-sm: 6px; /* nav items */
   --gf-radius-md: 8px; /* inputs and buttons */
   --gf-radius-lg: 14px; /* cards, collage cells, marketing panels (#1055) */

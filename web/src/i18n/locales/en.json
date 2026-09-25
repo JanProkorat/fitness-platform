@@ -1120,6 +1120,7 @@
     "DUPLICATE_PENDING_INVITE": "An invite to this email is already pending.",
     "TOO_MANY_PENDING_INVITES": "You've reached the maximum number of pending invites. Wait for a response or cancel one first.",
     "PROFESSION_ALREADY_OCCUPIED": "This client already has an active coach for this profession.",
+    "INVITEE_IS_PROFESSIONAL": "This email belongs to a coach account. You can only invite clients.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "The requested access exceeds your current roles.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
     "CLIENT_TAG_NOT_FOUND": "This tag could not be found.",

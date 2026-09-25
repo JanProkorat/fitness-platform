@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { useCreatePendingInvite } from '@/hooks/useClientsQueries';
+import { getApiErrorMessage, getErrorCode } from '@/lib/api-errors';
 
 interface FormValues {
   email: string;
@@ -48,6 +49,7 @@ export default function AddClientDrawer({ open, onOpenChange }: Props) {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -57,11 +59,25 @@ export default function AddClientDrawer({ open, onOpenChange }: Props) {
 
   const inviteMutation = useCreatePendingInvite();
 
+  // Inline, coach-rejection error (INVITEE_IS_PROFESSIONAL). The mutation's
+  // own onError (useClientsQueries.ts) still raises the usual toast — this
+  // is additive, not a replacement: the drawer stays open on any error
+  // already, and a screen reader won't reliably announce a toast raised
+  // while the drawer holds focus, so this error also gets its own
+  // role="alert" text next to the field that caused it.
+  const [inviteeError, setInviteeError] = useState<string | null>(null);
+  const emailValue = watch('email');
+
   useEffect(() => {
     if (open) {
       reset({ email: '', message: '' });
+      setInviteeError(null);
     }
   }, [open, reset]);
+
+  useEffect(() => {
+    setInviteeError(null);
+  }, [emailValue]);
 
   function onSubmit(values: FormValues) {
     inviteMutation.mutate(
@@ -72,6 +88,11 @@ export default function AddClientDrawer({ open, onOpenChange }: Props) {
       {
         onSuccess: () => {
           onOpenChange(false);
+        },
+        onError: (error) => {
+          if (getErrorCode(error) === 'INVITEE_IS_PROFESSIONAL') {
+            setInviteeError(getApiErrorMessage(error, 'clients.addClient.error'));
+          }
         },
       },
     );
@@ -95,6 +116,11 @@ export default function AddClientDrawer({ open, onOpenChange }: Props) {
               {...register('email')}
             />
             {errors.email && <p className="text-meta text-destructive">{errors.email.message}</p>}
+            {inviteeError && (
+              <p role="alert" className="text-meta text-destructive">
+                {inviteeError}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="add-client-message">{t('clients.addClientDrawer.messageLabel')}</Label>
