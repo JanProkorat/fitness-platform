@@ -227,7 +227,12 @@ export function useBroadcastMessage() {
   });
 }
 
-/** Invites a new prospective client (the "+ Add client" drawer). */
+/**
+ * Invites a new prospective client (the "+ Add client" drawer). The toast
+ * fires for every error, including INVITEE_IS_PROFESSIONAL — AddClientDrawer
+ * additionally renders that one inline (role="alert"), since a screen reader
+ * won't reliably announce a toast raised while the drawer holds focus.
+ */
 export function useCreatePendingInvite() {
   const queryClient = useQueryClient();
   return useMutation({

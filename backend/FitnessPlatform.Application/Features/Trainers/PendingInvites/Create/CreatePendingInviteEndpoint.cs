@@ -8,6 +8,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
@@ -24,10 +25,11 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
-    IEmailService emailService,
+    IBackgroundEmailQueue emailQueue,
     INotificationService notificationService,
     IRealtimeNotifier notifier,
     IConversationSeedService conversationSeedService,
+    UserManager<ApplicationUser> userManager,
     ILogger<CreatePendingInviteEndpoint> logger) : Endpoint<CreatePendingInviteRequest, CreatePendingInviteResponse>
 {
     /// <summary>
@@ -48,6 +50,8 @@ public class CreatePendingInviteEndpoint(
         {
             s.Summary = "Create a pending invitation";
             s.Description = "Creates a pending invitation for a client, sends an invitation email with a one-time token valid for 7 days.";
+            s.Responses[StatusCodes.Status400BadRequest] =
+                "Requested scope exceeds the caller's held roles, or the invitee email belongs to a coaching professional account.";
         });
     }
 
@@ -89,6 +93,29 @@ public class CreatePendingInviteEndpoint(
                 ErrorCodes.RequestedScopeExceedsHeldRoles,
                 "Requested scope exceeds the caller's held roles.");
             return;
+        }
+
+        // Reject inviting an email that belongs to an account holding a coaching professional
+        // role (Trainer or Nutritionist) — even if that same account also holds Client (dual
+        // role). This is a caller input-shape error, not a business-state conflict, so it runs
+        // before any of the invite's own persisted-state checks (duplicate/cap/slot below) and
+        // before any save.
+        var normalizedInviteeEmailForRoleCheck = req.Email.ToUpper();
+        var inviteeUserForRoleCheck = await db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedInviteeEmailForRoleCheck, ct);
+
+        if (inviteeUserForRoleCheck is not null)
+        {
+            var inviteeRoles = await userManager.GetRolesAsync(inviteeUserForRoleCheck);
+
+            if (inviteeRoles.Contains(AppRoles.Trainer) || inviteeRoles.Contains(AppRoles.Nutritionist))
+            {
+                this.ThrowErrorWithCode(
+                    ErrorCodes.InviteeIsProfessional,
+                    "This email belongs to a coaching professional and cannot be invited as a client.");
+                return;
+            }
         }
 
         // Reject a duplicate pending invite for the same professional and email — repeatedly
@@ -221,7 +248,18 @@ public class CreatePendingInviteEndpoint(
         var trainerName = $"{trainerUser.FirstName} {trainerUser.LastName}";
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault() ?? "en";
-        await emailService.SendInvitationEmailAsync(req.Email, trainerName, tokenValue, language, req.Message, ct);
+
+        // Enqueue the send fire-and-forget (#1109): an SMTP failure in the background worker
+        // must never turn a successful invite creation into a 500, or skip the notification,
+        // realtime event, and #1100 chat seed below. TryEnqueue is non-blocking; a full or
+        // completed queue drops the send and logs rather than falling back to a synchronous
+        // send that would reintroduce exactly the failure mode this closes.
+        if (!emailQueue.TryEnqueue(new InvitationEmailWorkItem(req.Email, trainerName, tokenValue, language, req.Message)))
+        {
+            logger.LogWarning(
+                "Background email queue full; dropped invitation email enqueue for {Email}.",
+                req.Email);
+        }
 
         // If the invited client already has an account, create an in-app notification + real-time event
         var reqEmailLower = req.Email.ToLower();

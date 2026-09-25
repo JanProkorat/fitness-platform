@@ -14,7 +14,12 @@ function ToastViewport({
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
       className={cn(
-        "fixed bottom-0 z-50 flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:top-auto sm:right-0 sm:bottom-0 sm:max-w-sm sm:flex-col",
+        // z-[var(--z-toast)], not z-50: toasts must render above every
+        // overlay (sheet + dialog both use z-50) so an error toast raised
+        // while a drawer is open stays visible and clickable (#1109). See
+        // the --z-toast comment in index.css for why this isn't a
+        // theme-generated z-toast class.
+        "fixed bottom-0 z-[var(--z-toast)] flex max-h-screen w-full flex-col-reverse gap-2 p-4 sm:top-auto sm:right-0 sm:bottom-0 sm:max-w-sm sm:flex-col",
         className
       )}
       {...props}

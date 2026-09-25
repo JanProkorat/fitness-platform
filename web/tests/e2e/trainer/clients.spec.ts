@@ -71,6 +71,58 @@ test.describe('clients list page', () => {
   });
 
   /**
+   * #1109 — inviting a coach's own email (Trainer or Nutritionist account)
+   * 400s with INVITEE_IS_PROFESSIONAL. The drawer stays open (unchanged
+   * default for any error) and now additionally renders the message inline
+   * with role="alert", since a screen reader won't reliably announce a
+   * toast raised while the drawer holds focus. The toast still fires too —
+   * this test also proves the companion z-index fix (toast viewport now
+   * above every overlay, see the --z-toast comment in index.css) by
+   * asserting the toast actually receives pointer events rather than being
+   * visually covered by the still-open drawer.
+   *
+   * qa.nutri@fitnessplatform.test is the seeded Nutritionist
+   * (docs/testing/e2e-fixtures.md:54) — a coach account, not a self-invite,
+   * so this attempt saves nothing and stays idempotent across re-runs. Kept
+   * to a single invite attempt: pending-invite creation is rate-limited to
+   * 30 per 15 minutes per trainer (Program.cs:178-188).
+   */
+  test('inviting a coach email shows an inline alert and keeps the toast clickable above the open drawer (#1109)', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: '+ Invite client' }).click();
+    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+
+    await page.getByLabel('Email').fill('qa.nutri@fitnessplatform.test');
+    await page.getByLabel('Email').press('Tab');
+
+    const submitButton = page.getByRole('button', { name: 'Send invitation' });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    // Drawer stays open — the inline alert renders next to the email field.
+    // Radix's Toast doesn't set role="alert" (it announces via its own
+    // aria-live region, not this attribute), so this locator only ever
+    // matches the drawer's own inline error, not the toast below.
+    await expect(page.getByRole('heading', { name: 'Invite a new client' })).toBeVisible();
+    const inlineAlert = page.getByRole('alert');
+    await expect(inlineAlert).toHaveText('This email belongs to a coach account. You can only invite clients.');
+
+    // The same message is also raised as a toast (unchanged from today's
+    // behaviour for every other error) — scoped to the toast root via its
+    // data-slot so it can't match the inline alert above, which carries the
+    // identical text. `click({ trial: true })` runs Playwright's full
+    // actionability check (visible, stable, receives pointer events)
+    // without performing the click, so it fails if the still-open drawer
+    // covers the toast.
+    const toast = page
+      .locator("[data-slot='toast']")
+      .filter({ hasText: 'This email belongs to a coach account. You can only invite clients.' });
+    await expect(toast).toBeVisible();
+    await toast.click({ trial: true });
+  });
+
+  /**
    * #1079 — the type scale declared font sizes with no paired line-heights,
    * so every control wrapped around a line of text came out ~25% taller
    * than the wireframe. Measured, not eyeballed: a height assertion catches

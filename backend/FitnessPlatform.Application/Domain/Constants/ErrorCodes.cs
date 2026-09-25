@@ -122,6 +122,14 @@ public static class ErrorCodes
     /// </summary>
     public const string TooManyPendingInvites = "TOO_MANY_PENDING_INVITES";
 
+    /// <summary>
+    /// The invited email belongs to an account holding a coaching professional role
+    /// (Trainer or Nutritionist) — even if that account also holds Client (dual role).
+    /// Coaches are never valid invitees for a client relationship; rejected before any
+    /// invite state (PendingInvite, InvitationToken) is persisted (#1109).
+    /// </summary>
+    public const string InviteeIsProfessional = "INVITEE_IS_PROFESSIONAL";
+
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
