@@ -7,6 +7,7 @@ using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 using FitnessPlatform.Tests.Builders;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -29,15 +30,17 @@ public class CreatePendingInviteEndpointTests
         params string[] roles) =>
         CreateEndpointWithSeedService(db, callerId, roles).Endpoint;
 
-    private static (CreatePendingInviteEndpoint Endpoint, IConversationSeedService ConversationSeedService) CreateEndpointWithSeedService(
+    private static (CreatePendingInviteEndpoint Endpoint, IConversationSeedService ConversationSeedService, UserManager<ApplicationUser> UserManager) CreateEndpointWithSeedService(
         Application.Infrastructure.Data.IApplicationDbContext db,
         Guid callerId,
         params string[] roles)
     {
-        var emailService = Substitute.For<IEmailService>();
+        var emailQueue = Substitute.For<IBackgroundEmailQueue>();
+        emailQueue.TryEnqueue(Arg.Any<EmailDispatchWorkItem>()).Returns(true);
         var notificationService = Substitute.For<INotificationService>();
         var notifier = Substitute.For<IRealtimeNotifier>();
         var conversationSeedService = Substitute.For<IConversationSeedService>();
+        var userManager = EndpointTestHelpers.CreateFakeUserManager();
         var logger = Substitute.For<ILogger<CreatePendingInviteEndpoint>>();
 
         var ep = Factory.Create<CreatePendingInviteEndpoint>(
@@ -45,9 +48,9 @@ public class CreatePendingInviteEndpointTests
                 new ClaimsIdentity(roles.Length > 1
                     ? MultiRoleClaims(callerId, roles)
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
-            db, emailService, notificationService, notifier, conversationSeedService, logger);
+            db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger);
 
-        return (ep, conversationSeedService);
+        return (ep, conversationSeedService, userManager);
     }
 
     [Fact]
@@ -148,7 +151,8 @@ public class CreatePendingInviteEndpointTests
         db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
             .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        userManager.GetRolesAsync(existingUser).Returns(["Client"]);
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
@@ -187,7 +191,7 @@ public class CreatePendingInviteEndpointTests
             .With(existingUser)
             .Build();
 
-        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        var (ep, conversationSeedService, _) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
@@ -216,7 +220,7 @@ public class CreatePendingInviteEndpointTests
             .With(trainerProfile)
             .Build();
 
-        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        var (ep, conversationSeedService, _) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
 
         await ep.HandleAsync(new CreatePendingInviteRequest
         {
@@ -230,12 +234,13 @@ public class CreatePendingInviteEndpointTests
     }
 
     /// <summary>
-    /// #1108 review — the R4 gate must key on the invitee being a CLIENT, not merely
-    /// verified: a verified peer professional's own email must get no thread, matching
-    /// VerifyEmailEndpoint's ClientProfile-only seed.
+    /// Coach-rejection guard (#1109): the invitee's email belongs to a Trainer-only
+    /// account, so the whole invite is now rejected up front — a stronger gate than the
+    /// #1108 no-thread-for-a-peer-professional rule it supersedes for this scenario. No
+    /// invite state is persisted and no conversation is seeded.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_DoesNotSeedConversation()
+    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_Returns400AndDoesNotSeedConversation()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
@@ -253,36 +258,87 @@ public class CreatePendingInviteEndpointTests
             .With(peerProfile)
             .Build();
 
-        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        await ep.HandleAsync(new CreatePendingInviteRequest
+        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        userManager.GetRolesAsync(peerProfessionalUser).Returns(["Trainer"]);
+
+        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "peer@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
+        captured.Should().BeNull("nothing may be persisted once the coach-rejection guard fires");
         await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
             default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 
     /// <summary>
-    /// #1108 review — a self-invite (the caller's own email, verified, and holding a
-    /// ClientProfile so the client-only gate above alone would have let it through) must
-    /// still get no thread. No other guard in this endpoint rejects a self-invite outright
-    /// (the invite/token/email are still created) — this is the only place that stops it
-    /// from writing into the caller's own message stream.
+    /// Coach-rejection guard (#1109): the invitee's email belongs to a Nutritionist-only
+    /// account — same rejection as the Trainer-only case above, proving the guard checks
+    /// both professional roles.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_SelfInvite_VerifiedAndHoldsClientProfile_DoesNotSeedConversation()
+    public async Task HandleAsync_InviteeIsNutritionistOnly_Returns400AndPersistsNothing()
+    {
+        var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
+            .WithFirstName("Train").WithLastName("Er").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var nutritionistUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("nutri@test.com")
+            .WithFirstName("Nutri").WithLastName("Tionist").Build();
+        nutritionistUser.EmailConfirmed = true;
+        nutritionistUser.NormalizedEmail = "NUTRI@TEST.COM";
+        var nutritionistProfile = EntityBuilder.ProfessionalProfile.WithId(2).WithUser(nutritionistUser).Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerUser)
+            .With(trainerProfile)
+            .With(nutritionistUser)
+            .With(nutritionistProfile)
+            .Build();
+
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
+
+        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        userManager.GetRolesAsync(nutritionistUser).Returns(["Nutritionist"]);
+
+        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
+        {
+            Email = "nutri@test.com"
+        }, TestContext.Current.CancellationToken);
+
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
+        captured.Should().BeNull("nothing may be persisted once the coach-rejection guard fires");
+        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
+    /// Coach-rejection guard (#1109): a DUAL-role invitee (holds both Client and Trainer)
+    /// is rejected too — the guard fires on the Trainer role alone, holding Client at the
+    /// same time does not exempt the account. This is also the self-invite case: the
+    /// caller inviting their own email necessarily holds Trainer/Nutritionist themselves,
+    /// so a self-invite by any coach is now caught here before the (still-present)
+    /// self-check further down ever runs.
+    /// </summary>
+    [Fact]
+    public async Task HandleAsync_DualRoleInvitee_Returns400ViaCoachRejectionGuard()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
         trainerUser.EmailConfirmed = true;
         trainerUser.NormalizedEmail = "TRAINER@TEST.COM";
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
-        // Dual-role account (holds both a ProfessionalProfile and a ClientProfile) so the
-        // client-only gate alone would have let this through — isolates the self-check.
+        // Dual-role account (holds both a ProfessionalProfile and a ClientProfile) — the
+        // coach-rejection guard must fire on the Trainer role alone, regardless.
         var trainerClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(trainerUser).Build();
 
         var db = new MockDbBuilder()
@@ -291,15 +347,17 @@ public class CreatePendingInviteEndpointTests
             .With(trainerClientProfile)
             .Build();
 
-        var (ep, conversationSeedService) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
+        userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Client"]);
 
-        await ep.HandleAsync(new CreatePendingInviteRequest
+        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "trainer@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
+        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
         await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
             default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }

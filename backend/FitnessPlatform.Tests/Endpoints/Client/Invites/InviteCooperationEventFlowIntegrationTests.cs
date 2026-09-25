@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
@@ -169,6 +170,10 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
         var invitePublicId = await CreateInviteAsync(coach.Http, client.Email, "Hope to work with you!");
         var conversationId = await GetSoleConversationIdAsync(client.Http);
 
+        // The invitation email is now sent by the background worker (#1109), not inline in the
+        // request — wait for the drain instead of assuming it already landed by the time
+        // CreateInviteAsync's HTTP response returned.
+        await FakeEmailService.WaitForAsync(() => EmailService.SentInvitations.Any(i => i.Email == client.Email));
         var invitation = EmailService.SentInvitations.Should().ContainSingle(i => i.Email == client.Email).Subject;
 
         // Coach withdraws the invite in-app — a thread already exists (the invite-time seed),
@@ -201,6 +206,65 @@ public class InviteCooperationEventFlowIntegrationTests(FitnessApiFactory factor
             l => l.ClientProfileId == client.ProfileId && l.ProfessionalProfileId == coach.ProfileId,
             TestContext.Current.CancellationToken);
         linkExists.Should().BeFalse("the rejected token accept must never create a client-professional link");
+    }
+
+    /// <summary>
+    /// #1109: the invitation email is sent by <c>EmailDispatchWorker</c> off the request path.
+    /// An SMTP failure there must never turn a successful invite creation into a 500, or skip
+    /// the synchronous work that already happened before the send was enqueued — the saved
+    /// invite/token, the notification, and (for a verified client) the chat seed. The worker
+    /// must also keep running afterward rather than wedging or crashing.
+    /// </summary>
+    [Fact]
+    public async Task Create_SmtpSendFails_StillReturns200AndSeedsChat_WorkerKeepsRunning()
+    {
+        var coach = await TestActors.Trainer(factory).WithName("Coach", "Carl").CreateAsync();
+        var client = await TestActors.Client(factory).WithName("Jane", "Doe").CreateAsync();
+        await MarkEmailConfirmedAsync(client.UserId);
+
+        EmailService.FailInvitationSendFor(client.Email);
+
+        // CreateInviteAsync already asserts 200 OK internally -- the request must succeed even
+        // though the background send for this email is guaranteed to throw.
+        var invitePublicId = await CreateInviteAsync(coach.Http, client.Email, "Welcome aboard!");
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var invite = await db.PendingInvites.FirstOrDefaultAsync(
+                pi => pi.PublicId == invitePublicId, TestContext.Current.CancellationToken);
+            invite.Should().NotBeNull("the invite must be persisted regardless of the background send outcome");
+
+            var token = await db.InvitationTokens.FirstOrDefaultAsync(
+                t => t.Email == client.Email, TestContext.Current.CancellationToken);
+            token.Should().NotBeNull("the invitation token must be persisted regardless of the background send outcome");
+        }
+
+        var notificationsResponse = await client.Http.GetAsync(
+            "/client/notifications", TestContext.Current.CancellationToken);
+        notificationsResponse.StatusCode.Should().Be(HttpStatusCode.OK,
+            "the in-app notification is written synchronously and does not depend on the email send");
+
+        var conversationId = await GetSoleConversationIdAsync(client.Http);
+        var messages = await GetMessagesChronologicalAsync(client.Http, conversationId);
+        messages.Should().ContainSingle(m => m.Text == "Coach Carl sent an invite to collaborate.",
+            "the #1100 chat seed for a verified client happens synchronously and never depended on the email send");
+
+        var queue = factory.Services.GetRequiredService<IBackgroundEmailQueue>();
+        await FakeEmailService.WaitForAsync(() => queue.PendingCount == 0);
+        queue.PendingCount.Should().Be(0,
+            "the failed send must still be drained (MarkProcessed in a finally) rather than wedging the queue");
+
+        // Prove the worker kept running after the failure, rather than crashing or stalling,
+        // by draining a SECOND, unrelated send afterward.
+        var secondClient = await TestActors.Client(factory).WithName("Second", "Client").CreateAsync();
+        await MarkEmailConfirmedAsync(secondClient.UserId);
+        await CreateInviteAsync(coach.Http, secondClient.Email, "You too!");
+
+        await FakeEmailService.WaitForAsync(() => EmailService.SentInvitations.Any(i => i.Email == secondClient.Email));
+        EmailService.SentInvitations.Should().Contain(i => i.Email == secondClient.Email,
+            "the worker must still be alive and processing new items after a prior send failed");
     }
 
     private record CreatePendingInviteResult(Guid PublicId);
