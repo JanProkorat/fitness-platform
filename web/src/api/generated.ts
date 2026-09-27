@@ -3425,7 +3425,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Requested scope exceeds the caller\'s held roles, or the invitee email belongs to a coaching professional account.", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -3571,77 +3571,6 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ListClientPlansResponse>(null as any);
-    }
-
-    /**
-     * Invite a client
-     * @return Success
-     */
-    inviteClientEndpoint(inviteClientRequest: InviteClientRequest, signal?: AbortSignal): Promise<InviteClientResponse> {
-        let url_ = this.baseUrl + "/trainer/clients/invite";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(inviteClientRequest);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            signal
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processInviteClientEndpoint(_response);
-        });
-    }
-
-    protected processInviteClientEndpoint(response: AxiosResponse): Promise<InviteClientResponse> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<InviteClientResponse>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 401) {
-            const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
-
-        } else if (status === 403) {
-            const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<InviteClientResponse>(null as any);
     }
 
     /**
@@ -18432,26 +18361,6 @@ Null for training plans, or when fewer than two measurements exist in the window
 }
 
 export interface ListClientPlansRequest {
-}
-
-/** Response model returned after sending a client invitation. */
-export interface InviteClientResponse {
-    /** Confirmation message. */
-    message?: string;
-    /** Invitation token (exposed for dev/testing; would be emailed in production). */
-    invitationToken?: string;
-}
-
-/** Request model for inviting a client via email. */
-export interface InviteClientRequest {
-    /** Email address of the client to invite. */
-    email: string;
-    /** Optional explicit domain scope for the relationship this invitation will form.
-When omitted, the accept flow defaults to every domain implied by the inviting
-professional's held identity roles (existing behavior — unchanged). When
-supplied, it must be a subset of the professional's actually-held roles; e.g. a
-Trainer-only professional cannot request NutritionOnly. */
-    requestedScope?: LinkCapabilityScope | undefined;
 }
 
 /** Response model for the professional's own profile data. */
