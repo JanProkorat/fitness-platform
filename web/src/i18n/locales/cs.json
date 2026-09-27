@@ -2590,10 +2590,10 @@
       "body": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden. Zabere to odpoledne.",
       "button": "Založit účet kouče"
     },
-    "footer": "Koučský portál · Klientská aplikace pro iOS a Android",
+    "footer": "Koučovací portál · Klientská aplikace pro iOS a Android",
     "login": {
       "title": "Vítejte zpět",
-      "lede": "Přihlaste se do koučského portálu.",
+      "lede": "Přihlaste se do koučovacího portálu.",
       "emailLabel": "E-mail",
       "emailPlaceholder": "trener@example.com",
       "passwordLabel": "Heslo",
