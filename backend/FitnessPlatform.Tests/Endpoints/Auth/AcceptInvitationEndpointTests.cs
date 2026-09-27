@@ -205,10 +205,10 @@ public class AcceptInvitationEndpointTests
     }
 
     /// <summary>
-    /// A token-only invite (no matching PendingInvite — e.g. InviteClientEndpoint, out of
-    /// #1100's scope) writes Accepted with a null source, relying on the token's own
-    /// IsUsed guard for idempotency, and never writes an Invited event (there is no invite
-    /// row to key it on).
+    /// A token-only invite (no matching PendingInvite — e.g. a legacy token minted before
+    /// PendingInvite tracking existed) writes Accepted with a null source, relying on the
+    /// token's own IsUsed guard for idempotency, and never writes an Invited event (there is
+    /// no invite row to key it on).
     /// </summary>
     [Fact]
     public async Task HandleAsync_TokenWithNoPendingInvite_WritesAcceptedWithNullSource()
