@@ -14,32 +14,28 @@ namespace FitnessPlatform.Tests.Trainers;
 [Collection(TestCollection.Name)]
 public class InvitationFlowTests(FitnessApiFactory factory)
 {
-    // Per-host singleton (#726 refinement) — resolved from this factory's own DI
-    // container so assertions never see another factory's zombie worker traffic.
-    private FakeEmailService EmailService => factory.Services.GetRequiredService<FakeEmailService>();
-
     private static string UniqueEmail() => $"{Guid.NewGuid():N}@test.com";
 
-    [Fact]
-    public async Task InviteClient_AsTrainer_Returns201()
+    /// <summary>
+    /// Creates a pending invite for <paramref name="clientEmail"/> via the real
+    /// POST /trainer/pending-invites route, then reads the one-time token minted alongside it
+    /// straight from the database — the response body carries no token, and the email itself is
+    /// enqueued to a background worker (#1109), so it cannot be read reliably in a test.
+    /// </summary>
+    private async Task<string> CreatePendingInviteAndGetTokenAsync(HttpClient client, string clientEmail)
     {
-        EmailService.Reset();
-        var client = factory.CreateClient();
-        var trainerEmail = UniqueEmail();
-
-        var trainerToken = await RegisterAndLoginTrainer(client, trainerEmail);
-        TestHelpers.SetBearerToken(client, trainerToken);
-
-        var response = await client.PostAsJsonAsync("/trainer/clients/invite", new
+        var inviteResponse = await client.PostAsJsonAsync("/trainer/pending-invites", new
         {
-            Email = UniqueEmail()
+            Email = clientEmail
         }, cancellationToken: TestContext.Current.CancellationToken);
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var body = await response.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
-        body!.Message.Should().Be("Invitation sent successfully.");
-        body.InvitationToken.Should().NotBeNullOrEmpty();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Application.Infrastructure.Data.ApplicationDbContext>();
+        var invitationToken = await db.InvitationTokens.FirstAsync(t => t.Email == clientEmail);
+
+        return invitationToken.Token;
     }
 
     [Fact]
@@ -54,13 +50,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, trainerToken);
 
         // 2. Trainer invites client
-        var inviteResponse = await client.PostAsJsonAsync("/trainer/clients/invite", new
-        {
-            Email = clientEmail
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var invitationToken = await CreatePendingInviteAndGetTokenAsync(client, clientEmail);
 
         // 3. Client registers and logs in
         await TestHelpers.RegisterAsync(client, clientEmail, "TestPass1!", "Jane", "Client", "Client");
@@ -71,7 +61,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         // 4. Client accepts invitation
         var acceptResponse = await client.PostAsJsonAsync("/auth/invite/accept", new
         {
-            Token = inviteBody!.InvitationToken
+            Token = invitationToken
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         acceptResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -102,31 +92,25 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         var trainerToken = await RegisterAndLoginTrainer(client, trainerEmail);
         TestHelpers.SetBearerToken(client, trainerToken);
 
-        var inviteResponse = await client.PostAsJsonAsync("/trainer/clients/invite", new
-        {
-            Email = clientEmail
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var invitationToken = await CreatePendingInviteAndGetTokenAsync(client, clientEmail);
 
         // Expire the token in the database
         using (var scope = factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<Application.Infrastructure.Data.ApplicationDbContext>();
-            var token = db.InvitationTokens.First(t => t.Token == inviteBody!.InvitationToken);
+            var token = db.InvitationTokens.First(t => t.Token == invitationToken);
             token.ExpiresAt = DateTime.UtcNow.AddDays(-1);
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         await TestHelpers.RegisterAsync(client, clientEmail, "TestPass1!", "Exp", "Client", "Client");
-        var (clientToken, _) = await TestHelpers.LoginAsync(client, clientEmail, "TestPass1!");
+        var (clientAccessToken, _) = await TestHelpers.LoginAsync(client, clientEmail, "TestPass1!");
 
-        TestHelpers.SetBearerToken(client, clientToken);
+        TestHelpers.SetBearerToken(client, clientAccessToken);
 
         var acceptResponse = await client.PostAsJsonAsync("/auth/invite/accept", new
         {
-            Token = inviteBody!.InvitationToken
+            Token = invitationToken
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         acceptResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -143,13 +127,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         var trainerToken = await RegisterAndLoginTrainer(client, trainerEmail);
         TestHelpers.SetBearerToken(client, trainerToken);
 
-        var inviteResponse = await client.PostAsJsonAsync("/trainer/clients/invite", new
-        {
-            Email = clientEmail1
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        inviteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var invitationToken = await CreatePendingInviteAndGetTokenAsync(client, clientEmail1);
 
         // First client accepts
         await TestHelpers.RegisterAsync(client, clientEmail1, "TestPass1!", "Used", "Client", "Client");
@@ -159,7 +137,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
 
         var firstAccept = await client.PostAsJsonAsync("/auth/invite/accept", new
         {
-            Token = inviteBody!.InvitationToken
+            Token = invitationToken
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         firstAccept.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -172,7 +150,7 @@ public class InvitationFlowTests(FitnessApiFactory factory)
 
         var secondAccept = await client.PostAsJsonAsync("/auth/invite/accept", new
         {
-            Token = inviteBody.InvitationToken
+            Token = invitationToken
         }, cancellationToken: TestContext.Current.CancellationToken);
 
         secondAccept.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -188,18 +166,13 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         var trainerToken = await RegisterAndLoginTrainer(client, trainerEmail);
         TestHelpers.SetBearerToken(client, trainerToken);
 
-        var inviteResponse = await client.PostAsJsonAsync("/trainer/clients/invite", new
-        {
-            Email = clientEmail
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        var inviteBody = await inviteResponse.Content.ReadFromJsonAsync<InviteResult>(cancellationToken: TestContext.Current.CancellationToken);
+        var invitationToken = await CreatePendingInviteAndGetTokenAsync(client, clientEmail);
 
         await TestHelpers.RegisterAsync(client, clientEmail, "TestPass1!", "Dash", "Client", "Client");
-        var (clientToken, _) = await TestHelpers.LoginAsync(client, clientEmail, "TestPass1!");
+        var (clientAccessToken, _) = await TestHelpers.LoginAsync(client, clientEmail, "TestPass1!");
 
-        TestHelpers.SetBearerToken(client, clientToken);
-        await client.PostAsJsonAsync("/auth/invite/accept", new { Token = inviteBody!.InvitationToken }, cancellationToken: TestContext.Current.CancellationToken);
+        TestHelpers.SetBearerToken(client, clientAccessToken);
+        await client.PostAsJsonAsync("/auth/invite/accept", new { Token = invitationToken }, cancellationToken: TestContext.Current.CancellationToken);
 
         // Trainer gets client list to find PublicId
         TestHelpers.SetBearerToken(client, trainerToken);
@@ -262,7 +235,6 @@ public class InvitationFlowTests(FitnessApiFactory factory)
         return accessToken;
     }
 
-    private record InviteResult(string Message, string InvitationToken);
     private record AcceptResult(string Message, Guid TrainerPublicId);
     private record ClientSummary(Guid PublicId, string Email, string FirstName, string LastName, bool IsActive);
     private record ClientsResult(List<ClientSummary> Clients, int TotalCount, int Page, int PageSize);

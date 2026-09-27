@@ -103,8 +103,7 @@ public static class ErrorCodes
     /// <summary>
     /// Requested link capability scope (see <see cref="Enums.LinkCapabilityScope"/>) exceeds
     /// the identity roles actually held by the professional the link's CanView flags gate.
-    /// Emitted by AcceptClientRequestEndpoint, CreatePendingInviteEndpoint and
-    /// InviteClientEndpoint.
+    /// Emitted by AcceptClientRequestEndpoint and CreatePendingInviteEndpoint.
     /// </summary>
     public const string RequestedScopeExceedsHeldRoles = "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES";
 
