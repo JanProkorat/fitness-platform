@@ -93,9 +93,9 @@
     "forgotPasswordLoading": "Odesílám...",
     "forgotPasswordSuccess": "Pokud email existuje, odkaz pro obnovení byl odeslán.",
     "forgotPasswordError": "Něco se pokazilo. Zkuste to znovu.",
-    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým trenérem.",
+    "inviteAccepted": "Pozvánka přijata! Nyní jste propojeni se svým koučem.",
     "inviteExpired": "Tato pozvánka vypršela nebo je neplatná.",
-    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho trenéra.",
+    "inviteRegisterHint": "Vytvořte si účet pro přijetí pozvánky od vašeho kouče.",
     "verifyEmailTitle": "Ověřte svůj e-mail",
     "verifyEmailSubtitle": "Na váš e-mail jsme odeslali ověřovací odkaz. Klikněte na něj pro aktivaci účtu.",
     "verifyEmailCheckSpam": "Zkontrolujte i složku se spamem.",
@@ -172,7 +172,7 @@
   "downloadApp": {
     "title": "Stáhněte si aplikaci",
     "subtitle": "Klientská část GF Platform je dostupná výhradně v mobilní aplikaci.",
-    "description": "Stáhněte si aplikaci pro spojení s trenérem, sledování pokroku a plnění personalizovaných plánů.",
+    "description": "Stáhněte si aplikaci pro spojení s koučem, sledování pokroku a plnění personalizovaných plánů.",
     "appStore": "Stáhnout na App Store",
     "googlePlay": "Stáhnout na Google Play",
     "comingSoon": "Mobilní aplikace se připravuje",
@@ -654,7 +654,7 @@
     "title": "Nastavení profilu",
     "subtitle": "Správa osobních údajů",
     "tabPersonal": "Osobní údaje",
-    "tabTrainer": "Profil trenéra",
+    "tabTrainer": "Profil kouče",
     "firstName": "Jméno",
     "lastName": "Příjmení",
     "bio": "Bio",
@@ -663,10 +663,10 @@
     "specializationPlaceholder": "např. Silový trénink, Jóga, Výživa",
     "yearsOfExperience": "Roky zkušeností",
     "saved": "Profil uložen",
-    "trainerSaved": "Profil trenéra uložen",
+    "trainerSaved": "Profil kouče uložen",
     "saveError": "Chyba při ukládání",
     "loadError": "Nepodařilo se načíst údaje profilu",
-    "trainerProfileLoadError": "Nepodařilo se načíst profil trenéra",
+    "trainerProfileLoadError": "Nepodařilo se načíst profil kouče",
     "rolesTitle": "Role",
     "rolesSubtitle": "Vyber, jaké služby poskytuješ klientům. Role lze kombinovat.",
     "trainerRoleDesc": "Silový trénink, kardio, rehabilitace, kondice",
@@ -1097,7 +1097,7 @@
     "ACCOUNT_DELETION_FAILED": "Smazání účtu se nezdařilo. Zkuste to znovu.",
     "KCAL_INCONSISTENT": "Hodnota kalorií neodpovídá makroživinám (bílkoviny×4 + sacharidy×4 + tuky×9 ± 10 %).",
     "FOOD_NOT_OWNED": "Můžete upravovat pouze vlastní potraviny.",
-    "TRAINER_PROFILE_MISSING": "Profil trenéra nebyl nalezen.",
+    "TRAINER_PROFILE_MISSING": "Profil kouče nebyl nalezen.",
     "CLIENT_NOT_FOUND": "Klient nebyl nalezen.",
     "NO_CLIENT_RELATIONSHIP": "S tímto klientem nemáte aktivní vztah.",
     "COLLABORATOR_NOT_FOUND": "Spolupracovník nebyl nalezen.",
@@ -1140,8 +1140,8 @@
     "BROADCAST_MESSAGE_TOO_LONG_AFTER_SUBSTITUTION": "Po doplnění jmen je zpráva příliš dlouhá. Zkraťte prosím text.",
     "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
     "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
-    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního trenéra.",
-    "INVITEE_IS_PROFESSIONAL": "Tento e-mail patří k účtu trenéra. Pozvat můžete pouze klienty.",
+    "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního kouče.",
+    "INVITEE_IS_PROFESSIONAL": "Tento e-mail patří k účtu kouče. Pozvat můžete pouze klienty.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
     "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
@@ -1939,7 +1939,7 @@
         "nutrition": "Chcete svému výživovému poradci sdělit ještě něco dalšího?"
       },
       "weekOf": "Týden {{range}}",
-      "editLocked": "Váš trenér to již viděl."
+      "editLocked": "Váš kouč to již viděl."
     },
     "flag": {
       "traveling": "Cestování",
@@ -2067,7 +2067,7 @@
     "heightCm": "Výška (cm)",
     "weightKg": "Váha (kg)",
     "profileUpdated": "Profil klienta uložen",
-    "readOnlyFieldHint": "Toto pole nelze z portálu trenéra upravit.",
+    "readOnlyFieldHint": "Toto pole nelze z portálu kouče upravit.",
     "ageYears_one": "{{count}} rok",
     "ageYears_few": "{{count}} roky",
     "ageYears_many": "{{count}} let",
@@ -2283,7 +2283,7 @@
       "linkedPlanCta": "Zobrazit propojený plán: {{name}}"
     },
     "poznamky": {
-      "title": "Poznámky trenéra",
+      "title": "Poznámky kouče",
       "subtitle": "· soukromé, klient nevidí",
       "placeholder": "Přidat poznámku…",
       "saveButton": "Uložit poznámku",
@@ -2370,10 +2370,10 @@
       "messagesTrend": {
         "heading": "Trend zpráv",
         "last4Weeks": "Poslední 4 týdny",
-        "chartAriaLabel": "Zprávy trenéra a klienta za poslední 4 týdny",
+        "chartAriaLabel": "Zprávy kouče a klienta za poslední 4 týdny",
         "weekLabel": "W{{index}}",
         "legend": {
-          "coach": "Zprávy trenéra",
+          "coach": "Zprávy kouče",
           "client": "Zprávy klienta"
         }
       }
@@ -2567,7 +2567,7 @@
     },
     "audience": {
       "coaches": {
-        "eyebrow": "Pro trenéry",
+        "eyebrow": "Pro kouče",
         "title": "Práce v prohlížeči",
         "subtitle": "Portál je stavěný na velký monitor, protože plány se sestavují vsedě u stolu.",
         "check1": "Přehled klientů se štítky a filtry",
@@ -2582,18 +2582,18 @@
         "check1": "Dnešní jídla i dnešní trénink",
         "check2": "Odškrtávání jídel a zapisování sérií",
         "check3": "Nákupní seznam na celý týden",
-        "check4": "Chat s trenérem a upozornění"
+        "check4": "Chat s koučem a upozornění"
       }
     },
     "cta": {
       "title": "Zkuste to s jedním klientem",
       "body": "Založte si účet, pozvěte prvního klienta a sestavte mu první týden. Zabere to odpoledne.",
-      "button": "Založit účet trenéra"
+      "button": "Založit účet kouče"
     },
-    "footer": "Trenérský portál · Klientská aplikace pro iOS a Android",
+    "footer": "Koučský portál · Klientská aplikace pro iOS a Android",
     "login": {
       "title": "Vítejte zpět",
-      "lede": "Přihlaste se do trenérského portálu.",
+      "lede": "Přihlaste se do koučského portálu.",
       "emailLabel": "E-mail",
       "emailPlaceholder": "trener@example.com",
       "passwordLabel": "Heslo",
@@ -2609,7 +2609,7 @@
       "googleComingSoon": "Přihlášení přes Google zatím není dostupné.",
       "appleComingSoon": "Přihlášení přes Apple zatím není dostupné.",
       "noAccount": "Nemáte účet?",
-      "createAccount": "Založit účet trenéra",
+      "createAccount": "Založit účet kouče",
       "clientNote": {
         "lead": "Hledáte trenéra či poradce?",
         "body": "Stáhněte si naši mobilní aplikaci a přidejte se ještě dnes.",
