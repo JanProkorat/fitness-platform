@@ -800,6 +800,131 @@
       "uploadGalleryError": "Failed to add gallery photo"
     }
   },
+  "ingredients": {
+    "title": "Ingredients",
+    "newIngredient": "+ New Ingredient",
+    "searchPlaceholder": "Search ingredients…",
+    "retry": "Retry",
+    "noResultsForFilters": "No ingredients match your filters.",
+    "clearFilters": "Clear filters",
+    "deleteSuccess": "Ingredient deleted.",
+    "deleteError": "Couldn't delete the ingredient. Please try again.",
+    "filters": {
+      "category": "Category",
+      "tags": "Tags",
+      "tagsEmpty": "No tags yet."
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Calories",
+      "columnNutrients": "Nutrients",
+      "columnCategory": "Category",
+      "columnLibrary": "Library",
+      "caloriesValue": "{{count}} kcal / 100g",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "C: {{count}} g",
+      "fatValue": "F: {{count}} g"
+    },
+    "pagination": {
+      "viewing": "Viewing {{count}} of {{total}}"
+    },
+    "library": {
+      "system": "System",
+      "mine": "Mine"
+    },
+    "category": {
+      "Other": "Other",
+      "Fruit": "Fruit",
+      "Vegetables": "Vegetables",
+      "Meat": "Meat",
+      "FishAndSeafood": "Fish and Seafood",
+      "Dairy": "Dairy",
+      "GrainsAndCereals": "Grains and Cereals",
+      "Legumes": "Legumes",
+      "NutsAndSeeds": "Nuts and Seeds",
+      "OilsAndFats": "Oils and Fats",
+      "SweetsAndSnacks": "Sweets and Snacks",
+      "Beverages": "Beverages",
+      "Supplements": "Supplements"
+    },
+    "allergen": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Crustaceans",
+      "Eggs": "Eggs",
+      "Fish": "Fish",
+      "Peanuts": "Peanuts",
+      "Soy": "Soy",
+      "Milk": "Milk",
+      "TreeNuts": "Tree nuts",
+      "Celery": "Celery",
+      "Mustard": "Mustard",
+      "Sesame": "Sesame",
+      "Sulphites": "Sulphites",
+      "Lupin": "Lupin",
+      "Molluscs": "Molluscs"
+    },
+    "dietaryPreference": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarian",
+      "Pescatarian": "Pescatarian",
+      "GlutenFree": "Gluten-free",
+      "LactoseFree": "Lactose-free",
+      "DairyFree": "Dairy-free",
+      "Keto": "Keto",
+      "LowCarb": "Low-carb"
+    },
+    "unit": {
+      "portion": "Portion",
+      "piece": "Piece",
+      "slice": "Slice",
+      "cup": "Cup",
+      "tbsp": "Tablespoon",
+      "tsp": "Teaspoon",
+      "handful": "Handful",
+      "glass": "Glass",
+      "pack": "Pack"
+    },
+    "drawer": {
+      "createTitle": "New Ingredient",
+      "editTitle": "Edit Ingredient",
+      "viewTitle": "Ingredient",
+      "subtitle": "Add a new ingredient to your library",
+      "basicInfo": "Basic Information",
+      "nutritionalInfo": "Nutritional Information",
+      "tagsClassification": "Tags & Classification",
+      "name": "Name",
+      "nameRequired": "Name is required.",
+      "category": "Category",
+      "categoryPlaceholder": "Select category",
+      "categoryRequired": "Category is required.",
+      "calories": "Calories / 100g",
+      "protein": "Protein / 100g",
+      "carbs": "Carbs / 100g",
+      "fat": "Fat / 100g",
+      "unit": "Unit",
+      "unitPlaceholder": "Select unit",
+      "unitRequired": "Unit is required.",
+      "servingSize": "Serving Size",
+      "servingSizeRequired": "Serving size is required.",
+      "dietaryPreferences": "Dietary Preferences",
+      "dietaryPreferencesPlaceholder": "Select preferences",
+      "allergens": "Contains Allergens",
+      "allergensPlaceholder": "Select allergens",
+      "tags": "Tags",
+      "tagsPlaceholder": "Add a tag…",
+      "save": "Save Ingredient",
+      "delete": "Delete",
+      "createSuccess": "Ingredient created.",
+      "createError": "Couldn't create the ingredient. Please try again.",
+      "updateSuccess": "Ingredient updated.",
+      "updateError": "Couldn't update the ingredient. Please try again."
+    },
+    "deleteDialog": {
+      "title": "Delete ingredient",
+      "description": "Are you sure you want to delete \"{{name}}\"? This can't be undone.",
+      "confirm": "Delete"
+    }
+  },
   "recipes": {
     "title": "Recipes",
     "subtitle": "Create and manage reusable meal recipes",

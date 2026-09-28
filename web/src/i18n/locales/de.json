@@ -799,6 +799,131 @@
       "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
     }
   },
+  "ingredients": {
+    "title": "Zutaten",
+    "newIngredient": "+ Neue Zutat",
+    "searchPlaceholder": "Zutaten suchen…",
+    "retry": "Erneut versuchen",
+    "noResultsForFilters": "Keine Zutaten entsprechen Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "deleteSuccess": "Zutat gelöscht.",
+    "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "filters": {
+      "category": "Kategorie",
+      "tags": "Tags",
+      "tagsEmpty": "Noch keine Tags."
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Kalorien",
+      "columnNutrients": "Nährwerte",
+      "columnCategory": "Kategorie",
+      "columnLibrary": "Bibliothek",
+      "caloriesValue": "{{count}} kcal / 100 g",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "K: {{count}} g",
+      "fatValue": "F: {{count}} g"
+    },
+    "pagination": {
+      "viewing": "{{count}} von {{total}} angezeigt"
+    },
+    "library": {
+      "system": "System",
+      "mine": "Meine"
+    },
+    "category": {
+      "Other": "Sonstiges",
+      "Fruit": "Obst",
+      "Vegetables": "Gemüse",
+      "Meat": "Fleisch",
+      "FishAndSeafood": "Fisch & Meeresfrüchte",
+      "Dairy": "Milchprodukte",
+      "GrainsAndCereals": "Getreide",
+      "Legumes": "Hülsenfrüchte",
+      "NutsAndSeeds": "Nüsse & Samen",
+      "OilsAndFats": "Öle & Fette",
+      "SweetsAndSnacks": "Süßigkeiten & Snacks",
+      "Beverages": "Getränke",
+      "Supplements": "Nahrungsergänzungsmittel"
+    },
+    "allergen": {
+      "Gluten": "Gluten",
+      "Crustaceans": "Krebstiere",
+      "Eggs": "Eier",
+      "Fish": "Fisch",
+      "Peanuts": "Erdnüsse",
+      "Soy": "Soja",
+      "Milk": "Milch",
+      "TreeNuts": "Schalenfrüchte",
+      "Celery": "Sellerie",
+      "Mustard": "Senf",
+      "Sesame": "Sesam",
+      "Sulphites": "Sulfite",
+      "Lupin": "Lupinen",
+      "Molluscs": "Weichtiere"
+    },
+    "dietaryPreference": {
+      "Vegan": "Vegan",
+      "Vegetarian": "Vegetarisch",
+      "Pescatarian": "Pescetarisch",
+      "GlutenFree": "Glutenfrei",
+      "LactoseFree": "Laktosefrei",
+      "DairyFree": "Ohne Milchprodukte",
+      "Keto": "Keto",
+      "LowCarb": "Low-Carb"
+    },
+    "unit": {
+      "portion": "Portion",
+      "piece": "Stück",
+      "slice": "Scheibe",
+      "cup": "Tasse",
+      "tbsp": "Esslöffel",
+      "tsp": "Teelöffel",
+      "handful": "Handvoll",
+      "glass": "Glas",
+      "pack": "Packung"
+    },
+    "drawer": {
+      "createTitle": "Neue Zutat",
+      "editTitle": "Zutat bearbeiten",
+      "viewTitle": "Zutat",
+      "subtitle": "Fügen Sie Ihrer Bibliothek eine neue Zutat hinzu",
+      "basicInfo": "Grundinformationen",
+      "nutritionalInfo": "Nährwertangaben",
+      "tagsClassification": "Tags & Klassifizierung",
+      "name": "Name",
+      "nameRequired": "Name ist erforderlich.",
+      "category": "Kategorie",
+      "categoryPlaceholder": "Kategorie auswählen",
+      "categoryRequired": "Kategorie ist erforderlich.",
+      "calories": "Kalorien / 100 g",
+      "protein": "Protein / 100 g",
+      "carbs": "Kohlenhydrate / 100 g",
+      "fat": "Fett / 100 g",
+      "unit": "Einheit",
+      "unitPlaceholder": "Einheit auswählen",
+      "unitRequired": "Einheit ist erforderlich.",
+      "servingSize": "Portionsgröße",
+      "servingSizeRequired": "Portionsgröße ist erforderlich.",
+      "dietaryPreferences": "Ernährungspräferenzen",
+      "dietaryPreferencesPlaceholder": "Präferenzen auswählen",
+      "allergens": "Enthält Allergene",
+      "allergensPlaceholder": "Allergene auswählen",
+      "tags": "Tags",
+      "tagsPlaceholder": "Tag hinzufügen…",
+      "save": "Zutat speichern",
+      "delete": "Löschen",
+      "createSuccess": "Zutat erstellt.",
+      "createError": "Zutat konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateSuccess": "Zutat aktualisiert.",
+      "updateError": "Zutat konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "deleteDialog": {
+      "title": "Zutat löschen",
+      "description": "Möchten Sie „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen"
+    }
+  },
   "recipes": {
     "title": "Rezepte",
     "subtitle": "Wiederverwendbare Rezepte erstellen und verwalten",
