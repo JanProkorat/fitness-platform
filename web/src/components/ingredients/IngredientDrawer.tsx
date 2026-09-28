@@ -175,7 +175,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
         onSuccess: () => onOpenChange(false),
         onError: (error) => {
           if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
-            setError('kcal', { message: t('apiErrors.KCAL_INCONSISTENT') });
+            setError('kcal', { type: 'server', message: t('apiErrors.KCAL_INCONSISTENT') });
           }
         },
       });
@@ -206,7 +206,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
         onSuccess: () => onOpenChange(false),
         onError: (error) => {
           if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
-            setError('kcal', { message: t('apiErrors.KCAL_INCONSISTENT') });
+            setError('kcal', { type: 'server', message: t('apiErrors.KCAL_INCONSISTENT') });
           }
         },
       },
@@ -297,6 +297,15 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
+                    {errors.kcal && (
+                      <p className="text-meta text-destructive">
+                        {/* KCAL_INCONSISTENT is set via setError({ type: 'server', ... })
+                            in onSubmit's mutation onError — every other error on this
+                            field is the zod "required" rule, translated here rather
+                            than rendered as the raw zod message. */}
+                        {errors.kcal.type === 'server' ? errors.kcal.message : t('ingredients.drawer.caloriesRequired')}
+                      </p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-protein">
@@ -311,6 +320,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
+                    {errors.protein && (
+                      <p className="text-meta text-destructive">{t('ingredients.drawer.proteinRequired')}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-carbs">
@@ -325,6 +337,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
+                    {errors.carbs && (
+                      <p className="text-meta text-destructive">{t('ingredients.drawer.carbsRequired')}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-fat">
@@ -339,9 +354,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
+                    {errors.fat && <p className="text-meta text-destructive">{t('ingredients.drawer.fatRequired')}</p>}
                   </div>
                 </div>
-                {errors.kcal && <p className="text-meta text-destructive">{errors.kcal.message}</p>}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-unit">

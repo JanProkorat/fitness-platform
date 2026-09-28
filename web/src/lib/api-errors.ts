@@ -35,6 +35,20 @@ interface ProblemDetails {
  * NOTE: Non-FastEndpoints RFC 7807 errors (e.g. 409 session_locked) put the
  * code in `response.data.errorCode` (camelCase), not in `errors[0].code`.
  * Use `getRfc7807ErrorCode()` to read those.
+ *
+ * SECOND PATH — the generated NSwag client's error shape. Every call made
+ * through `apiClient.*` (`@/api/client.ts`) that hits a non-2xx status
+ * calls `throwException(...)` in `generated.ts`, which does
+ * `if (result !== null && result !== undefined) throw result;` — it throws
+ * the *parsed response body itself*, not an `AxiosError`. That body is
+ * still ProblemDetails-shaped (`{ errors: [...] }` for FastEndpoints
+ * validation, or `{ errorCode: ... }` for `SendProblemAsync`), so the
+ * lookup below is additive: check the `AxiosError` shape first (unchanged
+ * from above), then fall back to reading the thrown body directly via
+ * `asThrownProblemBody`. Without this, every `apiClient.*` caller (9 modules
+ * as of #1115: client-tags, conversations, diary-requests, broadcast,
+ * foods, clients, client-photos, photos, auth) always got `null` here and
+ * silently fell back to its generic fallback message.
  */
 export function getErrorCode(error: unknown): string | null {
   const axiosError = error as AxiosError<ProblemDetails>;
@@ -42,6 +56,12 @@ export function getErrorCode(error: unknown): string | null {
   if (errors?.length) {
     return errors[0].code ?? errors[0].reason ?? null;
   }
+
+  const thrownBody = asThrownProblemBody(error);
+  if (thrownBody?.errors?.length) {
+    return thrownBody.errors[0].code ?? thrownBody.errors[0].reason ?? null;
+  }
+
   return null;
 }
 
@@ -52,10 +72,41 @@ export function getErrorCode(error: unknown): string | null {
  * (e.g. 409 session_locked from UpdateTrainingPlan, UnlockTrainingSession).
  * FastEndpoints validation errors use `errors[0].code` instead — use
  * `getErrorCode()` for those.
+ *
+ * Same additive NSwag-thrown-body fallback as `getErrorCode()` above — see
+ * its doc comment for why `error` can be a raw thrown body instead of an
+ * `AxiosError`.
  */
 export function getRfc7807ErrorCode(error: unknown): string | null {
   const axiosError = error instanceof AxiosError ? error : null;
-  return (axiosError?.response?.data as ProblemDetails | undefined)?.errorCode ?? null;
+  const axiosCode = (axiosError?.response?.data as ProblemDetails | undefined)?.errorCode;
+  if (axiosCode) {
+    return axiosCode;
+  }
+
+  return asThrownProblemBody(error)?.errorCode ?? null;
+}
+
+/**
+ * Narrows an unknown thrown value to the shape of a parsed ProblemDetails
+ * body — the NSwag `throwException(...)` path described in `getErrorCode`'s
+ * doc comment. Reads `unknown` properties defensively (no `any`): only
+ * treats `errors`/`errorCode` as present once their runtime shape is
+ * confirmed, so a thrown `ApiException` (NSwag's own error class, used when
+ * the body didn't parse to anything) or an unrelated thrown value both
+ * safely resolve to `null` rather than reading garbage.
+ */
+function asThrownProblemBody(error: unknown): ProblemDetails | null {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+  const candidate = error as { errors?: unknown; errorCode?: unknown };
+  const errors = Array.isArray(candidate.errors) ? (candidate.errors as ProblemDetailsError[]) : undefined;
+  const errorCode = typeof candidate.errorCode === 'string' ? candidate.errorCode : undefined;
+  if (errors === undefined && errorCode === undefined) {
+    return null;
+  }
+  return { errors, errorCode };
 }
 
 /**

@@ -112,4 +112,59 @@ test.describe('ingredients page', () => {
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('cell', { name })).toHaveCount(0);
   });
+
+  test('empty submit shows translated required errors, never the raw zod message', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    // Unit is deliberately not asserted here — it defaults to "Portion" on
+    // create, so it's never blank on this path.
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+
+    await expect(page.getByText('Name is required.')).toBeVisible();
+    await expect(page.getByText('Category is required.')).toBeVisible();
+    await expect(page.getByText('Calories is required.')).toBeVisible();
+    await expect(page.getByText('Protein is required.')).toBeVisible();
+    await expect(page.getByText('Carbs is required.')).toBeVisible();
+    await expect(page.getByText('Fat is required.')).toBeVisible();
+    await expect(page.getByText('Serving size is required.')).toBeVisible();
+
+    // The zod schema's internal placeholder message is the bare string
+    // "required" — before this fix it rendered verbatim for Calories, and
+    // Protein/Carbs/Fat rendered no message at all. Assert it never
+    // surfaces standalone (a translated sentence like "Calories is
+    // required." legitimately contains the word, but never as the whole
+    // text of an element).
+    await expect(page.getByText('required', { exact: true })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('an inconsistent kcal value shows the KCAL_INCONSISTENT inline error on Calories', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    await page.getByLabel('Name').fill(`QA Kcal Check ${Date.now()}`);
+    await page.getByLabel('Category').selectOption('Fruit');
+    // 1g protein + 12g carbs + 0g fat = 52 kcal by the ±10% rule; 500 is far
+    // outside that range, so CreateFoodEndpoint's KCAL_INCONSISTENT check
+    // rejects it with a 400 — the drawer must surface that inline on the
+    // Calories field rather than showing nothing (root cause: the NSwag
+    // client throws the parsed body directly on 400, not an AxiosError, and
+    // getErrorCode only read the AxiosError shape).
+    await page.getByLabel('Calories / 100g').fill('500');
+    await page.getByLabel('Protein / 100g').fill('1');
+    await page.getByLabel('Carbs / 100g').fill('12');
+    await page.getByLabel('Fat / 100g').fill('0');
+    await page.getByLabel('Unit').selectOption('piece');
+    await page.getByLabel('Serving Size').fill('120');
+
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+
+    await expect(page.getByText(/doesn.t match macronutrients/i)).toBeVisible();
+    // The drawer stays open — the create request was rejected, not fulfilled.
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Cancel' }).click();
+  });
 });
