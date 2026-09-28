@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -44,10 +44,10 @@ export default function IngredientCategoryFilterPopover({ selectedCategory, onCh
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-2">
+        <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
+          <Plus className="size-3" aria-hidden="true" />
           {t('ingredients.filters.category')}
           {selectedCategory && <span className="text-caption">1</span>}
-          <ChevronDown className="size-3" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64">

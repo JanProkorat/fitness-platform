@@ -15,6 +15,12 @@ const badgeVariants = cva(
         // Soft-fill status treatment (small rounded rect, not a pill) —
         // Figma frame client-list-02, #1066 phase 6.
         success: "rounded-sm bg-green-soft text-primary",
+        // Ingredients table's Library column badge (System/Mine/Shared) —
+        // docs/design/ingredients/inventory.md, #1115. Same small-rect
+        // treatment as `success` above, not the pill shape `secondary` uses
+        // elsewhere (ClientStatusBadge, PendingTable) — a dedicated variant
+        // rather than restyling `secondary`, which those already rely on.
+        library: "rounded-sm bg-bubble text-caption font-semibold text-ink-3",
       },
     },
     defaultVariants: {

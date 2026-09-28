@@ -38,7 +38,7 @@ export default function MultiSelectPopover({ placeholder, options, selected, onC
           type="button"
           id={id}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 text-left text-body text-foreground shadow-none outline-none transition-[color,box-shadow]',
+            'flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-1 text-left text-body text-foreground shadow-none outline-none transition-[color,box-shadow]',
             'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           )}
         >

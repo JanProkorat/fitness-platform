@@ -22,5 +22,5 @@ export default function LibraryBadge({ isOwnedByCurrentUser, isSystem }: Props) 
     : isOwnedByCurrentUser
       ? 'ingredients.library.mine'
       : 'ingredients.library.shared';
-  return <Badge variant="secondary">{t(labelKey)}</Badge>;
+  return <Badge variant="library">{t(labelKey)}</Badge>;
 }

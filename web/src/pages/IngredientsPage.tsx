@@ -68,10 +68,28 @@ export default function IngredientsPage() {
   const drawerReadOnly = !isNutritionist || (selectedFood !== null && !selectedFood.isOwnedByCurrentUser);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-title font-bold text-ink">{t('ingredients.title')}</h1>
+    // `h-full` fills AppShell's `<main>` (a definite-height flex-1 region,
+    // see AppShell.tsx) so the table card below can claim the remaining
+    // space and scroll internally instead of the whole page scrolling —
+    // docs/design/ingredients/inventory.md point 5, main's own overflow-y-auto
+    // stays as a graceful fallback if this content is ever taller than that.
+    <div className="flex h-full flex-col gap-4">
+      <h1 className="text-title font-bold text-ink">{t('ingredients.title')}</h1>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-search">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={t('ingredients.searchPlaceholder')}
+            className="h-8 pl-8"
+            aria-label={t('ingredients.searchPlaceholder')}
+          />
         </div>
         {isNutritionist && (
           <Button type="button" size="lg" onClick={openCreateDrawer}>
@@ -80,39 +98,23 @@ export default function IngredientsPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="relative w-full max-w-xs">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('ingredients.searchPlaceholder')}
-              className="h-8 pl-8"
-              aria-label={t('ingredients.searchPlaceholder')}
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <IngredientCategoryFilterPopover selectedCategory={filters.category} onChange={setCategory} />
-            <IngredientTagFilterPopover selectedTags={filters.tags} onChange={setTags} />
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <IngredientCategoryFilterPopover selectedCategory={filters.category} onChange={setCategory} />
+        <IngredientTagFilterPopover selectedTags={filters.tags} onChange={setTags} />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <IngredientsTable
-          foods={ingredientsQuery.data?.foods ?? []}
-          isPending={ingredientsQuery.isPending}
-          isError={ingredientsQuery.isError}
-          onRetry={() => void ingredientsQuery.refetch()}
-          hasActiveFilter={hasActiveFilter}
-          onClearFilters={clearFilters}
-          onRowClick={openRowDrawer}
-        />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex-1 overflow-y-auto">
+          <IngredientsTable
+            foods={ingredientsQuery.data?.foods ?? []}
+            isPending={ingredientsQuery.isPending}
+            isError={ingredientsQuery.isError}
+            onRetry={() => void ingredientsQuery.refetch()}
+            hasActiveFilter={hasActiveFilter}
+            onClearFilters={clearFilters}
+            onRowClick={openRowDrawer}
+          />
+        </div>
         <IngredientsPagination
           rowCount={(ingredientsQuery.data?.foods ?? []).length}
           page={filters.page}

@@ -34,11 +34,16 @@ export default function IngredientsTable({
     <Table>
       <TableHeader className="bg-muted">
         <TableRow>
-          <TableHead>{t('ingredients.table.columnName')}</TableHead>
-          <TableHead>{t('ingredients.table.columnCalories')}</TableHead>
-          <TableHead>{t('ingredients.table.columnNutrients')}</TableHead>
-          <TableHead>{t('ingredients.table.columnCategory')}</TableHead>
-          <TableHead>{t('ingredients.table.columnLibrary')}</TableHead>
+          {/* Name has no fixed width — it takes all remaining space. The
+              other four columns are fixed (docs/design/ingredients/inventory.md
+              point 3: 120/180/180/100) via Tailwind's spacing scale, which
+              is itself token-driven off the single `--spacing` base — not a
+              one-off literal. */}
+          <TableHead className="px-5 py-3">{t('ingredients.table.columnName')}</TableHead>
+          <TableHead className="w-30 px-5 py-3">{t('ingredients.table.columnCalories')}</TableHead>
+          <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnNutrients')}</TableHead>
+          <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnCategory')}</TableHead>
+          <TableHead className="w-25 px-5 py-3">{t('ingredients.table.columnLibrary')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -87,21 +92,24 @@ export default function IngredientsTable({
               className="cursor-pointer"
               onClick={() => onRowClick(food)}
             >
-              <TableCell className="font-medium text-foreground">{food.name}</TableCell>
-              <TableCell className="text-muted-foreground">
+              {/* Name: SemiBold 14 dark. `text-copy` is the existing 14px
+                  token (audience-panel body copy) reused here for its size,
+                  not its original semantic name — no second 14px token. */}
+              <TableCell className="px-5 py-3 text-copy font-semibold text-foreground">{food.name}</TableCell>
+              <TableCell className="w-30 px-5 py-3 text-body font-medium text-muted-foreground">
                 {t('ingredients.table.caloriesValue', { count: food.nutrientValue?.kcal ?? 0 })}
               </TableCell>
-              <TableCell className="text-muted-foreground">
-                <div className="flex items-center gap-2 text-caption">
+              <TableCell className="w-45 px-5 py-3 text-meta text-muted-foreground">
+                <div className="flex items-center gap-2">
                   <span>{t('ingredients.table.proteinValue', { count: food.nutrientValue?.protein ?? 0 })}</span>
                   <span>{t('ingredients.table.carbsValue', { count: food.nutrientValue?.carbs ?? 0 })}</span>
                   <span>{t('ingredients.table.fatValue', { count: food.nutrientValue?.fat ?? 0 })}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="w-45 px-5 py-3 text-body text-muted-foreground">
                 {food.category && t(`ingredients.category.${food.category}`)}
               </TableCell>
-              <TableCell>
+              <TableCell className="w-25 px-5 py-3">
                 <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} isSystem={food.isSystem} />
               </TableCell>
             </TableRow>

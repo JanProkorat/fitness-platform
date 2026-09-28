@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Info, Activity, Tag } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -62,6 +63,8 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Unit defaults to "Portion" on create (docs/design/ingredients/inventory.md
+// point 10, "select, value 'Portion'") — every other field starts empty.
 const EMPTY_VALUES: FormValues = {
   name: '',
   category: '',
@@ -69,7 +72,7 @@ const EMPTY_VALUES: FormValues = {
   protein: undefined as unknown as number,
   carbs: undefined as unknown as number,
   fat: undefined as unknown as number,
-  unit: '',
+  unit: 'portion',
   servingSize: undefined as unknown as number,
   dietaryPreferences: [],
   allergens: [],
@@ -213,9 +216,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="sm:max-w-xl">
-          <SheetHeader>
-            <SheetTitle>
+        <SheetContent className="sm:w-drawer sm:max-w-none">
+          <SheetHeader className="gap-1 border-b border-border p-6">
+            <SheetTitle className="text-panel-title font-bold">
               {t(
                 mode === 'create'
                   ? 'ingredients.drawer.createTitle'
@@ -224,29 +227,42 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                     : 'ingredients.drawer.editTitle',
               )}
             </SheetTitle>
-            <SheetDescription>{t('ingredients.drawer.subtitle')}</SheetDescription>
+            <SheetDescription className="text-body">{t('ingredients.drawer.subtitle')}</SheetDescription>
           </SheetHeader>
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-1 flex-col gap-6 overflow-y-auto px-4"
+            className="flex flex-1 flex-col gap-6 overflow-y-auto px-6"
           >
             <fieldset disabled={readOnly} className="flex flex-col gap-6">
               <div className="flex flex-col gap-3">
-                <h3 className="text-body font-semibold text-foreground">{t('ingredients.drawer.basicInfo')}</h3>
+                <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+                  <Info className="size-4 text-muted-foreground" aria-hidden="true" />
+                  {t('ingredients.drawer.basicInfo')}
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-name">{t('ingredients.drawer.name')}</Label>
-                    <Input id="ingredient-name" {...register('name')} aria-invalid={!!errors.name} />
+                    <Label htmlFor="ingredient-name">
+                      {t('ingredients.drawer.name')} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="ingredient-name"
+                      {...register('name')}
+                      aria-invalid={!!errors.name}
+                      placeholder={t('ingredients.drawer.namePlaceholder')}
+                      className="h-10"
+                    />
                     {errors.name && <p className="text-meta text-destructive">{t('ingredients.drawer.nameRequired')}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-category">{t('ingredients.drawer.category')}</Label>
+                    <Label htmlFor="ingredient-category">
+                      {t('ingredients.drawer.category')} <span className="text-destructive">*</span>
+                    </Label>
                     <select
                       id="ingredient-category"
                       {...register('category')}
                       aria-invalid={!!errors.category}
-                      className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+                      className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
                     >
                       <option value="">{t('ingredients.drawer.categoryPlaceholder')}</option>
                       {CATEGORY_VALUES.map((category) => (
@@ -263,58 +279,79 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
               </div>
 
               <div className="flex flex-col gap-3">
-                <h3 className="text-body font-semibold text-foreground">{t('ingredients.drawer.nutritionalInfo')}</h3>
+                <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+                  <Activity className="size-4 text-muted-foreground" aria-hidden="true" />
+                  {t('ingredients.drawer.nutritionalInfo')}
+                </h3>
                 <div className="grid grid-cols-4 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-kcal">{t('ingredients.drawer.calories')}</Label>
+                    <Label htmlFor="ingredient-kcal">
+                      {t('ingredients.drawer.calories')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="ingredient-kcal"
                       type="number"
                       step="any"
                       {...register('kcal', { valueAsNumber: true })}
                       aria-invalid={!!errors.kcal}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-protein">{t('ingredients.drawer.protein')}</Label>
+                    <Label htmlFor="ingredient-protein">
+                      {t('ingredients.drawer.protein')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="ingredient-protein"
                       type="number"
                       step="any"
                       {...register('protein', { valueAsNumber: true })}
                       aria-invalid={!!errors.protein}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-carbs">{t('ingredients.drawer.carbs')}</Label>
+                    <Label htmlFor="ingredient-carbs">
+                      {t('ingredients.drawer.carbs')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="ingredient-carbs"
                       type="number"
                       step="any"
                       {...register('carbs', { valueAsNumber: true })}
                       aria-invalid={!!errors.carbs}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-fat">{t('ingredients.drawer.fat')}</Label>
+                    <Label htmlFor="ingredient-fat">
+                      {t('ingredients.drawer.fat')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="ingredient-fat"
                       type="number"
                       step="any"
                       {...register('fat', { valueAsNumber: true })}
                       aria-invalid={!!errors.fat}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
                     />
                   </div>
                 </div>
                 {errors.kcal && <p className="text-meta text-destructive">{errors.kcal.message}</p>}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-unit">{t('ingredients.drawer.unit')}</Label>
+                    <Label htmlFor="ingredient-unit">
+                      {t('ingredients.drawer.unit')} <span className="text-destructive">*</span>
+                    </Label>
                     <select
                       id="ingredient-unit"
                       {...register('unit')}
                       aria-invalid={!!errors.unit}
-                      className="flex h-9 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
+                      className="flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
                     >
                       <option value="">{t('ingredients.drawer.unitPlaceholder')}</option>
                       {UNIT_KEYS.map((key) => (
@@ -329,13 +366,17 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                     {errors.unit && <p className="text-meta text-destructive">{t('ingredients.drawer.unitRequired')}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-serving-size">{t('ingredients.drawer.servingSize')}</Label>
+                    <Label htmlFor="ingredient-serving-size">
+                      {t('ingredients.drawer.servingSize')} <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="ingredient-serving-size"
                       type="number"
                       step="any"
                       {...register('servingSize', { valueAsNumber: true })}
                       aria-invalid={!!errors.servingSize}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
                     />
                     {errors.servingSize && (
                       <p className="text-meta text-destructive">{t('ingredients.drawer.servingSizeRequired')}</p>
@@ -345,7 +386,10 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
               </div>
 
               <div className="flex flex-col gap-3">
-                <h3 className="text-body font-semibold text-foreground">{t('ingredients.drawer.tagsClassification')}</h3>
+                <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+                  <Tag className="size-4 text-muted-foreground" aria-hidden="true" />
+                  {t('ingredients.drawer.tagsClassification')}
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-dietary-preferences">{t('ingredients.drawer.dietaryPreferences')}</Label>
@@ -380,7 +424,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
             </fieldset>
           </form>
 
-          <SheetFooter className="flex-row justify-between">
+          <SheetFooter className="flex-row justify-between p-6">
             {mode === 'edit' ? (
               <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
                 {t('ingredients.drawer.delete')}
