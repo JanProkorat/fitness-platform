@@ -10923,7 +10923,7 @@ export class ApiClient {
     /**
      * Update custom food
      * @param foodId The food's public identifier (from route).
-     * @return Success
+     * @return Food updated
      */
     updateFoodEndpoint(foodId: string, updateFoodRequest: UpdateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -10978,11 +10978,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request body, or the food belongs to another nutritionist", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -10998,7 +10998,7 @@ export class ApiClient {
     /**
      * Get food by ID
      * @param foodId The food's public identifier.
-     * @return Success
+     * @return Food detail
      */
     getFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<FoodSummary> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -11058,7 +11058,7 @@ export class ApiClient {
     /**
      * Delete custom food
      * @param foodId The food's public identifier.
-     * @return No Content
+     * @return Food deleted
      */
     deleteFoodEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/foods/{foodId}";
@@ -11102,7 +11102,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -11122,7 +11122,7 @@ export class ApiClient {
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
      * @param category (optional) Optional category filter.
-     * @return Success
+     * @return Matching foods
      */
     searchFoodsEndpoint(tags: string[], page: number, pageSize: number, q?: string | null | undefined, category?: FoodCategory | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
@@ -11186,11 +11186,11 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, or tags filter", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -11201,7 +11201,7 @@ export class ApiClient {
 
     /**
      * List food tags
-     * @return Success
+     * @return Distinct tags
      */
     getFoodTagsEndpoint(signal?: AbortSignal): Promise<GetFoodTagsResponse> {
         let url_ = this.baseUrl + "/foods/tags";
@@ -11246,7 +11246,7 @@ export class ApiClient {
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -11338,7 +11338,7 @@ export class ApiClient {
 
     /**
      * Create custom food
-     * @return Success
+     * @return Food created
      */
     createFoodEndpoint(createFoodRequest: CreateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
         let url_ = this.baseUrl + "/foods";
@@ -11378,23 +11378,23 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<FoodSummary>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodSummary>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
