@@ -830,7 +830,8 @@
     },
     "library": {
       "system": "System",
-      "mine": "Mine"
+      "mine": "Mine",
+      "shared": "Shared"
     },
     "category": {
       "Other": "Other",

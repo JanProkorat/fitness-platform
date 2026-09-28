@@ -42,7 +42,10 @@ test.describe('ingredients page', () => {
     await page.waitForURL(/q=Apple/);
     await page.waitForLoadState('networkidle');
 
-    await page.locator('tbody tr').first().click();
+    const firstRow = page.locator('tbody tr').first();
+    await expect(firstRow.getByText('System', { exact: true })).toBeVisible();
+
+    await firstRow.click();
     await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
     await expect(page.getByLabel('Name')).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Save Ingredient' })).toHaveCount(0);

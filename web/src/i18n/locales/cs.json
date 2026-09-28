@@ -851,7 +851,8 @@
     },
     "library": {
       "system": "Systémová",
-      "mine": "Moje"
+      "mine": "Moje",
+      "shared": "Sdílená"
     },
     "category": {
       "Other": "Ostatní",

@@ -21371,6 +21371,11 @@ foods/{foodId}/gallery-{n}.{ext}. */
     /** True when the authenticated caller is the nutritionist who created this food.
 Clients can use this flag to decide whether to show edit/delete affordances. */
     isOwnedByCurrentUser?: boolean;
+    /** True when this food has no owning nutritionist (a platform system/catalog entry).
+Lets clients distinguish the three Library badge states — System, Mine
+(IsOwnedByCurrentUser), and Shared (another coach's Public food, neither of
+the above) — without exposing the owner's identifier itself. */
+    isSystem?: boolean;
 }
 
 /** Nutrient values DTO for API responses. */

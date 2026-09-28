@@ -3,25 +3,24 @@ import { Badge } from '@/components/ui/badge';
 
 interface Props {
   isOwnedByCurrentUser?: boolean;
+  isSystem?: boolean;
 }
 
 /**
- * Renders the ingredients table's "Library" column badge.
- *
- * Design contract (`docs/design/ingredients/inventory.md`, design-review
- * finding #6) calls for three states — System / Mine / Shared (another
- * coach's Public food) — but `FoodSummary` (the backend response DTO) only
- * ever carries `isOwnedByCurrentUser`; it does not expose the owning
- * nutritionist's id or a system/shared distinction (see
- * `Features/Foods/Shared/FoodSummary.cs`). A row this coach doesn't own is
- * therefore indistinguishable, from the wire, between "seeded system food"
- * and "another coach's shared food" — both render as "System" here, matching
- * every sample row in the wireframe (`ingredients-01.png`/`ingredients-02.png`,
- * whose only observed Library value is "System"). Rendering the third state
- * needs a backend contract change (out of scope for `web-react` — see
- * `rules/scope-boundaries.md#package-boundary-rule`).
+ * Renders the ingredients table's "Library" column badge — System / Mine /
+ * Shared (another coach's Public food). `FoodSummary.isSystem` (true when the
+ * food has no owning nutritionist — a platform system/catalog entry) plus
+ * `isOwnedByCurrentUser` are enough to derive all three states without
+ * exposing the owning nutritionist's id (see `Features/Foods/Shared/FoodSummary.cs`'s
+ * `IsSystem` doc comment). `isSystem` takes priority: a system food is never
+ * also "owned" by the caller.
  */
-export default function LibraryBadge({ isOwnedByCurrentUser }: Props) {
+export default function LibraryBadge({ isOwnedByCurrentUser, isSystem }: Props) {
   const { t } = useTranslation();
-  return <Badge variant="secondary">{t(isOwnedByCurrentUser ? 'ingredients.library.mine' : 'ingredients.library.system')}</Badge>;
+  const labelKey = isSystem
+    ? 'ingredients.library.system'
+    : isOwnedByCurrentUser
+      ? 'ingredients.library.mine'
+      : 'ingredients.library.shared';
+  return <Badge variant="secondary">{t(labelKey)}</Badge>;
 }

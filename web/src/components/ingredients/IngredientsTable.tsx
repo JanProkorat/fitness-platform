@@ -102,7 +102,7 @@ export default function IngredientsTable({
                 {food.category && t(`ingredients.category.${food.category}`)}
               </TableCell>
               <TableCell>
-                <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} />
+                <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} isSystem={food.isSystem} />
               </TableCell>
             </TableRow>
           ))}
