@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -45,6 +46,7 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 
         RuleFor(x => x.NutrientValue)
             .Must(n => NutrientValidation.IsKcalConsistent(n.Kcal, n.Protein, n.Carbs, n.Fat))
+            .WithErrorCode(ErrorCodes.KcalInconsistent)
             .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).");
 
         RuleFor(x => x.CommonServings)

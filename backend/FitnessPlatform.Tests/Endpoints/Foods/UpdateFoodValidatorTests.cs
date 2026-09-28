@@ -1,4 +1,5 @@
 using FluentValidation.TestHelper;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -38,6 +39,18 @@ public class UpdateFoodValidatorTests
         var result = new UpdateFoodValidator().TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.CommonServings);
+    }
+
+    [Fact]
+    public void Validate_InconsistentKcal_FailsWithKcalInconsistentErrorCode()
+    {
+        var request = ValidRequest();
+        request.NutrientValue = new NutrientValueDto { Kcal = 999, Protein = 10, Carbs = 10, Fat = 5 };
+
+        var result = new UpdateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.NutrientValue)
+            .WithErrorCode(ErrorCodes.KcalInconsistent);
     }
 
     [Fact]
