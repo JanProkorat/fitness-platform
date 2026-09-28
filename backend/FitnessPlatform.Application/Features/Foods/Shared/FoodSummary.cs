@@ -97,6 +97,14 @@ public class FoodSummary
     public bool IsOwnedByCurrentUser { get; set; }
 
     /// <summary>
+    /// True when this food has no owning nutritionist (a platform system/catalog entry).
+    /// Lets clients distinguish the three Library badge states — System, Mine
+    /// (<see cref="IsOwnedByCurrentUser"/>), and Shared (another coach's Public food, neither of
+    /// the above) — without exposing the owner's identifier itself.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
@@ -129,6 +137,7 @@ public class FoodSummary
         IsOwnedByCurrentUser = currentUserId.HasValue
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,
+        IsSystem = food.NutritionistId is null,
         Allergens = FoodEnumListMapping.ParseStoredNames<Allergen>(food.Allergens),
         DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(food.DietaryPreferences),
         Tags = food.Tags,
