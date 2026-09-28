@@ -9,7 +9,44 @@
  * `Roles(AppRoles.Nutritionist)`) — the trainer fixture can read the list but
  * cannot exercise the drawer's write paths.
  */
+import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, expect } from '../fixtures/auth';
+
+const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+
+interface LoginResponseBody {
+  accessToken: string;
+}
+
+interface FoodApiBody {
+  foodId?: string;
+  name?: string;
+  rawName?: string;
+}
+
+/**
+ * Logs in as qa.nutri via a bare API context (same one-off pattern as
+ * `nutritionist/inbox-cooperation-events.spec.ts`'s `loginAsClient2`) to
+ * create/read a food directly, bypassing the drawer, so the fixture's
+ * per-attempt browser session (a separate, unrelated refresh token — see
+ * `../fixtures/auth.ts`'s header comment) is never touched by this token.
+ */
+async function loginAsNutritionist(baseURL: string): Promise<string> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('[ingredients] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/auth/login', { data: { email: NUTRITIONIST_EMAIL, password } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
 
 test.describe('ingredients page', () => {
   test.beforeEach(async ({ page }) => {
@@ -233,10 +270,97 @@ test.describe('ingredients page', () => {
     }
 
     await expect(page.getByText('You can add up to 20 tags.')).toBeVisible();
-    // TagsInput hides its own text input once at the cap — there's nowhere
-    // left to type a 21st tag.
-    await expect(page.getByLabel('Tags')).toHaveCount(0);
+    // TagsInput keeps its text input mounted but disables it once at the
+    // cap — removing it entirely broke the "Tags" <Label>'s association
+    // (#1115 code review) — so there's nowhere left to type a 21st tag, but
+    // the labelled element itself still resolves.
+    await expect(page.getByLabel('Tags')).toBeDisabled();
+    // The max-tags message renders exactly once — not also duplicated by
+    // IngredientDrawer's own zod-driven error text (#1115 code review).
+    await expect(page.getByText('You can add up to 20 tags.')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('editing without changing Name preserves the base name for a food with per-language display names (rawName)', async ({
+    page,
+    baseURL,
+  }) => {
+    // Root cause fixed here: FoodSummary.Name (FoodSummary.cs) is resolved
+    // for the request's Accept-Language, while FoodSummary.RawName always
+    // mirrors the canonical stored name. valuesFromFood previously loaded
+    // `food.name` into the form, so an untouched edit-save round-tripped the
+    // TRANSLATED name back into UpdateFoodRequest.name, silently overwriting
+    // the food's real base name. This food is created with nameEn distinct
+    // from its base name specifically so the UI's `en` Accept-Language
+    // resolves `.name` to something the fix must NOT load into the form.
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const baseName = `qa-e2e-rawname-${uniqueSuffix}`;
+    const nameEn = `${baseName} EN`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name: baseName,
+          nameEn,
+          nameCs: `${baseName} CS`,
+          nameDe: `${baseName} DE`,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          tags: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}`, 'Accept-Language': 'en' },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (rawName fixture) returned ${createResponse.status()} ` +
+            `${createResponse.statusText()}: ${await createResponse.text()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (rawName fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+      expect(created.name).toBe(nameEn);
+      expect(created.rawName).toBe(baseName);
+    } finally {
+      await createApi.dispose();
+    }
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(nameEn);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+
+    // The row shows the resolved (translated) name — the drawer's Name
+    // field must load the CANONICAL name instead.
+    await page.getByRole('cell', { name: nameEn }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    await expect(page.getByLabel('Name')).toHaveValue(baseName);
+
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+
+    const verifyApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const getResponse = await verifyApi.get(`/foods/${foodId}`, {
+        headers: { Authorization: `Bearer ${accessToken}`, 'Accept-Language': 'en' },
+      });
+      const body = (await getResponse.json()) as FoodApiBody;
+      expect(body.rawName).toBe(baseName);
+
+      await verifyApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    } finally {
+      await verifyApi.dispose();
+    }
   });
 });

@@ -29,6 +29,7 @@ import { useCreateFood, useUpdateFood } from '@/hooks/useIngredientsQueries';
 import MultiSelectPopover from '@/components/ingredients/MultiSelectPopover';
 import TagsInput from '@/components/ingredients/TagsInput';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
+import { MAX_TAGS } from '@/components/ingredients/tagLimits';
 
 /** Fixed unit keys for the drawer's Unit select (design-review MINOR finding #8,
  * `docs/design/ingredients/inventory.md`). The label is stored verbatim as
@@ -40,12 +41,6 @@ export type UnitKey = (typeof UNIT_KEYS)[number];
 const CATEGORY_VALUES = Object.values(FoodCategory);
 const ALLERGEN_VALUES = Object.values(Allergen);
 const DIETARY_PREFERENCE_VALUES = Object.values(DietaryPreference);
-
-/** Mirrors TagsInput's own cap (#1115 code review) — kept here too as the
- * safety net for legacy data already over the limit (loaded into edit mode
- * without the user ever touching Tags, so TagsInput's own client-side
- * refusal never gets a chance to run). */
-const MAX_TAGS = 20;
 
 // Numeric fields use `z.number()` (not `z.coerce.number()`) paired with
 // `register(name, { valueAsNumber: true })` below — RHF converts the input
@@ -104,7 +99,12 @@ const EMPTY_VALUES: FormValues = {
 function valuesFromFood(food: FoodSummary): FormValues {
   const defaultServing = food.commonServings?.[0];
   return {
-    name: food.name ?? '',
+    // `food.name` is resolved for the request's Accept-Language (FoodSummary.cs);
+    // `rawName` is the canonical, language-independent name actually stored on
+    // the document. Loading `name` here would round-trip the translated
+    // string back through onSubmit's UpdateFoodRequest.name on an untouched
+    // save, silently overwriting the base name with a translation.
+    name: food.rawName ?? food.name ?? '',
     category: food.category ?? '',
     kcal: food.nutrientValue?.kcal ?? (undefined as unknown as number),
     protein: food.nutrientValue?.protein ?? (undefined as unknown as number),
@@ -278,7 +278,15 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                     : 'ingredients.drawer.editTitle',
               )}
             </SheetTitle>
-            <SheetDescription className="text-body">{t('ingredients.drawer.subtitle')}</SheetDescription>
+            <SheetDescription className="text-body">
+              {t(
+                mode === 'create'
+                  ? 'ingredients.drawer.subtitleCreate'
+                  : mode === 'view'
+                    ? 'ingredients.drawer.subtitleView'
+                    : 'ingredients.drawer.subtitleEdit',
+              )}
+            </SheetDescription>
           </SheetHeader>
 
           <form
