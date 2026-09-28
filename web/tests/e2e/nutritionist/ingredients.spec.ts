@@ -140,11 +140,26 @@ test.describe('ingredients page', () => {
     await page.getByRole('button', { name: 'Cancel' }).click();
   });
 
-  test('an inconsistent kcal value shows the KCAL_INCONSISTENT inline error on Calories', async ({ page }) => {
+  test('an inconsistent kcal value shows the KCAL_INCONSISTENT inline error on Calories, never a toast', async ({
+    page,
+  }) => {
+    // Scoped to the drawer throughout: the KCAL_INCONSISTENT text used to
+    // render twice (inline under Calories AND as a toast, since
+    // useCreateFood/useUpdateFood's own onError toasted every error
+    // including this one) — an unscoped getByText() would match both and
+    // flake depending on whether the toast had already faded. Toast markup
+    // lives in `[data-slot="toast-viewport"]`
+    // (`@/components/ui/toast.tsx`), never inside the drawer's `dialog`.
+    const drawer = page.getByRole('dialog');
+    const toastViewport = page.locator('[data-slot="toast-viewport"]');
+    const kcalInconsistentText = /doesn.t match macronutrients/i;
+
+    // --- Create path ---
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
-    await page.getByLabel('Name').fill(`QA Kcal Check ${Date.now()}`);
+    const name = `QA Kcal Check ${Date.now()}`;
+    await page.getByLabel('Name').fill(name);
     await page.getByLabel('Category').selectOption('Fruit');
     // 1g protein + 12g carbs + 0g fat = 52 kcal by the ±10% rule; 500 is far
     // outside that range, so CreateFoodEndpoint's KCAL_INCONSISTENT check
@@ -161,10 +176,39 @@ test.describe('ingredients page', () => {
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
 
-    await expect(page.getByText(/doesn.t match macronutrients/i)).toBeVisible();
+    await expect(drawer.getByText(kcalInconsistentText)).toBeVisible();
+    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0);
     // The drawer stays open — the create request was rejected, not fulfilled.
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Cancel' }).click();
+    // Fix the value and actually create it, so the edit path below has a
+    // real, owned row to open.
+    await page.getByLabel('Calories / 100g').fill('50');
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
+
+    // --- Edit path ---
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+
+    await page.getByLabel('Calories / 100g').fill('500');
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+
+    await expect(drawer.getByText(kcalInconsistentText)).toBeVisible();
+    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0);
+    // Still open — the update request was rejected too.
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+
+    // Clean up: delete the row this test created.
+    await page.getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByRole('heading', { name: 'Delete ingredient' })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('cell', { name })).toHaveCount(0);
   });
 });

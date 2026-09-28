@@ -929,6 +929,7 @@
       "carbsRequired": "Sacharidy jsou povinné.",
       "fat": "Tuky / 100 g",
       "fatRequired": "Tuky jsou povinné.",
+      "macroMinRequired": "Musí být 0 nebo více.",
       "unit": "Jednotka",
       "unitPlaceholder": "Vyberte jednotku",
       "unitRequired": "Jednotka je povinná.",

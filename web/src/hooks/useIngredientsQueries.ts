@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { searchFoods, getFoodTags, createFood, updateFood, deleteFood } from '@/api/foods';
 import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
-import { showApiError, showSuccess } from '@/lib/api-errors';
+import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
 
 /**
@@ -56,6 +56,13 @@ export function useCreateFood() {
       showSuccess('ingredients.drawer.createSuccess');
     },
     onError: (error) => {
+      // KCAL_INCONSISTENT is shown inline under the Calories field by the
+      // drawer's own per-call onError (IngredientDrawer.tsx) — toasting it
+      // here too would show the same message twice. Every other error
+      // still gets the toast.
+      if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
+        return;
+      }
       showApiError(error, 'ingredients.drawer.createError');
     },
   });
@@ -76,6 +83,11 @@ export function useUpdateFood() {
       showSuccess('ingredients.drawer.updateSuccess');
     },
     onError: (error) => {
+      // Same reasoning as useCreateFood's onError above — the drawer's own
+      // per-call onError already shows KCAL_INCONSISTENT inline.
+      if (getErrorCode(error) === 'KCAL_INCONSISTENT') {
+        return;
+      }
       showApiError(error, 'ingredients.drawer.updateError');
     },
   });

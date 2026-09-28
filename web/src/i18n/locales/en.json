@@ -908,6 +908,7 @@
       "carbsRequired": "Carbs is required.",
       "fat": "Fat / 100g",
       "fatRequired": "Fat is required.",
+      "macroMinRequired": "Must be 0 or more.",
       "unit": "Unit",
       "unitPlaceholder": "Select unit",
       "unitRequired": "Unit is required.",

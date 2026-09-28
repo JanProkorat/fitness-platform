@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
+import type { FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Info, Activity, Tag } from 'lucide-react';
@@ -155,6 +156,27 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
   const tags = watch('tags');
   const unit = watch('unit');
 
+  // Picks the right translated message for one of the four macro fields'
+  // error, by RHF's error `type` — never the raw zod message:
+  //   'server'    — KCAL_INCONSISTENT, set via setError() below; message is
+  //                 already the translated apiErrors.KCAL_INCONSISTENT text.
+  //   'too_small' — zod's `.min(0)` failed on a present-but-negative value;
+  //                 a different message than "required" (the value IS there).
+  //   anything else (zod's invalid_type, e.g. empty/NaN) — the field is
+  //                 missing, so the translated "<field> is required." text.
+  function macroFieldError(error: FieldError | undefined, requiredKey: string): string | null {
+    if (!error) {
+      return null;
+    }
+    if (error.type === 'server') {
+      return error.message ?? null;
+    }
+    if (error.type === 'too_small') {
+      return t('ingredients.drawer.macroMinRequired');
+    }
+    return t(requiredKey);
+  }
+
   function onSubmit(values: FormValues) {
     const commonServings = [
       { label: values.unit, weightGrams: values.servingSize },
@@ -297,13 +319,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
-                    {errors.kcal && (
+                    {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired') && (
                       <p className="text-meta text-destructive">
-                        {/* KCAL_INCONSISTENT is set via setError({ type: 'server', ... })
-                            in onSubmit's mutation onError — every other error on this
-                            field is the zod "required" rule, translated here rather
-                            than rendered as the raw zod message. */}
-                        {errors.kcal.type === 'server' ? errors.kcal.message : t('ingredients.drawer.caloriesRequired')}
+                        {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired')}
                       </p>
                     )}
                   </div>
@@ -320,8 +338,10 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
-                    {errors.protein && (
-                      <p className="text-meta text-destructive">{t('ingredients.drawer.proteinRequired')}</p>
+                    {macroFieldError(errors.protein, 'ingredients.drawer.proteinRequired') && (
+                      <p className="text-meta text-destructive">
+                        {macroFieldError(errors.protein, 'ingredients.drawer.proteinRequired')}
+                      </p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -337,8 +357,10 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
-                    {errors.carbs && (
-                      <p className="text-meta text-destructive">{t('ingredients.drawer.carbsRequired')}</p>
+                    {macroFieldError(errors.carbs, 'ingredients.drawer.carbsRequired') && (
+                      <p className="text-meta text-destructive">
+                        {macroFieldError(errors.carbs, 'ingredients.drawer.carbsRequired')}
+                      </p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">
@@ -354,7 +376,11 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
                     />
-                    {errors.fat && <p className="text-meta text-destructive">{t('ingredients.drawer.fatRequired')}</p>}
+                    {macroFieldError(errors.fat, 'ingredients.drawer.fatRequired') && (
+                      <p className="text-meta text-destructive">
+                        {macroFieldError(errors.fat, 'ingredients.drawer.fatRequired')}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

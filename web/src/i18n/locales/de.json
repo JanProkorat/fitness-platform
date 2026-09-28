@@ -907,6 +907,7 @@
       "carbsRequired": "Kohlenhydrate sind erforderlich.",
       "fat": "Fett / 100 g",
       "fatRequired": "Fett ist erforderlich.",
+      "macroMinRequired": "Muss 0 oder mehr sein.",
       "unit": "Einheit",
       "unitPlaceholder": "Einheit auswählen",
       "unitRequired": "Einheit ist erforderlich.",
