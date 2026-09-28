@@ -24,6 +24,8 @@ public class GetFoodTagsEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
             s.Description = "Returns the distinct tags across every food visible to the caller — "
                 + "public foods plus the caller's own private foods. Powers the tags filter pill "
                 + "and the drawer's tag suggestions.";
+            s.Response<GetFoodTagsResponse>(StatusCodes.Status200OK, "Distinct tags");
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 

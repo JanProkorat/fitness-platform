@@ -23,6 +23,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
         {
             s.Summary = "Create custom food";
             s.Description = "Creates a new custom food item. Only nutritionists can create custom foods.";
+            s.Response<FoodSummary>(StatusCodes.Status201Created, "Food created");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 

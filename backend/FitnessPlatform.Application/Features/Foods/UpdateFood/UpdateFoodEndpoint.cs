@@ -24,6 +24,10 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
         {
             s.Summary = "Update custom food";
             s.Description = "Updates a custom food item. Only the nutritionist who created it can edit.";
+            s.Response<FoodSummary>(StatusCodes.Status200OK, "Food updated");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, or the food belongs to another nutritionist";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, or soft-deleted";
         });
     }
 

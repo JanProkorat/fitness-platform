@@ -25,6 +25,9 @@ public class SearchFoodsEndpoint(
         {
             s.Summary = "Search foods";
             s.Description = "Fulltext search across food database with optional source filter and pagination.";
+            s.Response<SearchFoodsResponse>(StatusCodes.Status200OK, "Matching foods");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid page, page size, or tags filter";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 
