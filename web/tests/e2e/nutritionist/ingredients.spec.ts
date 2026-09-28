@@ -25,16 +25,23 @@ test.describe('ingredients page', () => {
   });
 
   test('searching filters the list by name and updates the URL', async ({ page }) => {
+    // Wait for the actual filtered search response (not just the URL/debounce
+    // settling) before reading rows — otherwise rows.count() can be read
+    // mid-shrink, while the list still holds unfiltered rows that vanish a
+    // moment later as the filtered response renders, and a fixed nth(i) index
+    // starts pointing at a row that no longer exists.
+    const searchResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('q=Apple'),
+    );
     await page.getByPlaceholder('Search ingredients…').fill('Apple');
+    await searchResponse;
     await page.waitForURL(/q=Apple/);
-    await page.waitForLoadState('networkidle');
 
     const rows = page.locator('tbody tr');
     await expect(rows.first()).toBeVisible();
-    const rowCount = await rows.count();
-    for (let i = 0; i < rowCount; i++) {
-      await expect(rows.nth(i)).toContainText(/Apple/i);
-    }
+    await expect
+      .poll(async () => (await rows.allTextContents()).every((text) => /Apple/i.test(text)))
+      .toBe(true);
   });
 
   test('a system row opens the drawer read-only', async ({ page }) => {
@@ -50,7 +57,10 @@ test.describe('ingredients page', () => {
     await expect(page.getByLabel('Name')).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Save Ingredient' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Close' }).click();
+    // Scoped to the sheet footer: the corner "x" close button also has the
+    // accessible name "Close" (its sr-only label reuses common.close), so an
+    // unscoped getByRole('button', { name: 'Close' }) matches both.
+    await page.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
   });
 
   test('creating, editing, filtering by tag, and deleting a private ingredient', async ({ page }) => {

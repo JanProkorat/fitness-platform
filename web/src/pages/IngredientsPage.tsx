@@ -60,7 +60,12 @@ export default function IngredientsPage() {
     setDrawerOpen(true);
   }
 
-  const drawerReadOnly = !isNutritionist || !selectedFood?.isOwnedByCurrentUser;
+  // Creating (selectedFood === null) is always editable for a nutritionist —
+  // the "not owned" half only applies to an EXISTING food (a system row, or
+  // another coach's shared row). The previous `!selectedFood?.isOwnedByCurrentUser`
+  // evaluated to `!undefined` === true while creating, so "+ New Ingredient"
+  // opened a drawer with every input disabled.
+  const drawerReadOnly = !isNutritionist || (selectedFood !== null && !selectedFood.isOwnedByCurrentUser);
 
   return (
     <div className="flex flex-col gap-4">
