@@ -79,7 +79,8 @@ public class CreateFoodValidatorTests
 
         var result = new CreateFoodValidator().TestValidate(request);
 
-        result.ShouldHaveValidationErrorFor("Tags[0]");
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A tag must not be blank.");
     }
 
     [Fact]
@@ -90,7 +91,8 @@ public class CreateFoodValidatorTests
 
         var result = new CreateFoodValidator().TestValidate(request);
 
-        result.ShouldHaveValidationErrorFor("Tags[0]");
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A tag must be at most 40 characters.");
     }
 
     [Fact]

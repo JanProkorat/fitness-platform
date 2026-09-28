@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Bson;
@@ -42,17 +41,7 @@ public class SearchFoodsEndpoint(
         }
 
         var filterBuilder = Builders<Food>.Filter;
-
-        // Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the ownership term
-        // is suppressed entirely for an empty caller id, so a document that explicitly stores a
-        // zero-uuid owner can't be matched as "owned by the caller" below.
-        var visibilityFilter = currentUserId == Guid.Empty
-            ? filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public)
-            : filterBuilder.Or(
-                filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public),
-                filterBuilder.Eq(f => f.NutritionistId, currentUserId));
-
-        var filter = filterBuilder.Eq(f => f.IsDeleted, false) & visibilityFilter;
+        var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId);
 
         if (req.Category.HasValue)
         {

@@ -71,6 +71,8 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 
         RuleForEach(x => x.Tags)
             .NotEmpty()
-            .MaximumLength(MaxTagLength);
+            .WithMessage("A tag must not be blank.")
+            .MaximumLength(MaxTagLength)
+            .WithMessage($"A tag must be at most {MaxTagLength} characters.");
     }
 }

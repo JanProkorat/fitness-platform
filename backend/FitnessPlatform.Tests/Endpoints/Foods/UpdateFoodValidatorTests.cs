@@ -62,6 +62,30 @@ public class UpdateFoodValidatorTests
     }
 
     [Fact]
+    public void Validate_BlankTag_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.Tags = ["   "];
+
+        var result = new UpdateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A tag must not be blank.");
+    }
+
+    [Fact]
+    public void Validate_TagOverMaxLength_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.Tags = [new string('a', 41)];
+
+        var result = new UpdateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A tag must be at most 40 characters.");
+    }
+
+    [Fact]
     public void Validate_AllergensAndDietaryPreferences_Pass()
     {
         var request = ValidRequest();
