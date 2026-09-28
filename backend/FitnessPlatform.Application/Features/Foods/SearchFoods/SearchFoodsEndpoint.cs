@@ -59,6 +59,13 @@ public class SearchFoodsEndpoint(
             filter &= filterBuilder.Eq(f => f.Category, req.Category.Value);
         }
 
+        if (req.Tags.Count > 0)
+        {
+            // AnyIn matches a document whose Tags array contains at least one of the supplied
+            // values — the "match any" semantics the tags filter pill needs.
+            filter &= filterBuilder.AnyIn(f => f.Tags, req.Tags);
+        }
+
         if (!string.IsNullOrWhiteSpace(req.Query))
         {
             var escaped = Regex.Escape(req.Query);
@@ -91,7 +98,9 @@ public class SearchFoodsEndpoint(
         var findOptions = new FindOptions<Food>
         {
             Skip = (req.Page - 1) * req.PageSize,
-            Limit = req.PageSize
+            Limit = req.PageSize,
+            // Deterministic paging — name asc, then _id asc as a tiebreaker for equal names.
+            Sort = Builders<Food>.Sort.Ascending(f => f.Name).Ascending(f => f.Id)
         };
 
         using var cursor = await mongo.Foods.FindAsync(filter, findOptions, ct);

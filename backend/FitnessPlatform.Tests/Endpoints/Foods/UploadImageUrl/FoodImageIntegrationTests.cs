@@ -53,7 +53,7 @@ public class FoodImageIntegrationTests(FitnessApiFactory factory)
                 Fat = 5m
             },
             Allergens = Array.Empty<string>(),
-            CommonServings = Array.Empty<object>()
+            CommonServings = new[] { new { Label = "100 g", WeightGrams = 100m } }
         }, TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created,

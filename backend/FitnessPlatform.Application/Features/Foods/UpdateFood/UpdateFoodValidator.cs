@@ -10,6 +10,16 @@ namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
 public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 {
     /// <summary>
+    /// The maximum number of tags a single food may carry.
+    /// </summary>
+    private const int MaxTags = 20;
+
+    /// <summary>
+    /// The maximum length of a single tag.
+    /// </summary>
+    private const int MaxTagLength = 40;
+
+    /// <summary>
     /// Initializes validation rules for food update.
     /// </summary>
     public UpdateFoodValidator()
@@ -37,6 +47,10 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
             .Must(n => NutrientValidation.IsKcalConsistent(n.Kcal, n.Protein, n.Carbs, n.Fat))
             .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).");
 
+        RuleFor(x => x.CommonServings)
+            .NotEmpty()
+            .WithMessage("At least one common serving is required — the first entry is used as the default serving.");
+
         RuleForEach(x => x.CommonServings).ChildRules(s =>
         {
             s.RuleFor(x => x.Label).NotEmpty().MaximumLength(100);
@@ -46,5 +60,17 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
         RuleFor(x => x.Visibility)
             .Must(v => !v.HasValue || Enum.IsDefined(v.Value))
             .WithMessage("Visibility must be a valid enum value.");
+
+        RuleForEach(x => x.Allergens).IsInEnum();
+
+        RuleForEach(x => x.DietaryPreferences).IsInEnum();
+
+        RuleFor(x => x.Tags)
+            .Must(tags => tags.Count <= MaxTags)
+            .WithMessage($"At most {MaxTags} tags may be supplied.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty()
+            .MaximumLength(MaxTagLength);
     }
 }

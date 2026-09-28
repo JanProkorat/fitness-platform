@@ -83,7 +83,9 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             })
             .Set(f => f.Category, req.Category)
             .Set(f => f.Note, req.Note)
-            .Set(f => f.Allergens, req.Allergens)
+            .Set(f => f.Allergens, FoodEnumListMapping.ToStoredNames(req.Allergens))
+            .Set(f => f.DietaryPreferences, FoodEnumListMapping.ToStoredNames(req.DietaryPreferences))
+            .Set(f => f.Tags, req.Tags.Select(t => t.Trim()).ToList())
             .Set(f => f.CommonServings, req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList())

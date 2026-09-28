@@ -62,7 +62,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             },
             Category = req.Category,
             Note = req.Note,
-            Allergens = req.Allergens,
+            Allergens = FoodEnumListMapping.ToStoredNames(req.Allergens),
+            DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences),
+            Tags = req.Tags.Select(t => t.Trim()).ToList(),
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),

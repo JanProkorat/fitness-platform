@@ -53,13 +53,29 @@ public class Food
     public FoodCategory Category { get; set; } = FoodCategory.Other;
 
     /// <summary>
-    /// List of allergen identifiers (e.g. "gluten", "milk").
+    /// List of allergen identifiers (e.g. "gluten", "milk"). Stores <see cref="Enums.Allergen"/>
+    /// names as plain strings — see <see cref="Features.Foods.Shared.FoodEnumListMapping"/> for
+    /// the tolerant read/write mapping.
     /// </summary>
     [BsonElement("allergens")]
     public List<string> Allergens { get; set; } = [];
 
     /// <summary>
-    /// Common serving sizes for quick selection.
+    /// List of dietary preference identifiers (e.g. "Vegan", "Keto"). Stores
+    /// <see cref="Enums.DietaryPreference"/> names as plain strings — same mapping as
+    /// <see cref="Allergens"/>.
+    /// </summary>
+    [BsonElement("dietaryPreferences")]
+    public List<string> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// Free-form tags for filtering and classification (e.g. "high-protein", "meal-prep").
+    /// </summary>
+    [BsonElement("tags")]
+    public List<string> Tags { get; set; } = [];
+
+    /// <summary>
+    /// Common serving sizes for quick selection. The first entry is the default serving.
     /// </summary>
     [BsonElement("commonServings")]
     public List<ServingSize> CommonServings { get; set; } = [];

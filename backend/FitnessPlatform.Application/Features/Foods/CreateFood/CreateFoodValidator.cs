@@ -11,6 +11,16 @@ namespace FitnessPlatform.Application.Features.Foods.CreateFood;
 public class CreateFoodValidator : Validator<CreateFoodRequest>
 {
     /// <summary>
+    /// The maximum number of tags a single food may carry.
+    /// </summary>
+    private const int MaxTags = 20;
+
+    /// <summary>
+    /// The maximum length of a single tag.
+    /// </summary>
+    private const int MaxTagLength = 40;
+
+    /// <summary>
     /// Initializes validation rules for custom food creation.
     /// </summary>
     public CreateFoodValidator()
@@ -36,6 +46,10 @@ public class CreateFoodValidator : Validator<CreateFoodRequest>
             .WithErrorCode(ErrorCodes.KcalInconsistent)
             .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).");
 
+        RuleFor(x => x.CommonServings)
+            .NotEmpty()
+            .WithMessage("At least one common serving is required — the first entry is used as the default serving.");
+
         RuleForEach(x => x.CommonServings).ChildRules(s =>
         {
             s.RuleFor(x => x.Label).NotEmpty().MaximumLength(100);
@@ -43,5 +57,17 @@ public class CreateFoodValidator : Validator<CreateFoodRequest>
         });
 
         RuleFor(x => x.Visibility).IsInEnum();
+
+        RuleForEach(x => x.Allergens).IsInEnum();
+
+        RuleForEach(x => x.DietaryPreferences).IsInEnum();
+
+        RuleFor(x => x.Tags)
+            .Must(tags => tags.Count <= MaxTags)
+            .WithMessage($"At most {MaxTags} tags may be supplied.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty()
+            .MaximumLength(MaxTagLength);
     }
 }

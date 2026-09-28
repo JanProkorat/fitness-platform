@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.GetFood;
+using FitnessPlatform.Application.Features.Foods.GetFoodTags;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
@@ -337,5 +338,103 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         await ep.HandleAsync(new GetFoodRequest { FoodId = othersPrivate.ExternalId }, ct);
 
         ep.HttpContext.Response.StatusCode.Should().Be(200);
+    }
+
+    /// <summary>
+    /// #1115 error path: a tag that exists only on another coach's Private food must not surface
+    /// in a search — the tags filter reuses the same own-or-public visibility filter, so it
+    /// returns zero rows rather than leaking the other coach's private ingredient.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_TagOnlyOnOthersPrivateFood_ReturnsZeroRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private Tagged", FoodVisibility.Private);
+        othersPrivate.Tags = ["secret-recipe"];
+        await _foods.InsertOneAsync(othersPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(new SearchFoodsRequest { Tags = ["secret-recipe"] }, ct);
+
+        ep.Response.Foods.Should().BeEmpty();
+        ep.Response.TotalCount.Should().Be(0);
+    }
+
+    /// <summary>
+    /// #1115 success path: the tags filter matches ANY of the supplied tags, and a match on a
+    /// caller's own Private food is still returned.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_TagOnOwnPrivateFood_MatchesAnyOfSuppliedTags()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var ownerId = Guid.NewGuid();
+        var ownPrivate = MakeFood(ownerId, "Own Private Tagged", FoodVisibility.Private);
+        ownPrivate.Tags = ["high-protein"];
+        await _foods.InsertOneAsync(ownPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(new SearchFoodsRequest { Tags = ["low-carb", "high-protein"] }, ct);
+
+        ep.Response.Foods.Should().ContainSingle(f => f.Name == "Own Private Tagged");
+    }
+
+    /// <summary>
+    /// #1115 error path: <c>GET /foods/tags</c> must never list a tag that exists only on another
+    /// coach's Private food — same own-or-public filter as search.
+    /// </summary>
+    [Fact]
+    public async Task GetFoodTags_TagOnlyOnOthersPrivateFood_IsNotListed()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private Tagged", FoodVisibility.Private);
+        othersPrivate.Tags = ["secret-recipe"];
+        var ownPublic = MakeFood(Guid.NewGuid(), "Public Tagged", FoodVisibility.Public);
+        ownPublic.Tags = ["shared-tag"];
+        await _foods.InsertManyAsync([othersPrivate, ownPublic], cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodTagsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(ct);
+
+        ep.Response.Tags.Should().ContainSingle("shared-tag");
+        ep.Response.Tags.Should().NotContain("secret-recipe");
+    }
+
+    /// <summary>
+    /// #1115 success path: a caller's own Private food's tags still appear in their tags listing.
+    /// </summary>
+    [Fact]
+    public async Task GetFoodTags_OwnPrivateFoodTag_IsListed()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var ownerId = Guid.NewGuid();
+        var ownPrivate = MakeFood(ownerId, "Own Private Tagged", FoodVisibility.Private);
+        ownPrivate.Tags = ["my-secret-tag"];
+        await _foods.InsertOneAsync(ownPrivate, cancellationToken: ct);
+
+        var ep = Factory.Create<GetFoodTagsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(ct);
+
+        ep.Response.Tags.Should().Contain("my-secret-tag");
     }
 }

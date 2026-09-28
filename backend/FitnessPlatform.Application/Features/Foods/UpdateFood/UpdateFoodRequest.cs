@@ -55,12 +55,22 @@ public class UpdateFoodRequest
     public string? Note { get; set; }
 
     /// <summary>
-    /// Updated allergen identifiers.
+    /// Updated allergens contained in this food.
     /// </summary>
-    public List<string> Allergens { get; set; } = [];
+    public List<Allergen> Allergens { get; set; } = [];
 
     /// <summary>
-    /// Updated common serving sizes.
+    /// Updated dietary preferences this food satisfies.
+    /// </summary>
+    public List<DietaryPreference> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// Updated free-form tags for filtering and classification.
+    /// </summary>
+    public List<string> Tags { get; set; } = [];
+
+    /// <summary>
+    /// Updated common serving sizes. The first entry is the default serving and is required.
     /// </summary>
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 }
