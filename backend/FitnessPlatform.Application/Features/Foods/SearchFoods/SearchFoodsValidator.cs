@@ -14,6 +14,11 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
     private const int MaxTags = 20;
 
     /// <summary>
+    /// The maximum length of a single filter tag.
+    /// </summary>
+    private const int MaxTagLength = 40;
+
+    /// <summary>
     /// Initializes validation rules for food search.
     /// </summary>
     public SearchFoodsValidator()
@@ -27,5 +32,11 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
         RuleFor(x => x.Tags)
             .Must(tags => tags.Count <= MaxTags)
             .WithMessage($"At most {MaxTags} tags may be supplied.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty()
+            .WithMessage("A filter tag must not be blank.")
+            .MaximumLength(MaxTagLength)
+            .WithMessage($"A filter tag must be at most {MaxTagLength} characters.");
     }
 }

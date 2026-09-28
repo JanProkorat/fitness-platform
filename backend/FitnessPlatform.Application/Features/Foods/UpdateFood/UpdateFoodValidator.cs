@@ -67,14 +67,21 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 
         RuleForEach(x => x.DietaryPreferences).IsInEnum();
 
+        // No CascadeMode is configured anywhere in this backend (default: Continue), so the
+        // Must() below still runs after NotNull() fails — it guards `tags is null` itself rather
+        // than relying on cascade-stop to short-circuit a null Tags before it reaches Count.
         RuleFor(x => x.Tags)
-            .Must(tags => tags.Count <= MaxTags)
+            .NotNull()
+            .WithMessage("Tags must not be null.")
+            .Must(tags => tags is null || tags.Count <= MaxTags)
             .WithMessage($"At most {MaxTags} tags may be supplied.");
 
         RuleForEach(x => x.Tags)
             .NotEmpty()
             .WithMessage("A tag must not be blank.")
             .MaximumLength(MaxTagLength)
-            .WithMessage($"A tag must be at most {MaxTagLength} characters.");
+            .WithMessage($"A tag must be at most {MaxTagLength} characters.")
+            .Must(tag => !tag.Contains(','))
+            .WithMessage("A tag must not contain a comma.");
     }
 }

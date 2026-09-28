@@ -96,6 +96,30 @@ public class CreateFoodValidatorTests
     }
 
     [Fact]
+    public void Validate_NullTags_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.Tags = null!;
+
+        var result = new CreateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("Tags must not be null.");
+    }
+
+    [Fact]
+    public void Validate_TagWithComma_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.Tags = ["meal,prep"];
+
+        var result = new CreateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A tag must not contain a comma.");
+    }
+
+    [Fact]
     public void Validate_AllergensAndDietaryPreferences_Pass()
     {
         var request = ValidRequest();

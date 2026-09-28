@@ -68,8 +68,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             Allergens = FoodEnumListMapping.ToStoredNames(req.Allergens),
             DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences),
             // Normalized to lowercase + trimmed so a search's case doesn't matter — matches the
-            // lowercasing SearchFoodsEndpoint applies to the tags filter.
-            Tags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList(),
+            // lowercasing SearchFoodsEndpoint applies to the tags filter. Distinct() collapses
+            // ["Keto", "keto"] to a single stored value now that both share the same casing.
+            Tags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct().ToList(),
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),

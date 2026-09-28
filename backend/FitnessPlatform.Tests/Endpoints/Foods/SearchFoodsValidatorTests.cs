@@ -39,6 +39,28 @@ public class SearchFoodsValidatorTests
     }
 
     [Fact]
+    public void Validate_BlankTag_FailsWithCorrectMessage()
+    {
+        var request = new SearchFoodsRequest { Tags = ["   "] };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A filter tag must not be blank.");
+    }
+
+    [Fact]
+    public void Validate_TagOverMaxLength_FailsWithCorrectMessage()
+    {
+        var request = new SearchFoodsRequest { Tags = [new string('a', 41)] };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Tags)
+            .WithErrorMessage("A filter tag must be at most 40 characters.");
+    }
+
+    [Fact]
     public void Validate_DefaultRequest_Passes()
     {
         var result = new SearchFoodsValidator().TestValidate(new SearchFoodsRequest());

@@ -9,6 +9,7 @@ using FitnessPlatform.Application.Features.Foods.GetFood;
 using FitnessPlatform.Application.Features.Foods.GetFoodTags;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Foods.Shared;
+using FitnessPlatform.Application.Features.Foods.UpdateFood;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -445,7 +446,9 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     /// GetFoodTagsEndpoint deduped case-insensitively, so a food tagged "Meal-Prep" could not be
     /// found via a "meal-prep"/"MEAL-PREP" pill. CreateFoodEndpoint now normalizes tags to
     /// lowercase + trimmed on write, and SearchFoodsEndpoint lowercases the filter the same way —
-    /// this proves both halves against a real Mongo write/read round trip.
+    /// this proves both halves against a real Mongo write/read round trip. Also covers the sibling
+    /// #1117 review finding: two tags that only differ by case ("Meal-Prep" / "meal-prep") must
+    /// collapse to a single stored value, not two.
     /// </summary>
     [Fact]
     public async Task CreateFood_MixedCaseTag_IsStoredLowercase_AndFoundByDifferentCaseSearch()
@@ -457,7 +460,7 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         {
             Name = "Batch-Cooked Chicken",
             NutrientValue = new NutrientValueDto { Kcal = 125, Protein = 10, Carbs = 10, Fat = 5 },
-            Tags = ["Meal-Prep"],
+            Tags = ["Meal-Prep", "meal-prep", " MEAL-PREP "],
             CommonServings = [new ServingSizeDto { Label = "100 g", WeightGrams = 100 }],
         };
 
@@ -484,5 +487,44 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         await searchEp.HandleAsync(new SearchFoodsRequest { Tags = ["MEAL-PREP"] }, ct);
 
         searchEp.Response.Foods.Should().ContainSingle(f => f.Name == "Batch-Cooked Chicken");
+    }
+
+    /// <summary>
+    /// #1117 review finding: UpdateFoodEndpoint normalizes tags to lowercase but did not
+    /// de-duplicate, so ["Keto", "keto"] stored two entries. Proves the fix against a real Mongo
+    /// write/read round trip — the mock Mongo used by the endpoint-unit tests re-fetches the
+    /// pre-update document, so it cannot observe the actual Set() result.
+    /// </summary>
+    [Fact]
+    public async Task UpdateFood_DuplicateCaseInsensitiveTags_AreDeduplicated()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var existing = MakeFood(ownerId, "Existing Food", FoodVisibility.Private);
+        existing.Tags = ["low-carb"];
+        await _foods.InsertOneAsync(existing, cancellationToken: ct);
+
+        var updateRequest = new UpdateFoodRequest
+        {
+            FoodId = existing.ExternalId,
+            Name = existing.Name,
+            NutrientValue = new NutrientValueDto { Kcal = 125, Protein = 10, Carbs = 10, Fat = 5 },
+            Tags = ["Keto", "keto", "Meal-Prep"],
+            CommonServings = [new ServingSizeDto { Label = "100 g", WeightGrams = 100 }],
+        };
+
+        var updateEp = Factory.Create<UpdateFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await updateEp.HandleAsync(updateRequest, ct);
+
+        var stored = await (await _foods.FindAsync(
+            f => f.ExternalId == existing.ExternalId, cancellationToken: ct)).FirstOrDefaultAsync(ct);
+
+        stored.Should().NotBeNull();
+        stored!.Tags.Should().BeEquivalentTo(["keto", "meal-prep"]);
     }
 }

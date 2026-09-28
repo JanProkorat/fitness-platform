@@ -90,8 +90,9 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             .Set(f => f.Allergens, FoodEnumListMapping.ToStoredNames(req.Allergens))
             .Set(f => f.DietaryPreferences, FoodEnumListMapping.ToStoredNames(req.DietaryPreferences))
             // Normalized to lowercase + trimmed so a search's case doesn't matter — matches the
-            // lowercasing SearchFoodsEndpoint applies to the tags filter.
-            .Set(f => f.Tags, req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList())
+            // lowercasing SearchFoodsEndpoint applies to the tags filter. Distinct() collapses
+            // ["Keto", "keto"] to a single stored value now that both share the same casing.
+            .Set(f => f.Tags, req.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct().ToList())
             .Set(f => f.CommonServings, req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList())
