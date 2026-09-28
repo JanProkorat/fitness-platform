@@ -150,9 +150,19 @@ test.describe('ingredients page', () => {
     // flake depending on whether the toast had already faded. Toast markup
     // lives in `[data-slot="toast-viewport"]`
     // (`@/components/ui/toast.tsx`), never inside the drawer's `dialog`.
+    //
+    // The "no toast" assertions below pass an explicit short timeout rather
+    // than relying on Playwright's default (which happens to equal the
+    // toast's own 5s auto-dismiss window, TOAST_DURATION_MS) — the check is
+    // for an immediate negative, not "eventually disappears". Both the
+    // inline setError() and the (now-skipped) toast call fire synchronously
+    // in the same onError callback, so by the time the inline error is
+    // visible, a toast — if the bug regressed — would already be mounted;
+    // there is nothing to wait for.
     const drawer = page.getByRole('dialog');
     const toastViewport = page.locator('[data-slot="toast-viewport"]');
     const kcalInconsistentText = /doesn.t match macronutrients/i;
+    const noToastTimeout = { timeout: 200 };
 
     // --- Create path ---
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
@@ -177,7 +187,7 @@ test.describe('ingredients page', () => {
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
 
     await expect(drawer.getByText(kcalInconsistentText)).toBeVisible();
-    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0);
+    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0, noToastTimeout);
     // The drawer stays open — the create request was rejected, not fulfilled.
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
@@ -199,7 +209,7 @@ test.describe('ingredients page', () => {
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
 
     await expect(drawer.getByText(kcalInconsistentText)).toBeVisible();
-    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0);
+    await expect(toastViewport.getByText(kcalInconsistentText)).toHaveCount(0, noToastTimeout);
     // Still open — the update request was rejected too.
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
 
@@ -210,5 +220,23 @@ test.describe('ingredients page', () => {
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('cell', { name })).toHaveCount(0);
+  });
+
+  test('cannot add a 21st tag', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    const tagsInput = page.getByLabel('Tags');
+    for (let tagIndex = 1; tagIndex <= 20; tagIndex++) {
+      await tagsInput.fill(`tag-${tagIndex}`);
+      await tagsInput.press('Enter');
+    }
+
+    await expect(page.getByText('You can add up to 20 tags.')).toBeVisible();
+    // TagsInput hides its own text input once at the cap — there's nowhere
+    // left to type a 21st tag.
+    await expect(page.getByLabel('Tags')).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Cancel' }).click();
   });
 });

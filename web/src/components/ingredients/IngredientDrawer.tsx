@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import type { FieldError } from 'react-hook-form';
@@ -41,6 +41,12 @@ const CATEGORY_VALUES = Object.values(FoodCategory);
 const ALLERGEN_VALUES = Object.values(Allergen);
 const DIETARY_PREFERENCE_VALUES = Object.values(DietaryPreference);
 
+/** Mirrors TagsInput's own cap (#1115 code review) — kept here too as the
+ * safety net for legacy data already over the limit (loaded into edit mode
+ * without the user ever touching Tags, so TagsInput's own client-side
+ * refusal never gets a chance to run). */
+const MAX_TAGS = 20;
+
 // Numeric fields use `z.number()` (not `z.coerce.number()`) paired with
 // `register(name, { valueAsNumber: true })` below — RHF converts the input
 // string to a number before validation runs, so the schema's input and
@@ -48,21 +54,36 @@ const DIETARY_PREFERENCE_VALUES = Object.values(DietaryPreference);
 // *input* type `unknown` while its *output* type is `number`, which
 // `@hookform/resolvers`'s `Resolver<FormValues>` cannot reconcile with a
 // `useForm<FormValues>()` typed to the output shape (TS2322/TS2345 at build).
-const formSchema = z.object({
-  name: z.string().trim().min(1),
-  category: z.string().refine((value) => CATEGORY_VALUES.includes(value as FoodCategory), { message: 'required' }),
-  kcal: z.number({ message: 'required' }).min(0),
-  protein: z.number({ message: 'required' }).min(0),
-  carbs: z.number({ message: 'required' }).min(0),
-  fat: z.number({ message: 'required' }).min(0),
-  unit: z.string().refine((value) => (UNIT_KEYS as readonly string[]).includes(value), { message: 'required' }),
-  servingSize: z.number({ message: 'required' }).positive(),
-  dietaryPreferences: z.array(z.string()),
-  allergens: z.array(z.string()),
-  tags: z.array(z.string()).max(20),
-});
+//
+// `allowedLegacyUnit` — an owned food's CommonServings[0].Label may predate
+// the fixed UNIT_KEYS list (e.g. imported/seeded data). The Unit select
+// renders that raw label as an extra option (see `unit` state below) so it's
+// visibly selected, but without this the schema itself would still reject
+// saving the food unchanged, since the raw label isn't a UNIT_KEYS member.
+// Passed only in edit mode (see `IngredientDrawer`'s `legacyUnit` local) —
+// on create there's no existing food to inherit a legacy label from.
+function buildFormSchema(allowedLegacyUnit: string | null) {
+  return z.object({
+    name: z.string().trim().min(1),
+    category: z.string().refine((value) => CATEGORY_VALUES.includes(value as FoodCategory), { message: 'required' }),
+    kcal: z.number({ message: 'required' }).min(0),
+    protein: z.number({ message: 'required' }).min(0),
+    carbs: z.number({ message: 'required' }).min(0),
+    fat: z.number({ message: 'required' }).min(0),
+    unit: z
+      .string()
+      .refine(
+        (value) => (UNIT_KEYS as readonly string[]).includes(value) || (allowedLegacyUnit !== null && value === allowedLegacyUnit),
+        { message: 'required' },
+      ),
+    servingSize: z.number({ message: 'required' }).positive(),
+    dietaryPreferences: z.array(z.string()),
+    allergens: z.array(z.string()),
+    tags: z.array(z.string()).max(MAX_TAGS),
+  });
+}
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof buildFormSchema>>;
 
 // Unit defaults to "Portion" on create (docs/design/ingredients/inventory.md
 // point 10, "select, value 'Portion'") — every other field starts empty.
@@ -108,10 +129,12 @@ interface Props {
 
 /**
  * Create / edit / read-only drawer for an ingredient. Mirrors `AddClientDrawer`
- * (`@/components/clients/AddClientDrawer.tsx`) — Sheet + React Hook Form + Zod,
- * mutation `onSuccess` closes the drawer, `onError` shows a toast (from the
- * mutation hook) plus an additive inline error for the one code that has a
- * natural field to attach to (KCAL_INCONSISTENT → the Calories field).
+ * (`@/components/clients/AddClientDrawer.tsx`) — Sheet + React Hook Form + Zod.
+ * On error, `onSubmit`'s per-call `onError` sets an additive inline error for
+ * the one code that has a natural field to attach to (KCAL_INCONSISTENT →
+ * the Calories field); the mutation hooks themselves (`useCreateFood`/
+ * `useUpdateFood`) toast every *other* error code, skipping KCAL_INCONSISTENT
+ * specifically so it isn't shown twice.
  *
  * Editing is a full-state PUT (`UpdateFoodEndpoint.cs:61-90`) — `onSubmit`
  * round-trips `nameEn`/`nameCs`/`nameDe`, `note`, `visibility` and any
@@ -126,6 +149,12 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
   const createMutation = useCreateFood();
   const updateMutation = useUpdateFood();
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Only in edit mode: lets the schema accept the food's own current Unit
+  // label unchanged even when it predates UNIT_KEYS — see buildFormSchema's
+  // doc comment.
+  const legacyUnit = mode === 'edit' ? (food?.commonServings?.[0]?.label ?? null) : null;
+  const formSchema = useMemo(() => buildFormSchema(legacyUnit), [legacyUnit]);
 
   const {
     register,
@@ -459,7 +488,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="ingredient-tags">{t('ingredients.drawer.tags')}</Label>
                   <TagsInput id="ingredient-tags" value={tags} onChange={(values) => setValue('tags', values)} />
-                  {errors.tags && <p className="text-meta text-destructive">{errors.tags.message}</p>}
+                  {errors.tags && (
+                    <p className="text-meta text-destructive">{t('ingredients.drawer.tagsMax', { max: MAX_TAGS })}</p>
+                  )}
                 </div>
               </div>
             </fieldset>

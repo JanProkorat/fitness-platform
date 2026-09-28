@@ -920,6 +920,8 @@
       "allergensPlaceholder": "Select allergens",
       "tags": "Tags",
       "tagsPlaceholder": "Add a tag…",
+      "tagsMax": "You can add up to {{max}} tags.",
+      "tagTooLong": "A tag must be {{max}} characters or fewer.",
       "save": "Save Ingredient",
       "delete": "Delete",
       "createSuccess": "Ingredient created.",

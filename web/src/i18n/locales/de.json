@@ -919,6 +919,8 @@
       "allergensPlaceholder": "Allergene auswählen",
       "tags": "Tags",
       "tagsPlaceholder": "Tag hinzufügen…",
+      "tagsMax": "Sie können bis zu {{max}} Tags hinzufügen.",
+      "tagTooLong": "Ein Tag darf höchstens {{max}} Zeichen haben.",
       "save": "Zutat speichern",
       "delete": "Löschen",
       "createSuccess": "Zutat erstellt.",

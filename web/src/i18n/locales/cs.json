@@ -941,6 +941,8 @@
       "allergensPlaceholder": "Vyberte alergeny",
       "tags": "Štítky",
       "tagsPlaceholder": "Přidat štítek…",
+      "tagsMax": "Můžete přidat maximálně {{max}} štítků.",
+      "tagTooLong": "Štítek může mít nejvýše {{max}} znaků.",
       "save": "Uložit surovinu",
       "delete": "Smazat",
       "createSuccess": "Surovina byla vytvořena.",
