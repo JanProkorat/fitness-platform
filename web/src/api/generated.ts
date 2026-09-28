@@ -11117,14 +11117,19 @@ export class ApiClient {
 
     /**
      * Search foods
+     * @param tags Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
      * @param category (optional) Optional category filter.
      * @return Success
      */
-    searchFoodsEndpoint(page: number, pageSize: number, q?: string | null | undefined, category?: FoodCategory | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(tags: string[], page: number, pageSize: number, q?: string | null | undefined, category?: FoodCategory | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
+        if (tags === undefined || tags === null)
+            throw new globalThis.Error("The parameter 'tags' must be defined and cannot be null.");
+        else
+            tags && tags.forEach(item => { url_ += "tags=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -11192,6 +11197,66 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<SearchFoodsResponse>(null as any);
+    }
+
+    /**
+     * List food tags
+     * @return Success
+     */
+    getFoodTagsEndpoint(signal?: AbortSignal): Promise<GetFoodTagsResponse> {
+        let url_ = this.baseUrl + "/foods/tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetFoodTagsEndpoint(_response);
+        });
+    }
+
+    protected processGetFoodTagsEndpoint(response: AxiosResponse): Promise<GetFoodTagsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<GetFoodTagsResponse>(result200);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<GetFoodTagsResponse>(null as any);
     }
 
     /**
@@ -21283,9 +21348,13 @@ export interface FoodSummary {
     nameDe?: string | undefined;
     /** Nutritional values per 100 grams. */
     nutrientValue?: NutrientValueDto;
-    /** Allergen identifiers. */
-    allergens?: string[];
-    /** Common serving sizes. */
+    /** Allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Free-form tags for filtering and classification. */
+    tags?: string[];
+    /** Common serving sizes. The first entry is the default serving. */
     commonServings?: ServingSizeDto[];
     /** Food category. */
     category?: FoodCategory;
@@ -21322,6 +21391,36 @@ export interface NutrientValueDto {
     saturatedFat?: number | undefined;
     /** Salt in grams per 100 grams. */
     salt?: number | undefined;
+}
+
+/** The 14 allergens the EU Food Information for Consumers Regulation (1169/2011) requires to be declared. */
+export enum Allergen {
+    Gluten = "Gluten",
+    Crustaceans = "Crustaceans",
+    Eggs = "Eggs",
+    Fish = "Fish",
+    Peanuts = "Peanuts",
+    Soy = "Soy",
+    Milk = "Milk",
+    TreeNuts = "TreeNuts",
+    Celery = "Celery",
+    Mustard = "Mustard",
+    Sesame = "Sesame",
+    Sulphites = "Sulphites",
+    Lupin = "Lupin",
+    Molluscs = "Molluscs",
+}
+
+/** Dietary preference tags that can be attached to a food item. */
+export enum DietaryPreference {
+    Vegan = "Vegan",
+    Vegetarian = "Vegetarian",
+    Pescatarian = "Pescatarian",
+    GlutenFree = "GlutenFree",
+    LactoseFree = "LactoseFree",
+    DairyFree = "DairyFree",
+    Keto = "Keto",
+    LowCarb = "LowCarb",
 }
 
 /** Serving size DTO for API responses. */
@@ -21374,10 +21473,14 @@ Only the food's creator can change this value. */
     visibility?: FoodVisibility | undefined;
     /** Updated user note. */
     note?: string | undefined;
-    /** Updated allergen identifiers. */
-    allergens?: string[];
-    /** Updated common serving sizes. */
-    commonServings?: ServingSizeDto[];
+    /** Updated allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Updated dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Updated free-form tags for filtering and classification. */
+    tags: string[];
+    /** Updated common serving sizes. The first entry is the default serving and is required. */
+    commonServings: ServingSizeDto[];
 }
 
 /** Response model for food search results. */
@@ -21394,6 +21497,12 @@ export interface SearchFoodsResponse {
 
 /** Request model for searching foods. */
 export interface SearchFoodsRequest {
+}
+
+/** Response model for the distinct food tags listing. */
+export interface GetFoodTagsResponse {
+    /** Distinct tags across every food visible to the caller, sorted alphabetically. */
+    tags?: string[];
 }
 
 /** Request model for retrieving a single food by its external ID. */
@@ -21434,14 +21543,19 @@ export interface CreateFoodRequest {
     nutrientValue?: NutrientValueDto;
     /** Food category. */
     category?: FoodCategory;
-    /** Visibility of the food. Defaults to Public when omitted. */
+    /** Visibility of the food. Defaults to Private when omitted —
+a coach-authored ingredient starts out visible only to its creator. */
     visibility?: FoodVisibility;
     /** Optional user note. */
     note?: string | undefined;
-    /** Allergen identifiers. */
-    allergens?: string[];
-    /** Common serving sizes. */
-    commonServings?: ServingSizeDto[];
+    /** Allergens contained in this food. */
+    allergens?: Allergen[];
+    /** Dietary preferences this food satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Free-form tags for filtering and classification. */
+    tags: string[];
+    /** Common serving sizes. The first entry is the default serving and is required. */
+    commonServings: ServingSizeDto[];
 }
 
 /** Request model for confirming the uploaded food image blob URL. */
