@@ -53,9 +53,14 @@ public class SearchFoodsEndpoint(
 
         if (req.Tags.Count > 0)
         {
+            // Tags are stored lowercase + trimmed (CreateFoodEndpoint/UpdateFoodEndpoint), so the
+            // filter values must be normalized the same way or a differently-cased pill (e.g.
+            // "MEAL-PREP") would silently match nothing.
+            var normalizedTags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList();
+
             // AnyIn matches a document whose Tags array contains at least one of the supplied
             // values — the "match any" semantics the tags filter pill needs.
-            filter &= filterBuilder.AnyIn(f => f.Tags, req.Tags);
+            filter &= filterBuilder.AnyIn(f => f.Tags, normalizedTags);
         }
 
         if (!string.IsNullOrWhiteSpace(req.Query))

@@ -4,9 +4,11 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Foods.CreateFood;
 using FitnessPlatform.Application.Features.Foods.GetFood;
 using FitnessPlatform.Application.Features.Foods.GetFoodTags;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
+using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -411,7 +413,7 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 
         await ep.HandleAsync(ct);
 
-        ep.Response.Tags.Should().ContainSingle("shared-tag");
+        ep.Response.Tags.Should().ContainSingle().Which.Should().Be("shared-tag");
         ep.Response.Tags.Should().NotContain("secret-recipe");
     }
 
@@ -436,5 +438,51 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         await ep.HandleAsync(ct);
 
         ep.Response.Tags.Should().Contain("my-secret-tag");
+    }
+
+    /// <summary>
+    /// #1115 regression: SearchFoodsEndpoint's tags filter used to be case-sensitive while
+    /// GetFoodTagsEndpoint deduped case-insensitively, so a food tagged "Meal-Prep" could not be
+    /// found via a "meal-prep"/"MEAL-PREP" pill. CreateFoodEndpoint now normalizes tags to
+    /// lowercase + trimmed on write, and SearchFoodsEndpoint lowercases the filter the same way —
+    /// this proves both halves against a real Mongo write/read round trip.
+    /// </summary>
+    [Fact]
+    public async Task CreateFood_MixedCaseTag_IsStoredLowercase_AndFoundByDifferentCaseSearch()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var createRequest = new CreateFoodRequest
+        {
+            Name = "Batch-Cooked Chicken",
+            NutrientValue = new NutrientValueDto { Kcal = 125, Protein = 10, Carbs = 10, Fat = 5 },
+            Tags = ["Meal-Prep"],
+            CommonServings = [new ServingSizeDto { Label = "100 g", WeightGrams = 100 }],
+        };
+
+        var createEp = Factory.Create<CreateFoodEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await createEp.HandleAsync(createRequest, ct);
+
+        createEp.HttpContext.Response.StatusCode.Should().Be(201);
+
+        var stored = await (await _foods.FindAsync(
+            f => f.Name == "Batch-Cooked Chicken", cancellationToken: ct)).FirstOrDefaultAsync(ct);
+
+        stored.Should().NotBeNull();
+        stored!.Tags.Should().ContainSingle().Which.Should().Be("meal-prep");
+
+        var searchEp = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await searchEp.HandleAsync(new SearchFoodsRequest { Tags = ["MEAL-PREP"] }, ct);
+
+        searchEp.Response.Foods.Should().ContainSingle(f => f.Name == "Batch-Cooked Chicken");
     }
 }

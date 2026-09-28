@@ -67,7 +67,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             Note = req.Note,
             Allergens = FoodEnumListMapping.ToStoredNames(req.Allergens),
             DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences),
-            Tags = req.Tags.Select(t => t.Trim()).ToList(),
+            // Normalized to lowercase + trimmed so a search's case doesn't matter — matches the
+            // lowercasing SearchFoodsEndpoint applies to the tags filter.
+            Tags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList(),
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),
