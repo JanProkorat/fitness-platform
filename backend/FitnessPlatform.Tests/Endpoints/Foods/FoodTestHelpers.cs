@@ -59,10 +59,19 @@ public static class FoodTestHelpers
     /// </summary>
     public static IMongoContext CreateMockMongo(Food[] foods, FoodTag[] foodTags, FoodTagAssignment[] assignments)
     {
+        // Each collection is built into a local BEFORE any .Returns() call — inlining
+        // CreateMockCollection(...) directly as a .Returns() argument configures a nested
+        // substitute while the outer call's "last call" is still pending, which throws
+        // NSubstitute.Exceptions.CouldNotSetReturnDueToNoLastCallException (its own docs warn
+        // against exactly this: "avoid mySub.SomeMethod().Returns(ConfigOtherSub())").
+        var foodsCollection = CreateMockCollection(foods.ToList());
+        var foodTagsCollection = CreateMockCollection(foodTags.ToList());
+        var foodTagAssignmentsCollection = CreateMockCollection(assignments.ToList());
+
         var mongo = Substitute.For<IMongoContext>();
-        mongo.Foods.Returns(CreateMockCollection(foods.ToList()));
-        mongo.FoodTags.Returns(CreateMockCollection(foodTags.ToList()));
-        mongo.FoodTagAssignments.Returns(CreateMockCollection(assignments.ToList()));
+        mongo.Foods.Returns(foodsCollection);
+        mongo.FoodTags.Returns(foodTagsCollection);
+        mongo.FoodTagAssignments.Returns(foodTagAssignmentsCollection);
         return mongo;
     }
 
