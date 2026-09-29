@@ -57,13 +57,28 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Called after the tag is created, so a per-row caller can auto-assign it. */
   onCreated?: (tag: ClientTagDto) => void;
+  /**
+   * Forwarded to DialogContent's `onCloseAutoFocus`. This dialog has no
+   * DialogTrigger of its own, so Radix's default on close is to refocus
+   * whatever element was focused when it opened. That's correct for a
+   * caller which keeps that element mounted for the dialog's whole
+   * lifetime (ClientTagPickerPopover, whose own popover stays open behind
+   * this modal) but wrong for a caller that unmounts its trigger first
+   * (ClientTagFilterPopover, which closes its popover before opening this
+   * dialog) — such a caller passes its own handler to refocus its trigger
+   * instead. Optional so the picker's usage is unaffected.
+   */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 /**
- * Inline tag-creation modal, opened from a row's tag picker (see
- * ClientTagPickerPopover).
+ * Inline tag-creation modal. Opened from a row's tag picker
+ * (ClientTagPickerPopover, which leaves its own popover open behind this
+ * modal) and from the filter popover (ClientTagFilterPopover, which closes
+ * itself first — see that component's doc comment and this file's
+ * `onCloseAutoFocus` prop).
  */
-export default function CreateTagDialog({ open, onOpenChange, onCreated }: Props) {
+export default function CreateTagDialog({ open, onOpenChange, onCreated, onCloseAutoFocus }: Props) {
   const { t } = useTranslation();
 
   const schema = z.object({
@@ -145,7 +160,7 @@ export default function CreateTagDialog({ open, onOpenChange, onCreated }: Props
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onOpenAutoFocus={handleOpenAutoFocus}>
+      <DialogContent onOpenAutoFocus={handleOpenAutoFocus} onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t('clients.tagPicker.createTitle')}</DialogTitle>
           <DialogDescription>{t('clients.tagPicker.createDescription')}</DialogDescription>

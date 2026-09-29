@@ -10,6 +10,7 @@
  * `test` export lands on the login page and asserts against the marketing
  * page instead of the authenticated portal.
  */
+import { request as apiRequest } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 test.describe('clients list page', () => {
@@ -223,5 +224,127 @@ test.describe('clients list page', () => {
     await expect(card.getByText('1 active plan', { exact: true })).toBeVisible();
     await expect(card.getByText('QA Test Plan — ForTime fixture', { exact: false })).toBeVisible();
     await expect(card.getByText('Since', { exact: false })).toHaveCount(0);
+  });
+});
+
+const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
+
+interface LoginResponseBody {
+  accessToken: string;
+}
+
+interface ClientTagApiBody {
+  tagId?: string;
+}
+
+interface GetClientTagsApiBody {
+  tags?: ClientTagApiBody[];
+}
+
+/**
+ * Logs in as qa.trainer via a bare API context (same one-off pattern as
+ * `nutritionist/ingredients.spec.ts`'s `loginAsNutritionist`), so tag
+ * cleanup below never touches the fixture's own per-attempt browser-session
+ * token (see `../fixtures/auth.ts`'s header comment).
+ */
+async function loginAsTrainer(baseURL: string): Promise<string> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('[clients] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/auth/login', { data: { email: TRAINER_EMAIL, password } });
+    if (!response.ok()) {
+      throw new Error(`[clients] login as qa.trainer returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Deletes every client tag the caller owns via GET + DELETE
+ * /trainer/client-tags. The seed leaves zero client tags (#1119 design
+ * review), but a retried/rerun attempt without a full DB reset would keep
+ * whatever a previous attempt created, and CreateClientTagEndpoint 409s on a
+ * duplicate name — so this runs before AND after the create test below.
+ */
+async function deleteAllClientTags(baseURL: string): Promise<void> {
+  const accessToken = await loginAsTrainer(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const listResponse = await api.get('/trainer/client-tags', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!listResponse.ok()) {
+      throw new Error(
+        `[clients] GET /trainer/client-tags returned ${listResponse.status()} ${listResponse.statusText()}.`,
+      );
+    }
+    const { tags } = (await listResponse.json()) as GetClientTagsApiBody;
+    for (const tag of tags ?? []) {
+      if (!tag.tagId) {
+        continue;
+      }
+      await api.delete(`/trainer/client-tags/${tag.tagId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * #1119 — creating a client tag from the tag *filter* popover (previously
+ * only the per-row picker could create one). Covers the design review's two
+ * MAJOR points: CreateTagDialog renders as a sibling of the now-controlled
+ * Popover (ClientTagFilterPopover.tsx), and closing the filter before
+ * opening the dialog, then reopening it on success, with the new tag
+ * listed but not ticked (maintainer decision — a fresh tag has no clients
+ * yet, so auto-selecting it would filter the table to empty).
+ */
+test.describe('client tag filter — create a tag (#1119)', () => {
+  test.beforeEach(async ({ page, baseURL }) => {
+    await deleteAllClientTags(baseURL ?? 'http://localhost:5173');
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test.afterEach(async ({ baseURL }) => {
+    await deleteAllClientTags(baseURL ?? 'http://localhost:5173');
+  });
+
+  test('creates a tag from the filter popup and reopens it listed, unticked', async ({ page }) => {
+    const popoverContent = page.locator("[data-slot='popover-content']");
+
+    await page.getByRole('button', { name: 'Select tags' }).click();
+    await expect(popoverContent).toBeVisible();
+    await expect(popoverContent.getByText("You haven't created any tags yet.")).toBeVisible();
+
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
+
+    const tagName = `QA Filter Tag ${Date.now()}`;
+    await dialog.getByLabel('Name').fill(tagName);
+
+    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    // Dialog closes and the filter popover reopens on its own (see
+    // ClientTagFilterPopover's `handleCreated`) — the same trigger click is
+    // not repeated.
+    await expect(dialog).toBeHidden();
+    await expect(popoverContent).toBeVisible();
+
+    const newTagRow = popoverContent.locator('li', { hasText: tagName });
+    await expect(newTagRow).toBeVisible();
+    await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
   });
 });
