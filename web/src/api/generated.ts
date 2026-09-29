@@ -11117,15 +11117,21 @@ export class ApiClient {
 
     /**
      * Search foods
+     * @param category Optional category filter — matches a food carrying ANY of the supplied categories. Bound
+    from the repeated category query param, so a single ?category=Dairy still
+    binds a one-item list.
      * @param tags Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
-     * @param category (optional) Optional category filter.
      * @return Matching foods
      */
-    searchFoodsEndpoint(tags: string[], page: number, pageSize: number, q?: string | null | undefined, category?: FoodCategory | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tags: string[], page: number, pageSize: number, q?: string | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
+        if (category === undefined || category === null)
+            throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
+        else
+            category && category.forEach(item => { url_ += "category=" + encodeURIComponent("" + item) + "&"; });
         if (tags === undefined || tags === null)
             throw new globalThis.Error("The parameter 'tags' must be defined and cannot be null.");
         else
@@ -11140,8 +11146,6 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (q !== undefined && q !== null)
             url_ += "q=" + encodeURIComponent("" + q) + "&";
-        if (category !== undefined && category !== null)
-            url_ += "category=" + encodeURIComponent("" + category) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -11186,7 +11190,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid page, page size, or tags filter", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, tags filter, or category filter", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;

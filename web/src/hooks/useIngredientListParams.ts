@@ -8,7 +8,7 @@ const VALID_CATEGORIES: readonly string[] = Object.values(FoodCategory);
 
 export interface IngredientListFilters {
   search: string;
-  category?: FoodCategory;
+  categories: FoodCategory[];
   tags: string[];
   page: number;
   pageSize: number;
@@ -19,9 +19,8 @@ export interface UseIngredientListParamsResult {
   /** Sets the search text. Uses `replace` (not `push`) so Back doesn't walk
    * one step per keystroke; resets page to 1. */
   setSearch: (value: string) => void;
-  /** Sets (or clears, via `undefined`) the category filter. Pushes a history
-   * entry; resets page to 1. */
-  setCategory: (category: FoodCategory | undefined) => void;
+  /** Replaces the full selected-categories set. Pushes a history entry; resets page to 1. */
+  setCategories: (categories: FoodCategory[]) => void;
   /** Replaces the full selected-tags set. Pushes a history entry; resets page to 1. */
   setTags: (tags: string[]) => void;
   /** Navigates to a page. Pushes a history entry. */
@@ -30,8 +29,18 @@ export interface UseIngredientListParamsResult {
   clearFilters: () => void;
 }
 
-function parseCategory(value: string | null): FoodCategory | undefined {
-  return VALID_CATEGORIES.includes(value ?? '') ? (value as FoodCategory) : undefined;
+/** Parses the comma-separated `category` URL param, same shape as `tags` —
+ * a legacy `?category=Dairy` single-value link still parses to `[Dairy]`,
+ * and any value that isn't a known `FoodCategory` is dropped silently. */
+function parseCategories(value: string | null): FoodCategory[] {
+  if (!value) {
+    return [];
+  }
+  const categories = value
+    .split(',')
+    .map((category) => category.trim())
+    .filter((category) => VALID_CATEGORIES.includes(category));
+  return Array.from(new Set(categories)) as FoodCategory[];
 }
 
 function parsePage(value: string | null): number {
@@ -64,7 +73,7 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
   const filters = useMemo<IngredientListFilters>(
     () => ({
       search: searchParams.get('q') ?? '',
-      category: parseCategory(searchParams.get('category')),
+      categories: parseCategories(searchParams.get('category')),
       tags: parseTags(searchParams.get('tags')),
       page: parsePage(searchParams.get('page')),
       pageSize: INGREDIENTS_PAGE_SIZE,
@@ -99,9 +108,10 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
     [update],
   );
 
-  const setCategory = useCallback(
-    (category: FoodCategory | undefined) => {
-      update({ category: category ?? null, page: null });
+  const setCategories = useCallback(
+    (categories: FoodCategory[]) => {
+      const deduped = Array.from(new Set(categories));
+      update({ category: deduped.length ? deduped.join(',') : null, page: null });
     },
     [update],
   );
@@ -125,5 +135,5 @@ export function useIngredientListParams(): UseIngredientListParamsResult {
     update({ category: null, tags: null, q: null, page: null });
   }, [update]);
 
-  return { filters, setSearch, setCategory, setTags, setPage, clearFilters };
+  return { filters, setSearch, setCategories, setTags, setPage, clearFilters };
 }

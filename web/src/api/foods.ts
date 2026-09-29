@@ -19,7 +19,10 @@ export type FoodImageSlot = 'main' | 'gallery';
 
 export interface SearchFoodsParams {
   q?: string;
-  category?: FoodCategory;
+  /** Matches a food carrying ANY of the supplied categories. Always passed
+   * through (even empty) — the generated client serialises it as a repeated
+   * `category=` query parameter, same shape as `tags` below. */
+  categories: FoodCategory[];
   /** Matches a food carrying ANY of the supplied tags. Always passed through
    * (even empty) — the generated client serialises it as a repeated
    * `tags=` query parameter; hand-building that URL is exactly how the
@@ -38,12 +41,15 @@ export interface SearchFoodsResult {
 
 /** Search foods (ingredients) by name, category and tags, with pagination. */
 export async function searchFoods(params: SearchFoodsParams): Promise<SearchFoodsResult> {
+  // NSwag reorders array params ahead of scalar ones, and generator output can
+  // silently reorder further on regen — always re-check this argument order
+  // against the generated `searchFoodsEndpoint` signature, don't assume it.
   const response = await apiClient.searchFoodsEndpoint(
+    params.categories,
     params.tags,
     params.page,
     params.pageSize,
     params.q,
-    params.category,
   );
   return {
     foods: response.foods ?? [],

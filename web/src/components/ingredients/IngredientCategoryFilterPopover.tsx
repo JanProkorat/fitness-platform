@@ -22,23 +22,26 @@ const CATEGORY_ORDER: readonly FoodCategory[] = [
 ];
 
 interface Props {
-  selectedCategory?: FoodCategory;
-  onChange: (category: FoodCategory | undefined) => void;
+  selectedCategories: FoodCategory[];
+  onChange: (categories: FoodCategory[]) => void;
 }
 
 /**
- * Single-select Category filter pill — the backend's search endpoint filters
- * on at most one `FoodCategory` (`SearchFoodsRequest.Category` is a nullable
- * enum, not a list), unlike the Tags filter. Built on the same Popover +
- * Checkbox primitives as `IngredientTagFilterPopover` for visual consistency,
- * but a re-click of the already-selected category (or of another one)
- * replaces the selection instead of adding to it.
+ * Multi-select Category filter pill — the backend's search endpoint filters
+ * on any number of `FoodCategory` values (`SearchFoodsRequest.Categories` is
+ * a list bound from the repeated `category` query param), same "match any"
+ * shape as the Tags filter. Mirrors `IngredientTagFilterPopover`, built on
+ * the same Popover + Checkbox primitives for visual consistency.
  */
-export default function IngredientCategoryFilterPopover({ selectedCategory, onChange }: Props) {
+export default function IngredientCategoryFilterPopover({ selectedCategories, onChange }: Props) {
   const { t } = useTranslation();
 
   function toggleCategory(category: FoodCategory) {
-    onChange(selectedCategory === category ? undefined : category);
+    onChange(
+      selectedCategories.includes(category)
+        ? selectedCategories.filter((c) => c !== category)
+        : [...selectedCategories, category],
+    );
   }
 
   return (
@@ -47,7 +50,7 @@ export default function IngredientCategoryFilterPopover({ selectedCategory, onCh
         <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
           <Plus className="size-3" aria-hidden="true" />
           {t('ingredients.filters.category')}
-          {selectedCategory && <span className="text-caption">1</span>}
+          {selectedCategories.length > 0 && <span className="text-caption">{selectedCategories.length}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-64">
@@ -55,7 +58,10 @@ export default function IngredientCategoryFilterPopover({ selectedCategory, onCh
           {CATEGORY_ORDER.map((category) => (
             <li key={category}>
               <label className="flex cursor-pointer items-center gap-2 text-body text-foreground">
-                <Checkbox checked={selectedCategory === category} onCheckedChange={() => toggleCategory(category)} />
+                <Checkbox
+                  checked={selectedCategories.includes(category)}
+                  onCheckedChange={() => toggleCategory(category)}
+                />
                 {t(`ingredients.category.${category}`)}
               </label>
             </li>
