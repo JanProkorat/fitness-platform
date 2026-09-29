@@ -60,23 +60,29 @@ interface Props {
   /**
    * Forwarded to DialogContent's `onCloseAutoFocus`. This dialog has no
    * DialogTrigger of its own, so Radix's default on close is to refocus
-   * whatever element was focused when it opened. That's correct for a
-   * caller which keeps that element mounted for the dialog's whole
-   * lifetime (ClientTagPickerPopover, whose own popover stays open behind
-   * this modal) but wrong for a caller that unmounts its trigger first
-   * (ClientTagFilterPopover, which closes its popover before opening this
-   * dialog) — such a caller passes its own handler to refocus its trigger
-   * instead. Optional so the picker's usage is unaffected.
+   * whatever element was focused when it opened. Both callers
+   * (ClientTagPickerPopover, ClientTagFilterPopover) close their own popover
+   * *before* opening this dialog — a modal Dialog's overlay + focus trap
+   * reads as an outside interaction to a non-modal Popover and dismisses it
+   * regardless, so leaving that popover open was never actually an option —
+   * which means the element Radix would restore focus to (the popover's own
+   * "+ Create tag" button) is already unmounted by the time this dialog
+   * closes, and its default falls back to `<body>`. Each caller passes a
+   * handler here that prevents that default and refocuses its own trigger
+   * button instead. Optional because a hypothetical caller that never
+   * unmounts its trigger for this dialog's lifetime wouldn't need to
+   * override the default.
    */
   onCloseAutoFocus?: (event: Event) => void;
 }
 
 /**
  * Inline tag-creation modal. Opened from a row's tag picker
- * (ClientTagPickerPopover, which leaves its own popover open behind this
- * modal) and from the filter popover (ClientTagFilterPopover, which closes
- * itself first — see that component's doc comment and this file's
- * `onCloseAutoFocus` prop).
+ * (ClientTagPickerPopover) and from the filter popover
+ * (ClientTagFilterPopover). Neither caller keeps its own popover open
+ * behind this modal — both close it explicitly before opening this dialog
+ * and pass `onCloseAutoFocus` to redirect focus back to their own trigger
+ * on close (see this file's `onCloseAutoFocus` prop doc for why).
  */
 export default function CreateTagDialog({ open, onOpenChange, onCreated, onCloseAutoFocus }: Props) {
   const { t } = useTranslation();

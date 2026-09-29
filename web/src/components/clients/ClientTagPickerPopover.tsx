@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Tag as TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,23 @@ interface Props {
  * to `replaceClientTagAssignments`, so a stale double-click can't partially
  * apply — see `useAssignClientTags`' own doc comment for why this is not
  * optimistic.
+ *
+ * The popover is controlled (`open`), same fix as `ClientTagFilterPopover`:
+ * opening the modal `CreateTagDialog` steals focus and shows an overlay,
+ * which an *uncontrolled* Popover reads as an outside interaction and
+ * dismisses on its own — so this popover was already closing the moment the
+ * dialog opened, just as an implicit side effect instead of an explicit one.
+ * Making it explicit (`handleCreateClick` closes the popover, then opens the
+ * dialog) is what lets `onCloseAutoFocus` reliably refocus this row's own
+ * trigger button, rather than Radix falling back to `<body>` because the
+ * element it would otherwise restore focus to (the popover's own
+ * "+ Create tag" button) is already unmounted by the time the dialog closes.
  */
 export default function ClientTagPickerPopover({ client }: Props) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const tagsQuery = useClientTags();
   const assignMutation = useAssignClientTags();
   const tags = tagsQuery.data ?? [];
@@ -41,11 +54,21 @@ export default function ClientTagPickerPopover({ client }: Props) {
     assignMutation.mutate({ clientPublicId: client.publicId, tagIds: next });
   }
 
+  function handleCreateClick() {
+    setOpen(false);
+    setCreateOpen(true);
+  }
+
+  function handleCreateDialogCloseAutoFocus(event: Event) {
+    event.preventDefault();
+    triggerRef.current?.focus();
+  }
+
   return (
     <>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button type="button" variant="ghost" size="icon-xs" aria-label={t('clients.tagPicker.open')}>
+          <Button ref={triggerRef} type="button" variant="ghost" size="icon-xs" aria-label={t('clients.tagPicker.open')}>
             <TagIcon className="size-3.5" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
@@ -85,7 +108,7 @@ export default function ClientTagPickerPopover({ client }: Props) {
                   ))}
                 </ul>
               )}
-              <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+              <Button type="button" variant="outline" size="sm" onClick={handleCreateClick}>
                 <Plus className="size-3.5" aria-hidden="true" />
                 {t('clients.tagPicker.createTag')}
               </Button>
@@ -101,6 +124,7 @@ export default function ClientTagPickerPopover({ client }: Props) {
             assignMutation.mutate({ clientPublicId: client.publicId, tagIds: [...assignedIds, tag.tagId] });
           }
         }}
+        onCloseAutoFocus={handleCreateDialogCloseAutoFocus}
       />
     </>
   );

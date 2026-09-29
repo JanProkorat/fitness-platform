@@ -352,4 +352,78 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(newTagRow).toBeVisible();
     await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
   });
+
+  /**
+   * #1119 rework round — CreateClientTagEndpoint's 409
+   * (CLIENT_TAG_NAME_ALREADY_EXISTS) used to fall back to the generic
+   * clients.tags.createError toast: `processCreateClientTagEndpoint`
+   * (web/src/api/generated.ts) has no dedicated `else if (status === 409)`
+   * branch, so it throws a bare `ApiException` with the ProblemDetails body
+   * left as an unparsed string in `.response` — `getApiErrorMessage`
+   * (web/src/lib/api-errors.ts) now unwraps that string additively.
+   */
+  test('duplicate tag name shows the specific error toast and keeps the dialog open', async ({ page }) => {
+    const popoverContent = page.locator("[data-slot='popover-content']");
+    const dialog = page.locator("[data-slot='dialog-content']");
+    const tagName = `QA Duplicate Tag ${Date.now()}`;
+
+    await page.getByRole('button', { name: 'Select tags' }).click();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Name').fill(tagName);
+    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(popoverContent).toBeVisible();
+    await expect(popoverContent.locator('li', { hasText: tagName })).toBeVisible();
+
+    // Same name again — the backend 409s.
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Name').fill(tagName);
+    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    const specificToast = page
+      .locator("[data-slot='toast']")
+      .filter({ hasText: 'A tag with this name already exists.' });
+    await expect(specificToast).toBeVisible();
+    await expect(page.getByText("Couldn't create the tag. Please try again.")).toHaveCount(0);
+
+    // Dialog stays open on error, per the create-mutation's onError contract.
+    await expect(dialog).toBeVisible();
+  });
+
+  /**
+   * #1119 rework round — the per-row picker (ClientTagPickerPopover) closed
+   * implicitly the moment its create dialog opened (a modal Dialog's overlay
+   * + focus trap reads as an outside interaction to a non-modal Popover),
+   * so Radix's default `onCloseAutoFocus` tried to restore focus to the
+   * already-unmounted "+ Create tag" button and fell back to `<body>`.
+   */
+  test('the per-row tag picker returns focus to its own trigger after cancel and after create', async ({ page }) => {
+    const rowTrigger = page.getByRole('button', { name: 'Assign tags' }).first();
+    const popoverContent = page.locator("[data-slot='popover-content']");
+    const dialog = page.locator("[data-slot='dialog-content']");
+
+    // Cancel path.
+    await rowTrigger.click();
+    await expect(popoverContent).toBeVisible();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(rowTrigger).toBeFocused();
+
+    // Create path.
+    await rowTrigger.click();
+    await expect(popoverContent).toBeVisible();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    const tagName = `QA Row Tag ${Date.now()}`;
+    await dialog.getByLabel('Name').fill(tagName);
+    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(rowTrigger).toBeFocused();
+  });
 });

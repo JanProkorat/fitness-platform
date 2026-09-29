@@ -95,18 +95,63 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
  * confirmed, so a thrown `ApiException` (NSwag's own error class, used when
  * the body didn't parse to anything) or an unrelated thrown value both
  * safely resolve to `null` rather than reading garbage.
+ *
+ * THIRD PATH — a generated `process{Endpoint}` method only calls
+ * `throwException(..., result)` with a parsed `result` for the status codes
+ * NSwag scaffolded a dedicated `else if (status === N)` branch for (e.g.
+ * 400 on `CreateClientTagEndpoint`). Any other non-2xx status — 409 from
+ * `CLIENT_TAG_NAME_ALREADY_EXISTS`, for one — falls into the generic
+ * `else if (status !== 200 && status !== 204)` branch, which omits the
+ * `result` argument entirely. `throwException` then throws a bare
+ * `ApiException` (`@/api/generated.ts`) instead of the parsed body, and
+ * `ApiException.response` holds that body as an **unparsed JSON string**
+ * (`rawApi` in `@/lib/api.ts` disables `transformResponse` specifically so
+ * NSwag's own `JSON.parse()` calls work, which means axios never parses it
+ * for us either) — so `errorCode`/`errors` are never top-level properties
+ * of the thrown object itself in this case, only inside that string. Parse
+ * it here, additively: the direct-property checks above (for a `result`
+ * NSwag did parse and throw as the whole body) still run first and are
+ * unchanged; this only fills the gap for statuses NSwag didn't special-case.
  */
 function asThrownProblemBody(error: unknown): ProblemDetails | null {
   if (typeof error !== 'object' || error === null) {
     return null;
   }
-  const candidate = error as { errors?: unknown; errorCode?: unknown };
-  const errors = Array.isArray(candidate.errors) ? (candidate.errors as ProblemDetailsError[]) : undefined;
-  const errorCode = typeof candidate.errorCode === 'string' ? candidate.errorCode : undefined;
+  const candidate = error as { errors?: unknown; errorCode?: unknown; response?: unknown };
+  const nested = typeof candidate.response === 'string' ? parseJsonObject(candidate.response) : null;
+
+  const errors = Array.isArray(candidate.errors)
+    ? (candidate.errors as ProblemDetailsError[])
+    : Array.isArray(nested?.errors)
+      ? (nested.errors as ProblemDetailsError[])
+      : undefined;
+  const errorCode =
+    typeof candidate.errorCode === 'string'
+      ? candidate.errorCode
+      : typeof nested?.errorCode === 'string'
+        ? nested.errorCode
+        : undefined;
+
   if (errors === undefined && errorCode === undefined) {
     return null;
   }
   return { errors, errorCode };
+}
+
+/**
+ * Parses a string as JSON, returning it only if it resolves to a non-null
+ * object — never throws, and never returns an array/primitive that would
+ * make the `nested.errors`/`nested.errorCode` reads above unsafe.
+ */
+function parseJsonObject(value: string): { errors?: unknown; errorCode?: unknown } | null {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as { errors?: unknown; errorCode?: unknown })
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
