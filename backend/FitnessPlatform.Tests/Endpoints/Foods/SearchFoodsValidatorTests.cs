@@ -26,39 +26,28 @@ public class SearchFoodsValidatorTests
     }
 
     [Fact]
-    public void Validate_MoreThanTwentyTags_FailsWithCorrectMessage()
+    public void Validate_MoreThanTwentyTagIds_FailsWithCorrectMessage()
     {
         var request = new SearchFoodsRequest
         {
-            Tags = Enumerable.Range(0, 21).Select(i => $"tag-{i}").ToList()
+            TagIds = Enumerable.Range(0, 21).Select(_ => Guid.NewGuid()).ToList()
         };
 
         var result = new SearchFoodsValidator().TestValidate(request);
 
-        result.ShouldHaveValidationErrorFor(x => x.Tags)
-            .WithErrorMessage("At most 20 tags may be supplied.");
+        result.ShouldHaveValidationErrorFor(x => x.TagIds)
+            .WithErrorMessage("At most 20 tag ids may be supplied.");
     }
 
     [Fact]
-    public void Validate_BlankTag_FailsWithCorrectMessage()
+    public void Validate_EmptyTagId_FailsWithCorrectMessage()
     {
-        var request = new SearchFoodsRequest { Tags = ["   "] };
+        var request = new SearchFoodsRequest { TagIds = [Guid.Empty] };
 
         var result = new SearchFoodsValidator().TestValidate(request);
 
-        result.ShouldHaveValidationErrorFor(x => x.Tags)
-            .WithErrorMessage("A filter tag must not be blank.");
-    }
-
-    [Fact]
-    public void Validate_TagOverMaxLength_FailsWithCorrectMessage()
-    {
-        var request = new SearchFoodsRequest { Tags = [new string('a', 41)] };
-
-        var result = new SearchFoodsValidator().TestValidate(request);
-
-        result.ShouldHaveValidationErrorFor(x => x.Tags)
-            .WithErrorMessage("A filter tag must be at most 40 characters.");
+        result.ShouldHaveValidationErrorFor(x => x.TagIds)
+            .WithErrorMessage("A filter tag id must not be empty.");
     }
 
     [Fact]
@@ -68,7 +57,7 @@ public class SearchFoodsValidatorTests
 
         result.ShouldNotHaveValidationErrorFor(x => x.Page);
         result.ShouldNotHaveValidationErrorFor(x => x.PageSize);
-        result.ShouldNotHaveValidationErrorFor(x => x.Tags);
+        result.ShouldNotHaveValidationErrorFor(x => x.TagIds);
         result.ShouldNotHaveValidationErrorFor(x => x.Categories);
     }
 

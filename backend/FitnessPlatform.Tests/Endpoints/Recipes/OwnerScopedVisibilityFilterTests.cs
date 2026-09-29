@@ -4,12 +4,10 @@ using FluentAssertions;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.Foods.CreateFood;
 using FitnessPlatform.Application.Features.Foods.GetFood;
 using FitnessPlatform.Application.Features.Foods.GetFoodTags;
 using FitnessPlatform.Application.Features.Foods.SearchFoods;
 using FitnessPlatform.Application.Features.Foods.Shared;
-using FitnessPlatform.Application.Features.Foods.UpdateFood;
 using FitnessPlatform.Application.Features.Recipes.GetRecipe;
 using FitnessPlatform.Application.Features.Recipes.SearchRecipes;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
@@ -62,6 +60,8 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 {
     private readonly IMongoCollection<Recipe> _recipes;
     private readonly IMongoCollection<Food> _foods;
+    private readonly IMongoCollection<FoodTag> _foodTags;
+    private readonly IMongoCollection<FoodTagAssignment> _foodTagAssignments;
     private readonly IMongoContext _mongoContext;
 
     public OwnerScopedVisibilityFilterTests(OwnerScopedVisibilityMongoContainerFixture containerFixture)
@@ -70,10 +70,14 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
         var mongoDb = mongoClient.GetDatabase(containerFixture.DatabaseName);
         _recipes = mongoDb.GetCollection<Recipe>("recipes");
         _foods = mongoDb.GetCollection<Food>("foods");
+        _foodTags = mongoDb.GetCollection<FoodTag>("foodTags");
+        _foodTagAssignments = mongoDb.GetCollection<FoodTagAssignment>("foodTagAssignments");
 
         var mongoContext = Substitute.For<IMongoContext>();
         mongoContext.Recipes.Returns(_recipes);
         mongoContext.Foods.Returns(_foods);
+        mongoContext.FoodTags.Returns(_foodTags);
+        mongoContext.FoodTagAssignments.Returns(_foodTagAssignments);
         _mongoContext = mongoContext;
     }
 
@@ -81,6 +85,8 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     {
         await _recipes.DeleteManyAsync(FilterDefinition<Recipe>.Empty);
         await _foods.DeleteManyAsync(FilterDefinition<Food>.Empty);
+        await _foodTags.DeleteManyAsync(FilterDefinition<FoodTag>.Empty);
+        await _foodTagAssignments.DeleteManyAsync(FilterDefinition<FoodTagAssignment>.Empty);
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -344,52 +350,92 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// #1115 error path: a tag that exists only on another coach's Private food must not surface
-    /// in a search — the tags filter reuses the same own-or-public visibility filter, so it
-    /// returns zero rows rather than leaking the other coach's private ingredient.
+    /// #1120 success path: the food-tags filter matches ANY of the supplied tag ids, scoped to the
+    /// caller's own <c>FoodTagAssignment</c> — a match on the caller's own Private food is still
+    /// returned.
     /// </summary>
     [Fact]
-    public async Task SearchFoods_TagOnlyOnOthersPrivateFood_ReturnsZeroRows()
+    public async Task SearchFoods_ByTagId_MatchesOwnedAssignment_ReturnsTaggedFood()
     {
         var ct = TestContext.Current.CancellationToken;
-
-        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private Tagged", FoodVisibility.Private);
-        othersPrivate.Tags = ["secret-recipe"];
-        await _foods.InsertOneAsync(othersPrivate, cancellationToken: ct);
-
-        var ep = Factory.Create<SearchFoodsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
-            _mongoContext);
-
-        await ep.HandleAsync(new SearchFoodsRequest { Tags = ["secret-recipe"] }, ct);
-
-        ep.Response.Foods.Should().BeEmpty();
-        ep.Response.TotalCount.Should().Be(0);
-    }
-
-    /// <summary>
-    /// #1115 success path: the tags filter matches ANY of the supplied tags, and a match on a
-    /// caller's own Private food is still returned.
-    /// </summary>
-    [Fact]
-    public async Task SearchFoods_TagOnOwnPrivateFood_MatchesAnyOfSuppliedTags()
-    {
-        var ct = TestContext.Current.CancellationToken;
-
         var ownerId = Guid.NewGuid();
+
         var ownPrivate = MakeFood(ownerId, "Own Private Tagged", FoodVisibility.Private);
-        ownPrivate.Tags = ["high-protein"];
         await _foods.InsertOneAsync(ownPrivate, cancellationToken: ct);
+
+        var tag = new FoodTag
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerUserId = ownerId,
+            Name = "High Protein",
+            NormalizedName = "high protein",
+            ColorHex = "#3b82f6",
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        };
+        await _foodTags.InsertOneAsync(tag, cancellationToken: ct);
+        await _foodTagAssignments.InsertOneAsync(new FoodTagAssignment
+        {
+            OwnerUserId = ownerId,
+            FoodExternalId = ownPrivate.ExternalId,
+            TagIds = [tag.ExternalId],
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: ct);
 
         var ep = Factory.Create<SearchFoodsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
             _mongoContext);
 
-        await ep.HandleAsync(new SearchFoodsRequest { Tags = ["low-carb", "high-protein"] }, ct);
+        await ep.HandleAsync(new SearchFoodsRequest { TagIds = [tag.ExternalId, Guid.NewGuid()] }, ct);
 
         ep.Response.Foods.Should().ContainSingle(f => f.Name == "Own Private Tagged");
+        ep.Response.Foods[0].Tags.Should().ContainSingle(t => t.TagId == tag.ExternalId);
+    }
+
+    /// <summary>
+    /// #1120 error path: a tag assignment owned by a DIFFERENT coach must not surface a food in
+    /// the caller's search — assignments are scoped by OwnerUserId, so the caller's own search
+    /// with the other coach's tag id matches zero of the caller's own <c>FoodTagAssignment</c>
+    /// rows regardless of whether the underlying food is visible to the caller.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_TagOwnedByAnotherCoach_ReturnsZeroRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var otherCoachId = Guid.NewGuid();
+
+        var publicFood = MakeFood(otherCoachId, "Shared Public Food", FoodVisibility.Public);
+        await _foods.InsertOneAsync(publicFood, cancellationToken: ct);
+
+        var othersTag = new FoodTag
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerUserId = otherCoachId,
+            Name = "Meal Prep",
+            NormalizedName = "meal prep",
+            ColorHex = "#3b82f6",
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        };
+        await _foodTags.InsertOneAsync(othersTag, cancellationToken: ct);
+        await _foodTagAssignments.InsertOneAsync(new FoodTagAssignment
+        {
+            OwnerUserId = otherCoachId,
+            FoodExternalId = publicFood.ExternalId,
+            TagIds = [othersTag.ExternalId],
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: ct);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(new SearchFoodsRequest { TagIds = [othersTag.ExternalId] }, ct);
+
+        ep.Response.Foods.Should().BeEmpty();
+        ep.Response.TotalCount.Should().Be(0);
     }
 
     /// <summary>
@@ -425,43 +471,70 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// #1115 error path: <c>GET /foods/tags</c> must never list a tag that exists only on another
-    /// coach's Private food — same own-or-public filter as search.
+    /// #1120 owner-scoping: <c>GET /trainer/food-tags</c> must never list a tag owned by a
+    /// different nutritionist — each coach's food-tag catalog is entirely private to them.
     /// </summary>
     [Fact]
-    public async Task GetFoodTags_TagOnlyOnOthersPrivateFood_IsNotListed()
+    public async Task GetFoodTags_SecondNutritionist_SeesNoneOfFirstsTags()
     {
         var ct = TestContext.Current.CancellationToken;
+        var firstCoachId = Guid.NewGuid();
+        var secondCoachId = Guid.NewGuid();
 
-        var othersPrivate = MakeFood(Guid.NewGuid(), "Others Private Tagged", FoodVisibility.Private);
-        othersPrivate.Tags = ["secret-recipe"];
-        var ownPublic = MakeFood(Guid.NewGuid(), "Public Tagged", FoodVisibility.Public);
-        ownPublic.Tags = ["shared-tag"];
-        await _foods.InsertManyAsync([othersPrivate, ownPublic], cancellationToken: ct);
+        await _foodTags.InsertOneAsync(new FoodTag
+        {
+            ExternalId = Guid.NewGuid(),
+            OwnerUserId = firstCoachId,
+            Name = "First Coach Only",
+            NormalizedName = "first coach only",
+            ColorHex = "#3b82f6",
+            Version = 1,
+            DateCreated = DateTime.UtcNow,
+        }, cancellationToken: ct);
 
         var ep = Factory.Create<GetFoodTagsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(secondCoachId, AppRoles.Nutritionist))),
             _mongoContext);
 
         await ep.HandleAsync(ct);
 
-        ep.Response.Tags.Should().ContainSingle().Which.Should().Be("shared-tag");
-        ep.Response.Tags.Should().NotContain("secret-recipe");
+        ep.Response.Tags.Should().BeEmpty();
     }
 
     /// <summary>
-    /// #1115 success path: a caller's own Private food's tags still appear in their tags listing.
+    /// #1120 success path: a caller's own food tags still appear in their own tags listing,
+    /// sorted by name.
     /// </summary>
     [Fact]
-    public async Task GetFoodTags_OwnPrivateFoodTag_IsListed()
+    public async Task GetFoodTags_OwnTags_AreListedSortedByName()
     {
         var ct = TestContext.Current.CancellationToken;
-
         var ownerId = Guid.NewGuid();
-        var ownPrivate = MakeFood(ownerId, "Own Private Tagged", FoodVisibility.Private);
-        ownPrivate.Tags = ["my-secret-tag"];
-        await _foods.InsertOneAsync(ownPrivate, cancellationToken: ct);
+
+        await _foodTags.InsertManyAsync(
+        [
+            new FoodTag
+            {
+                ExternalId = Guid.NewGuid(),
+                OwnerUserId = ownerId,
+                Name = "Zucchini",
+                NormalizedName = "zucchini",
+                ColorHex = "#3b82f6",
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            },
+            new FoodTag
+            {
+                ExternalId = Guid.NewGuid(),
+                OwnerUserId = ownerId,
+                Name = "Almond",
+                NormalizedName = "almond",
+                ColorHex = "#f59e0b",
+                Version = 1,
+                DateCreated = DateTime.UtcNow,
+            },
+        ], cancellationToken: ct);
 
         var ep = Factory.Create<GetFoodTagsEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
@@ -470,93 +543,6 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
 
         await ep.HandleAsync(ct);
 
-        ep.Response.Tags.Should().Contain("my-secret-tag");
-    }
-
-    /// <summary>
-    /// #1115 regression: SearchFoodsEndpoint's tags filter used to be case-sensitive while
-    /// GetFoodTagsEndpoint deduped case-insensitively, so a food tagged "Meal-Prep" could not be
-    /// found via a "meal-prep"/"MEAL-PREP" pill. CreateFoodEndpoint now normalizes tags to
-    /// lowercase + trimmed on write, and SearchFoodsEndpoint lowercases the filter the same way —
-    /// this proves both halves against a real Mongo write/read round trip. Also covers the sibling
-    /// #1117 review finding: two tags that only differ by case ("Meal-Prep" / "meal-prep") must
-    /// collapse to a single stored value, not two.
-    /// </summary>
-    [Fact]
-    public async Task CreateFood_MixedCaseTag_IsStoredLowercase_AndFoundByDifferentCaseSearch()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var ownerId = Guid.NewGuid();
-
-        var createRequest = new CreateFoodRequest
-        {
-            Name = "Batch-Cooked Chicken",
-            NutrientValue = new NutrientValueDto { Kcal = 125, Protein = 10, Carbs = 10, Fat = 5 },
-            Tags = ["Meal-Prep", "meal-prep", " MEAL-PREP "],
-            CommonServings = [new ServingSizeDto { Label = "100 g", WeightGrams = 100 }],
-        };
-
-        var createEp = Factory.Create<CreateFoodEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
-            _mongoContext);
-
-        await createEp.HandleAsync(createRequest, ct);
-
-        createEp.HttpContext.Response.StatusCode.Should().Be(201);
-
-        var stored = await (await _foods.FindAsync(
-            f => f.Name == "Batch-Cooked Chicken", cancellationToken: ct)).FirstOrDefaultAsync(ct);
-
-        stored.Should().NotBeNull();
-        stored!.Tags.Should().ContainSingle().Which.Should().Be("meal-prep");
-
-        var searchEp = Factory.Create<SearchFoodsEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
-            _mongoContext);
-
-        await searchEp.HandleAsync(new SearchFoodsRequest { Tags = ["MEAL-PREP"] }, ct);
-
-        searchEp.Response.Foods.Should().ContainSingle(f => f.Name == "Batch-Cooked Chicken");
-    }
-
-    /// <summary>
-    /// #1117 review finding: UpdateFoodEndpoint normalizes tags to lowercase but did not
-    /// de-duplicate, so ["Keto", "keto"] stored two entries. Proves the fix against a real Mongo
-    /// write/read round trip — the mock Mongo used by the endpoint-unit tests re-fetches the
-    /// pre-update document, so it cannot observe the actual Set() result.
-    /// </summary>
-    [Fact]
-    public async Task UpdateFood_DuplicateCaseInsensitiveTags_AreDeduplicated()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var ownerId = Guid.NewGuid();
-
-        var existing = MakeFood(ownerId, "Existing Food", FoodVisibility.Private);
-        existing.Tags = ["low-carb"];
-        await _foods.InsertOneAsync(existing, cancellationToken: ct);
-
-        var updateRequest = new UpdateFoodRequest
-        {
-            FoodId = existing.ExternalId,
-            Name = existing.Name,
-            NutrientValue = new NutrientValueDto { Kcal = 125, Protein = 10, Carbs = 10, Fat = 5 },
-            Tags = ["Keto", "keto", "Meal-Prep"],
-            CommonServings = [new ServingSizeDto { Label = "100 g", WeightGrams = 100 }],
-        };
-
-        var updateEp = Factory.Create<UpdateFoodEndpoint>(
-            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
-                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
-            _mongoContext);
-
-        await updateEp.HandleAsync(updateRequest, ct);
-
-        var stored = await (await _foods.FindAsync(
-            f => f.ExternalId == existing.ExternalId, cancellationToken: ct)).FirstOrDefaultAsync(ct);
-
-        stored.Should().NotBeNull();
-        stored!.Tags.Should().BeEquivalentTo(["keto", "meal-prep"]);
+        ep.Response.Tags.Select(t => t.Name).Should().Equal("Almond", "Zucchini");
     }
 }
