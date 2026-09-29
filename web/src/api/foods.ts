@@ -1,8 +1,9 @@
 /**
  * Ingredients (backend: Foods) API module.
  *
- * Wraps the NSwag-generated `searchFoodsEndpoint` / `getFoodTagsEndpoint` /
- * `createFoodEndpoint` / `updateFoodEndpoint` / `deleteFoodEndpoint`.
+ * Wraps the NSwag-generated `searchFoodsEndpoint` / `createFoodEndpoint` /
+ * `updateFoodEndpoint` / `deleteFoodEndpoint`. Food-tag CRUD/assignment
+ * lives in the sibling `food-tags.ts` module (#1120).
  */
 import { apiClient } from '@/api/client';
 import type {
@@ -23,11 +24,11 @@ export interface SearchFoodsParams {
    * through (even empty) — the generated client serialises it as a repeated
    * `category=` query parameter, same shape as `tags` below. */
   categories: FoodCategory[];
-  /** Matches a food carrying ANY of the supplied tags. Always passed through
-   * (even empty) — the generated client serialises it as a repeated
-   * `tags=` query parameter; hand-building that URL is exactly how the
-   * tags filter goes silently wrong. */
-  tags: string[];
+  /** Matches a food the caller has tagged with ANY of the supplied food-tag
+   * ids (#1120). Always passed through (even empty) — the generated client
+   * serialises it as a repeated `tagIds=` query parameter; hand-building
+   * that URL is exactly how the tags filter goes silently wrong. */
+  tagIds: string[];
   page: number;
   pageSize: number;
 }
@@ -46,7 +47,7 @@ export async function searchFoods(params: SearchFoodsParams): Promise<SearchFood
   // against the generated `searchFoodsEndpoint` signature, don't assume it.
   const response = await apiClient.searchFoodsEndpoint(
     params.categories,
-    params.tags,
+    params.tagIds,
     params.page,
     params.pageSize,
     params.q,
@@ -57,12 +58,6 @@ export async function searchFoods(params: SearchFoodsParams): Promise<SearchFood
     page: response.page ?? params.page,
     pageSize: response.pageSize ?? params.pageSize,
   };
-}
-
-/** Lists the distinct tags across every food visible to the caller. */
-export async function getFoodTags(): Promise<string[]> {
-  const response = await apiClient.getFoodTagsEndpoint();
-  return response.tags ?? [];
 }
 
 /** Get a single food by ID. */
