@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Enums;
@@ -84,6 +85,17 @@ public class UpdateFoodValidatorTests
 
         result.ShouldHaveValidationErrorFor(x => x.Tags)
             .WithErrorMessage("A tag must not be blank.");
+    }
+
+    [Fact]
+    public void Validate_NullTagElement_FailsWithoutThrowing()
+    {
+        var request = ValidRequest();
+        request.Tags = [null!];
+
+        var result = new UpdateFoodValidator().TestValidate(request);
+
+        result.IsValid.Should().BeFalse();
     }
 
     [Fact]

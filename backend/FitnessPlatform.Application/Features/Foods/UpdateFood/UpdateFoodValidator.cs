@@ -81,7 +81,7 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
             .WithMessage("A tag must not be blank.")
             .MaximumLength(MaxTagLength)
             .WithMessage($"A tag must be at most {MaxTagLength} characters.")
-            .Must(tag => !tag.Contains(','))
+            .Must(tag => tag is null || !tag.Contains(','))
             .WithMessage("A tag must not contain a comma.");
     }
 }

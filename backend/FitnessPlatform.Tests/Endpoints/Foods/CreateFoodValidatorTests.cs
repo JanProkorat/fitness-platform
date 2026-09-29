@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.CreateFood;
@@ -81,6 +82,17 @@ public class CreateFoodValidatorTests
 
         result.ShouldHaveValidationErrorFor(x => x.Tags)
             .WithErrorMessage("A tag must not be blank.");
+    }
+
+    [Fact]
+    public void Validate_NullTagElement_FailsWithoutThrowing()
+    {
+        var request = ValidRequest();
+        request.Tags = [null!];
+
+        var result = new CreateFoodValidator().TestValidate(request);
+
+        result.IsValid.Should().BeFalse();
     }
 
     [Fact]
