@@ -15,9 +15,12 @@ public class SearchFoodsRequest
     public string? Query { get; set; }
 
     /// <summary>
-    /// Optional category filter.
+    /// Optional category filter — matches a food carrying ANY of the supplied categories. Bound
+    /// from the repeated <c>category</c> query param, so a single <c>?category=Dairy</c> still
+    /// binds a one-item list.
     /// </summary>
-    public FoodCategory? Category { get; set; }
+    [BindFrom("category")]
+    public List<FoodCategory> Categories { get; set; } = [];
 
     /// <summary>
     /// Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
