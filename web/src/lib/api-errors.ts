@@ -88,30 +88,12 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
 }
 
 /**
- * Narrows an unknown thrown value to the shape of a parsed ProblemDetails
- * body — the NSwag `throwException(...)` path described in `getErrorCode`'s
- * doc comment. Reads `unknown` properties defensively (no `any`): only
- * treats `errors`/`errorCode` as present once their runtime shape is
- * confirmed, so a thrown `ApiException` (NSwag's own error class, used when
- * the body didn't parse to anything) or an unrelated thrown value both
- * safely resolve to `null` rather than reading garbage.
+ * Narrows an unknown thrown value to a ProblemDetails shape — the NSwag
+ * `throwException(...)` path described in `getErrorCode`'s doc comment.
  *
- * THIRD PATH — a generated `process{Endpoint}` method only calls
- * `throwException(..., result)` with a parsed `result` for the status codes
- * NSwag scaffolded a dedicated `else if (status === N)` branch for (e.g.
- * 400 on `CreateClientTagEndpoint`). Any other non-2xx status — 409 from
- * `CLIENT_TAG_NAME_ALREADY_EXISTS`, for one — falls into the generic
- * `else if (status !== 200 && status !== 204)` branch, which omits the
- * `result` argument entirely. `throwException` then throws a bare
- * `ApiException` (`@/api/generated.ts`) instead of the parsed body, and
- * `ApiException.response` holds that body as an **unparsed JSON string**
- * (`rawApi` in `@/lib/api.ts` disables `transformResponse` specifically so
- * NSwag's own `JSON.parse()` calls work, which means axios never parses it
- * for us either) — so `errorCode`/`errors` are never top-level properties
- * of the thrown object itself in this case, only inside that string. Parse
- * it here, additively: the direct-property checks above (for a `result`
- * NSwag did parse and throw as the whole body) still run first and are
- * unchanged; this only fills the gap for statuses NSwag didn't special-case.
+ * THIRD PATH — statuses NSwag didn't special-case (e.g. 409
+ * CLIENT_TAG_NAME_ALREADY_EXISTS) throw a bare `ApiException` whose
+ * `.response` holds the body as an unparsed JSON string; parse it here too.
  */
 function asThrownProblemBody(error: unknown): ProblemDetails | null {
   if (typeof error !== 'object' || error === null) {

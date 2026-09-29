@@ -21,16 +21,8 @@ interface Props {
  * apply — see `useAssignClientTags`' own doc comment for why this is not
  * optimistic.
  *
- * The popover is controlled (`open`), same fix as `ClientTagFilterPopover`:
- * opening the modal `CreateTagDialog` steals focus and shows an overlay,
- * which an *uncontrolled* Popover reads as an outside interaction and
- * dismisses on its own — so this popover was already closing the moment the
- * dialog opened, just as an implicit side effect instead of an explicit one.
- * Making it explicit (`handleCreateClick` closes the popover, then opens the
- * dialog) is what lets `onCloseAutoFocus` reliably refocus this row's own
- * trigger button, rather than Radix falling back to `<body>` because the
- * element it would otherwise restore focus to (the popover's own
- * "+ Create tag" button) is already unmounted by the time the dialog closes.
+ * The popover is controlled (`open`) and closes itself before opening
+ * CreateTagDialog, same as ClientTagFilterPopover.
  */
 export default function ClientTagPickerPopover({ client }: Props) {
   const { t } = useTranslation();

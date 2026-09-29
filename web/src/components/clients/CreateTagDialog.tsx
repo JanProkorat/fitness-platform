@@ -57,32 +57,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Called after the tag is created, so a per-row caller can auto-assign it. */
   onCreated?: (tag: ClientTagDto) => void;
-  /**
-   * Forwarded to DialogContent's `onCloseAutoFocus`. This dialog has no
-   * DialogTrigger of its own, so Radix's default on close is to refocus
-   * whatever element was focused when it opened. Both callers
-   * (ClientTagPickerPopover, ClientTagFilterPopover) close their own popover
-   * *before* opening this dialog — a modal Dialog's overlay + focus trap
-   * reads as an outside interaction to a non-modal Popover and dismisses it
-   * regardless, so leaving that popover open was never actually an option —
-   * which means the element Radix would restore focus to (the popover's own
-   * "+ Create tag" button) is already unmounted by the time this dialog
-   * closes, and its default falls back to `<body>`. Each caller passes a
-   * handler here that prevents that default and refocuses its own trigger
-   * button instead. Optional because a hypothetical caller that never
-   * unmounts its trigger for this dialog's lifetime wouldn't need to
-   * override the default.
-   */
+  /** Forwarded to DialogContent's `onCloseAutoFocus`, so a caller that closes its own popover before opening this dialog can redirect focus back to its trigger. */
   onCloseAutoFocus?: (event: Event) => void;
 }
 
 /**
- * Inline tag-creation modal. Opened from a row's tag picker
- * (ClientTagPickerPopover) and from the filter popover
- * (ClientTagFilterPopover). Neither caller keeps its own popover open
- * behind this modal — both close it explicitly before opening this dialog
- * and pass `onCloseAutoFocus` to redirect focus back to their own trigger
- * on close (see this file's `onCloseAutoFocus` prop doc for why).
+ * Inline tag-creation modal, opened from a row's tag picker or the filter
+ * popover — both close their own popover before opening this dialog.
  */
 export default function CreateTagDialog({ open, onOpenChange, onCreated, onCloseAutoFocus }: Props) {
   const { t } = useTranslation();

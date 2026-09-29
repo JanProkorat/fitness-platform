@@ -14,21 +14,8 @@ interface Props {
 }
 
 /**
- * Tag multi-select for filtering the table, plus the "+ Create tag" entry
- * point into CreateTagDialog. Built on Popover (not DropdownMenu) so
- * multi-select doesn't fight Radix's close-on-select default — same
- * reasoning as the per-row picker (see ClientTagPickerPopover).
- *
- * Unlike that picker, this popover is controlled (`open`) and explicitly
- * closes itself *before* opening CreateTagDialog (see `handleCreateClick`),
- * rather than leaving itself open behind the modal. That closes the
- * "+ Create tag" button (this popover's own trigger button stays mounted,
- * but the in-popover button that was focused does not), so Radix would
- * otherwise return focus to nothing on the dialog's close — `onCloseAutoFocus`
- * below redirects it back to this popover's own trigger. Closing first is
- * also what makes "reopen the popover after a successful create" an
- * explicit, visible transition instead of a no-op (the popover was never
- * hidden), which is what surfaces the newly-created, still-unticked tag.
+ * Tag multi-select for filtering the table, plus a "+ Create tag" entry
+ * point into CreateTagDialog (closes itself first, reopens on success).
  */
 export default function ClientTagFilterPopover({ selectedTagIds, onChange }: Props) {
   const { t } = useTranslation();

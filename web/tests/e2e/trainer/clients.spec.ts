@@ -266,14 +266,13 @@ async function loginAsTrainer(baseURL: string): Promise<string> {
 
 /**
  * Deletes every client tag the caller owns via GET + DELETE
- * /trainer/client-tags. The seed leaves zero client tags (#1119 design
- * review), but a retried/rerun attempt without a full DB reset would keep
- * whatever a previous attempt created, and CreateClientTagEndpoint 409s on a
- * duplicate name — so this runs before AND after the create test below.
+ * /trainer/client-tags, so each test starts and ends from zero tags —
+ * CreateClientTagEndpoint 409s on a duplicate name otherwise.
  */
-async function deleteAllClientTags(baseURL: string): Promise<void> {
-  const accessToken = await loginAsTrainer(baseURL);
-  const api = await apiRequest.newContext({ baseURL });
+async function deleteAllClientTags(baseURL: string | undefined): Promise<void> {
+  const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
+  const accessToken = await loginAsTrainer(resolvedBaseUrl);
+  const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
   try {
     const listResponse = await api.get('/trainer/client-tags', {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -288,9 +287,14 @@ async function deleteAllClientTags(baseURL: string): Promise<void> {
       if (!tag.tagId) {
         continue;
       }
-      await api.delete(`/trainer/client-tags/${tag.tagId}`, {
+      const deleteResponse = await api.delete(`/trainer/client-tags/${tag.tagId}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (!deleteResponse.ok()) {
+        throw new Error(
+          `[clients] DELETE /trainer/client-tags/${tag.tagId} returned ${deleteResponse.status()} ${deleteResponse.statusText()}.`,
+        );
+      }
     }
   } finally {
     await api.dispose();
@@ -298,23 +302,20 @@ async function deleteAllClientTags(baseURL: string): Promise<void> {
 }
 
 /**
- * #1119 — creating a client tag from the tag *filter* popover (previously
- * only the per-row picker could create one). Covers the design review's two
- * MAJOR points: CreateTagDialog renders as a sibling of the now-controlled
- * Popover (ClientTagFilterPopover.tsx), and closing the filter before
- * opening the dialog, then reopening it on success, with the new tag
- * listed but not ticked (maintainer decision — a fresh tag has no clients
- * yet, so auto-selecting it would filter the table to empty).
+ * Creating a client tag from the tag *filter* popover: the popover closes
+ * itself before CreateTagDialog opens, then reopens on success with the new
+ * tag listed but unticked (a fresh tag has no clients yet, so ticking it
+ * would filter the table to empty).
  */
 test.describe('client tag filter — create a tag (#1119)', () => {
   test.beforeEach(async ({ page, baseURL }) => {
-    await deleteAllClientTags(baseURL ?? 'http://localhost:5173');
+    await deleteAllClientTags(baseURL);
     await page.goto('/clients');
     await page.waitForLoadState('networkidle');
   });
 
   test.afterEach(async ({ baseURL }) => {
-    await deleteAllClientTags(baseURL ?? 'http://localhost:5173');
+    await deleteAllClientTags(baseURL);
   });
 
   test('creates a tag from the filter popup and reopens it listed, unticked', async ({ page }) => {
@@ -353,15 +354,7 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
   });
 
-  /**
-   * #1119 rework round — CreateClientTagEndpoint's 409
-   * (CLIENT_TAG_NAME_ALREADY_EXISTS) used to fall back to the generic
-   * clients.tags.createError toast: `processCreateClientTagEndpoint`
-   * (web/src/api/generated.ts) has no dedicated `else if (status === 409)`
-   * branch, so it throws a bare `ApiException` with the ProblemDetails body
-   * left as an unparsed string in `.response` — `getApiErrorMessage`
-   * (web/src/lib/api-errors.ts) now unwraps that string additively.
-   */
+  /** Duplicate tag name shows the specific translated error, not the generic fallback, and leaves the dialog open. */
   test('duplicate tag name shows the specific error toast and keeps the dialog open', async ({ page }) => {
     const popoverContent = page.locator("[data-slot='popover-content']");
     const dialog = page.locator("[data-slot='dialog-content']");
@@ -394,13 +387,7 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(dialog).toBeVisible();
   });
 
-  /**
-   * #1119 rework round — the per-row picker (ClientTagPickerPopover) closed
-   * implicitly the moment its create dialog opened (a modal Dialog's overlay
-   * + focus trap reads as an outside interaction to a non-modal Popover),
-   * so Radix's default `onCloseAutoFocus` tried to restore focus to the
-   * already-unmounted "+ Create tag" button and fell back to `<body>`.
-   */
+  /** The per-row tag picker returns focus to its own trigger, not `<body>`, after Cancel and after a successful create. */
   test('the per-row tag picker returns focus to its own trigger after cancel and after create', async ({ page }) => {
     const rowTrigger = page.getByRole('button', { name: 'Assign tags' }).first();
     const popoverContent = page.locator("[data-slot='popover-content']");
