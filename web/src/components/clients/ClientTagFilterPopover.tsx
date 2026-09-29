@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useClientTags } from '@/hooks/useClientsQueries';
 import { cn } from '@/lib/utils';
+import CreateTagDialog from '@/components/clients/CreateTagDialog';
 
 interface Props {
   selectedTagIds: string[];
@@ -13,16 +14,16 @@ interface Props {
 }
 
 /**
- * Tag multi-select for filtering the table. Not the per-row tag *picker*
- * (that dropdown, plus the create-tag modal, is phase 4) — this is a
- * read-only-against-tags, filter-only control built on the Popover
- * primitive rather than DropdownMenu so multi-select doesn't need to fight
- * Radix's close-on-select default.
+ * Tag multi-select for filtering the table, plus a "+ Create tag" entry
+ * point into CreateTagDialog (closes itself first, reopens on success).
  */
 export default function ClientTagFilterPopover({ selectedTagIds, onChange }: Props) {
   const { t } = useTranslation();
   const tagsQuery = useClientTags();
   const tags = tagsQuery.data ?? [];
+  const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Drop ids for tags no longer owned by the caller (e.g. deleted in
   // another tab) — see useClientListParams' doc comment: the backend
@@ -50,41 +51,75 @@ export default function ClientTagFilterPopover({ selectedTagIds, onChange }: Pro
     );
   }
 
+  function handleCreateClick() {
+    setOpen(false);
+    setCreateOpen(true);
+  }
+
+  // Reopens the filter popover once the tag is created, so the new tag is
+  // visible in the (now refetched, via useCreateClientTag's invalidation)
+  // list. Deliberately does not select it — a fresh tag has zero clients,
+  // so auto-selecting would filter the table to empty right after creation.
+  function handleCreated() {
+    setOpen(true);
+  }
+
+  function handleCreateDialogCloseAutoFocus(event: Event) {
+    event.preventDefault();
+    triggerRef.current?.focus();
+  }
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="gap-2">
-          {t('clients.tagFilter.label')}
-          {selectedTagIds.length > 0 && <span className="text-caption">{selectedTagIds.length}</span>}
-          <ChevronDown className="size-3" aria-hidden="true" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-64">
-        {tagsQuery.isPending ? (
-          <p className="text-body text-muted-foreground">{t('common.loading')}</p>
-        ) : tags.length === 0 ? (
-          <p className="text-body text-muted-foreground">{t('clients.tagFilter.empty')}</p>
-        ) : (
-          <ul className="flex flex-col gap-2.5">
-            {tags.map((tag) => (
-              <li key={tag.tagId}>
-                <label className="flex cursor-pointer items-center gap-2 text-body text-foreground">
-                  <Checkbox
-                    checked={Boolean(tag.tagId) && selectedTagIds.includes(tag.tagId ?? '')}
-                    onCheckedChange={() => tag.tagId && toggleTag(tag.tagId)}
-                  />
-                  <span
-                    className={cn('size-2.5 shrink-0 rounded-full', !tag.colorHex && 'bg-muted-foreground')}
-                    style={tag.colorHex ? { backgroundColor: tag.colorHex } : undefined}
-                    aria-hidden="true"
-                  />
-                  {tag.name}
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
-      </PopoverContent>
-    </Popover>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button ref={triggerRef} type="button" variant="outline" size="sm" className="gap-2">
+            {t('clients.tagFilter.label')}
+            {selectedTagIds.length > 0 && <span className="text-caption">{selectedTagIds.length}</span>}
+            <ChevronDown className="size-3" aria-hidden="true" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64">
+          {tagsQuery.isPending ? (
+            <p className="text-body text-muted-foreground">{t('common.loading')}</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {tags.length === 0 ? (
+                <p className="text-body text-muted-foreground">{t('clients.tagFilter.empty')}</p>
+              ) : (
+                <ul className="flex flex-col gap-2.5">
+                  {tags.map((tag) => (
+                    <li key={tag.tagId}>
+                      <label className="flex cursor-pointer items-center gap-2 text-body text-foreground">
+                        <Checkbox
+                          checked={Boolean(tag.tagId) && selectedTagIds.includes(tag.tagId ?? '')}
+                          onCheckedChange={() => tag.tagId && toggleTag(tag.tagId)}
+                        />
+                        <span
+                          className={cn('size-2.5 shrink-0 rounded-full', !tag.colorHex && 'bg-muted-foreground')}
+                          style={tag.colorHex ? { backgroundColor: tag.colorHex } : undefined}
+                          aria-hidden="true"
+                        />
+                        {tag.name}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={handleCreateClick}>
+                <Plus className="size-3.5" aria-hidden="true" />
+                {t('clients.tagPicker.createTag')}
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+      <CreateTagDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={handleCreated}
+        onCloseAutoFocus={handleCreateDialogCloseAutoFocus}
+      />
+    </>
   );
 }

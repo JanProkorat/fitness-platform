@@ -88,25 +88,52 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
 }
 
 /**
- * Narrows an unknown thrown value to the shape of a parsed ProblemDetails
- * body — the NSwag `throwException(...)` path described in `getErrorCode`'s
- * doc comment. Reads `unknown` properties defensively (no `any`): only
- * treats `errors`/`errorCode` as present once their runtime shape is
- * confirmed, so a thrown `ApiException` (NSwag's own error class, used when
- * the body didn't parse to anything) or an unrelated thrown value both
- * safely resolve to `null` rather than reading garbage.
+ * Narrows an unknown thrown value to a ProblemDetails shape — the NSwag
+ * `throwException(...)` path described in `getErrorCode`'s doc comment.
+ *
+ * THIRD PATH — statuses NSwag didn't special-case (e.g. 409
+ * CLIENT_TAG_NAME_ALREADY_EXISTS) throw a bare `ApiException` whose
+ * `.response` holds the body as an unparsed JSON string; parse it here too.
  */
 function asThrownProblemBody(error: unknown): ProblemDetails | null {
   if (typeof error !== 'object' || error === null) {
     return null;
   }
-  const candidate = error as { errors?: unknown; errorCode?: unknown };
-  const errors = Array.isArray(candidate.errors) ? (candidate.errors as ProblemDetailsError[]) : undefined;
-  const errorCode = typeof candidate.errorCode === 'string' ? candidate.errorCode : undefined;
+  const candidate = error as { errors?: unknown; errorCode?: unknown; response?: unknown };
+  const nested = typeof candidate.response === 'string' ? parseJsonObject(candidate.response) : null;
+
+  const errors = Array.isArray(candidate.errors)
+    ? (candidate.errors as ProblemDetailsError[])
+    : Array.isArray(nested?.errors)
+      ? (nested.errors as ProblemDetailsError[])
+      : undefined;
+  const errorCode =
+    typeof candidate.errorCode === 'string'
+      ? candidate.errorCode
+      : typeof nested?.errorCode === 'string'
+        ? nested.errorCode
+        : undefined;
+
   if (errors === undefined && errorCode === undefined) {
     return null;
   }
   return { errors, errorCode };
+}
+
+/**
+ * Parses a string as JSON, returning it only if it resolves to a non-null
+ * object — never throws, and never returns an array/primitive that would
+ * make the `nested.errors`/`nested.errorCode` reads above unsafe.
+ */
+function parseJsonObject(value: string): { errors?: unknown; errorCode?: unknown } | null {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as { errors?: unknown; errorCode?: unknown })
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

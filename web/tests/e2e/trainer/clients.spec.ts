@@ -10,6 +10,7 @@
  * `test` export lands on the login page and asserts against the marketing
  * page instead of the authenticated portal.
  */
+import { request as apiRequest } from '@playwright/test';
 import { trainerTest as test, expect } from '../fixtures/auth';
 
 test.describe('clients list page', () => {
@@ -223,5 +224,193 @@ test.describe('clients list page', () => {
     await expect(card.getByText('1 active plan', { exact: true })).toBeVisible();
     await expect(card.getByText('QA Test Plan — ForTime fixture', { exact: false })).toBeVisible();
     await expect(card.getByText('Since', { exact: false })).toHaveCount(0);
+  });
+});
+
+const TRAINER_EMAIL = 'qa.trainer@fitnessplatform.test';
+
+interface LoginResponseBody {
+  accessToken: string;
+}
+
+interface ClientTagApiBody {
+  tagId?: string;
+}
+
+interface GetClientTagsApiBody {
+  tags?: ClientTagApiBody[];
+}
+
+/**
+ * Logs in as qa.trainer via a bare API context (same one-off pattern as
+ * `nutritionist/ingredients.spec.ts`'s `loginAsNutritionist`), so tag
+ * cleanup below never touches the fixture's own per-attempt browser-session
+ * token (see `../fixtures/auth.ts`'s header comment).
+ */
+async function loginAsTrainer(baseURL: string): Promise<string> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('[clients] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/auth/login', { data: { email: TRAINER_EMAIL, password } });
+    if (!response.ok()) {
+      throw new Error(`[clients] login as qa.trainer returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Deletes every client tag the caller owns via GET + DELETE
+ * /trainer/client-tags, so each test starts and ends from zero tags —
+ * CreateClientTagEndpoint 409s on a duplicate name otherwise.
+ */
+async function deleteAllClientTags(baseURL: string | undefined): Promise<void> {
+  const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
+  const accessToken = await loginAsTrainer(resolvedBaseUrl);
+  const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
+  try {
+    const listResponse = await api.get('/trainer/client-tags', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!listResponse.ok()) {
+      throw new Error(
+        `[clients] GET /trainer/client-tags returned ${listResponse.status()} ${listResponse.statusText()}.`,
+      );
+    }
+    const { tags } = (await listResponse.json()) as GetClientTagsApiBody;
+    for (const tag of tags ?? []) {
+      if (!tag.tagId) {
+        continue;
+      }
+      const deleteResponse = await api.delete(`/trainer/client-tags/${tag.tagId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!deleteResponse.ok()) {
+        throw new Error(
+          `[clients] DELETE /trainer/client-tags/${tag.tagId} returned ${deleteResponse.status()} ${deleteResponse.statusText()}.`,
+        );
+      }
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Creating a client tag from the tag *filter* popover: the popover closes
+ * itself before CreateTagDialog opens, then reopens on success with the new
+ * tag listed but unticked (a fresh tag has no clients yet, so ticking it
+ * would filter the table to empty).
+ */
+test.describe('client tag filter — create a tag (#1119)', () => {
+  test.beforeEach(async ({ page, baseURL }) => {
+    await deleteAllClientTags(baseURL);
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test.afterEach(async ({ baseURL }) => {
+    await deleteAllClientTags(baseURL);
+  });
+
+  test('creates a tag from the filter popup and reopens it listed, unticked', async ({ page }) => {
+    const popoverContent = page.locator("[data-slot='popover-content']");
+
+    await page.getByRole('button', { name: 'Select tags' }).click();
+    await expect(popoverContent).toBeVisible();
+    await expect(popoverContent.getByText("You haven't created any tags yet.")).toBeVisible();
+
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+
+    // Scoped to data-slot, not role: Radix's Popover.Content also carries
+    // role="dialog" (the WAI-ARIA "non-modal dialog" pattern), so
+    // page.getByRole('dialog') matches both this modal AND the filter
+    // popover whenever they briefly coexist mid-transition — exactly the
+    // ambiguity that made the popover's own reopening race this locator.
+    const dialog = page.locator("[data-slot='dialog-content']");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
+
+    const tagName = `QA Filter Tag ${Date.now()}`;
+    await dialog.getByLabel('Name').fill(tagName);
+
+    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    // Dialog closes and the filter popover reopens on its own (see
+    // ClientTagFilterPopover's `handleCreated`) — the same trigger click is
+    // not repeated.
+    await expect(dialog).toBeHidden();
+    await expect(popoverContent).toBeVisible();
+
+    const newTagRow = popoverContent.locator('li', { hasText: tagName });
+    await expect(newTagRow).toBeVisible();
+    await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
+  });
+
+  /** Duplicate tag name shows the specific translated error, not the generic fallback, and leaves the dialog open. */
+  test('duplicate tag name shows the specific error toast and keeps the dialog open', async ({ page }) => {
+    const popoverContent = page.locator("[data-slot='popover-content']");
+    const dialog = page.locator("[data-slot='dialog-content']");
+    const tagName = `QA Duplicate Tag ${Date.now()}`;
+
+    await page.getByRole('button', { name: 'Select tags' }).click();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Name').fill(tagName);
+    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(popoverContent).toBeVisible();
+    await expect(popoverContent.locator('li', { hasText: tagName })).toBeVisible();
+
+    // Same name again — the backend 409s.
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel('Name').fill(tagName);
+    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    const specificToast = page
+      .locator("[data-slot='toast']")
+      .filter({ hasText: 'A tag with this name already exists.' });
+    await expect(specificToast).toBeVisible();
+    await expect(page.getByText("Couldn't create the tag. Please try again.")).toHaveCount(0);
+
+    // Dialog stays open on error, per the create-mutation's onError contract.
+    await expect(dialog).toBeVisible();
+  });
+
+  /** The per-row tag picker returns focus to its own trigger, not `<body>`, after Cancel and after a successful create. */
+  test('the per-row tag picker returns focus to its own trigger after cancel and after create', async ({ page }) => {
+    const rowTrigger = page.getByRole('button', { name: 'Assign tags' }).first();
+    const popoverContent = page.locator("[data-slot='popover-content']");
+    const dialog = page.locator("[data-slot='dialog-content']");
+
+    // Cancel path.
+    await rowTrigger.click();
+    await expect(popoverContent).toBeVisible();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(rowTrigger).toBeFocused();
+
+    // Create path.
+    await rowTrigger.click();
+    await expect(popoverContent).toBeVisible();
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    const tagName = `QA Row Tag ${Date.now()}`;
+    await dialog.getByLabel('Name').fill(tagName);
+    await dialog.getByRole('button', { name: 'Create tag', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await expect(rowTrigger).toBeFocused();
   });
 });
