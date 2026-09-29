@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
-using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Bson;
@@ -26,6 +25,9 @@ public class SearchFoodsEndpoint(
         {
             s.Summary = "Search foods";
             s.Description = "Fulltext search across food database with optional source filter and pagination.";
+            s.Response<SearchFoodsResponse>(StatusCodes.Status200OK, "Matching foods");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid page, page size, or tags filter";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 
@@ -42,21 +44,23 @@ public class SearchFoodsEndpoint(
         }
 
         var filterBuilder = Builders<Food>.Filter;
-
-        // Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the ownership term
-        // is suppressed entirely for an empty caller id, so a document that explicitly stores a
-        // zero-uuid owner can't be matched as "owned by the caller" below.
-        var visibilityFilter = currentUserId == Guid.Empty
-            ? filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public)
-            : filterBuilder.Or(
-                filterBuilder.Eq(f => f.Visibility, FoodVisibility.Public),
-                filterBuilder.Eq(f => f.NutritionistId, currentUserId));
-
-        var filter = filterBuilder.Eq(f => f.IsDeleted, false) & visibilityFilter;
+        var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId);
 
         if (req.Category.HasValue)
         {
             filter &= filterBuilder.Eq(f => f.Category, req.Category.Value);
+        }
+
+        if (req.Tags.Count > 0)
+        {
+            // Tags are stored lowercase + trimmed (CreateFoodEndpoint/UpdateFoodEndpoint), so the
+            // filter values must be normalized the same way or a differently-cased pill (e.g.
+            // "MEAL-PREP") would silently match nothing.
+            var normalizedTags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList();
+
+            // AnyIn matches a document whose Tags array contains at least one of the supplied
+            // values — the "match any" semantics the tags filter pill needs.
+            filter &= filterBuilder.AnyIn(f => f.Tags, normalizedTags);
         }
 
         if (!string.IsNullOrWhiteSpace(req.Query))
@@ -91,7 +95,9 @@ public class SearchFoodsEndpoint(
         var findOptions = new FindOptions<Food>
         {
             Skip = (req.Page - 1) * req.PageSize,
-            Limit = req.PageSize
+            Limit = req.PageSize,
+            // Deterministic paging — name asc, then _id asc as a tiebreaker for equal names.
+            Sort = Builders<Food>.Sort.Ascending(f => f.Name).Ascending(f => f.Id)
         };
 
         using var cursor = await mongo.Foods.FindAsync(filter, findOptions, ct);

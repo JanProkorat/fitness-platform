@@ -23,6 +23,10 @@ public class DeleteFoodEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodReques
         {
             s.Summary = "Delete custom food";
             s.Description = "Soft-deletes a custom food item. Only the nutritionist who created it can delete.";
+            s.Responses[StatusCodes.Status204NoContent] = "Food deleted";
+            s.Responses[StatusCodes.Status400BadRequest] = "The food belongs to another nutritionist";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, or already soft-deleted";
         });
     }
 

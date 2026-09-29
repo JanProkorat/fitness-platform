@@ -57,7 +57,12 @@ public static class FoodTestHelpers
     }
 
     /// <summary>
-    /// Creates a mock <see cref="IMongoCollection{Food}"/> that supports FindAsync and CountDocumentsAsync.
+    /// Creates a mock <see cref="IMongoCollection{Food}"/> that supports FindAsync,
+    /// CountDocumentsAsync, and DistinctAsync on the <c>tags</c> field. As with FindAsync, the
+    /// filter passed to DistinctAsync is not evaluated — it flattens every seeded food's Tags
+    /// regardless of the filter, so visibility/filter correctness for GetFoodTagsEndpoint is
+    /// covered by <see cref="FitnessPlatform.Tests.Endpoints.Recipes.OwnerScopedVisibilityFilterTests"/>
+    /// (real Mongo), not by tests built on this mock.
     /// </summary>
     public static IMongoCollection<Food> CreateMockCollection(List<Food> foods)
     {
@@ -77,25 +82,37 @@ public static class FoodTestHelpers
                 Arg.Any<CancellationToken>())
             .Returns(foods.Count);
 
+        // DistinctAsync("tags", ...) — used by GetFoodTagsEndpoint.
+        var distinctTags = foods
+            .SelectMany(f => f.Tags)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        collection.DistinctAsync(
+                Arg.Any<FieldDefinition<Food, string>>(),
+                Arg.Any<FilterDefinition<Food>>(),
+                Arg.Any<DistinctOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(ci => CreateCursor(distinctTags));
+
         return collection;
     }
 
-    private static IAsyncCursor<Food> CreateCursor(List<Food> foods)
+    private static IAsyncCursor<T> CreateCursor<T>(List<T> items)
     {
-        var cursor = Substitute.For<IAsyncCursor<Food>>();
+        var cursor = Substitute.For<IAsyncCursor<T>>();
         var moved = false;
-        cursor.Current.Returns(foods);
+        cursor.Current.Returns(items);
         cursor.MoveNext(Arg.Any<CancellationToken>()).Returns(_ =>
         {
             if (moved) return false;
             moved = true;
-            return foods.Count > 0;
+            return items.Count > 0;
         });
         cursor.MoveNextAsync(Arg.Any<CancellationToken>()).Returns(_ =>
         {
             if (moved) return false;
             moved = true;
-            return foods.Count > 0;
+            return items.Count > 0;
         });
         return cursor;
     }

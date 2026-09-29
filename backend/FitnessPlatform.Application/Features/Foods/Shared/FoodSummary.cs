@@ -44,12 +44,22 @@ public class FoodSummary
     public NutrientValueDto NutrientValue { get; set; } = new();
 
     /// <summary>
-    /// Allergen identifiers.
+    /// Allergens contained in this food.
     /// </summary>
-    public List<string> Allergens { get; set; } = [];
+    public List<Allergen> Allergens { get; set; } = [];
 
     /// <summary>
-    /// Common serving sizes.
+    /// Dietary preferences this food satisfies.
+    /// </summary>
+    public List<DietaryPreference> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// Free-form tags for filtering and classification.
+    /// </summary>
+    public List<string> Tags { get; set; } = [];
+
+    /// <summary>
+    /// Common serving sizes. The first entry is the default serving.
     /// </summary>
     public List<ServingSizeDto> CommonServings { get; set; } = [];
 
@@ -87,6 +97,14 @@ public class FoodSummary
     public bool IsOwnedByCurrentUser { get; set; }
 
     /// <summary>
+    /// True when this food has no owning nutritionist (a platform system/catalog entry).
+    /// Lets clients distinguish the three Library badge states — System, Mine
+    /// (<see cref="IsOwnedByCurrentUser"/>), and Shared (another coach's Public food, neither of
+    /// the above) — without exposing the owner's identifier itself.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Food"/> document to a <see cref="FoodSummary"/> DTO.
     /// </summary>
     /// <param name="food">The food document.</param>
@@ -119,7 +137,10 @@ public class FoodSummary
         IsOwnedByCurrentUser = currentUserId.HasValue
             && food.NutritionistId.HasValue
             && food.NutritionistId.Value == currentUserId.Value,
-        Allergens = food.Allergens,
+        IsSystem = food.NutritionistId is null,
+        Allergens = FoodEnumListMapping.ParseStoredNames<Allergen>(food.Allergens),
+        DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(food.DietaryPreferences),
+        Tags = food.Tags,
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })
             .ToList()

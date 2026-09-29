@@ -24,6 +24,10 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
         {
             s.Summary = "Update custom food";
             s.Description = "Updates a custom food item. Only the nutritionist who created it can edit.";
+            s.Response<FoodSummary>(StatusCodes.Status200OK, "Food updated");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body, or the food belongs to another nutritionist";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, or soft-deleted";
         });
     }
 
@@ -83,7 +87,12 @@ public class UpdateFoodEndpoint(IMongoContext mongo) : Endpoint<UpdateFoodReques
             })
             .Set(f => f.Category, req.Category)
             .Set(f => f.Note, req.Note)
-            .Set(f => f.Allergens, req.Allergens)
+            .Set(f => f.Allergens, FoodEnumListMapping.ToStoredNames(req.Allergens))
+            .Set(f => f.DietaryPreferences, FoodEnumListMapping.ToStoredNames(req.DietaryPreferences))
+            // Normalized to lowercase + trimmed so a search's case doesn't matter — matches the
+            // lowercasing SearchFoodsEndpoint applies to the tags filter. Distinct() collapses
+            // ["Keto", "keto"] to a single stored value now that both share the same casing.
+            .Set(f => f.Tags, req.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct().ToList())
             .Set(f => f.CommonServings, req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList())

@@ -23,6 +23,9 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
         {
             s.Summary = "Create custom food";
             s.Description = "Creates a new custom food item. Only nutritionists can create custom foods.";
+            s.Response<FoodSummary>(StatusCodes.Status201Created, "Food created");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 
@@ -62,7 +65,12 @@ public class CreateFoodEndpoint(IMongoContext mongo) : Endpoint<CreateFoodReques
             },
             Category = req.Category,
             Note = req.Note,
-            Allergens = req.Allergens,
+            Allergens = FoodEnumListMapping.ToStoredNames(req.Allergens),
+            DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences),
+            // Normalized to lowercase + trimmed so a search's case doesn't matter — matches the
+            // lowercasing SearchFoodsEndpoint applies to the tags filter. Distinct() collapses
+            // ["Keto", "keto"] to a single stored value now that both share the same casing.
+            Tags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).Distinct().ToList(),
             CommonServings = req.CommonServings
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.WeightGrams })
                 .ToList(),

@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FluentValidation;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
@@ -9,6 +10,16 @@ namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
 /// </summary>
 public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 {
+    /// <summary>
+    /// The maximum number of tags a single food may carry.
+    /// </summary>
+    private const int MaxTags = 20;
+
+    /// <summary>
+    /// The maximum length of a single tag.
+    /// </summary>
+    private const int MaxTagLength = 40;
+
     /// <summary>
     /// Initializes validation rules for food update.
     /// </summary>
@@ -35,7 +46,12 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 
         RuleFor(x => x.NutrientValue)
             .Must(n => NutrientValidation.IsKcalConsistent(n.Kcal, n.Protein, n.Carbs, n.Fat))
+            .WithErrorCode(ErrorCodes.KcalInconsistent)
             .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).");
+
+        RuleFor(x => x.CommonServings)
+            .NotEmpty()
+            .WithMessage("At least one common serving is required — the first entry is used as the default serving.");
 
         RuleForEach(x => x.CommonServings).ChildRules(s =>
         {
@@ -46,5 +62,26 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
         RuleFor(x => x.Visibility)
             .Must(v => !v.HasValue || Enum.IsDefined(v.Value))
             .WithMessage("Visibility must be a valid enum value.");
+
+        RuleForEach(x => x.Allergens).IsInEnum();
+
+        RuleForEach(x => x.DietaryPreferences).IsInEnum();
+
+        // No CascadeMode is configured anywhere in this backend (default: Continue), so the
+        // Must() below still runs after NotNull() fails — it guards `tags is null` itself rather
+        // than relying on cascade-stop to short-circuit a null Tags before it reaches Count.
+        RuleFor(x => x.Tags)
+            .NotNull()
+            .WithMessage("Tags must not be null.")
+            .Must(tags => tags is null || tags.Count <= MaxTags)
+            .WithMessage($"At most {MaxTags} tags may be supplied.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty()
+            .WithMessage("A tag must not be blank.")
+            .MaximumLength(MaxTagLength)
+            .WithMessage($"A tag must be at most {MaxTagLength} characters.")
+            .Must(tag => tag is null || !tag.Contains(','))
+            .WithMessage("A tag must not contain a comma.");
     }
 }

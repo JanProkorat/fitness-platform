@@ -25,6 +25,8 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
             s.Description = "Returns a single food item by its public identifier. "
                 + "Private foods are only accessible to their creator; other nutritionists receive 404. "
                 + "Clients can still read private foods referenced by their nutrition plans.";
+            s.Response<FoodSummary>(StatusCodes.Status200OK, "Food detail");
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found, soft-deleted, or not visible to the caller";
         });
     }
 

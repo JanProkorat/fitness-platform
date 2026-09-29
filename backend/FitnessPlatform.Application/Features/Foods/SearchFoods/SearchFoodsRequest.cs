@@ -20,6 +20,11 @@ public class SearchFoodsRequest
     public FoodCategory? Category { get; set; }
 
     /// <summary>
+    /// Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
+    /// </summary>
+    public List<string> Tags { get; set; } = [];
+
+    /// <summary>
     /// Page number (1-based). Defaults to 1.
     /// </summary>
     public int Page { get; set; } = 1;

@@ -118,6 +118,8 @@
   --gf-hero-content-width: 900px; /* hero headline/collage max-width, reused twice in HeroSection */
   --gf-badge-min-width: 19px; /* filter-chip count badge floor (Figma node 1:693, #1079) — a single-digit count's glyph advance can render narrower than the badge's own height in a fallback face, squaring off the pill */
   --gf-swatch-size: 18px; /* create-tag colour-picker swatch diameter (#1083) — off Tailwind's built-in size scale */
+  --gf-search-width: 280px; /* Ingredients page search input (docs/design/ingredients/inventory.md, #1115) */
+  --gf-drawer-width: 560px; /* Ingredient drawer sheet width, same source */
   --gf-tracking-label: 0.14em; /* eyebrow/section-label letter-spacing, reused 3x */
   /* 960px collapse breakpoint (spec §6) is declared as a literal directly
      in `--breakpoint-panel` below, not aliased through a --gf-* raw token:
@@ -268,6 +270,8 @@
   --spacing-hero-content: var(--gf-hero-content-width);
   --spacing-badge-min: var(--gf-badge-min-width);
   --spacing-swatch: var(--gf-swatch-size);
+  --spacing-search: var(--gf-search-width);
+  --spacing-drawer: var(--gf-drawer-width);
 
   --tracking-label: var(--gf-tracking-label);
 
