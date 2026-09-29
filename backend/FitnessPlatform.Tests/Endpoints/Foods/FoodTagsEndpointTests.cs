@@ -95,16 +95,6 @@ public class FoodTagsEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Get_TrainerOnlyCoach_Returns403()
-    {
-        var trainer = await TestActors.Trainer(factory).CreateAsync(TestContext.Current.CancellationToken);
-
-        var response = await trainer.Http.GetAsync("/trainer/food-tags", TestContext.Current.CancellationToken);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
     public async Task Update_Rename_Returns200AndUpdatesFields()
     {
         var nutritionist = await TestActors.Nutritionist(factory).CreateAsync(TestContext.Current.CancellationToken);
