@@ -81,6 +81,83 @@ test.describe('ingredients page', () => {
       .toBe(true);
   });
 
+  test('search, filter pills, and the New Ingredient button share one row', async ({ page }) => {
+    // #1115 — all four controls sit on a single flex row (IngredientsPage.tsx).
+    // Compare vertical centers rather than raw `y`, since the search Input
+    // (h-8) and the "+ New Ingredient" Button (size="lg", h-9) have different
+    // heights but are vertically centered together by the row's `items-center`.
+    const boxes = await Promise.all(
+      [
+        page.getByPlaceholder('Search ingredients…'),
+        page.getByRole('button', { name: 'Category' }),
+        page.getByRole('button', { name: 'Tags' }),
+        page.getByRole('button', { name: '+ New Ingredient' }),
+      ].map((locator) => locator.boundingBox()),
+    );
+
+    for (const box of boxes) {
+      expect(box).not.toBeNull();
+    }
+
+    const verticalCenters = boxes.map((box) => box!.y + box!.height / 2);
+    const spread = Math.max(...verticalCenters) - Math.min(...verticalCenters);
+    expect(spread).toBeLessThan(10);
+  });
+
+  test('filtering by two categories returns only rows in those categories', async ({ page }) => {
+    await page.getByRole('button', { name: 'Category' }).click();
+
+    const filterResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('category='),
+    );
+    await page.getByRole('checkbox', { name: 'Fruit' }).click();
+    await page.getByRole('checkbox', { name: 'Dairy' }).click();
+    await filterResponse;
+    await page.waitForURL(/category=/);
+    await page.keyboard.press('Escape');
+    await page.waitForLoadState('networkidle');
+
+    const rows = page.locator('tbody tr');
+    await expect(rows.first()).toBeVisible();
+
+    // Category is the 4th column (Name, Calories, Nutrients, Category, Library).
+    const categoryCells = rows.locator('td:nth-child(4)');
+    const categoryTexts = await categoryCells.allTextContents();
+    expect(categoryTexts.length).toBeGreaterThan(0);
+    for (const text of categoryTexts) {
+      expect(['Fruit', 'Dairy']).toContain(text.trim());
+    }
+  });
+
+  test("the table header's position doesn't move after scrolling the table body", async ({ page }) => {
+    await page.locator('tbody tr').first().waitFor();
+
+    const header = page.getByRole('columnheader', { name: 'Name' });
+    const beforeBox = await header.boundingBox();
+    expect(beforeBox).not.toBeNull();
+
+    // The page's own vertical scroller -- see IngredientsPage.tsx's
+    // `overflow-y-auto` wrapper -- not the window, since that's the ancestor
+    // the sticky header actually sticks to.
+    const scroller = page.locator('div.overflow-y-auto').filter({ has: page.locator('table') });
+    const scrolledTop = await scroller.evaluate((element) => {
+      element.scrollTop = 300;
+      return element.scrollTop;
+    });
+    expect(scrolledTop).toBeGreaterThan(0);
+
+    const afterBox = await header.boundingBox();
+    expect(afterBox).not.toBeNull();
+    expect(afterBox!.y).toBeCloseTo(beforeBox!.y, 0);
+  });
+
+  test('a clickable button reports cursor: pointer', async ({ page }) => {
+    const cursor = await page
+      .getByRole('button', { name: '+ New Ingredient' })
+      .evaluate((element) => getComputedStyle(element).cursor);
+    expect(cursor).toBe('pointer');
+  });
+
   test('a system row opens the drawer read-only', async ({ page }) => {
     await page.getByPlaceholder('Search ingredients…').fill('Apple');
     await page.waitForURL(/q=Apple/);

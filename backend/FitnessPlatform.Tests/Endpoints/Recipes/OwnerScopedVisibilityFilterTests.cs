@@ -393,6 +393,38 @@ public class OwnerScopedVisibilityFilterTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// #1115 success path: the category filter is multi-value, match-any. Foods span three
+    /// categories; searching with two of them returns only those two, filtered to this test's own
+    /// uniquely-named foods since the collection is shared across facts.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_TwoCategoriesSupplied_ReturnsOnlyThoseCategories()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var ownerId = Guid.NewGuid();
+
+        var fruitFood = MakeFood(ownerId, "Category Filter Fruit", FoodVisibility.Public);
+        fruitFood.Category = FoodCategory.Fruit;
+        var dairyFood = MakeFood(ownerId, "Category Filter Dairy", FoodVisibility.Public);
+        dairyFood.Category = FoodCategory.Dairy;
+        var meatFood = MakeFood(ownerId, "Category Filter Meat", FoodVisibility.Public);
+        meatFood.Category = FoodCategory.Meat;
+        await _foods.InsertManyAsync([fruitFood, dairyFood, meatFood], cancellationToken: ct);
+
+        var ep = Factory.Create<SearchFoodsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(ownerId, AppRoles.Nutritionist))),
+            _mongoContext);
+
+        await ep.HandleAsync(
+            new SearchFoodsRequest { Categories = [FoodCategory.Fruit, FoodCategory.Dairy] }, ct);
+
+        ep.Response.Foods.Should().HaveCount(2);
+        ep.Response.Foods.Select(f => f.Name).Should().BeEquivalentTo(
+            ["Category Filter Fruit", "Category Filter Dairy"]);
+    }
+
+    /// <summary>
     /// #1115 error path: <c>GET /foods/tags</c> must never list a tag that exists only on another
     /// coach's Private food — same own-or-public filter as search.
     /// </summary>

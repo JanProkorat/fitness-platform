@@ -32,7 +32,11 @@ export default function IngredientsTable({
 
   return (
     <Table>
-      <TableHeader className="bg-muted">
+      {/* `sticky top-0` pins the header to the page's own vertical scroller
+          (see IngredientsPage.tsx's `overflow-visible` override on
+          `ui/table.tsx`'s horizontal-scroll wrapper). `bg-muted` is already
+          opaque, so scrolled rows don't show through underneath. */}
+      <TableHeader className="sticky top-0 z-10 bg-muted">
         <TableRow>
           {/* Name has no fixed width — it takes all remaining space. The
               other four columns are fixed (docs/design/ingredients/inventory.md

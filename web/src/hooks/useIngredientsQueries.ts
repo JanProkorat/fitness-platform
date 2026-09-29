@@ -12,6 +12,7 @@ import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
  */
 export function useIngredients(filters: IngredientListFilters) {
   const tagsKey = [...filters.tags].sort().join(',');
+  const categoriesKey = [...filters.categories].sort().join(',');
 
   return useQuery({
     queryKey: [
@@ -19,7 +20,7 @@ export function useIngredients(filters: IngredientListFilters) {
       'list',
       {
         search: filters.search,
-        category: filters.category,
+        categoriesKey,
         tagsKey,
         page: filters.page,
         pageSize: filters.pageSize,
@@ -28,7 +29,7 @@ export function useIngredients(filters: IngredientListFilters) {
     queryFn: () =>
       searchFoods({
         q: filters.search || undefined,
-        category: filters.category,
+        categories: filters.categories,
         tags: filters.tags,
         page: filters.page,
         pageSize: filters.pageSize,

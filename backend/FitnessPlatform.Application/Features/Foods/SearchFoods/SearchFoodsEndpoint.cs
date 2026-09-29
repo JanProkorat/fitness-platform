@@ -24,9 +24,9 @@ public class SearchFoodsEndpoint(
         Summary(s =>
         {
             s.Summary = "Search foods";
-            s.Description = "Fulltext search across food database with optional source filter and pagination.";
+            s.Description = "Fulltext search across food database with optional multi-value category filter, tags filter, and pagination.";
             s.Response<SearchFoodsResponse>(StatusCodes.Status200OK, "Matching foods");
-            s.Responses[StatusCodes.Status400BadRequest] = "Invalid page, page size, or tags filter";
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid page, page size, tags filter, or category filter";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
@@ -46,9 +46,10 @@ public class SearchFoodsEndpoint(
         var filterBuilder = Builders<Food>.Filter;
         var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId);
 
-        if (req.Category.HasValue)
+        if (req.Categories.Count > 0)
         {
-            filter &= filterBuilder.Eq(f => f.Category, req.Category.Value);
+            // "Match any" semantics — same shape as the tags filter below.
+            filter &= filterBuilder.In(f => f.Category, req.Categories);
         }
 
         if (req.Tags.Count > 0)

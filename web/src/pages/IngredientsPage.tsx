@@ -23,7 +23,7 @@ import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
  */
 export default function IngredientsPage() {
   const { t } = useTranslation();
-  const { filters, setSearch, setCategory, setTags, setPage, clearFilters } = useIngredientListParams();
+  const { filters, setSearch, setCategories, setTags, setPage, clearFilters } = useIngredientListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
 
@@ -48,7 +48,7 @@ export default function IngredientsPage() {
   });
 
   const ingredientsQuery = useIngredients(filters);
-  const hasActiveFilter = filters.search !== '' || filters.category !== undefined || filters.tags.length > 0;
+  const hasActiveFilter = filters.search !== '' || filters.categories.length > 0 || filters.tags.length > 0;
 
   function openCreateDrawer() {
     setSelectedFood(null);
@@ -76,7 +76,7 @@ export default function IngredientsPage() {
     <div className="flex h-full flex-col gap-4">
       <h1 className="text-title font-bold text-ink">{t('ingredients.title')}</h1>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full max-w-search">
           <Search
             className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -91,20 +91,26 @@ export default function IngredientsPage() {
             aria-label={t('ingredients.searchPlaceholder')}
           />
         </div>
+        <IngredientCategoryFilterPopover selectedCategories={filters.categories} onChange={setCategories} />
+        <IngredientTagFilterPopover selectedTags={filters.tags} onChange={setTags} />
         {isNutritionist && (
-          <Button type="button" size="lg" onClick={openCreateDrawer}>
+          <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
             {t('ingredients.newIngredient')}
           </Button>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <IngredientCategoryFilterPopover selectedCategory={filters.category} onChange={setCategory} />
-        <IngredientTagFilterPopover selectedTags={filters.tags} onChange={setTags} />
-      </div>
-
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="flex-1 overflow-y-auto">
+        {/* This div is the real vertical scroller. `ui/table.tsx`'s own
+            `data-slot="table-container"` wraps the table in `overflow-x-auto`,
+            which becomes the nearest ancestor with a non-visible overflow —
+            that stops `sticky` on the thead from doing anything, since a
+            `sticky` element sticks to its nearest scrolling ancestor, and
+            that inner wrapper never scrolls vertically. Making it
+            `overflow-visible` here promotes this div back to the sticky
+            ancestor, while it still handles the horizontal scroll (its own
+            overflow-x still computes to auto). */}
+        <div className="flex-1 overflow-y-auto [&_[data-slot=table-container]]:overflow-visible">
           <IngredientsTable
             foods={ingredientsQuery.data?.foods ?? []}
             isPending={ingredientsQuery.isPending}

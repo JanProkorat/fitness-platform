@@ -445,4 +445,21 @@
   body {
     @apply bg-background text-foreground font-sans text-body;
   }
+
+  /* App-wide pointer cursor on anything clickable. Must stay inside this
+     `@layer base` block -- unlayered CSS beats every Tailwind layer, so it
+     would override the explicit `cursor-default` in dropdown-menu.tsx and
+     the `cursor-not-allowed` utilities on disabled inputs/checkboxes.
+     Links need no rule of their own -- `<a href>` already gets a pointer
+     cursor from the browser, including Button asChild links. */
+  button:not(:disabled):not([aria-disabled='true']),
+  [role='button']:not([aria-disabled='true']),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  :disabled {
+    cursor: not-allowed;
+  }
 }
