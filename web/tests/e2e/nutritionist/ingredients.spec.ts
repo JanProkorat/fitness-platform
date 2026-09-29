@@ -550,11 +550,17 @@ test.describe('food tags (#1120)', () => {
     await searchResponse;
     await page.waitForLoadState('networkidle');
     await page.getByRole('cell', { name: systemFoodName, exact: true }).first().click();
-    await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
-    await expect(page.getByLabel('Name')).toBeDisabled();
+    // Scoped to the sheet content for the rest of this drawer-open span: the
+    // table row behind the (non-modal) Sheet overlay stays in the DOM, and
+    // once the tag is assigned below its own Tags-column chip renders the
+    // same tagName text — an unscoped page.getByText(tagName) then resolves
+    // two elements and throws a strict-mode violation.
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await expect(drawer.getByLabel('Name')).toBeDisabled();
 
-    await expect(page.getByText('My Tags')).toBeVisible();
-    await page.getByRole('button', { name: 'Assign tags' }).click();
+    await expect(drawer.getByText('My Tags')).toBeVisible();
+    await drawer.getByRole('button', { name: 'Assign tags' }).click();
     const drawerPopover = page.locator("[data-slot='popover-content']");
     await expect(drawerPopover).toBeVisible();
     const assignResponse = page.waitForResponse(
@@ -564,12 +570,14 @@ test.describe('food tags (#1120)', () => {
     await assignResponse;
     await page.keyboard.press('Escape');
 
-    // The tag chip now renders in the drawer.
-    await expect(page.getByText(tagName, { exact: true })).toBeVisible();
+    // The tag chip now renders in the drawer — scoped to `drawer`, since the
+    // list row underneath (now also showing this tag's chip in its Tags
+    // column) still matches the same text (see the comment above).
+    await expect(drawer.getByText(tagName, { exact: true })).toBeVisible();
 
     // Scoped to the sheet footer, same reasoning as the read-only test
     // above: the corner "x" close button shares the accessible name "Close".
-    await page.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+    await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
 
     // Filter the list by the tag — the system food now matches.
     await page.getByRole('button', { name: 'Tags' }).click();
