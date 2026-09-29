@@ -66,6 +66,12 @@ public static class ErrorCodes
     /// <summary>Food gallery is at its 6-entry cap; no further images can be added.</summary>
     public const string FoodGalleryFull = "FOOD_GALLERY_FULL";
 
+    /// <summary>Food tag not found, or belongs to a different owning nutritionist.</summary>
+    public const string FoodTagNotFound = "FOOD_TAG_NOT_FOUND";
+
+    /// <summary>A food tag with this Name already exists for the owning nutritionist.</summary>
+    public const string FoodTagNameAlreadyExists = "FOOD_TAG_NAME_ALREADY_EXISTS";
+
     // ── Recipes ──────────────────────────────────────────────────────
     /// <summary>User can only edit/delete/upload images for their own recipes.</summary>
     public const string RecipeNotOwned = "RECIPE_NOT_OWNED";

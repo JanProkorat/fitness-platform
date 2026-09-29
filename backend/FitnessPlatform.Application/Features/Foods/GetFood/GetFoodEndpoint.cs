@@ -70,6 +70,11 @@ public class GetFoodEndpoint(IMongoContext mongo) : Endpoint<GetFoodRequest, Foo
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()
             ?.Split(',').FirstOrDefault()?.Trim().Split('-').FirstOrDefault();
 
-        await Send.OkAsync(FoodSummary.FromDocument(food, language, currentUserId), ct);
+        var tags = currentUserId.HasValue
+            ? (await FoodTagLookup.GetTagsByFoodIdAsync(mongo, currentUserId.Value, [food.ExternalId], ct))
+                .GetValueOrDefault(food.ExternalId, [])
+            : [];
+
+        await Send.OkAsync(FoodSummary.FromDocument(food, language, currentUserId, tags), ct);
     }
 }

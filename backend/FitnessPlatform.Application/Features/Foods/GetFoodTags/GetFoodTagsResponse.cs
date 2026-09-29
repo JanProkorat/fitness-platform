@@ -1,12 +1,14 @@
+using FitnessPlatform.Application.Features.Foods.Shared;
+
 namespace FitnessPlatform.Application.Features.Foods.GetFoodTags;
 
 /// <summary>
-/// Response model for the distinct food tags listing.
+/// The food tags owned by the calling nutritionist.
 /// </summary>
 public class GetFoodTagsResponse
 {
     /// <summary>
-    /// Distinct tags across every food visible to the caller, sorted alphabetically.
+    /// The caller's food tags, ordered by name.
     /// </summary>
-    public List<string> Tags { get; set; } = [];
+    public List<FoodTagDto> Tags { get; set; } = [];
 }

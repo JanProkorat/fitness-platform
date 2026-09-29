@@ -54,9 +54,11 @@ public class FoodSummary
     public List<DietaryPreference> DietaryPreferences { get; set; } = [];
 
     /// <summary>
-    /// Free-form tags for filtering and classification.
+    /// The caller's own coach-private tags on this food (#1120). Always empty for a caller who
+    /// owns no <see cref="FoodTagLookup"/> assignment for this food — including every non-owning
+    /// coach and every non-nutritionist caller, since only a nutritionist can create one.
     /// </summary>
-    public List<string> Tags { get; set; } = [];
+    public List<FoodTagDto> Tags { get; set; } = [];
 
     /// <summary>
     /// Common serving sizes. The first entry is the default serving.
@@ -110,7 +112,10 @@ public class FoodSummary
     /// <param name="food">The food document.</param>
     /// <param name="language">Two-letter language code for name resolution (e.g. "cs", "de"). Defaults to "en".</param>
     /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
-    public static FoodSummary FromDocument(Food food, string? language = null, Guid? currentUserId = null) => new()
+    /// <param name="tags">The caller's own tag chips for this food (#1120), pre-resolved via
+    /// <see cref="FoodTagLookup"/> — this factory does not query the database itself.</param>
+    public static FoodSummary FromDocument(
+        Food food, string? language = null, Guid? currentUserId = null, List<FoodTagDto>? tags = null) => new()
     {
         FoodId = food.ExternalId,
         Name = food.LocalizedNames?.Resolve(language) ?? food.Name,
@@ -140,7 +145,7 @@ public class FoodSummary
         IsSystem = food.NutritionistId is null,
         Allergens = FoodEnumListMapping.ParseStoredNames<Allergen>(food.Allergens),
         DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(food.DietaryPreferences),
-        Tags = food.Tags,
+        Tags = tags ?? [],
         CommonServings = food.CommonServings
             .Select(s => new ServingSizeDto { Label = s.Label, WeightGrams = s.WeightGrams })
             .ToList()

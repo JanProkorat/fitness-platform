@@ -65,11 +65,6 @@ public class UpdateFoodRequest
     public List<DietaryPreference> DietaryPreferences { get; set; } = [];
 
     /// <summary>
-    /// Updated free-form tags for filtering and classification.
-    /// </summary>
-    public List<string> Tags { get; set; } = [];
-
-    /// <summary>
     /// Updated common serving sizes. The first entry is the default serving and is required.
     /// </summary>
     public List<ServingSizeDto> CommonServings { get; set; } = [];
