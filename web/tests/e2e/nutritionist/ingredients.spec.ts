@@ -1,16 +1,22 @@
 /**
  * #1115 — Ingredients page: list load, search, tag filter, create/edit/
- * delete a private ingredient, and a read-only system row.
+ * delete a private ingredient, and a read-only system row. #1120 adds
+ * coach-private food tags: create/edit/delete/filter/assign, and a
+ * trainer-only coach seeing no tag UI at all.
  *
  * Path is deliberately under nutritionist/ — every project in
  * playwright.config.ts matches a role subfolder via testMatch, and
- * create/edit/delete on `/foods` are Nutritionist-only
- * (`CreateFoodEndpoint`/`UpdateFoodEndpoint`/`DeleteFoodEndpoint` all gate on
- * `Roles(AppRoles.Nutritionist)`) — the trainer fixture can read the list but
- * cannot exercise the drawer's write paths.
+ * create/edit/delete on `/foods` (and all food-tag CRUD) are
+ * Nutritionist-only (`Roles(AppRoles.Nutritionist)`) — the trainer fixture
+ * can read the list but cannot exercise any write path. The trainer-only
+ * "no tag UI" test below imports `trainerTest` directly rather than
+ * living in its own `trainer/` file — Playwright's project routing is by
+ * file path via `testMatch`, not by which fixture a test uses, so a single
+ * test built on `trainerTest` inside this `nutritionist/` file still runs
+ * (only) under the `nutritionist` project, same as every other test here.
  */
 import { request as apiRequest } from '@playwright/test';
-import { nutritionistTest as test, expect } from '../fixtures/auth';
+import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
@@ -22,6 +28,19 @@ interface FoodApiBody {
   foodId?: string;
   name?: string;
   rawName?: string;
+  isSystem?: boolean;
+}
+
+interface FoodTagApiBody {
+  tagId?: string;
+}
+
+interface GetFoodTagsApiBody {
+  tags?: FoodTagApiBody[];
+}
+
+interface SearchFoodsApiBody {
+  foods?: FoodApiBody[];
 }
 
 /**
@@ -43,6 +62,66 @@ async function loginAsNutritionist(baseURL: string): Promise<string> {
       throw new Error(`[ingredients] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
     }
     return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Deletes every food tag the caller owns via GET + DELETE
+ * /trainer/food-tags, so each food-tags test starts and ends from zero
+ * tags — CreateFoodTagEndpoint 409s on a duplicate name otherwise. Mirrors
+ * `trainer/clients.spec.ts`'s `deleteAllClientTags`.
+ */
+async function deleteAllFoodTags(baseURL: string | undefined): Promise<void> {
+  const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
+  const accessToken = await loginAsNutritionist(resolvedBaseUrl);
+  const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
+  try {
+    const listResponse = await api.get('/trainer/food-tags', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!listResponse.ok()) {
+      throw new Error(`[ingredients] GET /trainer/food-tags returned ${listResponse.status()} ${listResponse.statusText()}.`);
+    }
+    const { tags } = (await listResponse.json()) as GetFoodTagsApiBody;
+    for (const tag of tags ?? []) {
+      if (!tag.tagId) {
+        continue;
+      }
+      const deleteResponse = await api.delete(`/trainer/food-tags/${tag.tagId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      expect(deleteResponse.ok()).toBe(true);
+    }
+  } finally {
+    await api.dispose();
+  }
+}
+
+/**
+ * Finds a system food's name via GET /foods/search — used to open the
+ * read-only drawer for the "assign a tag to a food I don't own" AC. Prefers
+ * "Apple" (the same seeded system food `a system row opens the drawer
+ * read-only` already relies on).
+ */
+async function findSystemFoodName(baseURL: string | undefined): Promise<string> {
+  const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
+  const accessToken = await loginAsNutritionist(resolvedBaseUrl);
+  const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
+  try {
+    const response = await api.get('/foods/search?q=Apple', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] GET /foods/search returned ${response.status()} ${response.statusText()}.`);
+    }
+    const { foods } = (await response.json()) as SearchFoodsApiBody;
+    const systemFood = (foods ?? []).find((food) => food.isSystem && food.name);
+    if (!systemFood?.name) {
+      throw new Error('[ingredients] GET /foods/search?q=Apple returned no system food to tag.');
+    }
+    return systemFood.name;
   } finally {
     await api.dispose();
   }
@@ -177,10 +256,9 @@ test.describe('ingredients page', () => {
     await page.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
   });
 
-  test('creating, editing, filtering by tag, and deleting a private ingredient', async ({ page }) => {
+  test('creating, editing, and deleting a private ingredient', async ({ page }) => {
     const uniqueSuffix = Date.now();
     const name = `QA E2E Ingredient ${uniqueSuffix}`;
-    const tag = `qa-e2e-${uniqueSuffix}`;
 
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
@@ -194,17 +272,15 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Unit').selectOption('piece');
     await page.getByLabel('Serving Size').fill('120');
 
-    await page.getByLabel('Tags').fill(tag);
-    await page.getByLabel('Tags').press('Enter');
-    await expect(page.getByText(tag, { exact: true })).toBeVisible();
-
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
 
-    // Filter down to the freshly-created row via the Tags pill.
-    await page.getByRole('button', { name: 'Tags' }).click();
-    await page.getByText(tag, { exact: true }).click();
-    await page.waitForURL(/tags=/);
+    // Find the freshly-created row via search — tags are no longer a
+    // free-text field on the ingredient itself (#1120); see the dedicated
+    // "food tags" describe block below for tag create/filter/assign coverage.
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('cell', { name })).toBeVisible();
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();
@@ -336,29 +412,6 @@ test.describe('ingredients page', () => {
     await expect(page.getByRole('cell', { name })).toHaveCount(0);
   });
 
-  test('cannot add a 21st tag', async ({ page }) => {
-    await page.getByRole('button', { name: '+ New Ingredient' }).click();
-    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
-
-    const tagsInput = page.getByLabel('Tags');
-    for (let tagIndex = 1; tagIndex <= 20; tagIndex++) {
-      await tagsInput.fill(`tag-${tagIndex}`);
-      await tagsInput.press('Enter');
-    }
-
-    await expect(page.getByText('You can add up to 20 tags.')).toBeVisible();
-    // TagsInput keeps its text input mounted but disables it once at the
-    // cap — removing it entirely broke the "Tags" <Label>'s association
-    // (#1115 code review) — so there's nowhere left to type a 21st tag, but
-    // the labelled element itself still resolves.
-    await expect(page.getByLabel('Tags')).toBeDisabled();
-    // The max-tags message renders exactly once — not also duplicated by
-    // IngredientDrawer's own zod-driven error text (#1115 code review).
-    await expect(page.getByText('You can add up to 20 tags.')).toHaveCount(1);
-
-    await page.getByRole('button', { name: 'Cancel' }).click();
-  });
-
   test('editing without changing Name preserves the base name for a food with per-language display names (rawName)', async ({
     page,
     baseURL,
@@ -390,7 +443,6 @@ test.describe('ingredients page', () => {
           nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
           allergens: [],
           dietaryPreferences: [],
-          tags: [],
           commonServings: [{ label: 'piece', weightGrams: 120 }],
         },
         headers: { Authorization: `Bearer ${accessToken}`, 'Accept-Language': 'en' },
@@ -439,5 +491,121 @@ test.describe('ingredients page', () => {
     } finally {
       await verifyApi.dispose();
     }
+  });
+});
+
+/**
+ * Coach-private food tags (#1120): create from the filter popup, assign to
+ * a food the caller does NOT own (a system food) through its read-only
+ * drawer, and filter by the tag. Nutritionist-only, mirroring
+ * `trainer/clients.spec.ts`'s "client tag filter — create a tag (#1119)"
+ * describe block.
+ */
+test.describe('food tags (#1120)', () => {
+  test.beforeEach(async ({ page, baseURL }) => {
+    await deleteAllFoodTags(baseURL);
+    await page.goto('/ingredients');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test.afterEach(async ({ baseURL }) => {
+    await deleteAllFoodTags(baseURL);
+  });
+
+  test('creates a tag from the filter popup, assigns it to a system ingredient via the read-only drawer, and filters by it', async ({
+    page,
+    baseURL,
+  }) => {
+    const tagName = `QA Food Tag ${Date.now()}`;
+    const popoverContent = page.locator("[data-slot='popover-content']");
+    const dialog = page.locator("[data-slot='dialog-content']");
+
+    // Create from the filter popover — reopens listed, unticked (mirrors
+    // ClientTagFilterPopover / #1119's "+ Create tag" pattern).
+    await page.getByRole('button', { name: 'Tags' }).click();
+    await expect(popoverContent).toBeVisible();
+    await expect(popoverContent.getByText('No tags yet.')).toBeVisible();
+
+    await popoverContent.getByRole('button', { name: 'Create tag' }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
+    await dialog.getByLabel('Name').fill(tagName);
+
+    const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
+
+    await expect(dialog).toBeHidden();
+    await expect(popoverContent).toBeVisible();
+    const newTagRow = popoverContent.locator('li', { hasText: tagName });
+    await expect(newTagRow).toBeVisible();
+    await expect(newTagRow.getByRole('checkbox')).not.toBeChecked();
+    await page.keyboard.press('Escape');
+
+    // Open a SYSTEM food's read-only drawer and assign the new tag — a
+    // nutritionist can tag any visible food, not just their own.
+    const systemFoodName = await findSystemFoodName(baseURL);
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(systemFoodName);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name: systemFoodName, exact: true }).first().click();
+    await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await expect(page.getByLabel('Name')).toBeDisabled();
+
+    await expect(page.getByText('My Tags')).toBeVisible();
+    await page.getByRole('button', { name: 'Assign tags' }).click();
+    const drawerPopover = page.locator("[data-slot='popover-content']");
+    await expect(drawerPopover).toBeVisible();
+    const assignResponse = page.waitForResponse(
+      (response) => response.url().includes('/tags') && response.request().method() === 'PUT',
+    );
+    await drawerPopover.locator('li', { hasText: tagName }).getByRole('checkbox').click();
+    await assignResponse;
+    await page.keyboard.press('Escape');
+
+    // The tag chip now renders in the drawer.
+    await expect(page.getByText(tagName, { exact: true })).toBeVisible();
+
+    // Scoped to the sheet footer, same reasoning as the read-only test
+    // above: the corner "x" close button shares the accessible name "Close".
+    await page.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+
+    // Filter the list by the tag — the system food now matches.
+    await page.getByRole('button', { name: 'Tags' }).click();
+    await expect(popoverContent).toBeVisible();
+    const filterResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('tagIds='),
+    );
+    await popoverContent.locator('li', { hasText: tagName }).getByRole('checkbox').click();
+    await filterResponse;
+    await page.waitForURL(/tags=/);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('cell', { name: systemFoodName, exact: true })).toBeVisible();
+    await expect(page.getByText('System', { exact: true })).toBeVisible();
+  });
+});
+
+/**
+ * A trainer-only coach has no food tags of their own (only a nutritionist
+ * can create one) — the Ingredients page must show no tag UI at all for
+ * them: no filter pill, and no tag section in the drawer. Uses `trainerTest`
+ * directly (see this file's header comment on why that still runs under the
+ * `nutritionist` Playwright project).
+ */
+trainerTest.describe('food tags — trainer-only coach (#1120)', () => {
+  trainerTest('sees no food tag UI on the Ingredients page', async ({ page }) => {
+    await page.goto('/ingredients');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
+
+    // No Tags filter pill at all.
+    await expect(page.getByRole('button', { name: 'Tags' })).toHaveCount(0);
+
+    // Opening any row's (read-only) drawer shows no tag section either.
+    await page.locator('tbody tr').first().click();
+    await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await expect(page.getByText('My Tags')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Assign tags' })).toHaveCount(0);
   });
 });
