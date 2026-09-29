@@ -326,7 +326,12 @@ test.describe('client tag filter — create a tag (#1119)', () => {
 
     await popoverContent.getByRole('button', { name: 'Create tag' }).click();
 
-    const dialog = page.getByRole('dialog');
+    // Scoped to data-slot, not role: Radix's Popover.Content also carries
+    // role="dialog" (the WAI-ARIA "non-modal dialog" pattern), so
+    // page.getByRole('dialog') matches both this modal AND the filter
+    // popover whenever they briefly coexist mid-transition — exactly the
+    // ambiguity that made the popover's own reopening race this locator.
+    const dialog = page.locator("[data-slot='dialog-content']");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
 
