@@ -21660,9 +21660,7 @@ export interface FoodSummary {
     allergens?: Allergen[];
     /** Dietary preferences this food satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** The caller's own coach-private tags on this food (#1120). Always empty for a caller who
-owns no FoodTagLookup assignment for this food — including every non-owning
-coach and every non-nutritionist caller, since only a nutritionist can create one. */
+    /** The caller's own coach-private tags on this food; empty if the caller has none assigned. */
     tags?: FoodTagDto[];
     /** Common serving sizes. The first entry is the default serving. */
     commonServings?: ServingSizeDto[];
