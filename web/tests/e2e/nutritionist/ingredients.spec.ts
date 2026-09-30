@@ -17,8 +17,16 @@
  */
 import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
+import { execFileSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+
+// This spec file lives at web/tests/e2e/nutritionist/ — four levels below the
+// repo root, where docker-compose.test.yml and scripts/test-env's
+// `.test-env.<project>.env` state files live (see `resolveMailhogPort` below).
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 
 interface LoginResponseBody {
   accessToken: string;
@@ -43,6 +51,127 @@ interface GetFoodTagsApiBody {
 
 interface SearchFoodsApiBody {
   foods?: FoodApiBody[];
+}
+
+interface MailhogHeaderMap {
+  [header: string]: string[];
+}
+
+interface MailhogMessage {
+  Content: {
+    Headers: MailhogHeaderMap;
+    Body: string;
+  };
+}
+
+interface MailhogSearchResponse {
+  items: MailhogMessage[];
+}
+
+/**
+ * Resolves the ephemeral host port docker mapped for the harness's MailHog UI
+ * (container port 8025 — see docker-compose.test.yml's `mailhog-test`
+ * comment: a fixed port would collide between two branches' stacks). Reads
+ * `COMPOSE_PROJECT_NAME` from whichever `.test-env.<project>.env` state file
+ * `scripts/test-env up` wrote at the repo root, rather than re-deriving the
+ * project name from the branch — that keeps this correct even if
+ * `TEST_ENV_BRANCH` was set unusually for a given run.
+ */
+function resolveMailhogPort(): number {
+  const stateFiles = readdirSync(REPO_ROOT).filter((name) => name.startsWith('.test-env.') && name.endsWith('.env'));
+  if (stateFiles.length !== 1) {
+    throw new Error(
+      `[ingredients] Expected exactly one .test-env.*.env state file at the repo root to resolve the ` +
+        `active compose project, found ${stateFiles.length}. Is the harness up (npm run e2e:up)?`,
+    );
+  }
+
+  const stateFileContents = readFileSync(path.join(REPO_ROOT, stateFiles[0]), 'utf-8');
+  const projectMatch = /^COMPOSE_PROJECT_NAME=(.+)$/m.exec(stateFileContents);
+  if (!projectMatch) {
+    throw new Error(`[ingredients] ${stateFiles[0]} carries no COMPOSE_PROJECT_NAME line.`);
+  }
+
+  const portMapping = execFileSync(
+    'docker',
+    ['compose', '-f', 'docker-compose.test.yml', 'port', 'mailhog-test', '8025'],
+    { cwd: REPO_ROOT, env: { ...process.env, COMPOSE_PROJECT_NAME: projectMatch[1] } },
+  )
+    .toString()
+    .trim();
+
+  const port = Number(portMapping.split(':').pop());
+  if (!Number.isFinite(port)) {
+    throw new Error(
+      `[ingredients] Could not parse a host port from 'docker compose port mailhog-test 8025' output: "${portMapping}".`,
+    );
+  }
+
+  return port;
+}
+
+/** Case-insensitive lookup of a MailHog message header, e.g. Content-Transfer-Encoding. */
+function findMailhogHeader(headers: MailhogHeaderMap, name: string): string | undefined {
+  const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name.toLowerCase());
+  return key ? headers[key]?.[0] : undefined;
+}
+
+/**
+ * Decodes a captured MailHog body per its own Content-Transfer-Encoding.
+ * SmtpEmailService.cs's `SendEmailAsync` sends a single `TextPart("html")`
+ * body (no multipart/alternative), so MailHog's top-level `Content.Body` is
+ * the whole message — MimeKit quoted-printable-encodes the templated HTML
+ * (long lines, and the verify link's own `token=` separator), so both forms
+ * are handled defensively.
+ */
+function decodeMimeBody(rawBody: string, transferEncoding: string | undefined): string {
+  const encoding = (transferEncoding ?? '').toLowerCase();
+  if (encoding === 'quoted-printable') {
+    return rawBody
+      .replace(/=\r\n/g, '')
+      .replace(/=\n/g, '')
+      .replace(/=([0-9A-Fa-f]{2})/g, (_match, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+  }
+  if (encoding === 'base64') {
+    return Buffer.from(rawBody.replace(/\r?\n/g, ''), 'base64').toString('utf-8');
+  }
+  return rawBody;
+}
+
+/**
+ * Reads the newest MailHog message addressed to `toEmail` (the harness
+ * captures outbound mail there instead of delivering it — #1059, project
+ * memory `project_harness_email_mailhog`) and extracts the `?token=` query
+ * value from the verification link (`SmtpEmailService.SendEmailVerificationAsync`
+ * builds `{baseUrl}/verify-email?token={encodedToken}`).
+ */
+async function fetchVerificationTokenFromMailhog(toEmail: string): Promise<string> {
+  const mailhogApi = await apiRequest.newContext({ baseURL: `http://localhost:${resolveMailhogPort()}` });
+  try {
+    const response = await mailhogApi.get('/api/v2/search', { params: { kind: 'to', query: toEmail } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] GET MailHog /api/v2/search returned ${response.status()} ${response.statusText()}.`);
+    }
+    const { items } = (await response.json()) as MailhogSearchResponse;
+    if (items.length === 0) {
+      throw new Error(`[ingredients] MailHog captured no message addressed to ${toEmail}.`);
+    }
+
+    // MailHog's search results are newest-first — items[0] is the verification email.
+    const decodedBody = decodeMimeBody(
+      items[0].Content.Body,
+      findMailhogHeader(items[0].Content.Headers, 'Content-Transfer-Encoding'),
+    );
+
+    const tokenMatch = /verify-email\?token=([^"&\s]+)/.exec(decodedBody);
+    if (!tokenMatch) {
+      throw new Error(`[ingredients] Could not find a verify-email token link in the captured message to ${toEmail}.`);
+    }
+
+    return decodeURIComponent(tokenMatch[1]);
+  } finally {
+    await mailhogApi.dispose();
+  }
 }
 
 /**
@@ -644,9 +773,10 @@ test.describe('food tags (#1120)', () => {
     }
 
     // --- A throwaway second nutritionist, registered fresh through the real API.
-    // LoginEndpoint.cs never gates on EmailConfirmed (only mobile's UI gate does,
-    // per RegisterEndpoint.cs's own comment) — a freshly registered, unverified
-    // account can log in immediately, so no MailHog round trip is needed here. ---
+    // LoginEndpoint.cs itself never gates on EmailConfirmed — but the web portal
+    // does, client-side: ProtectedRoute.tsx redirects to /verify-email whenever
+    // `user.emailConfirmed` is false, so B needs a real verification round trip
+    // (via MailHog) before /ingredients renders anything for B to assert on. ---
     const secondNutriEmail = `qa.nutri.isolation.${Date.now()}@fitnessplatform.test`;
     const secondNutriPassword = 'CorrectHorse9';
 
@@ -671,6 +801,19 @@ test.describe('food tags (#1120)', () => {
       }
     } finally {
       await registerApi.dispose();
+    }
+
+    const verificationToken = await fetchVerificationTokenFromMailhog(secondNutriEmail);
+    const verifyApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const verifyResponse = await verifyApi.post('/auth/verify-email', { data: { token: verificationToken } });
+      if (!verifyResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /auth/verify-email (second nutritionist) returned ${verifyResponse.status()} ${verifyResponse.statusText()}.`,
+        );
+      }
+    } finally {
+      await verifyApi.dispose();
     }
 
     const secondLoginApi = await apiRequest.newContext({ baseURL: origin });
