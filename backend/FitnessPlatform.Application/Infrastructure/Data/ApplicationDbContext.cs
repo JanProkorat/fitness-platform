@@ -443,20 +443,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         var entries = ChangeTracker.Entries<ITimestampable>();
 
         // Guarantees strictly increasing DateCreated across entities Added in the same
-        // batch, tie-broken by add-order with a whole-microsecond bump (Postgres' column
-        // precision) — needed for GetMessagesEndpoint's (DateCreated, Id) ordering (#1100).
+        // batch, tie-broken by add-order — ties are compared at whole-microsecond
+        // precision (Postgres' column precision), needed for GetMessagesEndpoint's
+        // (DateCreated, Id) ordering (#1100).
         DateTime? lastAssignedDateCreated = null;
 
         foreach (var entry in entries)
         {
             if (entry.State == EntityState.Added)
             {
-                var dateCreated = DateTime.UtcNow;
-
-                if (lastAssignedDateCreated is { } previous && dateCreated <= previous)
-                {
-                    dateCreated = previous.AddTicks(TimeSpan.TicksPerMicrosecond);
-                }
+                var dateCreated = NextDateCreated(DateTime.UtcNow, lastAssignedDateCreated);
 
                 entry.Entity.DateCreated = dateCreated;
                 lastAssignedDateCreated = dateCreated;
@@ -477,5 +473,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 entry.Entity.PublicId = Guid.NewGuid();
             }
         }
+    }
+
+    /// <summary>
+    /// Truncates <paramref name="candidate"/> to whole microseconds and bumps it past
+    /// <paramref name="previous"/> when the truncated value would otherwise tie or precede it.
+    /// </summary>
+    internal static DateTime NextDateCreated(DateTime candidate, DateTime? previous)
+    {
+        var truncated = new DateTime(candidate.Ticks - candidate.Ticks % TimeSpan.TicksPerMicrosecond, candidate.Kind);
+
+        if (previous is { } previousValue && truncated <= previousValue)
+        {
+            return previousValue.AddTicks(TimeSpan.TicksPerMicrosecond);
+        }
+
+        return truncated;
     }
 }
