@@ -929,7 +929,8 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     const editDrawer = page.locator('[data-slot="sheet-content"]');
     await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
     // The only change the drawer itself can make here — sugar/saturatedFat/salt aren't drawer fields.
-    await editDrawer.getByLabel('Fiber / 100g').fill('2');
+    // 1×4 + 12×4 + 0×9 + 1×2 = 54; 50/54 ≈ 0.926 stays inside the ±10% KCAL_INCONSISTENT band.
+    await editDrawer.getByLabel('Fiber / 100g').fill('1');
     await editDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
 
@@ -940,7 +941,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       const body = (await getResponse.json()) as FoodApiBody;
-      expect(body.nutrientValue?.fiber).toBe(2);
+      expect(body.nutrientValue?.fiber).toBe(1);
       expect(body.nutrientValue?.sugar).toBe(8);
       expect(body.nutrientValue?.saturatedFat).toBe(0.1);
       expect(body.nutrientValue?.salt).toBe(0.01);
