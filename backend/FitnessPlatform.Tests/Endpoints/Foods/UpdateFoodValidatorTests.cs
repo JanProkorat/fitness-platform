@@ -43,6 +43,17 @@ public class UpdateFoodValidatorTests
     }
 
     [Fact]
+    public void Validate_NegativeFiber_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.NutrientValue.Fiber = -1;
+
+        var result = new UpdateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.NutrientValue.Fiber);
+    }
+
+    [Fact]
     public void Validate_InconsistentKcal_FailsWithKcalInconsistentErrorCode()
     {
         var request = ValidRequest();

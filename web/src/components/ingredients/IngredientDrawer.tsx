@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import type { FieldError } from 'react-hook-form';
@@ -66,6 +66,7 @@ function buildFormSchema(allowedLegacyUnit: string | null) {
     protein: z.number({ message: 'required' }).min(0),
     carbs: z.number({ message: 'required' }).min(0),
     fat: z.number({ message: 'required' }).min(0),
+    fiber: z.number().min(0).optional(),
     unit: z
       .string()
       .refine(
@@ -89,6 +90,7 @@ const EMPTY_VALUES: FormValues = {
   protein: undefined as unknown as number,
   carbs: undefined as unknown as number,
   fat: undefined as unknown as number,
+  fiber: undefined,
   unit: 'portion',
   servingSize: undefined as unknown as number,
   dietaryPreferences: [],
@@ -109,6 +111,7 @@ function valuesFromFood(food: FoodSummary): FormValues {
     protein: food.nutrientValue?.protein ?? (undefined as unknown as number),
     carbs: food.nutrientValue?.carbs ?? (undefined as unknown as number),
     fat: food.nutrientValue?.fat ?? (undefined as unknown as number),
+    fiber: food.nutrientValue?.fiber,
     unit: defaultServing?.label ?? '',
     servingSize: defaultServing?.weightGrams ?? (undefined as unknown as number),
     dietaryPreferences: (food.dietaryPreferences ?? []) as string[],
@@ -138,9 +141,10 @@ interface Props {
  * specifically so it isn't shown twice.
  *
  * Editing is a full-state PUT (`UpdateFoodEndpoint.cs:61-90`) — `onSubmit`
- * round-trips `nameEn`/`nameCs`/`nameDe`, `note`, `visibility` and any
- * `commonServings` beyond the default (index 0) straight from the loaded
- * `food`, since the drawer's own fields never touch them.
+ * round-trips `nameEn`/`nameCs`/`nameDe`, `note`, `visibility`,
+ * `nutrientValue`'s `sugar`/`saturatedFat`/`salt`, and any `commonServings`
+ * beyond the default (index 0) straight from the loaded `food`, since the
+ * drawer's own fields never touch them.
  */
 export default function IngredientDrawer({ open, onOpenChange, food, readOnly, isNutritionist }: Props) {
   const { t } = useTranslation();
@@ -160,6 +164,9 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   const legacyUnit = mode === 'edit' ? (food?.commonServings?.[0]?.label ?? null) : null;
   const formSchema = useMemo(() => buildFormSchema(legacyUnit), [legacyUnit]);
 
+  // True once the user types Calories; stops create-mode auto-fill until the next open.
+  const kcalManualRef = useRef(false);
+
   const {
     register,
     handleSubmit,
@@ -167,6 +174,8 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     setError,
     watch,
     setValue,
+    getValues,
+    clearErrors,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -182,6 +191,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     if (open) {
       reset(food ? valuesFromFood(food) : EMPTY_VALUES);
       setAssignedTags(food?.tags ?? []);
+      kcalManualRef.current = false;
     }
   }, [open, food, reset]);
 
@@ -210,6 +220,44 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     return t(requiredKey);
   }
 
+  // Fiber is optional, so its only possible error is the negative-value
+  // check — there is no "required" case to translate.
+  function fiberFieldError(error: FieldError | undefined): string | null {
+    if (!error || error.type !== 'too_small') {
+      return null;
+    }
+    return t('ingredients.drawer.macroMinRequired');
+  }
+
+  function numericOrZero(value: number | undefined): number {
+    return value === undefined || Number.isNaN(value) ? 0 : value;
+  }
+
+  function handleKcalChange() {
+    kcalManualRef.current = true;
+  }
+
+  // Registered as each macro field's register(..., { onChange }) — not
+  // watch()+useEffect, since StrictMode's double-invoked effects and this
+  // drawer's own reset() on open would both re-trigger a watch-based
+  // recompute. reset()/setValue() never fire onChange, so opening a food
+  // (or re-opening after a failed save) can't reach this handler.
+  function handleMacroChange() {
+    if (mode !== 'create' || kcalManualRef.current) {
+      return;
+    }
+    const { protein, carbs, fat, fiber } = getValues();
+    const allEmpty = [protein, carbs, fat, fiber].every((value) => value === undefined || Number.isNaN(value));
+    if (allEmpty) {
+      return;
+    }
+    const computedKcal = Math.round(
+      numericOrZero(protein) * 4 + numericOrZero(carbs) * 4 + numericOrZero(fat) * 9 + numericOrZero(fiber) * 2,
+    );
+    setValue('kcal', computedKcal, { shouldValidate: true });
+    clearErrors('kcal');
+  }
+
   function onSubmit(values: FormValues) {
     const commonServings = [
       { label: values.unit, weightGrams: values.servingSize },
@@ -219,7 +267,13 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     if (mode === 'create') {
       const request: CreateFoodRequest = {
         name: values.name,
-        nutrientValue: { kcal: values.kcal, protein: values.protein, carbs: values.carbs, fat: values.fat },
+        nutrientValue: {
+          kcal: values.kcal,
+          protein: values.protein,
+          carbs: values.carbs,
+          fat: values.fat,
+          fiber: values.fiber,
+        },
         category: values.category as FoodCategory,
         allergens: values.allergens as Allergen[],
         dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
@@ -245,7 +299,16 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
       nameEn: food.nameEn,
       nameCs: food.nameCs,
       nameDe: food.nameDe,
-      nutrientValue: { kcal: values.kcal, protein: values.protein, carbs: values.carbs, fat: values.fat },
+      nutrientValue: {
+        kcal: values.kcal,
+        protein: values.protein,
+        carbs: values.carbs,
+        fat: values.fat,
+        fiber: values.fiber,
+        sugar: food.nutrientValue?.sugar,
+        saturatedFat: food.nutrientValue?.saturatedFat,
+        salt: food.nutrientValue?.salt,
+      },
       category: values.category as FoodCategory,
       note: food.note,
       visibility: food.visibility,
@@ -344,7 +407,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                   <Activity className="size-4 text-muted-foreground" aria-hidden="true" />
                   {t('ingredients.drawer.nutritionalInfo')}
                 </h3>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-5 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-kcal">
                       {t('ingredients.drawer.calories')} <span className="text-destructive">*</span>
@@ -353,7 +416,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                       id="ingredient-kcal"
                       type="number"
                       step="any"
-                      {...register('kcal', { valueAsNumber: true })}
+                      {...register('kcal', { valueAsNumber: true, onChange: handleKcalChange })}
                       aria-invalid={!!errors.kcal}
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
@@ -372,7 +435,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                       id="ingredient-protein"
                       type="number"
                       step="any"
-                      {...register('protein', { valueAsNumber: true })}
+                      {...register('protein', { valueAsNumber: true, onChange: handleMacroChange })}
                       aria-invalid={!!errors.protein}
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
@@ -391,7 +454,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                       id="ingredient-carbs"
                       type="number"
                       step="any"
-                      {...register('carbs', { valueAsNumber: true })}
+                      {...register('carbs', { valueAsNumber: true, onChange: handleMacroChange })}
                       aria-invalid={!!errors.carbs}
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
@@ -410,7 +473,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                       id="ingredient-fat"
                       type="number"
                       step="any"
-                      {...register('fat', { valueAsNumber: true })}
+                      {...register('fat', { valueAsNumber: true, onChange: handleMacroChange })}
                       aria-invalid={!!errors.fat}
                       placeholder={t('ingredients.drawer.zeroPlaceholder')}
                       className="h-10"
@@ -419,6 +482,24 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                       <p className="text-meta text-destructive">
                         {macroFieldError(errors.fat, 'ingredients.drawer.fatRequired')}
                       </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="ingredient-fiber">{t('ingredients.drawer.fiber')}</Label>
+                    <Input
+                      id="ingredient-fiber"
+                      type="number"
+                      step="any"
+                      {...register('fiber', {
+                        setValueAs: (value: string) => (value === '' ? undefined : Number(value)),
+                        onChange: handleMacroChange,
+                      })}
+                      aria-invalid={!!errors.fiber}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
+                    />
+                    {fiberFieldError(errors.fiber) && (
+                      <p className="text-meta text-destructive">{fiberFieldError(errors.fiber)}</p>
                     )}
                   </div>
                 </div>
