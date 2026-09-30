@@ -1,4 +1,5 @@
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
@@ -42,6 +43,9 @@ public static class DatabaseResetFixtureExtensions
             {
                 await mongoDatabase.DropCollectionAsync(name);
             }
+
+            // Recreate the indexes dropped with their collections, as ResetTestStateEndpoint does.
+            await scope.ServiceProvider.GetRequiredService<MongoIndexInitializer>().StartAsync(CancellationToken.None);
         }
 
         // Re-applies migrations and re-seeds roles + the system admin user — mirrors
