@@ -164,10 +164,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   const legacyUnit = mode === 'edit' ? (food?.commonServings?.[0]?.label ?? null) : null;
   const formSchema = useMemo(() => buildFormSchema(legacyUnit), [legacyUnit]);
 
-  // Create-mode-only auto-fill: flips true the moment the user types their
-  // own Calories value, so no later macro edit overwrites it (handleMacroChange
-  // below). Reset per open (see the effect below), so a freshly opened create
-  // drawer always starts in auto-fill mode again.
+  // True once the user types Calories; stops create-mode auto-fill until the next open.
   const kcalManualRef = useRef(false);
 
   const {
@@ -236,8 +233,6 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
     return value === undefined || Number.isNaN(value) ? 0 : value;
   }
 
-  // Marks Calories as user-owned the moment they type into it, so no later
-  // macro edit overwrites it — checked by handleMacroChange below.
   function handleKcalChange() {
     kcalManualRef.current = true;
   }
