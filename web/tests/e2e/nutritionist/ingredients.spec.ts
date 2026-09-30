@@ -291,7 +291,7 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit').selectOption('piece');
+    await page.getByLabel('Unit', { exact: true }).selectOption('piece');
     await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -339,7 +339,7 @@ test.describe('ingredients page', () => {
     await expect(page.getByText('Protein is required.')).toBeVisible();
     await expect(page.getByText('Carbs is required.')).toBeVisible();
     await expect(page.getByText('Fat is required.')).toBeVisible();
-    await expect(page.getByText('Serving size is required.')).toBeVisible();
+    await expect(page.getByText('Unit weight is required.')).toBeVisible();
 
     // The zod schema's internal placeholder message is the bare string
     // "required" — before this fix it rendered verbatim for Calories, and
@@ -393,7 +393,7 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit').selectOption('piece');
+    await page.getByLabel('Unit', { exact: true }).selectOption('piece');
     await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -830,7 +830,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Fiber / 100g').fill('3');
     // 1×4 + 12×4 + 0×9 + 3×2 = 58, auto-filled by the fields above.
     await expect(createDrawer.getByLabel('Calories / 100g')).toHaveValue('58');
-    await createDrawer.getByLabel('Unit').selectOption('piece');
+    await createDrawer.getByLabel('Unit', { exact: true }).selectOption('piece');
     await createDrawer.getByLabel('Unit weight (g)').fill('120');
 
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -865,7 +865,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Protein / 100g').fill('1');
     await createDrawer.getByLabel('Carbs / 100g').fill('12');
     await createDrawer.getByLabel('Fat / 100g').fill('0');
-    await createDrawer.getByLabel('Unit').selectOption('piece');
+    await createDrawer.getByLabel('Unit', { exact: true }).selectOption('piece');
     await createDrawer.getByLabel('Unit weight (g)').fill('120');
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
@@ -1015,7 +1015,7 @@ test.describe('nutrition layout and serving units (#1133)', () => {
 
     // Read-only for a system food, so assert the select's own selected option
     // text rather than interacting with it.
-    const unitSelect = drawer.getByLabel('Unit');
+    const unitSelect = drawer.getByLabel('Unit', { exact: true });
     await expect(unitSelect).toBeDisabled();
     const selectedText = await unitSelect.evaluate(
       (element) => (element as HTMLSelectElement).selectedOptions[0]?.textContent,
@@ -1069,7 +1069,7 @@ test.describe('nutrition layout and serving units (#1133)', () => {
 
     const editDrawer = page.locator('[data-slot="sheet-content"]');
     await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
-    await expect(editDrawer.getByLabel('Unit')).toHaveValue(legacyLabel);
+    await expect(editDrawer.getByLabel('Unit', { exact: true })).toHaveValue(legacyLabel);
 
     await editDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
