@@ -24,12 +24,20 @@ interface LoginResponseBody {
   accessToken: string;
 }
 
+interface NutrientValueApiBody {
+  fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
+  salt?: number;
+}
+
 interface FoodApiBody {
   foodId?: string;
   name?: string;
   rawName?: string;
   isSystem?: boolean;
   tags?: FoodTagApiBody[];
+  nutrientValue?: NutrientValueApiBody;
 }
 
 interface FoodTagApiBody {
@@ -753,6 +761,188 @@ test.describe('food tags (#1120)', () => {
 
     // A's tag itself is cleaned up by this describe block's shared afterEach
     // (deleteAllFoodTags), which already asserts every DELETE response.ok().
+  });
+});
+
+/**
+ * Fibre field and calorie auto-fill (#1126): the drawer's fifth macro
+ * field, its create-mode-only Calories auto-fill, and the edit-mode
+ * carry-through of sugar/saturatedFat/salt (fields the drawer itself never
+ * exposes, but which a full-state PUT must not null out).
+ */
+test.describe('fibre field and calorie auto-fill (#1126)', () => {
+  test('typing macros auto-fills Calories in create mode', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    await drawer.getByLabel('Protein / 100g').fill('10');
+    await drawer.getByLabel('Carbs / 100g').fill('10');
+    await drawer.getByLabel('Fat / 100g').fill('0');
+    // protein×4 + carbs×4 + fat×9 + fiber×2 = 40 + 40 + 0 + 0 = 80.
+    await expect(drawer.getByLabel('Calories / 100g')).toHaveValue('80');
+
+    await drawer.getByLabel('Fiber / 100g').fill('10');
+    // Adds fiber×2 = 20 more.
+    await expect(drawer.getByLabel('Calories / 100g')).toHaveValue('100');
+
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('a manually entered Calories value survives further macro edits', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    await drawer.getByLabel('Calories / 100g').fill('500');
+    // Once the user has typed their own value, a later macro edit must not overwrite it.
+    await drawer.getByLabel('Protein / 100g').fill('10');
+    await expect(drawer.getByLabel('Calories / 100g')).toHaveValue('500');
+
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('fibre round-trips on save and reload', async ({ page }) => {
+    const uniqueSuffix = Date.now();
+    const name = `QA Fibre Round Trip ${uniqueSuffix}`;
+
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    const createDrawer = page.locator('[data-slot="sheet-content"]');
+    await expect(createDrawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+
+    await createDrawer.getByLabel('Name').fill(name);
+    await createDrawer.getByLabel('Category').selectOption('Fruit');
+    await createDrawer.getByLabel('Protein / 100g').fill('1');
+    await createDrawer.getByLabel('Carbs / 100g').fill('12');
+    await createDrawer.getByLabel('Fat / 100g').fill('0');
+    await createDrawer.getByLabel('Fiber / 100g').fill('3');
+    // 1×4 + 12×4 + 0×9 + 3×2 = 58, auto-filled by the fields above.
+    await expect(createDrawer.getByLabel('Calories / 100g')).toHaveValue('58');
+    await createDrawer.getByLabel('Unit').selectOption('piece');
+    await createDrawer.getByLabel('Serving Size').fill('120');
+
+    await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+
+    const editDrawer = page.locator('[data-slot="sheet-content"]');
+    await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    await expect(editDrawer.getByLabel('Fiber / 100g')).toHaveValue('3');
+
+    await editDrawer.getByRole('button', { name: 'Delete' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('cell', { name })).toHaveCount(0);
+  });
+
+  test('editing an existing food does not auto-fill Calories on a macro change', async ({ page }) => {
+    const uniqueSuffix = Date.now();
+    const name = `QA Edit No Autofill ${uniqueSuffix}`;
+
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    const createDrawer = page.locator('[data-slot="sheet-content"]');
+    await createDrawer.getByLabel('Name').fill(name);
+    await createDrawer.getByLabel('Category').selectOption('Fruit');
+    await createDrawer.getByLabel('Calories / 100g').fill('50');
+    await createDrawer.getByLabel('Protein / 100g').fill('1');
+    await createDrawer.getByLabel('Carbs / 100g').fill('12');
+    await createDrawer.getByLabel('Fat / 100g').fill('0');
+    await createDrawer.getByLabel('Unit').selectOption('piece');
+    await createDrawer.getByLabel('Serving Size').fill('120');
+    await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+
+    const editDrawer = page.locator('[data-slot="sheet-content"]');
+    await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    await expect(editDrawer.getByLabel('Calories / 100g')).toHaveValue('50');
+
+    // The stored Calories value must win in edit mode — no recompute on a macro edit.
+    await editDrawer.getByLabel('Protein / 100g').fill('5');
+    await expect(editDrawer.getByLabel('Calories / 100g')).toHaveValue('50');
+
+    await editDrawer.getByRole('button', { name: 'Delete' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('cell', { name })).toHaveCount(0);
+  });
+
+  test('editing a food via the drawer preserves its sugar, saturated fat, and salt', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Nutrient Carry Through ${uniqueSuffix}`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0, sugar: 8, saturatedFat: 0.1, salt: 0.01 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (nutrient carry-through fixture) returned ${createResponse.status()} ` +
+            `${createResponse.statusText()}: ${await createResponse.text()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (nutrient carry-through fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+
+    const editDrawer = page.locator('[data-slot="sheet-content"]');
+    await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    // The only change the drawer itself can make here — sugar/saturatedFat/salt aren't drawer fields.
+    await editDrawer.getByLabel('Fiber / 100g').fill('2');
+    await editDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+
+    const verifyApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const getResponse = await verifyApi.get(`/foods/${foodId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const body = (await getResponse.json()) as FoodApiBody;
+      expect(body.nutrientValue?.fiber).toBe(2);
+      expect(body.nutrientValue?.sugar).toBe(8);
+      expect(body.nutrientValue?.saturatedFat).toBe(0.1);
+      expect(body.nutrientValue?.salt).toBe(0.01);
+
+      await verifyApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    } finally {
+      await verifyApi.dispose();
+    }
   });
 });
 
