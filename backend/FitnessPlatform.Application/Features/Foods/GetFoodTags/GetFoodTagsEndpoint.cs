@@ -8,7 +8,7 @@ using MongoDB.Driver;
 namespace FitnessPlatform.Application.Features.Foods.GetFoodTags;
 
 /// <summary>
-/// Returns the distinct set of tags across every food visible to the caller.
+/// Lists the coach-private food tags owned by the calling nutritionist (#1120).
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
 public class GetFoodTagsEndpoint(IMongoContext mongo) : EndpointWithoutRequest<GetFoodTagsResponse>
@@ -16,15 +16,14 @@ public class GetFoodTagsEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
     /// <inheritdoc />
     public override void Configure()
     {
-        Get("/foods/tags");
-        Roles(AppRoles.Trainer, AppRoles.Nutritionist);
+        Get("/trainer/food-tags");
+        Roles(AppRoles.Nutritionist);
         Summary(s =>
         {
             s.Summary = "List food tags";
-            s.Description = "Returns the distinct tags across every food visible to the caller — "
-                + "public foods plus the caller's own private foods. Powers the tags filter pill "
-                + "and the drawer's tag suggestions.";
-            s.Response<GetFoodTagsResponse>(StatusCodes.Status200OK, "Distinct tags");
+            s.Description = "Returns every food tag owned by the calling nutritionist. Powers the "
+                + "Ingredients tags filter popover and the drawer's tag chips.";
+            s.Responses[StatusCodes.Status200OK] = "The caller's food tags";
             s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
@@ -34,28 +33,21 @@ public class GetFoodTagsEndpoint(IMongoContext mongo) : EndpointWithoutRequest<G
     {
         var userIdClaim = User.FindFirstValue(AppClaims.UserId);
 
-        if (!Guid.TryParse(userIdClaim, out var currentUserId))
+        if (!Guid.TryParse(userIdClaim, out var ownerUserId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
-        // Same own-or-public visibility filter as SearchFoodsEndpoint (shared, so the two can't
-        // drift) — a tags listing must not leak a tag that exists only on another coach's
-        // Private food.
-        var filter = FoodVisibilityFilter.BuildOwnOrPublic(currentUserId);
+        var tags = await mongo.FoodTags
+            .Find(t => t.OwnerUserId == ownerUserId)
+            .ToListAsync(ct);
 
-        // Mongo's distinct command unwinds array fields server-side, so this returns individual
-        // tag strings without pulling every matching food's full document (nutrients included)
-        // across the wire just to read one field.
-        using var cursor = await mongo.Foods.DistinctAsync<string>("tags", filter, cancellationToken: ct);
-        var rawTags = await cursor.ToListAsync(ct);
-
-        var tags = rawTags
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+        var sortedTags = tags
+            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(FoodTagDto.FromDocument)
             .ToList();
 
-        await Send.OkAsync(new GetFoodTagsResponse { Tags = tags }, ct);
+        await Send.OkAsync(new GetFoodTagsResponse { Tags = sortedTags }, ct);
     }
 }

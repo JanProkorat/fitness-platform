@@ -4,8 +4,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { FoodSummary } from '@/api/food-types';
 import LibraryBadge from '@/components/ingredients/LibraryBadge';
+import TagPill from '@/components/tags/TagPill';
 
-const COLUMN_COUNT = 5;
 const SKELETON_ROW_COUNT = 5;
 
 interface Props {
@@ -16,6 +16,9 @@ interface Props {
   hasActiveFilter: boolean;
   onClearFilters: () => void;
   onRowClick: (food: FoodSummary) => void;
+  /** Gates the Tags column (#1120) — food tags are nutritionist-owned, so a
+   * trainer-only coach gets no tag chips at all, not even an empty column. */
+  isNutritionist: boolean;
 }
 
 /** The Ingredients table. Mirrors `ClientsTable` (`@/components/clients/ClientsTable.tsx`). */
@@ -27,8 +30,10 @@ export default function IngredientsTable({
   hasActiveFilter,
   onClearFilters,
   onRowClick,
+  isNutritionist,
 }: Props) {
   const { t } = useTranslation();
+  const columnCount = isNutritionist ? 6 : 5;
 
   return (
     <Table>
@@ -47,6 +52,9 @@ export default function IngredientsTable({
           <TableHead className="w-30 px-5 py-3">{t('ingredients.table.columnCalories')}</TableHead>
           <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnNutrients')}</TableHead>
           <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnCategory')}</TableHead>
+          {isNutritionist && (
+            <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnTags')}</TableHead>
+          )}
           <TableHead className="w-25 px-5 py-3">{t('ingredients.table.columnLibrary')}</TableHead>
         </TableRow>
       </TableHeader>
@@ -54,7 +62,7 @@ export default function IngredientsTable({
         {isPending &&
           Array.from({ length: SKELETON_ROW_COUNT }).map((_, index) => (
             <TableRow key={index}>
-              <TableCell colSpan={COLUMN_COUNT}>
+              <TableCell colSpan={columnCount}>
                 <Skeleton className="h-10 w-full" />
               </TableCell>
             </TableRow>
@@ -62,7 +70,7 @@ export default function IngredientsTable({
 
         {!isPending && isError && (
           <TableRow>
-            <TableCell colSpan={COLUMN_COUNT} className="py-10 text-center">
+            <TableCell colSpan={columnCount} className="py-10 text-center">
               <div className="flex flex-col items-center gap-3">
                 <p className="text-body text-muted-foreground">{t('common.loadError')}</p>
                 <Button type="button" variant="outline" size="sm" onClick={onRetry}>
@@ -75,7 +83,7 @@ export default function IngredientsTable({
 
         {!isPending && !isError && foods.length === 0 && (
           <TableRow>
-            <TableCell colSpan={COLUMN_COUNT} className="py-10 text-center">
+            <TableCell colSpan={columnCount} className="py-10 text-center">
               <div className="flex flex-col items-center gap-2">
                 <p className="text-body text-muted-foreground">{t('ingredients.noResultsForFilters')}</p>
                 {hasActiveFilter && (
@@ -113,6 +121,15 @@ export default function IngredientsTable({
               <TableCell className="w-45 px-5 py-3 text-body text-muted-foreground">
                 {food.category && t(`ingredients.category.${food.category}`)}
               </TableCell>
+              {isNutritionist && (
+                <TableCell className="w-45 px-5 py-3">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {(food.tags ?? []).map((tag) => (
+                      <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} />
+                    ))}
+                  </div>
+                </TableCell>
+              )}
               <TableCell className="w-25 px-5 py-3">
                 <LibraryBadge isOwnedByCurrentUser={food.isOwnedByCurrentUser} isSystem={food.isSystem} />
               </TableCell>

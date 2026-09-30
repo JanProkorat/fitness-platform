@@ -11,16 +11,6 @@ namespace FitnessPlatform.Application.Features.Foods.UpdateFood;
 public class UpdateFoodValidator : Validator<UpdateFoodRequest>
 {
     /// <summary>
-    /// The maximum number of tags a single food may carry.
-    /// </summary>
-    private const int MaxTags = 20;
-
-    /// <summary>
-    /// The maximum length of a single tag.
-    /// </summary>
-    private const int MaxTagLength = 40;
-
-    /// <summary>
     /// Initializes validation rules for food update.
     /// </summary>
     public UpdateFoodValidator()
@@ -66,22 +56,5 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
         RuleForEach(x => x.Allergens).IsInEnum();
 
         RuleForEach(x => x.DietaryPreferences).IsInEnum();
-
-        // No CascadeMode is configured anywhere in this backend (default: Continue), so the
-        // Must() below still runs after NotNull() fails — it guards `tags is null` itself rather
-        // than relying on cascade-stop to short-circuit a null Tags before it reaches Count.
-        RuleFor(x => x.Tags)
-            .NotNull()
-            .WithMessage("Tags must not be null.")
-            .Must(tags => tags is null || tags.Count <= MaxTags)
-            .WithMessage($"At most {MaxTags} tags may be supplied.");
-
-        RuleForEach(x => x.Tags)
-            .NotEmpty()
-            .WithMessage("A tag must not be blank.")
-            .MaximumLength(MaxTagLength)
-            .WithMessage($"A tag must be at most {MaxTagLength} characters.")
-            .Must(tag => tag is null || !tag.Contains(','))
-            .WithMessage("A tag must not contain a comma.");
     }
 }

@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.SearchFoods;
 
@@ -23,9 +24,10 @@ public class SearchFoodsRequest
     public List<FoodCategory> Categories { get; set; } = [];
 
     /// <summary>
-    /// Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
+    /// Optional tags filter — matches a food the caller has tagged with ANY of the supplied
+    /// <see cref="FoodTagDto.TagId"/> values (#1120). At most 20.
     /// </summary>
-    public List<string> Tags { get; set; } = [];
+    public List<Guid> TagIds { get; set; } = [];
 
     /// <summary>
     /// Page number (1-based). Defaults to 1.

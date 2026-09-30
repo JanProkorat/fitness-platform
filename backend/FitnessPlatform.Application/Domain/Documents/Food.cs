@@ -69,12 +69,6 @@ public class Food
     public List<string> DietaryPreferences { get; set; } = [];
 
     /// <summary>
-    /// Free-form tags for filtering and classification (e.g. "high-protein", "meal-prep").
-    /// </summary>
-    [BsonElement("tags")]
-    public List<string> Tags { get; set; } = [];
-
-    /// <summary>
     /// Common serving sizes for quick selection. The first entry is the default serving.
     /// </summary>
     [BsonElement("commonServings")]

@@ -14,10 +14,10 @@ export {
 
 export type {
   FoodSummary,
+  FoodTagDto,
   NutrientValueDto,
   ServingSizeDto,
   SearchFoodsResponse,
-  GetFoodTagsResponse,
   CreateFoodRequest,
   UpdateFoodRequest,
 } from './generated';

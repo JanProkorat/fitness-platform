@@ -110,7 +110,7 @@ public class CreateFoodEndpointTests
     }
 
     [Fact]
-    public async Task HandleAsync_AllergensDietaryPreferencesAndTags_StoredAsTrimmedStrings()
+    public async Task HandleAsync_AllergensAndDietaryPreferences_StoredAsTrimmedStrings()
     {
         var mongo = FoodTestHelpers.CreateMockMongo();
 
@@ -126,7 +126,6 @@ public class CreateFoodEndpointTests
             NutrientValue = new NutrientValueDto { Kcal = 100, Protein = 10, Carbs = 10, Fat = 5 },
             Allergens = [Allergen.Milk, Allergen.TreeNuts],
             DietaryPreferences = [DietaryPreference.Vegan],
-            Tags = [" high-protein "],
             CommonServings = [new ServingSizeDto { Label = "1 bar", WeightGrams = 60 }]
         };
 
@@ -135,8 +134,7 @@ public class CreateFoodEndpointTests
         await mongo.Foods.Received(1).InsertOneAsync(
             Arg.Is<Food>(f =>
                 f.Allergens.SequenceEqual(new[] { "Milk", "TreeNuts" }) &&
-                f.DietaryPreferences.SequenceEqual(new[] { "Vegan" }) &&
-                f.Tags.SequenceEqual(new[] { "high-protein" })),
+                f.DietaryPreferences.SequenceEqual(new[] { "Vegan" })),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

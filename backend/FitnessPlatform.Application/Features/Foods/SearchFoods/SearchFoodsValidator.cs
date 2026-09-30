@@ -10,14 +10,9 @@ namespace FitnessPlatform.Application.Features.Foods.SearchFoods;
 public class SearchFoodsValidator : Validator<SearchFoodsRequest>
 {
     /// <summary>
-    /// The maximum number of tags a single search request may filter by.
+    /// The maximum number of tag ids a single search request may filter by.
     /// </summary>
     private const int MaxTags = 20;
-
-    /// <summary>
-    /// The maximum length of a single filter tag.
-    /// </summary>
-    private const int MaxTagLength = 40;
 
     /// <summary>
     /// The maximum number of categories a single search request may filter by — the number of
@@ -36,15 +31,13 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
         RuleFor(x => x.PageSize)
             .InclusiveBetween(1, 100);
 
-        RuleFor(x => x.Tags)
-            .Must(tags => tags.Count <= MaxTags)
-            .WithMessage($"At most {MaxTags} tags may be supplied.");
+        RuleFor(x => x.TagIds)
+            .Must(tagIds => tagIds.Count <= MaxTags)
+            .WithMessage($"At most {MaxTags} tag ids may be supplied.");
 
-        RuleForEach(x => x.Tags)
-            .NotEmpty()
-            .WithMessage("A filter tag must not be blank.")
-            .MaximumLength(MaxTagLength)
-            .WithMessage($"A filter tag must be at most {MaxTagLength} characters.");
+        RuleForEach(x => x.TagIds)
+            .NotEqual(Guid.Empty)
+            .WithMessage("A filter tag id must not be empty.");
 
         RuleFor(x => x.Categories)
             .Must(categories => categories.Count <= MaxCategories)

@@ -92,7 +92,9 @@ export default function IngredientsPage() {
           />
         </div>
         <IngredientCategoryFilterPopover selectedCategories={filters.categories} onChange={setCategories} />
-        <IngredientTagFilterPopover selectedTags={filters.tags} onChange={setTags} />
+        {/* Food tags are nutritionist-owned (#1120) — a trainer-only coach
+            gets no tag UI at all, not even the empty filter pill. */}
+        {isNutritionist && <IngredientTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         {isNutritionist && (
           <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
             {t('ingredients.newIngredient')}
@@ -119,6 +121,7 @@ export default function IngredientsPage() {
             hasActiveFilter={hasActiveFilter}
             onClearFilters={clearFilters}
             onRowClick={openRowDrawer}
+            isNutritionist={isNutritionist}
           />
         </div>
         <IngredientsPagination
@@ -130,7 +133,13 @@ export default function IngredientsPage() {
         />
       </div>
 
-      <IngredientDrawer open={drawerOpen} onOpenChange={setDrawerOpen} food={selectedFood} readOnly={drawerReadOnly} />
+      <IngredientDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        food={selectedFood}
+        readOnly={drawerReadOnly}
+        isNutritionist={isNutritionist}
+      />
     </div>
   );
 }

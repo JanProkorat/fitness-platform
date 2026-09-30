@@ -22,14 +22,15 @@ import {
   Allergen,
   DietaryPreference,
   type FoodSummary,
+  type FoodTagDto,
   type CreateFoodRequest,
   type UpdateFoodRequest,
 } from '@/api/food-types';
 import { useCreateFood, useUpdateFood } from '@/hooks/useIngredientsQueries';
 import MultiSelectPopover from '@/components/ingredients/MultiSelectPopover';
-import TagsInput from '@/components/ingredients/TagsInput';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
-import { MAX_TAGS } from '@/components/ingredients/tagLimits';
+import IngredientTagPickerPopover from '@/components/ingredients/IngredientTagPickerPopover';
+import TagPill from '@/components/tags/TagPill';
 
 /** Fixed unit keys for the drawer's Unit select (design-review MINOR finding #8,
  * `docs/design/ingredients/inventory.md`). The label is stored verbatim as
@@ -74,7 +75,6 @@ function buildFormSchema(allowedLegacyUnit: string | null) {
     servingSize: z.number({ message: 'required' }).positive(),
     dietaryPreferences: z.array(z.string()),
     allergens: z.array(z.string()),
-    tags: z.array(z.string()).max(MAX_TAGS),
   });
 }
 
@@ -93,7 +93,6 @@ const EMPTY_VALUES: FormValues = {
   servingSize: undefined as unknown as number,
   dietaryPreferences: [],
   allergens: [],
-  tags: [],
 };
 
 function valuesFromFood(food: FoodSummary): FormValues {
@@ -114,7 +113,6 @@ function valuesFromFood(food: FoodSummary): FormValues {
     servingSize: defaultServing?.weightGrams ?? (undefined as unknown as number),
     dietaryPreferences: (food.dietaryPreferences ?? []) as string[],
     allergens: (food.allergens ?? []) as string[],
-    tags: food.tags ?? [],
   };
 }
 
@@ -125,6 +123,9 @@ interface Props {
   food: FoodSummary | null;
   /** True for a system/shared food, or for a trainer-only coach viewing any row. */
   readOnly: boolean;
+  /** Gates the coach-private tag section (#1120) — kept separate from
+   * `readOnly` since a nutritionist can tag any visible food, even a read-only one. */
+  isNutritionist: boolean;
 }
 
 /**
@@ -141,10 +142,13 @@ interface Props {
  * `commonServings` beyond the default (index 0) straight from the loaded
  * `food`, since the drawer's own fields never touch them.
  */
-export default function IngredientDrawer({ open, onOpenChange, food, readOnly }: Props) {
+export default function IngredientDrawer({ open, onOpenChange, food, readOnly, isNutritionist }: Props) {
   const { t } = useTranslation();
   const mode = food === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Local copy of the food's tag chips (#1120), so assigning re-renders
+  // immediately instead of waiting on the parent to refetch `selectedFood`.
+  const [assignedTags, setAssignedTags] = useState<FoodTagDto[]>([]);
 
   const createMutation = useCreateFood();
   const updateMutation = useUpdateFood();
@@ -177,12 +181,12 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
   useEffect(() => {
     if (open) {
       reset(food ? valuesFromFood(food) : EMPTY_VALUES);
+      setAssignedTags(food?.tags ?? []);
     }
   }, [open, food, reset]);
 
   const dietaryPreferences = watch('dietaryPreferences');
   const allergens = watch('allergens');
-  const tags = watch('tags');
   const unit = watch('unit');
 
   // Picks the right translated message for one of the four macro fields'
@@ -219,7 +223,6 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
         category: values.category as FoodCategory,
         allergens: values.allergens as Allergen[],
         dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
-        tags: values.tags,
         commonServings,
       };
       createMutation.mutate(request, {
@@ -248,7 +251,6 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
       visibility: food.visibility,
       allergens: values.allergens as Allergen[],
       dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
-      tags: values.tags,
       commonServings,
     };
     updateMutation.mutate(
@@ -493,15 +495,34 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly }:
                     />
                   </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="ingredient-tags">{t('ingredients.drawer.tags')}</Label>
-                  <TagsInput id="ingredient-tags" value={tags} onChange={(values) => setValue('tags', values)} />
-                  {errors.tags && (
-                    <p className="text-meta text-destructive">{t('ingredients.drawer.tagsMax', { max: MAX_TAGS })}</p>
-                  )}
-                </div>
               </div>
             </fieldset>
+
+            {/* Coach-private food tags (#1120) — deliberately OUTSIDE the
+                fieldset above: a nutritionist can tag ANY visible food
+                (system, shared, own), even one whose fields are read-only.
+                Only rendered for a nutritionist — a trainer-only coach gets
+                no tag UI at all, since only a nutritionist can own a food
+                tag. Only shown once the food actually exists (not on
+                create) — tag assignment needs a real FoodId. */}
+            {isNutritionist && food?.foodId && (
+              <div className="flex flex-col gap-3 border-t border-border pt-6">
+                <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+                  <Tag className="size-4 text-muted-foreground" aria-hidden="true" />
+                  {t('ingredients.drawer.myTags')}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  {assignedTags.map((tag) => (
+                    <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} />
+                  ))}
+                  <IngredientTagPickerPopover
+                    foodId={food.foodId}
+                    assignedTags={assignedTags}
+                    onAssignedTagsChange={setAssignedTags}
+                  />
+                </div>
+              </div>
+            )}
           </form>
 
           <SheetFooter className="flex-row justify-between p-6">

@@ -53,9 +53,15 @@ public class GetCustomFoodsEndpoint(IMongoContext mongo) : Endpoint<GetCustomFoo
         using var cursor = await mongo.Foods.FindAsync(filter, findOptions, ct);
         var foods = await cursor.ToListAsync(ct);
 
+        var tagsByFoodId = await FoodTagLookup.GetTagsByFoodIdAsync(
+            mongo, nutritionistId, foods.Select(f => f.ExternalId).ToList(), ct);
+
         await Send.OkAsync(new GetCustomFoodsResponse
         {
-            Foods = foods.Select(f => FoodSummary.FromDocument(f, currentUserId: nutritionistId)).ToList(),
+            Foods = foods
+                .Select(f => FoodSummary.FromDocument(
+                    f, currentUserId: nutritionistId, tags: tagsByFoodId.GetValueOrDefault(f.ExternalId, [])))
+                .ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

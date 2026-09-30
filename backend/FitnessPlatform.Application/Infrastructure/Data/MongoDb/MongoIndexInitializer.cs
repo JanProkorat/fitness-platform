@@ -60,6 +60,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateMealTemplateIndexes(cancellationToken);
         await CreateNutritionPlanTemplateIndexes(cancellationToken);
         await CreateTrainingPlanTemplateIndexes(cancellationToken);
+        await CreateFoodTagIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -464,5 +465,47 @@ public class MongoIndexInitializer : IHostedService
             });
 
         await indexes.CreateOneAsync(uniqueIndex, cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Creates the #1120 coach-private food-tag indexes: FoodTag ExternalId (unique, the API
+    /// lookup key) and (OwnerUserId, NormalizedName) (unique, the per-owner case-insensitive name
+    /// constraint — <see cref="MongoWriteException"/> DuplicateKey on this index is how
+    /// CreateFoodTagEndpoint/UpdateFoodTagEndpoint detect a name collision without a separate
+    /// pre-check race window). FoodTagAssignment gets a unique (OwnerUserId, FoodExternalId) index
+    /// (one assignment document per owner+food) plus a (OwnerUserId, TagIds) multikey index for
+    /// SearchFoodsEndpoint's tag filter.
+    /// </summary>
+    private async Task CreateFoodTagIndexes(CancellationToken ct)
+    {
+        var tagIndexes = _mongo.FoodTags.Indexes;
+
+        var tagExternalIdIndex = new CreateIndexModel<FoodTag>(
+            Builders<FoodTag>.IndexKeys.Ascending(t => t.ExternalId),
+            new CreateIndexOptions { Name = "idx_foodtag_externalId", Unique = true });
+
+        var tagOwnerNameIndex = new CreateIndexModel<FoodTag>(
+            Builders<FoodTag>.IndexKeys
+                .Ascending(t => t.OwnerUserId)
+                .Ascending(t => t.NormalizedName),
+            new CreateIndexOptions { Name = "idx_foodtag_ownerUserId_normalizedName", Unique = true });
+
+        await tagIndexes.CreateManyAsync([tagExternalIdIndex, tagOwnerNameIndex], ct);
+
+        var assignmentIndexes = _mongo.FoodTagAssignments.Indexes;
+
+        var assignmentOwnerFoodIndex = new CreateIndexModel<FoodTagAssignment>(
+            Builders<FoodTagAssignment>.IndexKeys
+                .Ascending(a => a.OwnerUserId)
+                .Ascending(a => a.FoodExternalId),
+            new CreateIndexOptions { Name = "idx_foodtagassignment_ownerUserId_foodExternalId", Unique = true });
+
+        var assignmentOwnerTagsIndex = new CreateIndexModel<FoodTagAssignment>(
+            Builders<FoodTagAssignment>.IndexKeys
+                .Ascending(a => a.OwnerUserId)
+                .Ascending(a => a.TagIds),
+            new CreateIndexOptions { Name = "idx_foodtagassignment_ownerUserId_tagIds" });
+
+        await assignmentIndexes.CreateManyAsync([assignmentOwnerFoodIndex, assignmentOwnerTagsIndex], ct);
     }
 }

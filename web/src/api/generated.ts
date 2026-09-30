@@ -10921,6 +10921,141 @@ export class ApiClient {
     }
 
     /**
+     * Update a food tag
+     * @param tagId Public identifier of the tag to update, from the route.
+     * @return Tag updated
+     */
+    updateFoodTagEndpoint(tagId: string, updateFoodTagRequest: UpdateFoodTagRequest, signal?: AbortSignal): Promise<FoodTagDto> {
+        let url_ = this.baseUrl + "/trainer/food-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(updateFoodTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processUpdateFoodTagEndpoint(response: AxiosResponse): Promise<FoodTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<FoodTagDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodTagDto>(null as any);
+    }
+
+    /**
+     * Delete a food tag
+     * @param tagId Public identifier of the tag to delete, from the route.
+     * @return Tag deleted
+     */
+    deleteFoodTagEndpoint(tagId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/trainer/food-tags/{tagId}";
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processDeleteFoodTagEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Update custom food
      * @param foodId The food's public identifier (from route).
      * @return Food updated
@@ -11120,22 +11255,23 @@ export class ApiClient {
      * @param category Optional category filter — matches a food carrying ANY of the supplied categories. Bound
     from the repeated category query param, so a single ?category=Dairy still
     binds a one-item list.
-     * @param tags Optional tags filter — matches a food carrying ANY of the supplied tags. At most 20.
+     * @param tagIds Optional tags filter — matches a food the caller has tagged with ANY of the supplied
+    TagId values (#1120). At most 20.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
      * @return Matching foods
      */
-    searchFoodsEndpoint(category: FoodCategory[], tags: string[], page: number, pageSize: number, q?: string | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], page: number, pageSize: number, q?: string | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
         if (category === undefined || category === null)
             throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
         else
             category && category.forEach(item => { url_ += "category=" + encodeURIComponent("" + item) + "&"; });
-        if (tags === undefined || tags === null)
-            throw new globalThis.Error("The parameter 'tags' must be defined and cannot be null.");
+        if (tagIds === undefined || tagIds === null)
+            throw new globalThis.Error("The parameter 'tagIds' must be defined and cannot be null.");
         else
-            tags && tags.forEach(item => { url_ += "tags=" + encodeURIComponent("" + item) + "&"; });
+            tagIds && tagIds.forEach(item => { url_ += "tagIds=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -11204,11 +11340,86 @@ export class ApiClient {
     }
 
     /**
+     * Replace a food's tag assignments
+     * @param foodId Public identifier of the food, from the route.
+     * @return The resulting tag set
+     */
+    replaceFoodTagAssignmentsEndpoint(foodId: string, replaceFoodTagAssignmentsRequest: ReplaceFoodTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceFoodTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/foods/{foodId}/tags";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceFoodTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceFoodTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceFoodTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceFoodTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceFoodTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceFoodTagAssignmentsResponse>(null as any);
+    }
+
+    /**
      * List food tags
-     * @return Distinct tags
+     * @return The caller's food tags
      */
     getFoodTagsEndpoint(signal?: AbortSignal): Promise<GetFoodTagsResponse> {
-        let url_ = this.baseUrl + "/foods/tags";
+        let url_ = this.baseUrl + "/trainer/food-tags";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -11261,6 +11472,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetFoodTagsResponse>(null as any);
+    }
+
+    /**
+     * Create a food tag
+     * @return Tag created
+     */
+    createFoodTagEndpoint(createFoodTagRequest: CreateFoodTagRequest, signal?: AbortSignal): Promise<FoodTagDto> {
+        let url_ = this.baseUrl + "/trainer/food-tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createFoodTagRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateFoodTagEndpoint(_response);
+        });
+    }
+
+    protected processCreateFoodTagEndpoint(response: AxiosResponse): Promise<FoodTagDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodTagDto>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodTagDto>(null as any);
     }
 
     /**
@@ -21336,6 +21618,28 @@ export interface UploadFoodImageUrlRequest {
     sizeBytes?: number;
 }
 
+/** A single food tag, as returned by every action in the food-tags slice and embedded as a chip on FoodSummary. */
+export interface FoodTagDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
+    colorHex?: string;
+}
+
+/** Request body for renaming, recoloring, or redescribing a food tag. TagId is bound from the route. */
+export interface UpdateFoodTagRequest {
+    /** Tag label. Unique (case-insensitive) per owning nutritionist. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
+}
+
 /** Common response DTO for food items used across multiple endpoints. */
 export interface FoodSummary {
     /** Public-facing food identifier. */
@@ -21356,8 +21660,8 @@ export interface FoodSummary {
     allergens?: Allergen[];
     /** Dietary preferences this food satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** Free-form tags for filtering and classification. */
-    tags?: string[];
+    /** The caller's own coach-private tags on this food; empty if the caller has none assigned. */
+    tags?: FoodTagDto[];
     /** Common serving sizes. The first entry is the default serving. */
     commonServings?: ServingSizeDto[];
     /** Food category. */
@@ -21486,8 +21790,6 @@ Only the food's creator can change this value. */
     allergens?: Allergen[];
     /** Updated dietary preferences this food satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** Updated free-form tags for filtering and classification. */
-    tags: string[];
     /** Updated common serving sizes. The first entry is the default serving and is required. */
     commonServings: ServingSizeDto[];
 }
@@ -21508,10 +21810,25 @@ export interface SearchFoodsResponse {
 export interface SearchFoodsRequest {
 }
 
-/** Response model for the distinct food tags listing. */
+/** The resulting tag set assigned to the food, for the calling nutritionist. */
+export interface ReplaceFoodTagAssignmentsResponse {
+    /** Public identifier of the food the tags were assigned to. */
+    foodId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: FoodTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a food. FoodId is bound from the route. */
+export interface ReplaceFoodTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment the
+caller holds for this food. */
+    tagIds: string[];
+}
+
+/** The food tags owned by the calling nutritionist. */
 export interface GetFoodTagsResponse {
-    /** Distinct tags across every food visible to the caller, sorted alphabetically. */
-    tags?: string[];
+    /** The caller's food tags, ordered by name. */
+    tags?: FoodTagDto[];
 }
 
 /** Request model for retrieving a single food by its external ID. */
@@ -21534,8 +21851,22 @@ export interface GetCustomFoodsResponse {
 export interface GetCustomFoodsRequest {
 }
 
+/** Request for deleting a food tag. Bodyless — TagId is bound from the route. */
+export interface DeleteFoodTagRequest {
+}
+
 /** Request model for soft-deleting a custom food. */
 export interface DeleteFoodRequest {
+}
+
+/** Request body for creating a food tag owned by the calling nutritionist. */
+export interface CreateFoodTagRequest {
+    /** Tag label. Unique (case-insensitive) per owning nutritionist. */
+    name: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a 6-digit hex string, e.g. "#3b82f6". */
+    colorHex: string;
 }
 
 /** Request model for creating a custom food. */
@@ -21561,8 +21892,6 @@ a coach-authored ingredient starts out visible only to its creator. */
     allergens?: Allergen[];
     /** Dietary preferences this food satisfies. */
     dietaryPreferences?: DietaryPreference[];
-    /** Free-form tags for filtering and classification. */
-    tags: string[];
     /** Common serving sizes. The first entry is the default serving and is required. */
     commonServings: ServingSizeDto[];
 }

@@ -436,4 +436,6 @@ internal sealed class IndexInitMongoContext : IMongoContext
     public IMongoCollection<NutritionPlanTemplate> NutritionPlanTemplates => _db.GetCollection<NutritionPlanTemplate>("nutritionPlanTemplates");
     public IMongoCollection<SessionTemplate> SessionTemplates => _db.GetCollection<SessionTemplate>("sessionTemplates");
     public IMongoCollection<TrainingPlanTemplate> TrainingPlanTemplates => _db.GetCollection<TrainingPlanTemplate>("trainingPlanTemplates");
+    public IMongoCollection<FoodTag> FoodTags => _db.GetCollection<FoodTag>("foodTags");
+    public IMongoCollection<FoodTagAssignment> FoodTagAssignments => _db.GetCollection<FoodTagAssignment>("foodTagAssignments");
 }

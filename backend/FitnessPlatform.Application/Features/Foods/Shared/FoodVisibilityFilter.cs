@@ -6,8 +6,7 @@ namespace FitnessPlatform.Application.Features.Foods.Shared;
 
 /// <summary>
 /// The own-or-public visibility filter shared by every Foods read endpoint that lists more than
-/// one document. Extracted so <see cref="Foods.SearchFoods.SearchFoodsEndpoint"/> and
-/// <see cref="Foods.GetFoodTags.GetFoodTagsEndpoint"/> cannot drift apart on this rule.
+/// one <see cref="Food"/> document.
 /// </summary>
 public static class FoodVisibilityFilter
 {

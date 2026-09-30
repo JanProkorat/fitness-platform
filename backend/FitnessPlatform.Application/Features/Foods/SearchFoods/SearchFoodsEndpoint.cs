@@ -52,16 +52,27 @@ public class SearchFoodsEndpoint(
             filter &= filterBuilder.In(f => f.Category, req.Categories);
         }
 
-        if (req.Tags.Count > 0)
+        if (req.TagIds.Count > 0)
         {
-            // Tags are stored lowercase + trimmed (CreateFoodEndpoint/UpdateFoodEndpoint), so the
-            // filter values must be normalized the same way or a differently-cased pill (e.g.
-            // "MEAL-PREP") would silently match nothing.
-            var normalizedTags = req.Tags.Select(t => t.Trim().ToLowerInvariant()).ToList();
+            // Two-step lookup: resolve which foods the caller has tagged with any of the
+            // requested tags first, then narrow the food query by external id. A caller with no
+            // matching assignment gets zero food ids — respond with an empty page immediately
+            // rather than let an empty In(...) fall through to "no filter at all".
+            var taggedFoodIds = await FoodTagLookup.FindFoodIdsWithAnyTagAsync(mongo, currentUserId, req.TagIds, ct);
 
-            // AnyIn matches a document whose Tags array contains at least one of the supplied
-            // values — the "match any" semantics the tags filter pill needs.
-            filter &= filterBuilder.AnyIn(f => f.Tags, normalizedTags);
+            if (taggedFoodIds.Count == 0)
+            {
+                await Send.OkAsync(new SearchFoodsResponse
+                {
+                    Foods = [],
+                    TotalCount = 0,
+                    Page = req.Page,
+                    PageSize = req.PageSize
+                }, ct);
+                return;
+            }
+
+            filter &= filterBuilder.In(f => f.ExternalId, taggedFoodIds);
         }
 
         if (!string.IsNullOrWhiteSpace(req.Query))
@@ -104,9 +115,15 @@ public class SearchFoodsEndpoint(
         using var cursor = await mongo.Foods.FindAsync(filter, findOptions, ct);
         var localFoods = await cursor.ToListAsync(ct);
 
+        var tagsByFoodId = await FoodTagLookup.GetTagsByFoodIdAsync(
+            mongo, currentUserId, localFoods.Select(f => f.ExternalId).ToList(), ct);
+
         await Send.OkAsync(new SearchFoodsResponse
         {
-            Foods = localFoods.Select(f => FoodSummary.FromDocument(f, language, currentUserId)).ToList(),
+            Foods = localFoods
+                .Select(f => FoodSummary.FromDocument(
+                    f, language, currentUserId, tagsByFoodId.GetValueOrDefault(f.ExternalId, [])))
+                .ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

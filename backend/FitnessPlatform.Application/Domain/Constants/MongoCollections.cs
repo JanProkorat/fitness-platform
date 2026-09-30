@@ -93,4 +93,15 @@ public static class MongoCollections
     /// Reusable training plan templates collection (#858 sharing-library foundation).
     /// </summary>
     public const string TrainingPlanTemplates = "trainingPlanTemplates";
+
+    /// <summary>
+    /// Coach-private food tags collection (#1120).
+    /// </summary>
+    public const string FoodTags = "foodTags";
+
+    /// <summary>
+    /// Per-owner, per-food tag assignment collection (#1120) — one document per
+    /// (ownerUserId, foodExternalId) pair.
+    /// </summary>
+    public const string FoodTagAssignments = "foodTagAssignments";
 }

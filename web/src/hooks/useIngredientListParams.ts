@@ -5,6 +5,7 @@ import { FoodCategory } from '@/api/food-types';
 export const INGREDIENTS_PAGE_SIZE = 25;
 
 const VALID_CATEGORIES: readonly string[] = Object.values(FoodCategory);
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface IngredientListFilters {
   search: string;
@@ -48,6 +49,10 @@ function parsePage(value: string | null): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
+// A pre-#1120 bookmark could carry a free-text tag value (e.g. `?tags=high-protein`)
+// that no longer parses as the food-tag GUIDs this param now holds — dropped
+// silently, same as an unknown `category` value above, rather than sent to the
+// backend where it 400s the whole search.
 function parseTags(value: string | null): string[] {
   if (!value) {
     return [];
@@ -55,7 +60,7 @@ function parseTags(value: string | null): string[] {
   const tags = value
     .split(',')
     .map((tag) => tag.trim())
-    .filter(Boolean);
+    .filter((tag) => GUID_PATTERN.test(tag));
   return Array.from(new Set(tags));
 }
 
