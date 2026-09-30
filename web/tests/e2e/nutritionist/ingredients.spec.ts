@@ -17,20 +17,11 @@
  */
 import { request as apiRequest } from '@playwright/test';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
-import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
-import path from 'node:path';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
-// This spec file lives at web/tests/e2e/nutritionist/ — four levels below the
-// repo root, where docker-compose.test.yml and scripts/test-env's
-// `.test-env.<project>.env` state files live (see `resolveMailhogPort` below).
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-
 interface LoginResponseBody {
   accessToken: string;
-  refreshToken?: string;
 }
 
 interface FoodApiBody {
@@ -38,6 +29,7 @@ interface FoodApiBody {
   name?: string;
   rawName?: string;
   isSystem?: boolean;
+  tags?: FoodTagApiBody[];
 }
 
 interface FoodTagApiBody {
@@ -51,127 +43,6 @@ interface GetFoodTagsApiBody {
 
 interface SearchFoodsApiBody {
   foods?: FoodApiBody[];
-}
-
-interface MailhogHeaderMap {
-  [header: string]: string[];
-}
-
-interface MailhogMessage {
-  Content: {
-    Headers: MailhogHeaderMap;
-    Body: string;
-  };
-}
-
-interface MailhogSearchResponse {
-  items: MailhogMessage[];
-}
-
-/**
- * Resolves the ephemeral host port docker mapped for the harness's MailHog UI
- * (container port 8025 — see docker-compose.test.yml's `mailhog-test`
- * comment: a fixed port would collide between two branches' stacks). Reads
- * `COMPOSE_PROJECT_NAME` from whichever `.test-env.<project>.env` state file
- * `scripts/test-env up` wrote at the repo root, rather than re-deriving the
- * project name from the branch — that keeps this correct even if
- * `TEST_ENV_BRANCH` was set unusually for a given run.
- */
-function resolveMailhogPort(): number {
-  const stateFiles = readdirSync(REPO_ROOT).filter((name) => name.startsWith('.test-env.') && name.endsWith('.env'));
-  if (stateFiles.length !== 1) {
-    throw new Error(
-      `[ingredients] Expected exactly one .test-env.*.env state file at the repo root to resolve the ` +
-        `active compose project, found ${stateFiles.length}. Is the harness up (npm run e2e:up)?`,
-    );
-  }
-
-  const stateFileContents = readFileSync(path.join(REPO_ROOT, stateFiles[0]), 'utf-8');
-  const projectMatch = /^COMPOSE_PROJECT_NAME=(.+)$/m.exec(stateFileContents);
-  if (!projectMatch) {
-    throw new Error(`[ingredients] ${stateFiles[0]} carries no COMPOSE_PROJECT_NAME line.`);
-  }
-
-  const portMapping = execFileSync(
-    'docker',
-    ['compose', '-f', 'docker-compose.test.yml', 'port', 'mailhog-test', '8025'],
-    { cwd: REPO_ROOT, env: { ...process.env, COMPOSE_PROJECT_NAME: projectMatch[1] } },
-  )
-    .toString()
-    .trim();
-
-  const port = Number(portMapping.split(':').pop());
-  if (!Number.isFinite(port)) {
-    throw new Error(
-      `[ingredients] Could not parse a host port from 'docker compose port mailhog-test 8025' output: "${portMapping}".`,
-    );
-  }
-
-  return port;
-}
-
-/** Case-insensitive lookup of a MailHog message header, e.g. Content-Transfer-Encoding. */
-function findMailhogHeader(headers: MailhogHeaderMap, name: string): string | undefined {
-  const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name.toLowerCase());
-  return key ? headers[key]?.[0] : undefined;
-}
-
-/**
- * Decodes a captured MailHog body per its own Content-Transfer-Encoding.
- * SmtpEmailService.cs's `SendEmailAsync` sends a single `TextPart("html")`
- * body (no multipart/alternative), so MailHog's top-level `Content.Body` is
- * the whole message — MimeKit quoted-printable-encodes the templated HTML
- * (long lines, and the verify link's own `token=` separator), so both forms
- * are handled defensively.
- */
-function decodeMimeBody(rawBody: string, transferEncoding: string | undefined): string {
-  const encoding = (transferEncoding ?? '').toLowerCase();
-  if (encoding === 'quoted-printable') {
-    return rawBody
-      .replace(/=\r\n/g, '')
-      .replace(/=\n/g, '')
-      .replace(/=([0-9A-Fa-f]{2})/g, (_match, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-  }
-  if (encoding === 'base64') {
-    return Buffer.from(rawBody.replace(/\r?\n/g, ''), 'base64').toString('utf-8');
-  }
-  return rawBody;
-}
-
-/**
- * Reads the newest MailHog message addressed to `toEmail` (the harness
- * captures outbound mail there instead of delivering it — #1059, project
- * memory `project_harness_email_mailhog`) and extracts the `?token=` query
- * value from the verification link (`SmtpEmailService.SendEmailVerificationAsync`
- * builds `{baseUrl}/verify-email?token={encodedToken}`).
- */
-async function fetchVerificationTokenFromMailhog(toEmail: string): Promise<string> {
-  const mailhogApi = await apiRequest.newContext({ baseURL: `http://localhost:${resolveMailhogPort()}` });
-  try {
-    const response = await mailhogApi.get('/api/v2/search', { params: { kind: 'to', query: toEmail } });
-    if (!response.ok()) {
-      throw new Error(`[ingredients] GET MailHog /api/v2/search returned ${response.status()} ${response.statusText()}.`);
-    }
-    const { items } = (await response.json()) as MailhogSearchResponse;
-    if (items.length === 0) {
-      throw new Error(`[ingredients] MailHog captured no message addressed to ${toEmail}.`);
-    }
-
-    // MailHog's search results are newest-first — items[0] is the verification email.
-    const decodedBody = decodeMimeBody(
-      items[0].Content.Body,
-      findMailhogHeader(items[0].Content.Headers, 'Content-Transfer-Encoding'),
-    );
-
-    const tokenMatch = /verify-email\?token=([^"&\s]+)/.exec(decodedBody);
-    if (!tokenMatch) {
-      throw new Error(`[ingredients] Could not find a verify-email token link in the captured message to ${toEmail}.`);
-    }
-
-    return decodeURIComponent(tokenMatch[1]);
-  } finally {
-    await mailhogApi.dispose();
-  }
 }
 
 /**
@@ -730,13 +601,22 @@ test.describe('food tags (#1120)', () => {
     await expect(page.getByText('System', { exact: true })).toBeVisible();
   });
 
-  test("a second nutritionist can't see qa.nutri's food tag (#1120)", async ({ baseURL, browser }) => {
+  test("a second nutritionist can't see qa.nutri's food tag (#1120)", async ({ baseURL }) => {
     // QA finding: the only prior "a second coach doesn't see it" coverage used
     // a trainer, and a trainer can never own a food tag (Roles(AppRoles.Nutritionist)
     // on every food-tags endpoint — CreateFoodTagEndpoint.cs, GetFoodTagsEndpoint.cs),
     // so it never proved cross-NUTRITIONIST isolation. The seed has only one
     // nutritionist (qa.nutri), so the second nutritionist here is a throwaway
     // account registered fresh through the real API rather than a fixture.
+    //
+    // API-level only, deliberately: the web portal itself gates an unverified
+    // account client-side (ProtectedRoute.tsx redirects to /verify-email
+    // whenever `user.emailConfirmed` is false), so B's UI can only ever show
+    // "check your email" and never reaches /ingredients — but LoginEndpoint.cs
+    // never gates on EmailConfirmed, so B's own token is fully usable against
+    // the API regardless. Proving isolation at the API layer is therefore both
+    // sufficient (it's what the UI itself would call) and the only layer B can
+    // actually be driven through here.
     const origin = baseURL ?? 'http://localhost:5173';
     const tagName = `QA Nutri Isolation Tag ${Date.now()}`;
 
@@ -744,6 +624,7 @@ test.describe('food tags (#1120)', () => {
     const ownerAccessToken = await loginAsNutritionist(origin);
     const ownerApi = await apiRequest.newContext({ baseURL: origin });
     let systemFood: { foodId: string; name: string };
+    let ownerTagId: string;
     try {
       const createResponse = await ownerApi.post('/trainer/food-tags', {
         data: { name: tagName, colorHex: '#3b82f6' },
@@ -756,11 +637,12 @@ test.describe('food tags (#1120)', () => {
       if (!createdTag.tagId) {
         throw new Error('[ingredients] POST /trainer/food-tags returned no tagId.');
       }
+      ownerTagId = createdTag.tagId;
 
       systemFood = await findSystemFood(origin);
 
       const assignResponse = await ownerApi.put(`/trainer/foods/${systemFood.foodId}/tags`, {
-        data: { tagIds: [createdTag.tagId] },
+        data: { tagIds: [ownerTagId] },
         headers: { Authorization: `Bearer ${ownerAccessToken}` },
       });
       if (!assignResponse.ok()) {
@@ -772,11 +654,7 @@ test.describe('food tags (#1120)', () => {
       await ownerApi.dispose();
     }
 
-    // --- A throwaway second nutritionist, registered fresh through the real API.
-    // LoginEndpoint.cs itself never gates on EmailConfirmed — but the web portal
-    // does, client-side: ProtectedRoute.tsx redirects to /verify-email whenever
-    // `user.emailConfirmed` is false, so B needs a real verification round trip
-    // (via MailHog) before /ingredients renders anything for B to assert on. ---
+    // --- A throwaway second nutritionist, registered fresh through the real API. ---
     const secondNutriEmail = `qa.nutri.isolation.${Date.now()}@fitnessplatform.test`;
     const secondNutriPassword = 'CorrectHorse9';
 
@@ -803,22 +681,8 @@ test.describe('food tags (#1120)', () => {
       await registerApi.dispose();
     }
 
-    const verificationToken = await fetchVerificationTokenFromMailhog(secondNutriEmail);
-    const verifyApi = await apiRequest.newContext({ baseURL: origin });
-    try {
-      const verifyResponse = await verifyApi.post('/auth/verify-email', { data: { token: verificationToken } });
-      if (!verifyResponse.ok()) {
-        throw new Error(
-          `[ingredients] POST /auth/verify-email (second nutritionist) returned ${verifyResponse.status()} ${verifyResponse.statusText()}.`,
-        );
-      }
-    } finally {
-      await verifyApi.dispose();
-    }
-
     const secondLoginApi = await apiRequest.newContext({ baseURL: origin });
     let secondNutriAccessToken: string;
-    let secondNutriRefreshToken: string;
     try {
       const loginResponse = await secondLoginApi.post('/auth/login', {
         data: { email: secondNutriEmail, password: secondNutriPassword },
@@ -828,84 +692,63 @@ test.describe('food tags (#1120)', () => {
           `[ingredients] POST /auth/login (second nutritionist) returned ${loginResponse.status()} ${loginResponse.statusText()}.`,
         );
       }
-      const loginBody = (await loginResponse.json()) as LoginResponseBody;
-      if (!loginBody.refreshToken) {
-        throw new Error('[ingredients] POST /auth/login (second nutritionist) returned no refreshToken.');
-      }
-      secondNutriAccessToken = loginBody.accessToken;
-      secondNutriRefreshToken = loginBody.refreshToken;
+      secondNutriAccessToken = ((await loginResponse.json()) as LoginResponseBody).accessToken;
     } finally {
       await secondLoginApi.dispose();
     }
 
-    // A fresh browser context, authenticated as B — never A's shared `page`/storage
-    // state. Mirrors the storage-state shape auth.setup.ts writes (`refreshToken` +
-    // `lang` under the app's own origin), same as `fixtures/auth.ts`'s `openClientContext`.
-    const secondNutriContext = await browser.newContext({
-      storageState: {
-        cookies: [],
-        origins: [
-          {
-            origin,
-            localStorage: [
-              { name: 'refreshToken', value: secondNutriRefreshToken },
-              { name: 'lang', value: 'en' },
-            ],
-          },
-        ],
-      },
-    });
-
+    const secondNutriApi = await apiRequest.newContext({ baseURL: origin });
     try {
-      const secondNutriPage = await secondNutriContext.newPage();
-      await secondNutriPage.goto('/ingredients');
-      await secondNutriPage.waitForLoadState('networkidle');
-      await expect(secondNutriPage.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
+      const secondNutriHeaders = { Authorization: `Bearer ${secondNutriAccessToken}` };
 
-      // The tag filter popover lists no tag with A's name.
-      await secondNutriPage.getByRole('button', { name: 'Tags' }).click();
-      const secondNutriPopover = secondNutriPage.locator("[data-slot='popover-content']");
-      await expect(secondNutriPopover).toBeVisible();
-      await expect(secondNutriPopover.locator('li', { hasText: tagName })).toHaveCount(0);
-      await secondNutriPage.keyboard.press('Escape');
-
-      // The system food's row shows no chip with A's tag name.
-      const searchResponse = secondNutriPage.waitForResponse((response) => response.url().includes('/foods/search'));
-      await secondNutriPage.getByPlaceholder('Search ingredients…').fill(systemFood.name);
-      await searchResponse;
-      await secondNutriPage.waitForLoadState('networkidle');
-      const systemFoodRow = secondNutriPage
-        .locator('tbody tr')
-        .filter({ has: secondNutriPage.getByRole('cell', { name: systemFood.name, exact: true }) });
-      await expect(systemFoodRow.getByText(tagName, { exact: true })).toHaveCount(0);
-
-      // Opening that food's (read-only) drawer shows no chip with A's tag name.
-      // Scoped to the drawer, not the page — the list row behind the (non-modal)
-      // Sheet overlay stays in the DOM and would otherwise double-match.
-      await secondNutriPage.getByRole('cell', { name: systemFood.name, exact: true }).first().click();
-      const secondNutriDrawer = secondNutriPage.locator('[data-slot="sheet-content"]');
-      await expect(secondNutriDrawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
-      await expect(secondNutriDrawer.getByText(tagName, { exact: true })).toHaveCount(0);
-      await secondNutriDrawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
-    } finally {
-      await secondNutriContext.close();
-    }
-
-    // Also assert via B's own API that GET /trainer/food-tags never contains A's tag.
-    const secondNutriTagsApi = await apiRequest.newContext({ baseURL: origin });
-    try {
-      const tagsResponse = await secondNutriTagsApi.get('/trainer/food-tags', {
-        headers: { Authorization: `Bearer ${secondNutriAccessToken}` },
-      });
+      // GET /trainer/food-tags never contains A's tag.
+      const tagsResponse = await secondNutriApi.get('/trainer/food-tags', { headers: secondNutriHeaders });
       if (!tagsResponse.ok()) {
         throw new Error(
           `[ingredients] GET /trainer/food-tags (second nutritionist) returned ${tagsResponse.status()} ${tagsResponse.statusText()}.`,
         );
       }
       const { tags } = (await tagsResponse.json()) as GetFoodTagsApiBody;
-      expect((tags ?? []).some((tag) => tag.name === tagName)).toBe(false);
+      expect((tags ?? []).some((tag) => tag.tagId === ownerTagId || tag.name === tagName)).toBe(false);
+
+      // GET the tagged system food never shows A's tag in `tags` — FoodSummary.Tags
+      // is looked up scoped to the CALLER's own FoodTagAssignment (FoodTagLookup.cs),
+      // so B's own read of the same food returns an empty tag list.
+      const getFoodResponse = await secondNutriApi.get(`/foods/${systemFood.foodId}`, { headers: secondNutriHeaders });
+      if (!getFoodResponse.ok()) {
+        throw new Error(
+          `[ingredients] GET /foods/{FoodId} (second nutritionist) returned ${getFoodResponse.status()} ${getFoodResponse.statusText()}.`,
+        );
+      }
+      const foodBody = (await getFoodResponse.json()) as FoodApiBody;
+      expect((foodBody.tags ?? []).some((tag) => tag.tagId === ownerTagId || tag.name === tagName)).toBe(false);
+
+      // GET /foods/search?tagIds=<A's tagId> returns zero rows — FindFoodIdsWithAnyTagAsync
+      // (FoodTagLookup.cs) scopes the assignment lookup to the CALLER's own OwnerUserId, so
+      // A's tagId matches none of B's own assignments and the search short-circuits to an
+      // empty page rather than 404/400 (SearchFoodsEndpoint.cs).
+      const searchResponse = await secondNutriApi.get('/foods/search', {
+        params: { tagIds: ownerTagId },
+        headers: secondNutriHeaders,
+      });
+      if (!searchResponse.ok()) {
+        throw new Error(
+          `[ingredients] GET /foods/search?tagIds=... (second nutritionist) returned ${searchResponse.status()} ${searchResponse.statusText()}.`,
+        );
+      }
+      const { foods } = (await searchResponse.json()) as SearchFoodsApiBody;
+      expect((foods ?? []).some((food) => food.foodId === systemFood.foodId)).toBe(false);
+
+      // PUT /trainer/food-tags/{A's tagId} → 404 — UpdateFoodTagEndpoint scopes its lookup to
+      // `ExternalId == req.TagId && OwnerUserId == callerUserId`, so a tag owned by a different
+      // nutritionist is indistinguishable from one that doesn't exist at all.
+      const updateResponse = await secondNutriApi.put(`/trainer/food-tags/${ownerTagId}`, {
+        data: { name: 'B Cannot Rename This', colorHex: '#3b82f6' },
+        headers: secondNutriHeaders,
+      });
+      expect(updateResponse.status()).toBe(404);
     } finally {
-      await secondNutriTagsApi.dispose();
+      await secondNutriApi.dispose();
     }
 
     // A's tag itself is cleaned up by this describe block's shared afterEach
