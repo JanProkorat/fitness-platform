@@ -291,7 +291,7 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit', { exact: true }).selectOption('piece');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
     await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -393,7 +393,7 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit', { exact: true }).selectOption('piece');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
     await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -830,7 +830,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Fiber / 100g').fill('3');
     // 1×4 + 12×4 + 0×9 + 3×2 = 58, auto-filled by the fields above.
     await expect(createDrawer.getByLabel('Calories / 100g')).toHaveValue('58');
-    await createDrawer.getByLabel('Unit', { exact: true }).selectOption('piece');
+    await createDrawer.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
     await createDrawer.getByLabel('Unit weight (g)').fill('120');
 
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
@@ -865,7 +865,7 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Protein / 100g').fill('1');
     await createDrawer.getByLabel('Carbs / 100g').fill('12');
     await createDrawer.getByLabel('Fat / 100g').fill('0');
-    await createDrawer.getByLabel('Unit', { exact: true }).selectOption('piece');
+    await createDrawer.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
     await createDrawer.getByLabel('Unit weight (g)').fill('120');
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
@@ -976,6 +976,11 @@ test.describe('nutrition layout and serving units (#1133)', () => {
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+    // The heading is visible as soon as the sheet mounts, but its own
+    // sheet-in-right slide-in animation (300ms, index.css) is still running
+    // at that point — measuring boundingBox() here reads a mid-animation
+    // position and flakes the row-grouping assertions below.
+    await page.waitForTimeout(300);
 
     const [proteinBox, carbsBox, fatBox, fiberBox, kcalBox] = await Promise.all([
       drawer.getByLabel('Protein / 100g').boundingBox(),
@@ -1013,9 +1018,11 @@ test.describe('nutrition layout and serving units (#1133)', () => {
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
 
-    // Read-only for a system food, so assert the select's own selected option
-    // text rather than interacting with it.
-    const unitSelect = drawer.getByLabel('Unit', { exact: true });
+    // Role-scoped (not getByLabel): the select's accessible name is "Unit *"
+    // (the Label's required-asterisk span), and a plain substring match would
+    // also hit the "Unit weight (g)" number input — but that input's role is
+    // spinbutton, not combobox, so scoping by role alone disambiguates.
+    const unitSelect = drawer.getByRole('combobox', { name: /^Unit\b/ });
     await expect(unitSelect).toBeDisabled();
     const selectedText = await unitSelect.evaluate(
       (element) => (element as HTMLSelectElement).selectedOptions[0]?.textContent,
@@ -1069,7 +1076,7 @@ test.describe('nutrition layout and serving units (#1133)', () => {
 
     const editDrawer = page.locator('[data-slot="sheet-content"]');
     await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
-    await expect(editDrawer.getByLabel('Unit', { exact: true })).toHaveValue(legacyLabel);
+    await expect(editDrawer.getByRole('combobox', { name: /^Unit\b/ })).toHaveValue(legacyLabel);
 
     await editDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
