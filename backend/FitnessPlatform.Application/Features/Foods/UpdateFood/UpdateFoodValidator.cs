@@ -34,10 +34,14 @@ public class UpdateFoodValidator : Validator<UpdateFoodRequest>
         RuleFor(x => x.NutrientValue.Fat)
             .GreaterThanOrEqualTo(0);
 
+        RuleFor(x => x.NutrientValue.Fiber)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.NutrientValue.Fiber.HasValue);
+
         RuleFor(x => x.NutrientValue)
-            .Must(n => NutrientValidation.IsKcalConsistent(n.Kcal, n.Protein, n.Carbs, n.Fat))
+            .Must(n => NutrientValidation.IsKcalConsistent(n.Kcal, n.Protein, n.Carbs, n.Fat, n.Fiber))
             .WithErrorCode(ErrorCodes.KcalInconsistent)
-            .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 ± 10%).");
+            .WithMessage("Kcal value is not consistent with macronutrients (protein×4 + carbs×4 + fat×9 + fibre×2 ± 10%).");
 
         RuleFor(x => x.CommonServings)
             .NotEmpty()

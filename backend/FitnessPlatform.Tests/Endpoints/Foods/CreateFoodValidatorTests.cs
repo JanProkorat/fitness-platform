@@ -41,6 +41,17 @@ public class CreateFoodValidatorTests
     }
 
     [Fact]
+    public void Validate_NegativeFiber_FailsWithCorrectMessage()
+    {
+        var request = ValidRequest();
+        request.NutrientValue.Fiber = -1;
+
+        var result = new CreateFoodValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.NutrientValue.Fiber);
+    }
+
+    [Fact]
     public void Validate_EmptyCommonServings_FailsWithCorrectMessage()
     {
         var request = ValidRequest();
