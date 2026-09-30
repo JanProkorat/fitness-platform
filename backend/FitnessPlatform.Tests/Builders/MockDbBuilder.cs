@@ -33,6 +33,7 @@ public class MockDbBuilder
     private readonly List<SocialLoginNonce> _socialLoginNonces = [];
     private readonly List<Conversation> _conversations = [];
     private readonly List<ChatMessage> _chatMessages = [];
+    private readonly List<ClientTag> _clientTags = [];
 
     /// <summary>
     /// Adds an <see cref="ApplicationUser"/> to the mock context.
@@ -140,6 +141,11 @@ public class MockDbBuilder
     public MockDbBuilder With(ChatMessage message) { _chatMessages.Add(message); return this; }
 
     /// <summary>
+    /// Adds a <see cref="ClientTag"/> to the mock context.
+    /// </summary>
+    public MockDbBuilder With(ClientTag tag) { _clientTags.Add(tag); return this; }
+
+    /// <summary>
     /// Builds a mocked <see cref="IApplicationDbContext"/> with all registered entities as queryable DbSets.
     /// </summary>
     public IApplicationDbContext Build()
@@ -168,6 +174,7 @@ public class MockDbBuilder
         var socialLoginNoncesSet = _socialLoginNonces.BuildMockDbSet();
         var conversationsSet = _conversations.BuildMockDbSet();
         var chatMessagesSet = _chatMessages.BuildMockDbSet();
+        var clientTagsSet = _clientTags.BuildMockDbSet();
 
         // Built before the Returns() below, per the same NSubstitute pitfall noted above.
         var transaction = Substitute.For<IDbContextTransaction>();
@@ -196,6 +203,7 @@ public class MockDbBuilder
         db.SocialLoginNonces.Returns(socialLoginNoncesSet);
         db.Conversations.Returns(conversationsSet);
         db.ChatMessages.Returns(chatMessagesSet);
+        db.ClientTags.Returns(clientTagsSet);
 
         db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
 
