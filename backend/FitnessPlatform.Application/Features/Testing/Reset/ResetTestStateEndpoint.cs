@@ -9,7 +9,8 @@ namespace FitnessPlatform.Application.Features.Testing.Reset;
 
 /// <summary>
 /// POST /test/reset — drops and recreates the Postgres schema (via EF migrations),
-/// drops all MongoDB collections, and re-runs the QA seed fixture.
+/// drops all MongoDB collections, recreates the MongoDB indexes, and re-runs the
+/// QA seed fixture.
 ///
 /// SECURITY NOTE: This endpoint intentionally has NO [Authorize] attribute.
 /// The single gate (Testing:Enabled=true) is enforced at REQUEST TIME in HandleAsync.
@@ -37,6 +38,7 @@ namespace FitnessPlatform.Application.Features.Testing.Reset;
 public class ResetTestStateEndpoint(
     ApplicationDbContext db,
     IMongoDatabase mongoDatabase,
+    MongoIndexInitializer mongoIndexInitializer,
     IServiceProvider serviceProvider,
     IConfiguration configuration) : EndpointWithoutRequest
 {
@@ -48,8 +50,9 @@ public class ResetTestStateEndpoint(
         Summary(s =>
         {
             s.Summary = "Reset test state";
-            s.Description = "Drops and recreates PostgreSQL schema, drops MongoDB collections, and re-seeds QA fixture. " +
-                             "Only available when Testing:Enabled=true. The environment name is not checked.";
+            s.Description = "Drops and recreates PostgreSQL schema, drops MongoDB collections, recreates MongoDB " +
+                             "indexes, and re-seeds QA fixture. Only available when Testing:Enabled=true. The " +
+                             "environment name is not checked.";
         });
     }
 
@@ -84,10 +87,13 @@ public class ResetTestStateEndpoint(
             await mongoDatabase.DropCollectionAsync(name, ct);
         }
 
-        // 3. Re-seed roles (Identity roles must exist before QaSeedRunner assigns them)
+        // 3. Recreate MongoDB indexes dropped along with their collections above.
+        await mongoIndexInitializer.StartAsync(ct);
+
+        // 4. Re-seed roles (Identity roles must exist before QaSeedRunner assigns them)
         await ApplicationDbContextSeed.SeedAsync(serviceProvider);
 
-        // 4. Re-seed QA users + Mongo data
+        // 5. Re-seed QA users + Mongo data
         await QaSeedRunner.SeedAsync(serviceProvider);
         await MongoSeeder.SeedAsync(serviceProvider);
 
