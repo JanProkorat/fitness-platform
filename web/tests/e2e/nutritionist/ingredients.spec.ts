@@ -22,6 +22,7 @@ const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
 interface LoginResponseBody {
   accessToken: string;
+  refreshToken?: string;
 }
 
 interface FoodApiBody {
@@ -33,6 +34,7 @@ interface FoodApiBody {
 
 interface FoodTagApiBody {
   tagId?: string;
+  name?: string;
 }
 
 interface GetFoodTagsApiBody {
@@ -100,12 +102,13 @@ async function deleteAllFoodTags(baseURL: string | undefined): Promise<void> {
 }
 
 /**
- * Finds a system food's name via GET /foods/search — used to open the
- * read-only drawer for the "assign a tag to a food I don't own" AC. Prefers
+ * Finds a system food's id + name via GET /foods/search — used both to open
+ * the read-only drawer for the "assign a tag to a food I don't own" AC, and
+ * to assign a tag to it directly via PUT /trainer/foods/{FoodId}/tags. Prefers
  * "Apple" (the same seeded system food `a system row opens the drawer
  * read-only` already relies on).
  */
-async function findSystemFoodName(baseURL: string | undefined): Promise<string> {
+async function findSystemFood(baseURL: string | undefined): Promise<{ foodId: string; name: string }> {
   const resolvedBaseUrl = baseURL ?? 'http://localhost:5173';
   const accessToken = await loginAsNutritionist(resolvedBaseUrl);
   const api = await apiRequest.newContext({ baseURL: resolvedBaseUrl });
@@ -117,14 +120,19 @@ async function findSystemFoodName(baseURL: string | undefined): Promise<string> 
       throw new Error(`[ingredients] GET /foods/search returned ${response.status()} ${response.statusText()}.`);
     }
     const { foods } = (await response.json()) as SearchFoodsApiBody;
-    const systemFood = (foods ?? []).find((food) => food.isSystem && food.name);
-    if (!systemFood?.name) {
+    const systemFood = (foods ?? []).find((food) => food.isSystem && food.name && food.foodId);
+    if (!systemFood?.name || !systemFood.foodId) {
       throw new Error('[ingredients] GET /foods/search?q=Apple returned no system food to tag.');
     }
-    return systemFood.name;
+    return { foodId: systemFood.foodId, name: systemFood.name };
   } finally {
     await api.dispose();
   }
+}
+
+/** Thin wrapper over `findSystemFood` for callers that only need the name. */
+async function findSystemFoodName(baseURL: string | undefined): Promise<string> {
+  return (await findSystemFood(baseURL)).name;
 }
 
 test.describe('ingredients page', () => {
@@ -591,6 +599,174 @@ test.describe('food tags (#1120)', () => {
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('cell', { name: systemFoodName, exact: true })).toBeVisible();
     await expect(page.getByText('System', { exact: true })).toBeVisible();
+  });
+
+  test("a second nutritionist can't see qa.nutri's food tag (#1120)", async ({ baseURL, browser }) => {
+    // QA finding: the only prior "a second coach doesn't see it" coverage used
+    // a trainer, and a trainer can never own a food tag (Roles(AppRoles.Nutritionist)
+    // on every food-tags endpoint — CreateFoodTagEndpoint.cs, GetFoodTagsEndpoint.cs),
+    // so it never proved cross-NUTRITIONIST isolation. The seed has only one
+    // nutritionist (qa.nutri), so the second nutritionist here is a throwaway
+    // account registered fresh through the real API rather than a fixture.
+    const origin = baseURL ?? 'http://localhost:5173';
+    const tagName = `QA Nutri Isolation Tag ${Date.now()}`;
+
+    // --- qa.nutri: create a tag and assign it to a system food, both via the API. ---
+    const ownerAccessToken = await loginAsNutritionist(origin);
+    const ownerApi = await apiRequest.newContext({ baseURL: origin });
+    let systemFood: { foodId: string; name: string };
+    try {
+      const createResponse = await ownerApi.post('/trainer/food-tags', {
+        data: { name: tagName, colorHex: '#3b82f6' },
+        headers: { Authorization: `Bearer ${ownerAccessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(`[ingredients] POST /trainer/food-tags returned ${createResponse.status()} ${createResponse.statusText()}.`);
+      }
+      const createdTag = (await createResponse.json()) as FoodTagApiBody;
+      if (!createdTag.tagId) {
+        throw new Error('[ingredients] POST /trainer/food-tags returned no tagId.');
+      }
+
+      systemFood = await findSystemFood(origin);
+
+      const assignResponse = await ownerApi.put(`/trainer/foods/${systemFood.foodId}/tags`, {
+        data: { tagIds: [createdTag.tagId] },
+        headers: { Authorization: `Bearer ${ownerAccessToken}` },
+      });
+      if (!assignResponse.ok()) {
+        throw new Error(
+          `[ingredients] PUT /trainer/foods/{FoodId}/tags returned ${assignResponse.status()} ${assignResponse.statusText()}.`,
+        );
+      }
+    } finally {
+      await ownerApi.dispose();
+    }
+
+    // --- A throwaway second nutritionist, registered fresh through the real API.
+    // LoginEndpoint.cs never gates on EmailConfirmed (only mobile's UI gate does,
+    // per RegisterEndpoint.cs's own comment) — a freshly registered, unverified
+    // account can log in immediately, so no MailHog round trip is needed here. ---
+    const secondNutriEmail = `qa.nutri.isolation.${Date.now()}@fitnessplatform.test`;
+    const secondNutriPassword = 'CorrectHorse9';
+
+    const registerApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const registerResponse = await registerApi.post('/auth/register', {
+        data: {
+          email: secondNutriEmail,
+          password: secondNutriPassword,
+          confirmPassword: secondNutriPassword,
+          firstName: 'QA',
+          lastName: 'SecondNutri',
+          roles: ['Nutritionist'],
+          gdprConsent: true,
+        },
+      });
+      if (!registerResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /auth/register (second nutritionist) returned ${registerResponse.status()} ` +
+            `${registerResponse.statusText()}: ${await registerResponse.text()}.`,
+        );
+      }
+    } finally {
+      await registerApi.dispose();
+    }
+
+    const secondLoginApi = await apiRequest.newContext({ baseURL: origin });
+    let secondNutriAccessToken: string;
+    let secondNutriRefreshToken: string;
+    try {
+      const loginResponse = await secondLoginApi.post('/auth/login', {
+        data: { email: secondNutriEmail, password: secondNutriPassword },
+      });
+      if (!loginResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /auth/login (second nutritionist) returned ${loginResponse.status()} ${loginResponse.statusText()}.`,
+        );
+      }
+      const loginBody = (await loginResponse.json()) as LoginResponseBody;
+      if (!loginBody.refreshToken) {
+        throw new Error('[ingredients] POST /auth/login (second nutritionist) returned no refreshToken.');
+      }
+      secondNutriAccessToken = loginBody.accessToken;
+      secondNutriRefreshToken = loginBody.refreshToken;
+    } finally {
+      await secondLoginApi.dispose();
+    }
+
+    // A fresh browser context, authenticated as B — never A's shared `page`/storage
+    // state. Mirrors the storage-state shape auth.setup.ts writes (`refreshToken` +
+    // `lang` under the app's own origin), same as `fixtures/auth.ts`'s `openClientContext`.
+    const secondNutriContext = await browser.newContext({
+      storageState: {
+        cookies: [],
+        origins: [
+          {
+            origin,
+            localStorage: [
+              { name: 'refreshToken', value: secondNutriRefreshToken },
+              { name: 'lang', value: 'en' },
+            ],
+          },
+        ],
+      },
+    });
+
+    try {
+      const secondNutriPage = await secondNutriContext.newPage();
+      await secondNutriPage.goto('/ingredients');
+      await secondNutriPage.waitForLoadState('networkidle');
+      await expect(secondNutriPage.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
+
+      // The tag filter popover lists no tag with A's name.
+      await secondNutriPage.getByRole('button', { name: 'Tags' }).click();
+      const secondNutriPopover = secondNutriPage.locator("[data-slot='popover-content']");
+      await expect(secondNutriPopover).toBeVisible();
+      await expect(secondNutriPopover.locator('li', { hasText: tagName })).toHaveCount(0);
+      await secondNutriPage.keyboard.press('Escape');
+
+      // The system food's row shows no chip with A's tag name.
+      const searchResponse = secondNutriPage.waitForResponse((response) => response.url().includes('/foods/search'));
+      await secondNutriPage.getByPlaceholder('Search ingredients…').fill(systemFood.name);
+      await searchResponse;
+      await secondNutriPage.waitForLoadState('networkidle');
+      const systemFoodRow = secondNutriPage
+        .locator('tbody tr')
+        .filter({ has: secondNutriPage.getByRole('cell', { name: systemFood.name, exact: true }) });
+      await expect(systemFoodRow.getByText(tagName, { exact: true })).toHaveCount(0);
+
+      // Opening that food's (read-only) drawer shows no chip with A's tag name.
+      // Scoped to the drawer, not the page — the list row behind the (non-modal)
+      // Sheet overlay stays in the DOM and would otherwise double-match.
+      await secondNutriPage.getByRole('cell', { name: systemFood.name, exact: true }).first().click();
+      const secondNutriDrawer = secondNutriPage.locator('[data-slot="sheet-content"]');
+      await expect(secondNutriDrawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+      await expect(secondNutriDrawer.getByText(tagName, { exact: true })).toHaveCount(0);
+      await secondNutriDrawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+    } finally {
+      await secondNutriContext.close();
+    }
+
+    // Also assert via B's own API that GET /trainer/food-tags never contains A's tag.
+    const secondNutriTagsApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const tagsResponse = await secondNutriTagsApi.get('/trainer/food-tags', {
+        headers: { Authorization: `Bearer ${secondNutriAccessToken}` },
+      });
+      if (!tagsResponse.ok()) {
+        throw new Error(
+          `[ingredients] GET /trainer/food-tags (second nutritionist) returned ${tagsResponse.status()} ${tagsResponse.statusText()}.`,
+        );
+      }
+      const { tags } = (await tagsResponse.json()) as GetFoodTagsApiBody;
+      expect((tags ?? []).some((tag) => tag.name === tagName)).toBe(false);
+    } finally {
+      await secondNutriTagsApi.dispose();
+    }
+
+    // A's tag itself is cleaned up by this describe block's shared afterEach
+    // (deleteAllFoodTags), which already asserts every DELETE response.ok().
   });
 });
 
