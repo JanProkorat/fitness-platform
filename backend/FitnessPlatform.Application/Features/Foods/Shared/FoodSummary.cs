@@ -54,9 +54,7 @@ public class FoodSummary
     public List<DietaryPreference> DietaryPreferences { get; set; } = [];
 
     /// <summary>
-    /// The caller's own coach-private tags on this food (#1120). Always empty for a caller who
-    /// owns no <see cref="FoodTagLookup"/> assignment for this food — including every non-owning
-    /// coach and every non-nutritionist caller, since only a nutritionist can create one.
+    /// The caller's own coach-private tags on this food; empty if the caller has none assigned.
     /// </summary>
     public List<FoodTagDto> Tags { get; set; } = [];
 

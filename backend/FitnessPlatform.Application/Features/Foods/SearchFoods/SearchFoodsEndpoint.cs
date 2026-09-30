@@ -54,7 +54,7 @@ public class SearchFoodsEndpoint(
 
         if (req.TagIds.Count > 0)
         {
-            // Two-step lookup (#1120): resolve which of the caller's OWN foods carry any of the
+            // Two-step lookup: resolve which foods the caller has tagged with any of the
             // requested tags first, then narrow the food query by external id. A caller with no
             // matching assignment gets zero food ids — respond with an empty page immediately
             // rather than let an empty In(...) fall through to "no filter at all".

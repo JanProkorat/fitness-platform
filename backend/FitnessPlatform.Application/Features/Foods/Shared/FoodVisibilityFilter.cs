@@ -6,11 +6,7 @@ namespace FitnessPlatform.Application.Features.Foods.Shared;
 
 /// <summary>
 /// The own-or-public visibility filter shared by every Foods read endpoint that lists more than
-/// one <see cref="Food"/> document — <see cref="Foods.SearchFoods.SearchFoodsEndpoint"/> and
-/// <see cref="Foods.ReplaceFoodTagAssignments.ReplaceFoodTagAssignmentsEndpoint"/>'s target-food
-/// lookup. Since #1120, <c>Foods.GetFoodTags.GetFoodTagsEndpoint</c> lists <see cref="FoodTag"/>
-/// documents (a separate, owner-only aggregate with no public/private distinction of its own) and
-/// no longer applies this filter at all — don't reintroduce that cross-reference.
+/// one <see cref="Food"/> document.
 /// </summary>
 public static class FoodVisibilityFilter
 {

@@ -6,18 +6,8 @@ namespace FitnessPlatform.Application.Features.Foods.Shared;
 
 /// <summary>
 /// Shared read path for coach-private food tags, used by every Foods action that shows or filters
-/// on tags — <see cref="SearchFoods.SearchFoodsEndpoint"/>, <see cref="GetFood.GetFoodEndpoint"/>,
-/// <see cref="UpdateFood.UpdateFoodEndpoint"/>, and
-/// <see cref="GetCustomFoods.GetCustomFoodsEndpoint"/> — so the two-step id-lookup-then-join never
-/// drifts between call sites.
+/// on tags. Every read is scoped by <c>OwnerUserId == callerUserId</c>.
 /// </summary>
-/// <remarks>
-/// Every read is scoped by <c>OwnerUserId == callerUserId</c>. Only nutritionists ever create a
-/// <see cref="FoodTag"/> or a <see cref="FoodTagAssignment"/> (both write endpoints are
-/// <c>Roles(AppRoles.Nutritionist)</c>), so a trainer-only or client caller's own user id can
-/// never own one — the owner scoping alone is what makes tags invisible to them, with no separate
-/// role check needed here.
-/// </remarks>
 public static class FoodTagLookup
 {
     /// <summary>

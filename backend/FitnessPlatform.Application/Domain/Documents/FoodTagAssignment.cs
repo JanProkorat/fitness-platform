@@ -5,8 +5,7 @@ namespace FitnessPlatform.Application.Domain.Documents;
 
 /// <summary>
 /// MongoDB document holding the full set of <see cref="FoodTag"/> ids a coach has assigned to one
-/// food. Exactly one document per (<see cref="OwnerUserId"/>, <see cref="FoodExternalId"/>) pair —
-/// replacing the set is a single atomic upsert, never a per-tag row.
+/// food — one document per (<see cref="OwnerUserId"/>, <see cref="FoodExternalId"/>) pair.
 /// </summary>
 [BsonIgnoreExtraElements]
 public class FoodTagAssignment
