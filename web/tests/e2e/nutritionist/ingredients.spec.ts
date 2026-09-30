@@ -771,6 +771,12 @@ test.describe('food tags (#1120)', () => {
  * exposes, but which a full-state PUT must not null out).
  */
 test.describe('fibre field and calorie auto-fill (#1126)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/ingredients');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
+  });
+
   test('typing macros auto-fills Calories in create mode', async ({ page }) => {
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     const drawer = page.locator('[data-slot="sheet-content"]');
