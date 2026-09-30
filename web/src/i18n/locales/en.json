@@ -926,7 +926,13 @@
       "tsp": "Teaspoon",
       "handful": "Handful",
       "glass": "Glass",
-      "pack": "Pack"
+      "pack": "Pack",
+      "can": "Can",
+      "tub": "Tub",
+      "head": "Head",
+      "clove": "Clove",
+      "bunch": "Bunch",
+      "scoop": "Scoop"
     },
     "drawer": {
       "createTitle": "New Ingredient",
@@ -958,8 +964,8 @@
       "unit": "Unit",
       "unitPlaceholder": "Select unit",
       "unitRequired": "Unit is required.",
-      "servingSize": "Serving Size",
-      "servingSizeRequired": "Serving size is required.",
+      "servingSize": "Unit weight (g)",
+      "servingSizeRequired": "Unit weight is required.",
       "dietaryPreferences": "Dietary Preferences",
       "dietaryPreferencesPlaceholder": "Select preferences",
       "allergens": "Contains Allergens",

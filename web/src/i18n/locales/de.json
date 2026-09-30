@@ -925,7 +925,13 @@
       "tsp": "Teelöffel",
       "handful": "Handvoll",
       "glass": "Glas",
-      "pack": "Packung"
+      "pack": "Packung",
+      "can": "Dose",
+      "tub": "Becher",
+      "head": "Kopf",
+      "clove": "Zehe",
+      "bunch": "Bund",
+      "scoop": "Messlöffel"
     },
     "drawer": {
       "createTitle": "Neue Zutat",
@@ -957,8 +963,8 @@
       "unit": "Einheit",
       "unitPlaceholder": "Einheit auswählen",
       "unitRequired": "Einheit ist erforderlich.",
-      "servingSize": "Portionsgröße",
-      "servingSizeRequired": "Portionsgröße ist erforderlich.",
+      "servingSize": "Gewicht pro Einheit (g)",
+      "servingSizeRequired": "Gewicht pro Einheit ist erforderlich.",
       "dietaryPreferences": "Ernährungspräferenzen",
       "dietaryPreferencesPlaceholder": "Präferenzen auswählen",
       "allergens": "Enthält Allergene",
