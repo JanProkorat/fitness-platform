@@ -96,15 +96,8 @@ export default function IngredientTagPickerPopover({ foodId, assignedTags, onAss
                   {tags.map((tag) => (
                     <li key={tag.tagId}>
                       <label className="flex cursor-pointer items-center gap-2 text-body text-foreground">
-                        {/*
-                          Disabled while a write is in flight because the
-                          endpoint replaces the whole set and `assignedTags`
-                          derives from the parent drawer's local state, which
-                          only updates once the response lands. Ticking a
-                          second tag before the first returns would compute
-                          its set from stale data and silently drop the
-                          first one.
-                        */}
+                        {/* Disabled mid-write — a second tick before the first replace-call
+                            returns would compute its set from stale `assignedTags` data. */}
                         <Checkbox
                           checked={Boolean(tag.tagId) && assignedIds.has(tag.tagId ?? '')}
                           disabled={assignMutation.isPending}

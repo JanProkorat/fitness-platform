@@ -123,10 +123,8 @@ interface Props {
   food: FoodSummary | null;
   /** True for a system/shared food, or for a trainer-only coach viewing any row. */
   readOnly: boolean;
-  /** Gates the coach-private tag section (#1120) — a trainer-only coach sees
-   * no tag UI at all, regardless of `readOnly`. Kept separate from
-   * `readOnly` because a nutritionist can tag ANY visible food (system,
-   * shared, own), even one whose *fields* are read-only. */
+  /** Gates the coach-private tag section (#1120) — kept separate from
+   * `readOnly` since a nutritionist can tag any visible food, even a read-only one. */
   isNutritionist: boolean;
 }
 
@@ -148,11 +146,8 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   const { t } = useTranslation();
   const mode = food === null ? 'create' : readOnly ? 'view' : 'edit';
   const [deleteOpen, setDeleteOpen] = useState(false);
-  // Local copy of the food's tag chips (#1120) — kept separate from `food`
-  // (a snapshot the parent page passes down, not query-cache-backed) so a
-  // tag assignment made here re-renders the chips immediately from the
-  // mutation's own response, without waiting on the parent to re-derive
-  // `selectedFood` from a refetched list.
+  // Local copy of the food's tag chips (#1120), so assigning re-renders
+  // immediately instead of waiting on the parent to refetch `selectedFood`.
   const [assignedTags, setAssignedTags] = useState<FoodTagDto[]>([]);
 
   const createMutation = useCreateFood();

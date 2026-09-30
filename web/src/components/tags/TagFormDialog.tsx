@@ -173,9 +173,8 @@ export default function TagFormDialog({
       // a second, independent Radix Dialog.Root instance.
       setConfirmDeleteOpen(false);
     }
-    // Only re-run when the dialog's own open state flips, not on every
-    // `initialValues` identity change (a fresh object per parent render
-    // would otherwise reset the form mid-edit).
+    // Only re-run on `open` flipping — a fresh `initialValues` object per
+    // parent render would otherwise reset the form mid-edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -187,16 +186,8 @@ export default function TagFormDialog({
     (preset) => preset.hex.toLowerCase() === colorHex.toLowerCase(),
   )?.hex;
 
-  // Radix autofocuses the first focusable descendant (`#tag-name`) on mount.
-  // A mousedown on a swatch then blurs that input, and `mode: 'onTouched'`
-  // validates it — the dialog grows to fit the "required" message, which
-  // (being vertically centred) shifts the swatch row out from under the
-  // pointer before `click` fires, so the first swatch press is silently
-  // lost. Move focus to the dialog's own container instead — Radix's
-  // FocusScope dispatches this event on that container, which already
-  // carries `tabIndex={-1}`, so `.focus()` doesn't need an extra ref. Tab
-  // from there still reaches the name field first, so nothing is lost for
-  // keyboard users.
+  // Default autofocus on #tag-name lets a swatch mousedown blur+validate it
+  // before the click lands, so focus the dialog's own container instead.
   function handleOpenAutoFocus(event: Event) {
     event.preventDefault();
     (event.target as HTMLElement).focus();

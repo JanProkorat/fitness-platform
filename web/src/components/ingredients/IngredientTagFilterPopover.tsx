@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCreateFoodTag, useDeleteFoodTag, useFoodTags, useUpdateFoodTag } from '@/hooks/useIngredientsQueries';
-import TagFormDialog, { type TagFormValues } from '@/components/tags/TagFormDialog';
+import TagFormDialog, { DEFAULT_TAG_COLOR, type TagFormValues } from '@/components/tags/TagFormDialog';
 import type { FoodTagDto } from '@/api/food-types';
 
 interface Props {
@@ -70,10 +70,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
     setFormOpen(true);
   }
 
-  // Reopens the filter popover once the dialog closes on a successful save,
-  // same reasoning as ClientTagFilterPopover: a freshly-created tag is
-  // deliberately NOT auto-selected — it has zero tagged foods yet, so
-  // auto-selecting would filter the table to empty right after creation.
+  // Returns focus to the trigger button once the dialog closes.
   function handleFormCloseAutoFocus(event: Event) {
     event.preventDefault();
     triggerRef.current?.focus();
@@ -95,6 +92,9 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
       return;
     }
 
+    // Reopens the filter popover on success rather than auto-selecting the new
+    // tag — it has zero tagged foods yet, so auto-selecting would filter the
+    // table to empty right after creation (mirrors ClientTagFilterPopover).
     createMutation.mutate(request, {
       onSuccess: () => {
         setFormOpen(false);
@@ -176,7 +176,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
           editingTag
             ? {
                 name: editingTag.name ?? '',
-                colorHex: (editingTag.colorHex ?? '#3B82F6').toUpperCase(),
+                colorHex: (editingTag.colorHex ?? DEFAULT_TAG_COLOR).toUpperCase(),
                 description: editingTag.description ?? '',
               }
             : undefined

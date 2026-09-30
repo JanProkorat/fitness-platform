@@ -737,7 +737,7 @@ test.describe('food tags (#1120)', () => {
         );
       }
       const { foods } = (await searchResponse.json()) as SearchFoodsApiBody;
-      expect((foods ?? []).some((food) => food.foodId === systemFood.foodId)).toBe(false);
+      expect(foods ?? []).toHaveLength(0);
 
       // PUT /trainer/food-tags/{A's tagId} → 404 — UpdateFoodTagEndpoint scopes its lookup to
       // `ExternalId == req.TagId && OwnerUserId == callerUserId`, so a tag owned by a different
