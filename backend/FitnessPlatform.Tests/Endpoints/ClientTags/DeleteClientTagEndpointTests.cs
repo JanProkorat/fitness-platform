@@ -68,13 +68,11 @@ public class DeleteClientTagEndpointTests(FitnessApiFactory factory)
     }
 
     [Fact]
-    public async Task Delete_ConcurrentDuplicateDelete_BothReturn204()
+    public async Task Delete_ConcurrentDuplicateDelete_NeverReturns500AndTagIsGone()
     {
-        // Both requests load the same owner-filtered row before either commits, then race on the
-        // DELETE. Whichever loses affects 0 rows — a tracked Remove() expects exactly 1 row
-        // affected and throws DbUpdateConcurrencyException, which the endpoint must catch: the
-        // desired end state (the tag no longer exists) is true regardless of which request
-        // "won", so neither request may surface as a 500.
+        // Two timings are both valid: if both requests load before either commits, the loser's
+        // DbUpdateConcurrencyException is caught and it also returns 204; if the second request
+        // loads after the first commits, its owner-filtered query finds nothing and it returns 404.
         var http = await SetupTrainerAsync();
         var tagId = await CreateTagAsync(http, "VIP");
 
@@ -83,7 +81,9 @@ public class DeleteClientTagEndpointTests(FitnessApiFactory factory)
 
         var responses = await Task.WhenAll(firstCall, secondCall);
 
-        responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.NoContent);
+        responses.Should().OnlyContain(
+            r => r.StatusCode == HttpStatusCode.NoContent || r.StatusCode == HttpStatusCode.NotFound);
+        responses.Should().Contain(r => r.StatusCode == HttpStatusCode.NoContent);
 
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
