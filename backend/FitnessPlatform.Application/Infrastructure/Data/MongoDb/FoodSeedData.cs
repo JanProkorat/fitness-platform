@@ -89,5 +89,9 @@ public record FoodSeedEntry(
     List<string>? Allergens,
     List<FoodServingEntry>? Servings);
 
-/// <summary>A common serving size entry for a food, as authored in <c>seed-foods.json</c>.</summary>
+/// <summary>
+/// A common serving size entry for a food, as authored in <c>seed-foods.json</c>. <see cref="Label"/>
+/// is a <see cref="FitnessPlatform.Application.Domain.Constants.ServingUnits"/> key, and
+/// <see cref="Grams"/> is the weight of ONE unit.
+/// </summary>
 public record FoodServingEntry(string Label, decimal Grams);

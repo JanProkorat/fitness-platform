@@ -31,6 +31,11 @@ interface NutrientValueApiBody {
   salt?: number;
 }
 
+interface ServingApiBody {
+  label?: string;
+  weightGrams?: number;
+}
+
 interface FoodApiBody {
   foodId?: string;
   name?: string;
@@ -38,6 +43,7 @@ interface FoodApiBody {
   isSystem?: boolean;
   tags?: FoodTagApiBody[];
   nutrientValue?: NutrientValueApiBody;
+  commonServings?: ServingApiBody[];
 }
 
 interface FoodTagApiBody {
@@ -285,8 +291,8 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit').selectOption('piece');
-    await page.getByLabel('Serving Size').fill('120');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
@@ -333,7 +339,7 @@ test.describe('ingredients page', () => {
     await expect(page.getByText('Protein is required.')).toBeVisible();
     await expect(page.getByText('Carbs is required.')).toBeVisible();
     await expect(page.getByText('Fat is required.')).toBeVisible();
-    await expect(page.getByText('Serving size is required.')).toBeVisible();
+    await expect(page.getByText('Unit weight is required.')).toBeVisible();
 
     // The zod schema's internal placeholder message is the bare string
     // "required" — before this fix it rendered verbatim for Calories, and
@@ -387,8 +393,8 @@ test.describe('ingredients page', () => {
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
     await page.getByLabel('Fat / 100g').fill('0');
-    await page.getByLabel('Unit').selectOption('piece');
-    await page.getByLabel('Serving Size').fill('120');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await page.getByLabel('Unit weight (g)').fill('120');
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
 
@@ -824,8 +830,8 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Fiber / 100g').fill('3');
     // 1×4 + 12×4 + 0×9 + 3×2 = 58, auto-filled by the fields above.
     await expect(createDrawer.getByLabel('Calories / 100g')).toHaveValue('58');
-    await createDrawer.getByLabel('Unit').selectOption('piece');
-    await createDrawer.getByLabel('Serving Size').fill('120');
+    await createDrawer.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await createDrawer.getByLabel('Unit weight (g)').fill('120');
 
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
@@ -859,8 +865,8 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     await createDrawer.getByLabel('Protein / 100g').fill('1');
     await createDrawer.getByLabel('Carbs / 100g').fill('12');
     await createDrawer.getByLabel('Fat / 100g').fill('0');
-    await createDrawer.getByLabel('Unit').selectOption('piece');
-    await createDrawer.getByLabel('Serving Size').fill('120');
+    await createDrawer.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await createDrawer.getByLabel('Unit weight (g)').fill('120');
     await createDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
 
@@ -945,6 +951,144 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
       expect(body.nutrientValue?.sugar).toBe(8);
       expect(body.nutrientValue?.saturatedFat).toBe(0.1);
       expect(body.nutrientValue?.salt).toBe(0.01);
+
+      await verifyApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    } finally {
+      await verifyApi.dispose();
+    }
+  });
+});
+
+/**
+ * Two-column nutrition layout and translated serving units (#1133): the
+ * macro grid rows Protein+Carbs, Fat+Fibre, Calories alone; a seeded system
+ * food's unit key renders translated; a legacy free-text unit label (from
+ * before UNIT_KEYS existed) still opens and saves unchanged.
+ */
+test.describe('nutrition layout and serving units (#1133)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/ingredients');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Ingredients' })).toBeVisible();
+  });
+
+  test('the nutrition grid rows Protein+Carbs, then Fat+Fibre, then Calories alone', async ({ page }) => {
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+    // The heading is visible as soon as the sheet mounts, but its own
+    // sheet-in-right slide-in animation (300ms, index.css) is still running
+    // at that point — measuring boundingBox() here reads a mid-animation
+    // position and flakes the row-grouping assertions below.
+    await page.waitForTimeout(300);
+
+    const [proteinBox, carbsBox, fatBox, fiberBox, kcalBox] = await Promise.all([
+      drawer.getByLabel('Protein / 100g').boundingBox(),
+      drawer.getByLabel('Carbs / 100g').boundingBox(),
+      drawer.getByLabel('Fat / 100g').boundingBox(),
+      drawer.getByLabel('Fiber / 100g').boundingBox(),
+      drawer.getByLabel('Calories / 100g').boundingBox(),
+    ]);
+    for (const box of [proteinBox, carbsBox, fatBox, fiberBox, kcalBox]) {
+      expect(box).not.toBeNull();
+    }
+
+    // Same row -> vertical centers within a few px of each other.
+    const proteinCenter = proteinBox!.y + proteinBox!.height / 2;
+    const carbsCenter = carbsBox!.y + carbsBox!.height / 2;
+    const fatCenter = fatBox!.y + fatBox!.height / 2;
+    const fiberCenter = fiberBox!.y + fiberBox!.height / 2;
+    expect(Math.abs(proteinCenter - carbsCenter)).toBeLessThan(5);
+    expect(Math.abs(fatCenter - fiberCenter)).toBeLessThan(5);
+    // Each row sits clearly below the previous one, and Calories doesn't span.
+    expect(fatCenter).toBeGreaterThan(proteinCenter + 10);
+    expect(kcalBox!.y).toBeGreaterThan(fatBox!.y + 10);
+    expect(kcalBox!.x).toBeCloseTo(proteinBox!.x, 0);
+
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('a seeded system food shows its translated unit in the Unit select', async ({ page }) => {
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill('Canned Chopped Tomatoes');
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('cell', { name: 'Canned Chopped Tomatoes', exact: true }).first().click();
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+
+    // Role-scoped (not getByLabel): the select's accessible name is "Unit *"
+    // (the Label's required-asterisk span), and a plain substring match would
+    // also hit the "Unit weight (g)" number input — but that input's role is
+    // spinbutton, not combobox, so scoping by role alone disambiguates.
+    const unitSelect = drawer.getByRole('combobox', { name: /^Unit\b/ });
+    await expect(unitSelect).toBeDisabled();
+    const selectedText = await unitSelect.evaluate(
+      (element) => (element as HTMLSelectElement).selectedOptions[0]?.textContent,
+    );
+    expect(selectedText).toBe('Can');
+
+    await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+  });
+
+  test('an owned food with a legacy free-text unit label opens and saves unchanged', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Legacy Unit ${uniqueSuffix}`;
+    const legacyLabel = '1 bar (~60g)';
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: legacyLabel, weightGrams: 60 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (legacy unit fixture) returned ${createResponse.status()} ` +
+            `${createResponse.statusText()}: ${await createResponse.text()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (legacy unit fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+
+    const editDrawer = page.locator('[data-slot="sheet-content"]');
+    await expect(editDrawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    await expect(editDrawer.getByRole('combobox', { name: /^Unit\b/ })).toHaveValue(legacyLabel);
+
+    await editDrawer.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+
+    const verifyApi = await apiRequest.newContext({ baseURL: origin });
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const getResponse = await verifyApi.get(`/foods/${foodId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const body = (await getResponse.json()) as FoodApiBody;
+      expect(body.commonServings?.[0]?.label).toBe(legacyLabel);
 
       await verifyApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     } finally {

@@ -35,8 +35,25 @@ import TagPill from '@/components/tags/TagPill';
 /** Fixed unit keys for the drawer's Unit select (design-review MINOR finding #8,
  * `docs/design/ingredients/inventory.md`). The label is stored verbatim as
  * `CommonServings[0].Label`; display translates the key and falls back to the
- * raw string for legacy seed data whose label doesn't match any key. */
-export const UNIT_KEYS = ['portion', 'piece', 'slice', 'cup', 'tbsp', 'tsp', 'handful', 'glass', 'pack'] as const;
+ * raw string for legacy seed data whose label doesn't match any key.
+ * Must mirror ServingUnits.cs (backend/FitnessPlatform.Application/Domain/Constants) key-for-key. */
+export const UNIT_KEYS = [
+  'portion',
+  'piece',
+  'slice',
+  'cup',
+  'tbsp',
+  'tsp',
+  'handful',
+  'glass',
+  'pack',
+  'can',
+  'tub',
+  'head',
+  'clove',
+  'bunch',
+  'scoop',
+] as const;
 export type UnitKey = (typeof UNIT_KEYS)[number];
 
 const CATEGORY_VALUES = Object.values(FoodCategory);
@@ -407,26 +424,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                   <Activity className="size-4 text-muted-foreground" aria-hidden="true" />
                   {t('ingredients.drawer.nutritionalInfo')}
                 </h3>
-                <div className="grid grid-cols-5 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="ingredient-kcal">
-                      {t('ingredients.drawer.calories')} <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="ingredient-kcal"
-                      type="number"
-                      step="any"
-                      {...register('kcal', { valueAsNumber: true, onChange: handleKcalChange })}
-                      aria-invalid={!!errors.kcal}
-                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
-                      className="h-10"
-                    />
-                    {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired') && (
-                      <p className="text-meta text-destructive">
-                        {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired')}
-                      </p>
-                    )}
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="ingredient-protein">
                       {t('ingredients.drawer.protein')} <span className="text-destructive">*</span>
@@ -500,6 +498,25 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                     />
                     {fiberFieldError(errors.fiber) && (
                       <p className="text-meta text-destructive">{fiberFieldError(errors.fiber)}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="ingredient-kcal">
+                      {t('ingredients.drawer.calories')} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="ingredient-kcal"
+                      type="number"
+                      step="any"
+                      {...register('kcal', { valueAsNumber: true, onChange: handleKcalChange })}
+                      aria-invalid={!!errors.kcal}
+                      placeholder={t('ingredients.drawer.zeroPlaceholder')}
+                      className="h-10"
+                    />
+                    {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired') && (
+                      <p className="text-meta text-destructive">
+                        {macroFieldError(errors.kcal, 'ingredients.drawer.caloriesRequired')}
+                      </p>
                     )}
                   </div>
                 </div>

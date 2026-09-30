@@ -15,7 +15,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 breast (~175g)",
+    "label": "piece",
     "grams": 175
    }
   ]
@@ -36,7 +36,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 thigh (~115g)",
+    "label": "piece",
     "grams": 115
    }
   ]
@@ -57,7 +57,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 portion (150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -78,7 +78,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 steak (~200g)",
+    "label": "piece",
     "grams": 200
    }
   ]
@@ -99,7 +99,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 chop (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -120,7 +120,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 fillet (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -141,7 +141,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 can (~150g)",
+    "label": "can",
     "grams": 150
    }
   ]
@@ -162,7 +162,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 fillet (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -183,8 +183,8 @@
   "allergens": [],
   "servings": [
    {
-    "label": "10 medium (~60g)",
-    "grams": 60
+    "label": "piece",
+    "grams": 6
    }
   ]
  },
@@ -206,7 +206,7 @@
   ],
   "servings": [
    {
-    "label": "1 large (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -229,7 +229,7 @@
   ],
   "servings": [
    {
-    "label": "1 white (~33g)",
+    "label": "piece",
     "grams": 33
    }
   ]
@@ -252,7 +252,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -275,7 +275,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -298,7 +298,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~226g)",
+    "label": "cup",
     "grams": 226
    }
   ]
@@ -321,7 +321,7 @@
   ],
   "servings": [
    {
-    "label": "1 ball (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -344,7 +344,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~28g)",
+    "label": "slice",
     "grams": 28
    }
   ]
@@ -367,7 +367,7 @@
   ],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -390,7 +390,7 @@
   ],
   "servings": [
    {
-    "label": "1 scoop (~30g)",
+    "label": "scoop",
     "grams": 30
    }
   ]
@@ -411,7 +411,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup dry (~185g)",
+    "label": "cup",
     "grams": 185
    }
   ]
@@ -432,7 +432,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup dry (~185g)",
+    "label": "cup",
     "grams": 185
    }
   ]
@@ -455,7 +455,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~80g)",
+    "label": "cup",
     "grams": 80
    }
   ]
@@ -478,7 +478,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~30g)",
+    "label": "slice",
     "grams": 30
    }
   ]
@@ -501,7 +501,7 @@
   ],
   "servings": [
    {
-    "label": "1 portion (~80g)",
+    "label": "portion",
     "grams": 80
    }
   ]
@@ -522,7 +522,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -543,7 +543,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~130g)",
+    "label": "piece",
     "grams": 130
    }
   ]
@@ -564,7 +564,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup dry (~170g)",
+    "label": "cup",
     "grams": 170
    }
   ]
@@ -587,7 +587,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup dry (~175g)",
+    "label": "cup",
     "grams": 175
    }
   ]
@@ -608,7 +608,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~120g)",
+    "label": "piece",
     "grams": 120
    }
   ]
@@ -629,7 +629,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~180g)",
+    "label": "piece",
     "grams": 180
    }
   ]
@@ -650,7 +650,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -671,7 +671,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~152g)",
+    "label": "cup",
     "grams": 152
    }
   ]
@@ -692,7 +692,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~130g)",
+    "label": "piece",
     "grams": 130
    }
   ]
@@ -713,8 +713,8 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 half (~68g)",
-    "grams": 68
+    "label": "piece",
+    "grams": 136
    }
   ]
  },
@@ -734,7 +734,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup chopped (~91g)",
+    "label": "cup",
     "grams": 91
    }
   ]
@@ -755,7 +755,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~30g)",
+    "label": "cup",
     "grams": 30
    }
   ]
@@ -776,7 +776,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~123g)",
+    "label": "piece",
     "grams": 123
    }
   ]
@@ -797,7 +797,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -818,7 +818,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~61g)",
+    "label": "piece",
     "grams": 61
    }
   ]
@@ -839,7 +839,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 medium (~120g)",
+    "label": "piece",
     "grams": 120
    }
   ]
@@ -860,7 +860,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~164g)",
+    "label": "cup",
     "grams": 164
    }
   ]
@@ -881,7 +881,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~198g)",
+    "label": "cup",
     "grams": 198
    }
   ]
@@ -904,7 +904,7 @@
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -927,7 +927,7 @@
   ],
   "servings": [
    {
-    "label": "1 tbsp (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -950,7 +950,7 @@
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -971,7 +971,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -994,7 +994,7 @@
   ],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1015,7 +1015,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1036,7 +1036,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~21g)",
+    "label": "tbsp",
     "grams": 21
    }
   ]
@@ -1060,7 +1060,7 @@
   ],
   "servings": [
    {
-    "label": "1 square (~10g)",
+    "label": "piece",
     "grams": 10
    }
   ]
@@ -1081,7 +1081,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~158g)",
+    "label": "cup",
     "grams": 158
    }
   ]
@@ -1104,7 +1104,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1127,7 +1127,7 @@
   ],
   "servings": [
    {
-    "label": "1 tub (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -1151,7 +1151,7 @@
   ],
   "servings": [
    {
-    "label": "1 piece (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -1174,7 +1174,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~30g)",
+    "label": "slice",
     "grams": 30
    }
   ]
@@ -1195,7 +1195,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 shot (~30ml)",
+    "label": "portion",
     "grams": 30
    }
   ]
@@ -1218,8 +1218,8 @@
   ],
   "servings": [
    {
-    "label": "1/2 cup (~40g)",
-    "grams": 40
+    "label": "cup",
+    "grams": 80
    }
   ]
  },
@@ -1239,7 +1239,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -1260,7 +1260,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -1281,7 +1281,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~5g)",
+    "label": "tbsp",
     "grams": 5
    }
   ]
@@ -1304,7 +1304,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -1327,7 +1327,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -1348,7 +1348,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tsp (~5g)",
+    "label": "tsp",
     "grams": 5
    }
   ]
@@ -1371,7 +1371,7 @@
   ],
   "servings": [
    {
-    "label": "1 tbsp (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -1394,7 +1394,7 @@
   ],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -1415,7 +1415,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1438,7 +1438,7 @@
   ],
   "servings": [
    {
-    "label": "1 handful (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -1459,7 +1459,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 portion (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -1483,8 +1483,8 @@
   ],
   "servings": [
    {
-    "label": "5 pieces (~30g)",
-    "grams": 30
+    "label": "piece",
+    "grams": 6
    }
   ]
  },
@@ -1504,7 +1504,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~30g)",
+    "label": "cup",
     "grams": 30
    }
   ]
@@ -1525,7 +1525,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 packet (~40g)",
+    "label": "pack",
     "grams": 40
    }
   ]
@@ -1546,7 +1546,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~14g)",
+    "label": "tbsp",
     "grams": 14
    }
   ]
@@ -1567,7 +1567,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~9g)",
+    "label": "tbsp",
     "grams": 9
    }
   ]
@@ -1588,7 +1588,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tsp (~3g)",
+    "label": "tsp",
     "grams": 3
    }
   ]
@@ -1609,7 +1609,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tsp (~4g)",
+    "label": "tsp",
     "grams": 4
    }
   ]
@@ -1630,7 +1630,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 tbsp (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -1651,7 +1651,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 handful (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -1674,7 +1674,7 @@
   ],
   "servings": [
    {
-    "label": "1 cup (~120g)",
+    "label": "cup",
     "grams": 120
    }
   ]
@@ -1695,8 +1695,8 @@
   "allergens": [],
   "servings": [
    {
-    "label": "2 slices (~40g)",
-    "grams": 40
+    "label": "slice",
+    "grams": 20
    }
   ]
  },
@@ -1718,7 +1718,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~25g)",
+    "label": "slice",
     "grams": 25
    }
   ]
@@ -1741,7 +1741,7 @@
   ],
   "servings": [
    {
-    "label": "1 tub (~250g)",
+    "label": "tub",
     "grams": 250
    }
   ]
@@ -1762,7 +1762,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 cup (~150g)",
+    "label": "cup",
     "grams": 150
    }
   ]
@@ -1785,7 +1785,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~50g)",
+    "label": "slice",
     "grams": 50
    }
   ]
@@ -1808,7 +1808,7 @@
   ],
   "servings": [
    {
-    "label": "1 slice (~40g)",
+    "label": "slice",
     "grams": 40
    }
   ]
@@ -1829,7 +1829,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 glass (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -1850,7 +1850,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~110g)",
+    "label": "piece",
     "grams": 110
    }
   ]
@@ -1871,7 +1871,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~100g)",
+    "label": "piece",
     "grams": 100
    }
   ]
@@ -1892,7 +1892,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 stroužek (~5g)",
+    "label": "clove",
     "grams": 5
    }
   ]
@@ -1913,7 +1913,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~15g)",
+    "label": "piece",
     "grams": 15
    }
   ]
@@ -1934,7 +1934,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~30g)",
+    "label": "piece",
     "grams": 30
    }
   ]
@@ -1955,7 +1955,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -1976,7 +1976,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~600g)",
+    "label": "piece",
     "grams": 600
    }
   ]
@@ -1997,7 +1997,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 svazek (~120g)",
+    "label": "bunch",
     "grams": 120
    }
   ]
@@ -2018,7 +2018,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~20g)",
+    "label": "handful",
     "grams": 20
    }
   ]
@@ -2039,7 +2039,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -2060,7 +2060,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hlávka (~1000g)",
+    "label": "head",
     "grams": 1000
    }
   ]
@@ -2081,7 +2081,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hlávka (~1000g)",
+    "label": "head",
     "grams": 1000
    }
   ]
@@ -2102,7 +2102,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~80g)",
+    "label": "piece",
     "grams": 80
    }
   ]
@@ -2123,7 +2123,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -2144,7 +2144,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -2165,7 +2165,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka (~165g)",
+    "label": "can",
     "grams": 165
    }
   ]
@@ -2186,7 +2186,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~30g)",
+    "label": "piece",
     "grams": 30
    }
   ]
@@ -2207,7 +2207,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2228,7 +2228,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka (~400g)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -2249,7 +2249,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 láhev (~500g)",
+    "label": "pack",
     "grams": 500
    }
   ]
@@ -2270,7 +2270,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -2293,7 +2293,7 @@
   ],
   "servings": [
    {
-    "label": "1 ks (~80g)",
+    "label": "piece",
     "grams": 80
    }
   ]
@@ -2314,7 +2314,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 kousek (~15g)",
+    "label": "piece",
     "grams": 15
    }
   ]
@@ -2335,7 +2335,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2356,7 +2356,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~67g)",
+    "label": "piece",
     "grams": 67
    }
   ]
@@ -2377,7 +2377,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~300g)",
+    "label": "piece",
     "grams": 300
    }
   ]
@@ -2398,7 +2398,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -2419,7 +2419,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~60g)",
+    "label": "piece",
     "grams": 60
    }
   ]
@@ -2440,7 +2440,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2461,7 +2461,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2482,7 +2482,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~125g)",
+    "label": "portion",
     "grams": 125
    }
   ]
@@ -2503,7 +2503,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -2524,7 +2524,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 ks (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -2545,7 +2545,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plátek (~15g)",
+    "label": "slice",
     "grams": 15
    }
   ]
@@ -2566,7 +2566,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 balení (~150g)",
+    "label": "pack",
     "grams": 150
    }
   ]
@@ -2587,7 +2587,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~150g)",
+    "label": "portion",
     "grams": 150
    }
   ]
@@ -2610,7 +2610,7 @@
   ],
   "servings": [
    {
-    "label": "1 plátek (~20g)",
+    "label": "slice",
     "grams": 20
    }
   ]
@@ -2633,7 +2633,7 @@
   ],
   "servings": [
    {
-    "label": "1 plechovka (~90g)",
+    "label": "can",
     "grams": 90
    }
   ]
@@ -2656,7 +2656,7 @@
   ],
   "servings": [
    {
-    "label": "1 ks (~200g)",
+    "label": "piece",
     "grams": 200
    }
   ]
@@ -2679,7 +2679,7 @@
   ],
   "servings": [
    {
-    "label": "1 steak (~150g)",
+    "label": "piece",
     "grams": 150
    }
   ]
@@ -2702,7 +2702,7 @@
   ],
   "servings": [
    {
-    "label": "1 vanička (~250g)",
+    "label": "tub",
     "grams": 250
    }
   ]
@@ -2725,7 +2725,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce (~100g)",
+    "label": "portion",
     "grams": 100
    }
   ]
@@ -2748,7 +2748,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce (~50g)",
+    "label": "portion",
     "grams": 50
    }
   ]
@@ -2771,7 +2771,7 @@
   ],
   "servings": [
    {
-    "label": "1 plátek (~25g)",
+    "label": "slice",
     "grams": 25
    }
   ]
@@ -2794,7 +2794,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce strouhaného (~5g)",
+    "label": "tbsp",
     "grams": 5
    }
   ]
@@ -2817,7 +2817,7 @@
   ],
   "servings": [
    {
-    "label": "1 ks (~125g)",
+    "label": "piece",
     "grams": 125
    }
   ]
@@ -2840,7 +2840,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce (~60g)",
+    "label": "portion",
     "grams": 60
    }
   ]
@@ -2863,7 +2863,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce (~50g)",
+    "label": "portion",
     "grams": 50
    }
   ]
@@ -2886,7 +2886,7 @@
   ],
   "servings": [
    {
-    "label": "1 balení (~125g)",
+    "label": "pack",
     "grams": 125
    }
   ]
@@ -2909,7 +2909,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -2932,7 +2932,7 @@
   ],
   "servings": [
    {
-    "label": "100 ml",
+    "label": "portion",
     "grams": 100
    }
   ]
@@ -2955,7 +2955,7 @@
   ],
   "servings": [
    {
-    "label": "1 sklenice (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -2978,7 +2978,7 @@
   ],
   "servings": [
    {
-    "label": "1 sklenice (~250ml)",
+    "label": "glass",
     "grams": 250
    }
   ]
@@ -3001,7 +3001,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3024,7 +3024,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3047,7 +3047,7 @@
   ],
   "servings": [
    {
-    "label": "1 kelímek (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -3070,7 +3070,7 @@
   ],
   "servings": [
    {
-    "label": "1 kelímek (~150g)",
+    "label": "tub",
     "grams": 150
    }
   ]
@@ -3093,7 +3093,7 @@
   ],
   "servings": [
    {
-    "label": "1 balení (~180g)",
+    "label": "pack",
     "grams": 180
    }
   ]
@@ -3116,7 +3116,7 @@
   ],
   "servings": [
    {
-    "label": "1 balení (~180g)",
+    "label": "pack",
     "grams": 180
    }
   ]
@@ -3139,7 +3139,7 @@
   ],
   "servings": [
    {
-    "label": "1 balení (~190g)",
+    "label": "pack",
     "grams": 190
    }
   ]
@@ -3162,7 +3162,7 @@
   ],
   "servings": [
    {
-    "label": "1 hrst (~40g)",
+    "label": "handful",
     "grams": 40
    }
   ]
@@ -3183,7 +3183,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3204,7 +3204,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3225,7 +3225,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka sceděná (~240g)",
+    "label": "can",
     "grams": 240
    }
   ]
@@ -3246,7 +3246,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka sceděná (~240g)",
+    "label": "can",
     "grams": 240
    }
   ]
@@ -3269,7 +3269,7 @@
   ],
   "servings": [
    {
-    "label": "1 ks (~62g)",
+    "label": "piece",
     "grams": 62
    }
   ]
@@ -3292,7 +3292,7 @@
   ],
   "servings": [
    {
-    "label": "1 balení (~500g)",
+    "label": "pack",
     "grams": 500
    }
   ]
@@ -3315,7 +3315,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3336,7 +3336,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce suchá (~70g)",
+    "label": "portion",
     "grams": 70
    }
   ]
@@ -3357,7 +3357,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce suchá (~75g)",
+    "label": "portion",
     "grams": 75
    }
   ]
@@ -3380,7 +3380,7 @@
   ],
   "servings": [
    {
-    "label": "1 porce (~40g)",
+    "label": "portion",
     "grams": 40
    }
   ]
@@ -3401,7 +3401,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 porce (~30g)",
+    "label": "portion",
     "grams": 30
    }
   ]
@@ -3424,7 +3424,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~8g)",
+    "label": "tbsp",
     "grams": 8
    }
   ]
@@ -3447,7 +3447,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3470,7 +3470,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3491,7 +3491,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3512,7 +3512,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3533,7 +3533,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3554,7 +3554,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~10g)",
+    "label": "tbsp",
     "grams": 10
    }
   ]
@@ -3577,7 +3577,7 @@
   ],
   "servings": [
    {
-    "label": "1 hrst (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -3600,7 +3600,7 @@
   ],
   "servings": [
    {
-    "label": "1 hrst (~28g)",
+    "label": "handful",
     "grams": 28
    }
   ]
@@ -3623,7 +3623,7 @@
   ],
   "servings": [
    {
-    "label": "1 hrst (~30g)",
+    "label": "handful",
     "grams": 30
    }
   ]
@@ -3647,7 +3647,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3668,7 +3668,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka (~400ml)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -3689,7 +3689,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 plechovka (~400ml)",
+    "label": "can",
     "grams": 400
    }
   ]
@@ -3712,7 +3712,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3733,7 +3733,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~17g)",
+    "label": "tbsp",
     "grams": 17
    }
   ]
@@ -3757,7 +3757,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3782,7 +3782,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3803,7 +3803,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~17g)",
+    "label": "tbsp",
     "grams": 17
    }
   ]
@@ -3827,7 +3827,7 @@
   ],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3848,7 +3848,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3869,7 +3869,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~16g)",
+    "label": "tbsp",
     "grams": 16
    }
   ]
@@ -3890,7 +3890,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -3913,7 +3913,7 @@
   ],
   "servings": [
    {
-    "label": "1 hrnek (~250ml)",
+    "label": "cup",
     "grams": 250
    }
   ]
@@ -3936,7 +3936,7 @@
   ],
   "servings": [
    {
-    "label": "1 sklenice (~400g)",
+    "label": "pack",
     "grams": 400
    }
   ]
@@ -3957,7 +3957,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~12g)",
+    "label": "tbsp",
     "grams": 12
    }
   ]
@@ -3978,7 +3978,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~20g)",
+    "label": "tbsp",
     "grams": 20
    }
   ]
@@ -3999,7 +3999,7 @@
   "allergens": [],
   "servings": [
    {
-    "label": "1 lžíce (~15g)",
+    "label": "tbsp",
     "grams": 15
    }
   ]
@@ -4022,7 +4022,7 @@
   ],
   "servings": [
    {
-    "label": "1 ks (~8g)",
+    "label": "piece",
     "grams": 8
    }
   ]

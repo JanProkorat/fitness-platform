@@ -947,7 +947,13 @@
       "tsp": "Čajová lžička",
       "handful": "Hrst",
       "glass": "Sklenice",
-      "pack": "Balení"
+      "pack": "Balení",
+      "can": "Plechovka",
+      "tub": "Kelímek",
+      "head": "Hlávka",
+      "clove": "Stroužek",
+      "bunch": "Svazek",
+      "scoop": "Odměrka"
     },
     "drawer": {
       "createTitle": "Nová surovina",
@@ -979,8 +985,8 @@
       "unit": "Jednotka",
       "unitPlaceholder": "Vyberte jednotku",
       "unitRequired": "Jednotka je povinná.",
-      "servingSize": "Velikost porce",
-      "servingSizeRequired": "Velikost porce je povinná.",
+      "servingSize": "Hmotnost jednotky (g)",
+      "servingSizeRequired": "Hmotnost jednotky je povinná.",
       "dietaryPreferences": "Dietní preference",
       "dietaryPreferencesPlaceholder": "Vyberte preference",
       "allergens": "Obsahuje alergeny",
