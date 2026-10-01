@@ -88,6 +88,9 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
   const isBusy = isUploading || removeMutation.isPending;
 
   async function processFile(file: File) {
+    if (isBusy) {
+      return;
+    }
     if (!ALLOWED_IMAGE_CONTENT_TYPES.includes(file.type)) {
       setError(t('apiErrors.INVALID_IMAGE_CONTENT_TYPE'));
       showError('apiErrors.INVALID_IMAGE_CONTENT_TYPE');
@@ -268,6 +271,7 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
                 type="button"
                 variant="secondary"
                 size="icon-sm"
+                disabled={isBusy}
                 aria-label={t('ingredients.picture.replace')}
                 title={t('ingredients.picture.replace')}
                 onClick={() => fileInputRef.current?.click()}
@@ -278,6 +282,7 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
                 type="button"
                 variant="secondary"
                 size="icon-sm"
+                disabled={isBusy}
                 aria-label={t('ingredients.picture.remove')}
                 title={t('ingredients.picture.remove')}
                 onClick={() => setRemoveConfirmOpen(true)}
@@ -304,9 +309,13 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
             isDragOver && 'border-primary bg-primary/5',
             isBusy && 'pointer-events-none opacity-50',
           )}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            if (!isBusy) {
+              fileInputRef.current?.click();
+            }
+          }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
+            if (!isBusy && (event.key === 'Enter' || event.key === ' ')) {
               event.preventDefault();
               fileInputRef.current?.click();
             }

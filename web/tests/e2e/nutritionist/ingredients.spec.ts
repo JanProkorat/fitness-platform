@@ -28,8 +28,8 @@ const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-pictu
 const IMAGE_B_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-b.png');
 
 // In the harness, presigned upload URLs target the host's MinIO port, so uploads work only in a
-// host-run browser — which in turn can't load stored pictures (internal minio-test host). The
-// upload tests therefore assert saved state, not pixels, and skip inside the Playwright container.
+// host-run browser, which can't resolve the internal minio-test host for stored pictures. The
+// upload tests route those reads to the fixture bytes and skip inside the Playwright container.
 const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
