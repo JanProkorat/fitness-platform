@@ -112,7 +112,7 @@ public class SearchFoodsOwnerAndSortTests : IAsyncLifetime
         var ep = CreateEndpoint(callerId);
         await ep.HandleAsync(new SearchFoodsRequest { Owners = [FoodOwnerFilter.Mine] }, ct);
 
-        ep.Response.Foods.Should().ContainSingle(f => f.Name == "Owner Filter Mine");
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("Owner Filter Mine");
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class SearchFoodsOwnerAndSortTests : IAsyncLifetime
         var ep = CreateEndpoint(callerId);
         await ep.HandleAsync(new SearchFoodsRequest { Owners = [FoodOwnerFilter.System] }, ct);
 
-        ep.Response.Foods.Should().ContainSingle(f => f.Name == "System Filter System");
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("System Filter System");
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class SearchFoodsOwnerAndSortTests : IAsyncLifetime
         var ep = CreateEndpoint(callerId);
         await ep.HandleAsync(new SearchFoodsRequest { Owners = [FoodOwnerFilter.OtherCoaches] }, ct);
 
-        ep.Response.Foods.Should().ContainSingle(f => f.Name == "Other Filter Other Coach");
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("Other Filter Other Coach");
     }
 
     [Fact]
