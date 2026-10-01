@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { FoodSummary } from '@/api/food-types';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
-import LibraryBadge from '@/components/ingredients/LibraryBadge';
-import IngredientThumbnail from '@/components/ingredients/IngredientThumbnail';
+import LibraryBadge from '@/components/library/LibraryBadge';
+import Thumbnail from '@/components/library/Thumbnail';
+import SortableColumnHeader, { sortAriaValue } from '@/components/library/SortableColumnHeader';
+import { foodImageCacheKey } from '@/hooks/useIngredientsQueries';
 import TagPill from '@/components/tags/TagPill';
 
 /** The picture currently shown in the table-level lightbox (#1140), or
@@ -19,62 +20,6 @@ interface LightboxPicture {
 }
 
 const SKELETON_ROW_COUNT = 5;
-
-function sortAriaValue(sortBy: FoodSortField | null, sortDir: FoodSortDirection, field: FoodSortField) {
-  if (sortBy !== field) {
-    return 'none' as const;
-  }
-  return sortDir === FoodSortDirection.Descending ? ('descending' as const) : ('ascending' as const);
-}
-
-interface SortIconProps {
-  active: boolean;
-  sortDir: FoodSortDirection;
-}
-
-function SortIcon({ active, sortDir }: SortIconProps) {
-  if (!active) {
-    return <ArrowUpDown className="size-3.5 text-muted-foreground/50" aria-hidden="true" />;
-  }
-  return sortDir === FoodSortDirection.Descending ? (
-    <ArrowDown className="size-3.5" aria-hidden="true" />
-  ) : (
-    <ArrowUp className="size-3.5" aria-hidden="true" />
-  );
-}
-
-interface SortableColumnHeaderProps {
-  field: FoodSortField;
-  label: string;
-  sortBy: FoodSortField | null;
-  sortDir: FoodSortDirection;
-  onSortChange: (field: FoodSortField) => void;
-  sortButtonLabel: string;
-}
-
-/** Declared at module scope — a component declared inside `IngredientsTable`'s
- * render body would be re-created every render, resetting its internal state
- * each time (`react-hooks/static-components`). */
-function SortableColumnHeader({
-  field,
-  label,
-  sortBy,
-  sortDir,
-  onSortChange,
-  sortButtonLabel,
-}: SortableColumnHeaderProps) {
-  return (
-    <button
-      type="button"
-      className="flex cursor-pointer items-center gap-1"
-      onClick={() => onSortChange(field)}
-      aria-label={sortButtonLabel}
-    >
-      {label}
-      <SortIcon active={sortBy === field} sortDir={sortDir} />
-    </button>
-  );
-}
 
 interface Props {
   foods: FoodSummary[];
@@ -119,7 +64,7 @@ export default function IngredientsTable({
       sortBy,
       sortDir,
       onSortChange,
-      sortButtonLabel: t('ingredients.table.sortButtonLabel', { column: label }),
+      sortButtonLabel: t('library.sortButtonLabel', { column: label }),
     };
   }
 
@@ -212,8 +157,8 @@ export default function IngredientsTable({
                   not its original semantic name — no second 14px token. */}
               <TableCell className="px-5 py-3 text-copy font-semibold text-foreground">
                 <div className="flex items-center gap-2">
-                  <IngredientThumbnail
-                    foodId={food.foodId}
+                  <Thumbnail
+                    cacheKey={food.foodId ? foodImageCacheKey(food.foodId) : undefined}
                     imageUrl={food.imageUrl}
                     name={food.name ?? ''}
                     onViewPicture={(src, alt) => setLightboxPicture({ src, alt })}

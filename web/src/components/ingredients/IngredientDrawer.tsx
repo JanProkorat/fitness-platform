@@ -27,7 +27,7 @@ import {
   type UpdateFoodRequest,
 } from '@/api/food-types';
 import { useCreateFood, useUpdateFood } from '@/hooks/useIngredientsQueries';
-import MultiSelectPopover from '@/components/ingredients/MultiSelectPopover';
+import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
 import IngredientTagPickerPopover from '@/components/ingredients/IngredientTagPickerPopover';
 import IngredientPictureField from '@/components/ingredients/IngredientPictureField';

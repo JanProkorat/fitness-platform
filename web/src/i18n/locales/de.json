@@ -811,13 +811,7 @@
     "filters": {
       "category": "Kategorie",
       "tags": "Tags",
-      "tagsEmpty": "Noch keine Tags.",
-      "owner": "Eigentümer",
-      "ownerOptions": {
-        "Mine": "Meine",
-        "System": "System",
-        "OtherCoaches": "Andere Coaches"
-      }
+      "tagsEmpty": "Noch keine Tags."
     },
     "table": {
       "columnName": "Name",
@@ -829,8 +823,7 @@
       "caloriesValue": "{{count}} kcal / 100 g",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "K: {{count}} g",
-      "fatValue": "F: {{count}} g",
-      "sortButtonLabel": "Sortieren nach {{column}}"
+      "fatValue": "F: {{count}} g"
     },
     "tags": {
       "createError": "Der Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
@@ -873,14 +866,6 @@
         "nameRequired": "Tagname ist erforderlich.",
         "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
       }
-    },
-    "pagination": {
-      "viewing": "{{count}} von {{total}} angezeigt"
-    },
-    "library": {
-      "system": "System",
-      "mine": "Meine",
-      "shared": "Geteilt"
     },
     "category": {
       "Other": "Sonstiges",
@@ -990,6 +975,29 @@
       "confirm": "Löschen"
     },
     "picture": {
+      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
+      "alt": "Zutatenbild"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "System",
+      "mine": "Meine",
+      "shared": "Geteilt"
+    },
+    "pagination": {
+      "viewing": "{{count}} von {{total}} angezeigt"
+    },
+    "sortButtonLabel": "Sortieren nach {{column}}",
+    "filters": {
+      "owner": "Eigentümer",
+      "ownerOptions": {
+        "Mine": "Meine",
+        "System": "System",
+        "OtherCoaches": "Andere Coaches"
+      }
+    },
+    "picture": {
       "sectionLabel": "Bild",
       "upload": "Bild hochladen",
       "dropHint": "Bild hierher ziehen oder zum Hochladen klicken",
@@ -997,12 +1005,10 @@
       "replace": "Bild ersetzen",
       "remove": "Bild entfernen",
       "removeConfirmTitle": "Bild entfernen",
-      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
       "removeConfirmSubmit": "Entfernen",
       "removeSuccess": "Bild entfernt.",
       "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
       "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
-      "alt": "Zutatenbild",
       "thumbnailAlt": "Bild von {{name}}",
       "viewPicture": "Bild anzeigen",
       "viewPictureOf": "Bild von {{name}} anzeigen"

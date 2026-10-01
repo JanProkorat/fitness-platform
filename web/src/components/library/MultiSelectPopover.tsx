@@ -17,12 +17,9 @@ interface Props {
 }
 
 /**
- * Generic multi-select dropdown used by the ingredient drawer's "Dietary
- * Preferences" and "Contains Allergens" fields — a fixed, enum-backed option
- * list (see `docs/design/ingredients/inventory.md`'s maintainer decisions),
- * unlike the free-form tag input. Built on the same Popover + Checkbox
- * primitives as the filter-bar popovers
- * (`@/components/ingredients/IngredientTagFilterPopover.tsx`).
+ * Generic multi-select dropdown used by the ingredient and recipe drawers —
+ * a fixed, enum-backed option list, unlike the free-form tag input. Built on
+ * the same Popover + Checkbox primitives as the filter-bar popovers.
  */
 export default function MultiSelectPopover({ placeholder, options, selected, onChange, id }: Props) {
   function toggle(value: string) {

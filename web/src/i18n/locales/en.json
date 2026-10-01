@@ -812,13 +812,7 @@
     "filters": {
       "category": "Category",
       "tags": "Tags",
-      "tagsEmpty": "No tags yet.",
-      "owner": "Owner",
-      "ownerOptions": {
-        "Mine": "Mine",
-        "System": "System",
-        "OtherCoaches": "Other coaches"
-      }
+      "tagsEmpty": "No tags yet."
     },
     "table": {
       "columnName": "Name",
@@ -830,8 +824,7 @@
       "caloriesValue": "{{count}} kcal / 100g",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "C: {{count}} g",
-      "fatValue": "F: {{count}} g",
-      "sortButtonLabel": "Sort by {{column}}"
+      "fatValue": "F: {{count}} g"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",
@@ -874,14 +867,6 @@
         "nameRequired": "Tag name is required.",
         "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
       }
-    },
-    "pagination": {
-      "viewing": "Viewing {{count}} of {{total}}"
-    },
-    "library": {
-      "system": "System",
-      "mine": "Mine",
-      "shared": "Shared"
     },
     "category": {
       "Other": "Other",
@@ -991,6 +976,29 @@
       "confirm": "Delete"
     },
     "picture": {
+      "removeConfirmDescription": "Are you sure you want to remove this ingredient's picture? This can't be undone.",
+      "alt": "Ingredient picture"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "System",
+      "mine": "Mine",
+      "shared": "Shared"
+    },
+    "pagination": {
+      "viewing": "Viewing {{count}} of {{total}}"
+    },
+    "sortButtonLabel": "Sort by {{column}}",
+    "filters": {
+      "owner": "Owner",
+      "ownerOptions": {
+        "Mine": "Mine",
+        "System": "System",
+        "OtherCoaches": "Other coaches"
+      }
+    },
+    "picture": {
       "sectionLabel": "Picture",
       "upload": "Upload picture",
       "dropHint": "Drag a picture here or click to upload",
@@ -998,12 +1006,10 @@
       "replace": "Replace picture",
       "remove": "Remove picture",
       "removeConfirmTitle": "Remove picture",
-      "removeConfirmDescription": "Are you sure you want to remove this ingredient's picture? This can't be undone.",
       "removeConfirmSubmit": "Remove",
       "removeSuccess": "Picture removed.",
       "removeError": "Couldn't remove the picture. Please try again.",
       "uploadError": "Couldn't upload the picture. Please try again.",
-      "alt": "Ingredient picture",
       "thumbnailAlt": "{{name}} picture",
       "viewPicture": "View picture",
       "viewPictureOf": "View picture of {{name}}"

@@ -12,12 +12,12 @@ interface Props {
 }
 
 /**
- * Pagination footer for the Ingredients table card. Mirrors `ClientsPagination`
+ * Pagination footer for a library table card (Ingredients, Recipes). Mirrors `ClientsPagination`
  * (`@/components/clients/ClientsPagination.tsx`) — renders whenever there are
  * rows to describe, even on a single page, since "Viewing X of Y" is the
  * card's footer regardless of page count.
  */
-export default function IngredientsPagination({ rowCount, page, pageSize, totalCount, onPageChange }: Props) {
+export default function Pagination({ rowCount, page, pageSize, totalCount, onPageChange }: Props) {
   const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -28,7 +28,7 @@ export default function IngredientsPagination({ rowCount, page, pageSize, totalC
   return (
     <div className="flex items-center justify-between border-t border-border p-5">
       <span className="text-caption text-muted-foreground">
-        {t('ingredients.pagination.viewing', { count: rowCount, total: totalCount })}
+        {t('library.pagination.viewing', { count: rowCount, total: totalCount })}
       </span>
       <div className="flex items-center gap-2">
         <Button

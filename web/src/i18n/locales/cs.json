@@ -833,13 +833,7 @@
     "filters": {
       "category": "Kategorie",
       "tags": "Štítky",
-      "tagsEmpty": "Zatím žádné štítky.",
-      "owner": "Vlastník",
-      "ownerOptions": {
-        "Mine": "Moje",
-        "System": "Systémové",
-        "OtherCoaches": "Ostatní koučové"
-      }
+      "tagsEmpty": "Zatím žádné štítky."
     },
     "table": {
       "columnName": "Název",
@@ -851,8 +845,7 @@
       "caloriesValue": "{{count}} kcal / 100 g",
       "proteinValue": "B: {{count}} g",
       "carbsValue": "S: {{count}} g",
-      "fatValue": "T: {{count}} g",
-      "sortButtonLabel": "Seřadit podle: {{column}}"
+      "fatValue": "T: {{count}} g"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
@@ -895,14 +888,6 @@
         "nameRequired": "Název štítku je povinný.",
         "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
       }
-    },
-    "pagination": {
-      "viewing": "Zobrazeno {{count}} z {{total}}"
-    },
-    "library": {
-      "system": "Systémová",
-      "mine": "Moje",
-      "shared": "Sdílená"
     },
     "category": {
       "Other": "Ostatní",
@@ -1012,6 +997,29 @@
       "confirm": "Smazat"
     },
     "picture": {
+      "removeConfirmDescription": "Opravdu chcete odebrat obrázek této suroviny? Tuto akci nelze vrátit zpět.",
+      "alt": "Obrázek suroviny"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "Systémová",
+      "mine": "Moje",
+      "shared": "Sdílená"
+    },
+    "pagination": {
+      "viewing": "Zobrazeno {{count}} z {{total}}"
+    },
+    "sortButtonLabel": "Seřadit podle: {{column}}",
+    "filters": {
+      "owner": "Vlastník",
+      "ownerOptions": {
+        "Mine": "Moje",
+        "System": "Systémové",
+        "OtherCoaches": "Ostatní koučové"
+      }
+    },
+    "picture": {
       "sectionLabel": "Obrázek",
       "upload": "Nahrát obrázek",
       "dropHint": "Přetáhněte obrázek sem nebo klikněte pro výběr",
@@ -1019,12 +1027,10 @@
       "replace": "Nahradit obrázek",
       "remove": "Odebrat obrázek",
       "removeConfirmTitle": "Odebrat obrázek",
-      "removeConfirmDescription": "Opravdu chcete odebrat obrázek této suroviny? Tuto akci nelze vrátit zpět.",
       "removeConfirmSubmit": "Odebrat",
       "removeSuccess": "Obrázek byl odebrán.",
       "removeError": "Obrázek se nepodařilo odebrat. Zkuste to prosím znovu.",
       "uploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu.",
-      "alt": "Obrázek suroviny",
       "thumbnailAlt": "Obrázek – {{name}}",
       "viewPicture": "Zobrazit obrázek",
       "viewPictureOf": "Zobrazit obrázek – {{name}}"
