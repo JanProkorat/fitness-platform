@@ -6211,13 +6211,34 @@ export class ApiClient {
 
     /**
      * Search recipes
+     * @param mealType Optional meal type filter — matches a recipe carrying ANY of the supplied meal types. Bound
+    from the repeated mealType query param.
+     * @param dietaryPreference Optional dietary preference filter — matches a recipe carrying ALL of the supplied
+    preferences. Bound from the repeated dietaryPreference query param.
+     * @param owner Optional owner filter — matches a recipe whose ownership falls under ANY of the supplied
+    values (System means the platform catalog). Bound from the repeated owner query param.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
-     * @param search (optional) Optional search term to filter recipes by name.
+     * @param search (optional) Optional search term matched against recipe name and description.
+     * @param sortBy (optional) Column to sort by. null (the default) means newest-created first.
+     * @param sortDir (optional) Direction for SortBy; defaults to ascending when SortBy is set.
+    Ignored when SortBy is null.
      * @return Success
      */
-    searchRecipesEndpoint(page: number, pageSize: number, search?: string | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
+    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
         let url_ = this.baseUrl + "/recipes?";
+        if (mealType === undefined || mealType === null)
+            throw new globalThis.Error("The parameter 'mealType' must be defined and cannot be null.");
+        else
+            mealType && mealType.forEach(item => { url_ += "mealType=" + encodeURIComponent("" + item) + "&"; });
+        if (dietaryPreference === undefined || dietaryPreference === null)
+            throw new globalThis.Error("The parameter 'dietaryPreference' must be defined and cannot be null.");
+        else
+            dietaryPreference && dietaryPreference.forEach(item => { url_ += "dietaryPreference=" + encodeURIComponent("" + item) + "&"; });
+        if (owner === undefined || owner === null)
+            throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
+        else
+            owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -6228,6 +6249,10 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDir !== undefined && sortDir !== null)
+            url_ += "sortDir=" + encodeURIComponent("" + sortDir) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -6272,7 +6297,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, filter value, or sort field/direction", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -6358,6 +6383,66 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetRecipeResponse>(null as any);
+    }
+
+    /**
+     * Remove recipe image
+     * @param recipeId The recipe's public identifier (from route).
+     * @return Image cleared (or was already unset)
+     */
+    deleteRecipeImageEndpoint(recipeId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/image";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteRecipeImageEndpoint(_response);
+        });
+    }
+
+    protected processDeleteRecipeImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -20021,6 +20106,20 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
     dateUpdated?: string | undefined;
     /** Optimistic concurrency version. Clients must echo this value back on update. */
     version?: number;
+    /** Number of servings the recipe yields. */
+    servings?: number;
+    /** Preparation difficulty, or null when not set. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Cooking time in minutes, separate from PrepTimeMinutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Meal types the recipe is suited for. */
+    mealTypes?: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Allergens derived on read from the ingredient foods; never stored on the recipe. */
+    allergens?: Allergen[];
+    /** True when the recipe belongs to the platform catalog rather than a coach. */
+    isSystem?: boolean;
 }
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
@@ -20071,6 +20170,52 @@ export enum RecipeVisibility {
     Private = "Private",
 }
 
+/** How demanding a recipe is to prepare. */
+export enum RecipeDifficulty {
+    Easy = "Easy",
+    Medium = "Medium",
+    Hard = "Hard",
+}
+
+/** Meal a recipe is suited for. Stored on Recipe.MealTypes as the member names. */
+export enum RecipeMealType {
+    Breakfast = "Breakfast",
+    Lunch = "Lunch",
+    Dinner = "Dinner",
+    Snack = "Snack",
+    Dessert = "Dessert",
+}
+
+/** Dietary preference tags that can be attached to a food item. */
+export enum DietaryPreference {
+    Vegan = "Vegan",
+    Vegetarian = "Vegetarian",
+    Pescatarian = "Pescatarian",
+    GlutenFree = "GlutenFree",
+    LactoseFree = "LactoseFree",
+    DairyFree = "DairyFree",
+    Keto = "Keto",
+    LowCarb = "LowCarb",
+}
+
+/** The 14 allergens the EU Food Information for Consumers Regulation (1169/2011) requires to be declared. */
+export enum Allergen {
+    Gluten = "Gluten",
+    Crustaceans = "Crustaceans",
+    Eggs = "Eggs",
+    Fish = "Fish",
+    Peanuts = "Peanuts",
+    Soy = "Soy",
+    Milk = "Milk",
+    TreeNuts = "TreeNuts",
+    Celery = "Celery",
+    Mustard = "Mustard",
+    Sesame = "Sesame",
+    Sulphites = "Sulphites",
+    Lupin = "Lupin",
+    Molluscs = "Molluscs",
+}
+
 /** Request model for updating an existing recipe. */
 export interface UpdateRecipeRequest {
     /** Optimistic concurrency version. Must match the current document version. */
@@ -20079,9 +20224,20 @@ export interface UpdateRecipeRequest {
     name: string;
     /** Updated description or preparation instructions. */
     description?: string | undefined;
-    /** Estimated preparation/cooking time in minutes. */
+    /** Estimated preparation time in minutes. */
     prepTimeMinutes?: number | undefined;
-    /** Ordered preparation steps. */
+    /** Cooking time in minutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Number of servings the recipe yields. Must be greater than zero. */
+    servings?: number;
+    /** Preparation difficulty; null clears it. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Meal types the recipe is suited for. At least one is required. */
+    mealTypes: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
+each at most 2000 characters. */
     steps?: string[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
@@ -20138,14 +20294,48 @@ export interface RecipeSummaryDto {
     foodCategories?: string[];
     /** Optimistic concurrency version. Clients must echo this value back on update. */
     version?: number;
+    /** True when the recipe belongs to the platform catalog rather than a coach. */
+    isSystem?: boolean;
+    /** Number of servings the recipe yields. */
+    servings?: number;
+    /** Meal types the recipe is suited for. */
+    mealTypes?: RecipeMealType[];
+    /** Cooking time in minutes, separate from PrepTimeMinutes. */
+    cookTimeMinutes?: number | undefined;
 }
 
 /** Request model for searching recipes. */
 export interface SearchRecipesRequest {
 }
 
+/** Scopes a food search to a subset of owners — backs the Ingredients page's "Owner" filter pill. Selecting several values ORs them together; none selected applies no owner filter. */
+export enum FoodOwnerFilter {
+    Mine = "Mine",
+    System = "System",
+    OtherCoaches = "OtherCoaches",
+}
+
+/** Column a recipe search can be sorted by. Direction is a FoodSortDirection. */
+export enum RecipeSortField {
+    Name = "Name",
+    CaloriesPerServing = "CaloriesPerServing",
+    Servings = "Servings",
+    Library = "Library",
+    DateCreated = "DateCreated",
+}
+
+/** Sort direction for a FoodSortField. Named to avoid ambiguity with MongoDB.Driver.SortDirection, which is in scope wherever Mongo sort builders are used. */
+export enum FoodSortDirection {
+    Ascending = "Ascending",
+    Descending = "Descending",
+}
+
 /** Request model for retrieving a single recipe. */
 export interface GetRecipeRequest {
+}
+
+/** Request model for removing a recipe's main image. */
+export interface DeleteRecipeImageRequest {
 }
 
 /** Request model for deleting a recipe. */
@@ -20156,17 +20346,28 @@ export interface DeleteRecipeRequest {
 export interface CreateRecipeRequest {
     /** Name of the recipe. */
     name: string;
-    /** Optional description or preparation instructions. */
+    /** Optional description. */
     description?: string | undefined;
-    /** Estimated preparation/cooking time in minutes. */
+    /** Estimated preparation time in minutes. */
     prepTimeMinutes?: number | undefined;
-    /** Ordered preparation steps. */
+    /** Cooking time in minutes. */
+    cookTimeMinutes?: number | undefined;
+    /** Number of servings the recipe yields. Must be greater than zero. */
+    servings?: number;
+    /** Optional preparation difficulty. */
+    difficulty?: RecipeDifficulty | undefined;
+    /** Meal types the recipe is suited for. At least one is required. */
+    mealTypes: RecipeMealType[];
+    /** Dietary preferences the recipe satisfies. */
+    dietaryPreferences?: DietaryPreference[];
+    /** Ordered preparation steps (list order is step order). Blank steps are dropped; at most 50,
+each at most 2000 characters. */
     steps?: string[] | undefined;
     /** Optional tip or note. */
     note?: string | undefined;
-    /** List of food items to include in the recipe. */
+    /** List of food items to include in the recipe. At least one is required. */
     foods: RecipeFoodDto[];
-    /** Visibility of the recipe. Defaults to Public when omitted. */
+    /** Visibility of the recipe. Defaults to Private when omitted. */
     visibility?: RecipeVisibility;
 }
 
@@ -21783,36 +21984,6 @@ export interface NutrientValueDto {
     salt?: number | undefined;
 }
 
-/** The 14 allergens the EU Food Information for Consumers Regulation (1169/2011) requires to be declared. */
-export enum Allergen {
-    Gluten = "Gluten",
-    Crustaceans = "Crustaceans",
-    Eggs = "Eggs",
-    Fish = "Fish",
-    Peanuts = "Peanuts",
-    Soy = "Soy",
-    Milk = "Milk",
-    TreeNuts = "TreeNuts",
-    Celery = "Celery",
-    Mustard = "Mustard",
-    Sesame = "Sesame",
-    Sulphites = "Sulphites",
-    Lupin = "Lupin",
-    Molluscs = "Molluscs",
-}
-
-/** Dietary preference tags that can be attached to a food item. */
-export enum DietaryPreference {
-    Vegan = "Vegan",
-    Vegetarian = "Vegetarian",
-    Pescatarian = "Pescatarian",
-    GlutenFree = "GlutenFree",
-    LactoseFree = "LactoseFree",
-    DairyFree = "DairyFree",
-    Keto = "Keto",
-    LowCarb = "LowCarb",
-}
-
 /** Serving size DTO for API responses. */
 export interface ServingSizeDto {
     /** Human-readable label. */
@@ -21887,13 +22058,6 @@ export interface SearchFoodsResponse {
 export interface SearchFoodsRequest {
 }
 
-/** Scopes a food search to a subset of owners — backs the Ingredients page's "Owner" filter pill. Selecting several values ORs them together; none selected applies no owner filter. */
-export enum FoodOwnerFilter {
-    Mine = "Mine",
-    System = "System",
-    OtherCoaches = "OtherCoaches",
-}
-
 /** Sortable columns on the Ingredients page's food search. */
 export enum FoodSortField {
     Name = "Name",
@@ -21901,12 +22065,6 @@ export enum FoodSortField {
     Category = "Category",
     Library = "Library",
     DateCreated = "DateCreated",
-}
-
-/** Sort direction for a FoodSortField. Named to avoid ambiguity with MongoDB.Driver.SortDirection, which is in scope wherever Mongo sort builders are used. */
-export enum FoodSortDirection {
-    Ascending = "Ascending",
-    Descending = "Descending",
 }
 
 /** The resulting tag set assigned to the food, for the calling nutritionist. */
