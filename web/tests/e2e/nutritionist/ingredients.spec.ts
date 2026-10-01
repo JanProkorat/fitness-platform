@@ -230,6 +230,113 @@ test.describe('ingredients page', () => {
     }
   });
 
+  test('clicking the Name column header cycles sort: ascending → descending → cleared, and reorders the list (#1139)', async ({
+    page,
+  }) => {
+    const rows = page.locator('tbody tr');
+    await expect(rows.first()).toBeVisible();
+
+    // Narrow to a single category so the whole result set fits on one page —
+    // an exact row-order reversal below only holds if sorting isn't also
+    // shuffling which page of results comes back.
+    await page.getByRole('button', { name: 'Category' }).click();
+    const categoryFilterResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('category='),
+    );
+    await page.getByRole('checkbox', { name: 'Fruit' }).click();
+    await categoryFilterResponse;
+    await page.waitForURL(/category=/);
+    await page.keyboard.press('Escape');
+    await page.waitForLoadState('networkidle');
+
+    const viewingText = await page.getByText(/Viewing \d+ of \d+/).textContent();
+    const counts = viewingText?.match(/Viewing (\d+) of (\d+)/);
+    expect(counts).not.toBeNull();
+    expect(Number(counts![1])).toBe(Number(counts![2]));
+
+    const nameHeader = page.getByRole('columnheader', { name: 'Name' });
+    // No `sort` param on first load — the page's default view is Name
+    // ascending without the URL saying so explicitly.
+    await expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+
+    const ascendingNames = (await rows.locator('td:nth-child(1)').allTextContents()).map((text) => text.trim());
+
+    const descendingResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('sortDir=Descending'),
+    );
+    await page.getByRole('button', { name: 'Sort by Name' }).click();
+    await descendingResponse;
+    await page.waitForURL(/sort=name-desc/);
+    await expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
+
+    const descendingNames = (await rows.locator('td:nth-child(1)').allTextContents()).map((text) => text.trim());
+    expect(descendingNames).toEqual([...ascendingNames].reverse());
+
+    // Third click clears the sort entirely — a distinct URL state
+    // (`sort=none`), not a fallback to the default Name-ascending view.
+    const clearedResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && !response.url().includes('sortBy='),
+    );
+    await page.getByRole('button', { name: 'Sort by Name' }).click();
+    await clearedResponse;
+    await page.waitForURL(/sort=none/);
+    await expect(nameHeader).toHaveAttribute('aria-sort', 'none');
+
+    // The cleared state survives a reload instead of reverting to Name ascending.
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/sort=none/);
+    await expect(nameHeader).toHaveAttribute('aria-sort', 'none');
+  });
+
+  test('filtering by Owner: Mine returns only ingredients owned by the caller (#1139)', async ({ page }) => {
+    const uniqueSuffix = Date.now();
+    const name = `QA Owner Filter ${uniqueSuffix}`;
+
+    // Create a private ingredient first so "Mine" has a deterministic match.
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+    await page.getByLabel('Name').fill(name);
+    await page.getByLabel('Category').selectOption('Fruit');
+    await page.getByLabel('Calories / 100g').fill('50');
+    await page.getByLabel('Protein / 100g').fill('1');
+    await page.getByLabel('Carbs / 100g').fill('12');
+    await page.getByLabel('Fat / 100g').fill('0');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await page.getByLabel('Unit weight (g)').fill('120');
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Owner' }).click();
+    const ownerFilterResponse = page.waitForResponse(
+      (response) => response.url().includes('/foods/search') && response.url().includes('owner=Mine'),
+    );
+    await page.getByRole('checkbox', { name: 'Mine' }).click();
+    await ownerFilterResponse;
+    await page.waitForURL(/owner=Mine/);
+    await page.keyboard.press('Escape');
+    await page.waitForLoadState('networkidle');
+
+    const rows = page.locator('tbody tr');
+    await expect(rows.first()).toBeVisible();
+    // Library is the 6th column for a nutritionist (Name, Calories,
+    // Nutrients, Category, Tags, Library).
+    const libraryTexts = await rows.locator('td:nth-child(6)').allTextContents();
+    expect(libraryTexts.length).toBeGreaterThan(0);
+    for (const text of libraryTexts) {
+      expect(text.trim()).toBe('Mine');
+    }
+    await expect(page.getByRole('cell', { name })).toBeVisible();
+
+    // Clean up the ingredient this test created.
+    await page.getByRole('cell', { name }).click();
+    await page.getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByRole('heading', { name: 'Delete ingredient' })).toBeVisible();
+    await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('cell', { name })).toHaveCount(0);
+  });
+
   test("the table header's position doesn't move after scrolling the table body", async ({ page }) => {
     await page.locator('tbody tr').first().waitFor();
 

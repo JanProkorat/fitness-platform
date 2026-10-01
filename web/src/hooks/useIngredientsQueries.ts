@@ -24,6 +24,7 @@ import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
 export function useIngredients(filters: IngredientListFilters) {
   const tagsKey = [...filters.tags].sort().join(',');
   const categoriesKey = [...filters.categories].sort().join(',');
+  const ownersKey = [...filters.owners].sort().join(',');
 
   return useQuery({
     queryKey: [
@@ -33,6 +34,9 @@ export function useIngredients(filters: IngredientListFilters) {
         search: filters.search,
         categoriesKey,
         tagsKey,
+        ownersKey,
+        sortBy: filters.sortBy,
+        sortDir: filters.sortDir,
         page: filters.page,
         pageSize: filters.pageSize,
       },
@@ -42,8 +46,11 @@ export function useIngredients(filters: IngredientListFilters) {
         q: filters.search || undefined,
         categories: filters.categories,
         tagIds: filters.tags,
+        owners: filters.owners,
         page: filters.page,
         pageSize: filters.pageSize,
+        sortBy: filters.sortBy ?? undefined,
+        sortDir: filters.sortBy ? filters.sortDir : undefined,
       }),
     placeholderData: keepPreviousData,
   });

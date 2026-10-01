@@ -811,7 +811,13 @@
     "filters": {
       "category": "Kategorie",
       "tags": "Tags",
-      "tagsEmpty": "Noch keine Tags."
+      "tagsEmpty": "Noch keine Tags.",
+      "owner": "Eigentümer",
+      "ownerOptions": {
+        "Mine": "Meine",
+        "System": "System",
+        "OtherCoaches": "Andere Coaches"
+      }
     },
     "table": {
       "columnName": "Name",
@@ -823,7 +829,8 @@
       "caloriesValue": "{{count}} kcal / 100 g",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "K: {{count}} g",
-      "fatValue": "F: {{count}} g"
+      "fatValue": "F: {{count}} g",
+      "sortButtonLabel": "Sortieren nach {{column}}"
     },
     "tags": {
       "createError": "Der Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",

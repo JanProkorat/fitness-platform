@@ -10,6 +10,9 @@ export {
   FoodVisibility,
   Allergen,
   DietaryPreference,
+  FoodOwnerFilter,
+  FoodSortField,
+  FoodSortDirection,
 } from './generated';
 
 export type {

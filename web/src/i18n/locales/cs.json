@@ -833,7 +833,13 @@
     "filters": {
       "category": "Kategorie",
       "tags": "Štítky",
-      "tagsEmpty": "Zatím žádné štítky."
+      "tagsEmpty": "Zatím žádné štítky.",
+      "owner": "Vlastník",
+      "ownerOptions": {
+        "Mine": "Moje",
+        "System": "Systémové",
+        "OtherCoaches": "Ostatní koučové"
+      }
     },
     "table": {
       "columnName": "Název",
@@ -845,7 +851,8 @@
       "caloriesValue": "{{count}} kcal / 100 g",
       "proteinValue": "B: {{count}} g",
       "carbsValue": "S: {{count}} g",
-      "fatValue": "T: {{count}} g"
+      "fatValue": "T: {{count}} g",
+      "sortButtonLabel": "Seřadit podle: {{column}}"
     },
     "tags": {
       "createError": "Štítek se nepodařilo vytvořit. Zkuste to prosím znovu.",
