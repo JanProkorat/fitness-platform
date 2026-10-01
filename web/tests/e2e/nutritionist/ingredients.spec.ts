@@ -1229,6 +1229,10 @@ test.describe('nutrition layout and serving units (#1133)', () => {
  * pattern from `trainer/inbox-attachments.spec.ts`.
  */
 test.describe('ingredient picture (#1140)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/ingredients');
+  });
+
   test('upload, replace, and remove the main picture', async ({ page, baseURL }) => {
     const origin = baseURL ?? 'http://localhost:5173';
     const uniqueSuffix = Date.now();
