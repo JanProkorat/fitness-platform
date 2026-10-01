@@ -1317,6 +1317,20 @@ test.describe('ingredient picture (#1140)', () => {
       await expect(drawer.getByRole('button', { name: 'Remove picture' })).toBeVisible();
       expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
 
+      // Open the picture in the lightbox (#1140) and close it with Escape.
+      // The lightbox is a Dialog portalled to document.body, so it sits
+      // outside `drawer`'s own DOM subtree — query it from `page`, scoped by
+      // `data-slot="dialog-content"` (the drawer itself is `sheet-content`,
+      // a different primitive, so there's no ambiguity). Assert on the
+      // lightbox image's `src`, not pixels — on a host run the img may have
+      // failed to actually load (see this describe block's header comment).
+      await drawer.getByRole('button', { name: 'View picture' }).click();
+      const lightbox = page.locator('[data-slot="dialog-content"]');
+      await expect(lightbox).toBeVisible();
+      await expect(lightbox.locator('img')).toHaveAttribute('src', new RegExp(foodId));
+      await page.keyboard.press('Escape');
+      await expect(lightbox).toHaveCount(0);
+
       // Replace with a second image.
       const confirmResponseB = page.waitForResponse(
         (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',

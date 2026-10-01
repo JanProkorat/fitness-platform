@@ -1004,7 +1004,9 @@
       "removeError": "Couldn't remove the picture. Please try again.",
       "uploadError": "Couldn't upload the picture. Please try again.",
       "alt": "Ingredient picture",
-      "thumbnailAlt": "{{name}} picture"
+      "thumbnailAlt": "{{name}} picture",
+      "viewPicture": "View picture",
+      "viewPictureOf": "View picture of {{name}}"
     }
   },
   "recipes": {

@@ -1025,7 +1025,9 @@
       "removeError": "Obrázek se nepodařilo odebrat. Zkuste to prosím znovu.",
       "uploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu.",
       "alt": "Obrázek suroviny",
-      "thumbnailAlt": "Obrázek – {{name}}"
+      "thumbnailAlt": "Obrázek – {{name}}",
+      "viewPicture": "Zobrazit obrázek",
+      "viewPictureOf": "Zobrazit obrázek – {{name}}"
     }
   },
   "recipes": {

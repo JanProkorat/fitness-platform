@@ -1003,7 +1003,9 @@
       "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
       "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
       "alt": "Zutatenbild",
-      "thumbnailAlt": "Bild von {{name}}"
+      "thumbnailAlt": "Bild von {{name}}",
+      "viewPicture": "Bild anzeigen",
+      "viewPictureOf": "Bild von {{name}} anzeigen"
     }
   },
   "recipes": {

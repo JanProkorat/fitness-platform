@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, ImageOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { cn } from '@/lib/utils';
 import { showApiError, showError } from '@/lib/api-errors';
 import {
@@ -62,6 +63,7 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
   const [loadFailed, setLoadFailed] = useState(false);
   const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // dragenter/dragleave fire on every child element the pointer crosses, not
   // just the zone itself — a plain boolean would flicker `isDragOver` off
@@ -227,12 +229,27 @@ export default function IngredientPictureField({ foodId, imageUrl, readOnly }: P
           {...dropHandlers}
         >
           {displaySrc && !loadFailed ? (
-            <img
-              src={displaySrc}
-              alt={t('ingredients.picture.alt')}
-              className="size-full object-cover"
-              onError={() => setLoadFailed(true)}
-            />
+            <>
+              <button
+                type="button"
+                aria-label={t('ingredients.picture.viewPicture')}
+                className="block size-full cursor-zoom-in"
+                onClick={() => setLightboxOpen(true)}
+              >
+                <img
+                  src={displaySrc}
+                  alt={t('ingredients.picture.alt')}
+                  className="size-full object-cover"
+                  onError={() => setLoadFailed(true)}
+                />
+              </button>
+              <ImageLightbox
+                open={lightboxOpen}
+                onOpenChange={setLightboxOpen}
+                src={displaySrc}
+                alt={t('ingredients.picture.alt')}
+              />
+            </>
           ) : (
             <div className="flex size-full items-center justify-center">
               <ImageOff className="size-8 text-muted-foreground" aria-hidden="true" />

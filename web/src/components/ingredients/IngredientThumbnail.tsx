@@ -10,14 +10,26 @@ interface Props {
   /** The food's display name — used for the image's alt text. */
   name: string;
   className?: string;
+  /**
+   * Called with the cache-busted display src and alt text when the user
+   * opens this thumbnail's picture in the lightbox (#1140). Only ever
+   * invoked when a picture is actually loaded — a food with no picture (or
+   * a failed load) stays a plain placeholder, and the row click it sits
+   * inside keeps opening the drawer as before.
+   */
+  onViewPicture: (src: string, alt: string) => void;
 }
 
 /**
  * Small square thumbnail shown to the left of a food's name in the
  * Ingredients table (#1140). Falls back to a neutral placeholder when the
- * food has no picture, or if the stored URL fails to load.
+ * food has no picture, or if the stored URL fails to load. When a picture
+ * IS loaded, the thumbnail becomes its own button so clicking/activating it
+ * opens the picture in a lightbox instead of the row's own click (which
+ * opens the edit drawer) — `stopPropagation` keeps the two from firing
+ * together.
  */
-export default function IngredientThumbnail({ foodId, imageUrl, name, className }: Props) {
+export default function IngredientThumbnail({ foodId, imageUrl, name, className, onViewPicture }: Props) {
   const { t } = useTranslation();
   const [loadFailed, setLoadFailed] = useState(false);
   const version = useFoodImageVersion(foodId);
@@ -27,6 +39,7 @@ export default function IngredientThumbnail({ foodId, imageUrl, name, className 
   // replace keeps the same url and the browser would otherwise keep showing
   // the previous cached bytes.
   const src = imageUrl ? `${imageUrl}${imageUrl.includes('?') ? '&' : '?'}v=${version}` : null;
+  const alt = t('ingredients.picture.thumbnailAlt', { name });
 
   return (
     <div
@@ -36,12 +49,24 @@ export default function IngredientThumbnail({ foodId, imageUrl, name, className 
       )}
     >
       {src && !loadFailed ? (
-        <img
-          src={src}
-          alt={t('ingredients.picture.thumbnailAlt', { name })}
-          className="size-full object-cover"
-          onError={() => setLoadFailed(true)}
-        />
+        <button
+          type="button"
+          aria-label={t('ingredients.picture.viewPictureOf', { name })}
+          className="block size-full cursor-zoom-in"
+          onClick={(event) => {
+            // Stops the row's own onClick (which opens the edit drawer) from
+            // also firing — this click is for the picture, not the row.
+            event.stopPropagation();
+            onViewPicture(src, alt);
+          }}
+        >
+          <img
+            src={src}
+            alt={alt}
+            className="size-full object-cover"
+            onError={() => setLoadFailed(true)}
+          />
+        </button>
       ) : (
         <ImageOff className="size-4 text-muted-foreground" aria-hidden="true" />
       )}
