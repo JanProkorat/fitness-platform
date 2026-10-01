@@ -26,6 +26,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-a.png');
 const IMAGE_B_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-b.png');
 
+// Stored picture URLs point at the harness's internal MinIO host, which resolves only inside the
+// Playwright container — the host-run CI suite asserts saved state instead of loaded pixels.
+const PICTURES_LOAD_IN_BROWSER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
+
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
 interface LoginResponseBody {
@@ -86,6 +90,21 @@ async function loginAsNutritionist(baseURL: string): Promise<string> {
       throw new Error(`[ingredients] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
     }
     return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Reads a food's stored main picture URL through the API, as qa.nutri. */
+async function fetchFoodImageUrl(baseURL: string, foodId: string): Promise<string | null> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] GET /foods/${foodId} returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as { imageUrl?: string | null }).imageUrl ?? null;
   } finally {
     await api.dispose();
   }
@@ -1290,12 +1309,16 @@ test.describe('ingredient picture (#1140)', () => {
         (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
       );
       await fileInput.setInputFiles(IMAGE_A_PATH);
-      await confirmResponseA;
-      await expect(pictureImg).toBeVisible();
-      await expect
-        .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
-        .toBe(64);
+      expect((await confirmResponseA).status()).toBe(204);
       await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Remove picture' })).toBeVisible();
+      expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
+      if (PICTURES_LOAD_IN_BROWSER) {
+        await expect(pictureImg).toBeVisible();
+        await expect
+          .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+          .toBe(64);
+      }
 
       // Replace with a visually different image (different pixel size) —
       // same blob key, so naturalWidth is the only proof the new bytes loaded.
@@ -1303,20 +1326,22 @@ test.describe('ingredient picture (#1140)', () => {
         (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
       );
       await fileInput.setInputFiles(IMAGE_B_PATH);
-      await confirmResponseB;
-      await expect
-        .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
-        .toBe(128);
+      expect((await confirmResponseB).status()).toBe(204);
+      if (PICTURES_LOAD_IN_BROWSER) {
+        await expect
+          .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+          .toBe(128);
 
-      // The list thumbnail picks up the same replaced picture too.
-      await expect
-        .poll(async () =>
-          page
-            .getByRole('cell', { name })
-            .locator('img')
-            .evaluate((element) => (element as HTMLImageElement).naturalWidth),
-        )
-        .toBe(128);
+        // The list thumbnail picks up the same replaced picture too.
+        await expect
+          .poll(async () =>
+            page
+              .getByRole('cell', { name })
+              .locator('img')
+              .evaluate((element) => (element as HTMLImageElement).naturalWidth),
+          )
+          .toBe(128);
+      }
 
       // Remove, with confirmation.
       const removeResponse = page.waitForResponse(
@@ -1325,9 +1350,11 @@ test.describe('ingredient picture (#1140)', () => {
       await drawer.getByRole('button', { name: 'Remove picture' }).click();
       await expect(page.getByRole('heading', { name: 'Remove picture' })).toBeVisible();
       await page.getByRole('button', { name: 'Remove', exact: true }).click();
-      await removeResponse;
+      expect((await removeResponse).status()).toBe(204);
       await expect(pictureImg).toHaveCount(0);
       await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Remove picture' })).toHaveCount(0);
+      expect(await fetchFoodImageUrl(origin, foodId)).toBeNull();
 
       await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
     } finally {
