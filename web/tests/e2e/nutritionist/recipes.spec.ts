@@ -1,0 +1,391 @@
+/**
+ * Recipes page (epic #1052, page 7): list, create with ingredients and
+ * preparation steps, round-trip after reload, edit, delete with confirmation,
+ * the match-ALL dietary-preference filter, the empty state (stubbed — the QA
+ * seed always has recipes), picture upload/remove, and the trainer-only
+ * "nutritionists only" state.
+ *
+ * Lives under nutritionist/ because every /recipes endpoint is
+ * Nutritionist-only. The trainer-only test imports `trainerTest` directly —
+ * project routing is by file path, not by which fixture a test uses (same
+ * pattern as ingredients.spec.ts).
+ */
+import { request as apiRequest, type Locator } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-a.png');
+
+// Presigned upload URLs target the host's MinIO port, so uploads work only in a host-run browser,
+// which cannot resolve the internal minio-test host for stored pictures (routed below).
+const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
+
+const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
+
+interface LoginResponseBody {
+  accessToken: string;
+}
+
+interface FoodApiBody {
+  foodId?: string;
+  name?: string;
+  isSystem?: boolean;
+}
+
+interface SearchFoodsApiBody {
+  foods?: FoodApiBody[];
+}
+
+interface RecipeApiBody {
+  recipeId?: string;
+  imageUrl?: string | null;
+}
+
+async function loginAsNutritionist(baseURL: string): Promise<string> {
+  const password = process.env['QA_SEED_PASSWORD'];
+  if (!password) {
+    throw new Error('[recipes] QA_SEED_PASSWORD is not set. Copy .env.test.example to .env.test and fill it in.');
+  }
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/auth/login', { data: { email: NUTRITIONIST_EMAIL, password } });
+    if (!response.ok()) {
+      throw new Error(`[recipes] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Finds a system food's id via GET /foods/search, for fixture recipes created through the API. */
+async function findFoodId(baseURL: string, accessToken: string): Promise<string> {
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get('/foods/search?q=Apple', { headers: { Authorization: `Bearer ${accessToken}` } });
+    const { foods } = (await response.json()) as SearchFoodsApiBody;
+    const food = (foods ?? []).find((candidate) => candidate.foodId);
+    if (!food?.foodId) {
+      throw new Error('[recipes] GET /foods/search?q=Apple returned no food.');
+    }
+    return food.foodId;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Creates a recipe through the API and returns its id. */
+async function createRecipeViaApi(
+  baseURL: string,
+  body: { name: string; dietaryPreferences: string[] },
+): Promise<string> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const foodId = await findFoodId(baseURL, accessToken);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.post('/recipes', {
+      data: {
+        name: body.name,
+        servings: 2,
+        mealTypes: ['Lunch'],
+        dietaryPreferences: body.dietaryPreferences,
+        foods: [{ foodExternalId: foodId, amountGrams: 100 }],
+        steps: ['Mix.'],
+      },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok()) {
+      throw new Error(`[recipes] POST /recipes returned ${response.status()} ${response.statusText()}.`);
+    }
+    const created = (await response.json()) as RecipeApiBody;
+    if (!created.recipeId) {
+      throw new Error('[recipes] POST /recipes returned no recipeId.');
+    }
+    return created.recipeId;
+  } finally {
+    await api.dispose();
+  }
+}
+
+async function deleteRecipeViaApi(baseURL: string, recipeId: string): Promise<void> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    await api.delete(`/recipes/${recipeId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  } finally {
+    await api.dispose();
+  }
+}
+
+async function fetchRecipeImageUrl(baseURL: string, recipeId: string): Promise<string | null> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/recipes/${recipeId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    return ((await response.json()) as RecipeApiBody).imageUrl ?? null;
+  } finally {
+    await api.dispose();
+  }
+}
+
+test.describe('recipes page', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/recipes');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Recipes', exact: true })).toBeVisible();
+  });
+
+  test('list loads with a table, per-serving columns and a pagination footer', async ({ page }) => {
+    await expect(page.getByText(/Viewing \d+ of \d+/)).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Calories / serving' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Library' })).toBeVisible();
+    await expect(page.locator('tbody tr').first()).toBeVisible();
+  });
+
+  test('create with ingredients and steps, reload round-trip, edit, then delete', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Recipe ${Date.now()}`;
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await expect(drawer.getByRole('heading', { name: 'New Recipe' })).toBeVisible();
+
+    // Details tab.
+    await drawer.getByLabel(/^Name\b/).fill(name);
+    await drawer.getByLabel(/^Servings\b/).fill('2');
+    await drawer.locator('#recipe-meal-types').click();
+    await page.getByRole('checkbox', { name: 'Lunch' }).click();
+    await page.keyboard.press('Escape');
+
+    // Ingredients tab: search a food, add it, set grams.
+    await drawer.getByRole('tab', { name: /Ingredients/ }).click();
+    await drawer.getByRole('searchbox', { name: 'Search ingredients to add' }).fill('Apple');
+    await drawer.getByRole('button', { name: /Apple/ }).first().click();
+    const amount = drawer.getByLabel(/^Amount in grams for/);
+    await amount.fill('200');
+    await expect(drawer.getByTestId('recipe-macro-summary')).toContainText('Per serving (2)');
+
+    // Preparation tab: two steps.
+    await drawer.getByRole('tab', { name: /Preparation/ }).click();
+    await drawer.getByRole('button', { name: '+ Add step' }).click();
+    await drawer.getByLabel('Step 1', { exact: true }).fill('Wash the apple.');
+    await drawer.getByRole('button', { name: '+ Add step' }).click();
+    await drawer.getByLabel('Step 2', { exact: true }).fill('Slice and serve.');
+
+    const createResponse = page.waitForResponse(
+      (response) => response.url().includes('/recipes') && response.request().method() === 'POST',
+    );
+    await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+    expect((await createResponse).status()).toBe(200);
+    await expect(drawer).toHaveCount(0);
+
+    let recipeId: string | undefined;
+    try {
+      // Reload and find it again: the round trip comes from the server, not local state.
+      await page.reload();
+      await page.getByPlaceholder('Search recipes…').fill(name);
+      await expect(page.getByRole('cell', { name })).toBeVisible();
+      await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+
+      await page.getByRole('cell', { name }).click();
+      await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
+      await expect(drawer.getByLabel(/^Name\b/)).toHaveValue(name);
+      await expect(drawer.getByLabel(/^Servings\b/)).toHaveValue('2');
+      await drawer.getByRole('tab', { name: /Ingredients/ }).click();
+      await expect(drawer.getByLabel(/^Amount in grams for/)).toHaveValue('200');
+      await drawer.getByRole('tab', { name: /Preparation/ }).click();
+      await expect(drawer.getByLabel('Step 1', { exact: true })).toHaveValue('Wash the apple.');
+      await expect(drawer.getByLabel('Step 2', { exact: true })).toHaveValue('Slice and serve.');
+
+      // Edit the name.
+      await drawer.getByRole('tab', { name: 'Details' }).click();
+      const editedName = `${name} edited`;
+      await drawer.getByLabel(/^Name\b/).fill(editedName);
+      const updateResponse = page.waitForResponse(
+        (response) => response.url().includes('/recipes/') && response.request().method() === 'PUT',
+      );
+      await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+      expect((await updateResponse).status()).toBe(200);
+      await expect(drawer).toHaveCount(0);
+
+      await page.getByPlaceholder('Search recipes…').fill(editedName);
+      await expect(page.getByRole('cell', { name: editedName })).toBeVisible();
+
+      // Delete, with confirmation.
+      await page.getByRole('cell', { name: editedName }).click();
+      await drawer.getByRole('button', { name: 'Delete' }).click();
+      await expect(page.getByRole('heading', { name: 'Delete recipe' })).toBeVisible();
+      await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+      await expect(drawer).toHaveCount(0);
+      await expect(page.getByRole('cell', { name: editedName })).toHaveCount(0);
+    } catch (error) {
+      // A failed run must not leave the recipe behind for later runs.
+      const accessToken = await loginAsNutritionist(origin);
+      const api = await apiRequest.newContext({ baseURL: origin });
+      try {
+        const search = await api.get(`/recipes?search=${encodeURIComponent(name)}&page=1&pageSize=10`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const body = (await search.json()) as { recipes?: RecipeApiBody[] };
+        recipeId = body.recipes?.[0]?.recipeId;
+      } finally {
+        await api.dispose();
+      }
+      if (recipeId) {
+        await deleteRecipeViaApi(origin, recipeId);
+      }
+      throw error;
+    }
+  });
+
+  test('invalid save sends the coach to the tab with the problem', async ({ page }) => {
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+    await expect(page.getByText('Name is required.')).toBeVisible();
+    await expect(page.getByText('Select at least one meal type.')).toBeVisible();
+
+    await drawer.getByLabel(/^Name\b/).fill('QA Incomplete');
+    await drawer.locator('#recipe-meal-types').click();
+    await page.getByRole('checkbox', { name: 'Lunch' }).click();
+    await page.keyboard.press('Escape');
+    await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+    // No ingredients yet: the drawer jumps to the Ingredients tab with the message.
+    await expect(page.getByText('Add at least one ingredient.')).toBeVisible();
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('dietary preference filter matches ALL selected preferences', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const prefix = `QA Diet ${Date.now()}`;
+    const veganOnly = await createRecipeViaApi(origin, { name: `${prefix} A`, dietaryPreferences: ['Vegan'] });
+    const veganAndGlutenFree = await createRecipeViaApi(origin, {
+      name: `${prefix} B`,
+      dietaryPreferences: ['Vegan', 'GlutenFree'],
+    });
+
+    try {
+      await page.getByPlaceholder('Search recipes…').fill(prefix);
+      await expect(page.getByRole('cell', { name: `${prefix} A` })).toBeVisible();
+      await expect(page.getByRole('cell', { name: `${prefix} B` })).toBeVisible();
+
+      await page.getByRole('button', { name: 'Dietary preferences' }).click();
+      await page.getByRole('checkbox', { name: 'Vegan', exact: true }).click();
+      await expect(page).toHaveURL(/diet=Vegan/);
+      await expect(page.getByRole('cell', { name: `${prefix} A` })).toBeVisible();
+      await expect(page.getByRole('cell', { name: `${prefix} B` })).toBeVisible();
+
+      await page.getByRole('checkbox', { name: 'Gluten-free' }).click();
+      await expect(page.getByRole('cell', { name: `${prefix} B` })).toBeVisible();
+      await expect(page.getByRole('cell', { name: `${prefix} A` })).toHaveCount(0);
+    } finally {
+      await deleteRecipeViaApi(origin, veganOnly);
+      await deleteRecipeViaApi(origin, veganAndGlutenFree);
+    }
+  });
+
+  test('sorting by servings toggles the URL and keeps the table populated', async ({ page }) => {
+    await page.getByRole('button', { name: 'Sort by Servings' }).click();
+    await expect(page).toHaveURL(/sort=servings-asc/);
+    await expect(page.locator('tbody tr').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Sort by Servings' }).click();
+    await expect(page).toHaveURL(/sort=servings-desc/);
+    await page.getByRole('button', { name: 'Sort by Servings' }).click();
+    await expect(page).not.toHaveURL(/sort=/);
+  });
+
+  test('a system row opens the drawer read-only with a Close button', async ({ page }) => {
+    await page.getByRole('button', { name: 'Owner' }).click();
+    await page.getByRole('checkbox', { name: 'System' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page).toHaveURL(/owner=System/);
+    await page.locator('tbody tr').first().click();
+
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'Recipe', exact: true })).toBeVisible();
+    await expect(drawer.getByLabel(/^Name\b/)).toBeDisabled();
+    await expect(drawer.getByRole('button', { name: 'Save Recipe' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Delete' })).toHaveCount(0);
+    await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+    await expect(drawer).toHaveCount(0);
+  });
+});
+
+test.describe('recipes empty state', () => {
+  test('shows the empty state with a create button when the list is empty', async ({ page }) => {
+    // The QA seed always has recipes, so stub the list to reach the empty state.
+    await page.route('**/recipes?*', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ recipes: [], totalCount: 0, page: 1, pageSize: 25 }),
+      });
+    });
+    await page.goto('/recipes');
+    await expect(page.getByText('No recipes yet')).toBeVisible();
+    await expect(page.getByText('Create your first recipe to get started')).toBeVisible();
+    await page.getByRole('button', { name: 'Create Recipe' }).click();
+    await expect(page.locator('[data-slot="sheet-content"]').getByRole('heading', { name: 'New Recipe' })).toBeVisible();
+  });
+});
+
+test.describe('recipe picture', () => {
+  test('upload and remove the main picture', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Recipe Picture ${Date.now()}`;
+    const recipeId = await createRecipeViaApi(origin, { name, dietaryPreferences: [] });
+
+    try {
+      await page.route('http://minio-test:9000/**', (route) =>
+        route.fulfill({ path: IMAGE_A_PATH, contentType: 'image/png' }),
+      );
+      const naturalWidth = (locator: Locator) =>
+        locator.evaluate((element) => (element as HTMLImageElement).naturalWidth);
+
+      await page.goto('/recipes');
+      await page.getByPlaceholder('Search recipes…').fill(name);
+      await page.getByRole('cell', { name }).click();
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+
+      const confirmResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/recipes/${recipeId}/image`) && response.request().method() === 'PUT',
+      );
+      await drawer.locator('input[type="file"]').setInputFiles(IMAGE_A_PATH);
+      expect((await confirmResponse).status()).toBe(204);
+      await expect.poll(() => naturalWidth(drawer.getByAltText('Recipe picture'))).toBe(64);
+      expect(await fetchRecipeImageUrl(origin, recipeId)).toContain(recipeId);
+
+      const removeResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/recipes/${recipeId}/image`) && response.request().method() === 'DELETE',
+      );
+      await drawer.getByRole('button', { name: 'Remove picture' }).click();
+      await page.getByRole('button', { name: 'Remove', exact: true }).click();
+      expect((await removeResponse).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+      expect(await fetchRecipeImageUrl(origin, recipeId)).toBeNull();
+    } finally {
+      await deleteRecipeViaApi(origin, recipeId);
+    }
+  });
+});
+
+trainerTest.describe('recipes for a trainer-only coach', () => {
+  trainerTest('shows a readable nutritionists-only state, not an error', async ({ page }) => {
+    await page.goto('/recipes');
+    await expect(page.getByText('Recipes are available to nutritionists')).toBeVisible();
+    await expect(page.getByRole('button', { name: '+ New Recipe' })).toHaveCount(0);
+    await expect(page.locator('[data-slot="toast-viewport"]').getByRole('status')).toHaveCount(0);
+  });
+});
