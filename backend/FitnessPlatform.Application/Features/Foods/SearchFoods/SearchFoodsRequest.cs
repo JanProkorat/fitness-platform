@@ -30,6 +30,28 @@ public class SearchFoodsRequest
     public List<Guid> TagIds { get; set; } = [];
 
     /// <summary>
+    /// Optional owner filter — matches a food whose ownership falls under ANY of the supplied
+    /// <see cref="FoodOwnerFilter"/> values. Bound from the repeated <c>owner</c> query param, so
+    /// a single <c>?owner=Mine</c> still binds a one-item list. At most 3 (one per enum member).
+    /// None supplied applies no owner filter.
+    /// </summary>
+    [BindFrom("owner")]
+    public List<FoodOwnerFilter> Owners { get; set; } = [];
+
+    /// <summary>
+    /// Column to sort by. <see langword="null"/> (the default) means no explicit sort —
+    /// newest-created foods first.
+    /// </summary>
+    public FoodSortField? SortBy { get; set; }
+
+    /// <summary>
+    /// Direction for <see cref="SortBy"/>. Defaults to <see cref="FoodSortDirection.Ascending"/>
+    /// when <see cref="SortBy"/> is set but this is omitted. Ignored when <see cref="SortBy"/> is
+    /// <see langword="null"/>.
+    /// </summary>
+    public FoodSortDirection? SortDir { get; set; }
+
+    /// <summary>
     /// Page number (1-based). Defaults to 1.
     /// </summary>
     public int Page { get; set; } = 1;

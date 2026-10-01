@@ -21,6 +21,12 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
     private static readonly int MaxCategories = Enum.GetValues<FoodCategory>().Length;
 
     /// <summary>
+    /// The maximum number of owner values a single search request may filter by — the number of
+    /// <see cref="FoodOwnerFilter"/> members, since supplying more is necessarily a duplicate.
+    /// </summary>
+    private static readonly int MaxOwners = Enum.GetValues<FoodOwnerFilter>().Length;
+
+    /// <summary>
     /// Initializes validation rules for food search.
     /// </summary>
     public SearchFoodsValidator()
@@ -44,6 +50,19 @@ public class SearchFoodsValidator : Validator<SearchFoodsRequest>
             .WithMessage($"At most {MaxCategories} categories may be supplied.");
 
         RuleForEach(x => x.Categories)
+            .IsInEnum();
+
+        RuleFor(x => x.Owners)
+            .Must(owners => owners.Count <= MaxOwners)
+            .WithMessage($"At most {MaxOwners} owner values may be supplied.");
+
+        RuleForEach(x => x.Owners)
+            .IsInEnum();
+
+        RuleFor(x => x.SortBy)
+            .IsInEnum();
+
+        RuleFor(x => x.SortDir)
             .IsInEnum();
     }
 }

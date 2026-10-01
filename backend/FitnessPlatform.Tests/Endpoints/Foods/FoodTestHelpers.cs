@@ -80,7 +80,10 @@ public static class FoodTestHelpers
     /// CountDocumentsAsync. The filter passed to FindAsync is not evaluated in these unit tests —
     /// owner/visibility correctness is covered by
     /// <see cref="FitnessPlatform.Tests.Endpoints.Recipes.OwnerScopedVisibilityFilterTests"/>
-    /// (real Mongo), not by tests built on this mock.
+    /// (real Mongo), not by tests built on this mock. Stubs neither <c>Aggregate</c> nor
+    /// <c>AggregateAsync</c> — <see cref="FitnessPlatform.Application.Features.Foods.SearchFoods.SearchFoodsEndpoint"/>
+    /// runs its results through an aggregation pipeline (#1139) and is tested against a real
+    /// Mongo container instead (<c>SearchFoodsEndpointTests</c>, <c>SearchFoodsOwnerAndSortTests</c>).
     /// </summary>
     public static IMongoCollection<Food> CreateMockCollection(List<Food> foods) => CreateMockCollection<Food>(foods);
 
