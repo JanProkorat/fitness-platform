@@ -38,6 +38,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var response = await client.PostAsJsonAsync("/recipes", new
         {
             Name = $"Test Recipe {Guid.NewGuid():N}",
+            MealTypes = new[] { "Lunch" },
             Foods = new[]
             {
                 new { FoodExternalId = foodId, AmountGrams = 100m }
@@ -328,6 +329,106 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var raw = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         raw.Should().Contain("RECIPE_NOT_OWNED",
             "the Problem Details payload must carry the RECIPE_NOT_OWNED error code");
+    }
+
+    // ── Blob URL must match the presigned key ──────────────────────────────────
+
+    [Theory]
+    [InlineData("main")]
+    [InlineData("gallery")]
+    public async Task ConfirmImage_ForeignBlobUrl_Returns400InvalidBlobUrl_AndLeavesRecipeUntouched(string slot)
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", $"confirm-bad-url-{slot}");
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, token, foodId);
+
+        TestHelpers.SetBearerToken(client, token);
+
+        // Another recipe's key and an external URL are both rejected.
+        foreach (var badUrl in new[] { $"recipes/{Guid.NewGuid()}/{slot}.jpg", "https://evil.example/x.jpg", $"recipes/{recipeId}/gallery-3.jpg" })
+        {
+            var response = await client.PutAsJsonAsync(
+                $"/recipes/{recipeId}/image?slot={slot}",
+                new { BlobUrl = badUrl },
+                TestContext.Current.CancellationToken);
+
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest, badUrl);
+            (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+                .Should().Contain("INVALID_BLOB_URL");
+        }
+
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().BeNull();
+        recipe.GalleryImageUrls.Should().BeEmpty();
+    }
+
+    // ── Remove main image ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task DeleteImage_Owner_ClearsMainImageOnly_AndIsIdempotent()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "delete-image-owner");
+        var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, token, foodId);
+
+        TestHelpers.SetBearerToken(client, token);
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
+            new { BlobUrl = $"recipes/{recipeId}/main.jpg" }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=gallery",
+            new { BlobUrl = $"recipes/{recipeId}/gallery-0.jpg" }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var response = await client.DeleteAsync($"/recipes/{recipeId}/image", TestContext.Current.CancellationToken);
+            response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        }
+
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().BeNull();
+        recipe.GalleryImageUrls.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task DeleteImage_NonOwner_Returns400RecipeNotOwned_AndKeepsImage()
+    {
+        var client = factory.CreateClient();
+        var tokenA = await SeedUserAsync(client, "Nutritionist", "delete-image-a");
+        var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
+        var recipeId = await CreateRecipeAsync(client, tokenA, foodId);
+        (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
+            new { BlobUrl = $"recipes/{recipeId}/main.jpg" }, TestContext.Current.CancellationToken))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var tokenB = await SeedUserAsync(client, "Nutritionist", "delete-image-b");
+        TestHelpers.SetBearerToken(client, tokenB);
+
+        var response = await client.DeleteAsync($"/recipes/{recipeId}/image", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Should().Contain("RECIPE_NOT_OWNED");
+
+        TestHelpers.SetBearerToken(client, tokenA);
+        var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
+            .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
+        recipe!.ImageUrl.Should().Be($"recipes/{recipeId}/main.jpg");
+    }
+
+    [Fact]
+    public async Task DeleteImage_MissingRecipe_Returns404()
+    {
+        var client = factory.CreateClient();
+        var token = await SeedUserAsync(client, "Nutritionist", "delete-image-missing");
+        TestHelpers.SetBearerToken(client, token);
+
+        var response = await client.DeleteAsync($"/recipes/{Guid.NewGuid()}/image", TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     // ── Local response DTOs (per slice rules — no cross-feature imports) ────────

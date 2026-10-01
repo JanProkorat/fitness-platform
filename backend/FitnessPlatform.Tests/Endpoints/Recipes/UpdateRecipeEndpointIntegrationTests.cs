@@ -78,6 +78,7 @@ public class UpdateRecipeEndpointIntegrationTests(FitnessApiFactory factory)
             {
                 Version = 1,
                 Name = "Updated Legacy Recipe",
+                MealTypes = new[] { "Lunch" },
                 Foods = new[]
                 {
                     new { FoodExternalId = foodId, AmountGrams = 100m }

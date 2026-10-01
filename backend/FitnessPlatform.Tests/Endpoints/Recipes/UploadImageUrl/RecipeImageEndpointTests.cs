@@ -321,6 +321,7 @@ public class UploadRecipeImageUrlEndpointTests
 public class ConfirmRecipeImageEndpointTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
+    private readonly IImageUploadService _imageUpload = Substitute.For<IImageUploadService>();
 
     // ── Happy path: main slot ──────────────────────────────────────────────
 
@@ -330,12 +331,14 @@ public class ConfirmRecipeImageEndpointTests
         var recipeId = Guid.NewGuid();
         var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: _nutritionistId);
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
+        _imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Recipe, $"{recipeId}/main", $"recipes/{recipeId}/main.jpg")
+            .Returns(true);
 
         var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
         {
@@ -361,12 +364,14 @@ public class ConfirmRecipeImageEndpointTests
         var recipeId = Guid.NewGuid();
         var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: _nutritionistId);
         var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
+        _imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Recipe, $"{recipeId}/gallery-0", $"recipes/{recipeId}/gallery-0.jpg")
+            .Returns(true);
 
         var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
         {
@@ -399,7 +404,7 @@ public class ConfirmRecipeImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
         {
@@ -432,7 +437,7 @@ public class ConfirmRecipeImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(Guid.NewGuid(), AppRoles.Nutritionist))),
-            mongo);
+            mongo, _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
         {
@@ -463,7 +468,7 @@ public class ConfirmRecipeImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo, _imageUpload);
 
         await ep.HandleAsync(new ConfirmRecipeImageRequest
         {
@@ -473,6 +478,43 @@ public class ConfirmRecipeImageEndpointTests
         }, CancellationToken.None);
 
         ep.HttpContext.Response.StatusCode.Should().Be(404);
+        await mongo.Recipes.DidNotReceive().UpdateOneAsync(
+            Arg.Any<FilterDefinition<Application.Domain.Documents.Recipe>>(),
+            Arg.Any<UpdateDefinition<Application.Domain.Documents.Recipe>>(),
+            Arg.Any<UpdateOptions>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    // ── Blob URL must match the presigned key ─────────────────────────────
+
+    [Theory]
+    [InlineData("main", "main")]
+    [InlineData("gallery", "gallery-2")]
+    public async Task ConfirmImage_BlobUrlNotMatchingKey_Throws_InvalidBlobUrl_AndDoesNotWrite(string slot, string expectedSubPath)
+    {
+        var recipeId = Guid.NewGuid();
+        var recipe = RecipeTestHelpers.CreateRecipe(externalId: recipeId, nutritionistId: _nutritionistId);
+        recipe.GalleryImageUrls.AddRange([$"recipes/{recipeId}/gallery-0.jpg", $"recipes/{recipeId}/gallery-1.jpg"]);
+        var mongo = RecipeTestHelpers.CreateMockMongo(recipes: [recipe]);
+
+        var ep = Factory.Create<ConfirmRecipeImageEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
+            mongo, _imageUpload);
+
+        var act = () => ep.HandleAsync(new ConfirmRecipeImageRequest
+        {
+            RecipeId = recipeId,
+            Slot = slot,
+            BlobUrl = "https://evil.example/x.jpg"
+        }, CancellationToken.None);
+
+        var ex = await act.Should().ThrowAsync<ValidationFailureException>();
+        ex.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InvalidBlobUrl);
+
+        _imageUpload.Received(1).IsValidBlobUrlForSubPath(
+            ImageUploadScope.Recipe, $"{recipeId}/{expectedSubPath}", "https://evil.example/x.jpg");
         await mongo.Recipes.DidNotReceive().UpdateOneAsync(
             Arg.Any<FilterDefinition<Application.Domain.Documents.Recipe>>(),
             Arg.Any<UpdateDefinition<Application.Domain.Documents.Recipe>>(),
