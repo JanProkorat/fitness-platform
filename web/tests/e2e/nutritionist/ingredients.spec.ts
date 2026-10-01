@@ -273,9 +273,15 @@ test.describe('ingredients page', () => {
     expect(descendingNames).toEqual([...ascendingNames].reverse());
 
     // Third click clears the sort entirely — a distinct URL state
-    // (`sort=none`), not a fallback to the default Name-ascending view.
+    // (`sort=none`), not a fallback to the default Name-ascending view. The
+    // cleared state still requests a deterministic order from the backend —
+    // newest first — rather than no sortBy at all (which the backend now
+    // treats as Name ascending, the same as the first-load default).
     const clearedResponse = page.waitForResponse(
-      (response) => response.url().includes('/foods/search') && !response.url().includes('sortBy='),
+      (response) =>
+        response.url().includes('/foods/search') &&
+        response.url().includes('sortBy=DateCreated') &&
+        response.url().includes('sortDir=Descending'),
     );
     await page.getByRole('button', { name: 'Sort by Name' }).click();
     await clearedResponse;
@@ -1219,6 +1225,8 @@ trainerTest.describe('food tags — trainer-only coach (#1120)', () => {
 
     // No Tags filter pill at all.
     await expect(page.getByRole('button', { name: 'Tags' })).toHaveCount(0);
+    // No Owner filter pill either — only nutritionists can own foods (#1139).
+    await expect(page.getByRole('button', { name: 'Owner' })).toHaveCount(0);
 
     // Opening any row's (read-only) drawer shows no tag section either.
     await page.locator('tbody tr').first().click();

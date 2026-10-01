@@ -18,11 +18,17 @@ const SORT_FIELD_BY_SLUG: Record<string, FoodSortField> = {
   library: FoodSortField.Library,
 };
 
+// `Record<FoodSortField, string>` must stay exhaustive over every enum
+// member, but DateCreated is deliberately not a clickable column (#1139) —
+// it's never a parseable slug in SORT_FIELD_BY_SLUG above, so this entry is
+// unreachable from the UI and exists purely to satisfy the exhaustiveness
+// check.
 const SORT_SLUG_BY_FIELD: Record<FoodSortField, string> = {
   [FoodSortField.Name]: 'name',
   [FoodSortField.Calories]: 'calories',
   [FoodSortField.Category]: 'category',
   [FoodSortField.Library]: 'library',
+  [FoodSortField.DateCreated]: 'datecreated',
 };
 
 /** `sortBy: null` is a distinct, explicit "no sort" state (URL `sort=none`)

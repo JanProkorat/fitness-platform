@@ -9,6 +9,7 @@ import {
   type CreateFoodTagRequest,
   type UpdateFoodTagRequest,
 } from '@/api/food-tags';
+import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
 import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
@@ -49,8 +50,14 @@ export function useIngredients(filters: IngredientListFilters) {
         owners: filters.owners,
         page: filters.page,
         pageSize: filters.pageSize,
-        sortBy: filters.sortBy ?? undefined,
-        sortDir: filters.sortBy ? filters.sortDir : undefined,
+        // A cleared sort (`sort=none` in the URL, filters.sortBy === null)
+        // must still request a deterministic order — newest first — rather
+        // than fall back to the backend's own no-sortBy default (Name
+        // ascending). This is a wire-request mapping only: the URL keeps
+        // `sort=none` (see useIngredientListParams' CLEARED_SORT), and
+        // DateCreated never becomes a clickable column header.
+        sortBy: filters.sortBy ?? FoodSortField.DateCreated,
+        sortDir: filters.sortBy ? filters.sortDir : FoodSortDirection.Descending,
       }),
     placeholderData: keepPreviousData,
   });
