@@ -21840,6 +21840,7 @@ export enum FoodSortField {
     Calories = "Calories",
     Category = "Category",
     Library = "Library",
+    DateCreated = "DateCreated",
 }
 
 /** Sort direction for a FoodSortField. Named to avoid ambiguity with MongoDB.Driver.SortDirection, which is in scope wherever Mongo sort builders are used. */
