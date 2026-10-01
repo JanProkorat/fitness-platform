@@ -989,6 +989,20 @@
       "title": "Delete ingredient",
       "description": "Are you sure you want to delete \"{{name}}\"? This can't be undone.",
       "confirm": "Delete"
+    },
+    "picture": {
+      "sectionLabel": "Picture",
+      "upload": "Upload picture",
+      "replace": "Replace picture",
+      "remove": "Remove picture",
+      "removeConfirmTitle": "Remove picture",
+      "removeConfirmDescription": "Are you sure you want to remove this ingredient's picture? This can't be undone.",
+      "removeConfirmSubmit": "Remove",
+      "removeSuccess": "Picture removed.",
+      "removeError": "Couldn't remove the picture. Please try again.",
+      "uploadError": "Couldn't upload the picture. Please try again.",
+      "alt": "Ingredient picture",
+      "thumbnailAlt": "{{name}} picture"
     }
   },
   "recipes": {
@@ -1319,7 +1333,8 @@
     "FOOD_TAG_NOT_FOUND": "This tag could not be found.",
     "INVALID_IMAGE_CONTENT_TYPE": "Only JPEG, PNG or WebP images are supported.",
     "IMAGE_TOO_LARGE": "Image is too large — the maximum size is 5 MB.",
-    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "The image upload could not be found. Please attach it again."
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "The image upload could not be found. Please attach it again.",
+    "INVALID_BLOB_URL": "Couldn't save the picture. Please try uploading it again."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",

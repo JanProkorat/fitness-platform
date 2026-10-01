@@ -16,7 +16,15 @@
  * (only) under the `nutritionist` project, same as every other test here.
  */
 import { request as apiRequest } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
+
+// ESM-safe __dirname substitute (package.json has "type":"module") — same
+// pattern as `inbox-attachments.spec.ts`.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-a.png');
+const IMAGE_B_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-b.png');
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
@@ -1207,6 +1215,144 @@ test.describe('nutrition layout and serving units (#1133)', () => {
     } finally {
       await verifyApi.dispose();
     }
+  });
+});
+
+/**
+ * Ingredient picture upload, replace, and remove (#1140). The main picture's
+ * blob key is deterministic (foods/{id}.jpg), so a replace keeps the SAME
+ * url — `ingredient-picture-a.png` and `ingredient-picture-b.png` are
+ * different pixel sizes specifically so the test can assert on the loaded
+ * image's `naturalWidth` rather than the (unchanged) src string alone.
+ * Upload/replace reuse the existing upload-url + confirm flow; remove hits
+ * the new DeleteFoodImage endpoint. Follows the browser presigned-PUT
+ * pattern from `trainer/inbox-attachments.spec.ts`.
+ */
+test.describe('ingredient picture (#1140)', () => {
+  test('upload, replace, and remove the main picture', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Picture ${uniqueSuffix}`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (picture fixture) returned ${createResponse.status()} ${createResponse.statusText()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (picture fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    try {
+      const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+      await page.getByPlaceholder('Search ingredients…').fill(name);
+      await searchResponse;
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('cell', { name }).click();
+
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+
+      const fileInput = drawer.locator('input[type="file"]');
+      const pictureImg = drawer.getByAltText('Ingredient picture');
+
+      // Upload — the confirm PUT is the signal the picture is actually saved
+      // (the earlier browser-PUT to the pre-signed MinIO url is a different
+      // origin entirely, so matching on `/foods/{foodId}/image` + method
+      // disambiguates it from the upload-url POST, which shares the same
+      // path prefix).
+      const confirmResponseA = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await fileInput.setInputFiles(IMAGE_A_PATH);
+      await confirmResponseA;
+      await expect(pictureImg).toBeVisible();
+      await expect
+        .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+        .toBe(64);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+
+      // Replace with a visually different image (different pixel size) —
+      // same blob key, so naturalWidth is the only proof the new bytes loaded.
+      const confirmResponseB = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await fileInput.setInputFiles(IMAGE_B_PATH);
+      await confirmResponseB;
+      await expect
+        .poll(async () => pictureImg.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+        .toBe(128);
+
+      // The list thumbnail picks up the same replaced picture too.
+      await expect
+        .poll(async () =>
+          page
+            .getByRole('cell', { name })
+            .locator('img')
+            .evaluate((element) => (element as HTMLImageElement).naturalWidth),
+        )
+        .toBe(128);
+
+      // Remove, with confirmation.
+      const removeResponse = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'DELETE',
+      );
+      await drawer.getByRole('button', { name: 'Remove picture' }).click();
+      await expect(page.getByRole('heading', { name: 'Remove picture' })).toBeVisible();
+      await page.getByRole('button', { name: 'Remove', exact: true }).click();
+      await removeResponse;
+      await expect(pictureImg).toHaveCount(0);
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+    } finally {
+      const cleanupApi = await apiRequest.newContext({ baseURL: origin });
+      try {
+        const accessToken = await loginAsNutritionist(origin);
+        await cleanupApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      } finally {
+        await cleanupApi.dispose();
+      }
+    }
+  });
+
+  test('a food the caller does not own shows its picture read-only, with no controls', async ({ page, baseURL }) => {
+    const systemFoodName = await findSystemFoodName(baseURL);
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(systemFoodName);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name: systemFoodName, exact: true }).first().click();
+
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await expect(drawer.getByText('Picture', { exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Replace picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Remove picture' })).toHaveCount(0);
+
+    await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
   });
 });
 

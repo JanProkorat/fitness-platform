@@ -988,6 +988,20 @@
       "title": "Zutat löschen",
       "description": "Möchten Sie „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
       "confirm": "Löschen"
+    },
+    "picture": {
+      "sectionLabel": "Bild",
+      "upload": "Bild hochladen",
+      "replace": "Bild ersetzen",
+      "remove": "Bild entfernen",
+      "removeConfirmTitle": "Bild entfernen",
+      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
+      "removeConfirmSubmit": "Entfernen",
+      "removeSuccess": "Bild entfernt.",
+      "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+      "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
+      "alt": "Zutatenbild",
+      "thumbnailAlt": "Bild von {{name}}"
     }
   },
   "recipes": {
@@ -1318,7 +1332,8 @@
     "FOOD_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden.",
     "INVALID_IMAGE_CONTENT_TYPE": "Es werden nur JPEG-, PNG- oder WebP-Bilder unterstützt.",
     "IMAGE_TOO_LARGE": "Das Bild ist zu groß — die maximale Größe beträgt 5 MB.",
-    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Der Bild-Upload wurde nicht gefunden. Bitte fügen Sie es erneut an."
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Der Bild-Upload wurde nicht gefunden. Bitte fügen Sie es erneut an.",
+    "INVALID_BLOB_URL": "Das Bild konnte nicht gespeichert werden. Bitte laden Sie es erneut hoch."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",
