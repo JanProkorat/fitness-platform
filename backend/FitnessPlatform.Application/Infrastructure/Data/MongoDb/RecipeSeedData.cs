@@ -93,6 +93,8 @@ public static class RecipeSeedData
                 Foods = mealFoods,
                 TotalNutrients = ComputeTotals(mealFoods),
                 Visibility = RecipeVisibility.Public,
+                DietaryPreferences = IntersectDietaryPreferences(
+                    entry.Ingredients.Select(i => foodEntries[i.Slug].DietaryPreferences)),
                 MealTypes = entry.MealTypes is null
                     ? null
                     : FoodEnumListMapping.ToStoredNames(FoodEnumListMapping.ParseStoredNames<RecipeMealType>(entry.MealTypes)),
@@ -128,6 +130,25 @@ public static class RecipeSeedData
             SeedJsonLoader.RequireNonEmpty(
                 entry.Ingredients[i].Slug, $"{nameof(entry.Ingredients)}[{i}].Slug", ResourceFileName, index, entry.Slug);
         }
+    }
+
+    /// <summary>
+    /// A recipe carries a preference only when every ingredient food carries it. An empty
+    /// ingredient list or an ingredient with no tags yields none.
+    /// </summary>
+    public static List<string> IntersectDietaryPreferences(IEnumerable<List<string>?> ingredientPreferences)
+    {
+        var parsed = ingredientPreferences
+            .Select(p => FoodEnumListMapping.ParseStoredNames<DietaryPreference>(p ?? []).ToHashSet())
+            .ToList();
+
+        if (parsed.Count == 0)
+        {
+            return [];
+        }
+
+        return FoodEnumListMapping.ToStoredNames(
+            Enum.GetValues<DietaryPreference>().Where(p => parsed.All(set => set.Contains(p))));
     }
 
     /// <summary>

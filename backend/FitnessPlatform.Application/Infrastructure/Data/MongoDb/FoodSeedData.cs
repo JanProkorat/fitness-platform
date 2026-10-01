@@ -1,5 +1,6 @@
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 
@@ -45,6 +46,8 @@ public static class FoodSeedData
                 .Select(s => new ServingSize { Label = s.Label, WeightGrams = s.Grams })
                 .ToList() ?? [],
             Allergens = e.Allergens ?? [],
+            DietaryPreferences = FoodEnumListMapping.ToStoredNames(
+                FoodEnumListMapping.ParseStoredNames<DietaryPreference>(e.DietaryPreferences ?? [])),
             NutritionistId = null,
             Visibility = FoodVisibility.Public,
             DateCreated = now,
@@ -87,6 +90,7 @@ public record FoodSeedEntry(
     decimal? Sugar,
     decimal? SaturatedFat,
     List<string>? Allergens,
+    List<string>? DietaryPreferences,
     List<FoodServingEntry>? Servings);
 
 /// <summary>

@@ -13,6 +13,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -34,6 +35,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -55,6 +57,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -76,6 +79,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -97,6 +101,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -118,6 +123,11 @@
   "sugar": null,
   "saturatedFat": 3.0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -139,6 +149,11 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -160,6 +175,11 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -181,6 +201,11 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -203,6 +228,12 @@
   "saturatedFat": null,
   "allergens": [
    "eggs"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -227,6 +258,12 @@
   "allergens": [
    "eggs"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -249,6 +286,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -273,6 +315,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -295,6 +342,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -319,6 +371,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -341,6 +398,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -365,6 +427,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "glass",
@@ -388,6 +455,7 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "scoop",
@@ -409,6 +477,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -430,6 +505,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -452,6 +534,12 @@
   "saturatedFat": null,
   "allergens": [
    "gluten"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -476,6 +564,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "slice",
@@ -499,6 +593,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -520,6 +620,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -541,6 +648,13 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -562,6 +676,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -585,6 +706,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -606,6 +733,13 @@
   "sugar": 12.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -627,6 +761,13 @@
   "sugar": 10.4,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -648,6 +789,13 @@
   "sugar": 10.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -669,6 +817,13 @@
   "sugar": 4.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -690,6 +845,13 @@
   "sugar": 9.4,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -711,6 +873,13 @@
   "sugar": null,
   "saturatedFat": 2.1,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -732,6 +901,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -753,6 +929,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -774,6 +957,13 @@
   "sugar": 2.6,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -795,6 +985,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -816,6 +1013,13 @@
   "sugar": 4.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -837,6 +1041,13 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -858,6 +1069,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -879,6 +1097,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -901,6 +1126,13 @@
   "saturatedFat": 3.7,
   "allergens": [
    "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -925,6 +1157,13 @@
   "allergens": [
    "peanuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -948,6 +1187,13 @@
   "allergens": [
    "treenuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -969,6 +1215,13 @@
   "sugar": null,
   "saturatedFat": 13.8,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -992,6 +1245,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1013,6 +1271,13 @@
   "sugar": null,
   "saturatedFat": 82.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1034,6 +1299,7 @@
   "sugar": 82.1,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -1058,6 +1324,7 @@
    "milk",
    "soy"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -1079,6 +1346,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1102,6 +1376,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1124,6 +1403,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -1149,6 +1433,10 @@
    "gluten",
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1172,6 +1460,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "slice",
@@ -1193,6 +1486,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -1216,6 +1510,7 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "cup",
@@ -1237,6 +1532,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -1258,6 +1554,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1279,6 +1582,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -1301,6 +1605,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -1325,6 +1634,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1346,6 +1660,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tsp",
@@ -1368,6 +1683,11 @@
   "saturatedFat": null,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -1392,6 +1712,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "glass",
@@ -1413,6 +1738,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1436,6 +1768,13 @@
   "allergens": [
    "treenuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -1457,6 +1796,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -1481,6 +1827,7 @@
    "gluten",
    "eggs"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -1502,6 +1849,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1523,6 +1877,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "pack",
@@ -1544,6 +1899,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1565,6 +1927,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1586,6 +1955,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tsp",
@@ -1607,6 +1977,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tsp",
@@ -1628,6 +1999,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -1649,6 +2027,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -1672,6 +2057,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1693,6 +2084,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "slice",
@@ -1715,6 +2107,12 @@
   "saturatedFat": null,
   "allergens": [
    "gluten"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -1739,6 +2137,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "tub",
@@ -1760,6 +2163,13 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "cup",
@@ -1782,6 +2192,12 @@
   "saturatedFat": null,
   "allergens": [
    "gluten"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -1806,6 +2222,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "slice",
@@ -1827,6 +2249,7 @@
   "sugar": null,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "glass",
@@ -1848,6 +2271,13 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1869,6 +2299,13 @@
   "sugar": 4.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1890,6 +2327,13 @@
   "sugar": 1.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "clove",
@@ -1911,6 +2355,13 @@
   "sugar": 2.3,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1932,6 +2383,13 @@
   "sugar": 7.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1953,6 +2411,13 @@
   "sugar": 2.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1974,6 +2439,13 @@
   "sugar": 1.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -1995,6 +2467,13 @@
   "sugar": 1.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "bunch",
@@ -2016,6 +2495,13 @@
   "sugar": 2.1,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2037,6 +2523,13 @@
   "sugar": 1.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2058,6 +2551,13 @@
   "sugar": 3.8,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "head",
@@ -2079,6 +2579,13 @@
   "sugar": 3.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "head",
@@ -2100,6 +2607,13 @@
   "sugar": 7.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2121,6 +2635,13 @@
   "sugar": 5.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2142,6 +2663,13 @@
   "sugar": 3.3,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2163,6 +2691,13 @@
   "sugar": 4.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -2184,6 +2719,13 @@
   "sugar": 3.0,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2205,6 +2747,13 @@
   "sugar": null,
   "saturatedFat": 1.9,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2226,6 +2775,13 @@
   "sugar": 3.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -2247,6 +2803,13 @@
   "sugar": 4.5,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "pack",
@@ -2268,6 +2831,13 @@
   "sugar": 12.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -2291,6 +2861,13 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2312,6 +2889,13 @@
   "sugar": 1.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2333,6 +2917,13 @@
   "sugar": null,
   "saturatedFat": 2.0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2354,6 +2945,13 @@
   "sugar": 1.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2375,6 +2973,13 @@
   "sugar": 13.7,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2396,6 +3001,13 @@
   "sugar": 59.2,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -2417,6 +3029,13 @@
   "sugar": 9.9,
   "saturatedFat": null,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2438,6 +3057,7 @@
   "sugar": null,
   "saturatedFat": 4.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -2459,6 +3079,7 @@
   "sugar": null,
   "saturatedFat": 2.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -2480,6 +3101,7 @@
   "sugar": null,
   "saturatedFat": 2.3,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -2501,6 +3123,7 @@
   "sugar": null,
   "saturatedFat": 6.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -2522,6 +3145,7 @@
   "sugar": null,
   "saturatedFat": 3.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
@@ -2543,6 +3167,7 @@
   "sugar": null,
   "saturatedFat": 5.5,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "slice",
@@ -2564,6 +3189,7 @@
   "sugar": null,
   "saturatedFat": 1.4,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "pack",
@@ -2585,6 +3211,7 @@
   "sugar": null,
   "saturatedFat": 4.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "portion",
@@ -2607,6 +3234,11 @@
   "saturatedFat": 0.9,
   "allergens": [
    "fish"
+  ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -2631,6 +3263,11 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -2653,6 +3290,11 @@
   "saturatedFat": 5.4,
   "allergens": [
    "fish"
+  ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -2677,6 +3319,11 @@
   "allergens": [
    "fish"
   ],
+  "dietaryPreferences": [
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "piece",
@@ -2699,6 +3346,11 @@
   "saturatedFat": 0.3,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2723,6 +3375,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -2745,6 +3402,11 @@
   "saturatedFat": 14.6,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2769,6 +3431,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "slice",
@@ -2792,6 +3459,7 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -2814,6 +3482,11 @@
   "saturatedFat": 5.5,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2838,6 +3511,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -2860,6 +3538,11 @@
   "saturatedFat": 14.0,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2884,6 +3567,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "pack",
@@ -2906,6 +3594,11 @@
   "saturatedFat": 8.5,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2930,6 +3623,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -2952,6 +3650,11 @@
   "saturatedFat": 1.0,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -2976,6 +3679,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "glass",
@@ -2998,6 +3706,11 @@
   "saturatedFat": 19.0,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -3022,6 +3735,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3044,6 +3762,11 @@
   "saturatedFat": 0.1,
   "allergens": [
    "milk"
+  ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
   ],
   "servings": [
    {
@@ -3068,6 +3791,11 @@
   "allergens": [
    "milk"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree"
+  ],
   "servings": [
    {
     "label": "tub",
@@ -3090,6 +3818,13 @@
   "saturatedFat": 1.1,
   "allergens": [
    "soy"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3114,6 +3849,13 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "pack",
@@ -3136,6 +3878,13 @@
   "saturatedFat": 2.2,
   "allergens": [
    "soy"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3160,6 +3909,13 @@
   "allergens": [
    "soy"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -3181,6 +3937,13 @@
   "sugar": null,
   "saturatedFat": 0.4,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3202,6 +3965,13 @@
   "sugar": null,
   "saturatedFat": 0.2,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3223,6 +3993,13 @@
   "sugar": 1.0,
   "saturatedFat": 0.1,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -3244,6 +4021,13 @@
   "sugar": 0.5,
   "saturatedFat": 0.3,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "can",
@@ -3266,6 +4050,12 @@
   "saturatedFat": 3.0,
   "allergens": [
    "gluten"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3290,6 +4080,7 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "pack",
@@ -3313,6 +4104,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3334,6 +4131,13 @@
   "sugar": null,
   "saturatedFat": 0.7,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3355,6 +4159,13 @@
   "sugar": null,
   "saturatedFat": 0.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3378,6 +4189,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3399,6 +4216,13 @@
   "sugar": 8.0,
   "saturatedFat": 0.2,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "portion",
@@ -3421,6 +4245,12 @@
   "saturatedFat": 1.2,
   "allergens": [
    "gluten"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3445,6 +4275,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3468,6 +4304,12 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3489,6 +4331,13 @@
   "sugar": null,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3510,6 +4359,13 @@
   "sugar": 1.4,
   "saturatedFat": 8.7,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3531,6 +4387,13 @@
   "sugar": 2.6,
   "saturatedFat": 4.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3552,6 +4415,13 @@
   "sugar": 3.0,
   "saturatedFat": 4.5,
   "allergens": [],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3574,6 +4444,13 @@
   "saturatedFat": 4.5,
   "allergens": [
    "treenuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3598,6 +4475,13 @@
   "allergens": [
    "treenuts"
   ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "handful",
@@ -3620,6 +4504,13 @@
   "saturatedFat": 6.3,
   "allergens": [
    "peanuts"
+  ],
+  "dietaryPreferences": [
+   "Vegan",
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
   ],
   "servings": [
    {
@@ -3645,6 +4536,12 @@
    "eggs",
    "mustard"
   ],
+  "dietaryPreferences": [
+   "Vegetarian",
+   "Pescatarian",
+   "GlutenFree",
+   "LactoseFree"
+  ],
   "servings": [
    {
     "label": "tbsp",
@@ -3666,6 +4563,7 @@
   "sugar": 2.0,
   "saturatedFat": 16.9,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "can",
@@ -3687,6 +4585,7 @@
   "sugar": 1.0,
   "saturatedFat": 5.8,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "can",
@@ -3710,6 +4609,7 @@
   "allergens": [
    "mustard"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3731,6 +4631,7 @@
   "sugar": 21.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3755,6 +4656,7 @@
    "soy",
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3780,6 +4682,7 @@
    "gluten",
    "sesame"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3801,6 +4704,7 @@
   "sugar": 15.1,
   "saturatedFat": 0.1,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3825,6 +4729,7 @@
    "milk",
    "treenuts"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3846,6 +4751,7 @@
   "sugar": 6.0,
   "saturatedFat": 1.0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3867,6 +4773,7 @@
   "sugar": 15.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3888,6 +4795,7 @@
   "sugar": 33.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3911,6 +4819,7 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "cup",
@@ -3934,6 +4843,7 @@
   "allergens": [
    "celery"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "pack",
@@ -3955,6 +4865,7 @@
   "sugar": 100.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3976,6 +4887,7 @@
   "sugar": 60.4,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -3997,6 +4909,7 @@
   "sugar": 5.0,
   "saturatedFat": 0,
   "allergens": [],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "tbsp",
@@ -4020,6 +4933,7 @@
   "allergens": [
    "gluten"
   ],
+  "dietaryPreferences": [],
   "servings": [
    {
     "label": "piece",
