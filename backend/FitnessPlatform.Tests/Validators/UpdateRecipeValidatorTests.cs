@@ -95,8 +95,8 @@ public class UpdateRecipeValidatorTests
 
         var result = _validator.TestValidate(req);
 
-        result.ShouldHaveValidationErrorFor(x => x.Difficulty);
-        result.Errors.Should().Contain(e => e.PropertyName.StartsWith("DietaryPreferences"));
-        result.Errors.Should().Contain(e => e.PropertyName.StartsWith("MealTypes"));
+        // One enum failure per bad field; asserted by ErrorCode because PropertyName
+        // is camelCased once any test in the run boots the app.
+        result.Errors.Where(e => e.ErrorCode == "EnumValidator").Should().HaveCount(3);
     }
 }
