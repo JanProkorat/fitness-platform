@@ -11640,22 +11640,21 @@ export class ApiClient {
     }
 
     /**
-     * Create custom food
-     * @return Food created
+     * Remove food image
+     * @param foodId The food's public identifier (from route).
+     * @return No Content
      */
-    createFoodEndpoint(createFoodRequest: CreateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
-        let url_ = this.baseUrl + "/foods";
+    deleteFoodImageEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/foods/{foodId}/image";
+        if (foodId === undefined || foodId === null)
+            throw new globalThis.Error("The parameter 'foodId' must be defined.");
+        url_ = url_.replace("{foodId}", encodeURIComponent("" + foodId));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(createFoodRequest);
-
         let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
+            method: "DELETE",
             url: url_,
             headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
             },
             signal
         };
@@ -11667,11 +11666,11 @@ export class ApiClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processCreateFoodEndpoint(_response);
+            return this.processDeleteFoodImageEndpoint(_response);
         });
     }
 
-    protected processCreateFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+    protected processDeleteFoodImageEndpoint(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -11681,23 +11680,13 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 201) {
+        if (status === 204) {
             const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = JSON.parse(resultData201);
-            return Promise.resolve<FoodSummary>(result201);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = JSON.parse(resultData400);
-            return throwException("Invalid request body", status, _responseText, _headers, result400);
+            return Promise.resolve<void>(null as any);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+            return throwException("Unauthorized", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;
@@ -11707,7 +11696,7 @@ export class ApiClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FoodSummary>(null as any);
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -11785,6 +11774,77 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Create custom food
+     * @return Food created
+     */
+    createFoodEndpoint(createFoodRequest: CreateFoodRequest, signal?: AbortSignal): Promise<FoodSummary> {
+        let url_ = this.baseUrl + "/foods";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(createFoodRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateFoodEndpoint(_response);
+        });
+    }
+
+    protected processCreateFoodEndpoint(response: AxiosResponse): Promise<FoodSummary> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<FoodSummary>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<FoodSummary>(null as any);
     }
 
     /**
@@ -21892,6 +21952,10 @@ export interface GetCustomFoodsRequest {
 
 /** Request for deleting a food tag. Bodyless — TagId is bound from the route. */
 export interface DeleteFoodTagRequest {
+}
+
+/** Request model for removing a food's main image. */
+export interface DeleteFoodImageRequest {
 }
 
 /** Request model for soft-deleting a custom food. */
