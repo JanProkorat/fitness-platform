@@ -372,6 +372,7 @@ public class UploadFoodImageUrlEndpointTests
 public class ConfirmFoodImageEndpointTests
 {
     private readonly Guid _nutritionistId = Guid.NewGuid();
+    private readonly IImageUploadService _imageUpload = CreateAcceptingImageUpload();
 
     // ── Happy path: main slot ──────────────────────────────────────────────
 
@@ -386,7 +387,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -417,7 +419,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -450,7 +453,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -483,7 +487,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         var act = () => ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -514,7 +519,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -547,7 +553,8 @@ public class ConfirmFoodImageEndpointTests
             ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
                 new ClaimsIdentity(
                     EndpointTestHelpers.FakeUserClaims(_nutritionistId, AppRoles.Nutritionist))),
-            mongo);
+            mongo,
+            _imageUpload);
 
         await ep.HandleAsync(new ConfirmFoodImageRequest
         {
@@ -586,5 +593,14 @@ public class ConfirmFoodImageEndpointTests
         summary.ImageUrl.Should().Be(blobUrl);
         summary.GalleryImageUrls.Should().ContainSingle(u => u == galleryUrl);
         summary.FoodId.Should().Be(foodId);
+    }
+
+    // Blob-URL validation has its own integration test; these unit tests cover the other branches.
+    private static IImageUploadService CreateAcceptingImageUpload()
+    {
+        var imageUpload = Substitute.For<IImageUploadService>();
+        imageUpload.IsValidBlobUrlForSubPath(Arg.Any<ImageUploadScope>(), Arg.Any<string>(), Arg.Any<string>())
+            .Returns(true);
+        return imageUpload;
     }
 }

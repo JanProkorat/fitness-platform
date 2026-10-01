@@ -133,3 +133,12 @@ export async function confirmFoodImage(
   const body: ConfirmFoodImageRequest = { blobUrl };
   await apiClient.confirmFoodImageEndpoint(foodId, slot, body);
 }
+
+/**
+ * Clears a food's main picture (owner only). Mirrors the backend's
+ * DeleteFoodImageEndpoint — only `ImageUrl` is cleared; the gallery and
+ * every other field are left untouched.
+ */
+export async function removeFoodImage(foodId: string): Promise<void> {
+  await apiClient.deleteFoodImageEndpoint(foodId);
+}

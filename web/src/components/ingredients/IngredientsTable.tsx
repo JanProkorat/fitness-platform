@@ -1,12 +1,22 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { FoodSummary } from '@/api/food-types';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import LibraryBadge from '@/components/ingredients/LibraryBadge';
+import IngredientThumbnail from '@/components/ingredients/IngredientThumbnail';
 import TagPill from '@/components/tags/TagPill';
+
+/** The picture currently shown in the table-level lightbox (#1140), or
+ * `null` when it's closed. One instance serves every row's thumbnail. */
+interface LightboxPicture {
+  src: string;
+  alt: string;
+}
 
 const SKELETON_ROW_COUNT = 5;
 
@@ -100,6 +110,7 @@ export default function IngredientsTable({
 }: Props) {
   const { t } = useTranslation();
   const columnCount = isNutritionist ? 6 : 5;
+  const [lightboxPicture, setLightboxPicture] = useState<LightboxPicture | null>(null);
 
   function sortableHeaderProps(field: FoodSortField, label: string) {
     return {
@@ -113,7 +124,8 @@ export default function IngredientsTable({
   }
 
   return (
-    <Table>
+    <>
+      <Table>
       {/* `sticky top-0` pins the header to the page's own vertical scroller
           (see IngredientsPage.tsx's `overflow-visible` override on
           `ui/table.tsx`'s horizontal-scroll wrapper). `bg-muted` is already
@@ -198,7 +210,17 @@ export default function IngredientsTable({
               {/* Name: SemiBold 14 dark. `text-copy` is the existing 14px
                   token (audience-panel body copy) reused here for its size,
                   not its original semantic name — no second 14px token. */}
-              <TableCell className="px-5 py-3 text-copy font-semibold text-foreground">{food.name}</TableCell>
+              <TableCell className="px-5 py-3 text-copy font-semibold text-foreground">
+                <div className="flex items-center gap-2">
+                  <IngredientThumbnail
+                    foodId={food.foodId}
+                    imageUrl={food.imageUrl}
+                    name={food.name ?? ''}
+                    onViewPicture={(src, alt) => setLightboxPicture({ src, alt })}
+                  />
+                  <span>{food.name}</span>
+                </div>
+              </TableCell>
               <TableCell className="w-30 px-5 py-3 text-body font-medium text-muted-foreground">
                 {t('ingredients.table.caloriesValue', { count: food.nutrientValue?.kcal ?? 0 })}
               </TableCell>
@@ -227,6 +249,17 @@ export default function IngredientsTable({
             </TableRow>
           ))}
       </TableBody>
-    </Table>
+      </Table>
+      <ImageLightbox
+        open={lightboxPicture !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLightboxPicture(null);
+          }
+        }}
+        src={lightboxPicture?.src ?? ''}
+        alt={lightboxPicture?.alt ?? ''}
+      />
+    </>
   );
 }

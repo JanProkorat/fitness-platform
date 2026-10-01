@@ -30,6 +30,7 @@ import { useCreateFood, useUpdateFood } from '@/hooks/useIngredientsQueries';
 import MultiSelectPopover from '@/components/ingredients/MultiSelectPopover';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
 import IngredientTagPickerPopover from '@/components/ingredients/IngredientTagPickerPopover';
+import IngredientPictureField from '@/components/ingredients/IngredientPictureField';
 import TagPill from '@/components/tags/TagPill';
 
 /** Fixed unit keys for the drawer's Unit select (design-review MINOR finding #8,
@@ -375,6 +376,21 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-1 flex-col gap-6 overflow-y-auto px-6"
           >
+            {/* Picture area (#1140) — deliberately OUTSIDE the fieldset below,
+                same reasoning as the tags section further down: its own
+                `readOnly` prop gates the upload/replace/remove controls,
+                independent of the form fieldset's disabled state. Never
+                rendered in create mode — there's no FoodId yet to upload
+                against. */}
+            {food?.foodId && (
+              <IngredientPictureField
+                key={food.foodId}
+                foodId={food.foodId}
+                imageUrl={food.imageUrl}
+                readOnly={readOnly}
+              />
+            )}
+
             <fieldset disabled={readOnly} className="flex flex-col gap-6">
               <div className="flex flex-col gap-3">
                 <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">

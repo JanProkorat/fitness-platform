@@ -1010,6 +1010,24 @@
       "title": "Smazat surovinu",
       "description": "Opravdu chcete smazat „{{name}}“? Tuto akci nelze vrátit zpět.",
       "confirm": "Smazat"
+    },
+    "picture": {
+      "sectionLabel": "Obrázek",
+      "upload": "Nahrát obrázek",
+      "dropHint": "Přetáhněte obrázek sem nebo klikněte pro výběr",
+      "dropLimits": "JPEG, PNG nebo WebP, max. 5 MB.",
+      "replace": "Nahradit obrázek",
+      "remove": "Odebrat obrázek",
+      "removeConfirmTitle": "Odebrat obrázek",
+      "removeConfirmDescription": "Opravdu chcete odebrat obrázek této suroviny? Tuto akci nelze vrátit zpět.",
+      "removeConfirmSubmit": "Odebrat",
+      "removeSuccess": "Obrázek byl odebrán.",
+      "removeError": "Obrázek se nepodařilo odebrat. Zkuste to prosím znovu.",
+      "uploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu.",
+      "alt": "Obrázek suroviny",
+      "thumbnailAlt": "Obrázek – {{name}}",
+      "viewPicture": "Zobrazit obrázek",
+      "viewPictureOf": "Zobrazit obrázek – {{name}}"
     }
   },
   "recipes": {
@@ -1340,7 +1358,8 @@
     "FOOD_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
     "INVALID_IMAGE_CONTENT_TYPE": "Podporovány jsou pouze obrázky JPEG, PNG nebo WebP.",
     "IMAGE_TOO_LARGE": "Obrázek je příliš velký — maximální velikost je 5 MB.",
-    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Nahraný obrázek nebyl nalezen. Přiložte ho prosím znovu."
+    "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Nahraný obrázek nebyl nalezen. Přiložte ho prosím znovu.",
+    "INVALID_BLOB_URL": "Obrázek se nepodařilo uložit. Zkuste ho prosím nahrát znovu."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",

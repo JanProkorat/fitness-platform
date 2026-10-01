@@ -1,5 +1,13 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { searchFoods, createFood, updateFood, deleteFood } from '@/api/foods';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  searchFoods,
+  createFood,
+  updateFood,
+  deleteFood,
+  requestFoodImageUploadUrl,
+  confirmFoodImage,
+  removeFoodImage,
+} from '@/api/foods';
 import {
   getFoodTags,
   createFoodTag,
@@ -11,6 +19,7 @@ import {
 } from '@/api/food-tags';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
+import type { UploadFoodImageUrlRequest } from '@/api/generated';
 import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
 
@@ -206,6 +215,89 @@ export function useDeleteFood() {
     },
     onError: (error) => {
       showApiError(error, 'ingredients.deleteError');
+    },
+  });
+}
+
+/**
+ * Per-food cache-buster for the picture `<img src>` (#1140). The main
+ * picture's blob key is deterministic (`foods/{id}.jpg`), so replacing it
+ * keeps the SAME url — without this, the browser can keep showing the
+ * stale cached bytes after a successful replace. This is not server data:
+ * a plain counter living in its own query-cache entry (deliberately NOT
+ * namespaced under `['ingredients']`, so the broad
+ * `invalidateQueries({ queryKey: ['ingredients'] })` calls below never
+ * touch it), bumped only after a confirmed upload/replace/remove. Both the
+ * drawer and the table read the same counter for the same food, so a
+ * replace is visible in both places at once.
+ */
+function imageVersionKey(foodId: string) {
+  return ['foodImageVersion', foodId] as const;
+}
+
+/** Reads the current cache-buster counter for one food's picture. Returns 0
+ * until the first successful upload/replace/remove bumps it. */
+export function useFoodImageVersion(foodId: string | undefined): number {
+  const query = useQuery({
+    queryKey: imageVersionKey(foodId ?? 'none'),
+    queryFn: () => 0,
+    enabled: false,
+    initialData: 0,
+    staleTime: Infinity,
+  });
+  return query.data;
+}
+
+function bumpFoodImageVersion(queryClient: QueryClient, foodId: string): void {
+  queryClient.setQueryData<number>(imageVersionKey(foodId), (previous) => (previous ?? 0) + 1);
+}
+
+/** Requests a pre-signed upload URL for a food's main picture (owner only).
+ * The caller PUTs the file to `uploadUrl` directly (never through this
+ * mutation) and only then confirms via `useConfirmFoodImage`. */
+export function useRequestFoodImageUploadUrl() {
+  return useMutation({
+    mutationFn: (variables: { foodId: string; request: UploadFoodImageUrlRequest }) =>
+      requestFoodImageUploadUrl(variables.foodId, 'main', variables.request),
+  });
+}
+
+export interface ConfirmFoodImageVariables {
+  foodId: string;
+  blobUrl: string;
+}
+
+/**
+ * Confirms a completed main-picture upload. Call only after the browser's
+ * own PUT to the pre-signed URL has already succeeded — see
+ * `IngredientPictureField`'s upload flow. Bumps the cache-buster and
+ * invalidates the ingredients list/detail queries so the new picture shows
+ * up everywhere.
+ */
+export function useConfirmFoodImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: ConfirmFoodImageVariables) =>
+      confirmFoodImage(variables.foodId, 'main', variables.blobUrl),
+    onSuccess: (_data, variables) => {
+      bumpFoodImageVersion(queryClient, variables.foodId);
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+    },
+  });
+}
+
+/** Removes a food's main picture (owner only), after an explicit confirm step. */
+export function useRemoveFoodImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (foodId: string) => removeFoodImage(foodId),
+    onSuccess: (_data, foodId) => {
+      bumpFoodImageVersion(queryClient, foodId);
+      queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      showSuccess('ingredients.picture.removeSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'ingredients.picture.removeError');
     },
   });
 }

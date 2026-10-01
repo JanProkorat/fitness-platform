@@ -15,8 +15,22 @@
  * test built on `trainerTest` inside this `nutritionist/` file still runs
  * (only) under the `nutritionist` project, same as every other test here.
  */
-import { request as apiRequest } from '@playwright/test';
+import { request as apiRequest, type Locator } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
+
+// ESM-safe __dirname substitute (package.json has "type":"module") — same
+// pattern as `inbox-attachments.spec.ts`.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IMAGE_A_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-a.png');
+const IMAGE_B_PATH = path.resolve(__dirname, '..', 'fixtures', 'ingredient-picture-b.png');
+
+// In the harness, presigned upload URLs target the host's MinIO port, so uploads work only in a
+// host-run browser, which can't resolve the internal minio-test host for stored pictures. The
+// upload tests route those reads to the fixture bytes and skip inside the Playwright container.
+const IN_CONTAINER = process.env['PLAYWRIGHT_IN_CONTAINER'] === 'true';
 
 const NUTRITIONIST_EMAIL = 'qa.nutri@fitnessplatform.test';
 
@@ -78,6 +92,21 @@ async function loginAsNutritionist(baseURL: string): Promise<string> {
       throw new Error(`[ingredients] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
     }
     return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Reads a food's stored main picture URL through the API, as qa.nutri. */
+async function fetchFoodImageUrl(baseURL: string, foodId: string): Promise<string | null> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok()) {
+      throw new Error(`[ingredients] GET /foods/${foodId} returned ${response.status()} ${response.statusText()}.`);
+    }
+    return ((await response.json()) as { imageUrl?: string | null }).imageUrl ?? null;
   } finally {
     await api.dispose();
   }
@@ -1207,6 +1236,255 @@ test.describe('nutrition layout and serving units (#1133)', () => {
     } finally {
       await verifyApi.dispose();
     }
+  });
+});
+
+/**
+ * Ingredient picture upload, replace, and remove (#1140). The main picture's
+ * blob key is deterministic (foods/{id}.jpg), so a replace keeps the SAME
+ * url — `ingredient-picture-a.png` and `ingredient-picture-b.png` are
+ * different pixel sizes specifically so the test can assert on the loaded
+ * image's `naturalWidth` rather than the (unchanged) src string alone.
+ * Upload/replace reuse the existing upload-url + confirm flow; remove hits
+ * the new DeleteFoodImage endpoint. Follows the browser presigned-PUT
+ * pattern from `trainer/inbox-attachments.spec.ts`.
+ */
+test.describe('ingredient picture (#1140)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/ingredients');
+  });
+
+  test('upload, replace, and remove the main picture', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Picture ${uniqueSuffix}`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (picture fixture) returned ${createResponse.status()} ${createResponse.statusText()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (picture fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    try {
+      const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+      await page.getByPlaceholder('Search ingredients…').fill(name);
+      await searchResponse;
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('cell', { name }).click();
+
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+
+      const fileInput = drawer.locator('input[type="file"]');
+      const pictureImg = drawer.getByAltText('Ingredient picture');
+
+      // A host browser can't resolve the harness's internal MinIO host, so answer stored-picture
+      // reads with the fixture most recently uploaded — the picture then really renders.
+      let servedFixture = IMAGE_A_PATH;
+      await page.route('http://minio-test:9000/**', (route) =>
+        route.fulfill({ path: servedFixture, contentType: 'image/png' }),
+      );
+      const naturalWidth = (locator: Locator) =>
+        locator.evaluate((element) => (element as HTMLImageElement).naturalWidth);
+
+      // Upload — the confirm PUT is the signal the picture is actually saved
+      // (the earlier browser-PUT to the pre-signed MinIO url is a different
+      // origin entirely, so matching on `/foods/{foodId}/image` + method
+      // disambiguates it from the upload-url POST, which shares the same
+      // path prefix).
+      const confirmResponseA = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await fileInput.setInputFiles(IMAGE_A_PATH);
+      expect((await confirmResponseA).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Remove picture' })).toBeVisible();
+      expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
+      await expect.poll(() => naturalWidth(pictureImg)).toBe(64);
+
+      // The lightbox is portalled to document.body, outside the drawer's subtree.
+      await drawer.getByRole('button', { name: 'View picture' }).click();
+      const lightbox = page.locator('[data-slot="dialog-content"]');
+      await expect(lightbox).toBeVisible();
+      await expect.poll(() => naturalWidth(lightbox.locator('img'))).toBe(64);
+      await page.keyboard.press('Escape');
+      await expect(lightbox).toHaveCount(0);
+
+      // Replace — same blob key, so the new pixel width proves the cache-buster works.
+      servedFixture = IMAGE_B_PATH;
+      const confirmResponseB = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await fileInput.setInputFiles(IMAGE_B_PATH);
+      expect((await confirmResponseB).status()).toBe(204);
+      await expect.poll(() => naturalWidth(pictureImg)).toBe(128);
+
+      // The list thumbnail opens the same lightbox without opening the drawer. The open drawer is
+      // modal and hides the table from the accessibility tree, so close it first.
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Cancel' }).click();
+      await expect(drawer).toHaveCount(0);
+      const thumbnailButton = page.getByRole('button', { name: `View picture of ${name}` });
+      await expect.poll(() => naturalWidth(thumbnailButton.locator('img'))).toBe(128);
+      await thumbnailButton.click();
+      await expect(lightbox).toBeVisible();
+      await expect(drawer).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(lightbox).toHaveCount(0);
+      await page.getByRole('cell', { name }).getByText(name, { exact: true }).click();
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+
+      // Remove, with confirmation.
+      const removeResponse = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'DELETE',
+      );
+      await drawer.getByRole('button', { name: 'Remove picture' }).click();
+      await expect(page.getByRole('heading', { name: 'Remove picture' })).toBeVisible();
+      await page.getByRole('button', { name: 'Remove', exact: true }).click();
+      expect((await removeResponse).status()).toBe(204);
+      await expect(pictureImg).toHaveCount(0);
+      await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: 'Remove picture' })).toHaveCount(0);
+      expect(await fetchFoodImageUrl(origin, foodId)).toBeNull();
+
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Cancel' }).click();
+    } finally {
+      const cleanupApi = await apiRequest.newContext({ baseURL: origin });
+      try {
+        const accessToken = await loginAsNutritionist(origin);
+        await cleanupApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      } finally {
+        await cleanupApi.dispose();
+      }
+    }
+  });
+
+  test('dropping a file on the empty zone uploads the picture (#1140)', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Picture Drop ${uniqueSuffix}`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (picture drop fixture) returned ${createResponse.status()} ${createResponse.statusText()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (picture drop fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    try {
+      const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+      await page.getByPlaceholder('Search ingredients…').fill(name);
+      await searchResponse;
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('cell', { name }).click();
+
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      const dropZone = drawer.getByRole('button', { name: 'Upload picture' });
+      await expect(dropZone).toBeVisible();
+
+      // Builds a DataTransfer carrying the fixture's actual bytes inside the
+      // page, then dispatches the native drag sequence on the drop zone —
+      // the documented Playwright recipe for simulating an OS file drop,
+      // since a DataTransfer (and the File it carries) can't cross the
+      // Node/browser boundary as a plain value.
+      const imageBase64 = readFileSync(IMAGE_A_PATH).toString('base64');
+      const dataTransfer = await page.evaluateHandle(
+        ({ base64, fileName, mimeType }) => {
+          const transfer = new DataTransfer();
+          const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+          const file = new File([bytes], fileName, { type: mimeType });
+          transfer.items.add(file);
+          return transfer;
+        },
+        { base64: imageBase64, fileName: 'ingredient-picture-a.png', mimeType: 'image/png' },
+      );
+
+      const confirmResponse = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await dropZone.dispatchEvent('dragenter', { dataTransfer });
+      await dropZone.dispatchEvent('dragover', { dataTransfer });
+      await dropZone.dispatchEvent('drop', { dataTransfer });
+      expect((await confirmResponse).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
+
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Cancel' }).click();
+    } finally {
+      const cleanupApi = await apiRequest.newContext({ baseURL: origin });
+      try {
+        const accessToken = await loginAsNutritionist(origin);
+        await cleanupApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      } finally {
+        await cleanupApi.dispose();
+      }
+    }
+  });
+
+  test('a food the caller does not own shows its picture read-only, with no controls', async ({ page, baseURL }) => {
+    const systemFoodName = await findSystemFoodName(baseURL);
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(systemFoodName);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name: systemFoodName, exact: true }).first().click();
+
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
+    await expect(drawer.getByText('Picture', { exact: true })).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Replace picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Remove picture' })).toHaveCount(0);
+
+    await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
   });
 });
 
