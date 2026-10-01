@@ -8,7 +8,8 @@ import type { FoodSummary } from '@/api/food-types';
 import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import LibraryBadge from '@/components/library/LibraryBadge';
 import Thumbnail from '@/components/library/Thumbnail';
-import SortableColumnHeader, { sortAriaValue } from '@/components/library/SortableColumnHeader';
+import SortableColumnHeader from '@/components/library/SortableColumnHeader';
+import { sortAriaValue } from '@/components/library/sortAria';
 import { foodImageCacheKey } from '@/hooks/useIngredientsQueries';
 import TagPill from '@/components/tags/TagPill';
 

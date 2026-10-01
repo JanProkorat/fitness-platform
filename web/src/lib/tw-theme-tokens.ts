@@ -47,6 +47,7 @@ export const SPACING_TOKENS = [
   'swatch',
   'search',
   'drawer',
+  'drawer-wide',
 ] as const;
 
 /** `--tracking-*` — same unknown-class shape as spacing. */

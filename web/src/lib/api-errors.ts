@@ -88,6 +88,23 @@ export function getRfc7807ErrorCode(error: unknown): string | null {
 }
 
 /**
+ * HTTP status of a failed request, for both error shapes: the NSwag
+ * `ApiException` (`.status`) and an `AxiosError` (`.response.status`).
+ * `null` when the value carries no status (e.g. a network failure, or a
+ * ProblemDetails body that NSwag threw directly without its status).
+ */
+export function getErrorStatus(error: unknown): number | null {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+  const candidate = error as { status?: unknown; response?: { status?: unknown } };
+  if (typeof candidate.status === 'number') {
+    return candidate.status;
+  }
+  return typeof candidate.response?.status === 'number' ? candidate.response.status : null;
+}
+
+/**
  * Narrows an unknown thrown value to a ProblemDetails shape — the NSwag
  * `throwException(...)` path described in `getErrorCode`'s doc comment.
  *
