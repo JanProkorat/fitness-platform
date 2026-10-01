@@ -1,5 +1,7 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Recipes.Shared;
 
@@ -64,6 +66,26 @@ public class RecipeSummaryDto
     public int Version { get; set; }
 
     /// <summary>
+    /// True when the recipe belongs to the platform catalog rather than a coach.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
+    /// Number of servings the recipe yields.
+    /// </summary>
+    public int Servings { get; set; } = 1;
+
+    /// <summary>
+    /// Meal types the recipe is suited for.
+    /// </summary>
+    public List<RecipeMealType> MealTypes { get; set; } = [];
+
+    /// <summary>
+    /// Cooking time in minutes, separate from <see cref="PrepTimeMinutes"/>.
+    /// </summary>
+    public int? CookTimeMinutes { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
@@ -85,6 +107,10 @@ public class RecipeSummaryDto
             .Select(f => f.FoodCategory!)
             .Distinct()
             .ToList(),
-        Version = recipe.Version
+        Version = recipe.Version,
+        IsSystem = recipe.NutritionistId == SystemUsers.AdminId,
+        Servings = recipe.Servings,
+        MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
+        CookTimeMinutes = recipe.CookTimeMinutes
     };
 }

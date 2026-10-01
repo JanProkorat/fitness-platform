@@ -54,7 +54,7 @@ public class Food
 
     /// <summary>
     /// List of allergen identifiers (e.g. "gluten", "milk"). Stores <see cref="Enums.Allergen"/>
-    /// names as plain strings — see <see cref="Features.Foods.Shared.FoodEnumListMapping"/> for
+    /// names as plain strings — see <see cref="Services.FoodEnumListMapping"/> for
     /// the tolerant read/write mapping.
     /// </summary>
     [BsonElement("allergens")]

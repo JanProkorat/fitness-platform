@@ -1,4 +1,4 @@
-namespace FitnessPlatform.Application.Features.Foods.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
 /// Maps between the enum lists exposed on food request/response DTOs (<c>List&lt;Allergen&gt;</c>,

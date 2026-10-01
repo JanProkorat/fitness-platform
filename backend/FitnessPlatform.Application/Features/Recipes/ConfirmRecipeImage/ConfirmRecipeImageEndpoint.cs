@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -11,10 +13,13 @@ namespace FitnessPlatform.Application.Features.Recipes.ConfirmRecipeImage;
 /// <summary>
 /// Persists the recipe image blob URL on the recipe document.
 /// Main slot overwrites <c>ImageUrl</c>. Gallery slot appends to <c>GalleryImageUrls</c> (cap = 6).
-/// Only the nutritionist who created the recipe can set its images.
+/// Only the nutritionist who created the recipe can set its images. The blobUrl must be the exact
+/// presigned key issued for this recipe and slot, so a caller cannot persist an arbitrary URL that
+/// is later rendered to other coaches.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class ConfirmRecipeImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmRecipeImageRequest>
+/// <param name="imageUpload">Image upload service — validates the blobUrl against this recipe's presigned key.</param>
+public class ConfirmRecipeImageEndpoint(IMongoContext mongo, IImageUploadService imageUpload) : Endpoint<ConfirmRecipeImageRequest>
 {
     private const int GalleryCap = 6;
 
@@ -69,6 +74,13 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmR
 
         UpdateDefinition<Recipe> update;
 
+        if (!isGallery && !imageUpload.IsValidBlobUrlForSubPath(
+                ImageUploadScope.Recipe, $"{req.RecipeId}/main", req.BlobUrl))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.InvalidBlobUrl, "BlobUrl does not match this recipe's image upload key.");
+            return;
+        }
+
         if (isGallery)
         {
             // Re-check gallery cap at confirm time (race: another confirm could have filled it
@@ -77,6 +89,14 @@ public class ConfirmRecipeImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmR
             {
                 this.ThrowErrorWithCode(ErrorCodes.RecipeGalleryFull,
                     $"The recipe gallery is full. Maximum {GalleryCap} gallery images are allowed.");
+                return;
+            }
+
+            // The next gallery key is gallery-{currentCount}, as issued by the upload-url endpoint.
+            if (!imageUpload.IsValidBlobUrlForSubPath(
+                    ImageUploadScope.Recipe, $"{req.RecipeId}/gallery-{recipe.GalleryImageUrls.Count}", req.BlobUrl))
+            {
+                this.ThrowErrorWithCode(ErrorCodes.InvalidBlobUrl, "BlobUrl does not match this recipe's image upload key.");
                 return;
             }
 

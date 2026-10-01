@@ -1,5 +1,7 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Recipes.Shared;
 
@@ -86,12 +88,49 @@ public class GetRecipeResponse
     public int Version { get; set; }
 
     /// <summary>
+    /// Number of servings the recipe yields.
+    /// </summary>
+    public int Servings { get; set; } = 1;
+
+    /// <summary>
+    /// Preparation difficulty, or null when not set.
+    /// </summary>
+    public RecipeDifficulty? Difficulty { get; set; }
+
+    /// <summary>
+    /// Cooking time in minutes, separate from <see cref="PrepTimeMinutes"/>.
+    /// </summary>
+    public int? CookTimeMinutes { get; set; }
+
+    /// <summary>
+    /// Meal types the recipe is suited for.
+    /// </summary>
+    public List<RecipeMealType> MealTypes { get; set; } = [];
+
+    /// <summary>
+    /// Dietary preferences the recipe satisfies.
+    /// </summary>
+    public List<DietaryPreference> DietaryPreferences { get; set; } = [];
+
+    /// <summary>
+    /// Allergens derived on read from the ingredient foods; never stored on the recipe.
+    /// </summary>
+    public List<Allergen> Allergens { get; set; } = [];
+
+    /// <summary>
+    /// True when the recipe belongs to the platform catalog rather than a coach.
+    /// </summary>
+    public bool IsSystem { get; set; }
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
     /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
+    /// <param name="allergens">Allergens derived from the ingredient foods by the caller.</param>
     /// <returns>A full recipe response.</returns>
-    public static GetRecipeResponse FromDocument(Recipe recipe, Guid? currentUserId = null) => new()
+    public static GetRecipeResponse FromDocument(
+        Recipe recipe, Guid? currentUserId = null, List<Allergen>? allergens = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
@@ -107,11 +146,19 @@ public class GetRecipeResponse
         IsOwnedByCurrentUser = currentUserId.HasValue && recipe.NutritionistId == currentUserId.Value,
         DateCreated = recipe.DateCreated,
         DateUpdated = recipe.DateUpdated,
-        Version = recipe.Version
+        Version = recipe.Version,
+        Servings = recipe.Servings,
+        Difficulty = recipe.Difficulty,
+        CookTimeMinutes = recipe.CookTimeMinutes,
+        MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
+        DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(recipe.DietaryPreferences),
+        Allergens = allergens ?? [],
+        IsSystem = recipe.NutritionistId == SystemUsers.AdminId
     };
 
     /// <summary>
-    /// Maps a recipe, resolving food names using localized names when available.
+    /// Maps a recipe, resolving food names using localized names when available. Allergens are
+    /// derived from the foods in <paramref name="foodLookup"/>.
     /// </summary>
     public static GetRecipeResponse FromDocument(
         Recipe recipe,
@@ -125,6 +172,13 @@ public class GetRecipeResponse
         PrepTimeMinutes = recipe.PrepTimeMinutes,
         Steps = recipe.Steps,
         Note = recipe.Note,
+        Servings = recipe.Servings,
+        Difficulty = recipe.Difficulty,
+        CookTimeMinutes = recipe.CookTimeMinutes,
+        MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
+        DietaryPreferences = FoodEnumListMapping.ParseStoredNames<DietaryPreference>(recipe.DietaryPreferences),
+        Allergens = RecipeContent.DeriveAllergens(recipe, foodLookup),
+        IsSystem = recipe.NutritionistId == SystemUsers.AdminId,
         Foods = recipe.Foods.Select(f =>
         {
             var resolvedName = foodLookup.TryGetValue(f.FoodExternalId, out var food)
