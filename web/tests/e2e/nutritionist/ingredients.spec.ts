@@ -190,7 +190,7 @@ test.describe('ingredients page', () => {
     const boxes = await Promise.all(
       [
         page.getByPlaceholder('Search ingredients…'),
-        page.getByRole('button', { name: 'Category' }),
+        page.getByRole('button', { name: /^Category\b/ }),
         page.getByRole('button', { name: 'Tags' }),
         page.getByRole('button', { name: '+ New Ingredient' }),
       ].map((locator) => locator.boundingBox()),
@@ -206,7 +206,7 @@ test.describe('ingredients page', () => {
   });
 
   test('filtering by two categories returns only rows in those categories', async ({ page }) => {
-    await page.getByRole('button', { name: 'Category' }).click();
+    await page.getByRole('button', { name: /^Category\b/ }).click();
 
     const filterResponse = page.waitForResponse(
       (response) => response.url().includes('/foods/search') && response.url().includes('category='),
@@ -239,7 +239,7 @@ test.describe('ingredients page', () => {
     // Narrow to a single category so the whole result set fits on one page —
     // an exact row-order reversal below only holds if sorting isn't also
     // shuffling which page of results comes back.
-    await page.getByRole('button', { name: 'Category' }).click();
+    await page.getByRole('button', { name: /^Category\b/ }).click();
     const categoryFilterResponse = page.waitForResponse(
       (response) => response.url().includes('/foods/search') && response.url().includes('category='),
     );
@@ -296,8 +296,8 @@ test.describe('ingredients page', () => {
     // Create a private ingredient first so "Mine" has a deterministic match.
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
-    await page.getByLabel('Name').fill(name);
-    await page.getByLabel('Category').selectOption('Fruit');
+    await page.getByLabel(/^Name\b/).fill(name);
+    await page.getByLabel(/^Category\b/).selectOption('Fruit');
     await page.getByLabel('Calories / 100g').fill('50');
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
@@ -376,7 +376,7 @@ test.describe('ingredients page', () => {
 
     await firstRow.click();
     await expect(page.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
-    await expect(page.getByLabel('Name')).toBeDisabled();
+    await expect(page.getByLabel(/^Name\b/)).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Save Ingredient' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0);
     // Scoped to the sheet footer: the corner "x" close button also has the
@@ -392,8 +392,8 @@ test.describe('ingredients page', () => {
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
-    await page.getByLabel('Name').fill(name);
-    await page.getByLabel('Category').selectOption('Fruit');
+    await page.getByLabel(/^Name\b/).fill(name);
+    await page.getByLabel(/^Category\b/).selectOption('Fruit');
     await page.getByLabel('Calories / 100g').fill('50');
     await page.getByLabel('Protein / 100g').fill('1');
     await page.getByLabel('Carbs / 100g').fill('12');
@@ -488,8 +488,8 @@ test.describe('ingredients page', () => {
     await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
     const name = `QA Kcal Check ${Date.now()}`;
-    await page.getByLabel('Name').fill(name);
-    await page.getByLabel('Category').selectOption('Fruit');
+    await page.getByLabel(/^Name\b/).fill(name);
+    await page.getByLabel(/^Category\b/).selectOption('Fruit');
     // 1g protein + 12g carbs + 0g fat = 52 kcal by the ±10% rule; 500 is far
     // outside that range, so CreateFoodEndpoint's KCAL_INCONSISTENT check
     // rejects it with a 400 — the drawer must surface that inline on the
@@ -602,7 +602,7 @@ test.describe('ingredients page', () => {
     // field must load the CANONICAL name instead.
     await page.getByRole('cell', { name: nameEn }).click();
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
-    await expect(page.getByLabel('Name')).toHaveValue(baseName);
+    await expect(page.getByLabel(/^Name\b/)).toHaveValue(baseName);
 
     await page.getByRole('button', { name: 'Save Ingredient' }).click();
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
@@ -658,7 +658,7 @@ test.describe('food tags (#1120)', () => {
     await popoverContent.getByRole('button', { name: 'Create tag' }).click();
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('heading', { name: 'Create a new tag' })).toBeVisible();
-    await dialog.getByLabel('Name').fill(tagName);
+    await dialog.getByLabel(/^Name\b/).fill(tagName);
 
     const submitButton = dialog.getByRole('button', { name: 'Create tag', exact: true });
     await expect(submitButton).toBeEnabled();
@@ -686,7 +686,7 @@ test.describe('food tags (#1120)', () => {
     // two elements and throws a strict-mode violation.
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'Ingredient' })).toBeVisible();
-    await expect(drawer.getByLabel('Name')).toBeDisabled();
+    await expect(drawer.getByLabel(/^Name\b/)).toBeDisabled();
 
     await expect(drawer.getByText('My Tags')).toBeVisible();
     await drawer.getByRole('button', { name: 'Assign tags' }).click();
@@ -929,8 +929,8 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
     const createDrawer = page.locator('[data-slot="sheet-content"]');
     await expect(createDrawer.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
 
-    await createDrawer.getByLabel('Name').fill(name);
-    await createDrawer.getByLabel('Category').selectOption('Fruit');
+    await createDrawer.getByLabel(/^Name\b/).fill(name);
+    await createDrawer.getByLabel(/^Category\b/).selectOption('Fruit');
     await createDrawer.getByLabel('Protein / 100g').fill('1');
     await createDrawer.getByLabel('Carbs / 100g').fill('12');
     await createDrawer.getByLabel('Fat / 100g').fill('0');
@@ -966,8 +966,8 @@ test.describe('fibre field and calorie auto-fill (#1126)', () => {
 
     await page.getByRole('button', { name: '+ New Ingredient' }).click();
     const createDrawer = page.locator('[data-slot="sheet-content"]');
-    await createDrawer.getByLabel('Name').fill(name);
-    await createDrawer.getByLabel('Category').selectOption('Fruit');
+    await createDrawer.getByLabel(/^Name\b/).fill(name);
+    await createDrawer.getByLabel(/^Category\b/).selectOption('Fruit');
     await createDrawer.getByLabel('Calories / 100g').fill('50');
     await createDrawer.getByLabel('Protein / 100g').fill('1');
     await createDrawer.getByLabel('Carbs / 100g').fill('12');
