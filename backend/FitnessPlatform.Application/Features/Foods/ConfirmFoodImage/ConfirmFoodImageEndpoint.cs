@@ -2,7 +2,9 @@ using System.Security.Claims;
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Interfaces;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -12,9 +14,14 @@ namespace FitnessPlatform.Application.Features.Foods.ConfirmFoodImage;
 /// Persists the food image blob URL on the food document.
 /// Main slot overwrites <c>ImageUrl</c>. Gallery slot appends to <c>GalleryImageUrls</c> (cap = 6).
 /// Only the nutritionist who created the food can set its images.
+/// For the main slot, the blobUrl is additionally validated against the food's
+/// presigned key (see <see cref="IImageUploadService.IsValidBlobUrlForSubPath"/>) so an
+/// attacker cannot persist an arbitrary or foreign URL that would later be rendered
+/// to other coaches browsing the public food library.
 /// </summary>
 /// <param name="mongo">MongoDB context.</param>
-public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoodImageRequest>
+/// <param name="imageUpload">Image upload service — validates the main-slot blobUrl matches this food's presigned key.</param>
+public class ConfirmFoodImageEndpoint(IMongoContext mongo, IImageUploadService imageUpload) : Endpoint<ConfirmFoodImageRequest>
 {
     private const int GalleryCap = 6;
 
@@ -66,6 +73,17 @@ public class ConfirmFoodImageEndpoint(IMongoContext mongo) : Endpoint<ConfirmFoo
         }
 
         var isGallery = req.Slot.Equals("gallery", StringComparison.OrdinalIgnoreCase);
+
+        // Reject any main-slot blobUrl that isn't exactly the presigned key issued by
+        // POST /foods/{id}/image/upload-url for this food. Without this check an attacker
+        // could persist an arbitrary external URL that gets rendered to other coaches
+        // browsing the public food library (stored-content injection). This cannot live
+        // in the validator — it has no access to the food's identity-scoped key.
+        if (!isGallery && !imageUpload.IsValidBlobUrlForSubPath(ImageUploadScope.Food, req.FoodId.ToString(), req.BlobUrl))
+        {
+            this.ThrowErrorWithCode(ErrorCodes.InvalidBlobUrl, "BlobUrl does not match this food's image upload key.");
+            return;
+        }
 
         UpdateDefinition<Food> update;
 
