@@ -993,6 +993,8 @@
     "picture": {
       "sectionLabel": "Picture",
       "upload": "Upload picture",
+      "dropHint": "Drag a picture here or click to upload",
+      "dropLimits": "JPEG, PNG, or WebP, up to 5 MB.",
       "replace": "Replace picture",
       "remove": "Remove picture",
       "removeConfirmTitle": "Remove picture",

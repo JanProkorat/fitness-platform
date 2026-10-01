@@ -1014,6 +1014,8 @@
     "picture": {
       "sectionLabel": "Obrázek",
       "upload": "Nahrát obrázek",
+      "dropHint": "Přetáhněte obrázek sem nebo klikněte pro výběr",
+      "dropLimits": "JPEG, PNG nebo WebP, max. 5 MB.",
       "replace": "Nahradit obrázek",
       "remove": "Odebrat obrázek",
       "removeConfirmTitle": "Odebrat obrázek",

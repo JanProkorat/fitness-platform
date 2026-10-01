@@ -992,6 +992,8 @@
     "picture": {
       "sectionLabel": "Bild",
       "upload": "Bild hochladen",
+      "dropHint": "Bild hierher ziehen oder zum Hochladen klicken",
+      "dropLimits": "JPEG, PNG oder WebP, max. 5 MB.",
       "replace": "Bild ersetzen",
       "remove": "Bild entfernen",
       "removeConfirmTitle": "Bild entfernen",

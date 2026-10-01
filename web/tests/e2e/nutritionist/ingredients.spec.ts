@@ -16,6 +16,7 @@
  * (only) under the `nutritionist` project, same as every other test here.
  */
 import { request as apiRequest } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nutritionistTest as test, trainerTest, expect } from '../fixtures/auth';
@@ -1355,6 +1356,91 @@ test.describe('ingredient picture (#1140)', () => {
       await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
       await expect(drawer.getByRole('button', { name: 'Remove picture' })).toHaveCount(0);
       expect(await fetchFoodImageUrl(origin, foodId)).toBeNull();
+
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
+    } finally {
+      const cleanupApi = await apiRequest.newContext({ baseURL: origin });
+      try {
+        const accessToken = await loginAsNutritionist(origin);
+        await cleanupApi.delete(`/foods/${foodId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      } finally {
+        await cleanupApi.dispose();
+      }
+    }
+  });
+
+  test('dropping a file on the empty zone uploads the picture (#1140)', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const uniqueSuffix = Date.now();
+    const name = `QA Picture Drop ${uniqueSuffix}`;
+
+    const createApi = await apiRequest.newContext({ baseURL: origin });
+    let foodId: string;
+    try {
+      const accessToken = await loginAsNutritionist(origin);
+      const createResponse = await createApi.post('/foods', {
+        data: {
+          name,
+          category: 'Fruit',
+          nutrientValue: { kcal: 50, protein: 1, carbs: 12, fat: 0 },
+          allergens: [],
+          dietaryPreferences: [],
+          commonServings: [{ label: 'piece', weightGrams: 120 }],
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!createResponse.ok()) {
+        throw new Error(
+          `[ingredients] POST /foods (picture drop fixture) returned ${createResponse.status()} ${createResponse.statusText()}.`,
+        );
+      }
+      const created = (await createResponse.json()) as FoodApiBody;
+      if (!created.foodId) {
+        throw new Error('[ingredients] POST /foods (picture drop fixture) returned no foodId.');
+      }
+      foodId = created.foodId;
+    } finally {
+      await createApi.dispose();
+    }
+
+    try {
+      const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+      await page.getByPlaceholder('Search ingredients…').fill(name);
+      await searchResponse;
+      await page.waitForLoadState('networkidle');
+      await page.getByRole('cell', { name }).click();
+
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+      const dropZone = drawer.getByRole('button', { name: 'Upload picture' });
+      await expect(dropZone).toBeVisible();
+
+      // Builds a DataTransfer carrying the fixture's actual bytes inside the
+      // page, then dispatches the native drag sequence on the drop zone —
+      // the documented Playwright recipe for simulating an OS file drop,
+      // since a DataTransfer (and the File it carries) can't cross the
+      // Node/browser boundary as a plain value.
+      const imageBase64 = readFileSync(IMAGE_A_PATH).toString('base64');
+      const dataTransfer = await page.evaluateHandle(
+        ({ base64, fileName, mimeType }) => {
+          const transfer = new DataTransfer();
+          const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+          const file = new File([bytes], fileName, { type: mimeType });
+          transfer.items.add(file);
+          return transfer;
+        },
+        { base64: imageBase64, fileName: 'ingredient-picture-a.png', mimeType: 'image/png' },
+      );
+
+      const confirmResponse = page.waitForResponse(
+        (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
+      );
+      await dropZone.dispatchEvent('dragenter', { dataTransfer });
+      await dropZone.dispatchEvent('dragover', { dataTransfer });
+      await dropZone.dispatchEvent('drop', { dataTransfer });
+      expect((await confirmResponse).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
 
       await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
     } finally {
