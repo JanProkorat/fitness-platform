@@ -9,6 +9,7 @@ import {
   type CreateFoodTagRequest,
   type UpdateFoodTagRequest,
 } from '@/api/food-tags';
+import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
 import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
@@ -24,6 +25,7 @@ import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
 export function useIngredients(filters: IngredientListFilters) {
   const tagsKey = [...filters.tags].sort().join(',');
   const categoriesKey = [...filters.categories].sort().join(',');
+  const ownersKey = [...filters.owners].sort().join(',');
 
   return useQuery({
     queryKey: [
@@ -33,6 +35,9 @@ export function useIngredients(filters: IngredientListFilters) {
         search: filters.search,
         categoriesKey,
         tagsKey,
+        ownersKey,
+        sortBy: filters.sortBy,
+        sortDir: filters.sortDir,
         page: filters.page,
         pageSize: filters.pageSize,
       },
@@ -42,8 +47,17 @@ export function useIngredients(filters: IngredientListFilters) {
         q: filters.search || undefined,
         categories: filters.categories,
         tagIds: filters.tags,
+        owners: filters.owners,
         page: filters.page,
         pageSize: filters.pageSize,
+        // A cleared sort (`sort=none` in the URL, filters.sortBy === null)
+        // must still request a deterministic order — newest first — rather
+        // than fall back to the backend's own no-sortBy default (Name
+        // ascending). This is a wire-request mapping only: the URL keeps
+        // `sort=none` (see useIngredientListParams' CLEARED_SORT), and
+        // DateCreated never becomes a clickable column header.
+        sortBy: filters.sortBy ?? FoodSortField.DateCreated,
+        sortDir: filters.sortBy ? filters.sortDir : FoodSortDirection.Descending,
       }),
     placeholderData: keepPreviousData,
   });

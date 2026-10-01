@@ -11257,12 +11257,21 @@ export class ApiClient {
     binds a one-item list.
      * @param tagIds Optional tags filter — matches a food the caller has tagged with ANY of the supplied
     TagId values (#1120). At most 20.
+     * @param owner Optional owner filter — matches a food whose ownership falls under ANY of the supplied
+    FoodOwnerFilter values. Bound from the repeated owner query param, so
+    a single ?owner=Mine still binds a one-item list. At most 3 (one per enum member).
+    None supplied applies no owner filter.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param q (optional) Free-text search query.
+     * @param sortBy (optional) Column to sort by. null (the default) means no explicit sort —
+    newest-created foods first.
+     * @param sortDir (optional) Direction for SortBy. Defaults to Ascending
+    when SortBy is set but this is omitted. Ignored when SortBy is
+    null.
      * @return Matching foods
      */
-    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], page: number, pageSize: number, q?: string | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
+    searchFoodsEndpoint(category: FoodCategory[], tagIds: string[], owner: FoodOwnerFilter[], page: number, pageSize: number, q?: string | null | undefined, sortBy?: FoodSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchFoodsResponse> {
         let url_ = this.baseUrl + "/foods/search?";
         if (category === undefined || category === null)
             throw new globalThis.Error("The parameter 'category' must be defined and cannot be null.");
@@ -11272,6 +11281,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'tagIds' must be defined and cannot be null.");
         else
             tagIds && tagIds.forEach(item => { url_ += "tagIds=" + encodeURIComponent("" + item) + "&"; });
+        if (owner === undefined || owner === null)
+            throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
+        else
+            owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -11282,6 +11295,10 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (q !== undefined && q !== null)
             url_ += "q=" + encodeURIComponent("" + q) + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDir !== undefined && sortDir !== null)
+            url_ += "sortDir=" + encodeURIComponent("" + sortDir) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -11326,7 +11343,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Invalid page, page size, tags filter, or category filter", status, _responseText, _headers, result400);
+            return throwException("Invalid page, page size, tags filter, category filter, owner filter, or sort field/direction", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -21808,6 +21825,28 @@ export interface SearchFoodsResponse {
 
 /** Request model for searching foods. */
 export interface SearchFoodsRequest {
+}
+
+/** Scopes a food search to a subset of owners — backs the Ingredients page's "Owner" filter pill. Selecting several values ORs them together; none selected applies no owner filter. */
+export enum FoodOwnerFilter {
+    Mine = "Mine",
+    System = "System",
+    OtherCoaches = "OtherCoaches",
+}
+
+/** Sortable columns on the Ingredients page's food search. */
+export enum FoodSortField {
+    Name = "Name",
+    Calories = "Calories",
+    Category = "Category",
+    Library = "Library",
+    DateCreated = "DateCreated",
+}
+
+/** Sort direction for a FoodSortField. Named to avoid ambiguity with MongoDB.Driver.SortDirection, which is in scope wherever Mongo sort builders are used. */
+export enum FoodSortDirection {
+    Ascending = "Ascending",
+    Descending = "Descending",
 }
 
 /** The resulting tag set assigned to the food, for the calling nutritionist. */

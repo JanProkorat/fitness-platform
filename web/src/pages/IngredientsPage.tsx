@@ -10,6 +10,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { FoodSummary } from '@/api/food-types';
 import IngredientCategoryFilterPopover from '@/components/ingredients/IngredientCategoryFilterPopover';
 import IngredientTagFilterPopover from '@/components/ingredients/IngredientTagFilterPopover';
+import IngredientOwnerFilterPopover from '@/components/ingredients/IngredientOwnerFilterPopover';
 import IngredientsTable from '@/components/ingredients/IngredientsTable';
 import IngredientsPagination from '@/components/ingredients/IngredientsPagination';
 import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
@@ -23,7 +24,8 @@ import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
  */
 export default function IngredientsPage() {
   const { t } = useTranslation();
-  const { filters, setSearch, setCategories, setTags, setPage, clearFilters } = useIngredientListParams();
+  const { filters, setSearch, setCategories, setTags, setOwners, cycleSort, setPage, clearFilters } =
+    useIngredientListParams();
   const roles = useAuthStore((s) => s.user?.roles ?? []);
   const isNutritionist = roles.includes('Nutritionist');
 
@@ -47,8 +49,15 @@ export default function IngredientsPage() {
     }
   });
 
-  const ingredientsQuery = useIngredients(filters);
-  const hasActiveFilter = filters.search !== '' || filters.categories.length > 0 || filters.tags.length > 0;
+  // Only nutritionists can own foods, so the Owner filter is meaningless for
+  // a trainer-only coach — hidden same as the Tags pill below. An `owner=`
+  // value left over in the URL (e.g. a bookmark from when the caller was a
+  // nutritionist) must not silently filter a trainer-only coach's results,
+  // so it's excluded from both the request and `hasActiveFilter` here.
+  const effectiveOwners = isNutritionist ? filters.owners : [];
+  const ingredientsQuery = useIngredients({ ...filters, owners: effectiveOwners });
+  const hasActiveFilter =
+    filters.search !== '' || filters.categories.length > 0 || filters.tags.length > 0 || effectiveOwners.length > 0;
 
   function openCreateDrawer() {
     setSelectedFood(null);
@@ -92,6 +101,10 @@ export default function IngredientsPage() {
           />
         </div>
         <IngredientCategoryFilterPopover selectedCategories={filters.categories} onChange={setCategories} />
+        {/* Only nutritionists can own foods (#1139) — a trainer-only coach
+            gets no Owner filter UI at all, not even the empty pill, same
+            reasoning as the Tags pill below. */}
+        {isNutritionist && <IngredientOwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
         {/* Food tags are nutritionist-owned (#1120) — a trainer-only coach
             gets no tag UI at all, not even the empty filter pill. */}
         {isNutritionist && <IngredientTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
@@ -122,6 +135,9 @@ export default function IngredientsPage() {
             onClearFilters={clearFilters}
             onRowClick={openRowDrawer}
             isNutritionist={isNutritionist}
+            sortBy={filters.sortBy}
+            sortDir={filters.sortDir}
+            onSortChange={cycleSort}
           />
         </div>
         <IngredientsPagination

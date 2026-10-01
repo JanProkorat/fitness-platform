@@ -1,12 +1,70 @@
 import { useTranslation } from 'react-i18next';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { FoodSummary } from '@/api/food-types';
+import { FoodSortDirection, FoodSortField } from '@/api/food-types';
 import LibraryBadge from '@/components/ingredients/LibraryBadge';
 import TagPill from '@/components/tags/TagPill';
 
 const SKELETON_ROW_COUNT = 5;
+
+function sortAriaValue(sortBy: FoodSortField | null, sortDir: FoodSortDirection, field: FoodSortField) {
+  if (sortBy !== field) {
+    return 'none' as const;
+  }
+  return sortDir === FoodSortDirection.Descending ? ('descending' as const) : ('ascending' as const);
+}
+
+interface SortIconProps {
+  active: boolean;
+  sortDir: FoodSortDirection;
+}
+
+function SortIcon({ active, sortDir }: SortIconProps) {
+  if (!active) {
+    return <ArrowUpDown className="size-3.5 text-muted-foreground/50" aria-hidden="true" />;
+  }
+  return sortDir === FoodSortDirection.Descending ? (
+    <ArrowDown className="size-3.5" aria-hidden="true" />
+  ) : (
+    <ArrowUp className="size-3.5" aria-hidden="true" />
+  );
+}
+
+interface SortableColumnHeaderProps {
+  field: FoodSortField;
+  label: string;
+  sortBy: FoodSortField | null;
+  sortDir: FoodSortDirection;
+  onSortChange: (field: FoodSortField) => void;
+  sortButtonLabel: string;
+}
+
+/** Declared at module scope — a component declared inside `IngredientsTable`'s
+ * render body would be re-created every render, resetting its internal state
+ * each time (`react-hooks/static-components`). */
+function SortableColumnHeader({
+  field,
+  label,
+  sortBy,
+  sortDir,
+  onSortChange,
+  sortButtonLabel,
+}: SortableColumnHeaderProps) {
+  return (
+    <button
+      type="button"
+      className="flex cursor-pointer items-center gap-1"
+      onClick={() => onSortChange(field)}
+      aria-label={sortButtonLabel}
+    >
+      {label}
+      <SortIcon active={sortBy === field} sortDir={sortDir} />
+    </button>
+  );
+}
 
 interface Props {
   foods: FoodSummary[];
@@ -19,6 +77,11 @@ interface Props {
   /** Gates the Tags column (#1120) — food tags are nutritionist-owned, so a
    * trainer-only coach gets no tag chips at all, not even an empty column. */
   isNutritionist: boolean;
+  /** Current sort column, or `null` when the list is unsorted (#1139). */
+  sortBy: FoodSortField | null;
+  sortDir: FoodSortDirection;
+  /** Cycles the clicked column's sort state: ascending → descending → cleared. */
+  onSortChange: (field: FoodSortField) => void;
 }
 
 /** The Ingredients table. Mirrors `ClientsTable` (`@/components/clients/ClientsTable.tsx`). */
@@ -31,9 +94,23 @@ export default function IngredientsTable({
   onClearFilters,
   onRowClick,
   isNutritionist,
+  sortBy,
+  sortDir,
+  onSortChange,
 }: Props) {
   const { t } = useTranslation();
   const columnCount = isNutritionist ? 6 : 5;
+
+  function sortableHeaderProps(field: FoodSortField, label: string) {
+    return {
+      field,
+      label,
+      sortBy,
+      sortDir,
+      onSortChange,
+      sortButtonLabel: t('ingredients.table.sortButtonLabel', { column: label }),
+    };
+  }
 
   return (
     <Table>
@@ -48,14 +125,28 @@ export default function IngredientsTable({
               point 3: 120/180/180/100) via Tailwind's spacing scale, which
               is itself token-driven off the single `--spacing` base — not a
               one-off literal. */}
-          <TableHead className="px-5 py-3">{t('ingredients.table.columnName')}</TableHead>
-          <TableHead className="w-30 px-5 py-3">{t('ingredients.table.columnCalories')}</TableHead>
+          <TableHead className="px-5 py-3" aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Name)}>
+            <SortableColumnHeader {...sortableHeaderProps(FoodSortField.Name, t('ingredients.table.columnName'))} />
+          </TableHead>
+          <TableHead className="w-30 px-5 py-3" aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Calories)}>
+            <SortableColumnHeader
+              {...sortableHeaderProps(FoodSortField.Calories, t('ingredients.table.columnCalories'))}
+            />
+          </TableHead>
           <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnNutrients')}</TableHead>
-          <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnCategory')}</TableHead>
+          <TableHead className="w-45 px-5 py-3" aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Category)}>
+            <SortableColumnHeader
+              {...sortableHeaderProps(FoodSortField.Category, t('ingredients.table.columnCategory'))}
+            />
+          </TableHead>
           {isNutritionist && (
             <TableHead className="w-45 px-5 py-3">{t('ingredients.table.columnTags')}</TableHead>
           )}
-          <TableHead className="w-25 px-5 py-3">{t('ingredients.table.columnLibrary')}</TableHead>
+          <TableHead className="w-25 px-5 py-3" aria-sort={sortAriaValue(sortBy, sortDir, FoodSortField.Library)}>
+            <SortableColumnHeader
+              {...sortableHeaderProps(FoodSortField.Library, t('ingredients.table.columnLibrary'))}
+            />
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

@@ -812,7 +812,13 @@
     "filters": {
       "category": "Category",
       "tags": "Tags",
-      "tagsEmpty": "No tags yet."
+      "tagsEmpty": "No tags yet.",
+      "owner": "Owner",
+      "ownerOptions": {
+        "Mine": "Mine",
+        "System": "System",
+        "OtherCoaches": "Other coaches"
+      }
     },
     "table": {
       "columnName": "Name",
@@ -824,7 +830,8 @@
       "caloriesValue": "{{count}} kcal / 100g",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "C: {{count}} g",
-      "fatValue": "F: {{count}} g"
+      "fatValue": "F: {{count}} g",
+      "sortButtonLabel": "Sort by {{column}}"
     },
     "tags": {
       "createError": "Couldn't create the tag. Please try again.",

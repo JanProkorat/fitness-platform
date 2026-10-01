@@ -91,4 +91,73 @@ public class SearchFoodsValidatorTests
         result.ShouldHaveValidationErrorFor(x => x.Categories)
             .WithErrorMessage($"At most {categoryCount} categories may be supplied.");
     }
+
+    [Fact]
+    public void Validate_InvalidOwnerEnumValue_FailsValidation()
+    {
+        var request = new SearchFoodsRequest { Owners = [(FoodOwnerFilter)999] };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        // Same shape-check caveat as Validate_InvalidCategoryEnumValue_FailsValidation above.
+        result.ShouldHaveValidationErrorFor(x => x.Owners);
+    }
+
+    [Fact]
+    public void Validate_MoreThanThreeOwners_FailsWithCorrectMessage()
+    {
+        // #1139 MAJOR: owners are capped at 3 — one extra beyond every distinct enum member
+        // necessarily has a duplicate.
+        var request = new SearchFoodsRequest
+        {
+            Owners = [FoodOwnerFilter.Mine, FoodOwnerFilter.System, FoodOwnerFilter.OtherCoaches, FoodOwnerFilter.Mine]
+        };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.Owners)
+            .WithErrorMessage("At most 3 owner values may be supplied.");
+    }
+
+    [Fact]
+    public void Validate_AllThreeOwners_Passes()
+    {
+        var request = new SearchFoodsRequest
+        {
+            Owners = [FoodOwnerFilter.Mine, FoodOwnerFilter.System, FoodOwnerFilter.OtherCoaches]
+        };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Owners);
+    }
+
+    [Fact]
+    public void Validate_InvalidSortByEnumValue_FailsValidation()
+    {
+        var request = new SearchFoodsRequest { SortBy = (FoodSortField)999 };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.SortBy);
+    }
+
+    [Fact]
+    public void Validate_InvalidSortDirEnumValue_FailsValidation()
+    {
+        var request = new SearchFoodsRequest { SortDir = (FoodSortDirection)999 };
+
+        var result = new SearchFoodsValidator().TestValidate(request);
+
+        result.ShouldHaveValidationErrorFor(x => x.SortDir);
+    }
+
+    [Fact]
+    public void Validate_NullSortByAndSortDir_Passes()
+    {
+        var result = new SearchFoodsValidator().TestValidate(new SearchFoodsRequest());
+
+        result.ShouldNotHaveValidationErrorFor(x => x.SortBy);
+        result.ShouldNotHaveValidationErrorFor(x => x.SortDir);
+    }
 }

@@ -11,6 +11,9 @@ import type {
   ConfirmFoodImageRequest,
   FoodSummary,
   FoodCategory,
+  FoodOwnerFilter,
+  FoodSortField,
+  FoodSortDirection,
   CreateFoodRequest,
   UpdateFoodRequest,
 } from '@/api/generated';
@@ -29,8 +32,17 @@ export interface SearchFoodsParams {
    * serialises it as a repeated `tagIds=` query parameter; hand-building
    * that URL is exactly how the tags filter goes silently wrong. */
   tagIds: string[];
+  /** Matches a food whose ownership falls under ANY of the supplied
+   * `FoodOwnerFilter` values (#1139). Always passed through (even empty) —
+   * same repeated-query-param shape as `categories`/`tagIds` above. */
+  owners: FoodOwnerFilter[];
   page: number;
   pageSize: number;
+  /** Column to sort by. `undefined` means no explicit sort — the backend
+   * returns newest-created foods first. */
+  sortBy?: FoodSortField;
+  /** Direction for `sortBy`. Ignored by the backend when `sortBy` is omitted. */
+  sortDir?: FoodSortDirection;
 }
 
 export interface SearchFoodsResult {
@@ -48,9 +60,12 @@ export async function searchFoods(params: SearchFoodsParams): Promise<SearchFood
   const response = await apiClient.searchFoodsEndpoint(
     params.categories,
     params.tagIds,
+    params.owners,
     params.page,
     params.pageSize,
     params.q,
+    params.sortBy,
+    params.sortDir,
   );
   return {
     foods: response.foods ?? [],
