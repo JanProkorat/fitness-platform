@@ -46,8 +46,16 @@ const SELECT_CLASS =
 
 type TabValue = 'details' | 'ingredients' | 'preparation';
 
-function optionalMinutes(value: string): number | undefined {
-  return value.trim() === '' ? undefined : Number(value);
+// react-hook-form also runs setValueAs on the field's default value, which can be
+// a number or the API's null — not only the input's string.
+function optionalMinutes(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value !== 'string' || value.trim() === '') {
+    return undefined;
+  }
+  return Number(value);
 }
 
 const formSchema = z.object({
@@ -81,8 +89,8 @@ function valuesFromRecipe(recipe: GetRecipeResponse): FormValues {
     description: recipe.description ?? '',
     mealTypes: (recipe.mealTypes ?? []) as string[],
     difficulty: recipe.difficulty ?? '',
-    prepTimeMinutes: recipe.prepTimeMinutes,
-    cookTimeMinutes: recipe.cookTimeMinutes,
+    prepTimeMinutes: recipe.prepTimeMinutes ?? undefined,
+    cookTimeMinutes: recipe.cookTimeMinutes ?? undefined,
     dietaryPreferences: (recipe.dietaryPreferences ?? []) as string[],
   };
 }
