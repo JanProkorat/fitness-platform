@@ -15,7 +15,7 @@
  * test built on `trainerTest` inside this `nutritionist/` file still runs
  * (only) under the `nutritionist` project, same as every other test here.
  */
-import { request as apiRequest } from '@playwright/test';
+import { request as apiRequest, type Locator } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -1303,6 +1303,15 @@ test.describe('ingredient picture (#1140)', () => {
       const fileInput = drawer.locator('input[type="file"]');
       const pictureImg = drawer.getByAltText('Ingredient picture');
 
+      // A host browser can't resolve the harness's internal MinIO host, so answer stored-picture
+      // reads with the fixture most recently uploaded — the picture then really renders.
+      let servedFixture = IMAGE_A_PATH;
+      await page.route('http://minio-test:9000/**', (route) =>
+        route.fulfill({ path: servedFixture, contentType: 'image/png' }),
+      );
+      const naturalWidth = (locator: Locator) =>
+        locator.evaluate((element) => (element as HTMLImageElement).naturalWidth);
+
       // Upload — the confirm PUT is the signal the picture is actually saved
       // (the earlier browser-PUT to the pre-signed MinIO url is a different
       // origin entirely, so matching on `/foods/{foodId}/image` + method
@@ -1316,28 +1325,38 @@ test.describe('ingredient picture (#1140)', () => {
       await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
       await expect(drawer.getByRole('button', { name: 'Remove picture' })).toBeVisible();
       expect(await fetchFoodImageUrl(origin, foodId)).toContain(foodId);
+      await expect.poll(() => naturalWidth(pictureImg)).toBe(64);
 
-      // Open the picture in the lightbox (#1140) and close it with Escape.
-      // The lightbox is a Dialog portalled to document.body, so it sits
-      // outside `drawer`'s own DOM subtree — query it from `page`, scoped by
-      // `data-slot="dialog-content"` (the drawer itself is `sheet-content`,
-      // a different primitive, so there's no ambiguity). Assert on the
-      // lightbox image's `src`, not pixels — on a host run the img may have
-      // failed to actually load (see this describe block's header comment).
+      // The lightbox is portalled to document.body, outside the drawer's subtree.
       await drawer.getByRole('button', { name: 'View picture' }).click();
       const lightbox = page.locator('[data-slot="dialog-content"]');
       await expect(lightbox).toBeVisible();
-      await expect(lightbox.locator('img')).toHaveAttribute('src', new RegExp(foodId));
+      await expect.poll(() => naturalWidth(lightbox.locator('img'))).toBe(64);
       await page.keyboard.press('Escape');
       await expect(lightbox).toHaveCount(0);
 
-      // Replace with a second image.
+      // Replace — same blob key, so the new pixel width proves the cache-buster works.
+      servedFixture = IMAGE_B_PATH;
       const confirmResponseB = page.waitForResponse(
         (response) => response.url().includes(`/foods/${foodId}/image`) && response.request().method() === 'PUT',
       );
       await fileInput.setInputFiles(IMAGE_B_PATH);
       expect((await confirmResponseB).status()).toBe(204);
-      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+      await expect.poll(() => naturalWidth(pictureImg)).toBe(128);
+
+      // The list thumbnail opens the same lightbox without opening the drawer. The open drawer is
+      // modal and hides the table from the accessibility tree, so close it first.
+      await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Cancel' }).click();
+      await expect(drawer).toHaveCount(0);
+      const thumbnailButton = page.getByRole('button', { name: `View picture of ${name}` });
+      await expect.poll(() => naturalWidth(thumbnailButton.locator('img'))).toBe(128);
+      await thumbnailButton.click();
+      await expect(lightbox).toBeVisible();
+      await expect(drawer).toHaveCount(0);
+      await page.keyboard.press('Escape');
+      await expect(lightbox).toHaveCount(0);
+      await page.getByRole('cell', { name }).getByText(name, { exact: true }).click();
+      await expect(drawer.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
 
       // Remove, with confirmation.
       const removeResponse = page.waitForResponse(
