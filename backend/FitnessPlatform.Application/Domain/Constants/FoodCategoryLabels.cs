@@ -4,7 +4,7 @@ namespace FitnessPlatform.Application.Domain.Constants;
 
 /// <summary>
 /// Localized display labels for <see cref="FoodCategory"/>, copied verbatim from the
-/// <c>foods.category*</c> keys in <c>web/src/i18n/locales/{cs,en,de}.json</c>. Backs the
+/// <c>ingredients.category.*</c> keys in <c>web/src/i18n/locales/{cs,en,de}.json</c>. Backs the
 /// alphabetical-by-label category sort in <c>SearchFoodsEndpoint</c> (#1139) — if a label ever
 /// changes in those locale files, update the matching entry here too.
 /// </summary>
@@ -34,13 +34,13 @@ public static class FoodCategoryLabels
         [FoodCategory.Fruit] = "Fruit",
         [FoodCategory.Vegetables] = "Vegetables",
         [FoodCategory.Meat] = "Meat",
-        [FoodCategory.FishAndSeafood] = "Fish & Seafood",
+        [FoodCategory.FishAndSeafood] = "Fish and Seafood",
         [FoodCategory.Dairy] = "Dairy",
-        [FoodCategory.GrainsAndCereals] = "Grains & Cereals",
+        [FoodCategory.GrainsAndCereals] = "Grains and Cereals",
         [FoodCategory.Legumes] = "Legumes",
-        [FoodCategory.NutsAndSeeds] = "Nuts & Seeds",
-        [FoodCategory.OilsAndFats] = "Oils & Fats",
-        [FoodCategory.SweetsAndSnacks] = "Sweets & Snacks",
+        [FoodCategory.NutsAndSeeds] = "Nuts and Seeds",
+        [FoodCategory.OilsAndFats] = "Oils and Fats",
+        [FoodCategory.SweetsAndSnacks] = "Sweets and Snacks",
         [FoodCategory.Beverages] = "Beverages",
         [FoodCategory.Supplements] = "Supplements",
         [FoodCategory.Other] = "Other"
@@ -60,7 +60,7 @@ public static class FoodCategoryLabels
         [FoodCategory.OilsAndFats] = "Öle & Fette",
         [FoodCategory.SweetsAndSnacks] = "Süßigkeiten & Snacks",
         [FoodCategory.Beverages] = "Getränke",
-        [FoodCategory.Supplements] = "Nahrungsergänzung",
+        [FoodCategory.Supplements] = "Nahrungsergänzungsmittel",
         [FoodCategory.Other] = "Sonstiges"
     };
 

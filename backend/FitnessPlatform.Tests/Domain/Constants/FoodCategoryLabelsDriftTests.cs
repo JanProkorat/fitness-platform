@@ -7,7 +7,7 @@ namespace FitnessPlatform.Tests.Domain.Constants;
 
 /// <summary>
 /// Guards <see cref="FoodCategoryLabels"/> against drifting from the web portal's own source of
-/// truth — <c>web/src/i18n/locales/{cs,en,de}.json</c>'s <c>foods.category*</c> keys (#1139).
+/// truth — <c>web/src/i18n/locales/{cs,en,de}.json</c>'s <c>ingredients.category.*</c> keys (what the Ingredients table shows) (#1139).
 /// Reads the three locale files directly off disk instead of duplicating their content in a
 /// fixture, so a translator editing a label in the web package fails this backend test too.
 /// </summary>
@@ -23,21 +23,21 @@ public class FoodCategoryLabelsDriftTests
         File.Exists(localeFilePath).Should().BeTrue($"the web locale file should exist at {localeFilePath}");
 
         using var document = JsonDocument.Parse(File.ReadAllText(localeFilePath));
-        var foodsSection = document.RootElement.GetProperty("foods");
+        var categorySection = document.RootElement.GetProperty("ingredients").GetProperty("category");
 
         var table = FoodCategoryLabels.ForLanguage(locale);
 
         foreach (var category in Enum.GetValues<FoodCategory>())
         {
-            var key = $"category{category}";
+            var key = category.ToString();
 
-            foodsSection.TryGetProperty(key, out var labelElement).Should().BeTrue(
-                $"web/src/i18n/locales/{locale}.json should declare foods.{key}");
+            categorySection.TryGetProperty(key, out var labelElement).Should().BeTrue(
+                $"web/src/i18n/locales/{locale}.json should declare ingredients.category.{key}");
 
             table.Should().ContainKey(category);
             table[category].Should().Be(
                 labelElement.GetString(),
-                $"FoodCategoryLabels for '{locale}'/{category} should mirror foods.{key} in {locale}.json");
+                $"FoodCategoryLabels for '{locale}'/{category} should mirror ingredients.category.{key} in {locale}.json");
         }
     }
 
