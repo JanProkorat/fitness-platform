@@ -26,29 +26,6 @@ public class SearchFoodsEndpoint(
     /// </summary>
     private const string SortKeyField = "sortKey";
 
-    /// <summary>
-    /// Fixed display order for <see cref="FoodSortField.Category"/> sorting — a maintainer
-    /// decision, not alphabetical by translated label. Groups plant foods first, then animal
-    /// foods, then pantry/processed items, with the catch-all <see cref="FoodCategory.Other"/>
-    /// last.
-    /// </summary>
-    private static readonly string[] CategorySortOrder =
-    [
-        nameof(FoodCategory.Fruit),
-        nameof(FoodCategory.Vegetables),
-        nameof(FoodCategory.GrainsAndCereals),
-        nameof(FoodCategory.Legumes),
-        nameof(FoodCategory.NutsAndSeeds),
-        nameof(FoodCategory.Dairy),
-        nameof(FoodCategory.Meat),
-        nameof(FoodCategory.FishAndSeafood),
-        nameof(FoodCategory.OilsAndFats),
-        nameof(FoodCategory.SweetsAndSnacks),
-        nameof(FoodCategory.Beverages),
-        nameof(FoodCategory.Supplements),
-        nameof(FoodCategory.Other)
-    ];
-
     /// <inheritdoc />
     public override void Configure()
     {
@@ -57,8 +34,9 @@ public class SearchFoodsEndpoint(
         {
             s.Summary = "Search foods";
             s.Description = "Fulltext search across food database with optional multi-value category, tags, and " +
-                "owner filters, sortable columns, and pagination. With no sort, results are newest-created first; " +
-                "the trainer portal defaults its initial request to name ascending.";
+                "owner filters, sortable columns, and pagination. With no sort, results are name ascending " +
+                "(localized to the caller's language) — callers wanting newest-first (e.g. the trainer portal's " +
+                "cleared-sort state) request SortBy=DateCreated, SortDir=Descending explicitly.";
             s.Response<SearchFoodsResponse>(StatusCodes.Status200OK, "Matching foods");
             s.Responses[StatusCodes.Status400BadRequest] =
                 "Invalid page, page size, tags filter, category filter, owner filter, or sort field/direction";
@@ -204,9 +182,11 @@ public class SearchFoodsEndpoint(
 
     /// <summary>
     /// Runs the match filter through an aggregation pipeline, adding a computed <see
-    /// cref="SortKeyField"/> only when <see cref="SearchFoodsRequest.SortBy"/> is set, sorting,
-    /// then paging. With no sort requested, sorts by <c>dateCreated</c> descending (newest first)
-    /// — no computed field or collation needed.
+    /// cref="SortKeyField"/> only when sorting by something other than <see
+    /// cref="FoodSortField.DateCreated"/>, sorting, then paging. A <see langword="null"/> <see
+    /// cref="SearchFoodsRequest.SortBy"/> is treated exactly as an explicit <see
+    /// cref="FoodSortField.Name"/> / <see cref="FoodSortDirection.Ascending"/> request — future
+    /// callers (e.g. a plan food picker) get alphabetical results by default.
     /// </summary>
     private static async Task<List<Food>> FetchSortedPageAsync(
         IMongoContext mongo,
@@ -218,32 +198,44 @@ public class SearchFoodsEndpoint(
     {
         var sortBuilder = Builders<Food>.Sort;
 
+        // A null SortBy is not "no sort" — it's an implicit Name/Ascending request, so the
+        // trainer portal's "cleared sort" UI state must instead ask for DateCreated/Descending
+        // explicitly to get newest-first (maintainer decision, 2026-10-01).
+        var effectiveSortBy = req.SortBy ?? FoodSortField.Name;
+        var effectiveSortDir = req.SortBy is null ? FoodSortDirection.Ascending : req.SortDir ?? FoodSortDirection.Ascending;
+
         SortDefinition<Food> sort;
         BsonValue? sortKeyExpression = null;
         Collation? collation = null;
 
-        if (req.SortBy is null)
+        if (effectiveSortBy == FoodSortField.DateCreated)
         {
-            sort = sortBuilder.Combine(sortBuilder.Descending(f => f.DateCreated), sortBuilder.Descending(f => f.Id));
+            // dateCreated sorts directly off the stored field — no computed sort key or
+            // collation needed. _id breaks ties in the same direction.
+            sort = effectiveSortDir == FoodSortDirection.Descending
+                ? sortBuilder.Combine(sortBuilder.Descending(f => f.DateCreated), sortBuilder.Descending(f => f.Id))
+                : sortBuilder.Combine(sortBuilder.Ascending(f => f.DateCreated), sortBuilder.Ascending(f => f.Id));
         }
         else
         {
-            var direction = req.SortDir ?? FoodSortDirection.Ascending;
-
-            var primarySort = direction == FoodSortDirection.Descending
+            var primarySort = effectiveSortDir == FoodSortDirection.Descending
                 ? sortBuilder.Descending(SortKeyField)
                 : sortBuilder.Ascending(SortKeyField);
-            var tieBreaker = direction == FoodSortDirection.Descending
+            var tieBreaker = effectiveSortDir == FoodSortDirection.Descending
                 ? sortBuilder.Descending(f => f.Id)
                 : sortBuilder.Ascending(f => f.Id);
             sort = sortBuilder.Combine(primarySort, tieBreaker);
 
-            sortKeyExpression = BuildSortKeyExpression(req.SortBy.Value, sortLanguage, currentUserId);
+            sortKeyExpression = BuildSortKeyExpression(effectiveSortBy, sortLanguage, currentUserId);
 
-            // Collation only applies to the Name sort — a non-simple collation makes the $match
-            // stage's string equalities (category, visibility) collation-aware too, which both
-            // changes their semantics and stops simple-collation indexes being used for them.
-            collation = req.SortBy == FoodSortField.Name ? new Collation(sortLanguage ?? "cs") : null;
+            // Collation applies to Name and Category — both sort on a translated string in the
+            // caller's language. A non-simple collation makes the $match stage's string
+            // equalities (category, visibility) collation-aware too, which both changes their
+            // semantics and stops simple-collation indexes being used for them, but that's
+            // accepted here the same way it already was for Name.
+            collation = effectiveSortBy is FoodSortField.Name or FoodSortField.Category
+                ? new Collation(sortLanguage ?? "cs")
+                : null;
         }
 
         var aggregateOptions = new AggregateOptions();
@@ -292,13 +284,11 @@ public class SearchFoodsEndpoint(
             // coerces either to a real number so the sort is numeric, not lexical.
             FoodSortField.Calories => new BsonDocument("$toDouble", "$nutrientValue.kcal"),
 
-            // category is stored as its enum member name (BsonRepresentation.String) — rank it
-            // by position in the fixed, maintainer-defined CategorySortOrder, not alphabetically.
-            FoodSortField.Category => new BsonDocument("$indexOfArray", new BsonArray
-            {
-                new BsonArray(CategorySortOrder),
-                "$category"
-            }),
+            // category is stored as its enum member name (BsonRepresentation.String) — map it to
+            // the translated label for the caller's language (FoodCategoryLabels, mirrored from
+            // the web locale files) and sort alphabetically on that, with the Collation above
+            // applying the matching language rules.
+            FoodSortField.Category => BuildCategoryLabelSwitch(sortLanguage),
 
             // Mine (0) before Other coaches (1) before System/no-owner (2).
             FoodSortField.Library => new BsonDocument("$switch", new BsonDocument
@@ -322,4 +312,26 @@ public class SearchFoodsEndpoint(
 
             _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, "Unhandled FoodSortField.")
         };
+
+    /// <summary>
+    /// Builds a <c>$switch</c> mapping each stored <see cref="FoodCategory"/> member name to its
+    /// translated label (<see cref="FoodCategoryLabels.ForLanguage"/>), so the Category sort key
+    /// is alphabetical by label rather than by enum member name.
+    /// </summary>
+    private static BsonValue BuildCategoryLabelSwitch(string? sortLanguage)
+    {
+        var labels = FoodCategoryLabels.ForLanguage(sortLanguage);
+
+        var branches = new BsonArray(labels.Select(entry => new BsonDocument
+        {
+            ["case"] = new BsonDocument("$eq", new BsonArray { "$category", entry.Key.ToString() }),
+            ["then"] = entry.Value
+        }));
+
+        return new BsonDocument("$switch", new BsonDocument
+        {
+            ["branches"] = branches,
+            ["default"] = "$category"
+        });
+    }
 }

@@ -15,5 +15,8 @@ public enum FoodSortField
     Category,
 
     /// <summary>Sorts Mine before Other coaches before System.</summary>
-    Library
+    Library,
+
+    /// <summary>Sorts by creation time; with Descending = newest first.</summary>
+    DateCreated
 }

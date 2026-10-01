@@ -305,27 +305,81 @@ public class SearchFoodsOwnerAndSortTests : IAsyncLifetime
 
     // ── sort: category ────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// #1139 rework (maintainer decision, 2026-10-01): Category sorts alphabetically by the
+    /// translated label in the caller's language (<see cref="FoodCategoryLabels"/>), not by a
+    /// fixed server-defined order — and Czech collation applies to the label the same way it
+    /// already does for Name. Exercises all 13 categories against the maintainer's own stated
+    /// order: Doplňky stravy, Luštěniny, Maso, Mléčné výrobky, Nápoje, Obiloviny, Oleje a tuky,
+    /// Ořechy a semena, Ostatní, Ovoce, Ryby a mořské plody, Sladkosti a svačiny, Zelenina.
+    /// </summary>
     [Fact]
-    public async Task SearchFoods_SortByCategoryAscending_UsesFixedServerOrder_NotAlphabetical()
+    public async Task SearchFoods_SortByCategoryAscending_Czech_OrdersAlphabeticallyByLabel()
     {
         var ct = TestContext.Current.CancellationToken;
         var callerId = Guid.NewGuid();
 
-        // Alphabetically this would be Dairy, Fruit, Meat — the fixed order instead ranks
-        // Fruit before Dairy before Meat.
         await _foods.InsertManyAsync(
         [
-            MakeFood("Category Order Dairy", callerId, FoodVisibility.Private, category: FoodCategory.Dairy),
-            MakeFood("Category Order Fruit", callerId, FoodVisibility.Private, category: FoodCategory.Fruit),
-            MakeFood("Category Order Meat", callerId, FoodVisibility.Private, category: FoodCategory.Meat),
+            MakeFood("Category Cs Meat", callerId, FoodVisibility.Private, category: FoodCategory.Meat),
+            MakeFood("Category Cs Fruit", callerId, FoodVisibility.Private, category: FoodCategory.Fruit),
+            MakeFood("Category Cs Vegetables", callerId, FoodVisibility.Private, category: FoodCategory.Vegetables),
+            MakeFood("Category Cs FishAndSeafood", callerId, FoodVisibility.Private, category: FoodCategory.FishAndSeafood),
+            MakeFood("Category Cs Dairy", callerId, FoodVisibility.Private, category: FoodCategory.Dairy),
+            MakeFood("Category Cs GrainsAndCereals", callerId, FoodVisibility.Private, category: FoodCategory.GrainsAndCereals),
+            MakeFood("Category Cs Legumes", callerId, FoodVisibility.Private, category: FoodCategory.Legumes),
+            MakeFood("Category Cs NutsAndSeeds", callerId, FoodVisibility.Private, category: FoodCategory.NutsAndSeeds),
+            MakeFood("Category Cs OilsAndFats", callerId, FoodVisibility.Private, category: FoodCategory.OilsAndFats),
+            MakeFood("Category Cs SweetsAndSnacks", callerId, FoodVisibility.Private, category: FoodCategory.SweetsAndSnacks),
+            MakeFood("Category Cs Beverages", callerId, FoodVisibility.Private, category: FoodCategory.Beverages),
+            MakeFood("Category Cs Supplements", callerId, FoodVisibility.Private, category: FoodCategory.Supplements),
+            MakeFood("Category Cs Other", callerId, FoodVisibility.Private, category: FoodCategory.Other),
         ], cancellationToken: ct);
 
-        var ep = CreateEndpoint(callerId);
+        var ep = CreateEndpoint(callerId, acceptLanguage: "cs");
         await ep.HandleAsync(
             new SearchFoodsRequest { SortBy = FoodSortField.Category, SortDir = FoodSortDirection.Ascending }, ct);
 
         ep.Response.Foods.Select(f => f.Name).Should().Equal(
-            "Category Order Fruit", "Category Order Dairy", "Category Order Meat");
+            "Category Cs Supplements",      // Doplňky stravy
+            "Category Cs Legumes",          // Luštěniny
+            "Category Cs Meat",             // Maso
+            "Category Cs Dairy",            // Mléčné výrobky
+            "Category Cs Beverages",        // Nápoje
+            "Category Cs GrainsAndCereals", // Obiloviny
+            "Category Cs OilsAndFats",      // Oleje a tuky
+            "Category Cs NutsAndSeeds",     // Ořechy a semena
+            "Category Cs Other",            // Ostatní
+            "Category Cs Fruit",            // Ovoce
+            "Category Cs FishAndSeafood",   // Ryby a mořské plody
+            "Category Cs SweetsAndSnacks",  // Sladkosti a svačiny
+            "Category Cs Vegetables");      // Zelenina
+    }
+
+    /// <summary>
+    /// English labels (Dairy, Fruit, Meat) happen to already be alphabetical — unlike the old
+    /// fixed order (Fruit, Dairy, Meat) — which is exactly the point: the sort now follows
+    /// whichever language's label table applies, not a hardcoded ranking.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_SortByCategoryAscending_English_OrdersAlphabeticallyByLabel()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        await _foods.InsertManyAsync(
+        [
+            MakeFood("Category En Meat", callerId, FoodVisibility.Private, category: FoodCategory.Meat),
+            MakeFood("Category En Dairy", callerId, FoodVisibility.Private, category: FoodCategory.Dairy),
+            MakeFood("Category En Fruit", callerId, FoodVisibility.Private, category: FoodCategory.Fruit),
+        ], cancellationToken: ct);
+
+        var ep = CreateEndpoint(callerId, acceptLanguage: "en");
+        await ep.HandleAsync(
+            new SearchFoodsRequest { SortBy = FoodSortField.Category, SortDir = FoodSortDirection.Ascending }, ct);
+
+        ep.Response.Foods.Select(f => f.Name).Should().Equal(
+            "Category En Dairy", "Category En Fruit", "Category En Meat");
     }
 
     // ── sort: library ─────────────────────────────────────────────────────────
@@ -355,25 +409,76 @@ public class SearchFoodsOwnerAndSortTests : IAsyncLifetime
     // ── no sort ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// With no <c>sortBy</c>, the AC requires newest-created foods first — a behaviour change
-    /// from the pre-#1139 default of name ascending.
+    /// With no <c>sortBy</c>, results are Name ascending (maintainer decision, 2026-10-01) — the
+    /// same default this endpoint had before #1139 introduced explicit sorting; future callers
+    /// (e.g. a plan food picker) get alphabetical results by default. "No Sort Zucchini" is the
+    /// newest-created food and "No Sort Apple" the oldest — name order and creation order
+    /// deliberately disagree, so a result ordered by insertion or by <c>dateCreated</c> would fail
+    /// this assertion.
     /// </summary>
     [Fact]
-    public async Task SearchFoods_NoSortBy_ReturnsNewestCreatedFirst()
+    public async Task SearchFoods_NoSortBy_ReturnsNameAscending()
     {
         var ct = TestContext.Current.CancellationToken;
         var callerId = Guid.NewGuid();
 
-        var older = MakeFood("No Sort Older", callerId, FoodVisibility.Private);
+        var newer = MakeFood("No Sort Zucchini", callerId, FoodVisibility.Private);
+        newer.DateCreated = DateTime.UtcNow;
+        var older = MakeFood("No Sort Apple", callerId, FoodVisibility.Private);
         older.DateCreated = DateTime.UtcNow.AddMinutes(-10);
-        var newer = MakeFood("No Sort Newer", callerId, FoodVisibility.Private);
+
+        await _foods.InsertManyAsync([newer, older], cancellationToken: ct);
+
+        var ep = CreateEndpoint(callerId);
+        await ep.HandleAsync(new SearchFoodsRequest(), ct);
+
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("No Sort Apple", "No Sort Zucchini");
+    }
+
+    // ── sort: date created ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// #1139 rework: no-sortBy no longer means newest-first — a caller wanting that (e.g. the web
+    /// portal's cleared-sort state) must request <see cref="FoodSortField.DateCreated"/> /
+    /// <see cref="FoodSortDirection.Descending"/> explicitly.
+    /// </summary>
+    [Fact]
+    public async Task SearchFoods_SortByDateCreatedDescending_ReturnsNewestFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        var older = MakeFood("Date Created Older", callerId, FoodVisibility.Private);
+        older.DateCreated = DateTime.UtcNow.AddMinutes(-10);
+        var newer = MakeFood("Date Created Newer", callerId, FoodVisibility.Private);
         newer.DateCreated = DateTime.UtcNow;
 
         await _foods.InsertManyAsync([older, newer], cancellationToken: ct);
 
         var ep = CreateEndpoint(callerId);
-        await ep.HandleAsync(new SearchFoodsRequest(), ct);
+        await ep.HandleAsync(
+            new SearchFoodsRequest { SortBy = FoodSortField.DateCreated, SortDir = FoodSortDirection.Descending }, ct);
 
-        ep.Response.Foods.Select(f => f.Name).Should().Equal("No Sort Newer", "No Sort Older");
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("Date Created Newer", "Date Created Older");
+    }
+
+    [Fact]
+    public async Task SearchFoods_SortByDateCreatedAscending_ReturnsOldestFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var callerId = Guid.NewGuid();
+
+        var older = MakeFood("Date Created Asc Older", callerId, FoodVisibility.Private);
+        older.DateCreated = DateTime.UtcNow.AddMinutes(-10);
+        var newer = MakeFood("Date Created Asc Newer", callerId, FoodVisibility.Private);
+        newer.DateCreated = DateTime.UtcNow;
+
+        await _foods.InsertManyAsync([older, newer], cancellationToken: ct);
+
+        var ep = CreateEndpoint(callerId);
+        await ep.HandleAsync(
+            new SearchFoodsRequest { SortBy = FoodSortField.DateCreated, SortDir = FoodSortDirection.Ascending }, ct);
+
+        ep.Response.Foods.Select(f => f.Name).Should().Equal("Date Created Asc Older", "Date Created Asc Newer");
     }
 }
