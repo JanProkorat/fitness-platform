@@ -11642,7 +11642,7 @@ export class ApiClient {
     /**
      * Remove food image
      * @param foodId The food's public identifier (from route).
-     * @return No Content
+     * @return Image cleared (or was already unset)
      */
     deleteFoodImageEndpoint(foodId: string, signal?: AbortSignal): Promise<void> {
         let url_ = this.baseUrl + "/foods/{foodId}/image";

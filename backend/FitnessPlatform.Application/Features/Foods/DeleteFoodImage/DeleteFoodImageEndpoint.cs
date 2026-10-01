@@ -30,6 +30,9 @@ public class DeleteFoodImageEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodI
                             + "untouched, and the underlying blob is not deleted. "
                             + "Idempotent — returns 204 even if the image is already unset. "
                             + "Only the nutritionist who created the food can remove its image.";
+            s.Responses[StatusCodes.Status204NoContent] = "Image cleared (or was already unset)";
+            s.Responses[StatusCodes.Status400BadRequest] = "FOOD_NOT_OWNED — the caller does not own this food";
+            s.Responses[StatusCodes.Status404NotFound] = "Food not found or soft-deleted";
         });
     }
 
