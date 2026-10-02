@@ -363,6 +363,11 @@ test.describe('recipes empty state', () => {
     await page.goto('/recipes');
     await expect(page.getByText('No recipes yet')).toBeVisible();
     await expect(page.getByText('Create your first recipe to get started')).toBeVisible();
+    // Matches recipes-state-01.png: search + New Recipe only, no filter pills.
+    await expect(page.getByRole('searchbox')).toBeVisible();
+    for (const filter of ['Meal type', 'Owner', 'Tags']) {
+      await expect(page.getByRole('button', { name: filter })).toHaveCount(0);
+    }
     await page.getByRole('button', { name: 'Create Recipe' }).click();
     await expect(page.locator('[data-slot="sheet-content"]').getByRole('heading', { name: 'New Recipe' })).toBeVisible();
   });

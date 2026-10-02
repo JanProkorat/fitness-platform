@@ -120,23 +120,28 @@ export default function RecipesPage() {
             aria-label={t('recipes.searchPlaceholder')}
           />
         </div>
-        <OptionFilterPopover
-          label={t('recipes.filters.mealType')}
-          options={MEAL_TYPE_VALUES.map((value) => ({ value, label: t(`recipes.mealType.${value}`) }))}
-          selected={filters.mealTypes}
-          onChange={setMealTypes}
-        />
-        <OptionFilterPopover
-          label={t('recipes.filters.dietaryPreference')}
-          options={DIETARY_PREFERENCE_VALUES.map((value) => ({
-            value,
-            label: t(`ingredients.dietaryPreference.${value}`),
-          }))}
-          selected={filters.dietaryPreferences}
-          onChange={setDietaryPreferences}
-        />
-        <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />
-        <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
+        {/* The design's empty state has no filters; with nothing to narrow they only add noise. */}
+        {!showEmptyState && (
+          <>
+            <OptionFilterPopover
+              label={t('recipes.filters.mealType')}
+              options={MEAL_TYPE_VALUES.map((value) => ({ value, label: t(`recipes.mealType.${value}`) }))}
+              selected={filters.mealTypes}
+              onChange={setMealTypes}
+            />
+            <OptionFilterPopover
+              label={t('recipes.filters.dietaryPreference')}
+              options={DIETARY_PREFERENCE_VALUES.map((value) => ({
+                value,
+                label: t(`ingredients.dietaryPreference.${value}`),
+              }))}
+              selected={filters.dietaryPreferences}
+              onChange={setDietaryPreferences}
+            />
+            <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />
+            <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
+          </>
+        )}
         <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
           {t('recipes.newRecipe')}
         </Button>
