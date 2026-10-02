@@ -218,11 +218,26 @@ export default defineConfig({
       dependencies: ['setup'],
       testMatch: /nutritionist\/.+\.spec\.ts/,
       testIgnore: IN_CONTAINER
-        ? []
+        ? [/nutritionist\/recipe-tags\.spec\.ts/]
         : [
             /nutritionist\/food-admin-upload\.spec\.ts/,
             /nutritionist\/recipe-gallery-upload\.spec\.ts/,
+            /nutritionist\/recipe-tags\.spec\.ts/,
           ],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // ─── Nutritionist recipe-tags spec ────────────────────────────────────────
+    // recipe-tags.spec.ts only. Split out of `nutritionist` because
+    // ingredients.spec.ts deletes ALL of qa.nutri's food tags and asserts
+    // "No tags yet." — a recipe-tag test on the same shared list would race it.
+    // `dependencies: ['nutritionist']` makes it run after every nutritionist test.
+    {
+      name: 'nutritionist-tags',
+      dependencies: ['nutritionist'],
+      testMatch: /nutritionist\/recipe-tags\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
