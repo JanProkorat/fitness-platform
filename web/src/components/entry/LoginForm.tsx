@@ -44,10 +44,10 @@ interface LoginFormValues {
  * Services ID the compose harness cannot exercise, and the social-nonce
  * flow is epic item 2's to own (see design-review finding, issue Notes).
  *
- * "Keep me signed in" is rendered but not wired to any request field —
- * the backend issues the same 15-minute access / 7-day refresh token pair
- * regardless, so there is no differing behaviour for this checkbox to
- * control yet.
+ * "Keep me signed in" picks where the refresh token is stored: ticked =
+ * localStorage (survives a browser restart), unticked = sessionStorage
+ * (closing the browser signs out). The backend issues the same token pair
+ * either way.
  */
 export default function LoginForm() {
   const { t } = useTranslation();
@@ -85,7 +85,7 @@ export default function LoginForm() {
       if (!accessToken || !refreshToken) {
         throw new ProfileLoadError('missing-tokens');
       }
-      setTokens(accessToken, refreshToken);
+      setTokens(accessToken, refreshToken, rememberMe);
 
       let profile: GetProfileResponse;
       try {
@@ -108,7 +108,8 @@ export default function LoginForm() {
           avatarBlobUrl: profile.avatarBlobUrl ?? null,
         },
         accessToken,
-        refreshToken
+        refreshToken,
+        rememberMe
       );
     },
     onSuccess: () => {

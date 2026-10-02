@@ -77,6 +77,7 @@ export default function VerifyEmailPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const logout = useAuthStore((s) => s.logout);
 
   const verifyQuery = useQuery({
     queryKey: ['verify-email', token],
@@ -296,6 +297,17 @@ export default function VerifyEmailPage() {
             {resendMutation.isPending
               ? t('entry.verifyEmail.checkInbox.resending')
               : t('entry.verifyEmail.checkInbox.resend')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              logout();
+              navigate('/', { replace: true });
+            }}
+          >
+            {t('auth.logout')}
           </Button>
         </CardContent>
       </>
