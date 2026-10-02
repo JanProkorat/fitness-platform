@@ -24,6 +24,8 @@ interface Props {
   showClientPanel: boolean;
   onToggleClientPanel: () => void;
   isOtherPartyTyping: boolean;
+  /** `ConversationDto.isSendLocked` — the server would refuse a send here. */
+  isSendLocked?: boolean;
 }
 
 /** True when `message` starts a new calendar day relative to `previous` (or there is no previous message). */
@@ -48,6 +50,7 @@ export default function ThreadPane({
   showClientPanel,
   onToggleClientPanel,
   isOtherPartyTyping,
+  isSendLocked = false,
 }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
@@ -240,6 +243,7 @@ export default function ThreadPane({
         }}
         isSending={sendMessageMutation.isPending}
         onTyping={handleTyping}
+        isLocked={isSendLocked}
       />
     </div>
   );

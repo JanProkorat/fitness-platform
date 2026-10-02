@@ -8,7 +8,7 @@ import {
   sendMessage,
   startConversation,
 } from '@/api/conversations';
-import { showApiError } from '@/lib/api-errors';
+import { getRfc7807ErrorCode, showApiError } from '@/lib/api-errors';
 import type { ChatImageUploadUrlPayload, SendMessagePayload } from '@/api/conversations';
 import type { ClientListFilter } from '@/api/generated';
 
@@ -79,6 +79,10 @@ export function useSendMessage(conversationId: string | undefined) {
     },
     onError: (error) => {
       showApiError(error, 'inbox.composer.sendError');
+      if (getRfc7807ErrorCode(error) === 'CONVERSATION_LOCKED') {
+        // The lock state changed under the open thread — refresh isSendLocked.
+        queryClient.invalidateQueries({ queryKey: ['conversations', 'list'] });
+      }
     },
   });
 }

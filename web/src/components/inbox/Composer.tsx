@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, Image as ImageIcon, Loader2, Paperclip } from 'lucide-react';
+import { ArrowUp, Image as ImageIcon, Loader2, Lock, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ImagePreviewChip from '@/components/inbox/ImagePreviewChip';
@@ -36,6 +36,8 @@ interface Props {
   onSend: (payload: ComposerSendPayload) => Promise<void>;
   isSending: boolean;
   onTyping?: () => void;
+  /** True when the server would refuse a send in this thread; the composer is replaced by a notice. */
+  isLocked?: boolean;
 }
 
 /** Reads a File's natural pixel dimensions via a throwaway <img> — a layout hint only, never trusted for security. */
@@ -56,7 +58,7 @@ function readImageDimensions(previewUrl: string): Promise<{ width: number; heigh
  * the bytes directly to blob storage, then submits the message with the
  * resulting `imageUploadId`.
  */
-export default function Composer({ conversationId, onSend, isSending, onTyping }: Props) {
+export default function Composer({ conversationId, onSend, isSending, onTyping, isLocked = false }: Props) {
   const { t } = useTranslation();
   const [value, setValue] = useState('');
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
@@ -180,6 +182,29 @@ export default function Composer({ conversationId, onSend, isSending, onTyping }
       // image + caption staged so the user can retry without re-picking the file
       // (a retry uploads it again under a fresh upload id).
     }
+  }
+
+  if (isLocked) {
+    return (
+      <div className="flex flex-col gap-2 border-t border-border p-4">
+        <p
+          id="composer-locked-notice"
+          data-testid="composer-locked-notice"
+          className="flex items-center gap-2 px-1 text-meta text-muted-foreground"
+        >
+          <Lock className="size-4 shrink-0" aria-hidden="true" />
+          {t('inbox.composer.lockedNotice')}
+        </p>
+        <Textarea
+          disabled
+          rows={1}
+          aria-describedby="composer-locked-notice"
+          aria-label={t('inbox.composer.placeholder')}
+          placeholder={t('inbox.composer.placeholder')}
+          className="min-h-8 resize-none"
+        />
+      </div>
+    );
   }
 
   return (

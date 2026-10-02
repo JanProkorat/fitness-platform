@@ -1413,6 +1413,7 @@
     "OUT_OF_RANGE": "Der Wert liegt außerhalb des zulässigen Bereichs.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Ungültige Frist. Erlaubte Werte: 24, 48, 72, 120 oder 168 Stunden.",
     "SESSION_ALREADY_COMPLETED": "Diese Einheit wurde bereits abgeschlossen.",
+    "CONVERSATION_LOCKED": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
     "SECTION_ALREADY_COMPLETED": "Dieser Abschnitt wurde bereits vom Klienten abgeschlossen und kann nicht bearbeitet werden.",
     "COMPLETED_AT_IN_FUTURE": "Das Abschlussdatum darf nicht in der Zukunft liegen.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Das Abschlussdatum darf nicht vor dem Startdatum des Plans liegen.",
@@ -1430,7 +1431,6 @@
     "DUPLICATE_PENDING_INVITE": "Für diese E-Mail-Adresse besteht bereits eine offene Einladung.",
     "TOO_MANY_PENDING_INVITES": "Sie haben die maximale Anzahl offener Einladungen erreicht. Warten Sie auf eine Antwort oder brechen Sie eine ab.",
     "PROFESSION_ALREADY_OCCUPIED": "Dieser Klient hat für diesen Beruf bereits einen aktiven Coach.",
-    "INVITEE_IS_PROFESSIONAL": "Diese E-Mail-Adresse gehört zu einem Trainer-Konto. Sie können nur Klienten einladen.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Der angeforderte Zugriff übersteigt Ihre aktuellen Rollen.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Ein Tag mit diesem Namen existiert bereits.",
     "CLIENT_TAG_NOT_FOUND": "Dieser Tag konnte nicht gefunden werden.",
@@ -2711,6 +2711,7 @@
       "attachFileAriaLabel": "Datei anhängen",
       "attachImageAriaLabel": "Bild anhängen",
       "sendError": "Die Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      "lockedNotice": "Sie können antworten, sobald der Klient Ihre Einladung annimmt.",
       "imagePreviewAlt": "Bildvorschau",
       "removeImageAriaLabel": "Bild entfernen",
       "imageUploadError": "Das Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut."
