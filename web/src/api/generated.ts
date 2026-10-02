@@ -6386,6 +6386,149 @@ export class ApiClient {
     }
 
     /**
+     * Remove a recipe gallery image
+     * @param recipeId The recipe's public identifier (from route).
+     * @param imageUrl The exact stored gallery URL to remove (query parameter).
+     * @return Image removed (or was not in the gallery)
+     */
+    removeRecipeGalleryImageEndpoint(recipeId: string, imageUrl: string, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/gallery?";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        if (imageUrl === undefined || imageUrl === null)
+            throw new globalThis.Error("The parameter 'imageUrl' must be defined and cannot be null.");
+        else
+            url_ += "imageUrl=" + encodeURIComponent("" + imageUrl) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processRemoveRecipeGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processRemoveRecipeGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("RECIPE_NOT_OWNED, or invalid imageUrl", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Promote a gallery image to main
+     * @param recipeId The recipe's public identifier (from route).
+     * @return Image promoted (or already main)
+     */
+    promoteRecipeGalleryImageEndpoint(recipeId: string, promoteRecipeGalleryImageRequest: PromoteRecipeGalleryImageRequest, signal?: AbortSignal): Promise<void> {
+        let url_ = this.baseUrl + "/recipes/{recipeId}/gallery/promote";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(promoteRecipeGalleryImageRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPromoteRecipeGalleryImageEndpoint(_response);
+        });
+    }
+
+    protected processPromoteRecipeGalleryImageEndpoint(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("RECIPE_NOT_OWNED or RECIPE_GALLERY_IMAGE_NOT_FOUND", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Unauthorized", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Remove recipe image
      * @param recipeId The recipe's public identifier (from route).
      * @return Image cleared (or was already unset)
@@ -20328,6 +20471,16 @@ export enum RecipeSortField {
 export enum FoodSortDirection {
     Ascending = "Ascending",
     Descending = "Descending",
+}
+
+/** Request model for removing one gallery image from a recipe. */
+export interface RemoveRecipeGalleryImageRequest {
+}
+
+/** Request model for promoting a gallery image to the recipe's main image. */
+export interface PromoteRecipeGalleryImageRequest {
+    /** The exact stored gallery URL to promote. */
+    imageUrl: string;
 }
 
 /** Request model for retrieving a single recipe. */
