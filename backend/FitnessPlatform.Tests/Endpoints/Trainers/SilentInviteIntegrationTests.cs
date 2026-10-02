@@ -194,6 +194,55 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
             .Should().ContainSingle(r => r.PendingInviteId == realInvite.Id);
     }
 
+    [Fact]
+    public async Task ConversationContext_CoachRoleInvitee_GetsNoInviteBanner_ButRealInviteeDoes()
+    {
+        var (inviter, coach) = await SetupAsync();
+        var realClient = await TestActors.Client(factory).CreateAsync(Ct);
+        await InviteAsync(inviter, coach.Email);
+        await InviteAsync(inviter, realClient.Email);
+
+        Guid coachConversationId;
+        Guid clientConversationId;
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var coachConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = coach.UserId };
+            var clientConversation = new Conversation { ProfessionalUserId = inviter.UserId, ClientUserId = realClient.UserId };
+            db.Conversations.AddRange(coachConversation, clientConversation);
+            await db.SaveChangesAsync(Ct);
+            coachConversationId = coachConversation.PublicId;
+            clientConversationId = clientConversation.PublicId;
+        }
+
+        var coachContext = await coach.Http.GetAsync($"/conversations/{coachConversationId}/context", Ct);
+        var clientContext = await realClient.Http.GetAsync($"/conversations/{clientConversationId}/context", Ct);
+
+        coachContext.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        clientContext.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task PhotoDiaryRequest_AgainstSilentInvite_DoesNotNotifyTheCoachAccount_ButNotifiesARealInvitee()
+    {
+        var (inviter, coach) = await SetupAsync();
+        var realClient = await TestActors.Client(factory).CreateAsync(Ct);
+        var silentInvite = await InviteAsync(inviter, coach.Email);
+        var realInvite = await InviteAsync(inviter, realClient.Email);
+        var notifier = factory.Services.GetRequiredService<FakeRealtimeNotifier>();
+
+        var toCoach = await inviter.Http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests", new { PendingInviteId = silentInvite.Id }, Ct);
+        var toClient = await inviter.Http.PostAsJsonAsync(
+            "/trainer/photo-diary-requests", new { PendingInviteId = realInvite.Id }, Ct);
+
+        toCoach.StatusCode.Should().Be(HttpStatusCode.OK);
+        toClient.StatusCode.Should().Be(HttpStatusCode.OK);
+        notifier.Calls.Should().NotContain(c => c.UserId == coach.UserId && c.EventType == "photodiaryrequested");
+        notifier.Calls.Should().Contain(c => c.UserId == realClient.UserId && c.EventType == "photodiaryrequested");
+    }
+
     private sealed class ProblemDto
     {
         public string? ErrorCode { get; set; }

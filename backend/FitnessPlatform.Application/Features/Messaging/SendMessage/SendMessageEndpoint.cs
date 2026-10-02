@@ -38,6 +38,7 @@ public class SendMessageEndpoint(
         {
             s.Summary = "Send a message";
             s.Description = "Sends a text message, an image, or both, in a conversation.";
+            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread";
         });
     }
 

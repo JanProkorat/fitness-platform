@@ -175,7 +175,13 @@ public class CreateRequestEndpoint(
         if (clientUserId is null && inviteEmail is not null)
         {
             var invitedUser = await userManager.FindByEmailAsync(inviteEmail);
-            clientUserId = invitedUser?.Id;
+
+            // An invite addressed to a coaching account is a silent row: the coach account must
+            // not receive the realtime event, so treat it like an unregistered email.
+            var invitedUserIsCoach = invitedUser is not null &&
+                await db.ProfessionalProfiles.AsNoTracking().AnyAsync(pp => pp.UserId == invitedUser.Id, ct);
+
+            clientUserId = invitedUserIsCoach ? null : invitedUser?.Id;
         }
 
         if (clientUserId.HasValue)
