@@ -36,7 +36,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
 
         var (activeClientId, _) = await SetupLinkedClientAsync(trainerId);
-        await SeedActiveTrainingPlanAsync(activeClientId, DateTime.UtcNow.AddDays(-1));
+        await SeedActiveTrainingPlanAsync(trainerId, activeClientId, DateTime.UtcNow.AddDays(-1));
 
         var (pausedClientId, _) = await SetupLinkedClientAsync(trainerId);
         // No plan seeded — pausedClientId stays Paused.
@@ -112,7 +112,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
 
         clientPublicId.Should().NotBe(clientUserId, "PublicId and the ApplicationUser join key must never coincide in this fixture");
 
-        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, DateTime.UtcNow.AddDays(-1));
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -130,7 +130,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
 
-        await SeedActiveTrainingPlanAsync(clientUserId, startDate: null);
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, startDate: null);
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -147,7 +147,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (clientUserId, _) = await SetupLinkedClientAsync(
             trainerId, canViewNutritionPlans: true, canViewTrainingPlans: false);
 
-        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, DateTime.UtcNow.AddDays(-1));
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -165,7 +165,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (clientUserId, _) = await SetupLinkedClientAsync(
             trainerId, canViewNutritionPlans: false, canViewTrainingPlans: false);
 
-        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-1));
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, DateTime.UtcNow.AddDays(-1));
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -184,7 +184,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
 
-        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -200,7 +200,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (http, trainerId) = await SetupTrainerAsync();
         var (clientUserId, _) = await SetupLinkedClientAsync(trainerId);
 
-        await SeedActiveTrainingPlanAsync(clientUserId, DateTime.UtcNow.AddDays(1), weekCount: 4);
+        await SeedActiveTrainingPlanAsync(trainerId, clientUserId, DateTime.UtcNow.AddDays(1), weekCount: 4);
 
         var response = await http.GetAsync("/trainer/clients", TestContext.Current.CancellationToken);
         var body = await Deserialize(response);
@@ -393,9 +393,9 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         var (notEndingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
 
         // 1-week plan starting 6 days ago ends 1 day from now — within the 14-day window.
-        await SeedActiveTrainingPlanAsync(endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+        await SeedActiveTrainingPlanAsync(trainerId, endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
         // 10-week plan starting today ends far beyond 14 days.
-        await SeedActiveTrainingPlanAsync(notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
+        await SeedActiveTrainingPlanAsync(trainerId, notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
 
         var response = await http.GetAsync(
             "/trainer/clients?filter=EndingSoon", TestContext.Current.CancellationToken);
@@ -537,7 +537,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
     }
 
     private async Task SeedActiveTrainingPlanAsync(
-        Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
+        Guid authorUserId, Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
     {
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -545,7 +545,7 @@ public class GetClientsEndpointTests(FitnessApiFactory factory)
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientUserId,
-            TrainerId = Guid.NewGuid(),
+            TrainerId = authorUserId,
             Name = name,
             Status = TrainingPlanStatus.Active,
             StartDate = startDate,

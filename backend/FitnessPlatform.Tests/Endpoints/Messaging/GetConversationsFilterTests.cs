@@ -200,9 +200,9 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         var (notEndingSoonClientId, _) = await SetupLinkedClientAsync(trainerId);
 
         // 1-week plan starting 6 days ago ends 1 day from now — within the 14-day window.
-        await SeedActiveTrainingPlanAsync(endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
+        await SeedActiveTrainingPlanAsync(trainerId, endingSoonClientId, DateTime.UtcNow.AddDays(-6), weekCount: 1);
         // 10-week plan starting today ends far beyond 14 days.
-        await SeedActiveTrainingPlanAsync(notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
+        await SeedActiveTrainingPlanAsync(trainerId, notEndingSoonClientId, DateTime.UtcNow, weekCount: 10);
 
         var response = await http.GetAsync("/conversations?filter=EndingSoon", TestContext.Current.CancellationToken);
         (await Deserialize(response))!.Select(c => c.Participant.Id).Should().BeEquivalentTo([endingSoonClientId]);
@@ -385,7 +385,7 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
     }
 
     private async Task SeedActiveTrainingPlanAsync(
-        Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
+        Guid authorUserId, Guid clientUserId, DateTime? startDate, int weekCount = 4, string name = "Training Plan")
     {
         using var scope = factory.Services.CreateScope();
         var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
@@ -393,7 +393,7 @@ public class GetConversationsFilterTests(FitnessApiFactory factory)
         {
             ExternalId = Guid.NewGuid(),
             ClientId = clientUserId,
-            TrainerId = Guid.NewGuid(),
+            TrainerId = authorUserId,
             Name = name,
             Status = TrainingPlanStatus.Active,
             StartDate = startDate,
