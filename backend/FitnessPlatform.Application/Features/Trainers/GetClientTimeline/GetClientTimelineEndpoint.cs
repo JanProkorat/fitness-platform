@@ -245,6 +245,7 @@ public class GetClientTimelineEndpoint(
         if (link.CanViewNutritionPlans)
         {
             var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+                & Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId)
                 & Builders<NutritionPlan>.Filter.ElemMatch(p => p.Weeks, w => w.Status == WeekStatus.Published);
 
             using var cursor = await mongo.NutritionPlans.FindAsync(
@@ -288,6 +289,7 @@ public class GetClientTimelineEndpoint(
         if (link.CanViewTrainingPlans)
         {
             var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
+                & Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerUserId)
                 & Builders<TrainingPlan>.Filter.ElemMatch(p => p.Weeks, w => w.Status == WeekStatus.Published);
 
             using var cursor = await mongo.TrainingPlans.FindAsync(

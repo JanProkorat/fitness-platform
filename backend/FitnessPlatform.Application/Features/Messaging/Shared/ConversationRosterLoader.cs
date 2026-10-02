@@ -47,6 +47,7 @@ public static class ConversationRosterLoader
                 ClientUserId = l.ClientProfile.User.Id,
                 FirstName = l.ClientProfile.User.FirstName,
                 LastName = l.ClientProfile.User.LastName,
+                Email = l.ClientProfile.User.Email,
                 AvatarBlobUrl = l.ClientProfile.User.AvatarBlobUrl,
                 CanViewNutritionPlans = l.CanViewNutritionPlans,
                 CanViewTrainingPlans = l.CanViewTrainingPlans
@@ -103,8 +104,8 @@ public static class ConversationRosterLoader
         var nutritionClientIds = links.Where(l => l.CanViewNutritionPlans).Select(l => l.ClientUserId).Distinct().ToList();
         var trainingClientIds = links.Where(l => l.CanViewTrainingPlans).Select(l => l.ClientUserId).Distinct().ToList();
 
-        var nutritionByClient = await LoadCurrentNutritionPlansAsync(mongo, nutritionClientIds, today, ct);
-        var trainingByClient = await LoadCurrentTrainingPlansAsync(mongo, trainingClientIds, today, ct);
+        var nutritionByClient = await LoadCurrentNutritionPlansAsync(mongo, nutritionClientIds, professionalUserId, today, ct);
+        var trainingByClient = await LoadCurrentTrainingPlansAsync(mongo, trainingClientIds, professionalUserId, today, ct);
 
         return links.Select(l =>
         {
@@ -120,6 +121,7 @@ public static class ConversationRosterLoader
                 ClientPublicId = l.ClientPublicId,
                 ClientFirstName = l.FirstName,
                 ClientLastName = l.LastName,
+                ClientEmail = l.Email,
                 ClientAvatarBlobUrl = l.AvatarBlobUrl,
                 ConversationPublicId = conversation?.PublicId,
                 LastMessage = conversation?.LastMessageText ?? string.Empty,
@@ -164,7 +166,7 @@ public static class ConversationRosterLoader
     }
 
     private static async Task<Dictionary<Guid, PlanWindowProjection>> LoadCurrentNutritionPlansAsync(
-        IMongoContext mongo, List<Guid> clientUserIds, DateOnly today, CancellationToken ct)
+        IMongoContext mongo, List<Guid> clientUserIds, Guid professionalUserId, DateOnly today, CancellationToken ct)
     {
         if (clientUserIds.Count == 0)
         {
@@ -173,6 +175,7 @@ public static class ConversationRosterLoader
 
         var filter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.In(p => p.ClientId, clientUserIds),
+            Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalUserId),
             Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var candidates = await mongo.NutritionPlans
@@ -184,7 +187,7 @@ public static class ConversationRosterLoader
     }
 
     private static async Task<Dictionary<Guid, PlanWindowProjection>> LoadCurrentTrainingPlansAsync(
-        IMongoContext mongo, List<Guid> clientUserIds, DateOnly today, CancellationToken ct)
+        IMongoContext mongo, List<Guid> clientUserIds, Guid professionalUserId, DateOnly today, CancellationToken ct)
     {
         if (clientUserIds.Count == 0)
         {
@@ -193,6 +196,7 @@ public static class ConversationRosterLoader
 
         var filter = Builders<TrainingPlan>.Filter.And(
             Builders<TrainingPlan>.Filter.In(p => p.ClientId, clientUserIds),
+            Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalUserId),
             Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
 
         var candidates = await mongo.TrainingPlans
@@ -204,7 +208,8 @@ public static class ConversationRosterLoader
     }
 
     /// <summary>
-    /// Groups Active-status plan candidates by client and keeps only the one (if any) whose
+    /// Groups Active-status plan candidates (authored by the caller — another coach's plan never
+    /// feeds this roster) by client and keeps only the one (if any) whose
     /// window contains <paramref name="today"/>, via
     /// <see cref="PlanWindowResolver.ResolveCurrentPlanStrict{T}"/> — same strict (no legacy
     /// unranged fallback) resolution <c>GetClientsEndpoint</c> uses, so the two surfaces can
@@ -246,6 +251,7 @@ public static class ConversationRosterLoader
         public Guid ClientUserId { get; init; }
         public string FirstName { get; init; } = string.Empty;
         public string LastName { get; init; } = string.Empty;
+        public string? Email { get; init; }
         public string? AvatarBlobUrl { get; init; }
         public bool CanViewNutritionPlans { get; init; }
         public bool CanViewTrainingPlans { get; init; }

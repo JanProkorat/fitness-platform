@@ -216,6 +216,7 @@ public class GetClientDashboardEndpoint(
             {
                 var planFilter = Builders<NutritionPlan>.Filter.And(
                     Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalProfile.UserId),
                     Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
                 using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
@@ -242,6 +243,7 @@ public class GetClientDashboardEndpoint(
             {
                 var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
                     Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalProfile.UserId),
                     Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
 
                 using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);

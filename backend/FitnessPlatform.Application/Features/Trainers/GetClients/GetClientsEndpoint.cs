@@ -91,11 +91,11 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         var roster = await LoadRosterAsync(professionalProfile.Id, professionalProfile.UserId, req, now, ct);
 
-        var nutritionClientIds = roster.Where(r => r.CanViewNutritionPlans).Select(r => r.ClientUserId).Distinct().ToList();
-        var trainingClientIds = roster.Where(r => r.CanViewTrainingPlans).Select(r => r.ClientUserId).Distinct().ToList();
+        var nutritionClientIds = roster.Where(r => r.IsActive && r.CanViewNutritionPlans).Select(r => r.ClientUserId).Distinct().ToList();
+        var trainingClientIds = roster.Where(r => r.IsActive && r.CanViewTrainingPlans).Select(r => r.ClientUserId).Distinct().ToList();
 
-        var nutritionByClient = await LoadCurrentNutritionPlansAsync(nutritionClientIds, today, ct);
-        var trainingByClient = await LoadCurrentTrainingPlansAsync(trainingClientIds, today, ct);
+        var nutritionByClient = await LoadCurrentNutritionPlansAsync(nutritionClientIds, professionalProfile.UserId, today, ct);
+        var trainingByClient = await LoadCurrentTrainingPlansAsync(trainingClientIds, professionalProfile.UserId, today, ct);
 
         var tagsByLinkId = await LoadTagsByLinkIdAsync(roster, professionalProfile.Id, ct);
 
@@ -238,7 +238,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
     }
 
     private async Task<Dictionary<Guid, PlanWindowProjection>> LoadCurrentNutritionPlansAsync(
-        List<Guid> clientUserIds, DateOnly today, CancellationToken ct)
+        List<Guid> clientUserIds, Guid professionalUserId, DateOnly today, CancellationToken ct)
     {
         if (clientUserIds.Count == 0)
         {
@@ -247,6 +247,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         var filter = Builders<NutritionPlan>.Filter.And(
             Builders<NutritionPlan>.Filter.In(p => p.ClientId, clientUserIds),
+            Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalUserId),
             Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
         var candidates = await mongo.NutritionPlans
@@ -264,7 +265,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
     }
 
     private async Task<Dictionary<Guid, PlanWindowProjection>> LoadCurrentTrainingPlansAsync(
-        List<Guid> clientUserIds, DateOnly today, CancellationToken ct)
+        List<Guid> clientUserIds, Guid professionalUserId, DateOnly today, CancellationToken ct)
     {
         if (clientUserIds.Count == 0)
         {
@@ -273,6 +274,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
 
         var filter = Builders<TrainingPlan>.Filter.And(
             Builders<TrainingPlan>.Filter.In(p => p.ClientId, clientUserIds),
+            Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalUserId),
             Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
 
         var candidates = await mongo.TrainingPlans
@@ -374,7 +376,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
         var isEndingSoon = false;
 
         PlanWindowProjection? nutritionPlan = null;
-        var hasActiveNutritionPlan = row.CanViewNutritionPlans &&
+        var hasActiveNutritionPlan = row.IsActive && row.CanViewNutritionPlans &&
             nutritionByClient.TryGetValue(row.ClientUserId, out nutritionPlan);
 
         if (hasActiveNutritionPlan)
@@ -393,7 +395,7 @@ public class GetClientsEndpoint(IMongoContext mongo, IApplicationDbContext db, T
         }
 
         PlanWindowProjection? trainingPlan = null;
-        var hasActiveTrainingPlan = row.CanViewTrainingPlans &&
+        var hasActiveTrainingPlan = row.IsActive && row.CanViewTrainingPlans &&
             trainingByClient.TryGetValue(row.ClientUserId, out trainingPlan);
 
         if (hasActiveTrainingPlan)

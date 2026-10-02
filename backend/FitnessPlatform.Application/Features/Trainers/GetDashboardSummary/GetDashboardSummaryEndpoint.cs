@@ -133,7 +133,7 @@ public class GetDashboardSummaryEndpoint(
             async (pair, token) =>
             {
                 items[pair.index] = await BuildClientDashboardItemAsync(
-                    pair.link, lastMeasurementByProfileId, now, sevenDaysAgo, token);
+                    pair.link, trainerUserId, lastMeasurementByProfileId, now, sevenDaysAgo, token);
             });
 
         await Send.OkAsync(new GetDashboardSummaryResponse { Clients = items.ToList() }, ct);
@@ -147,6 +147,7 @@ public class GetDashboardSummaryEndpoint(
     /// </summary>
     private async Task<ClientDashboardItem> BuildClientDashboardItemAsync(
         ClientProfessionalLink link,
+        Guid trainerUserId,
         IReadOnlyDictionary<long, DateTime> lastMeasurementByProfileId,
         DateTime now,
         DateTime sevenDaysAgo,
@@ -204,6 +205,7 @@ public class GetDashboardSummaryEndpoint(
             var activeTrainingPlans = await mongo.TrainingPlans
                 .Find(Builders<TrainingPlan>.Filter.And(
                     Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                    Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerUserId),
                     Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active)))
                 .ToListAsync(ct);
             activePlan = PlanWindowResolver.ResolveCurrentPlan(activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, now);
@@ -220,6 +222,7 @@ public class GetDashboardSummaryEndpoint(
             var activeNutritionPlans = await mongo.NutritionPlans
                 .Find(Builders<NutritionPlan>.Filter.And(
                     Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId),
                     Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active)))
                 .ToListAsync(ct);
             activeNutritionPlan = PlanWindowResolver.ResolveCurrentPlan(activeNutritionPlans, p => p.StartDate, p => p.Weeks.Count, now);
@@ -300,6 +303,7 @@ public class GetDashboardSummaryEndpoint(
                 .CountDocumentsAsync(
                     Builders<NutritionPlan>.Filter.And(
                         Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId),
+                        Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId),
                         Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active),
                         Builders<NutritionPlan>.Filter.Ne(p => p.StartDate, null),
                         Builders<NutritionPlan>.Filter.Lte(p => p.StartDate, now),

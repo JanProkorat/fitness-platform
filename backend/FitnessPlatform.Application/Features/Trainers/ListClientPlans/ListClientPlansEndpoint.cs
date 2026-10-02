@@ -115,11 +115,11 @@ public class ListClientPlansEndpoint(
         // flag — a nutrition-only link never queries SessionExecutions/PersonalRecords, and a
         // training-only link never queries body measurements or calls CalculateComplianceAsync.
         var (trainingItems, trainingPlans) = capabilities.Value.CanViewTrainingPlans
-            ? await LoadTrainingItemsAsync(clientUserId, ct)
+            ? await LoadTrainingItemsAsync(clientUserId, trainerUserId, ct)
             : ([], []);
 
         var (nutritionItems, nutritionPlans) = capabilities.Value.CanViewNutritionPlans
-            ? await LoadNutritionItemsAsync(clientUserId, clientProfileId, ct)
+            ? await LoadNutritionItemsAsync(clientUserId, clientProfileId, trainerUserId, ct)
             : ([], []);
 
         // Merge all plans and sort newest-first:
@@ -161,10 +161,11 @@ public class ListClientPlansEndpoint(
     /// <c>CanViewTrainingPlans</c>.
     /// </summary>
     private async Task<(List<ClientPlanItem> Items, List<Domain.Documents.TrainingPlan> Plans)> LoadTrainingItemsAsync(
-        Guid clientUserId, CancellationToken ct)
+        Guid clientUserId, Guid trainerUserId, CancellationToken ct)
     {
         var trainingFilter = Builders<Domain.Documents.TrainingPlan>.Filter
             .Eq(p => p.ClientId, clientUserId);
+        trainingFilter &= Builders<Domain.Documents.TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerUserId);
         var trainingPlans = await mongo.TrainingPlans
             .Find(trainingFilter)
             .ToListAsync(ct);
@@ -229,10 +230,11 @@ public class ListClientPlansEndpoint(
     /// are scoped to this domain rather than being independently gated.
     /// </summary>
     private async Task<(List<ClientPlanItem> Items, List<Domain.Documents.NutritionPlan> Plans)> LoadNutritionItemsAsync(
-        Guid clientUserId, long clientProfileId, CancellationToken ct)
+        Guid clientUserId, long clientProfileId, Guid trainerUserId, CancellationToken ct)
     {
         var nutritionFilter = Builders<Domain.Documents.NutritionPlan>.Filter
             .Eq(p => p.ClientId, clientUserId);
+        nutritionFilter &= Builders<Domain.Documents.NutritionPlan>.Filter.Eq(p => p.NutritionistId, trainerUserId);
         var nutritionPlans = await mongo.NutritionPlans
             .Find(nutritionFilter)
             .ToListAsync(ct);
