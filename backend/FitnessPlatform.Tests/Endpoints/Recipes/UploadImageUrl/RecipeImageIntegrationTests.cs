@@ -32,6 +32,9 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         return accessToken;
     }
 
+    private static string NewKey(Guid recipeId, string slot) =>
+        $"recipes/{recipeId}/{slot}-{Guid.NewGuid():N}.jpg";
+
     private static async Task<Guid> CreateRecipeAsync(HttpClient client, string ownerToken, Guid foodId)
     {
         TestHelpers.SetBearerToken(client, ownerToken);
@@ -81,17 +84,17 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         body.Should().NotBeNull();
         body!.UploadUrl.Should().NotBeNullOrEmpty();
-        body.BlobUrl.Should().Be($"recipes/{recipeId}/main.jpg");
+        body.BlobUrl.Should().MatchRegex($"^recipes/{recipeId}/main-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Happy path: upload-url — gallery slot (0th entry) ──────────────────────
 
     /// <summary>
-    /// A nutritionist requests an upload URL for the 0th gallery slot.
-    /// <c>blobUrl</c> must equal <c>recipes/{recipeId}/gallery-0.jpg</c>.
+    /// A nutritionist requests an upload URL for the gallery.
+    /// <c>blobUrl</c> must match <c>recipes/{recipeId}/gallery-{guid:N}.jpg</c>.
     /// </summary>
     [Fact]
-    public async Task UploadUrl_Nutritionist_GallerySlot_FirstEntry_Returns200WithGallery0BlobUrl()
+    public async Task UploadUrl_Nutritionist_GallerySlot_FirstEntry_Returns200WithGuidBlobUrl()
     {
         var client = factory.CreateClient();
         var token = await SeedUserAsync(client, "Nutritionist", "gallery-happy");
@@ -110,7 +113,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
             cancellationToken: TestContext.Current.CancellationToken);
 
         body.Should().NotBeNull();
-        body!.BlobUrl.Should().Be($"recipes/{recipeId}/gallery-0.jpg");
+        body!.BlobUrl.Should().MatchRegex($"^recipes/{recipeId}/gallery-[0-9a-f]{{32}}\\.jpg$");
     }
 
     // ── Ownership gate: upload-url ─────────────────────────────────────────────
@@ -163,7 +166,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         {
             var confirmResponse = await client.PutAsJsonAsync(
                 $"/recipes/{recipeId}/image?slot=gallery",
-                new { BlobUrl = $"recipes/{recipeId}/gallery-{i}.jpg" },
+                new { BlobUrl = NewKey(recipeId, "gallery") },
                 TestContext.Current.CancellationToken);
 
             confirmResponse.StatusCode.Should().Be(HttpStatusCode.NoContent,
@@ -197,7 +200,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
-        var blobUrl = $"recipes/{recipeId}/main.jpg";
+        var blobUrl = NewKey(recipeId, "main");
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -236,7 +239,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var foodId = await TestHelpers.CreateFoodAsync(client, token, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, token, foodId);
 
-        var galleryBlobUrl = $"recipes/{recipeId}/gallery-0.jpg";
+        var galleryBlobUrl = NewKey(recipeId, "gallery");
 
         TestHelpers.SetBearerToken(client, token);
 
@@ -281,7 +284,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         {
             var confirmResponse = await client.PutAsJsonAsync(
                 $"/recipes/{recipeId}/image?slot=gallery",
-                new { BlobUrl = $"recipes/{recipeId}/gallery-{i}.jpg" },
+                new { BlobUrl = NewKey(recipeId, "gallery") },
                 TestContext.Current.CancellationToken);
 
             confirmResponse.StatusCode.Should().Be(HttpStatusCode.NoContent,
@@ -291,7 +294,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         // Attempt a 7th confirm — must fail with RECIPE_GALLERY_FULL
         var response = await client.PutAsJsonAsync(
             $"/recipes/{recipeId}/image?slot=gallery",
-            new { BlobUrl = $"recipes/{recipeId}/gallery-6.jpg" },
+            new { BlobUrl = NewKey(recipeId, "gallery") },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -321,7 +324,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         var response = await client.PutAsJsonAsync(
             $"/recipes/{recipeId}/image?slot=main",
-            new { BlobUrl = $"recipes/{recipeId}/main.jpg" },
+            new { BlobUrl = NewKey(recipeId, "main") },
             TestContext.Current.CancellationToken);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -345,8 +348,13 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         TestHelpers.SetBearerToken(client, token);
 
-        // Another recipe's key and an external URL are both rejected.
-        foreach (var badUrl in new[] { $"recipes/{Guid.NewGuid()}/{slot}.jpg", "https://evil.example/x.jpg", $"recipes/{recipeId}/gallery-3.jpg" })
+        // Another recipe's key, an external URL and legacy count/fixed names are all rejected.
+        var otherSlot = slot == "main" ? "gallery" : "main";
+        foreach (var badUrl in new[]
+                 {
+                     NewKey(Guid.NewGuid(), slot), "https://evil.example/x.jpg", $"recipes/{recipeId}/gallery-3.jpg",
+                     $"recipes/{recipeId}/{slot}.jpg", NewKey(recipeId, otherSlot),
+                 })
         {
             var response = await client.PutAsJsonAsync(
                 $"/recipes/{recipeId}/image?slot={slot}",
@@ -376,10 +384,10 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
 
         TestHelpers.SetBearerToken(client, token);
         (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
-            new { BlobUrl = $"recipes/{recipeId}/main.jpg" }, TestContext.Current.CancellationToken))
+            new { BlobUrl = NewKey(recipeId, "main") }, TestContext.Current.CancellationToken))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=gallery",
-            new { BlobUrl = $"recipes/{recipeId}/gallery-0.jpg" }, TestContext.Current.CancellationToken))
+            new { BlobUrl = NewKey(recipeId, "gallery") }, TestContext.Current.CancellationToken))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         for (var attempt = 0; attempt < 2; attempt++)
@@ -401,8 +409,9 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         var tokenA = await SeedUserAsync(client, "Nutritionist", "delete-image-a");
         var foodId = await TestHelpers.CreateFoodAsync(client, tokenA, TestContext.Current.CancellationToken);
         var recipeId = await CreateRecipeAsync(client, tokenA, foodId);
+        var mainUrl = NewKey(recipeId, "main");
         (await client.PutAsJsonAsync($"/recipes/{recipeId}/image?slot=main",
-            new { BlobUrl = $"recipes/{recipeId}/main.jpg" }, TestContext.Current.CancellationToken))
+            new { BlobUrl = mainUrl }, TestContext.Current.CancellationToken))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var tokenB = await SeedUserAsync(client, "Nutritionist", "delete-image-b");
@@ -416,7 +425,7 @@ public class RecipeImageIntegrationTests(FitnessApiFactory factory)
         TestHelpers.SetBearerToken(client, tokenA);
         var recipe = await (await client.GetAsync($"/recipes/{recipeId}", TestContext.Current.CancellationToken))
             .Content.ReadFromJsonAsync<RecipeDetailResponse>(cancellationToken: TestContext.Current.CancellationToken);
-        recipe!.ImageUrl.Should().Be($"recipes/{recipeId}/main.jpg");
+        recipe!.ImageUrl.Should().Be(mainUrl);
     }
 
     [Fact]

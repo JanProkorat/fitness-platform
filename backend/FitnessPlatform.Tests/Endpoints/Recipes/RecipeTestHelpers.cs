@@ -83,6 +83,16 @@ public static class RecipeTestHelpers
                 Arg.Any<CancellationToken>())
             .Returns(replaceResult);
 
+        // An unstubbed UpdateOneAsync reports ModifiedCount 0, which the picture endpoints read as a failed write.
+        var updateResult = Substitute.For<UpdateResult>();
+        updateResult.ModifiedCount.Returns(modifiedCount);
+        collection.UpdateOneAsync(
+                Arg.Any<FilterDefinition<Recipe>>(),
+                Arg.Any<UpdateDefinition<Recipe>>(),
+                Arg.Any<UpdateOptions>(),
+                Arg.Any<CancellationToken>())
+            .Returns(updateResult);
+
         return collection;
     }
 
