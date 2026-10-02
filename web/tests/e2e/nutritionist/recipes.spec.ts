@@ -41,6 +41,7 @@ interface SearchFoodsApiBody {
 interface RecipeApiBody {
   recipeId?: string;
   imageUrl?: string | null;
+  galleryImageUrls?: string[] | null;
 }
 
 async function loginAsNutritionist(baseURL: string): Promise<string> {
@@ -119,15 +120,23 @@ async function deleteRecipeViaApi(baseURL: string, recipeId: string): Promise<vo
   }
 }
 
-async function fetchRecipeImageUrl(baseURL: string, recipeId: string): Promise<string | null> {
+async function fetchRecipePictures(
+  baseURL: string,
+  recipeId: string,
+): Promise<{ imageUrl: string | null; galleryImageUrls: string[] }> {
   const accessToken = await loginAsNutritionist(baseURL);
   const api = await apiRequest.newContext({ baseURL });
   try {
     const response = await api.get(`/recipes/${recipeId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    return ((await response.json()) as RecipeApiBody).imageUrl ?? null;
+    const body = (await response.json()) as RecipeApiBody;
+    return { imageUrl: body.imageUrl ?? null, galleryImageUrls: body.galleryImageUrls ?? [] };
   } finally {
     await api.dispose();
   }
+}
+
+async function fetchRecipeImageUrl(baseURL: string, recipeId: string): Promise<string | null> {
+  return (await fetchRecipePictures(baseURL, recipeId)).imageUrl;
 }
 
 test.describe('recipes page', () => {
@@ -241,6 +250,17 @@ test.describe('recipes page', () => {
     }
   });
 
+  test('create mode keeps the Pictures tab disabled with a hint', async ({ page }) => {
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await expect(drawer.getByRole('tab', { name: 'Pictures' })).toBeDisabled();
+    await expect(drawer.getByText('Save the recipe to add pictures.')).toBeVisible();
+    // The Details tab starts with the name, not a picture field.
+    await expect(drawer.getByLabel(/^Name\b/)).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
   test('invalid save sends the coach to the tab with the problem', async ({ page }) => {
     const drawer = page.locator('[data-slot="sheet-content"]');
     await page.getByRole('button', { name: '+ New Recipe' }).click();
@@ -309,6 +329,12 @@ test.describe('recipes page', () => {
     await expect(drawer.getByLabel(/^Name\b/)).toBeDisabled();
     await expect(drawer.getByRole('button', { name: 'Save Recipe' })).toHaveCount(0);
     await expect(drawer.getByRole('button', { name: 'Delete' })).toHaveCount(0);
+    // Pictures are viewable but carry no upload / remove / set-as-main controls.
+    await drawer.getByRole('tab', { name: 'Pictures' }).click();
+    await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: 'Add picture' })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: /^Remove picture/ })).toHaveCount(0);
+    await expect(drawer.getByRole('button', { name: /^Set picture .* as main$/ })).toHaveCount(0);
     await drawer.locator('[data-slot="sheet-footer"]').getByRole('button', { name: 'Close' }).click();
     await expect(drawer).toHaveCount(0);
   });
@@ -355,26 +381,96 @@ test.describe('recipe picture', () => {
       await page.getByRole('cell', { name }).click();
       const drawer = page.locator('[data-slot="sheet-content"]');
       await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
       await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
 
       const confirmResponse = page.waitForResponse(
         (response) =>
           response.url().includes(`/recipes/${recipeId}/image`) && response.request().method() === 'PUT',
       );
-      await drawer.locator('input[type="file"]').setInputFiles(IMAGE_A_PATH);
+      // The main picture's input comes first in the DOM; the gallery has its own test id.
+      await drawer.locator('input[type="file"]').first().setInputFiles(IMAGE_A_PATH);
       expect((await confirmResponse).status()).toBe(204);
-      await expect.poll(() => naturalWidth(drawer.getByAltText('Recipe picture'))).toBe(64);
+      await expect.poll(() => naturalWidth(drawer.getByAltText('Recipe picture', { exact: true }))).toBe(64);
       expect(await fetchRecipeImageUrl(origin, recipeId)).toContain(recipeId);
 
       const removeResponse = page.waitForResponse(
         (response) =>
           response.url().includes(`/recipes/${recipeId}/image`) && response.request().method() === 'DELETE',
       );
-      await drawer.getByRole('button', { name: 'Remove picture' }).click();
+      await drawer.getByRole('button', { name: 'Remove picture', exact: true }).click();
       await page.getByRole('button', { name: 'Remove', exact: true }).click();
       expect((await removeResponse).status()).toBe(204);
       await expect(drawer.getByRole('button', { name: 'Upload picture' })).toBeVisible();
       expect(await fetchRecipeImageUrl(origin, recipeId)).toBeNull();
+    } finally {
+      await deleteRecipeViaApi(origin, recipeId);
+    }
+  });
+
+  test('add an extra picture, set it as main, then remove an extra', async ({ page, baseURL }) => {
+    test.skip(IN_CONTAINER, 'presigned uploads target the host MinIO port');
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Recipe Gallery ${Date.now()}`;
+    const recipeId = await createRecipeViaApi(origin, { name, dietaryPreferences: [] });
+
+    try {
+      await page.route('http://minio-test:9000/**', (route) =>
+        route.fulfill({ path: IMAGE_A_PATH, contentType: 'image/png' }),
+      );
+
+      await page.goto('/recipes');
+      await page.getByPlaceholder('Search recipes…').fill(name);
+      await page.getByRole('cell', { name }).click();
+      const drawer = page.locator('[data-slot="sheet-content"]');
+      await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
+      await drawer.getByRole('tab', { name: 'Pictures' }).click();
+
+      const isImagePut = (slot: string, method: string) => (response: { url(): string; request(): { method(): string } }) =>
+        response.url().includes(`/recipes/${recipeId}/image`) &&
+        response.url().includes(`slot=${slot}`) &&
+        response.request().method() === method;
+
+      // Main picture first, so the swap below has a main to hand over.
+      const mainConfirm = page.waitForResponse(isImagePut('main', 'PUT'));
+      await drawer.locator('input[type="file"]').first().setInputFiles(IMAGE_A_PATH);
+      expect((await mainConfirm).status()).toBe(204);
+      await expect(drawer.getByRole('button', { name: 'Replace picture' })).toBeVisible();
+
+      // Add an extra picture.
+      const galleryConfirm = page.waitForResponse(isImagePut('gallery', 'PUT'));
+      await drawer.getByTestId('recipe-gallery-input').setInputFiles(IMAGE_A_PATH);
+      expect((await galleryConfirm).status()).toBe(204);
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(1);
+      const afterAdd = await fetchRecipePictures(origin, recipeId);
+      expect(afterAdd.imageUrl).toContain(`${recipeId}/main-`);
+      expect(afterAdd.galleryImageUrls).toHaveLength(1);
+      expect(afterAdd.galleryImageUrls[0]).toContain(`${recipeId}/gallery-`);
+
+      // Set the extra as main: the old main takes its slot.
+      const promoteResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/recipes/${recipeId}/gallery/promote`) && response.request().method() === 'POST',
+      );
+      await drawer.getByRole('button', { name: 'Set picture 1 as main' }).click();
+      expect((await promoteResponse).status()).toBe(204);
+      await expect.poll(async () => (await fetchRecipePictures(origin, recipeId)).imageUrl).toBe(
+        afterAdd.galleryImageUrls[0],
+      );
+      const afterPromote = await fetchRecipePictures(origin, recipeId);
+      expect(afterPromote.galleryImageUrls).toEqual([afterAdd.imageUrl]);
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(1);
+
+      // Remove the extra (now the previous main), with confirmation.
+      const removeResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/recipes/${recipeId}/gallery`) && response.request().method() === 'DELETE',
+      );
+      await drawer.getByRole('button', { name: 'Remove picture 1' }).click();
+      await page.getByRole('button', { name: 'Remove', exact: true }).click();
+      expect((await removeResponse).status()).toBe(204);
+      await expect(drawer.getByTestId('recipe-gallery-tile')).toHaveCount(0);
+      expect((await fetchRecipePictures(origin, recipeId)).galleryImageUrls).toEqual([]);
     } finally {
       await deleteRecipeViaApi(origin, recipeId);
     }
