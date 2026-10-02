@@ -1,7 +1,12 @@
 using System.Security.Claims;
+using System.Collections.Concurrent;
 using FitnessPlatform.Application.Domain.Constants;
+using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Infrastructure.Hubs;
 using FitnessPlatform.Application.Infrastructure.Services;
+using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Endpoints;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
@@ -70,5 +75,146 @@ public class NotificationHubTests
         // Assert
         await act.Should().NotThrowAsync();
         scopeFactory.DidNotReceive().CreateScope();
+    }
+
+    // ── Invite-only threads: no presence, no typing for the inviter ──────────
+
+    public enum Relation { InviteOnly, LiveLink, DeclinedRequest }
+
+    private sealed record Scenario(
+        Guid TrainerId, Guid ClientId, Guid ConversationId, IServiceScopeFactory ScopeFactory);
+
+    private static Scenario BuildScenario(Relation relation)
+    {
+        var trainerUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("t@hub.test").Build();
+        var clientUser = EntityBuilder.User.WithId(Guid.NewGuid()).WithEmail("c@hub.test").Build();
+        var professional = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+        var conversation = new Conversation
+        {
+            PublicId = Guid.NewGuid(),
+            ProfessionalUserId = trainerUser.Id,
+            ClientUserId = clientUser.Id,
+        };
+
+        var builder = new MockDbBuilder()
+            .With(trainerUser).With(clientUser).With(professional).With(clientProfile).With(conversation);
+
+        if (relation == Relation.LiveLink)
+        {
+            builder.With(EntityBuilder.ClientProfessionalLink
+                .WithClientProfile(clientProfile).WithProfessionalProfile(professional).Build());
+        }
+        else if (relation == Relation.DeclinedRequest)
+        {
+            builder.With(new ClientRequest
+            {
+                ClientProfileId = clientProfile.Id,
+                ProfessionalProfileId = professional.Id,
+                ClientProfile = clientProfile,
+                ProfessionalProfile = professional,
+                Status = ClientRequestStatus.Rejected,
+            });
+        }
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IApplicationDbContext>(builder.Build());
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+        return new Scenario(trainerUser.Id, clientUser.Id, conversation.PublicId, scopeFactory);
+    }
+
+    private static (NotificationHub Hub, ConcurrentDictionary<string, IClientProxy> Proxies) CreateHubFor(
+        Guid callerId, string role, IServiceScopeFactory scopeFactory)
+    {
+        var hub = new NotificationHub(new PresenceTracker(), scopeFactory);
+        var proxies = new ConcurrentDictionary<string, IClientProxy>();
+
+        var context = Substitute.For<HubCallerContext>();
+        context.User.Returns(new ClaimsPrincipal(new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(callerId, role))));
+        context.ConnectionId.Returns("conn-1");
+
+        var clients = Substitute.For<IHubCallerClients>();
+        clients.Group(Arg.Any<string>()).Returns(call => proxies.GetOrAdd(call.Arg<string>(), _ => Substitute.For<IClientProxy>()));
+
+        hub.Context = context;
+        hub.Clients = clients;
+        hub.Groups = Substitute.For<IGroupManager>();
+
+        return (hub, proxies);
+    }
+
+    private static bool Received(ConcurrentDictionary<string, IClientProxy> proxies, Guid userId, string method) =>
+        proxies.TryGetValue(userId.ToString(), out var proxy) &&
+        proxy.ReceivedCalls().Any(call => call.GetMethodInfo().Name == "SendCoreAsync" && (string)call.GetArguments()[0]! == method);
+
+    [Fact]
+    public async Task SendTyping_ProfessionalInInviteOnlyThread_IsNotDelivered()
+    {
+        var scenario = BuildScenario(Relation.InviteOnly);
+        var (hub, proxies) = CreateHubFor(scenario.TrainerId, AppRoles.Trainer, scenario.ScopeFactory);
+
+        await hub.SendTyping(scenario.ConversationId.ToString());
+
+        Received(proxies, scenario.ClientId, "typing").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SendTyping_InviteeInInviteOnlyThread_IsNotDeliveredToProfessional()
+    {
+        var scenario = BuildScenario(Relation.InviteOnly);
+        var (hub, proxies) = CreateHubFor(scenario.ClientId, AppRoles.Client, scenario.ScopeFactory);
+
+        await hub.SendTyping(scenario.ConversationId.ToString());
+
+        Received(proxies, scenario.TrainerId, "typing").Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(Relation.LiveLink)]
+    [InlineData(Relation.DeclinedRequest)]
+    public async Task SendTyping_ThreadWithLinkOrRequest_StillDelivered(Relation relation)
+    {
+        var scenario = BuildScenario(relation);
+        var (hub, proxies) = CreateHubFor(scenario.ClientId, AppRoles.Client, scenario.ScopeFactory);
+
+        await hub.SendTyping(scenario.ConversationId.ToString());
+
+        Received(proxies, scenario.TrainerId, "typing").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Connect_InviteeInInviteOnlyThread_PresenceIsNotPushedToProfessional()
+    {
+        var scenario = BuildScenario(Relation.InviteOnly);
+        var (hub, proxies) = CreateHubFor(scenario.ClientId, AppRoles.Client, scenario.ScopeFactory);
+
+        await hub.OnConnectedAsync();
+
+        Received(proxies, scenario.TrainerId, "userPresence").Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(Relation.LiveLink)]
+    [InlineData(Relation.DeclinedRequest)]
+    public async Task Connect_InviteeWithLinkOrRequest_PresenceIsPushedToProfessional(Relation relation)
+    {
+        var scenario = BuildScenario(relation);
+        var (hub, proxies) = CreateHubFor(scenario.ClientId, AppRoles.Client, scenario.ScopeFactory);
+
+        await hub.OnConnectedAsync();
+
+        Received(proxies, scenario.TrainerId, "userPresence").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Connect_ProfessionalInInviteOnlyThread_PresenceStillReachesInvitee()
+    {
+        var scenario = BuildScenario(Relation.InviteOnly);
+        var (hub, proxies) = CreateHubFor(scenario.TrainerId, AppRoles.Trainer, scenario.ScopeFactory);
+
+        await hub.OnConnectedAsync();
+
+        Received(proxies, scenario.ClientId, "userPresence").Should().BeTrue();
     }
 }

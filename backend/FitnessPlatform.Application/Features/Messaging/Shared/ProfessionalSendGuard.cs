@@ -89,6 +89,49 @@ public static class ProfessionalSendGuard
     }
 
     /// <summary>
+    /// From one client's side: which of the given professionals are locked out of the thread with
+    /// that client (no link ever, no join request ever). Used to withhold the client's presence
+    /// and typing from them.
+    /// </summary>
+    public static async Task<HashSet<Guid>> FindLockedProfessionalsAsync(
+        IApplicationDbContext db, Guid clientUserId, IReadOnlyCollection<Guid> professionalUserIds, CancellationToken ct)
+    {
+        var locked = professionalUserIds.Distinct().ToHashSet();
+
+        if (locked.Count == 0)
+        {
+            return locked;
+        }
+
+        var ids = locked.ToList();
+
+        var linked = await db.ClientProfessionalLinks
+            .AsNoTracking()
+            .Where(l => l.ClientProfile.UserId == clientUserId && ids.Contains(l.ProfessionalProfile.UserId))
+            .Select(l => l.ProfessionalProfile.UserId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        locked.ExceptWith(linked);
+
+        if (locked.Count > 0)
+        {
+            var remaining = locked.ToList();
+
+            var requested = await db.ClientRequests
+                .AsNoTracking()
+                .Where(r => r.ClientProfile.UserId == clientUserId && remaining.Contains(r.ProfessionalProfile.UserId))
+                .Select(r => r.ProfessionalProfile.UserId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            locked.ExceptWith(requested);
+        }
+
+        return locked;
+    }
+
+    /// <summary>
     /// Writes the 403 <see cref="ErrorCodes.ConversationLocked"/> response and returns
     /// <see langword="null"/> when the thread is locked; otherwise returns the access level.
     /// </summary>

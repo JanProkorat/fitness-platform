@@ -4,6 +4,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Features.Messaging.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Application.Infrastructure.Services;
 using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
@@ -220,6 +221,30 @@ public class ProfessionalSendLockIntegrationTests(FitnessApiFactory factory)
 
         rows!.Single(c => c.Id == conversationId).IsSendLocked.Should().Be(expectedLocked);
         client.UserId.Should().NotBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(Relation.InviteOnly, false)]
+    [InlineData(Relation.EndedLink, true)]
+    [InlineData(Relation.DeclinedRequest, true)]
+    public async Task GetConversations_OnlineInvitee_IsShownOnlineOnlyOutsideInviteOnlyThreads(Relation relation, bool expectedOnline)
+    {
+        var (trainer, client, conversationId) = await SetupAsync(relation);
+        var presence = factory.Services.GetRequiredService<PresenceTracker>();
+        presence.UserConnected(client.UserId.ToString());
+
+        try
+        {
+            var response = await trainer.Http.GetAsync("/conversations", Ct);
+            response.EnsureSuccessStatusCode();
+            var rows = await response.Content.ReadFromJsonAsync<List<ConversationDto>>(Ct);
+
+            rows!.Single(c => c.Id == conversationId).Participant.Online.Should().Be(expectedOnline);
+        }
+        finally
+        {
+            presence.UserDisconnected(client.UserId.ToString());
+        }
     }
 
     [Fact]

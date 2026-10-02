@@ -194,6 +194,8 @@ public class GetConversationsEndpoint(
             foreach (var conversation in conversations)
             {
                 conversation.IsSendLocked = access[conversation.Participant.Id] == ProfessionalSendAccess.Locked;
+
+                conversation.Participant.Online = conversation.Participant.Online && !conversation.IsSendLocked;
             }
         }
 
@@ -232,7 +234,8 @@ public class GetConversationsEndpoint(
     {
         foreach (var c in conversations)
         {
-            c.Participant.Online = presence.IsOnline(c.Participant.Id);
+            // An invitee who has not accepted is never shown online to the inviter.
+            c.Participant.Online = !c.IsSendLocked && presence.IsOnline(c.Participant.Id);
         }
     }
 }
