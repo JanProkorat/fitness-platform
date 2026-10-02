@@ -6217,6 +6217,8 @@ export class ApiClient {
     preferences. Bound from the repeated dietaryPreference query param.
      * @param owner Optional owner filter — matches a recipe whose ownership falls under ANY of the supplied
     values (System means the platform catalog). Bound from the repeated owner query param.
+     * @param tagId Optional tags filter — matches a recipe the caller has tagged with ANY of the supplied tag
+    ids. At most 20. Bound from the repeated tagId query param.
      * @param page Page number (1-based). Defaults to 1.
      * @param pageSize Number of items per page. Defaults to 20.
      * @param search (optional) Optional search term matched against recipe name and description.
@@ -6225,7 +6227,7 @@ export class ApiClient {
     Ignored when SortBy is null.
      * @return Success
      */
-    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
+    searchRecipesEndpoint(mealType: RecipeMealType[], dietaryPreference: DietaryPreference[], owner: FoodOwnerFilter[], tagId: string[], page: number, pageSize: number, search?: string | null | undefined, sortBy?: RecipeSortField | null | undefined, sortDir?: FoodSortDirection | null | undefined, signal?: AbortSignal): Promise<SearchRecipesResponse> {
         let url_ = this.baseUrl + "/recipes?";
         if (mealType === undefined || mealType === null)
             throw new globalThis.Error("The parameter 'mealType' must be defined and cannot be null.");
@@ -6239,6 +6241,10 @@ export class ApiClient {
             throw new globalThis.Error("The parameter 'owner' must be defined and cannot be null.");
         else
             owner && owner.forEach(item => { url_ += "owner=" + encodeURIComponent("" + item) + "&"; });
+        if (tagId === undefined || tagId === null)
+            throw new globalThis.Error("The parameter 'tagId' must be defined and cannot be null.");
+        else
+            tagId && tagId.forEach(item => { url_ += "tagId=" + encodeURIComponent("" + item) + "&"; });
         if (page === undefined || page === null)
             throw new globalThis.Error("The parameter 'page' must be defined and cannot be null.");
         else
@@ -6383,6 +6389,81 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<GetRecipeResponse>(null as any);
+    }
+
+    /**
+     * Replace a recipe's tag assignments
+     * @param recipeId Public identifier of the recipe, from the route.
+     * @return The resulting tag set
+     */
+    replaceRecipeTagAssignmentsEndpoint(recipeId: string, replaceRecipeTagAssignmentsRequest: ReplaceRecipeTagAssignmentsRequest, signal?: AbortSignal): Promise<ReplaceRecipeTagAssignmentsResponse> {
+        let url_ = this.baseUrl + "/trainer/recipes/{recipeId}/tags";
+        if (recipeId === undefined || recipeId === null)
+            throw new globalThis.Error("The parameter 'recipeId' must be defined.");
+        url_ = url_.replace("{recipeId}", encodeURIComponent("" + recipeId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(replaceRecipeTagAssignmentsRequest);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            signal
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReplaceRecipeTagAssignmentsEndpoint(_response);
+        });
+    }
+
+    protected processReplaceRecipeTagAssignmentsEndpoint(response: AxiosResponse): Promise<ReplaceRecipeTagAssignmentsResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = JSON.parse(resultData200);
+            return Promise.resolve<ReplaceRecipeTagAssignmentsResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = JSON.parse(resultData400);
+            return throwException("Invalid request body", status, _responseText, _headers, result400);
+
+        } else if (status === 401) {
+            const _responseText = response.data;
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            return throwException("Forbidden", status, _responseText, _headers);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ReplaceRecipeTagAssignmentsResponse>(null as any);
     }
 
     /**
@@ -20263,6 +20344,8 @@ Clients of the API can use this flag to decide whether to show edit/delete affor
     allergens?: Allergen[];
     /** True when the recipe belongs to the platform catalog rather than a coach. */
     isSystem?: boolean;
+    /** The caller's own tags on this recipe, ordered by name. Never another coach's tags. */
+    tags?: FoodTagDto[];
 }
 
 /** A food item within a meal — denormalized snapshot of food data at the time of addition. */
@@ -20359,6 +20442,18 @@ export enum Allergen {
     Molluscs = "Molluscs",
 }
 
+/** A single coach tag, as returned by the food-tags slice and embedded as a chip on food and recipe summaries. */
+export interface FoodTagDto {
+    /** Public identifier of the tag. */
+    tagId?: string;
+    /** Tag label. */
+    name?: string;
+    /** Optional free-text description. */
+    description?: string | undefined;
+    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
+    colorHex?: string;
+}
+
 /** Request model for updating an existing recipe. */
 export interface UpdateRecipeRequest {
     /** Optimistic concurrency version. Must match the current document version. */
@@ -20445,6 +20540,8 @@ export interface RecipeSummaryDto {
     mealTypes?: RecipeMealType[];
     /** Cooking time in minutes, separate from PrepTimeMinutes. */
     cookTimeMinutes?: number | undefined;
+    /** The caller's own tags on this recipe, ordered by name. Never another coach's tags. */
+    tags?: FoodTagDto[];
 }
 
 /** Request model for searching recipes. */
@@ -20471,6 +20568,21 @@ export enum RecipeSortField {
 export enum FoodSortDirection {
     Ascending = "Ascending",
     Descending = "Descending",
+}
+
+/** The resulting tag set assigned to the recipe, for the calling nutritionist. */
+export interface ReplaceRecipeTagAssignmentsResponse {
+    /** Public identifier of the recipe the tags were assigned to. */
+    recipeId?: string;
+    /** The tags now assigned, ordered by name. */
+    tags?: FoodTagDto[];
+}
+
+/** Request body for replacing the full set of tags assigned to a recipe. RecipeId is bound from the route. */
+export interface ReplaceRecipeTagAssignmentsRequest {
+    /** Public identifiers of the tags to assign. An empty list clears every assignment the
+caller holds for this recipe. */
+    tagIds: string[];
 }
 
 /** Request model for removing one gallery image from a recipe. */
@@ -22047,18 +22159,6 @@ export interface UploadFoodImageUrlRequest {
     contentType: string;
     /** Declared file size in bytes. Must not exceed 5 MiB. */
     sizeBytes?: number;
-}
-
-/** A single food tag, as returned by every action in the food-tags slice and embedded as a chip on FoodSummary. */
-export interface FoodTagDto {
-    /** Public identifier of the tag. */
-    tagId?: string;
-    /** Tag label. */
-    name?: string;
-    /** Optional free-text description. */
-    description?: string | undefined;
-    /** Display color as a lowercase 6-digit hex string, e.g. "#3b82f6". */
-    colorHex?: string;
 }
 
 /** Request body for renaming, recoloring, or redescribing a food tag. TagId is bound from the route. */
