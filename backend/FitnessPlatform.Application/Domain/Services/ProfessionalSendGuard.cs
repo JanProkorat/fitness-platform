@@ -5,7 +5,7 @@ using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace FitnessPlatform.Application.Features.Messaging.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>What a professional may do in a thread with one client.</summary>
 public enum ProfessionalSendAccess
