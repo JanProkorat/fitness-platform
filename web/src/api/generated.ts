@@ -6322,7 +6322,7 @@ export class ApiClient {
 
     /**
      * Create recipe
-     * @return Success
+     * @return Recipe created
      */
     createRecipeEndpoint(createRecipeRequest: CreateRecipeRequest, signal?: AbortSignal): Promise<GetRecipeResponse> {
         let url_ = this.baseUrl + "/recipes";
@@ -6362,23 +6362,23 @@ export class ApiClient {
                 }
             }
         }
-        if (status === 200) {
+        if (status === 201) {
             const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = JSON.parse(resultData200);
-            return Promise.resolve<GetRecipeResponse>(result200);
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = JSON.parse(resultData201);
+            return Promise.resolve<GetRecipeResponse>(result201);
 
         } else if (status === 400) {
             const _responseText = response.data;
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return throwException("Invalid request body or unavailable ingredient", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
-            return throwException("Unauthorized", status, _responseText, _headers);
+            return throwException("Missing or invalid credentials", status, _responseText, _headers);
 
         } else if (status === 403) {
             const _responseText = response.data;

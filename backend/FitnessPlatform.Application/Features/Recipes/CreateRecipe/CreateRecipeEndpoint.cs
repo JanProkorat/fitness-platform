@@ -25,6 +25,9 @@ public class CreateRecipeEndpoint(IMongoContext mongo)
         {
             s.Summary = "Create recipe";
             s.Description = "Creates a new recipe with food items and calculated nutrient totals.";
+            s.Response<GetRecipeResponse>(StatusCodes.Status201Created, "Recipe created");
+            s.Responses[StatusCodes.Status400BadRequest] = "Invalid request body or unavailable ingredient";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or invalid credentials";
         });
     }
 
