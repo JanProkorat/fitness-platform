@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import type * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GripVertical, X } from 'lucide-react';
 import { DragDropProvider } from '@dnd-kit/react';
@@ -13,6 +15,41 @@ interface StepRowProps {
   readOnly: boolean;
   onTextChange: (id: string, text: string) => void;
   onRemove: (id: string) => void;
+}
+
+/** Step text box whose height follows its content, re-measured on text and width changes. */
+function AutoGrowTextarea(props: Omit<React.ComponentProps<'textarea'>, 'rows' | 'className' | 'ref'>) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const fitToContent = useCallback(() => {
+    const element = textareaRef.current;
+    if (!element) {
+      return;
+    }
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, []);
+
+  useLayoutEffect(fitToContent, [props.value, fitToContent]);
+
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) {
+      return;
+    }
+    // Re-fit only when the width changes; our own height writes must not re-trigger it.
+    let lastWidth = element.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (element.clientWidth !== lastWidth) {
+        lastWidth = element.clientWidth;
+        fitToContent();
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [fitToContent]);
+
+  return <Textarea {...props} ref={textareaRef} rows={1} className="min-h-0 flex-1 resize-none overflow-hidden" />;
 }
 
 /** One draggable step. Declared at module scope so its sortable state survives parent re-renders. */
@@ -41,15 +78,16 @@ function StepRow({ step, index, readOnly, onTextChange, onRemove }: StepRowProps
       <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-caption font-semibold text-primary-foreground">
         {index + 1}
       </span>
-      <Textarea
-        value={step.text}
-        disabled={readOnly}
-        rows={2}
-        placeholder={t('recipes.preparation.stepPlaceholder')}
-        aria-label={t('recipes.preparation.stepLabel', { number: index + 1 })}
-        onChange={(event) => onTextChange(step.id, event.target.value)}
-        className="min-h-12 flex-1"
-      />
+      {readOnly ? (
+        <p className="flex-1 pt-0.5 text-body whitespace-pre-wrap break-words text-foreground">{step.text}</p>
+      ) : (
+        <AutoGrowTextarea
+          value={step.text}
+          placeholder={t('recipes.preparation.stepPlaceholder')}
+          aria-label={t('recipes.preparation.stepLabel', { number: index + 1 })}
+          onChange={(event) => onTextChange(step.id, event.target.value)}
+        />
+      )}
       {!readOnly && (
         <button
           type="button"
