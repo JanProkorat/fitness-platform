@@ -11,10 +11,11 @@ interface Props {
   recipeId: string;
   imageUrl?: string;
   readOnly: boolean;
+  onViewPicture?: () => void;
 }
 
-/** The recipe drawer's picture area — binds the shared `PictureField` to the recipe image mutations. */
-export default function RecipePictureField({ recipeId, imageUrl, readOnly }: Props) {
+/** The recipe's main-picture area — binds the shared `PictureField` to the recipe image mutations. */
+export default function RecipePictureField({ recipeId, imageUrl, readOnly, onViewPicture }: Props) {
   const { t } = useTranslation();
   const requestUploadUrlMutation = useRequestRecipeImageUploadUrl();
   const confirmMutation = useConfirmRecipeImage();
@@ -32,6 +33,7 @@ export default function RecipePictureField({ recipeId, imageUrl, readOnly }: Pro
         await confirmMutation.mutateAsync({ recipeId, blobUrl });
       }}
       removePicture={() => removeMutation.mutateAsync(recipeId)}
+      onViewPicture={onViewPicture}
     />
   );
 }

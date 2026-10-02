@@ -8,6 +8,8 @@ import {
   requestRecipeImageUploadUrl,
   confirmRecipeImage,
   removeRecipeImage,
+  removeRecipeGalleryImage,
+  promoteRecipeGalleryImage,
 } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
 import type { CreateRecipeRequest, UpdateRecipeRequest, UploadRecipeImageUrlRequest } from '@/api/recipe-types';
@@ -179,6 +181,64 @@ export function useRemoveRecipeImage() {
     },
     onError: (error) => {
       showApiError(error, 'library.picture.removeError');
+    },
+  });
+}
+
+/** Requests a pre-signed upload URL for an extra (gallery) picture. */
+export function useRequestRecipeGalleryUploadUrl() {
+  return useMutation({
+    mutationFn: (variables: { recipeId: string; request: UploadRecipeImageUrlRequest }) =>
+      requestRecipeImageUploadUrl(variables.recipeId, 'gallery', variables.request),
+  });
+}
+
+/** Confirms a gallery upload. Picture changes never bump the recipe version, so only the caches refresh. */
+export function useConfirmRecipeGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { recipeId: string; blobUrl: string }) =>
+      confirmRecipeImage(variables.recipeId, 'gallery', variables.blobUrl),
+    // A rejected confirm (full gallery, stale list) refetches so the grid shows the server's truth.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+  });
+}
+
+/** Removes one extra picture by its stored URL. */
+export function useRemoveRecipeGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { recipeId: string; imageUrl: string }) =>
+      removeRecipeGalleryImage(variables.recipeId, variables.imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+      showSuccess('library.picture.removeSuccess');
+    },
+    onError: (error) => {
+      showApiError(error, 'library.picture.removeError');
+    },
+  });
+}
+
+/**
+ * Promotes an extra picture to main (swap). Any failure refetches the recipe, so
+ * a RECIPE_VERSION_CONFLICT or a vanished picture leaves the tab showing the
+ * server's current state next to the readable message.
+ */
+export function usePromoteRecipeGalleryImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { recipeId: string; imageUrl: string }) =>
+      promoteRecipeGalleryImage(variables.recipeId, variables.imageUrl),
+    onSuccess: (_data, variables) => {
+      bumpImageVersion(queryClient, recipeImageCacheKey(variables.recipeId));
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+    onError: (error) => {
+      showApiError(error, 'recipes.pictures.promoteError');
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
   });
 }

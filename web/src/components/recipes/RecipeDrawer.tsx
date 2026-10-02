@@ -25,7 +25,7 @@ import { useCreateRecipe, useRecipe, useUpdateRecipe } from '@/hooks/useRecipesQ
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import RecipeIngredientsTab from '@/components/recipes/RecipeIngredientsTab';
 import RecipePreparationTab from '@/components/recipes/RecipePreparationTab';
-import RecipePictureField from '@/components/recipes/RecipePictureField';
+import RecipePicturesTab from '@/components/recipes/RecipePicturesTab';
 import DeleteRecipeDialog from '@/components/recipes/DeleteRecipeDialog';
 import {
   isValidAmount,
@@ -44,7 +44,7 @@ const ALLERGEN_ORDER = Object.values(Allergen);
 const SELECT_CLASS =
   'flex h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 py-1 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive';
 
-type TabValue = 'details' | 'ingredients' | 'preparation';
+type TabValue = 'details' | 'ingredients' | 'preparation' | 'pictures';
 
 // react-hook-form also runs setValueAs on the field's default value, which can be
 // a number or the API's null — not only the input's string.
@@ -233,18 +233,22 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
               {t('recipes.drawer.tabPreparation')}
               <Badge variant="library">{steps.length}</Badge>
             </TabsTrigger>
+            <TabsTrigger
+              variant="underline"
+              value="pictures"
+              disabled={!recipe?.recipeId}
+              title={recipe?.recipeId ? undefined : t('recipes.drawer.picturesCreateHint')}
+            >
+              {t('recipes.drawer.tabPictures')}
+            </TabsTrigger>
           </TabsList>
+          {!recipe?.recipeId && (
+            <p className="text-meta text-muted-foreground" data-testid="recipe-pictures-hint">
+              {t('recipes.drawer.picturesCreateHint')}
+            </p>
+          )}
 
           <TabsContent value="details" className="flex flex-col gap-6 overflow-y-auto pb-4">
-            {recipe?.recipeId && (
-              <RecipePictureField
-                key={recipe.recipeId}
-                recipeId={recipe.recipeId}
-                imageUrl={recipe.imageUrl}
-                readOnly={readOnly}
-              />
-            )}
-
             <fieldset disabled={readOnly} className="flex flex-col gap-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -394,6 +398,17 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
           <TabsContent value="preparation" className="flex flex-col overflow-y-auto pb-4">
             <RecipePreparationTab steps={steps} onStepsChange={setSteps} readOnly={readOnly} timesSummary={timesSummary} />
           </TabsContent>
+
+          {recipe?.recipeId && (
+            <TabsContent value="pictures" className="flex flex-col overflow-y-auto pb-4">
+              <RecipePicturesTab
+                recipeId={recipe.recipeId}
+                imageUrl={recipe.imageUrl ?? undefined}
+                galleryImageUrls={recipe.galleryImageUrls ?? []}
+                readOnly={readOnly}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </form>
 
@@ -430,8 +445,9 @@ interface Props {
 }
 
 /**
- * Create / edit / read-only drawer for a recipe, in three tabs (Details,
- * Ingredients, Preparation). The list row only carries a summary, so an
+ * Create / edit / read-only drawer for a recipe, in four tabs (Details,
+ * Ingredients, Preparation, Pictures — the last disabled until the recipe is
+ * saved, since create mode closes the drawer on save). The list row only carries a summary, so an
  * existing recipe's full detail is fetched when the drawer opens.
  */
 export default function RecipeDrawer({ open, onOpenChange, recipe, readOnly }: Props) {

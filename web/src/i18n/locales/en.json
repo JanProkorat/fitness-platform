@@ -1012,7 +1012,9 @@
       "uploadError": "Couldn't upload the picture. Please try again.",
       "thumbnailAlt": "{{name}} picture",
       "viewPicture": "View picture",
-      "viewPictureOf": "View picture of {{name}}"
+      "viewPictureOf": "View picture of {{name}}",
+      "previous": "Previous picture",
+      "next": "Next picture"
     }
   },
   "recipes": {
@@ -1073,6 +1075,8 @@
       "tabDetails": "Details",
       "tabIngredients": "Ingredients",
       "tabPreparation": "Preparation",
+      "tabPictures": "Pictures",
+      "picturesCreateHint": "Save the recipe to add pictures.",
       "tabsLabel": "Recipe sections",
       "name": "Name",
       "namePlaceholder": "Enter recipe name",
@@ -1137,6 +1141,19 @@
     "picture": {
       "alt": "Recipe picture",
       "removeConfirmDescription": "Are you sure you want to remove this recipe's picture? This can't be undone."
+    },
+    "pictures": {
+      "mainLabel": "Main picture",
+      "galleryLabel": "More pictures",
+      "galleryCount": "{{count}} of {{max}}",
+      "galleryEmpty": "No additional pictures.",
+      "galleryAlt": "Recipe picture {{number}}",
+      "addPicture": "Add picture",
+      "remove": "Remove picture {{number}}",
+      "setAsMain": "Set as main",
+      "setAsMainLabel": "Set picture {{number}} as main",
+      "promoteError": "Couldn't set the main picture. Please try again.",
+      "removeConfirmDescription": "Are you sure you want to remove this picture? This can't be undone."
     }
   },
   "nutrition": {
@@ -1405,7 +1422,8 @@
     "RECIPE_VERSION_CONFLICT": "This recipe was changed elsewhere. Close it and reopen it to see the latest version.",
     "RECIPE_FOOD_NOT_AVAILABLE": "One of the ingredients is no longer available. Remove it and try again.",
     "RECIPE_NOT_OWNED": "You can only change your own recipes.",
-    "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures."
+    "RECIPE_GALLERY_FULL": "This recipe already has the maximum number of pictures.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "That picture is no longer part of this recipe. It may have been changed elsewhere."
   },
   "nutritionGoals": {
     "title": "Goals & Macros",

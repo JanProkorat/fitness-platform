@@ -1033,7 +1033,9 @@
       "uploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu.",
       "thumbnailAlt": "Obrázek – {{name}}",
       "viewPicture": "Zobrazit obrázek",
-      "viewPictureOf": "Zobrazit obrázek – {{name}}"
+      "viewPictureOf": "Zobrazit obrázek – {{name}}",
+      "previous": "Předchozí obrázek",
+      "next": "Další obrázek"
     }
   },
   "recipes": {
@@ -1094,6 +1096,8 @@
       "tabDetails": "Detaily",
       "tabIngredients": "Suroviny",
       "tabPreparation": "Postup",
+      "tabPictures": "Obrázky",
+      "picturesCreateHint": "Obrázky přidáte po uložení receptu.",
       "tabsLabel": "Sekce receptu",
       "name": "Název",
       "namePlaceholder": "Zadejte název receptu",
@@ -1158,6 +1162,19 @@
     "picture": {
       "alt": "Obrázek receptu",
       "removeConfirmDescription": "Opravdu chcete odebrat obrázek tohoto receptu? Tuto akci nelze vrátit zpět."
+    },
+    "pictures": {
+      "mainLabel": "Hlavní obrázek",
+      "galleryLabel": "Další obrázky",
+      "galleryCount": "{{count}} z {{max}}",
+      "galleryEmpty": "Žádné další obrázky.",
+      "galleryAlt": "Obrázek receptu {{number}}",
+      "addPicture": "Přidat obrázek",
+      "remove": "Odebrat obrázek {{number}}",
+      "setAsMain": "Nastavit jako hlavní",
+      "setAsMainLabel": "Nastavit obrázek {{number}} jako hlavní",
+      "promoteError": "Hlavní obrázek se nepodařilo nastavit. Zkuste to prosím znovu.",
+      "removeConfirmDescription": "Opravdu chcete odebrat tento obrázek? Tuto akci nelze vrátit zpět."
     }
   },
   "nutrition": {
@@ -1426,7 +1443,8 @@
     "RECIPE_VERSION_CONFLICT": "Tento recept byl mezitím změněn jinde. Zavřete ho a otevřete znovu, abyste viděli nejnovější verzi.",
     "RECIPE_FOOD_NOT_AVAILABLE": "Jedna ze surovin už není dostupná. Odeberte ji a zkuste to znovu.",
     "RECIPE_NOT_OWNED": "Můžete upravovat jen své vlastní recepty.",
-    "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků."
+    "RECIPE_GALLERY_FULL": "Tento recept už má maximální počet obrázků.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Tento obrázek už k receptu nepatří. Mohl být změněn jinde."
   },
   "nutritionGoals": {
     "title": "Cíle & makra",

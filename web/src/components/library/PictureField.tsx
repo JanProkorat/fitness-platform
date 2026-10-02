@@ -8,14 +8,7 @@ import { cn } from '@/lib/utils';
 import { showApiError, showError } from '@/lib/api-errors';
 import { useImageVersion } from '@/hooks/useImageVersion';
 
-/** jpeg/png/webp only — mirrors the chat-attachment composer's own
- * client-side allowlist (`Composer.tsx`). The server additionally accepts
- * heic/heif, but browsers can't render those, so the web picker never offers
- * them; the server stays the real authority either way. */
-const ALLOWED_IMAGE_CONTENT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const FILE_PICKER_ACCEPT = ALLOWED_IMAGE_CONTENT_TYPES.join(',');
-/** Mirrors the server's `ImageUploadService.MaxImageSizeBytes` (5 MiB). */
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+import { ALLOWED_IMAGE_CONTENT_TYPES, FILE_PICKER_ACCEPT, MAX_IMAGE_SIZE_BYTES } from '@/components/library/pictureUpload';
 
 export interface PictureUploadUrl {
   uploadUrl: string;
@@ -40,6 +33,9 @@ interface Props {
   /** Removes the picture. Must surface its own error feedback; a rejection
    * here just leaves the dialog open. */
   removePicture: () => Promise<void>;
+  /** When set, clicking the picture calls this instead of opening the built-in
+   * single-picture lightbox — lets the parent open a multi-picture viewer. */
+  onViewPicture?: () => void;
 }
 
 /**
@@ -69,6 +65,7 @@ export default function PictureField({
   requestUploadUrl,
   confirmUpload,
   removePicture,
+  onViewPicture,
 }: Props) {
   const { t } = useTranslation();
   const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
@@ -235,7 +232,7 @@ export default function PictureField({
                 type="button"
                 aria-label={t('library.picture.viewPicture')}
                 className="block size-full cursor-zoom-in"
-                onClick={() => setLightboxOpen(true)}
+                onClick={() => (onViewPicture ? onViewPicture() : setLightboxOpen(true))}
               >
                 <img
                   src={displaySrc}
@@ -244,7 +241,9 @@ export default function PictureField({
                   onError={() => setLoadFailed(true)}
                 />
               </button>
-              <ImageLightbox open={lightboxOpen} onOpenChange={setLightboxOpen} src={displaySrc} alt={alt} />
+              {!onViewPicture && (
+                <ImageLightbox open={lightboxOpen} onOpenChange={setLightboxOpen} src={displaySrc} alt={alt} />
+              )}
             </>
           ) : (
             <div className="flex size-full items-center justify-center">

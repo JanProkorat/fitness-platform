@@ -1011,7 +1011,9 @@
       "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
       "thumbnailAlt": "Bild von {{name}}",
       "viewPicture": "Bild anzeigen",
-      "viewPictureOf": "Bild von {{name}} anzeigen"
+      "viewPictureOf": "Bild von {{name}} anzeigen",
+      "previous": "Vorheriges Bild",
+      "next": "Nächstes Bild"
     }
   },
   "recipes": {
@@ -1072,6 +1074,8 @@
       "tabDetails": "Details",
       "tabIngredients": "Zutaten",
       "tabPreparation": "Zubereitung",
+      "tabPictures": "Bilder",
+      "picturesCreateHint": "Speichern Sie das Rezept, um Bilder hinzuzufügen.",
       "tabsLabel": "Rezeptabschnitte",
       "name": "Name",
       "namePlaceholder": "Rezeptnamen eingeben",
@@ -1136,6 +1140,19 @@
     "picture": {
       "alt": "Rezeptbild",
       "removeConfirmDescription": "Möchten Sie das Bild dieses Rezepts wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
+    },
+    "pictures": {
+      "mainLabel": "Hauptbild",
+      "galleryLabel": "Weitere Bilder",
+      "galleryCount": "{{count}} von {{max}}",
+      "galleryEmpty": "Keine weiteren Bilder.",
+      "galleryAlt": "Rezeptbild {{number}}",
+      "addPicture": "Bild hinzufügen",
+      "remove": "Bild {{number}} entfernen",
+      "setAsMain": "Als Hauptbild festlegen",
+      "setAsMainLabel": "Bild {{number}} als Hauptbild festlegen",
+      "promoteError": "Das Hauptbild konnte nicht festgelegt werden. Bitte versuchen Sie es erneut.",
+      "removeConfirmDescription": "Möchten Sie dieses Bild wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
     }
   },
   "nutrition": {
@@ -1404,7 +1421,8 @@
     "RECIPE_VERSION_CONFLICT": "Dieses Rezept wurde anderswo geändert. Schließen Sie es und öffnen Sie es erneut, um die aktuelle Version zu sehen.",
     "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
     "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
-    "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern."
+    "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",

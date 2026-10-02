@@ -103,3 +103,13 @@ export async function confirmRecipeImage(recipeId: string, slot: RecipeImageSlot
 export async function removeRecipeImage(recipeId: string): Promise<void> {
   await apiClient.deleteRecipeImageEndpoint(recipeId);
 }
+
+/** Removes one extra picture from a recipe's gallery (owner only). Idempotent. */
+export async function removeRecipeGalleryImage(recipeId: string, imageUrl: string): Promise<void> {
+  await apiClient.removeRecipeGalleryImageEndpoint(recipeId, imageUrl);
+}
+
+/** Makes a gallery picture the main one; the previous main takes its slot (owner only). */
+export async function promoteRecipeGalleryImage(recipeId: string, imageUrl: string): Promise<void> {
+  await apiClient.promoteRecipeGalleryImageEndpoint(recipeId, { imageUrl });
+}
