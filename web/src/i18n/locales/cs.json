@@ -969,6 +969,23 @@
       "mine": "Moje",
       "shared": "Sdílená"
     },
+    "visibility": {
+      "label": "Viditelnost",
+      "options": {
+        "Private": "Soukromé",
+        "Public": "Veřejné"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Tento recept vidíte a používáte jen vy.",
+          "ingredient": "Tuto surovinu vidíte a používáte jen vy."
+        },
+        "Public": {
+          "recipe": "Tento recept vidí a mohou používat všichni koučové.",
+          "ingredient": "Tuto surovinu vidí a mohou používat všichni koučové."
+        }
+      }
+    },
     "pagination": {
       "viewing": "Zobrazeno {{count}} z {{total}}"
     },
@@ -1104,7 +1121,7 @@
       "namePlaceholder": "Zadejte název receptu",
       "nameRequired": "Název je povinný.",
       "servings": "Počet porcí",
-      "servingsRequired": "Počet porcí musí být alespoň 1.",
+      "servingsRequired": "Počet porcí musí být celé číslo, alespoň 1.",
       "description": "Popis",
       "descriptionPlaceholder": "Popište recept",
       "recipeDetails": "Detaily receptu",

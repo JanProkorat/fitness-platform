@@ -21,6 +21,7 @@ import {
   FoodCategory,
   Allergen,
   DietaryPreference,
+  FoodVisibility,
   type FoodSummary,
   type FoodTagDto,
   type CreateFoodRequest,
@@ -30,6 +31,7 @@ import { useCreateFood, useReplaceFoodTagAssignments, useUpdateFood } from '@/ho
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
 import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopover';
+import VisibilityToggle from '@/components/library/VisibilityToggle';
 import IngredientPictureField from '@/components/ingredients/IngredientPictureField';
 import TagPill from '@/components/tags/TagPill';
 
@@ -92,6 +94,7 @@ function buildFormSchema(allowedLegacyUnit: string | null) {
         { message: 'required' },
       ),
     servingSize: z.number({ message: 'required' }).positive(),
+    visibility: z.enum(['Private', 'Public']),
     dietaryPreferences: z.array(z.string()),
     allergens: z.array(z.string()),
   });
@@ -111,6 +114,7 @@ const EMPTY_VALUES: FormValues = {
   fiber: undefined,
   unit: 'portion',
   servingSize: undefined as unknown as number,
+  visibility: 'Private',
   dietaryPreferences: [],
   allergens: [],
 };
@@ -132,6 +136,7 @@ function valuesFromFood(food: FoodSummary): FormValues {
     fiber: food.nutrientValue?.fiber,
     unit: defaultServing?.label ?? '',
     servingSize: defaultServing?.weightGrams ?? (undefined as unknown as number),
+    visibility: food.visibility === FoodVisibility.Public ? 'Public' : 'Private',
     dietaryPreferences: (food.dietaryPreferences ?? []) as string[],
     allergens: (food.allergens ?? []) as string[],
   };
@@ -159,7 +164,7 @@ interface Props {
  * specifically so it isn't shown twice.
  *
  * Editing is a full-state PUT (`UpdateFoodEndpoint.cs:61-90`) — `onSubmit`
- * round-trips `nameEn`/`nameCs`/`nameDe`, `note`, `visibility`,
+ * round-trips `nameEn`/`nameCs`/`nameDe`, `note`,
  * `nutrientValue`'s `sugar`/`saturatedFat`/`salt`, and any `commonServings`
  * beyond the default (index 0) straight from the loaded `food`, since the
  * drawer's own fields never touch them.
@@ -217,6 +222,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
   const dietaryPreferences = watch('dietaryPreferences');
   const allergens = watch('allergens');
   const unit = watch('unit');
+  const visibility = watch('visibility');
 
   // Picks the right translated message for one of the four macro fields'
   // error, by RHF's error `type` — never the raw zod message:
@@ -294,6 +300,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
           fiber: values.fiber,
         },
         category: values.category as FoodCategory,
+        visibility: values.visibility as FoodVisibility,
         allergens: values.allergens as Allergen[],
         dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
         commonServings,
@@ -330,7 +337,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
       },
       category: values.category as FoodCategory,
       note: food.note,
-      visibility: food.visibility,
+      visibility: values.visibility as FoodVisibility,
       allergens: values.allergens as Allergen[],
       dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
       commonServings,
@@ -579,6 +586,15 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                   </div>
                 </div>
               </div>
+
+              {!readOnly && (
+                <VisibilityToggle
+                  id="ingredient-visibility"
+                  entity="ingredient"
+                  value={visibility}
+                  onChange={(next) => setValue('visibility', next, { shouldDirty: true })}
+                />
+              )}
 
               <div className="flex flex-col gap-3">
                 <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">

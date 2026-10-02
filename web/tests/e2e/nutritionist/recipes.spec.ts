@@ -40,6 +40,7 @@ interface SearchFoodsApiBody {
 
 interface RecipeApiBody {
   recipeId?: string;
+  visibility?: string;
   imageUrl?: string | null;
   galleryImageUrls?: string[] | null;
 }
@@ -130,6 +131,17 @@ async function fetchRecipePictures(
     const response = await api.get(`/recipes/${recipeId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
     const body = (await response.json()) as RecipeApiBody;
     return { imageUrl: body.imageUrl ?? null, galleryImageUrls: body.galleryImageUrls ?? [] };
+  } finally {
+    await api.dispose();
+  }
+}
+
+async function fetchRecipeVisibility(baseURL: string, recipeId: string): Promise<string | undefined> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  try {
+    const response = await api.get(`/recipes/${recipeId}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    return ((await response.json()) as RecipeApiBody).visibility;
   } finally {
     await api.dispose();
   }
@@ -258,6 +270,66 @@ test.describe('recipes page', () => {
     // The Details tab starts with the name, not a picture field.
     await expect(drawer.getByLabel(/^Name\b/)).toBeVisible();
     await expect(drawer.getByRole('button', { name: 'Upload picture' })).toHaveCount(0);
+    await drawer.getByRole('button', { name: 'Cancel' }).click();
+  });
+
+  test('visibility toggle round-trips Private to Public and back', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA Visibility ${Date.now()}`;
+    const recipeId = await createRecipeViaApi(origin, { name, dietaryPreferences: [] });
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    async function saveAndAssert(expected: 'Public' | 'Private') {
+      const updateResponse = page.waitForResponse(
+        (response) => response.url().includes(`/recipes/${recipeId}`) && response.request().method() === 'PUT',
+      );
+      await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+      expect((await updateResponse).status()).toBe(200);
+      await expect(drawer).toHaveCount(0);
+      expect(await fetchRecipeVisibility(origin, recipeId)).toBe(expected);
+    }
+
+    try {
+      expect(await fetchRecipeVisibility(origin, recipeId)).toBe('Private');
+      await page.getByPlaceholder('Search recipes…').fill(name);
+      await page.getByRole('cell', { name }).click();
+      await expect(drawer.getByRole('heading', { name: 'Edit Recipe' })).toBeVisible();
+
+      await expect(drawer.getByRole('radio', { name: 'Private' })).toBeChecked();
+      await expect(drawer.getByText('Only you can see and use this recipe.')).toBeVisible();
+      await drawer.getByRole('radio', { name: 'Public' }).click();
+      await expect(drawer.getByText('All coaches can see and use this recipe.')).toBeVisible();
+      await saveAndAssert('Public');
+
+      // The owner's badge stays "Mine" whatever the visibility.
+      await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+      await page.getByRole('cell', { name }).click();
+      await expect(drawer.getByRole('radio', { name: 'Public' })).toBeChecked();
+      await drawer.getByRole('radio', { name: 'Private' }).click();
+      await saveAndAssert('Private');
+    } finally {
+      await deleteRecipeViaApi(origin, recipeId);
+    }
+  });
+
+  test('a decimal Servings value blocks the save', async ({ page }) => {
+    const drawer = page.locator('[data-slot="sheet-content"]');
+    await page.getByRole('button', { name: '+ New Recipe' }).click();
+    await drawer.getByLabel(/^Name\b/).fill('QA Decimal Servings');
+    await drawer.getByLabel(/^Servings\b/).fill('1.5');
+    await drawer.locator('#recipe-meal-types').click();
+    await page.getByRole('checkbox', { name: 'Lunch' }).click();
+    await page.keyboard.press('Escape');
+
+    let posted = false;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/recipes')) {
+        posted = true;
+      }
+    });
+    await drawer.getByRole('button', { name: 'Save Recipe' }).click();
+    await expect(drawer.getByText('Servings must be a whole number, at least 1.')).toBeVisible();
+    expect(posted).toBe(false);
     await drawer.getByRole('button', { name: 'Cancel' }).click();
   });
 

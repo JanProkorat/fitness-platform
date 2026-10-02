@@ -1,9 +1,10 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 
 /**
- * Per-picture cache-buster for an `<img src>`. A main picture's blob key is
- * deterministic, so replacing it keeps the SAME url and the browser can keep
- * showing stale cached bytes. This is not server data: a plain counter living
+ * Per-picture cache-buster for an `<img src>`. A food's main picture keeps
+ * the SAME url when replaced (its blob key is deterministic), so the browser
+ * can keep showing stale cached bytes; recipe picture keys are not
+ * deterministic, but the same bump is harmless there. This is not server data: a plain counter living
  * in its own query-cache entry (deliberately outside the list/detail key
  * namespaces, so broad invalidations never touch it), bumped only after a
  * confirmed upload/replace/remove. `cacheKey` namespaces the entity, e.g.

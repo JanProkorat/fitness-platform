@@ -17,6 +17,7 @@ import {
   DietaryPreference,
   RecipeDifficulty,
   RecipeMealType,
+  RecipeVisibility,
   type CreateRecipeRequest,
   type GetRecipeResponse,
   type RecipeSummaryDto,
@@ -31,6 +32,7 @@ import {
 } from '@/hooks/useRecipesQueries';
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopover';
+import VisibilityToggle from '@/components/library/VisibilityToggle';
 import TagPill from '@/components/tags/TagPill';
 import RecipeIngredientsTab from '@/components/recipes/RecipeIngredientsTab';
 import RecipePreparationTab from '@/components/recipes/RecipePreparationTab';
@@ -69,8 +71,9 @@ function optionalMinutes(value: unknown): number | undefined {
 
 const formSchema = z.object({
   name: z.string().trim().min(1),
-  servings: z.number({ message: 'required' }).min(1),
+  servings: z.number({ message: 'required' }).int().min(1),
   description: z.string(),
+  visibility: z.enum(['Private', 'Public']),
   mealTypes: z.array(z.string()).min(1),
   difficulty: z.string(),
   prepTimeMinutes: z.number().int().min(0).optional(),
@@ -84,6 +87,7 @@ const EMPTY_VALUES: FormValues = {
   name: '',
   servings: 1,
   description: '',
+  visibility: 'Private',
   mealTypes: [],
   difficulty: '',
   prepTimeMinutes: undefined,
@@ -96,6 +100,7 @@ function valuesFromRecipe(recipe: GetRecipeResponse): FormValues {
     name: recipe.name ?? '',
     servings: recipe.servings ?? 1,
     description: recipe.description ?? '',
+    visibility: recipe.visibility === RecipeVisibility.Public ? 'Public' : 'Private',
     mealTypes: (recipe.mealTypes ?? []) as string[],
     difficulty: recipe.difficulty ?? '',
     prepTimeMinutes: recipe.prepTimeMinutes ?? undefined,
@@ -185,6 +190,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
     defaultValues: recipe ? valuesFromRecipe(recipe) : EMPTY_VALUES,
   });
 
+  const visibility = watch('visibility');
   const mealTypes = watch('mealTypes');
   const dietaryPreferences = watch('dietaryPreferences');
   const servings = watch('servings');
@@ -218,6 +224,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
       prepTimeMinutes: values.prepTimeMinutes,
       cookTimeMinutes: values.cookTimeMinutes,
       servings: values.servings,
+      visibility: values.visibility as RecipeVisibility,
       difficulty: values.difficulty ? (values.difficulty as RecipeDifficulty) : undefined,
       mealTypes: values.mealTypes as RecipeMealType[],
       dietaryPreferences: values.dietaryPreferences as DietaryPreference[],
@@ -236,7 +243,7 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
     }
 
     // Full-state PUT: `note` is not editable here, so it round-trips from the
-    // loaded recipe; `visibility` is omitted, which preserves the stored value.
+    // loaded recipe.
     const request: UpdateRecipeRequest = { ...content, version: recipe.version, note: recipe.note };
     updateMutation.mutate({ recipeId: recipe.recipeId, request }, { onSuccess: onClose });
   }
@@ -295,7 +302,6 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
                   <Input
                     id="recipe-servings"
                     type="number"
-                    step="any"
                     {...register('servings', { valueAsNumber: true })}
                     aria-invalid={!!errors.servings}
                     className="h-10"
@@ -315,6 +321,15 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
                   placeholder={t('recipes.drawer.descriptionPlaceholder')}
                 />
               </div>
+
+              {!readOnly && (
+                <VisibilityToggle
+                  id="recipe-visibility"
+                  entity="recipe"
+                  value={visibility}
+                  onChange={(next) => setValue('visibility', next, { shouldDirty: true })}
+                />
+              )}
 
               <div className="flex flex-col gap-3">
                 <h3 className="text-body font-semibold text-foreground uppercase">{t('recipes.drawer.recipeDetails')}</h3>

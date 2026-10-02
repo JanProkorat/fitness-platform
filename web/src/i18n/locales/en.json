@@ -948,6 +948,23 @@
       "mine": "Mine",
       "shared": "Shared"
     },
+    "visibility": {
+      "label": "Visibility",
+      "options": {
+        "Private": "Private",
+        "Public": "Public"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Only you can see and use this recipe.",
+          "ingredient": "Only you can see and use this ingredient."
+        },
+        "Public": {
+          "recipe": "All coaches can see and use this recipe.",
+          "ingredient": "All coaches can see and use this ingredient."
+        }
+      }
+    },
     "pagination": {
       "viewing": "Viewing {{count}} of {{total}}"
     },
@@ -1083,7 +1100,7 @@
       "namePlaceholder": "Enter recipe name",
       "nameRequired": "Name is required.",
       "servings": "Servings",
-      "servingsRequired": "Servings must be at least 1.",
+      "servingsRequired": "Servings must be a whole number, at least 1.",
       "description": "Description",
       "descriptionPlaceholder": "Describe recipe",
       "recipeDetails": "Recipe details",

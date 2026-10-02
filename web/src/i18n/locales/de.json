@@ -947,6 +947,23 @@
       "mine": "Meine",
       "shared": "Geteilt"
     },
+    "visibility": {
+      "label": "Sichtbarkeit",
+      "options": {
+        "Private": "Privat",
+        "Public": "Öffentlich"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Nur Sie können dieses Rezept sehen und verwenden.",
+          "ingredient": "Nur Sie können diese Zutat sehen und verwenden."
+        },
+        "Public": {
+          "recipe": "Alle Coaches können dieses Rezept sehen und verwenden.",
+          "ingredient": "Alle Coaches können diese Zutat sehen und verwenden."
+        }
+      }
+    },
     "pagination": {
       "viewing": "{{count}} von {{total}} angezeigt"
     },
@@ -1082,7 +1099,7 @@
       "namePlaceholder": "Rezeptnamen eingeben",
       "nameRequired": "Name ist erforderlich.",
       "servings": "Portionen",
-      "servingsRequired": "Die Portionszahl muss mindestens 1 sein.",
+      "servingsRequired": "Die Portionszahl muss eine ganze Zahl und mindestens 1 sein.",
       "description": "Beschreibung",
       "descriptionPlaceholder": "Rezept beschreiben",
       "recipeDetails": "Rezeptdetails",
