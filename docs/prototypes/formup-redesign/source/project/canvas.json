@@ -1,0 +1,1273 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "GlassAmrapDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Amrap",
+      "w": 390,
+      "x": 470,
+      "y": 2528
+    },
+    "GlassAmrapLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Amrap",
+      "w": 390,
+      "x": 470,
+      "y": 2528
+    },
+    "GlassChatDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Chat",
+      "w": 390,
+      "x": 470,
+      "y": 6320
+    },
+    "GlassChatLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Chat",
+      "w": 390,
+      "x": 470,
+      "y": 6320
+    },
+    "GlassCheckInDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "CheckIn",
+      "w": 390,
+      "x": 2350,
+      "y": 7584
+    },
+    "GlassCheckInLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "CheckIn",
+      "w": 390,
+      "x": 2350,
+      "y": 7584
+    },
+    "GlassCoachProfileDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "CoachProfile",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "GlassCoachProfileLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "CoachProfile",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "GlassCoachSearchDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "CoachSearch",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "GlassCoachSearchLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "CoachSearch",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "GlassDoneAmrapDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "DoneAmrap",
+      "w": 390,
+      "x": 470,
+      "y": 3792
+    },
+    "GlassDoneAmrapLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "DoneAmrap",
+      "w": 390,
+      "x": 470,
+      "y": 3792
+    },
+    "GlassDoneStrengthDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "DoneStrength",
+      "w": 390,
+      "x": 0,
+      "y": 3792
+    },
+    "GlassDoneStrengthLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "DoneStrength",
+      "w": 390,
+      "x": 0,
+      "y": 3792
+    },
+    "GlassDoneTabataDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "DoneTabata",
+      "w": 390,
+      "x": 940,
+      "y": 3792
+    },
+    "GlassDoneTabataLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "DoneTabata",
+      "w": 390,
+      "x": 940,
+      "y": 3792
+    },
+    "GlassEmomDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Emom",
+      "w": 390,
+      "x": 940,
+      "y": 2528
+    },
+    "GlassEmomLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Emom",
+      "w": 390,
+      "x": 940,
+      "y": 2528
+    },
+    "GlassForTimeDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "ForTime",
+      "w": 390,
+      "x": 1880,
+      "y": 2528
+    },
+    "GlassForTimeLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "ForTime",
+      "w": 390,
+      "x": 1880,
+      "y": 2528
+    },
+    "GlassLoginDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Login",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "GlassLoginLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Login",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "GlassMealDetailDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "MealDetail",
+      "w": 390,
+      "x": 940,
+      "y": 5056
+    },
+    "GlassMealDetailLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "MealDetail",
+      "w": 390,
+      "x": 940,
+      "y": 5056
+    },
+    "GlassMeasurementsDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Measurements",
+      "w": 390,
+      "x": 1410,
+      "y": 7584
+    },
+    "GlassMeasurementsLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Measurements",
+      "w": 390,
+      "x": 1410,
+      "y": 7584
+    },
+    "GlassMessagesListDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "MessagesList",
+      "w": 390,
+      "x": 0,
+      "y": 6320
+    },
+    "GlassMessagesListLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "MessagesList",
+      "w": 390,
+      "x": 0,
+      "y": 6320
+    },
+    "GlassMyJourneyDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "MyJourney",
+      "w": 390,
+      "x": 470,
+      "y": 7584
+    },
+    "GlassMyJourneyLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "MyJourney",
+      "w": 390,
+      "x": 470,
+      "y": 7584
+    },
+    "GlassNutritionDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Nutrition",
+      "w": 390,
+      "x": 0,
+      "y": 5056
+    },
+    "GlassNutritionEmptyDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "NutritionEmpty",
+      "w": 390,
+      "x": 470,
+      "y": 5056
+    },
+    "GlassNutritionEmptyLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "NutritionEmpty",
+      "w": 390,
+      "x": 470,
+      "y": 5056
+    },
+    "GlassNutritionLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Nutrition",
+      "w": 390,
+      "x": 0,
+      "y": 5056
+    },
+    "GlassOnboardingBasicsDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "OnboardingBasics",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "GlassOnboardingBasicsLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "OnboardingBasics",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "GlassOnboardingGoalDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "OnboardingGoal",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "GlassOnboardingGoalLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "OnboardingGoal",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "GlassPhotosDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Photos",
+      "w": 390,
+      "x": 1880,
+      "y": 7584
+    },
+    "GlassPhotosLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Photos",
+      "w": 390,
+      "x": 1880,
+      "y": 7584
+    },
+    "GlassPlanSummaryDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "PlanSummary",
+      "w": 390,
+      "x": 940,
+      "y": 7584
+    },
+    "GlassPlanSummaryLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "PlanSummary",
+      "w": 390,
+      "x": 940,
+      "y": 7584
+    },
+    "GlassProfileDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Profile",
+      "w": 390,
+      "x": 0,
+      "y": 7584
+    },
+    "GlassProfileLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Profile",
+      "w": 390,
+      "x": 0,
+      "y": 7584
+    },
+    "GlassRegisterDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Register",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "GlassRegisterLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Register",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "GlassRequestSheetDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "RequestSheet",
+      "w": 390,
+      "x": 3290,
+      "y": 0
+    },
+    "GlassRequestSheetLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "RequestSheet",
+      "w": 390,
+      "x": 3290,
+      "y": 0
+    },
+    "GlassSessionDetailDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "SessionDetail",
+      "w": 390,
+      "x": 1880,
+      "y": 1264
+    },
+    "GlassSessionDetailLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "SessionDetail",
+      "w": 390,
+      "x": 1880,
+      "y": 1264
+    },
+    "GlassSessionMixedDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "SessionMixed",
+      "w": 390,
+      "x": 0,
+      "y": 2528
+    },
+    "GlassSessionMixedLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "SessionMixed",
+      "w": 390,
+      "x": 0,
+      "y": 2528
+    },
+    "GlassSessionSummaryDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "SessionSummary",
+      "w": 390,
+      "x": 1410,
+      "y": 3792
+    },
+    "GlassSessionSummaryLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "SessionSummary",
+      "w": 390,
+      "x": 1410,
+      "y": 3792
+    },
+    "GlassSettingsDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Settings",
+      "w": 390,
+      "x": 2820,
+      "y": 7584
+    },
+    "GlassSettingsLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Settings",
+      "w": 390,
+      "x": 2820,
+      "y": 7584
+    },
+    "GlassShoppingListDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "ShoppingList",
+      "w": 390,
+      "x": 1410,
+      "y": 5056
+    },
+    "GlassShoppingListLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "ShoppingList",
+      "w": 390,
+      "x": 1410,
+      "y": 5056
+    },
+    "GlassTabataDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Tabata",
+      "w": 390,
+      "x": 1410,
+      "y": 2528
+    },
+    "GlassTabataLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Tabata",
+      "w": 390,
+      "x": 1410,
+      "y": 2528
+    },
+    "GlassTodayDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Today",
+      "w": 390,
+      "x": 0,
+      "y": 1264
+    },
+    "GlassTodayLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Today",
+      "w": 390,
+      "x": 0,
+      "y": 1264
+    },
+    "GlassTodayNoCoachDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "TodayNoCoach",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "GlassTodayNoCoachLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "TodayNoCoach",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "GlassTrainingEmptyDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "TrainingEmpty",
+      "w": 390,
+      "x": 1410,
+      "y": 1264
+    },
+    "GlassTrainingEmptyLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "TrainingEmpty",
+      "w": 390,
+      "x": 1410,
+      "y": 1264
+    },
+    "GlassTrainingWeekDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "TrainingWeek",
+      "w": 390,
+      "x": 940,
+      "y": 1264
+    },
+    "GlassTrainingWeekLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "TrainingWeek",
+      "w": 390,
+      "x": 940,
+      "y": 1264
+    },
+    "GlassWorkoutDark.dc.html": {
+      "h": 844,
+      "page": "glassdark",
+      "title": "Workout",
+      "w": 390,
+      "x": 2350,
+      "y": 1264
+    },
+    "GlassWorkoutLight.dc.html": {
+      "h": 844,
+      "page": "glass",
+      "title": "Workout",
+      "w": 390,
+      "x": 2350,
+      "y": 1264
+    },
+    "Main.dc.html": {
+      "h": 900,
+      "page": "concepts",
+      "title": "C \u00b7 Palette",
+      "w": 560,
+      "x": 0,
+      "y": 0
+    },
+    "NutritionC.dc.html": {
+      "h": 844,
+      "page": "concepts",
+      "title": "C \u00b7 Nutrition",
+      "w": 390,
+      "x": 3100,
+      "y": 0
+    },
+    "PageClientDetailC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C \u00b7 ClientDetail",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "PageClientDetailD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D \u00b7 ClientDetail",
+      "w": 1440,
+      "x": 3040,
+      "y": 1820
+    },
+    "PageClientsC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C \u00b7 Clients",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "PageClientsD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D \u00b7 Clients",
+      "w": 1440,
+      "x": 1520,
+      "y": 1820
+    },
+    "PageEntryC.dc.html": {
+      "h": 1400,
+      "page": "web",
+      "title": "C \u00b7 Entry",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "PageEntryD.dc.html": {
+      "h": 1400,
+      "page": "web",
+      "title": "D \u00b7 Entry",
+      "w": 1440,
+      "x": 0,
+      "y": 1820
+    },
+    "PageInboxC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C \u00b7 Inbox",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "PageInboxD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D \u00b7 Inbox",
+      "w": 1440,
+      "x": 4560,
+      "y": 1820
+    },
+    "PageIngredientDrawerC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C \u00b7 IngredientDrawer",
+      "w": 1440,
+      "x": 7600,
+      "y": 0
+    },
+    "PageIngredientDrawerD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D \u00b7 IngredientDrawer",
+      "w": 1440,
+      "x": 7600,
+      "y": 1820
+    },
+    "PageIngredientsC.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "C \u00b7 Ingredients",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "PageIngredientsD.dc.html": {
+      "h": 900,
+      "page": "web",
+      "title": "D \u00b7 Ingredients",
+      "w": 1440,
+      "x": 6080,
+      "y": 1820
+    },
+    "TodayC.dc.html": {
+      "h": 844,
+      "page": "concepts",
+      "title": "C \u00b7 Today",
+      "w": 390,
+      "x": 2160,
+      "y": 0
+    },
+    "WebC.dc.html": {
+      "h": 900,
+      "page": "concepts",
+      "title": "C \u00b7 Web",
+      "w": 1440,
+      "x": 640,
+      "y": 0
+    },
+    "WorkoutC.dc.html": {
+      "h": 844,
+      "page": "concepts",
+      "title": "C \u00b7 Workout",
+      "w": 390,
+      "x": 2630,
+      "y": 0
+    },
+    "GlassTrainingPlanLight.dc.html": {
+      "x": 0,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "TrainingPlan",
+      "page": "glass"
+    },
+    "GlassTrainingWeekDetailLight.dc.html": {
+      "x": 470,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "TrainingWeekDetail",
+      "page": "glass"
+    },
+    "GlassNutritionPlanLight.dc.html": {
+      "x": 940,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "NutritionPlan",
+      "page": "glass"
+    },
+    "GlassNutritionWeekDetailLight.dc.html": {
+      "x": 1410,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "NutritionWeekDetail",
+      "page": "glass"
+    },
+    "GlassTrainingPlanDark.dc.html": {
+      "x": 0,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "TrainingPlan",
+      "page": "glassdark"
+    },
+    "GlassTrainingWeekDetailDark.dc.html": {
+      "x": 470,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "TrainingWeekDetail",
+      "page": "glassdark"
+    },
+    "GlassNutritionPlanDark.dc.html": {
+      "x": 940,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "NutritionPlan",
+      "page": "glassdark"
+    },
+    "GlassNutritionWeekDetailDark.dc.html": {
+      "x": 1410,
+      "y": 8848,
+      "w": 390,
+      "h": 844,
+      "title": "NutritionWeekDetail",
+      "page": "glassdark"
+    },
+    "GlassRecipesPlanLight.dc.html": {
+      "x": 0,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipesPlan",
+      "page": "glass"
+    },
+    "GlassRecipesAllLight.dc.html": {
+      "x": 470,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipesAll",
+      "page": "glass"
+    },
+    "GlassRecipeDetailLight.dc.html": {
+      "x": 940,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipeDetail",
+      "page": "glass"
+    },
+    "GlassIngredientDetailLight.dc.html": {
+      "x": 1880,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "IngredientDetail",
+      "page": "glass"
+    },
+    "GlassRecipesPlanDark.dc.html": {
+      "x": 0,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipesPlan",
+      "page": "glassdark"
+    },
+    "GlassRecipesAllDark.dc.html": {
+      "x": 470,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipesAll",
+      "page": "glassdark"
+    },
+    "GlassRecipeDetailDark.dc.html": {
+      "x": 940,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "RecipeDetail",
+      "page": "glassdark"
+    },
+    "GlassIngredientDetailDark.dc.html": {
+      "x": 1880,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "IngredientDetail",
+      "page": "glassdark"
+    },
+    "GlassCookingStepsLight.dc.html": {
+      "x": 1410,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "CookingSteps",
+      "page": "glass"
+    },
+    "GlassCookingStepsDark.dc.html": {
+      "x": 1410,
+      "y": 10112,
+      "w": 390,
+      "h": 844,
+      "title": "CookingSteps",
+      "page": "glassdark"
+    },
+    "GlassTodayV1Light.dc.html": {
+      "x": 470,
+      "y": 1264,
+      "w": 390,
+      "h": 844,
+      "title": "Today \u00b7 v1 (check-in only)",
+      "page": "glass"
+    },
+    "GlassTodayV1Dark.dc.html": {
+      "x": 470,
+      "y": 1264,
+      "w": 390,
+      "h": 844,
+      "title": "Today \u00b7 v1 (check-in only)",
+      "page": "glassdark"
+    },
+    "GlassWorkoutsPlanLight.dc.html": {
+      "x": 0,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutsPlan",
+      "page": "glass"
+    },
+    "GlassWorkoutsAllLight.dc.html": {
+      "x": 470,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutsAll",
+      "page": "glass"
+    },
+    "GlassWorkoutDetailLight.dc.html": {
+      "x": 940,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutDetail",
+      "page": "glass"
+    },
+    "GlassExerciseDetailLight.dc.html": {
+      "x": 1410,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "ExerciseDetail",
+      "page": "glass"
+    },
+    "GlassWorkoutsPlanDark.dc.html": {
+      "x": 0,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutsPlan",
+      "page": "glassdark"
+    },
+    "GlassWorkoutsAllDark.dc.html": {
+      "x": 470,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutsAll",
+      "page": "glassdark"
+    },
+    "GlassWorkoutDetailDark.dc.html": {
+      "x": 940,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "WorkoutDetail",
+      "page": "glassdark"
+    },
+    "GlassExerciseDetailDark.dc.html": {
+      "x": 1410,
+      "y": 11376,
+      "w": 390,
+      "h": 844,
+      "title": "ExerciseDetail",
+      "page": "glassdark"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-01T13:42:58Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "mD0": {
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "glassdark",
+      "text": "Start \u2014 sign in, onboarding, finding a coach",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "mD1": {
+      "kind": "title1",
+      "maxW": 2740,
+      "page": "glassdark",
+      "text": "Today & Training",
+      "w": 240,
+      "x": 0,
+      "y": 964
+    },
+    "mD2": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glassdark",
+      "text": "Nutrition",
+      "w": 240,
+      "x": 0,
+      "y": 4756
+    },
+    "mD3": {
+      "kind": "title1",
+      "maxW": 860,
+      "page": "glassdark",
+      "text": "Messages",
+      "w": 240,
+      "x": 0,
+      "y": 6020
+    },
+    "mD4": {
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "glassdark",
+      "text": "Profile & progress \u2014 measurements, photos and journey come after v1",
+      "w": 240,
+      "x": 0,
+      "y": 7284
+    },
+    "mDE": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glassdark",
+      "text": "Finishing \u2014 workout done (A, B, C) and session summary",
+      "w": 240,
+      "x": 0,
+      "y": 3492
+    },
+    "mDF": {
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "glassdark",
+      "text": "Training formats \u2014 mixed session, AMRAP, EMOM, Tabata, For Time",
+      "w": 240,
+      "x": 0,
+      "y": 2228
+    },
+    "mL0": {
+      "kind": "title1",
+      "maxW": 3680,
+      "page": "glass",
+      "text": "Start \u2014 sign in, onboarding, finding a coach",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "mL1": {
+      "kind": "title1",
+      "maxW": 2740,
+      "page": "glass",
+      "text": "Today & Training",
+      "w": 240,
+      "x": 0,
+      "y": 964
+    },
+    "mL2": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glass",
+      "text": "Nutrition",
+      "w": 240,
+      "x": 0,
+      "y": 4756
+    },
+    "mL3": {
+      "kind": "title1",
+      "maxW": 860,
+      "page": "glass",
+      "text": "Messages",
+      "w": 240,
+      "x": 0,
+      "y": 6020
+    },
+    "mL4": {
+      "kind": "title1",
+      "maxW": 3210,
+      "page": "glass",
+      "text": "Profile & progress \u2014 measurements, photos and journey come after v1",
+      "w": 240,
+      "x": 0,
+      "y": 7284
+    },
+    "mLE": {
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glass",
+      "text": "Finishing \u2014 workout done (A, B, C) and session summary",
+      "w": 240,
+      "x": 0,
+      "y": 3492
+    },
+    "mLF": {
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "glass",
+      "text": "Training formats \u2014 mixed session, AMRAP, EMOM, Tabata, For Time",
+      "w": 240,
+      "x": 0,
+      "y": 2228
+    },
+    "titleC": {
+      "kind": "title1",
+      "maxW": 3490,
+      "page": "concepts",
+      "text": "C \u00b7 B made energetic \u2014 white web with solid colour blocks, dark mobile with bright sections",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "webC": {
+      "kind": "title1",
+      "maxW": 8000,
+      "page": "web",
+      "text": "C \u00b7 Ink & Red, energetic \u2014 current web pages",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "webD": {
+      "kind": "title1",
+      "maxW": 8000,
+      "page": "web",
+      "text": "C \u00b7 Dark \u2014 current web pages",
+      "w": 240,
+      "x": 0,
+      "y": 1520
+    },
+    "mLP": {
+      "x": 0,
+      "y": 8548,
+      "text": "Browsing the whole plan \u2014 overview and week, from \"Full plan\" in each tab",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glass"
+    },
+    "mDP": {
+      "x": 0,
+      "y": 8548,
+      "text": "Browsing the whole plan \u2014 overview and week, from \"Full plan\" in each tab",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glassdark"
+    },
+    "mLR": {
+      "x": 0,
+      "y": 9812,
+      "text": "Recipes \u2014 this plan / all plans, recipe detail, cooking steps, ingredient detail",
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "glass"
+    },
+    "mDR": {
+      "x": 0,
+      "y": 9812,
+      "text": "Recipes \u2014 this plan / all plans, recipe detail, cooking steps, ingredient detail",
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "glassdark"
+    },
+    "mLW": {
+      "x": 0,
+      "y": 11076,
+      "text": "Workouts \u2014 this plan / all plans, workout detail, exercise detail",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glass"
+    },
+    "mDW": {
+      "x": 0,
+      "y": 11076,
+      "text": "Workouts \u2014 this plan / all plans, workout detail, exercise detail",
+      "kind": "title1",
+      "maxW": 1800,
+      "page": "glassdark"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "WebC.dc.html",
+    "TodayC.dc.html",
+    "WorkoutC.dc.html",
+    "NutritionC.dc.html",
+    "PageEntryC.dc.html",
+    "PageClientsC.dc.html",
+    "PageClientDetailC.dc.html",
+    "PageInboxC.dc.html",
+    "PageIngredientsC.dc.html",
+    "PageIngredientDrawerC.dc.html",
+    "PageEntryD.dc.html",
+    "PageClientsD.dc.html",
+    "PageClientDetailD.dc.html",
+    "PageInboxD.dc.html",
+    "PageIngredientsD.dc.html",
+    "PageIngredientDrawerD.dc.html",
+    "GlassTodayLight.dc.html",
+    "GlassWorkoutLight.dc.html",
+    "GlassNutritionLight.dc.html",
+    "GlassChatLight.dc.html",
+    "GlassTodayDark.dc.html",
+    "GlassWorkoutDark.dc.html",
+    "GlassNutritionDark.dc.html",
+    "GlassChatDark.dc.html",
+    "GlassLoginLight.dc.html",
+    "GlassRegisterLight.dc.html",
+    "GlassOnboardingGoalLight.dc.html",
+    "GlassOnboardingBasicsLight.dc.html",
+    "GlassCheckInLight.dc.html",
+    "GlassLoginDark.dc.html",
+    "GlassRegisterDark.dc.html",
+    "GlassOnboardingGoalDark.dc.html",
+    "GlassOnboardingBasicsDark.dc.html",
+    "GlassCheckInDark.dc.html",
+    "GlassTodayNoCoachLight.dc.html",
+    "GlassCoachSearchLight.dc.html",
+    "GlassCoachProfileLight.dc.html",
+    "GlassRequestSheetLight.dc.html",
+    "GlassTrainingWeekLight.dc.html",
+    "GlassTrainingEmptyLight.dc.html",
+    "GlassSessionDetailLight.dc.html",
+    "GlassNutritionEmptyLight.dc.html",
+    "GlassMealDetailLight.dc.html",
+    "GlassShoppingListLight.dc.html",
+    "GlassMessagesListLight.dc.html",
+    "GlassProfileLight.dc.html",
+    "GlassMyJourneyLight.dc.html",
+    "GlassPlanSummaryLight.dc.html",
+    "GlassMeasurementsLight.dc.html",
+    "GlassPhotosLight.dc.html",
+    "GlassSettingsLight.dc.html",
+    "GlassTodayNoCoachDark.dc.html",
+    "GlassCoachSearchDark.dc.html",
+    "GlassCoachProfileDark.dc.html",
+    "GlassRequestSheetDark.dc.html",
+    "GlassTrainingWeekDark.dc.html",
+    "GlassTrainingEmptyDark.dc.html",
+    "GlassSessionDetailDark.dc.html",
+    "GlassNutritionEmptyDark.dc.html",
+    "GlassMealDetailDark.dc.html",
+    "GlassShoppingListDark.dc.html",
+    "GlassMessagesListDark.dc.html",
+    "GlassProfileDark.dc.html",
+    "GlassMyJourneyDark.dc.html",
+    "GlassPlanSummaryDark.dc.html",
+    "GlassMeasurementsDark.dc.html",
+    "GlassPhotosDark.dc.html",
+    "GlassSettingsDark.dc.html",
+    "GlassSessionMixedLight.dc.html",
+    "GlassAmrapLight.dc.html",
+    "GlassEmomLight.dc.html",
+    "GlassTabataLight.dc.html",
+    "GlassForTimeLight.dc.html",
+    "GlassSessionMixedDark.dc.html",
+    "GlassAmrapDark.dc.html",
+    "GlassEmomDark.dc.html",
+    "GlassTabataDark.dc.html",
+    "GlassForTimeDark.dc.html",
+    "GlassDoneStrengthLight.dc.html",
+    "GlassDoneAmrapLight.dc.html",
+    "GlassDoneTabataLight.dc.html",
+    "GlassSessionSummaryLight.dc.html",
+    "GlassDoneStrengthDark.dc.html",
+    "GlassDoneAmrapDark.dc.html",
+    "GlassDoneTabataDark.dc.html",
+    "GlassSessionSummaryDark.dc.html",
+    "GlassTrainingPlanLight.dc.html",
+    "GlassTrainingWeekDetailLight.dc.html",
+    "GlassNutritionPlanLight.dc.html",
+    "GlassNutritionWeekDetailLight.dc.html",
+    "GlassTrainingPlanDark.dc.html",
+    "GlassTrainingWeekDetailDark.dc.html",
+    "GlassNutritionPlanDark.dc.html",
+    "GlassNutritionWeekDetailDark.dc.html",
+    "GlassRecipesPlanLight.dc.html",
+    "GlassRecipesAllLight.dc.html",
+    "GlassRecipeDetailLight.dc.html",
+    "GlassIngredientDetailLight.dc.html",
+    "GlassRecipesPlanDark.dc.html",
+    "GlassRecipesAllDark.dc.html",
+    "GlassRecipeDetailDark.dc.html",
+    "GlassIngredientDetailDark.dc.html",
+    "GlassCookingStepsLight.dc.html",
+    "GlassCookingStepsDark.dc.html",
+    "GlassTodayV1Light.dc.html",
+    "GlassTodayV1Dark.dc.html",
+    "GlassWorkoutsPlanLight.dc.html",
+    "GlassWorkoutsAllLight.dc.html",
+    "GlassWorkoutDetailLight.dc.html",
+    "GlassExerciseDetailLight.dc.html",
+    "GlassWorkoutsPlanDark.dc.html",
+    "GlassWorkoutsAllDark.dc.html",
+    "GlassWorkoutDetailDark.dc.html",
+    "GlassExerciseDetailDark.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "concepts",
+      "name": "Concepts"
+    },
+    {
+      "id": "web",
+      "name": "Web pages redesigned"
+    },
+    {
+      "id": "glass",
+      "name": "Mobile app \u2014 light"
+    },
+    {
+      "id": "glassdark",
+      "name": "Mobile app \u2014 dark"
+    }
+  ],
+  "title": "Form Up colour directions"
+}
