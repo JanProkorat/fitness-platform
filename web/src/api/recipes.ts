@@ -12,6 +12,7 @@ import type {
   RecipeMealType,
   RecipeSortField,
   RecipeSummaryDto,
+  ReplaceRecipeTagAssignmentsResponse,
   UpdateRecipeRequest,
   UploadRecipeImageUrlRequest,
 } from '@/api/generated';
@@ -27,6 +28,8 @@ export interface SearchRecipesParams {
   dietaryPreferences: DietaryPreference[];
   /** Matches a recipe whose ownership falls under ANY of the supplied values. */
   owners: FoodOwnerFilter[];
+  /** Matches a recipe carrying ANY of the caller's tags with these ids. */
+  tagIds: string[];
   page: number;
   pageSize: number;
   /** `undefined` means the server default: newest-created first. */
@@ -43,12 +46,13 @@ export interface SearchRecipesResult {
 
 /** Search recipes by name/description, meal type, dietary preference and owner. */
 export async function searchRecipes(params: SearchRecipesParams): Promise<SearchRecipesResult> {
-  // NSwag orders array params ahead of scalar ones — re-check this argument
-  // order against the generated `searchRecipesEndpoint` signature on regen.
+  // NSwag orders array params (mealType, dietaryPreference, owner, tagId)
+  // ahead of scalar ones — re-check against the generated signature on regen.
   const response = await apiClient.searchRecipesEndpoint(
     params.mealTypes,
     params.dietaryPreferences,
     params.owners,
+    params.tagIds,
     params.page,
     params.pageSize,
     params.search,
@@ -107,6 +111,18 @@ export async function removeRecipeImage(recipeId: string): Promise<void> {
 /** Removes one extra picture from a recipe's gallery (owner only). Idempotent. */
 export async function removeRecipeGalleryImage(recipeId: string, imageUrl: string): Promise<void> {
   await apiClient.removeRecipeGalleryImageEndpoint(recipeId, imageUrl);
+}
+
+/**
+ * Replaces the full set of the caller's own tags assigned to one recipe, via
+ * PUT /trainer/recipes/{recipeId}/tags. The recipe may be the caller's own,
+ * a system recipe, or another coach's Public recipe.
+ */
+export async function replaceRecipeTagAssignments(
+  recipeId: string,
+  tagIds: string[],
+): Promise<ReplaceRecipeTagAssignmentsResponse> {
+  return apiClient.replaceRecipeTagAssignmentsEndpoint(recipeId, { tagIds });
 }
 
 /** Makes a gallery picture the main one; the previous main takes its slot (owner only). */

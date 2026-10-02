@@ -10,6 +10,7 @@ import {
   removeRecipeImage,
   removeRecipeGalleryImage,
   promoteRecipeGalleryImage,
+  replaceRecipeTagAssignments,
 } from '@/api/recipes';
 import { searchFoods } from '@/api/foods';
 import type { CreateRecipeRequest, UpdateRecipeRequest, UploadRecipeImageUrlRequest } from '@/api/recipe-types';
@@ -32,6 +33,7 @@ export function useRecipes(filters: RecipeListFilters, enabled: boolean) {
   const mealTypesKey = [...filters.mealTypes].sort().join(',');
   const dietKey = [...filters.dietaryPreferences].sort().join(',');
   const ownersKey = [...filters.owners].sort().join(',');
+  const tagsKey = [...filters.tags].sort().join(',');
 
   return useQuery({
     queryKey: [
@@ -42,6 +44,7 @@ export function useRecipes(filters: RecipeListFilters, enabled: boolean) {
         mealTypesKey,
         dietKey,
         ownersKey,
+        tagsKey,
         sortBy: filters.sortBy,
         sortDir: filters.sortDir,
         page: filters.page,
@@ -54,6 +57,7 @@ export function useRecipes(filters: RecipeListFilters, enabled: boolean) {
         mealTypes: filters.mealTypes,
         dietaryPreferences: filters.dietaryPreferences,
         owners: filters.owners,
+        tagIds: filters.tags,
         page: filters.page,
         pageSize: filters.pageSize,
         sortBy: filters.sortBy ?? undefined,
@@ -239,6 +243,30 @@ export function usePromoteRecipeGalleryImage() {
     onError: (error) => {
       showApiError(error, 'recipes.pictures.promoteError');
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+  });
+}
+
+export interface ReplaceRecipeTagAssignmentsVariables {
+  recipeId: string;
+  tagIds: string[];
+}
+
+/**
+ * Replaces one recipe's tag assignments for the caller. Not optimistic: the
+ * response is the source of truth for what got assigned, and an unknown tag
+ * (404 FOOD_TAG_NOT_FOUND) is shown through its localized `apiErrors` message.
+ */
+export function useReplaceRecipeTagAssignments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: ReplaceRecipeTagAssignmentsVariables) =>
+      replaceRecipeTagAssignments(variables.recipeId, variables.tagIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
+    },
+    onError: (error) => {
+      showApiError(error, 'recipes.tags.assignError');
     },
   });
 }

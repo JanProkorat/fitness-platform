@@ -809,9 +809,7 @@
     "deleteSuccess": "Zutat gelöscht.",
     "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "filters": {
-      "category": "Kategorie",
-      "tags": "Tags",
-      "tagsEmpty": "Noch keine Tags."
+      "category": "Kategorie"
     },
     "table": {
       "columnName": "Name",
@@ -830,42 +828,6 @@
       "updateError": "Der Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
       "deleteError": "Der Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
       "assignError": "Die Tags dieser Zutat konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
-    },
-    "tagPicker": {
-      "open": "Tags zuweisen",
-      "createTag": "Tag erstellen",
-      "createTitle": "Neuen Tag erstellen",
-      "createDescription": "Tags helfen Ihnen, Ihre Zutaten zu gruppieren und zu filtern.",
-      "editTitle": "Tag bearbeiten",
-      "editDescription": "Benennen Sie diesen Tag um, ändern Sie seine Farbe oder Beschreibung.",
-      "editTag": "„{{name}}“ bearbeiten",
-      "deleteTag": "Löschen",
-      "deleteConfirmTitle": "Tag löschen",
-      "deleteConfirmDescription": "Möchten Sie den Tag „{{name}}“ wirklich löschen? Er wird von jeder Zutat entfernt, der er zugewiesen ist. Dies kann nicht rückgängig gemacht werden.",
-      "deleteConfirmSubmit": "Löschen",
-      "nameLabel": "Name",
-      "namePlaceholder": "Tag-Namen eingeben",
-      "colorLabel": "Farbe",
-      "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
-      "previewLabel": "Vorschau",
-      "previewSampleName": "Tag-Vorschau",
-      "createSubmit": "Tag erstellen",
-      "editSubmit": "Änderungen speichern",
-      "colors": {
-        "red": "Rot",
-        "orange": "Orange",
-        "yellow": "Gelb",
-        "green": "Grün",
-        "blue": "Blau",
-        "purple": "Violett",
-        "pink": "Rosa",
-        "grey": "Grau"
-      },
-      "validation": {
-        "nameRequired": "Tagname ist erforderlich.",
-        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
-      }
     },
     "category": {
       "Other": "Sonstiges",
@@ -989,6 +951,44 @@
       "viewing": "{{count}} von {{total}} angezeigt"
     },
     "sortButtonLabel": "Sortieren nach {{column}}",
+    "tags": {
+      "filter": "Tags",
+      "empty": "Noch keine Tags.",
+      "open": "Tags zuweisen",
+      "createTag": "Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Zutaten und Rezepte zu gruppieren und zu filtern.",
+      "editTitle": "Tag bearbeiten",
+      "editDescription": "Benennen Sie diesen Tag um, ändern Sie seine Farbe oder Beschreibung.",
+      "editTag": "„{{name}}“ bearbeiten",
+      "deleteTag": "Löschen",
+      "deleteConfirmTitle": "Tag löschen",
+      "deleteConfirmDescription": "Möchten Sie den Tag „{{name}}“ wirklich löschen? Er wird von allen Zutaten und Rezepten entfernt, denen er zugewiesen ist. Dies kann nicht rückgängig gemacht werden.",
+      "deleteConfirmSubmit": "Löschen",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag-Namen eingeben",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
+      "previewLabel": "Vorschau",
+      "previewSampleName": "Tag-Vorschau",
+      "createSubmit": "Tag erstellen",
+      "editSubmit": "Änderungen speichern",
+      "colors": {
+        "red": "Rot",
+        "orange": "Orange",
+        "yellow": "Gelb",
+        "green": "Grün",
+        "blue": "Blau",
+        "purple": "Violett",
+        "pink": "Rosa",
+        "grey": "Grau"
+      },
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich.",
+        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
+      }
+    },
     "filters": {
       "owner": "Eigentümer",
       "ownerOptions": {
@@ -1056,6 +1056,7 @@
       "columnNutrients": "Nährwerte / Portion",
       "columnMealType": "Mahlzeit",
       "columnServings": "Portionen",
+      "columnTags": "Tags",
       "columnLibrary": "Bibliothek",
       "caloriesValue": "{{count}} kcal",
       "proteinValue": "P: {{count}} g",
@@ -1105,7 +1106,11 @@
       "createError": "Das Rezept konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "updateSuccess": "Rezept aktualisiert.",
       "updateError": "Das Rezept konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
-      "loadError": "Das Rezept konnte nicht geladen werden. Bitte versuchen Sie es erneut."
+      "loadError": "Das Rezept konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "myTags": "Meine Tags"
+    },
+    "tags": {
+      "assignError": "Die Tags dieses Rezepts konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
     },
     "ingredientsTab": {
       "searchPlaceholder": "Zutaten zum Hinzufügen suchen… (Ihre Bibliothek + System)",

@@ -115,6 +115,7 @@ export function useUpdateFoodTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foodTags'] });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
     onError: (error) => {
       showApiError(error, 'ingredients.tags.updateError');
@@ -129,6 +130,7 @@ export function useDeleteFoodTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foodTags'] });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
     onError: (error) => {
       showApiError(error, 'ingredients.tags.deleteError');

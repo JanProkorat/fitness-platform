@@ -9,7 +9,7 @@ import { useIngredients } from '@/hooks/useIngredientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { FoodSummary } from '@/api/food-types';
 import IngredientCategoryFilterPopover from '@/components/ingredients/IngredientCategoryFilterPopover';
-import IngredientTagFilterPopover from '@/components/ingredients/IngredientTagFilterPopover';
+import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import IngredientsTable from '@/components/ingredients/IngredientsTable';
 import Pagination from '@/components/library/Pagination';
@@ -107,7 +107,7 @@ export default function IngredientsPage() {
         {isNutritionist && <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
         {/* Food tags are nutritionist-owned (#1120) — a trainer-only coach
             gets no tag UI at all, not even the empty filter pill. */}
-        {isNutritionist && <IngredientTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
+        {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         {isNutritionist && (
           <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
             {t('ingredients.newIngredient')}

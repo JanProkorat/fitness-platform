@@ -13,6 +13,7 @@ export const RECIPES_PAGE_SIZE = 25;
 const VALID_MEAL_TYPES: readonly string[] = Object.values(RecipeMealType);
 const VALID_DIETARY_PREFERENCES: readonly string[] = Object.values(DietaryPreference);
 const VALID_OWNERS: readonly string[] = Object.values(FoodOwnerFilter);
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Maps the `sort` URL param's lowercase field slug to its `RecipeSortField`. */
 const SORT_FIELD_BY_SLUG: Record<string, RecipeSortField> = {
@@ -42,6 +43,8 @@ export interface RecipeListFilters extends RecipeSortState {
   mealTypes: RecipeMealType[];
   dietaryPreferences: DietaryPreference[];
   owners: FoodOwnerFilter[];
+  /** Ids of the caller's tags; a recipe matches when it carries ANY of them. */
+  tags: string[];
   page: number;
   pageSize: number;
 }
@@ -53,6 +56,8 @@ export interface UseRecipeListParamsResult {
   setMealTypes: (mealTypes: RecipeMealType[]) => void;
   setDietaryPreferences: (preferences: DietaryPreference[]) => void;
   setOwners: (owners: FoodOwnerFilter[]) => void;
+  /** Replaces the selected-tags set; resets page to 1. */
+  setTags: (tags: string[]) => void;
   /** Cycles a column: unsorted/other column → ascending → descending → cleared. */
   cycleSort: (field: RecipeSortField) => void;
   setPage: (page: number) => void;
@@ -69,6 +74,19 @@ function parseEnumList<T extends string>(value: string | null, valid: readonly s
     .map((item) => item.trim())
     .filter((item) => valid.includes(item));
   return Array.from(new Set(items)) as T[];
+}
+
+// Non-GUID values (a hand-edited URL) are dropped rather than sent to the
+// backend, where they would 400 the whole search.
+function parseTags(value: string | null): string[] {
+  if (!value) {
+    return [];
+  }
+  const tags = value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter((tag) => GUID_PATTERN.test(tag));
+  return Array.from(new Set(tags));
 }
 
 function parsePage(value: string | null): number {
@@ -113,11 +131,11 @@ function nextSortState(current: RecipeSortState, field: RecipeSortField): Recipe
   return DEFAULT_SORT;
 }
 
-type UrlPatch = Partial<Record<'q' | 'mealType' | 'diet' | 'owner' | 'sort' | 'page', string | null>>;
+type UrlPatch = Partial<Record<'q' | 'mealType' | 'diet' | 'owner' | 'tags' | 'sort' | 'page', string | null>>;
 
 /**
  * Owns the recipes-list page's filter state entirely in the URL — `q`,
- * `mealType`, `diet`, `owner`, `sort`, `page`. Mirrors `useIngredientListParams`.
+ * `mealType`, `diet`, `owner`, `tags`, `sort`, `page`. Mirrors `useIngredientListParams`.
  */
 export function useRecipeListParams(): UseRecipeListParamsResult {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -129,6 +147,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
       mealTypes: parseEnumList<RecipeMealType>(searchParams.get('mealType'), VALID_MEAL_TYPES),
       dietaryPreferences: parseEnumList<DietaryPreference>(searchParams.get('diet'), VALID_DIETARY_PREFERENCES),
       owners: parseEnumList<FoodOwnerFilter>(searchParams.get('owner'), VALID_OWNERS),
+      tags: parseTags(searchParams.get('tags')),
       sortBy: sort.sortBy,
       sortDir: sort.sortDir,
       page: parsePage(searchParams.get('page')),
@@ -187,6 +206,14 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
     [update],
   );
 
+  const setTags = useCallback(
+    (tags: string[]) => {
+      const deduped = Array.from(new Set(tags));
+      update({ tags: deduped.length ? deduped.join(',') : null, page: null });
+    },
+    [update],
+  );
+
   const cycleSort = useCallback(
     (field: RecipeSortField) => {
       const next = nextSortState({ sortBy: filters.sortBy, sortDir: filters.sortDir }, field);
@@ -203,7 +230,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
   );
 
   const clearFilters = useCallback(() => {
-    update({ mealType: null, diet: null, owner: null, q: null, page: null });
+    update({ mealType: null, diet: null, owner: null, tags: null, q: null, page: null });
   }, [update]);
 
   return {
@@ -212,6 +239,7 @@ export function useRecipeListParams(): UseRecipeListParamsResult {
     setMealTypes,
     setDietaryPreferences,
     setOwners,
+    setTags,
     cycleSort,
     setPage,
     clearFilters,

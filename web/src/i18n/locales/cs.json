@@ -831,9 +831,7 @@
     "deleteSuccess": "Surovina byla smazána.",
     "deleteError": "Surovinu se nepodařilo smazat. Zkuste to prosím znovu.",
     "filters": {
-      "category": "Kategorie",
-      "tags": "Štítky",
-      "tagsEmpty": "Zatím žádné štítky."
+      "category": "Kategorie"
     },
     "table": {
       "columnName": "Název",
@@ -852,42 +850,6 @@
       "updateError": "Štítek se nepodařilo aktualizovat. Zkuste to prosím znovu.",
       "deleteError": "Štítek se nepodařilo smazat. Zkuste to prosím znovu.",
       "assignError": "Štítky u této suroviny se nepodařilo aktualizovat. Zkuste to prosím znovu."
-    },
-    "tagPicker": {
-      "open": "Přiřadit štítky",
-      "createTag": "Vytvořit štítek",
-      "createTitle": "Vytvořit nový štítek",
-      "createDescription": "Štítky vám pomohou třídit a filtrovat suroviny.",
-      "editTitle": "Upravit štítek",
-      "editDescription": "Přejmenujte, změňte barvu nebo popis tohoto štítku.",
-      "editTag": "Upravit „{{name}}“",
-      "deleteTag": "Smazat",
-      "deleteConfirmTitle": "Smazat štítek",
-      "deleteConfirmDescription": "Opravdu chcete smazat štítek „{{name}}“? Bude odebrán ze všech surovin, ke kterým je přiřazen. Tuto akci nelze vrátit zpět.",
-      "deleteConfirmSubmit": "Smazat",
-      "nameLabel": "Název",
-      "namePlaceholder": "Zadejte název štítku",
-      "colorLabel": "Barva",
-      "descriptionLabel": "Popis",
-      "descriptionPlaceholder": "Zadejte popis štítku",
-      "previewLabel": "Náhled",
-      "previewSampleName": "Náhled štítku",
-      "createSubmit": "Vytvořit štítek",
-      "editSubmit": "Uložit změny",
-      "colors": {
-        "red": "Červená",
-        "orange": "Oranžová",
-        "yellow": "Žlutá",
-        "green": "Zelená",
-        "blue": "Modrá",
-        "purple": "Fialová",
-        "pink": "Růžová",
-        "grey": "Šedá"
-      },
-      "validation": {
-        "nameRequired": "Název štítku je povinný.",
-        "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
-      }
     },
     "category": {
       "Other": "Ostatní",
@@ -1011,6 +973,44 @@
       "viewing": "Zobrazeno {{count}} z {{total}}"
     },
     "sortButtonLabel": "Seřadit podle: {{column}}",
+    "tags": {
+      "filter": "Štítky",
+      "empty": "Zatím žádné štítky.",
+      "open": "Přiřadit štítky",
+      "createTag": "Vytvořit štítek",
+      "createTitle": "Vytvořit nový štítek",
+      "createDescription": "Štítky vám pomohou třídit a filtrovat suroviny a recepty.",
+      "editTitle": "Upravit štítek",
+      "editDescription": "Přejmenujte, změňte barvu nebo popis tohoto štítku.",
+      "editTag": "Upravit „{{name}}“",
+      "deleteTag": "Smazat",
+      "deleteConfirmTitle": "Smazat štítek",
+      "deleteConfirmDescription": "Opravdu chcete smazat štítek „{{name}}“? Bude odebrán ze všech surovin a receptů, ke kterým je přiřazen. Tuto akci nelze vrátit zpět.",
+      "deleteConfirmSubmit": "Smazat",
+      "nameLabel": "Název",
+      "namePlaceholder": "Zadejte název štítku",
+      "colorLabel": "Barva",
+      "descriptionLabel": "Popis",
+      "descriptionPlaceholder": "Zadejte popis štítku",
+      "previewLabel": "Náhled",
+      "previewSampleName": "Náhled štítku",
+      "createSubmit": "Vytvořit štítek",
+      "editSubmit": "Uložit změny",
+      "colors": {
+        "red": "Červená",
+        "orange": "Oranžová",
+        "yellow": "Žlutá",
+        "green": "Zelená",
+        "blue": "Modrá",
+        "purple": "Fialová",
+        "pink": "Růžová",
+        "grey": "Šedá"
+      },
+      "validation": {
+        "nameRequired": "Název štítku je povinný.",
+        "colorInvalid": "Zadejte platnou hex barvu (např. #3B82F6)."
+      }
+    },
     "filters": {
       "owner": "Vlastník",
       "ownerOptions": {
@@ -1078,6 +1078,7 @@
       "columnNutrients": "Živiny / porci",
       "columnMealType": "Typ jídla",
       "columnServings": "Porce",
+      "columnTags": "Štítky",
       "columnLibrary": "Knihovna",
       "caloriesValue": "{{count}} kcal",
       "proteinValue": "B: {{count}} g",
@@ -1127,7 +1128,11 @@
       "createError": "Recept se nepodařilo vytvořit. Zkuste to prosím znovu.",
       "updateSuccess": "Recept byl upraven.",
       "updateError": "Recept se nepodařilo upravit. Zkuste to prosím znovu.",
-      "loadError": "Recept se nepodařilo načíst. Zkuste to prosím znovu."
+      "loadError": "Recept se nepodařilo načíst. Zkuste to prosím znovu.",
+      "myTags": "Moje štítky"
+    },
+    "tags": {
+      "assignError": "Štítky u tohoto receptu se nepodařilo aktualizovat. Zkuste to prosím znovu."
     },
     "ingredientsTab": {
       "searchPlaceholder": "Hledat suroviny k přidání… (vaše knihovna + systémové)",

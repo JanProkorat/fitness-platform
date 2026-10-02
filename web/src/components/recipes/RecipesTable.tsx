@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FoodSortDirection, RecipeSortField, type RecipeSummaryDto } from '@/api/recipe-types';
 import LibraryBadge from '@/components/library/LibraryBadge';
 import Thumbnail from '@/components/library/Thumbnail';
+import TagPill from '@/components/tags/TagPill';
 import SortableColumnHeader from '@/components/library/SortableColumnHeader';
 import { sortAriaValue } from '@/components/library/sortAria';
 import { recipeImageCacheKey } from '@/hooks/useRecipesQueries';
 import { perServing } from '@/lib/recipe-nutrition';
 
 const SKELETON_ROW_COUNT = 5;
-const COLUMN_COUNT = 6;
+const COLUMN_COUNT = 7;
 
 interface LightboxPicture {
   src: string;
@@ -85,6 +86,7 @@ export default function RecipesTable({
                 {...sortableHeaderProps(RecipeSortField.Servings, t('recipes.table.columnServings'))}
               />
             </TableHead>
+            <TableHead className="w-45 px-5 py-3">{t('recipes.table.columnTags')}</TableHead>
             <TableHead className="w-25 px-5 py-3" aria-sort={sortAriaValue(sortBy, sortDir, RecipeSortField.Library)}>
               <SortableColumnHeader
                 {...sortableHeaderProps(RecipeSortField.Library, t('recipes.table.columnLibrary'))}
@@ -180,6 +182,13 @@ export default function RecipesTable({
                     </div>
                   </TableCell>
                   <TableCell className="w-30 px-5 py-3 text-body text-muted-foreground">{recipe.servings}</TableCell>
+                  <TableCell className="w-45 px-5 py-3">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(recipe.tags ?? []).map((tag) => (
+                        <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} />
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="w-25 px-5 py-3">
                     <LibraryBadge isOwnedByCurrentUser={recipe.isOwnedByCurrentUser} isSystem={recipe.isSystem} />
                   </TableCell>

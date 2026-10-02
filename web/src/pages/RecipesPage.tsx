@@ -11,6 +11,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { DietaryPreference, RecipeMealType, type RecipeSummaryDto } from '@/api/recipe-types';
 import OptionFilterPopover from '@/components/library/OptionFilterPopover';
 import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
+import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
 import Pagination from '@/components/library/Pagination';
 import RecipesTable from '@/components/recipes/RecipesTable';
 import RecipeDrawer from '@/components/recipes/RecipeDrawer';
@@ -20,7 +21,7 @@ const DIETARY_PREFERENCE_VALUES = Object.values(DietaryPreference);
 
 /**
  * The trainer-portal Recipes page — search, Meal type / Dietary preference /
- * Owner filter pills, the recipes table, pagination, and the create/edit/view
+ * Owner / Tags filter pills, the recipes table, pagination, and the create/edit/view
  * drawer. Mirrors `IngredientsPage`. Every /recipes endpoint is
  * nutritionist-only, so a trainer-only coach sees an explanatory state
  * instead of a failed load.
@@ -33,6 +34,7 @@ export default function RecipesPage() {
     setMealTypes,
     setDietaryPreferences,
     setOwners,
+    setTags,
     cycleSort,
     setPage,
     clearFilters,
@@ -68,7 +70,8 @@ export default function RecipesPage() {
     filters.search !== '' ||
     filters.mealTypes.length > 0 ||
     filters.dietaryPreferences.length > 0 ||
-    filters.owners.length > 0;
+    filters.owners.length > 0 ||
+    filters.tags.length > 0;
   const showEmptyState = !recipesQuery.isPending && !recipesQuery.isError && totalCount === 0 && !hasActiveFilter;
 
   function openCreateDrawer() {
@@ -133,6 +136,7 @@ export default function RecipesPage() {
           onChange={setDietaryPreferences}
         />
         <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />
+        <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />
         <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
           {t('recipes.newRecipe')}
         </Button>

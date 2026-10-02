@@ -810,9 +810,7 @@
     "deleteSuccess": "Ingredient deleted.",
     "deleteError": "Couldn't delete the ingredient. Please try again.",
     "filters": {
-      "category": "Category",
-      "tags": "Tags",
-      "tagsEmpty": "No tags yet."
+      "category": "Category"
     },
     "table": {
       "columnName": "Name",
@@ -831,42 +829,6 @@
       "updateError": "Couldn't update the tag. Please try again.",
       "deleteError": "Couldn't delete the tag. Please try again.",
       "assignError": "Couldn't update this ingredient's tags. Please try again."
-    },
-    "tagPicker": {
-      "open": "Assign tags",
-      "createTag": "Create tag",
-      "createTitle": "Create a new tag",
-      "createDescription": "Tags help you group and filter your ingredients.",
-      "editTitle": "Edit tag",
-      "editDescription": "Rename, recolor, or redescribe this tag.",
-      "editTag": "Edit \"{{name}}\"",
-      "deleteTag": "Delete",
-      "deleteConfirmTitle": "Delete tag",
-      "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? It will be removed from every ingredient it's assigned to. This can't be undone.",
-      "deleteConfirmSubmit": "Delete",
-      "nameLabel": "Name",
-      "namePlaceholder": "Enter tag name",
-      "colorLabel": "Color",
-      "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Enter tag description",
-      "previewLabel": "Preview",
-      "previewSampleName": "Tag Preview",
-      "createSubmit": "Create tag",
-      "editSubmit": "Save changes",
-      "colors": {
-        "red": "Red",
-        "orange": "Orange",
-        "yellow": "Yellow",
-        "green": "Green",
-        "blue": "Blue",
-        "purple": "Purple",
-        "pink": "Pink",
-        "grey": "Grey"
-      },
-      "validation": {
-        "nameRequired": "Tag name is required.",
-        "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
-      }
     },
     "category": {
       "Other": "Other",
@@ -990,6 +952,44 @@
       "viewing": "Viewing {{count}} of {{total}}"
     },
     "sortButtonLabel": "Sort by {{column}}",
+    "tags": {
+      "filter": "Tags",
+      "empty": "No tags yet.",
+      "open": "Assign tags",
+      "createTag": "Create tag",
+      "createTitle": "Create a new tag",
+      "createDescription": "Tags help you group and filter your ingredients and recipes.",
+      "editTitle": "Edit tag",
+      "editDescription": "Rename, recolor, or redescribe this tag.",
+      "editTag": "Edit \"{{name}}\"",
+      "deleteTag": "Delete",
+      "deleteConfirmTitle": "Delete tag",
+      "deleteConfirmDescription": "Are you sure you want to delete \"{{name}}\"? It will be removed from every ingredient and recipe it's assigned to. This can't be undone.",
+      "deleteConfirmSubmit": "Delete",
+      "nameLabel": "Name",
+      "namePlaceholder": "Enter tag name",
+      "colorLabel": "Color",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Enter tag description",
+      "previewLabel": "Preview",
+      "previewSampleName": "Tag Preview",
+      "createSubmit": "Create tag",
+      "editSubmit": "Save changes",
+      "colors": {
+        "red": "Red",
+        "orange": "Orange",
+        "yellow": "Yellow",
+        "green": "Green",
+        "blue": "Blue",
+        "purple": "Purple",
+        "pink": "Pink",
+        "grey": "Grey"
+      },
+      "validation": {
+        "nameRequired": "Tag name is required.",
+        "colorInvalid": "Enter a valid hex color (e.g. #3B82F6)."
+      }
+    },
     "filters": {
       "owner": "Owner",
       "ownerOptions": {
@@ -1057,6 +1057,7 @@
       "columnNutrients": "Nutrients / serving",
       "columnMealType": "Meal type",
       "columnServings": "Servings",
+      "columnTags": "Tags",
       "columnLibrary": "Library",
       "caloriesValue": "{{count}} kcal",
       "proteinValue": "P: {{count}} g",
@@ -1106,7 +1107,11 @@
       "createError": "Couldn't create the recipe. Please try again.",
       "updateSuccess": "Recipe updated.",
       "updateError": "Couldn't update the recipe. Please try again.",
-      "loadError": "Couldn't load this recipe. Please try again."
+      "loadError": "Couldn't load this recipe. Please try again.",
+      "myTags": "My Tags"
+    },
+    "tags": {
+      "assignError": "Couldn't update this recipe's tags. Please try again."
     },
     "ingredientsTab": {
       "searchPlaceholder": "Search ingredients to add… (your library + system)",

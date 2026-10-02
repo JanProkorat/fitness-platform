@@ -26,10 +26,10 @@ import {
   type CreateFoodRequest,
   type UpdateFoodRequest,
 } from '@/api/food-types';
-import { useCreateFood, useUpdateFood } from '@/hooks/useIngredientsQueries';
+import { useCreateFood, useReplaceFoodTagAssignments, useUpdateFood } from '@/hooks/useIngredientsQueries';
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
 import DeleteIngredientDialog from '@/components/ingredients/DeleteIngredientDialog';
-import IngredientTagPickerPopover from '@/components/ingredients/IngredientTagPickerPopover';
+import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopover';
 import IngredientPictureField from '@/components/ingredients/IngredientPictureField';
 import TagPill from '@/components/tags/TagPill';
 
@@ -174,6 +174,7 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
 
   const createMutation = useCreateFood();
   const updateMutation = useUpdateFood();
+  const replaceTagsMutation = useReplaceFoodTagAssignments();
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   // Only in edit mode: lets the schema accept the food's own current Unit
@@ -629,10 +630,16 @@ export default function IngredientDrawer({ open, onOpenChange, food, readOnly, i
                   {assignedTags.map((tag) => (
                     <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} />
                   ))}
-                  <IngredientTagPickerPopover
-                    foodId={food.foodId}
+                  <LibraryTagPickerPopover
                     assignedTags={assignedTags}
-                    onAssignedTagsChange={setAssignedTags}
+                    isReplacing={replaceTagsMutation.isPending}
+                    onReplace={(tagIds) =>
+                      food.foodId &&
+                      replaceTagsMutation.mutate(
+                        { foodId: food.foodId, tagIds },
+                        { onSuccess: (response) => setAssignedTags(response.tags ?? []) },
+                      )
+                    }
                   />
                 </div>
               </div>

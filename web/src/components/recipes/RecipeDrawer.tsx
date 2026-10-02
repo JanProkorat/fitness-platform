@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Tag } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +22,16 @@ import {
   type RecipeSummaryDto,
   type UpdateRecipeRequest,
 } from '@/api/recipe-types';
-import { useCreateRecipe, useRecipe, useUpdateRecipe } from '@/hooks/useRecipesQueries';
+import type { FoodTagDto } from '@/api/food-types';
+import {
+  useCreateRecipe,
+  useRecipe,
+  useReplaceRecipeTagAssignments,
+  useUpdateRecipe,
+} from '@/hooks/useRecipesQueries';
 import MultiSelectPopover from '@/components/library/MultiSelectPopover';
+import LibraryTagPickerPopover from '@/components/library/LibraryTagPickerPopover';
+import TagPill from '@/components/tags/TagPill';
 import RecipeIngredientsTab from '@/components/recipes/RecipeIngredientsTab';
 import RecipePreparationTab from '@/components/recipes/RecipePreparationTab';
 import RecipePicturesTab from '@/components/recipes/RecipePicturesTab';
@@ -148,6 +157,21 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
   const createMutation = useCreateRecipe();
   const updateMutation = useUpdateRecipe();
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Local copy of the recipe's tag chips, so assigning re-renders immediately
+  // without refetching the detail (which would be a no-op for this snapshot form).
+  const [assignedTags, setAssignedTags] = useState<FoodTagDto[]>(() => recipe?.tags ?? []);
+  const replaceTagsMutation = useReplaceRecipeTagAssignments();
+
+  function replaceTags(tagIds: string[]) {
+    if (!recipe?.recipeId) {
+      return;
+    }
+    replaceTagsMutation.mutate(
+      { recipeId: recipe.recipeId, tagIds },
+      { onSuccess: (response) => setAssignedTags(response.tags ?? []) },
+    );
+  }
 
   const {
     register,
@@ -383,6 +407,29 @@ function RecipeForm({ recipe, mode, onClose, onDeleteClick }: FormProps) {
                 </div>
               </div>
             </fieldset>
+
+            {/* Coach-private tags — deliberately OUTSIDE the fieldset above:
+                a nutritionist can tag ANY visible recipe (system, shared, own),
+                even one whose fields are read-only. Hidden on create — tag
+                assignment needs a saved recipe id. */}
+            {recipe?.recipeId && (
+              <div className="flex flex-col gap-3 border-t border-border pt-6">
+                <h3 className="flex items-center gap-2 text-body font-semibold text-foreground">
+                  <Tag className="size-4 text-muted-foreground" aria-hidden="true" />
+                  {t('recipes.drawer.myTags')}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  {assignedTags.map((tag) => (
+                    <TagPill key={tag.tagId} name={tag.name ?? ''} colorHex={tag.colorHex} />
+                  ))}
+                  <LibraryTagPickerPopover
+                    assignedTags={assignedTags}
+                    isReplacing={replaceTagsMutation.isPending}
+                    onReplace={replaceTags}
+                  />
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="ingredients" className="flex flex-col overflow-y-auto pb-4">
