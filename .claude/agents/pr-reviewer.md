@@ -193,11 +193,13 @@ Confirm:
   `.claude/CLAUDE.md` → Branch & PR conventions. If not, return
   BLOCKED — "branch rename needed, route to dev agent".
 - The branch's **commit history** is rooted in the expected base. For
-  a sub-issue PR the branch must descend from the epic branch's tip
-  (`git merge-base --is-ancestor origin/<epic-branch> HEAD` returns 0),
-  not directly from `develop`. If a sub-issue branch was accidentally
-  rooted off `develop`, return BLOCKED — "wrong base, rebase onto
-  origin/<epic-branch> first" — and route to the dev agent.
+  a sub-issue PR the branch must contain the epic branch's tip
+  (`git -C <worktree> log --oneline HEAD..origin/<epic-branch>` prints
+  nothing — `git merge-base` is not on your allowlist), not descend
+  directly from `develop`. If a sub-issue branch was accidentally
+  rooted off `develop`, return BLOCKED — "wrong base: re-cut a new
+  branch from origin/<epic-branch> and cherry-pick the issue's commits
+  onto it (no rebase, no force-push)" — and route to the orchestrator.
 - Every commit on the branch is authored against the same issue
   number (the suffix in each commit message, or the branch name).
   Mixed issue numbers on one branch → BLOCKED, "branch contains
@@ -877,8 +879,9 @@ gh pr merge <n> <strategy> --delete-branch --match-head-commit <head-sha>
 
 List the sibling sub-issue branches still open against this epic
 branch (`gh pr list --base "$BASE" --state open`) — the main thread
-rebases them after the merge. Do not attempt the rebase yourself;
-siblings may live in their own worktrees with dev sub-agents mid-task.
+merges the new epic tip into them after the merge (never a rebase,
+which would need a force-push). Don't update them yourself; siblings
+may live in their own worktrees with dev sub-agents mid-task.
 
 Flag that `Fixes #<N>` will **not** fire: GitHub applies closing
 keywords only on merges into the default branch, so the main thread
@@ -905,7 +908,7 @@ After the merge (main thread):
     the local sub-issue branch best-effort, tear down its compose
     harness, then remove its worktree.
   - Close the sub-issue via `github-issues` — the keyword won't fire.
-  - Rebase these open siblings: <list | none>.
+  - Merge the new epic tip into these open siblings (no rebase): <list | none>.
   - DO NOT dispatch `notion-docs` for sub-issue merges — that runs
     once at the epic merge.
   - When all sub-issues have merged, dispatch me in

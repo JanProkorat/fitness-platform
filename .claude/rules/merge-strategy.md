@@ -45,8 +45,9 @@ When `pr-reviewer` returns ✅ READY FOR MERGE on a PR whose base is an
 - After the merge, the orchestrator fast-forwards the local epic branch
   (`git pull --ff-only`, never a hard reset), deletes the sub-issue
   branch best-effort, tears down its compose harness, removes its
-  worktree, and rebases any in-flight sibling sub-issue branches onto
-  the fresh epic-branch tip.
+  worktree, and merges the fresh epic-branch tip into any in-flight
+  sibling sub-issue branches (merge + normal push — never rebase and
+  force-push).
 - **Close the sub-issue by hand** via `github-issues`. `Fixes #<N>`
   only fires on merges into the default branch, never into an epic
   branch.

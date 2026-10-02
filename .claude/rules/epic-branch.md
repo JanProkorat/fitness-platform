@@ -66,10 +66,12 @@ main
    it, the main thread runs the pinned merge command and closes the
    sub-issue by hand — see
    [`merge-strategy.md#sub-issue-auto-merge`](merge-strategy.md#sub-issue-auto-merge).
-4. **Sibling rebase:** after a sub-issue merges to the epic branch,
-   the orchestrator rebases any in-flight sibling sub-issue branches
-   onto the new epic-branch tip before letting their PRs proceed.
-   Otherwise the diffs go stale.
+4. **Sibling update:** after a sub-issue merges to the epic branch,
+   the orchestrator **merges** the new epic-branch tip into any
+   in-flight sibling sub-issue branches (normal push) before letting
+   their PRs proceed. Otherwise the diffs go stale. Never rebase a
+   pushed branch — that needs a force-push, which is banned
+   (`git-workflow.md#never`).
 5. **Epic PR:** when every sub-issue the user wants in the epic has
    merged into the epic branch, the orchestrator opens an **epic PR**
    with `head = <epic-branch>`, `base = develop`. `pr-reviewer` runs
