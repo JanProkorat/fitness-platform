@@ -10,10 +10,10 @@ namespace FitnessPlatform.Application.Features.Messaging.Shared;
 /// <summary>What a professional may do in a thread with one client.</summary>
 public enum ProfessionalSendAccess
 {
-    /// <summary>No link has ever existed and no join request is pending — an invite-only thread.</summary>
+    /// <summary>No link has ever existed and the client never sent a join request — an invite-only thread.</summary>
     Locked,
 
-    /// <summary>May send; the message must not un-archive the thread (ended link or pending request).</summary>
+    /// <summary>May send; the message must not un-archive the thread (ended link or a join request of any status).</summary>
     SendOnly,
 
     /// <summary>May send and un-archive the thread (live link).</summary>
@@ -22,7 +22,7 @@ public enum ProfessionalSendAccess
 
 /// <summary>
 /// Decides whether a professional may send into a thread. Only a thread with no link ever and no
-/// pending join request is locked: an invite-only thread the client has not accepted. Ended links
+/// join request from the client, of any status, is locked: an invite-only thread the client has not accepted. Ended links
 /// keep sending as before.
 /// </summary>
 public static class ProfessionalSendGuard
@@ -70,17 +70,16 @@ public static class ProfessionalSendGuard
 
         if (unresolved.Count > 0)
         {
-            var pendingClientUserIds = await db.ClientRequests
+            var requestingClientUserIds = await db.ClientRequests
                 .AsNoTracking()
                 .Where(r =>
                     r.ProfessionalProfile.UserId == professionalUserId &&
-                    unresolved.Contains(r.ClientProfile.UserId) &&
-                    r.Status == ClientRequestStatus.Pending)
+                    unresolved.Contains(r.ClientProfile.UserId))
                 .Select(r => r.ClientProfile.UserId)
                 .Distinct()
                 .ToListAsync(ct);
 
-            foreach (var clientUserId in pendingClientUserIds)
+            foreach (var clientUserId in requestingClientUserIds)
             {
                 result[clientUserId] = ProfessionalSendAccess.SendOnly;
             }

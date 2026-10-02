@@ -22,7 +22,7 @@ public class ProfessionalSendLockIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
 
-    public enum Relation { InviteOnly, LiveLink, EndedLink, PendingRequest }
+    public enum Relation { InviteOnly, LiveLink, EndedLink, PendingRequest, DeclinedRequest }
 
     private async Task<(Actor Trainer, Actor Client, Guid ConversationId)> SetupAsync(
         Relation relation, bool clientArchived = false)
@@ -42,11 +42,14 @@ public class ProfessionalSendLockIntegrationTests(FitnessApiFactory factory)
                 await TestActors.Link(factory, trainer, client).Inactive().CreateAsync(Ct);
                 break;
             case Relation.PendingRequest:
+            case Relation.DeclinedRequest:
                 db.ClientRequests.Add(new ClientRequest
                 {
                     ClientProfileId = client.ProfileId,
                     ProfessionalProfileId = trainer.ProfileId,
-                    Status = ClientRequestStatus.Pending,
+                    Status = relation == Relation.PendingRequest
+                        ? ClientRequestStatus.Pending
+                        : ClientRequestStatus.Rejected,
                 });
                 break;
         }
@@ -188,7 +191,21 @@ public class ProfessionalSendLockIntegrationTests(FitnessApiFactory factory)
         (await ClientArchivedAtAsync(conversationId)).Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task SendMessage_ProfessionalAfterDecliningClientRequest_SendsButDoesNotUnarchive()
+    {
+        var (trainer, _, conversationId) = await SetupAsync(Relation.DeclinedRequest, clientArchived: true);
+
+        var response = await trainer.Http.PostAsJsonAsync(
+            $"/conversations/{conversationId}/messages", new { Text = "sorry, I am full" }, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await MessageCountAsync(conversationId)).Should().Be(1);
+        (await ClientArchivedAtAsync(conversationId)).Should().NotBeNull();
+    }
+
     [Theory]
+    [InlineData(Relation.DeclinedRequest, false)]
     [InlineData(Relation.InviteOnly, true)]
     [InlineData(Relation.EndedLink, false)]
     [InlineData(Relation.PendingRequest, false)]
