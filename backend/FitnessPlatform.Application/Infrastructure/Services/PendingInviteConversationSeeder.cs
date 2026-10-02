@@ -25,6 +25,13 @@ public class PendingInviteConversationSeeder(
             return;
         }
 
+        // A coaching account is never seeded: invites addressed to it are silent rows that
+        // must not produce a conversation.
+        if (await db.ProfessionalProfiles.AsNoTracking().AnyAsync(pp => pp.UserId == newUser.Id, ct))
+        {
+            return;
+        }
+
         // A client can have multiple pending invites from different coaches — seed one
         // conversation per qualifying invite, not just the newest.
         var invites = await db.PendingInvites

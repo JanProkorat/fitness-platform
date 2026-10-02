@@ -22,6 +22,10 @@ namespace FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 /// maintainer ruling in <see cref="HandleAsync"/>. For an unverified or nonexistent client
 /// account, the identical rows are written later, once the email is verified, by
 /// <c>VerifyEmailEndpoint</c> via <see cref="IPendingInviteConversationSeeder"/>.
+/// An email that belongs to a coaching professional gets the same success response and a stored
+/// <see cref="PendingInvite"/> row that behaves identically for the inviter, but no token, email,
+/// notification, realtime event or conversation — so the response never reveals that the address
+/// is a coach account.
 /// </summary>
 public class CreatePendingInviteEndpoint(
     IApplicationDbContext db,
@@ -51,7 +55,7 @@ public class CreatePendingInviteEndpoint(
             s.Summary = "Create a pending invitation";
             s.Description = "Creates a pending invitation for a client, sends an invitation email with a one-time token valid for 7 days.";
             s.Responses[StatusCodes.Status400BadRequest] =
-                "Requested scope exceeds the caller's held roles, or the invitee email belongs to a coaching professional account.";
+                "Requested scope exceeds the caller's held roles.";
         });
     }
 
@@ -95,27 +99,21 @@ public class CreatePendingInviteEndpoint(
             return;
         }
 
-        // Reject inviting an email that belongs to an account holding a coaching professional
-        // role (Trainer or Nutritionist) — even if that same account also holds Client (dual
-        // role). This is a caller input-shape error, not a business-state conflict, so it runs
-        // before any of the invite's own persisted-state checks (duplicate/cap/slot below) and
-        // before any save.
+        // An email that belongs to an account holding a coaching professional role (Trainer or
+        // Nutritionist — even with Client as a second role) is not rejected: rejecting would let
+        // the caller probe which addresses are coach accounts. Such an invite is stored as a
+        // silent row instead — see the class remarks.
         var normalizedInviteeEmailForRoleCheck = req.Email.ToUpper();
         var inviteeUserForRoleCheck = await db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedInviteeEmailForRoleCheck, ct);
 
+        var isProfessionalInvitee = false;
+
         if (inviteeUserForRoleCheck is not null)
         {
             var inviteeRoles = await userManager.GetRolesAsync(inviteeUserForRoleCheck);
-
-            if (inviteeRoles.Contains(AppRoles.Trainer) || inviteeRoles.Contains(AppRoles.Nutritionist))
-            {
-                this.ThrowErrorWithCode(
-                    ErrorCodes.InviteeIsProfessional,
-                    "This email belongs to a coaching professional and cannot be invited as a client.");
-                return;
-            }
+            isProfessionalInvitee = inviteeRoles.Contains(AppRoles.Trainer) || inviteeRoles.Contains(AppRoles.Nutritionist);
         }
 
         // Reject a duplicate pending invite for the same professional and email — repeatedly
@@ -172,7 +170,7 @@ public class CreatePendingInviteEndpoint(
                 (_, cp) => cp.Id)
             .FirstOrDefaultAsync(ct);
 
-        if (inviteeClientProfileId != 0)
+        if (inviteeClientProfileId != 0 && !isProfessionalInvitee)
         {
             // Same derivation the accept paths use: the professional's held roles narrowed by
             // the scope they requested. Kept in step with AcceptClientInviteEndpoint — if that
@@ -224,6 +222,18 @@ public class CreatePendingInviteEndpoint(
         };
 
         db.PendingInvites.Add(pendingInvite);
+
+        if (isProfessionalInvitee)
+        {
+            await db.SaveChangesAsync(ct);
+
+            logger.LogInformation(
+                "Silent pending invitation stored from professional {ProfessionalId} to a coaching account",
+                professionalProfile.PublicId);
+
+            await Send.ResponseAsync(BuildResponse(pendingInvite, req.QuestionnairePublicId), cancellation: ct);
+            return;
+        }
 
         // Create the InvitationToken so the accept flow still works. Stamped with the
         // same requested scope so AcceptInvitationEndpoint (token-based accept) honors
@@ -340,13 +350,16 @@ public class CreatePendingInviteEndpoint(
             "Pending invitation created from professional {ProfessionalId} to {Email}",
             professionalProfile.PublicId, req.Email);
 
-        await Send.ResponseAsync(new CreatePendingInviteResponse
+        await Send.ResponseAsync(BuildResponse(pendingInvite, req.QuestionnairePublicId), cancellation: ct);
+    }
+
+    private static CreatePendingInviteResponse BuildResponse(PendingInvite pendingInvite, Guid? questionnairePublicId) =>
+        new()
         {
             Id = pendingInvite.Id,
             PublicId = pendingInvite.PublicId,
             Email = pendingInvite.Email,
             SentAt = pendingInvite.SentAt,
-            QuestionnairePublicId = req.QuestionnairePublicId
-        }, cancellation: ct);
-    }
+            QuestionnairePublicId = questionnairePublicId
+        };
 }

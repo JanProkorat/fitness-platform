@@ -42,6 +42,13 @@ public class AcceptClientInviteEndpoint(
 
         var userGuid = Guid.Parse(userId);
 
+        // Invites addressed to a coaching account are silent rows — never actionable by it.
+        if (User.IsInRole(AppRoles.Trainer) || User.IsInRole(AppRoles.Nutritionist))
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
         var caller = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userGuid, ct);
         if (caller is null) { await Send.UnauthorizedAsync(ct); return; }
 
