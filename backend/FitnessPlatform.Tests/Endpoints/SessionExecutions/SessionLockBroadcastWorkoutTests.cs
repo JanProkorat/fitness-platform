@@ -100,13 +100,13 @@ public class SessionLockBroadcastWorkoutTests
     private static IComplianceService StubComplianceService()
     {
         var svc = Substitute.For<IComplianceService>();
-        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+        svc.CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult { CompliancePercent = 100m });
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(1);
         // #935: TrainingProgressBroadcaster now anchors the streak walk on the caller-supplied
         // local calendar day rather than DateTime.UtcNow — stub the new overload too.
-        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>())
+        svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<DateOnly>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(1);
         return svc;
     }

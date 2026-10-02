@@ -45,4 +45,11 @@ public class ConversationDto
 
     /// <summary>Whether the professional-client collaboration has ended.</summary>
     public bool IsFormer { get; set; }
+
+    /// <summary>
+    /// True exactly when sending in this thread would be refused for the caller with
+    /// <c>CONVERSATION_LOCKED</c> (a professional in an invite-only thread). The web disables the
+    /// composer on it.
+    /// </summary>
+    public bool IsSendLocked { get; set; }
 }

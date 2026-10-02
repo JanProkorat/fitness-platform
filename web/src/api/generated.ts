@@ -3425,7 +3425,7 @@ export class ApiClient {
             let result400: any = null;
             let resultData400  = _responseText;
             result400 = JSON.parse(resultData400);
-            return throwException("Requested scope exceeds the caller\'s held roles, or the invitee email belongs to a coaching professional account.", status, _responseText, _headers, result400);
+            return throwException("Requested scope exceeds the caller\'s held roles.", status, _responseText, _headers, result400);
 
         } else if (status === 401) {
             const _responseText = response.data;
@@ -10129,7 +10129,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -10531,7 +10531,7 @@ export class ApiClient {
 
         } else if (status === 403) {
             const _responseText = response.data;
-            return throwException("Forbidden", status, _responseText, _headers);
+            return throwException("CONVERSATION_LOCKED: professional caller in an invite-only thread", status, _responseText, _headers);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -21834,6 +21834,10 @@ row rather than plain text. Null when the last message is plain text. */
     lastMessageEventType?: ChatEventType | undefined;
     /** Whether the professional-client collaboration has ended. */
     isFormer?: boolean;
+    /** True exactly when sending in this thread would be refused for the caller with
+CONVERSATION_LOCKED (a professional in an invite-only thread). The web disables the
+composer on it. */
+    isSendLocked?: boolean;
 }
 
 /** The other party in a conversation, as surfaced to the caller. */

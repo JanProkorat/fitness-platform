@@ -43,7 +43,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<(HttpClient Http, long ProfessionalProfileId)> SetupTrainerAsync()
+    private async Task<(HttpClient Http, long ProfessionalProfileId, Guid UserId)> SetupTrainerAsync()
     {
         var http = factory.CreateClient();
         var email = UniqueEmail("trainer");
@@ -60,7 +60,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
         var profile = await db.ProfessionalProfiles.FirstAsync(
             p => p.UserId == user.Id, TestContext.Current.CancellationToken);
 
-        return (http, profile.Id);
+        return (http, profile.Id, user.Id);
     }
 
     private async Task<(Guid ClientPublicId, long ClientProfileId, Guid ClientUserId)>
@@ -114,7 +114,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Plans_SeededWithUserId_AreReturnedByTrainer()
     {
-        var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
@@ -127,7 +127,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
                 Id = ObjectId.GenerateNewId(),
                 ExternalId = Guid.NewGuid(),
                 ClientId = clientUserId,   // ← MUST be UserId, not PublicId (#840)
-                NutritionistId = Guid.NewGuid(),
+                NutritionistId = trainerUserId,
                 Name = "Test Plan UserId",
                 Status = NutritionPlanStatus.Active,
                 StartDate = DateTime.UtcNow.AddDays(-7),
@@ -159,7 +159,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Plans_SeededWithPublicIdInsteadOfUserId_AreNotReturned()
     {
-        var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, _) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
@@ -207,7 +207,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
     [Fact]
     public async Task Plans_AdheredNutritionPlanWithMealLogsOnUserId_ReportsNonZeroNutritionCompliance()
     {
-        var (trainerHttp, trainerProfileId) = await SetupTrainerAsync();
+        var (trainerHttp, trainerProfileId, trainerUserId) = await SetupTrainerAsync();
         var (clientPublicId, clientProfileId, clientUserId) = await SetupClientAsync();
         await LinkTrainerToClientAsync(trainerProfileId, clientProfileId);
 
@@ -220,6 +220,7 @@ public class ListClientPlansIntegrationTests(FitnessApiFactory factory)
             clientId: clientUserId,
             status: NutritionPlanStatus.Active,
             weekCount: 1,
+            nutritionistId: trainerUserId,
             name: "Adhered Nutrition Plan");
         plan.Id = ObjectId.GenerateNewId();
         plan.StartDate = mondayThisWeek;

@@ -1435,6 +1435,7 @@
     "OUT_OF_RANGE": "Hodnota je mimo povolený rozsah.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Neplatná lhůta. Povolené hodnoty: 24, 48, 72, 120 nebo 168 hodin.",
     "SESSION_ALREADY_COMPLETED": "Tento trénink byl již dokončen.",
+    "CONVERSATION_LOCKED": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
     "SECTION_ALREADY_COMPLETED": "Tato část tréninku byla již dokončena klientem — úpravy nejsou možné.",
     "COMPLETED_AT_IN_FUTURE": "Datum dokončení nesmí být v budoucnosti.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Datum dokončení nesmí být před začátkem plánu.",
@@ -1452,7 +1453,6 @@
     "DUPLICATE_PENDING_INVITE": "Pozvánka na tento e-mail už čeká na vyřízení.",
     "TOO_MANY_PENDING_INVITES": "Dosáhli jste maximálního počtu nevyřízených pozvánek. Počkejte na odpověď nebo některou zrušte.",
     "PROFESSION_ALREADY_OCCUPIED": "Tento klient už má pro tuto profesi aktivního kouče.",
-    "INVITEE_IS_PROFESSIONAL": "Tento e-mail patří k účtu kouče. Pozvat můžete pouze klienty.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "Požadovaný přístup přesahuje vaše aktuální role.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "Štítek s tímto názvem už existuje.",
     "CLIENT_TAG_NOT_FOUND": "Tento štítek se nepodařilo najít.",
@@ -2757,6 +2757,7 @@
       "attachFileAriaLabel": "Přiložit soubor",
       "attachImageAriaLabel": "Přiložit obrázek",
       "sendError": "Zprávu se nepodařilo odeslat. Zkuste to prosím znovu.",
+      "lockedNotice": "Odpovědět můžete, jakmile klient vaši pozvánku přijme.",
       "imagePreviewAlt": "Náhled obrázku",
       "removeImageAriaLabel": "Odebrat obrázek",
       "imageUploadError": "Obrázek se nepodařilo nahrát. Zkuste to prosím znovu."

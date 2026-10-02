@@ -133,14 +133,6 @@ public static class ErrorCodes
     /// </summary>
     public const string TooManyPendingInvites = "TOO_MANY_PENDING_INVITES";
 
-    /// <summary>
-    /// The invited email belongs to an account holding a coaching professional role
-    /// (Trainer or Nutritionist) — even if that account also holds Client (dual role).
-    /// Coaches are never valid invitees for a client relationship; rejected before any
-    /// invite state (PendingInvite, InvitationToken) is persisted (#1109).
-    /// </summary>
-    public const string InviteeIsProfessional = "INVITEE_IS_PROFESSIONAL";
-
     // ── Nutrition Plans ──────────────────────────────────────────────
     /// <summary>Only draft plans can be published.</summary>
     public const string PlanNotDraft = "PLAN_NOT_DRAFT";
@@ -272,6 +264,12 @@ public static class ErrorCodes
     /// conversation.
     /// </summary>
     public const string ChatImageUploadNotFound = "CHAT_IMAGE_UPLOAD_NOT_FOUND";
+
+    /// <summary>
+    /// A professional tried to send into a thread whose client has never been linked to them
+    /// (an invite-only thread the client has not accepted).
+    /// </summary>
+    public const string ConversationLocked = "CONVERSATION_LOCKED";
 
     // ── Photo Diary Requests ─────────────────────────────────────────
     /// <summary>Photo diary request not found or does not belong to the caller.</summary>

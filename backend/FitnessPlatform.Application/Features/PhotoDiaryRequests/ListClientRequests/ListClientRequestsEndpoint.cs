@@ -42,7 +42,10 @@ public class ListClientRequestsEndpoint(IApplicationDbContext db)
             .ToListAsync(ct);
 
         // Collect invite IDs addressed to this client's email
-        var clientInviteIds = emailClaim is not null
+        // Invites addressed to a coaching account are silent rows — a coach-role caller sees none.
+        var isCoachCaller = User.IsInRole(AppRoles.Trainer) || User.IsInRole(AppRoles.Nutritionist);
+
+        var clientInviteIds = emailClaim is not null && !isCoachCaller
             ? await db.PendingInvites
                 .AsNoTracking()
                 .Where(i => i.Email == emailClaim)

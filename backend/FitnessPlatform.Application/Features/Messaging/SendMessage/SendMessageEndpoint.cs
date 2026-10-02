@@ -6,6 +6,7 @@ using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Messaging.Shared;
 using FitnessPlatform.Application.Infrastructure.Data;
 using FitnessPlatform.Application.Infrastructure.Services;
@@ -38,6 +39,7 @@ public class SendMessageEndpoint(
         {
             s.Summary = "Send a message";
             s.Description = "Sends a text message, an image, or both, in a conversation.";
+            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread";
         });
     }
 
@@ -58,6 +60,22 @@ public class SendMessageEndpoint(
         {
             await Send.NotFoundAsync(ct);
             return;
+        }
+
+        var senderIsProfessional = conversation.ProfessionalUserId == userGuid;
+        var professionalAccess = ProfessionalSendAccess.SendAndUnarchive;
+
+        if (senderIsProfessional)
+        {
+            var access = await this.RequireProfessionalAccessOrRespondAsync(
+                db, userGuid, conversation.ClientUserId, ct);
+
+            if (access is null)
+            {
+                return;
+            }
+
+            professionalAccess = access.Value;
         }
 
         string? imageBlobUrl = null;
@@ -168,12 +186,17 @@ public class SendMessageEndpoint(
         bool autoUnarchived = false;
         if (!conversation.IsFormer)
         {
-            if (conversation.ProfessionalUserId == userGuid && conversation.ArchivedByClientAt != null)
+            // Only a live link may re-surface the thread for the client; an ended-link or
+            // pending-request professional may send but must not un-archive.
+            if (senderIsProfessional)
             {
-                conversation.ArchivedByClientAt = null;
-                autoUnarchived = true;
+                if (professionalAccess == ProfessionalSendAccess.SendAndUnarchive && conversation.ArchivedByClientAt != null)
+                {
+                    conversation.ArchivedByClientAt = null;
+                    autoUnarchived = true;
+                }
             }
-            else if (conversation.ClientUserId == userGuid && conversation.ArchivedByProfessionalAt != null)
+            else if (conversation.ArchivedByProfessionalAt != null)
             {
                 conversation.ArchivedByProfessionalAt = null;
                 autoUnarchived = true;

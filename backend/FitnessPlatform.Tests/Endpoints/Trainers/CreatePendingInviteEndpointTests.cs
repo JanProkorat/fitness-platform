@@ -35,6 +35,23 @@ public class CreatePendingInviteEndpointTests
         Guid callerId,
         params string[] roles)
     {
+        var harness = CreateHarness(db, callerId, roles);
+        return (harness.Endpoint, harness.ConversationSeedService, harness.UserManager);
+    }
+
+    private sealed record InviteHarness(
+        CreatePendingInviteEndpoint Endpoint,
+        IConversationSeedService ConversationSeedService,
+        UserManager<ApplicationUser> UserManager,
+        IBackgroundEmailQueue EmailQueue,
+        INotificationService NotificationService,
+        IRealtimeNotifier Notifier);
+
+    private static InviteHarness CreateHarness(
+        Application.Infrastructure.Data.IApplicationDbContext db,
+        Guid callerId,
+        params string[] roles)
+    {
         var emailQueue = Substitute.For<IBackgroundEmailQueue>();
         emailQueue.TryEnqueue(Arg.Any<EmailDispatchWorkItem>()).Returns(true);
         var notificationService = Substitute.For<INotificationService>();
@@ -50,7 +67,7 @@ public class CreatePendingInviteEndpointTests
                     : EndpointTestHelpers.FakeUserClaims(callerId, roles.FirstOrDefault() ?? AppRoles.Trainer))),
             db, emailQueue, notificationService, notifier, conversationSeedService, userManager, logger);
 
-        return (ep, conversationSeedService, userManager);
+        return new InviteHarness(ep, conversationSeedService, userManager, emailQueue, notificationService, notifier);
     }
 
     [Fact]
@@ -233,14 +250,24 @@ public class CreatePendingInviteEndpointTests
             default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
     }
 
+    private static void AssertSilentInvite(InviteHarness harness, PendingInvite? captured, Application.Infrastructure.Data.IApplicationDbContext db)
+    {
+        harness.Endpoint.HttpContext.Response.StatusCode.Should().Be(200);
+        captured.Should().NotBeNull("a silent invite is still stored so the inviter's view stays uniform");
+        db.InvitationTokens.DidNotReceive().Add(Arg.Any<InvitationToken>());
+        harness.EmailQueue.DidNotReceiveWithAnyArgs().TryEnqueue(default!);
+        harness.NotificationService.ReceivedCalls().Should().BeEmpty();
+        harness.Notifier.ReceivedCalls().Should().BeEmpty();
+        harness.ConversationSeedService.ReceivedCalls().Should().BeEmpty();
+    }
+
     /// <summary>
-    /// Coach-rejection guard (#1109): the invitee's email belongs to a Trainer-only
-    /// account, so the whole invite is now rejected up front — a stronger gate than the
-    /// #1108 no-thread-for-a-peer-professional rule it supersedes for this scenario. No
-    /// invite state is persisted and no conversation is seeded.
+    /// A Trainer-only invitee gets the normal success and a stored row, but no token, email,
+    /// notification, realtime event or conversation — the response must not reveal that the
+    /// address belongs to a coach.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_Returns400AndDoesNotSeedConversation()
+    public async Task HandleAsync_VerifiedProfessionalOnlyInvitee_StoresSilentInvite()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
@@ -262,29 +289,22 @@ public class CreatePendingInviteEndpointTests
         db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
             .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
-        userManager.GetRolesAsync(peerProfessionalUser).Returns(["Trainer"]);
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(peerProfessionalUser).Returns(["Trainer"]);
 
-        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "peer@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
-        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
-        captured.Should().BeNull("nothing may be persisted once the coach-rejection guard fires");
-        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
-            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+        AssertSilentInvite(harness, captured, db);
+        harness.Endpoint.Response.Email.Should().Be("peer@test.com");
     }
 
-    /// <summary>
-    /// Coach-rejection guard (#1109): the invitee's email belongs to a Nutritionist-only
-    /// account — same rejection as the Trainer-only case above, proving the guard checks
-    /// both professional roles.
-    /// </summary>
+    /// <summary>A Nutritionist-only invitee is silent too, proving both professional roles are checked.</summary>
     [Fact]
-    public async Task HandleAsync_InviteeIsNutritionistOnly_Returns400AndPersistsNothing()
+    public async Task HandleAsync_InviteeIsNutritionistOnly_StoresSilentInvite()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
@@ -306,39 +326,29 @@ public class CreatePendingInviteEndpointTests
         db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
             .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
-        userManager.GetRolesAsync(nutritionistUser).Returns(["Nutritionist"]);
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(nutritionistUser).Returns(["Nutritionist"]);
 
-        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "nutri@test.com"
         }, TestContext.Current.CancellationToken);
 
-        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
-        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
-        captured.Should().BeNull("nothing may be persisted once the coach-rejection guard fires");
-        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
-            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+        AssertSilentInvite(harness, captured, db);
     }
 
     /// <summary>
-    /// Coach-rejection guard (#1109): a DUAL-role invitee (holds both Client and Trainer)
-    /// is rejected too — the guard fires on the Trainer role alone, holding Client at the
-    /// same time does not exempt the account. This is also the self-invite case: the
-    /// caller inviting their own email necessarily holds Trainer/Nutritionist themselves,
-    /// so a self-invite by any coach is now caught here before the (still-present)
-    /// self-check further down ever runs.
+    /// A dual-role invitee (Client and Trainer) is silent as well, which also covers a coach
+    /// inviting their own email. The profession-slot check is skipped for it.
     /// </summary>
     [Fact]
-    public async Task HandleAsync_DualRoleInvitee_Returns400ViaCoachRejectionGuard()
+    public async Task HandleAsync_DualRoleInvitee_StoresSilentInvite()
     {
         var trainerUser = EntityBuilder.User.WithId(_trainerId).WithEmail("trainer@test.com")
             .WithFirstName("Train").WithLastName("Er").Build();
         trainerUser.EmailConfirmed = true;
         trainerUser.NormalizedEmail = "TRAINER@TEST.COM";
         var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(1).WithUser(trainerUser).Build();
-        // Dual-role account (holds both a ProfessionalProfile and a ClientProfile) — the
-        // coach-rejection guard must fire on the Trainer role alone, regardless.
         var trainerClientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(trainerUser).Build();
 
         var db = new MockDbBuilder()
@@ -347,19 +357,20 @@ public class CreatePendingInviteEndpointTests
             .With(trainerClientProfile)
             .Build();
 
-        var (ep, conversationSeedService, userManager) = CreateEndpointWithSeedService(db, _trainerId, AppRoles.Trainer);
-        userManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Client"]);
+        PendingInvite? captured = null;
+        db.PendingInvites.When(x => x.Add(Arg.Any<PendingInvite>()))
+            .Do(ci => captured = ci.Arg<PendingInvite>());
 
-        var act = () => ep.HandleAsync(new CreatePendingInviteRequest
+        var harness = CreateHarness(db, _trainerId, AppRoles.Trainer);
+        harness.UserManager.GetRolesAsync(trainerUser).Returns(["Trainer", "Client"]);
+
+        await harness.Endpoint.HandleAsync(new CreatePendingInviteRequest
         {
             Email = "trainer@test.com",
             Message = "Looking forward to coaching you!"
         }, TestContext.Current.CancellationToken);
 
-        var exception = await act.Should().ThrowAsync<ValidationFailureException>();
-        exception.Which.Failures.Should().ContainSingle(f => f.ErrorCode == ErrorCodes.InviteeIsProfessional);
-        await conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
-            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+        AssertSilentInvite(harness, captured, db);
     }
 
     [Fact]

@@ -42,6 +42,14 @@ public class GetPendingInviteEndpoint(
         // using UPPER() on both sides.
         var normalizedEmail = user.NormalizedEmail ?? user.Email?.ToUpper() ?? string.Empty;
 
+        // A coach-role caller never sees a pending invite: invites addressed to a coaching
+        // account are silent rows that exist only to keep the inviter's view uniform.
+        if (User.IsInRole(AppRoles.Trainer) || User.IsInRole(AppRoles.Nutritionist))
+        {
+            await Send.NoContentAsync(ct);
+            return;
+        }
+
         var invite = await db.PendingInvites
             .AsNoTracking()
             .Include(pi => pi.ProfessionalProfile)

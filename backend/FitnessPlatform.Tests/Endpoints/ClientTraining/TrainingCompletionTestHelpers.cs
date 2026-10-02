@@ -474,7 +474,7 @@ public static class TrainingCompletionTestHelpers
     {
         var svc = Substitute.For<IComplianceService>();
         svc.CalculateComplianceAsync(
-                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .Returns(new ComplianceResult { CompliancePercent = 0m });
         svc.CalculateStreakAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(0);

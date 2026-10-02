@@ -156,6 +156,34 @@ public class PendingInviteConversationSeederTests
     }
 
     /// <summary>
+    /// An invite addressed to a coaching account is a silent row: verifying that account's email
+    /// must not turn it into a conversation.
+    /// </summary>
+    [Fact]
+    public async Task SeedForNewUserAsync_UserIsCoachingProfessional_SeedsNothing()
+    {
+        var newUser = NewUser("coach@example.com");
+        var coachProfile = new ProfessionalProfile { Id = 77, UserId = newUser.Id, User = newUser };
+        var inviter = MakeProfessional("Coach", "Carl");
+        var invite = new PendingInvite
+        {
+            ProfessionalProfileId = inviter.Id,
+            ProfessionalProfile = inviter,
+            Email = "coach@example.com",
+            Message = "Silent",
+            IsAccepted = false
+        };
+
+        var db = new MockDbBuilder().With(invite).With(coachProfile).Build();
+        var seeder = new PendingInviteConversationSeeder(db, _conversationSeedService);
+
+        await seeder.SeedForNewUserAsync(newUser, TestContext.Current.CancellationToken);
+
+        await _conversationSeedService.DidNotReceiveWithAnyArgs().AppendCooperationEventAsync(
+            default, default, default, default, default, default, default, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>
     /// An already-accepted invite must never be re-seeded from this helper — it either was
     /// already seeded earlier (at invite-creation time, or by an earlier verification) or
     /// belongs to a fully-consumed relationship. The lookup filters on <c>!IsAccepted</c>.

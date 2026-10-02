@@ -78,6 +78,14 @@ public class DeletePendingInviteEndpoint(
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Email == pendingInvite.Email, ct);
 
+        // An invite addressed to a coaching account is a silent row: withdrawing it must not
+        // notify, message or otherwise touch that account, so treat it like an unknown email.
+        if (invitedUser is not null &&
+            await db.ProfessionalProfiles.AsNoTracking().AnyAsync(pp => pp.UserId == invitedUser.Id, ct))
+        {
+            invitedUser = null;
+        }
+
         // Invalidate any still-usable token for this invite — otherwise the invitee's email
         // link (AcceptInvitationEndpoint) still works after the coach withdraws in-app, and
         // the thread would read "withdrawn" then "accepted" for an invite that no longer

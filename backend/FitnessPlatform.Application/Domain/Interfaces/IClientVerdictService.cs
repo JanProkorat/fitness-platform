@@ -29,6 +29,9 @@ public interface IClientVerdictService
     /// forgot to pass its capabilities would otherwise silently receive all of them.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="planAuthorUserId">
+    /// When set, only plans written by this professional count toward the verdict; null reads all coaches' plans.
+    /// </param>
     /// <returns>
     /// A <see cref="ClientVerdictResult"/> reduced to the domains <paramref name="capabilities"/>
     /// grants. The itemised signals (training frequency, personal-record count, nutrition
@@ -46,7 +49,8 @@ public interface IClientVerdictService
         long clientProfileId,
         decimal? targetWeightKg,
         LinkCapabilities capabilities,
-        CancellationToken ct);
+        CancellationToken ct,
+        Guid? planAuthorUserId = null);
 }
 
 /// <summary>

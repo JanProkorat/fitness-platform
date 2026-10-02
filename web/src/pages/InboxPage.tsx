@@ -249,6 +249,7 @@ export default function InboxPage() {
           showClientPanel={showClientPanel}
           onToggleClientPanel={() => setShowClientPanel((previous) => !previous)}
           isOtherPartyTyping={isOtherPartyTyping}
+          isSendLocked={selectedConversation.isSendLocked ?? false}
         />
       ) : (
         <ThreadEmptyState />

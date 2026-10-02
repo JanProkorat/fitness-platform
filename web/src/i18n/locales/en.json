@@ -1414,6 +1414,7 @@
     "OUT_OF_RANGE": "Value is out of the allowed range.",
     "INVALID_DEADLINE_OFFSET_HOURS": "Invalid deadline. Allowed values: 24, 48, 72, 120 or 168 hours.",
     "SESSION_ALREADY_COMPLETED": "This session has already been completed.",
+    "CONVERSATION_LOCKED": "You can reply once the client accepts your invitation.",
     "SECTION_ALREADY_COMPLETED": "This section has already been completed by the client and cannot be edited.",
     "COMPLETED_AT_IN_FUTURE": "Completion date cannot be in the future.",
     "COMPLETED_AT_BEFORE_PLAN_START": "Completion date cannot be before the plan's start date.",
@@ -1431,7 +1432,6 @@
     "DUPLICATE_PENDING_INVITE": "An invite to this email is already pending.",
     "TOO_MANY_PENDING_INVITES": "You've reached the maximum number of pending invites. Wait for a response or cancel one first.",
     "PROFESSION_ALREADY_OCCUPIED": "This client already has an active coach for this profession.",
-    "INVITEE_IS_PROFESSIONAL": "This email belongs to a coach account. You can only invite clients.",
     "REQUESTED_SCOPE_EXCEEDS_HELD_ROLES": "The requested access exceeds your current roles.",
     "CLIENT_TAG_NAME_ALREADY_EXISTS": "A tag with this name already exists.",
     "CLIENT_TAG_NOT_FOUND": "This tag could not be found.",
@@ -2712,6 +2712,7 @@
       "attachFileAriaLabel": "Attach file",
       "attachImageAriaLabel": "Attach image",
       "sendError": "Could not send the message. Please try again.",
+      "lockedNotice": "You can reply once the client accepts your invitation.",
       "imagePreviewAlt": "Image preview",
       "removeImageAriaLabel": "Remove image",
       "imageUploadError": "Could not upload the image. Please try again."

@@ -26,6 +26,9 @@ public sealed class ConversationRosterRow
     /// <summary>The client's last name, for the conversation row's participant.</summary>
     public required string ClientLastName { get; init; }
 
+    /// <summary>The client's email — only the initials fallback reads it.</summary>
+    public string? ClientEmail { get; init; }
+
     /// <summary>The client's user-level avatar. <c>ClientProfile</c> has no dedicated avatar.</summary>
     public string? ClientAvatarBlobUrl { get; init; }
 

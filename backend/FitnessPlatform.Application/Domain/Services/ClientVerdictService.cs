@@ -33,7 +33,8 @@ public class ClientVerdictService(
         long clientProfileId,
         decimal? targetWeightKg,
         LinkCapabilities capabilities,
-        CancellationToken ct)
+        CancellationToken ct,
+        Guid? planAuthorUserId = null)
     {
         // ── EF queries — must be serialized (DbContext is not thread-safe) ──
         // Fold both BodyMeasurements usages into a single query that serves:
@@ -69,10 +70,10 @@ public class ClientVerdictService(
         // signature or logic. Weight and LastActiveAt are deliberately NOT gated here — they are
         // dual-readable per the response boundary below, so their reads always run.
         var complianceTask = capabilities.CanViewNutritionPlans
-            ? ComputeComplianceAsync(clientUserId, ct)
+            ? ComputeComplianceAsync(clientUserId, planAuthorUserId, ct)
             : Task.FromResult<(decimal? compliancePercent, bool hasActivePlan)>((null, false));
         var trainingTask = capabilities.CanViewTrainingPlans
-            ? ComputeTrainingFrequencyAsync(clientUserId, ct)
+            ? ComputeTrainingFrequencyAsync(clientUserId, planAuthorUserId, ct)
             : Task.FromResult<(int? actual, int? prescribed, bool hasActivePlan)>((null, null, false));
         var latestWorkoutTask = FetchLatestWorkoutCompletedAtAsync(clientUserId, ct);
         var latestMealTask = FetchLatestMealLogTimestampAsync(clientUserId, ct);
@@ -129,11 +130,16 @@ public class ClientVerdictService(
     // ── Signal computation ──────────────────────────────────────────────────
 
     private async Task<(decimal? compliancePercent, bool hasActivePlan)> ComputeComplianceAsync(
-        Guid clientUserId, CancellationToken ct)
+        Guid clientUserId, Guid? planAuthorUserId, CancellationToken ct)
     {
         // Check for an active nutrition plan first to avoid collapsing to 0% when no plan exists.
         var nutritionPlanFilter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientUserId)
             & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active);
+
+        if (planAuthorUserId is { } nutritionistId)
+        {
+            nutritionPlanFilter &= Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        }
 
         using var planCursor = await mongo.NutritionPlans.FindAsync(nutritionPlanFilter, cancellationToken: ct);
         var activePlan = await planCursor.FirstOrDefaultAsync(ct);
@@ -145,7 +151,8 @@ public class ClientVerdictService(
         // Calculate over the last ComplianceWindowDays days to cover most nutrition plan periods.
         var from = DateTime.UtcNow.Date.AddDays(-ClientDashboardConstants.ComplianceWindowDays);
         var to = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
-        var complianceResult = await complianceService.CalculateComplianceAsync(clientUserId, from, to, ct);
+        var complianceResult = await complianceService.CalculateComplianceAsync(
+            clientUserId, from, to, ct, planAuthorUserId);
 
         return (complianceResult.NutritionCompliancePercent, true);
     }
@@ -195,11 +202,16 @@ public class ClientVerdictService(
     }
 
     private async Task<(int? actual, int? prescribed, bool hasActivePlan)> ComputeTrainingFrequencyAsync(
-        Guid clientUserId, CancellationToken ct)
+        Guid clientUserId, Guid? planAuthorUserId, CancellationToken ct)
     {
         // Check for an active training plan.
         var trainingPlanFilter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientUserId)
             & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+
+        if (planAuthorUserId is { } trainerId)
+        {
+            trainingPlanFilter &= Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
+        }
 
         using var planCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
         var activePlan = await planCursor.FirstOrDefaultAsync(ct);

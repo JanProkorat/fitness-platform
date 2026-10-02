@@ -141,14 +141,15 @@ public class GetClientDashboardEndpoint(
             var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
-                clientProfile.UserId, complianceFrom, complianceTo, ct);
+                clientProfile.UserId, complianceFrom, complianceTo, ct, planAuthorUserId: professionalProfile.UserId);
             compliancePercent = discipline switch
             {
                 ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
                 ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
                 _ => compliance.CompliancePercent
             };
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, discipline, ct);
+            currentStreak = await complianceService.CalculateStreakAsync(
+                clientProfile.UserId, discipline, ct, planAuthorUserId: professionalProfile.UserId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -216,6 +217,7 @@ public class GetClientDashboardEndpoint(
             {
                 var planFilter = Builders<NutritionPlan>.Filter.And(
                     Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalProfile.UserId),
                     Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
                 using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
@@ -242,6 +244,7 @@ public class GetClientDashboardEndpoint(
             {
                 var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
                     Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                    Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalProfile.UserId),
                     Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
 
                 using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);

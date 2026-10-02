@@ -158,3 +158,88 @@ test.describe('inbox cooperation-event banners (#1100)', () => {
     await expect(page.getByText("You declined QA Client2's request").last()).toBeVisible();
   });
 });
+
+const STUB_CONVERSATION_ID = '11111111-2222-3333-4444-555555555555';
+const STUB_PARTICIPANT_NAME = 'Stub Invitee';
+
+/**
+ * Stubs the conversation list with a single off-roster thread so the lock
+ * state is deterministic: the harness cannot be relied on to hold a pending
+ * invite thread at test time. `sendStatus` drives what a send attempt gets.
+ */
+async function stubInviteThread(page: Page, isSendLocked: boolean, sendStatus?: number): Promise<void> {
+  await page.route(
+    (url) => url.pathname === '/conversations',
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: STUB_CONVERSATION_ID,
+            participant: { id: 'aaaaaaaa-0000-0000-0000-000000000001', name: STUB_PARTICIPANT_NAME, initials: 'SI' },
+            lastMessage: 'Invitation',
+            lastMessageAt: new Date().toISOString(),
+            lastMessageIsOwn: true,
+            unreadCount: 0,
+            isFormer: false,
+            isSendLocked,
+          },
+        ]),
+      }),
+  );
+  await page.route(
+    (url) => url.pathname === `/conversations/${STUB_CONVERSATION_ID}/messages`,
+    (route) => {
+      if (route.request().method() === 'POST' && sendStatus) {
+        return route.fulfill({
+          status: sendStatus,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({ status: sendStatus, errorCode: 'CONVERSATION_LOCKED' }),
+        });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
+    },
+  );
+  await page.route(
+    (url) => url.pathname === `/conversations/${STUB_CONVERSATION_ID}/read`,
+    (route) => route.fulfill({ status: 204 }),
+  );
+}
+
+test.describe('locked invite-only thread', () => {
+  test('a locked thread shows the notice and a disabled composer', async ({ page }) => {
+    await stubInviteThread(page, true);
+    await page.goto('/inbox');
+    await page.getByRole('button').filter({ has: page.getByText(STUB_PARTICIPANT_NAME, { exact: true }) }).click();
+
+    await expect(page.getByTestId('composer-locked-notice')).toHaveText(
+      'You can reply once the client accepts your invitation.',
+    );
+    await expect(page.getByPlaceholder('Type your message here...')).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Send message' })).toHaveCount(0);
+  });
+
+  test('an unlocked thread keeps the normal composer', async ({ page }) => {
+    await stubInviteThread(page, false);
+    await page.goto('/inbox');
+    await page.getByRole('button').filter({ has: page.getByText(STUB_PARTICIPANT_NAME, { exact: true }) }).click();
+
+    await expect(page.getByTestId('composer-locked-notice')).toHaveCount(0);
+    await expect(page.getByPlaceholder('Type your message here...')).toBeEnabled();
+  });
+
+  test('a send refused with a top-level CONVERSATION_LOCKED errorCode shows the readable toast', async ({ page }) => {
+    await stubInviteThread(page, false, 403);
+    await page.goto('/inbox');
+    await page.getByRole('button').filter({ has: page.getByText(STUB_PARTICIPANT_NAME, { exact: true }) }).click();
+
+    const composer = page.getByPlaceholder('Type your message here...');
+    await composer.fill('hello');
+    await composer.press('Enter');
+
+    await expect(
+      page.locator("[data-slot='toast']").filter({ hasText: 'You can reply once the client accepts your invitation.' }),
+    ).toBeVisible();
+  });
+});
