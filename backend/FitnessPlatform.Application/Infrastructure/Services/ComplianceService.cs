@@ -119,8 +119,9 @@ public class ComplianceService : IComplianceService
         => CalculateStreakInternalAsync(clientId, discipline, DateOnly.FromDateTime(DateTime.UtcNow), planAuthorUserId, ct);
 
     /// <inheritdoc />
-    public Task<int> CalculateStreakAsync(Guid clientId, DateOnly today, CancellationToken ct)
-        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, null, ct);
+    public Task<int> CalculateStreakAsync(
+        Guid clientId, DateOnly today, CancellationToken ct, Guid? planAuthorUserId = null)
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, planAuthorUserId, ct);
 
     /// <summary>
     /// Shared implementation for every <c>CalculateStreakAsync</c> overload — walks backward from

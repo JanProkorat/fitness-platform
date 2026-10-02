@@ -61,7 +61,8 @@ public interface IComplianceService
     /// <param name="today">The client's resolved local calendar date to anchor the walk-back on.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Number of consecutive compliant days.</returns>
-    Task<int> CalculateStreakAsync(Guid clientId, DateOnly today, CancellationToken ct);
+    Task<int> CalculateStreakAsync(
+        Guid clientId, DateOnly today, CancellationToken ct, Guid? planAuthorUserId = null);
 
     /// <summary>
     /// Calculates average daily macros consumed over a date range.
