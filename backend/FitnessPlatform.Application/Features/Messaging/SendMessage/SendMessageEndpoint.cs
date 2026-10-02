@@ -60,6 +60,22 @@ public class SendMessageEndpoint(
             return;
         }
 
+        var senderIsProfessional = conversation.ProfessionalUserId == userGuid;
+        var professionalAccess = ProfessionalSendAccess.SendAndUnarchive;
+
+        if (senderIsProfessional)
+        {
+            var access = await this.RequireProfessionalAccessOrRespondAsync(
+                db, userGuid, conversation.ClientUserId, ct);
+
+            if (access is null)
+            {
+                return;
+            }
+
+            professionalAccess = access.Value;
+        }
+
         string? imageBlobUrl = null;
         string? imageContentType = null;
         long? imageSizeBytes = null;
@@ -168,12 +184,17 @@ public class SendMessageEndpoint(
         bool autoUnarchived = false;
         if (!conversation.IsFormer)
         {
-            if (conversation.ProfessionalUserId == userGuid && conversation.ArchivedByClientAt != null)
+            // Only a live link may re-surface the thread for the client; an ended-link or
+            // pending-request professional may send but must not un-archive.
+            if (senderIsProfessional)
             {
-                conversation.ArchivedByClientAt = null;
-                autoUnarchived = true;
+                if (professionalAccess == ProfessionalSendAccess.SendAndUnarchive && conversation.ArchivedByClientAt != null)
+                {
+                    conversation.ArchivedByClientAt = null;
+                    autoUnarchived = true;
+                }
             }
-            else if (conversation.ClientUserId == userGuid && conversation.ArchivedByProfessionalAt != null)
+            else if (conversation.ArchivedByProfessionalAt != null)
             {
                 conversation.ArchivedByProfessionalAt = null;
                 autoUnarchived = true;

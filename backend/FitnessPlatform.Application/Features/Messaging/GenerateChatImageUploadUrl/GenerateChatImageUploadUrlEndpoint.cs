@@ -36,6 +36,7 @@ public class GenerateChatImageUploadUrlEndpoint(
                 + "image attachment, together with the uploadId to reference from POST "
                 + "/conversations/{ConversationId}/messages.";
             s.Responses[StatusCodes.Status200OK] = "Upload URL and uploadId";
+            s.Responses[StatusCodes.Status403Forbidden] = "CONVERSATION_LOCKED: professional caller in an invite-only thread";
             s.Responses[StatusCodes.Status404NotFound] = "Conversation not found, or caller is not a participant";
         });
     }
@@ -63,6 +64,17 @@ public class GenerateChatImageUploadUrlEndpoint(
         {
             await Send.NotFoundAsync(ct);
             return;
+        }
+
+        if (conversation.ProfessionalUserId == callerUserId)
+        {
+            var access = await this.RequireProfessionalAccessOrRespondAsync(
+                db, callerUserId, conversation.ClientUserId, ct);
+
+            if (access is null)
+            {
+                return;
+            }
         }
 
         var uploadId = Guid.NewGuid();

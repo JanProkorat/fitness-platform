@@ -185,6 +185,18 @@ public class GetConversationsEndpoint(
             .ToListAsync(ct);
 
         SetPresence(conversations);
+
+        if (isProfessional)
+        {
+            var access = await ProfessionalSendGuard.EvaluateManyAsync(
+                db, userGuid, conversations.Select(c => c.Participant.Id).ToList(), ct);
+
+            foreach (var conversation in conversations)
+            {
+                conversation.IsSendLocked = access[conversation.Participant.Id] == ProfessionalSendAccess.Locked;
+            }
+        }
+
         return conversations;
     }
 
@@ -201,7 +213,7 @@ public class GetConversationsEndpoint(
             {
                 Id = row.ClientUserId,
                 Name = row.ClientFirstName + " " + row.ClientLastName,
-                Initials = (row.ClientFirstName[..1] + row.ClientLastName[..1]).ToUpper(),
+                Initials = ParticipantInitials.Compute(row.ClientFirstName, row.ClientLastName, row.ClientEmail),
                 Online = false, // populated below
                 AvatarBlobUrl = row.ClientAvatarBlobUrl,
                 ClientPublicId = row.ClientPublicId,
@@ -211,6 +223,7 @@ public class GetConversationsEndpoint(
             LastMessageIsOwn = row.LastMessageSenderId == userGuid,
             UnreadCount = row.UnreadMessageCount,
             IsFormer = false, // the live roster never includes a former collaboration.
+            IsSendLocked = false, // a live link always allows sending.
             LastMessageHasImage = row.LastMessageHasImage,
             LastMessageEventType = row.LastMessageEventType,
         };

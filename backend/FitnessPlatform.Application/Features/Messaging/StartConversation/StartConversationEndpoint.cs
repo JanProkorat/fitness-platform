@@ -119,8 +119,12 @@ public class StartConversationEndpoint(
 
         if (existing is not null)
         {
+            var isSendLocked = isProfessional &&
+                await ProfessionalSendGuard.EvaluateAsync(db, professionalUserId, clientUserId, ct)
+                    == ProfessionalSendAccess.Locked;
+
             await Send.OkAsync(
-                BuildResponse(existing, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid), ct);
+                BuildResponse(existing, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid, isSendLocked), ct);
             return;
         }
 
@@ -159,7 +163,7 @@ public class StartConversationEndpoint(
         await db.SaveChangesAsync(ct);
 
         await Send.OkAsync(
-            BuildResponse(conversation, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid), ct);
+            BuildResponse(conversation, otherUser, participantAvatarBlobUrl, participantClientPublicId, userGuid, isSendLocked: false), ct);
     }
 
     private static ConversationDto BuildResponse(
@@ -167,7 +171,8 @@ public class StartConversationEndpoint(
         ApplicationUser otherUser,
         string? participantAvatarBlobUrl,
         Guid? participantClientPublicId,
-        Guid callerUserId) =>
+        Guid callerUserId,
+        bool isSendLocked) =>
         new()
         {
             Id = conversation.PublicId,
@@ -175,7 +180,7 @@ public class StartConversationEndpoint(
             {
                 Id = otherUser.Id,
                 Name = otherUser.FirstName + " " + otherUser.LastName,
-                Initials = ComputeInitials(otherUser.FirstName, otherUser.LastName, otherUser.Email),
+                Initials = ParticipantInitials.Compute(otherUser.FirstName, otherUser.LastName, otherUser.Email),
                 Online = false,
                 AvatarBlobUrl = participantAvatarBlobUrl,
                 ClientPublicId = participantClientPublicId,
@@ -186,30 +191,8 @@ public class StartConversationEndpoint(
             UnreadCount = conversation.Messages.Count(m => !m.IsRead && m.SenderUserId != callerUserId),
             LastMessageHasImage = conversation.LastMessageHasImage,
             LastMessageEventType = conversation.LastMessageEventType,
+            IsSendLocked = isSendLocked,
         };
-
-    /// <summary>
-    /// Computes a two-letter initials fallback for a participant's avatar badge.
-    /// Handles Apple Sign-In users who declined to share their name (FirstName
-    /// and/or LastName persisted as ""), where naively slicing the first
-    /// character would throw <see cref="ArgumentOutOfRangeException"/>.
-    /// Falls back to the email's first character, then a generic glyph, when
-    /// both names are empty.
-    /// </summary>
-    private static string ComputeInitials(string firstName, string lastName, string? email)
-    {
-        var firstInitial = string.IsNullOrEmpty(firstName) ? "" : firstName[..1];
-        var lastInitial = string.IsNullOrEmpty(lastName) ? "" : lastName[..1];
-        var initials = (firstInitial + lastInitial).ToUpper();
-
-        if (!string.IsNullOrEmpty(initials))
-            return initials;
-
-        if (!string.IsNullOrEmpty(email))
-            return email[..1].ToUpper();
-
-        return "?";
-    }
 }
 
 public class StartConversationRequest
