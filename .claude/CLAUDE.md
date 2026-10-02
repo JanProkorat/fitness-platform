@@ -78,13 +78,16 @@ missing-locale fallback), never a fixed locale list of their own.
 
 Branch/PR/merge in this repo follow [`rules/branch-and-pr.md`](rules/branch-and-pr.md)
 + [`rules/merge-strategy.md`](rules/merge-strategy.md) — issue+epic-based,
-with sub-issue auto-merge performed by `pr-reviewer`. Where the seeded hub
+with sub-issue PRs merged into the epic branch without a per-PR user pause.
+Where the seeded hub
 [`rules/pr-workflow.md`](rules/pr-workflow.md) / [`rules/git-workflow.md`](rules/git-workflow.md)
-differ (they assume a `/conductor`-style pipeline and forbid a subagent from
-ever touching the remote — no merges, no pushes), **the local rules win**:
-this repo's pipeline is issue+epic-based, and `pr-reviewer` is explicitly
-the sub-agent that opens PRs and performs sub-issue auto-merge per
+differ (they assume a `/conductor`-style pipeline), **the local rules win**:
+this repo's pipeline is issue+epic-based, and `pr-reviewer` is the sub-agent
+that opens PRs and **clears** merges per
 [`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge).
+One part of the hub rule does hold: subagents never push or merge
+(`deny-subagent-merge.py`). The main thread pushes, and runs the pinned
+`gh pr merge` command `pr-reviewer` hands back.
 
 ## Prototype locations
 
@@ -221,9 +224,12 @@ artifacts are generated — always read the per-scene source):
    e. READY FOR MERGE → hand off to the merge gate (rule 8). Skip only for
       tasks that don't produce a PR (doc-only commits, infra-only tweaks
       the user explicitly merges out-of-band).
-8. **Merge gate.** Behaviour depends on the PR's base branch:
-   - **Sub-issue PR (base = epic branch)** → auto-merge per
-     [`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge).
+8. **Merge gate.** `pr-reviewer` clears the merge and returns a pinned
+   `gh pr merge … --match-head-commit <sha>`; the main thread runs it
+   (subagents can't). Behaviour depends on the PR's base branch:
+   - **Sub-issue PR (base = epic branch)** → merge without a user pause per
+     [`rules/merge-strategy.md#sub-issue-auto-merge`](rules/merge-strategy.md#sub-issue-auto-merge),
+     then close the sub-issue by hand (`Fixes` doesn't fire off the default branch).
    - **Epic PR / standalone PR (base = `develop`)** → require explicit
      same-turn user authorization per
      [`rules/merge-strategy.md#authorized-merge`](rules/merge-strategy.md#authorized-merge).
@@ -294,8 +300,9 @@ Intent-to-reality mapping for the removed rows:
   those paths. To change shapes, regenerate via the `regen-api` skill.
 - Compound commands (`&&` / `;`) get split via `split-compound-commands.py`
   so each part passes permission validation independently.
-- Subagents cannot run `gh pr merge` or `git push --force` — `deny-subagent-merge.py`
-  blocks them. Merging is `pr-reviewer`'s job, dispatched from the main thread.
+- Subagents cannot run `gh pr merge` or any `git push` — `deny-subagent-merge.py`
+  blocks them. `pr-reviewer` clears a merge and hands back the pinned command;
+  the main thread pushes branches and runs the merge.
 - Each agent has a curated bash allowlist via `agent-bash-allowlist.sh` —
   e.g. `qa-tester` is blocked from `git commit`, `backend-dotnet` from `npm`.
 - Sub-agent handoffs are JSON-schema-validated before control returns
@@ -324,7 +331,8 @@ Intent-to-reality mapping for the removed rows:
    until PASS.
 6. After QA PASS → dispatch `pr-reviewer` with the right base. Loop
    dev → (qa ∥ review, delta-only — routing rule 7d) until READY FOR MERGE.
-7. Sub-issue PR → re-dispatch `pr-reviewer` to auto-merge (no user pause).
-   Epic / standalone PR → wait for explicit same-turn merge auth.
+7. Sub-issue PR → re-dispatch `pr-reviewer` (`mode: merge-sub-issue`) to clear
+   it, then run its pinned command yourself (no user pause) and close the issue.
+   Epic / standalone PR → wait for explicit same-turn merge auth, then the same.
 8. After merge to `develop` (epic or standalone) → invoke `notion-docs`
    (update mode). On first use in a fresh workspace → bootstrap mode.

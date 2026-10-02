@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """deny-subagent-merge.py — PreToolUse[Bash] hook.
 
-Prevent any subagent from pushing branches or completing/creating PRs.
+Prevent any subagent from pushing branches or merging PRs.
 
 WHY THIS EXISTS
-  In this pipeline the /conductor (main session) prepares the branch and
-  stages changes, then STOPS — the user pushes, opens, and completes the PR
-  manually (conductor Phase 6; rules/pr-workflow.md#review-gate-before-landing).
-  Subagents (designer, developer, reviewers, researcher) hand results back to
-  the conductor and never touch the remote. A misbehaving prompt could push
-  or complete a PR prematurely; this hook is the belt to convention's braces.
+  Pushing and merging are main-thread operations in this repo. pr-reviewer
+  opens PRs and *clears* merges (CI on the exact head, exclusion list,
+  strategy), then hands back a pinned `gh pr merge … --match-head-commit`
+  command; the main thread runs it (rules/merge-strategy.md, .claude/CLAUDE.md
+  rule 8). A misbehaving prompt could push or merge prematurely; this hook is
+  the belt to convention's braces.
 
   It is the sibling of deny-non-main.sh (which blocks subagent `git commit`):
   same subagent-detection, different forbidden verbs.
@@ -45,13 +45,14 @@ def log(msg: str) -> None:
         f.write(msg + "\n")
 
 
-# Verbs refused from subagent context. This remote is Azure DevOps, so PR
-# lifecycle is `az repos pr …`; `gh pr merge` is belt-and-braces in case the
-# repo ever gains a GitHub mirror.
-#   git push …               — subagents never push; the user pushes in Phase 6.
-#   az repos pr create …     — opening a PR is a user action.
-#   az repos pr update …     — completing/abandoning a PR (`--status completed`).
-#   gh pr merge …            — GitHub merge, refused for the same reason.
+# Verbs refused from subagent context. The remote is GitHub; the `az repos`
+# patterns are inherited from an Azure DevOps project and kept as harmless
+# belt-and-braces. `gh pr create` is deliberately NOT here — pr-reviewer
+# opens PRs.
+#   git push …               — subagents never push; the main thread pushes.
+#   az repos pr create …     — Azure DevOps PR open (inherited).
+#   az repos pr update …     — Azure DevOps PR complete/abandon (inherited).
+#   gh pr merge …            — merging is the main thread's job.
 DENY_REGEX = re.compile(
     r"^\s*(git\s+push(\s|$)|az\s+repos\s+pr\s+(create|update)(\s|$)|gh\s+pr\s+merge(\s|$))"
 )
@@ -83,10 +84,11 @@ def main() -> int:
         agent_label = agent_type or "unknown-subagent"
         reason = (
             f"Forbidden in subagent context: {agent_label} attempted '{cmd}'. "
-            "Pushing branches and creating/completing PRs are main-thread, "
-            "user-authorized operations in this pipeline (conductor Phase 6 — "
-            "see rules/pr-workflow.md#review-gate-before-landing). Return to the "
-            "conductor and hand your result back; the user finishes the PR."
+            "Pushing branches and merging PRs are main-thread operations in "
+            "this repo (rules/merge-strategy.md). Do not work around this. "
+            "Finish your checks and hand back the exact command (for a merge: "
+            "`gh pr merge <n> <strategy> --delete-branch --match-head-commit "
+            "<sha>`); the orchestrator runs it."
         )
 
         log(f"[{datetime.now().astimezone().isoformat()}] deny-subagent-merge: "

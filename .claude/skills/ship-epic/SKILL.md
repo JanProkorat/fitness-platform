@@ -420,9 +420,14 @@ Follow `.claude/CLAUDE.md` rules 6 and 7 literally. Summary:
 Sub-issue PRs auto-merge per rule 8a — no per-PR user pause.
 
 - Re-dispatch `pr-reviewer` in `mode: merge-sub-issue` with the PR
-  number. It runs the pre-merge CI gate, the merge exclusion check,
-  and then `gh pr merge <n> <strategy> --delete-branch` against the
-  epic branch.
+  number. It runs the pre-merge CI gate, the merge exclusion check and
+  the stacked-PR check, and returns CLEARED TO MERGE with a pinned
+  `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>`.
+- **Run that command yourself on the main thread** —
+  `deny-subagent-merge.py` blocks every subagent from merging. Then
+  fast-forward the local epic branch, close the sub-issue via
+  `github-issues` (`Fixes #<N>` doesn't fire off the default branch),
+  and tear down the sub-issue's harness and worktree.
 - If `pr-reviewer` returns BLOCKED (CI red, or the diff hits the
   merge exclusion list), surface the BLOCKED reason to the user. For
   CI failures route the fix to the owning dev sub-agent and re-run
@@ -521,25 +526,29 @@ When the user authorizes:
 
 1. Re-dispatch `pr-reviewer` in `mode: merge` with the PR number and
    the verbatim authorization phrase.
-2. `pr-reviewer` runs the pre-merge CI gate, the merge exclusion
-   check, and then `gh pr merge <n> <strategy> --delete-branch` —
-   `--squash --delete-branch` for `type:feature` (the typical epic
-   shape). The squash collapses every sub-issue commit into a
-   single commit on `develop` named for the epic; `develop` history
-   stays linear and one revert undoes the whole epic.
+2. `pr-reviewer` runs the pre-merge CI gate and the merge exclusion
+   check, and returns CLEARED TO MERGE with a pinned
+   `gh pr merge <n> <strategy> --delete-branch --match-head-commit <sha>` —
+   `--squash` for `type:feature` (the typical epic shape). **You run
+   it on the main thread**; subagents can't merge. The squash
+   collapses every sub-issue commit into a single commit on `develop`
+   named for the epic; `develop` history stays linear and one revert
+   undoes the whole epic.
 3. If `pr-reviewer` returns BLOCKED on exclusions (rare for an epic,
    but possible — e.g. an EF Core migration squashed into the diff),
    tell the user and let them merge manually. Once they confirm the
    merge landed, continue to Phase 3.
 4. When MERGED:
    - The remote epic branch is gone (deleted by `--delete-branch`).
-   - `pr-reviewer` synced local `develop`. Sanity-check it ran clean
-     (no ⚠️ local-sync warning), and clean up the local epic branch:
+   - Fast-forward local `develop` yourself (`git pull --ff-only`, never
+     a hard reset; a failure is a ⚠️ warning for the user), and clean up
+     the local epic branch:
      ```bash
      git branch -D "$EPIC_BRANCH" 2>/dev/null || true
      ```
-   - Confirm all sub-issues auto-closed: `gh issue view <child>
-     --json state` for each child should now show `CLOSED`.
+   - Confirm all sub-issues are closed: `gh issue view <child>
+     --json state` for each child should show `CLOSED` (they were
+     closed by hand at each sub-issue merge in 1d).
 
 ## Phase 3 — Recap, document, close
 

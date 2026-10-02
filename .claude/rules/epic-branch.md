@@ -61,8 +61,10 @@ main
    `origin/<epic-branch>` — see [`branch-and-pr.md#parallel-sub-agents-one-branch-each`](branch-and-pr.md#parallel-sub-agents-one-branch-each).
 3. **Sub-issue PR:** opens against the **epic branch**. `qa-tester`
    runs per the AC gate. `pr-reviewer` runs per the code-review gate.
-   On READY FOR MERGE, the sub-issue PR **auto-merges into the epic
-   branch** without per-PR user authorization — see
+   On READY FOR MERGE, the sub-issue PR **merges into the epic
+   branch** without per-PR user authorization: `pr-reviewer` clears
+   it, the main thread runs the pinned merge command and closes the
+   sub-issue by hand — see
    [`merge-strategy.md#sub-issue-auto-merge`](merge-strategy.md#sub-issue-auto-merge).
 4. **Sibling rebase:** after a sub-issue merges to the epic branch,
    the orchestrator rebases any in-flight sibling sub-issue branches
