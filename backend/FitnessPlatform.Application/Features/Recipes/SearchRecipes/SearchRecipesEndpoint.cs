@@ -59,15 +59,7 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
 
         var filterBuilder = Builders<Recipe>.Filter;
 
-        // Visibility filter: caller's own recipes (any visibility) OR other nutritionists' public
-        // recipes. Mirrors LibrarySearchHelper.SearchAsync's Guid.Empty refusal (#992): the
-        // ownership term is suppressed entirely for an empty caller id, so a document that
-        // explicitly stores a zero-uuid owner can't be matched as "owned by the caller" below.
-        var filter = nutritionistId == Guid.Empty
-            ? filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public)
-            : filterBuilder.Or(
-                filterBuilder.Eq(r => r.NutritionistId, nutritionistId),
-                filterBuilder.Eq(r => r.Visibility, RecipeVisibility.Public));
+        var filter = RecipeVisibilityFilter.BuildOwnOrPublic(nutritionistId);
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
@@ -102,6 +94,27 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
             filter &= ownerFilter;
         }
 
+        if (req.TagIds.Count > 0)
+        {
+            // Resolve which recipes the caller has tagged with any of the requested tags first. An
+            // empty result must answer with an empty page, not fall through to "no filter at all".
+            var taggedRecipeIds = await FoodTagLookup.FindRecipeIdsWithAnyTagAsync(mongo, nutritionistId, req.TagIds, ct);
+
+            if (taggedRecipeIds.Count == 0)
+            {
+                await Send.OkAsync(new SearchRecipesResponse
+                {
+                    Recipes = [],
+                    TotalCount = 0,
+                    Page = req.Page,
+                    PageSize = req.PageSize
+                }, ct);
+                return;
+            }
+
+            filter &= filterBuilder.In(r => r.ExternalId, taggedRecipeIds);
+        }
+
         var totalCount = await mongo.Recipes.CountDocumentsAsync(filter, cancellationToken: ct);
 
         var language = HttpContext.Request.Headers.AcceptLanguage.FirstOrDefault()?.Split(',').FirstOrDefault()?.Split('-').FirstOrDefault()?.Trim().ToLowerInvariant();
@@ -109,9 +122,15 @@ public class SearchRecipesEndpoint(IMongoContext mongo)
 
         var recipes = await FetchSortedPageAsync(filter, req, nutritionistId, sortLanguage, ct);
 
+        var tagsByRecipeId = await FoodTagLookup.GetTagsByRecipeIdAsync(
+            mongo, nutritionistId, recipes.Select(r => r.ExternalId).ToList(), ct);
+
         await Send.OkAsync(new SearchRecipesResponse
         {
-            Recipes = recipes.Select(r => RecipeSummaryDto.FromDocument(r, nutritionistId)).ToList(),
+            Recipes = recipes
+                .Select(r => RecipeSummaryDto.FromDocument(
+                    r, nutritionistId, tagsByRecipeId.GetValueOrDefault(r.ExternalId, [])))
+                .ToList(),
             TotalCount = totalCount,
             Page = req.Page,
             PageSize = req.PageSize

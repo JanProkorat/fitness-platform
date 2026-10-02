@@ -86,12 +86,19 @@ public class RecipeSummaryDto
     public int? CookTimeMinutes { get; set; }
 
     /// <summary>
+    /// The caller's own tags on this recipe, ordered by name. Never another coach's tags.
+    /// </summary>
+    public List<FoodTagDto> Tags { get; set; } = [];
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="RecipeSummaryDto"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>
     /// <param name="currentUserId">Id of the authenticated user; used to resolve <see cref="IsOwnedByCurrentUser"/>.</param>
+    /// <param name="tags">The caller's tags on the recipe, or null for none.</param>
     /// <returns>A summary DTO.</returns>
-    public static RecipeSummaryDto FromDocument(Recipe recipe, Guid? currentUserId = null) => new()
+    public static RecipeSummaryDto FromDocument(
+        Recipe recipe, Guid? currentUserId = null, List<FoodTagDto>? tags = null) => new()
     {
         RecipeId = recipe.ExternalId,
         Name = recipe.Name,
@@ -111,6 +118,7 @@ public class RecipeSummaryDto
         IsSystem = recipe.NutritionistId == SystemUsers.AdminId,
         Servings = recipe.Servings,
         MealTypes = FoodEnumListMapping.ParseStoredNames<RecipeMealType>(recipe.MealTypes ?? []),
-        CookTimeMinutes = recipe.CookTimeMinutes
+        CookTimeMinutes = recipe.CookTimeMinutes,
+        Tags = tags ?? []
     };
 }

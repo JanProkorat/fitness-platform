@@ -36,6 +36,13 @@ public class SearchRecipesRequest
     public List<FoodOwnerFilter> Owners { get; set; } = [];
 
     /// <summary>
+    /// Optional tags filter — matches a recipe the caller has tagged with ANY of the supplied tag
+    /// ids. At most 20. Bound from the repeated <c>tagId</c> query param.
+    /// </summary>
+    [BindFrom("tagId")]
+    public List<Guid> TagIds { get; set; } = [];
+
+    /// <summary>
     /// Column to sort by. <see langword="null"/> (the default) means newest-created first.
     /// </summary>
     public RecipeSortField? SortBy { get; set; }

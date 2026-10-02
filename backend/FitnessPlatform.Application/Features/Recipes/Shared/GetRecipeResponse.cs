@@ -123,6 +123,11 @@ public class GetRecipeResponse
     public bool IsSystem { get; set; }
 
     /// <summary>
+    /// The caller's own tags on this recipe, ordered by name. Never another coach's tags.
+    /// </summary>
+    public List<FoodTagDto> Tags { get; set; } = [];
+
+    /// <summary>
     /// Maps a <see cref="Recipe"/> document to a <see cref="GetRecipeResponse"/>.
     /// </summary>
     /// <param name="recipe">The source recipe document.</param>

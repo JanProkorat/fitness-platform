@@ -1,10 +1,10 @@
 using FitnessPlatform.Application.Domain.Documents;
 
-namespace FitnessPlatform.Application.Features.Foods.Shared;
+namespace FitnessPlatform.Application.Domain.Services;
 
 /// <summary>
-/// A single food tag, as returned by every action in the food-tags slice and embedded as a chip
-/// on <see cref="FoodSummary"/>.
+/// A single coach tag, as returned by the food-tags slice and embedded as a chip on food and
+/// recipe summaries.
 /// </summary>
 public class FoodTagDto
 {

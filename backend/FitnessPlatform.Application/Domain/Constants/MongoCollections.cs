@@ -104,4 +104,10 @@ public static class MongoCollections
     /// (ownerUserId, foodExternalId) pair.
     /// </summary>
     public const string FoodTagAssignments = "foodTagAssignments";
+
+    /// <summary>
+    /// Per-owner, per-recipe tag assignment collection — one document per
+    /// (ownerUserId, recipeExternalId) pair. Reuses the coach's food tags.
+    /// </summary>
+    public const string RecipeTagAssignments = "recipeTagAssignments";
 }

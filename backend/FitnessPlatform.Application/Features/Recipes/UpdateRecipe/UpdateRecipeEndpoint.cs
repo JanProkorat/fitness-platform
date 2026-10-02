@@ -135,7 +135,12 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(
-            recipe, nutritionistId, RecipeContent.DeriveAllergens(recipe, foodLookup)), ct);
+        var response = GetRecipeResponse.FromDocument(
+            recipe, nutritionistId, RecipeContent.DeriveAllergens(recipe, foodLookup));
+
+        var tagsByRecipeId = await FoodTagLookup.GetTagsByRecipeIdAsync(mongo, nutritionistId, [recipe.ExternalId], ct);
+        response.Tags = tagsByRecipeId.GetValueOrDefault(recipe.ExternalId, []);
+
+        await Send.OkAsync(response, ct);
     }
 }

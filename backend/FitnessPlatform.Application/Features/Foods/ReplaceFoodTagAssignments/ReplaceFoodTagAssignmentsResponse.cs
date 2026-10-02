@@ -1,4 +1,4 @@
-using FitnessPlatform.Application.Features.Foods.Shared;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Application.Features.Foods.ReplaceFoodTagAssignments;
 
