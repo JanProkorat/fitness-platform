@@ -188,7 +188,7 @@ test.describe('recipes page', () => {
       (response) => response.url().includes('/recipes') && response.request().method() === 'POST',
     );
     await drawer.getByRole('button', { name: 'Save Recipe' }).click();
-    expect((await createResponse).status()).toBe(200);
+    expect((await createResponse).status()).toBe(201);
     await expect(drawer).toHaveCount(0);
 
     let recipeId: string | undefined;
@@ -322,7 +322,13 @@ test.describe('recipes page', () => {
     await page.getByRole('checkbox', { name: 'System' }).click();
     await page.keyboard.press('Escape');
     await expect(page).toHaveURL(/owner=System/);
-    await page.locator('tbody tr').first().click();
+    // The unfiltered rows stay on screen until the filtered page arrives, so pick
+    // a row by its badge rather than by position.
+    await page
+      .locator('tbody tr')
+      .filter({ has: page.getByText('System', { exact: true }) })
+      .first()
+      .click();
 
     const drawer = page.locator('[data-slot="sheet-content"]');
     await expect(drawer.getByRole('heading', { name: 'Recipe', exact: true })).toBeVisible();
