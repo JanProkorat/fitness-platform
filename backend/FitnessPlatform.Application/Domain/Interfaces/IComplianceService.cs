@@ -16,8 +16,13 @@ public interface IComplianceService
     /// <param name="from">Start date (inclusive).</param>
     /// <param name="to">End date (inclusive).</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="planAuthorUserId">
+    /// When set, only plans written by this professional (<c>ApplicationUser.Id</c>) count — used by
+    /// professional-facing callers. Null (client self-views) reads the client's plans across all coaches.
+    /// </param>
     /// <returns>Compliance result with score and details.</returns>
-    Task<ComplianceResult> CalculateComplianceAsync(Guid clientId, DateTime from, DateTime to, CancellationToken ct);
+    Task<ComplianceResult> CalculateComplianceAsync(
+        Guid clientId, DateTime from, DateTime to, CancellationToken ct, Guid? planAuthorUserId = null);
 
     /// <summary>
     /// Calculates the current streak of consecutive compliant days for both nutrition and training plans.
@@ -36,8 +41,12 @@ public interface IComplianceService
     /// <param name="clientId">The client's ApplicationUser.Id.</param>
     /// <param name="discipline">Which plan types to include in the streak calculation.</param>
     /// <param name="ct">Cancellation token.</param>
+    /// <param name="planAuthorUserId">
+    /// When set, only plans written by this professional count; null reads all coaches' plans.
+    /// </param>
     /// <returns>Number of consecutive compliant days.</returns>
-    Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct);
+    Task<int> CalculateStreakAsync(
+        Guid clientId, ComplianceDiscipline discipline, CancellationToken ct, Guid? planAuthorUserId = null);
 
     /// <summary>
     /// Calculates the current streak of consecutive compliant days for both nutrition and

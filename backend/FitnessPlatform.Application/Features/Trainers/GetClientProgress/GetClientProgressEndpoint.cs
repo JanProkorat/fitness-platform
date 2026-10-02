@@ -85,11 +85,13 @@ public class GetClientProgressEndpoint(
 
         var discipline = capabilities.Value.Discipline;
 
-        var compliance = await complianceService.CalculateComplianceAsync(clientUserId, from, to, ct);
+        var compliance = await complianceService.CalculateComplianceAsync(
+            clientUserId, from, to, ct, planAuthorUserId: trainerUserId);
 
         // The streak overload without a discipline hard-codes the combined figure, so a
         // single-flag caller was receiving a number weighted by the domain their link denies.
-        var streak = await complianceService.CalculateStreakAsync(clientUserId, discipline, ct);
+        var streak = await complianceService.CalculateStreakAsync(
+            clientUserId, discipline, ct, planAuthorUserId: trainerUserId);
 
         // Not computed at all unless the caller may see it — the averages are derived from the
         // client's meal logs and nutrition plan.

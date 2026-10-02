@@ -168,10 +168,11 @@ public class GetDashboardSummaryEndpoint(
 
         // Compliance (last 7 days)
         var compliance = await complianceService.CalculateComplianceAsync(
-            clientUserId, sevenDaysAgo, now, ct);
+            clientUserId, sevenDaysAgo, now, ct, planAuthorUserId: trainerUserId);
 
         // Streak — scoped to the viewer's discipline
-        var streak = await complianceService.CalculateStreakAsync(clientUserId, discipline, ct);
+        var streak = await complianceService.CalculateStreakAsync(
+            clientUserId, discipline, ct, planAuthorUserId: trainerUserId);
 
         // Average daily kcal (last 7 days) — nutrition domain, so skipped outright for a link that
         // denies it rather than computed and then dropped.
@@ -190,7 +191,7 @@ public class GetDashboardSummaryEndpoint(
         if (capabilities.CanViewTrainingPlans)
         {
             var todayCompliance = await complianceService.CalculateComplianceAsync(
-                clientUserId, now.Date, now.Date, ct);
+                clientUserId, now.Date, now.Date, ct, planAuthorUserId: trainerUserId);
             workoutsCompleted = todayCompliance.TrainingsCompleted;
             workoutsPlanned = todayCompliance.TrainingsPlanned;
         }

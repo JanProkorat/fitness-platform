@@ -169,7 +169,7 @@ public class GetClientDashboardEndpointTests
             .Build();
 
         _complianceService
-            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .CalculateComplianceAsync(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>(), Arg.Any<Guid?>())
             .ThrowsAsync(new InvalidOperationException("No active nutrition plan"));
 
         var ep = Factory.Create<GetClientDashboardEndpoint>(

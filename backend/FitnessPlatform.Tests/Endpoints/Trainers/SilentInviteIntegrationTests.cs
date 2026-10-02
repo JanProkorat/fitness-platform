@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FitnessPlatform.Application.Domain.Entities;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Features.PhotoDiaryRequests.ListClientRequests;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.Create;
 using FitnessPlatform.Application.Features.Trainers.PendingInvites.GetAll;
 using FitnessPlatform.Application.Infrastructure.Data;
@@ -22,6 +25,11 @@ namespace FitnessPlatform.Tests.Endpoints.Trainers;
 public class SilentInviteIntegrationTests(FitnessApiFactory factory)
 {
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
+
+    private static readonly JsonSerializerOptions EnumJson = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     private async Task<(Actor Inviter, Actor Coach)> SetupAsync()
     {
@@ -148,6 +156,42 @@ public class SilentInviteIntegrationTests(FitnessApiFactory factory)
         (await db.ClientProfessionalLinks.AnyAsync(l => l.ProfessionalProfileId == inviter.ProfileId, Ct))
             .Should().BeFalse("no link may be created from a silent invite");
         await AssertNoSideEffectsAsync(inviter, coach);
+    }
+
+    [Fact]
+    public async Task PhotoDiaryList_CoachRoleCaller_SkipsSilentInviteRows_ButRealInviteeSeesTheirs()
+    {
+        var (inviter, coach) = await SetupAsync();
+        var realClient = await TestActors.Client(factory).CreateAsync(Ct);
+        var silentInvite = await InviteAsync(inviter, coach.Email);
+        var realInvite = await InviteAsync(inviter, realClient.Email);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+            {
+                Id = Guid.NewGuid(),
+                ProfessionalId = inviter.UserId,
+                PendingInviteId = silentInvite.Id,
+            });
+            db.PhotoDiaryRequests.Add(new PhotoDiaryRequest
+            {
+                Id = Guid.NewGuid(),
+                ProfessionalId = inviter.UserId,
+                PendingInviteId = realInvite.Id,
+            });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var coachResponse = await coach.Http.GetAsync("/client/photo-diary-requests", Ct);
+        var clientResponse = await realClient.Http.GetAsync("/client/photo-diary-requests", Ct);
+
+        coachResponse.EnsureSuccessStatusCode();
+        (await coachResponse.Content.ReadFromJsonAsync<ListClientRequestsResponse>(EnumJson, Ct))!.Items
+            .Should().BeEmpty("a coach-role caller must not see requests hung on a silent invite");
+        (await clientResponse.Content.ReadFromJsonAsync<ListClientRequestsResponse>(EnumJson, Ct))!.Items
+            .Should().ContainSingle(r => r.PendingInviteId == realInvite.Id);
     }
 
     private sealed class ProblemDto

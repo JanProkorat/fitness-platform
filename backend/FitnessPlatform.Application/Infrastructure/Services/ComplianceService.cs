@@ -30,10 +30,10 @@ public class ComplianceService : IComplianceService
 
     /// <inheritdoc />
     public async Task<ComplianceResult> CalculateComplianceAsync(
-        Guid clientId, DateTime from, DateTime to, CancellationToken ct)
+        Guid clientId, DateTime from, DateTime to, CancellationToken ct, Guid? planAuthorUserId = null)
     {
-        var nutritionPlan = await FindActivePlanAsync(clientId, ct);
-        var trainingPlan = await FindActiveTrainingPlanAsync(clientId, ct);
+        var nutritionPlan = await FindActivePlanAsync(clientId, planAuthorUserId, ct);
+        var trainingPlan = await FindActiveTrainingPlanAsync(clientId, planAuthorUserId, ct);
 
         // ── Nutrition side ──────────────────────────────────────────────
         int mealsPlanned = 0;
@@ -111,15 +111,16 @@ public class ComplianceService : IComplianceService
 
     /// <inheritdoc />
     public Task<int> CalculateStreakAsync(Guid clientId, CancellationToken ct)
-        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, DateOnly.FromDateTime(DateTime.UtcNow), null, ct);
 
     /// <inheritdoc />
-    public Task<int> CalculateStreakAsync(Guid clientId, ComplianceDiscipline discipline, CancellationToken ct)
-        => CalculateStreakInternalAsync(clientId, discipline, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+    public Task<int> CalculateStreakAsync(
+        Guid clientId, ComplianceDiscipline discipline, CancellationToken ct, Guid? planAuthorUserId = null)
+        => CalculateStreakInternalAsync(clientId, discipline, DateOnly.FromDateTime(DateTime.UtcNow), planAuthorUserId, ct);
 
     /// <inheritdoc />
     public Task<int> CalculateStreakAsync(Guid clientId, DateOnly today, CancellationToken ct)
-        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, ct);
+        => CalculateStreakInternalAsync(clientId, ComplianceDiscipline.Both, today, null, ct);
 
     /// <summary>
     /// Shared implementation for every <c>CalculateStreakAsync</c> overload — walks backward from
@@ -128,15 +129,15 @@ public class ComplianceService : IComplianceService
     /// walk on it.
     /// </summary>
     private async Task<int> CalculateStreakInternalAsync(
-        Guid clientId, ComplianceDiscipline discipline, DateOnly today, CancellationToken ct)
+        Guid clientId, ComplianceDiscipline discipline, DateOnly today, Guid? planAuthorUserId, CancellationToken ct)
     {
         var nutritionPlan = discipline == ComplianceDiscipline.TrainingOnly
             ? null
-            : await FindActivePlanAsync(clientId, ct);
+            : await FindActivePlanAsync(clientId, planAuthorUserId, ct);
 
         var trainingPlan = discipline == ComplianceDiscipline.NutritionOnly
             ? null
-            : await FindActiveTrainingPlanAsync(clientId, ct);
+            : await FindActiveTrainingPlanAsync(clientId, planAuthorUserId, ct);
 
         // Determine the floor: the earliest date either plan started a published week
         DateTime? floorDate = null;
@@ -314,10 +315,15 @@ public class ComplianceService : IComplianceService
     /// <summary>
     /// Finds the active nutrition plan for a client.
     /// </summary>
-    private async Task<NutritionPlan?> FindActivePlanAsync(Guid clientId, CancellationToken ct)
+    private async Task<NutritionPlan?> FindActivePlanAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
     {
         var filter = Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientId)
             & Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active);
+
+        if (planAuthorUserId is { } nutritionistId)
+        {
+            filter &= Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, nutritionistId);
+        }
 
         using var cursor = await _mongo.NutritionPlans.FindAsync(filter, cancellationToken: ct);
         return await cursor.FirstOrDefaultAsync(ct);
@@ -326,10 +332,15 @@ public class ComplianceService : IComplianceService
     /// <summary>
     /// Finds the active training plan for a client.
     /// </summary>
-    private async Task<TrainingPlan?> FindActiveTrainingPlanAsync(Guid clientId, CancellationToken ct)
+    private async Task<TrainingPlan?> FindActiveTrainingPlanAsync(Guid clientId, Guid? planAuthorUserId, CancellationToken ct)
     {
         var filter = Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientId)
             & Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active);
+
+        if (planAuthorUserId is { } trainerId)
+        {
+            filter &= Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, trainerId);
+        }
 
         using var cursor = await _mongo.TrainingPlans.FindAsync(filter, cancellationToken: ct);
         return await cursor.FirstOrDefaultAsync(ct);

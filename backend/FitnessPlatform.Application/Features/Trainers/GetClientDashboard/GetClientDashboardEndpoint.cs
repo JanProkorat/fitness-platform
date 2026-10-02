@@ -141,14 +141,15 @@ public class GetClientDashboardEndpoint(
             var complianceFrom = DateTime.UtcNow.Date.AddDays(-7);
             var complianceTo = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             var compliance = await complianceService.CalculateComplianceAsync(
-                clientProfile.UserId, complianceFrom, complianceTo, ct);
+                clientProfile.UserId, complianceFrom, complianceTo, ct, planAuthorUserId: professionalProfile.UserId);
             compliancePercent = discipline switch
             {
                 ComplianceDiscipline.NutritionOnly => compliance.NutritionCompliancePercent,
                 ComplianceDiscipline.TrainingOnly => compliance.TrainingCompliancePercent,
                 _ => compliance.CompliancePercent
             };
-            currentStreak = await complianceService.CalculateStreakAsync(clientProfile.UserId, discipline, ct);
+            currentStreak = await complianceService.CalculateStreakAsync(
+                clientProfile.UserId, discipline, ct, planAuthorUserId: professionalProfile.UserId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
