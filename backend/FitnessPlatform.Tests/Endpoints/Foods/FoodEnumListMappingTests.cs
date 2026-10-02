@@ -1,6 +1,6 @@
 using FluentAssertions;
 using FitnessPlatform.Application.Domain.Enums;
-using FitnessPlatform.Application.Features.Foods.Shared;
+using FitnessPlatform.Application.Domain.Services;
 
 namespace FitnessPlatform.Tests.Endpoints.Foods;
 

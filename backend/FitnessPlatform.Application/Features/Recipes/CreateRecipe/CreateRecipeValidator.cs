@@ -20,6 +20,34 @@ public class CreateRecipeValidator : Validator<CreateRecipeRequest>
         RuleFor(x => x.Description)
             .MaximumLength(5000);
 
+        RuleFor(x => x.Servings)
+            .GreaterThan(0)
+            .WithMessage("Servings must be greater than zero.");
+
+        RuleFor(x => x.CookTimeMinutes)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.CookTimeMinutes.HasValue);
+
+        RuleFor(x => x.Difficulty)
+            .IsInEnum()
+            .When(x => x.Difficulty.HasValue);
+
+        RuleFor(x => x.MealTypes)
+            .NotEmpty()
+            .WithMessage("A recipe must have at least one meal type.");
+
+        RuleForEach(x => x.MealTypes).IsInEnum();
+
+        RuleForEach(x => x.DietaryPreferences).IsInEnum();
+
+        RuleFor(x => x.Steps)
+            .Must(steps => steps is null || steps.Count <= 50)
+            .WithMessage("A recipe can have at most 50 steps.");
+
+        RuleForEach(x => x.Steps)
+            .Must(step => step is null || step.Length <= 2000)
+            .WithMessage("A step can be at most 2000 characters.");
+
         RuleFor(x => x.Foods)
             .NotEmpty()
             .WithMessage("A recipe must contain at least one food item.");

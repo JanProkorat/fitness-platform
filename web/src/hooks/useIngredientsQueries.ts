@@ -22,6 +22,7 @@ import type { CreateFoodRequest, UpdateFoodRequest } from '@/api/food-types';
 import type { UploadFoodImageUrlRequest } from '@/api/generated';
 import { getErrorCode, showApiError, showSuccess } from '@/lib/api-errors';
 import type { IngredientListFilters } from '@/hooks/useIngredientListParams';
+import { bumpImageVersion } from '@/hooks/useImageVersion';
 
 /**
  * The ingredients (foods) list, filtered/paginated per `filters`. Mirrors
@@ -114,6 +115,7 @@ export function useUpdateFoodTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foodTags'] });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
     onError: (error) => {
       showApiError(error, 'ingredients.tags.updateError');
@@ -128,6 +130,7 @@ export function useDeleteFoodTag() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foodTags'] });
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     },
     onError: (error) => {
       showApiError(error, 'ingredients.tags.deleteError');
@@ -231,25 +234,12 @@ export function useDeleteFood() {
  * drawer and the table read the same counter for the same food, so a
  * replace is visible in both places at once.
  */
-function imageVersionKey(foodId: string) {
-  return ['foodImageVersion', foodId] as const;
-}
-
-/** Reads the current cache-buster counter for one food's picture. Returns 0
- * until the first successful upload/replace/remove bumps it. */
-export function useFoodImageVersion(foodId: string | undefined): number {
-  const query = useQuery({
-    queryKey: imageVersionKey(foodId ?? 'none'),
-    queryFn: () => 0,
-    enabled: false,
-    initialData: 0,
-    staleTime: Infinity,
-  });
-  return query.data;
+export function foodImageCacheKey(foodId: string): string {
+  return `food:${foodId}`;
 }
 
 function bumpFoodImageVersion(queryClient: QueryClient, foodId: string): void {
-  queryClient.setQueryData<number>(imageVersionKey(foodId), (previous) => (previous ?? 0) + 1);
+  bumpImageVersion(queryClient, foodImageCacheKey(foodId));
 }
 
 /** Requests a pre-signed upload URL for a food's main picture (owner only).
@@ -270,7 +260,7 @@ export interface ConfirmFoodImageVariables {
 /**
  * Confirms a completed main-picture upload. Call only after the browser's
  * own PUT to the pre-signed URL has already succeeded — see
- * `IngredientPictureField`'s upload flow. Bumps the cache-buster and
+ * `PictureField`'s upload flow. Bumps the cache-buster and
  * invalidates the ingredients list/detail queries so the new picture shows
  * up everywhere.
  */
@@ -294,10 +284,10 @@ export function useRemoveFoodImage() {
     onSuccess: (_data, foodId) => {
       bumpFoodImageVersion(queryClient, foodId);
       queryClient.invalidateQueries({ queryKey: ['ingredients'] });
-      showSuccess('ingredients.picture.removeSuccess');
+      showSuccess('library.picture.removeSuccess');
     },
     onError: (error) => {
-      showApiError(error, 'ingredients.picture.removeError');
+      showApiError(error, 'library.picture.removeError');
     },
   });
 }

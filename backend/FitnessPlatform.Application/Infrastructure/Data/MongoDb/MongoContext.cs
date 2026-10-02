@@ -34,6 +34,7 @@ public class MongoContext : IMongoContext
         TrainingPlanTemplates = database.GetCollection<TrainingPlanTemplate>(MongoCollections.TrainingPlanTemplates);
         FoodTags = database.GetCollection<FoodTag>(MongoCollections.FoodTags);
         FoodTagAssignments = database.GetCollection<FoodTagAssignment>(MongoCollections.FoodTagAssignments);
+        RecipeTagAssignments = database.GetCollection<RecipeTagAssignment>(MongoCollections.RecipeTagAssignments);
     }
 
     /// <inheritdoc />
@@ -92,4 +93,7 @@ public class MongoContext : IMongoContext
 
     /// <inheritdoc />
     public IMongoCollection<FoodTagAssignment> FoodTagAssignments { get; }
+
+    /// <inheritdoc />
+    public IMongoCollection<RecipeTagAssignment> RecipeTagAssignments { get; }
 }

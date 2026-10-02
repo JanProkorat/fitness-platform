@@ -17,16 +17,12 @@ interface Props {
 }
 
 /**
- * Multi-select Owner filter pill (#1139) — the backend's search endpoint ORs
- * together any number of `FoodOwnerFilter` values (`SearchFoodsRequest.Owner`
- * is a list bound from the repeated `owner` query param), same "match any"
- * shape as the Category and Tags filters. Built on the same Popover +
- * Checkbox primitives those two use (`MultiSelectPopover.tsx` is the generic
- * version of this pattern used by the drawer's dropdown-style fields — this
- * filter-bar pill mirrors `IngredientCategoryFilterPopover` instead so it
- * sits visually consistent next to Category/Tags).
+ * Multi-select Owner filter pill shared by the Ingredients and Recipes pages.
+ * Selecting several owners ORs them ("match any"); none selected applies no
+ * owner filter. Built on the same Popover + Checkbox primitives as the other
+ * filter-bar pills.
  */
-export default function IngredientOwnerFilterPopover({ selectedOwners, onChange }: Props) {
+export default function OwnerFilterPopover({ selectedOwners, onChange }: Props) {
   const { t } = useTranslation();
 
   function toggleOwner(owner: FoodOwnerFilter) {
@@ -38,7 +34,7 @@ export default function IngredientOwnerFilterPopover({ selectedOwners, onChange 
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
           <Plus className="size-3" aria-hidden="true" />
-          {t('ingredients.filters.owner')}
+          {t('library.filters.owner')}
           {selectedOwners.length > 0 && <span className="text-caption">{selectedOwners.length}</span>}
         </Button>
       </PopoverTrigger>
@@ -48,7 +44,7 @@ export default function IngredientOwnerFilterPopover({ selectedOwners, onChange 
             <li key={owner}>
               <label className="flex cursor-pointer items-center gap-2 text-body text-foreground">
                 <Checkbox checked={selectedOwners.includes(owner)} onCheckedChange={() => toggleOwner(owner)} />
-                {t(`ingredients.filters.ownerOptions.${owner}`)}
+                {t(`library.filters.ownerOptions.${owner}`)}
               </label>
             </li>
           ))}

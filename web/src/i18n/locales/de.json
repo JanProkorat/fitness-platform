@@ -809,15 +809,7 @@
     "deleteSuccess": "Zutat gelöscht.",
     "deleteError": "Zutat konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
     "filters": {
-      "category": "Kategorie",
-      "tags": "Tags",
-      "tagsEmpty": "Noch keine Tags.",
-      "owner": "Eigentümer",
-      "ownerOptions": {
-        "Mine": "Meine",
-        "System": "System",
-        "OtherCoaches": "Andere Coaches"
-      }
+      "category": "Kategorie"
     },
     "table": {
       "columnName": "Name",
@@ -829,58 +821,13 @@
       "caloriesValue": "{{count}} kcal / 100 g",
       "proteinValue": "P: {{count}} g",
       "carbsValue": "K: {{count}} g",
-      "fatValue": "F: {{count}} g",
-      "sortButtonLabel": "Sortieren nach {{column}}"
+      "fatValue": "F: {{count}} g"
     },
     "tags": {
       "createError": "Der Tag konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
       "updateError": "Der Tag konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
       "deleteError": "Der Tag konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
       "assignError": "Die Tags dieser Zutat konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
-    },
-    "tagPicker": {
-      "open": "Tags zuweisen",
-      "createTag": "Tag erstellen",
-      "createTitle": "Neuen Tag erstellen",
-      "createDescription": "Tags helfen Ihnen, Ihre Zutaten zu gruppieren und zu filtern.",
-      "editTitle": "Tag bearbeiten",
-      "editDescription": "Benennen Sie diesen Tag um, ändern Sie seine Farbe oder Beschreibung.",
-      "editTag": "„{{name}}“ bearbeiten",
-      "deleteTag": "Löschen",
-      "deleteConfirmTitle": "Tag löschen",
-      "deleteConfirmDescription": "Möchten Sie den Tag „{{name}}“ wirklich löschen? Er wird von jeder Zutat entfernt, der er zugewiesen ist. Dies kann nicht rückgängig gemacht werden.",
-      "deleteConfirmSubmit": "Löschen",
-      "nameLabel": "Name",
-      "namePlaceholder": "Tag-Namen eingeben",
-      "colorLabel": "Farbe",
-      "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
-      "previewLabel": "Vorschau",
-      "previewSampleName": "Tag-Vorschau",
-      "createSubmit": "Tag erstellen",
-      "editSubmit": "Änderungen speichern",
-      "colors": {
-        "red": "Rot",
-        "orange": "Orange",
-        "yellow": "Gelb",
-        "green": "Grün",
-        "blue": "Blau",
-        "purple": "Violett",
-        "pink": "Rosa",
-        "grey": "Grau"
-      },
-      "validation": {
-        "nameRequired": "Tagname ist erforderlich.",
-        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
-      }
-    },
-    "pagination": {
-      "viewing": "{{count}} von {{total}} angezeigt"
-    },
-    "library": {
-      "system": "System",
-      "mine": "Meine",
-      "shared": "Geteilt"
     },
     "category": {
       "Other": "Sonstiges",
@@ -990,6 +937,84 @@
       "confirm": "Löschen"
     },
     "picture": {
+      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
+      "alt": "Zutatenbild"
+    }
+  },
+  "library": {
+    "badge": {
+      "system": "System",
+      "mine": "Meine",
+      "shared": "Geteilt"
+    },
+    "visibility": {
+      "label": "Sichtbarkeit",
+      "options": {
+        "Private": "Privat",
+        "Public": "Öffentlich"
+      },
+      "hint": {
+        "Private": {
+          "recipe": "Nur Sie können dieses Rezept sehen und verwenden.",
+          "ingredient": "Nur Sie können diese Zutat sehen und verwenden."
+        },
+        "Public": {
+          "recipe": "Alle Coaches können dieses Rezept sehen und verwenden.",
+          "ingredient": "Alle Coaches können diese Zutat sehen und verwenden."
+        }
+      }
+    },
+    "pagination": {
+      "viewing": "{{count}} von {{total}} angezeigt"
+    },
+    "sortButtonLabel": "Sortieren nach {{column}}",
+    "tags": {
+      "filter": "Tags",
+      "empty": "Noch keine Tags.",
+      "open": "Tags zuweisen",
+      "createTag": "Tag erstellen",
+      "createTitle": "Neuen Tag erstellen",
+      "createDescription": "Tags helfen Ihnen, Ihre Zutaten und Rezepte zu gruppieren und zu filtern.",
+      "editTitle": "Tag bearbeiten",
+      "editDescription": "Benennen Sie diesen Tag um, ändern Sie seine Farbe oder Beschreibung.",
+      "editTag": "„{{name}}“ bearbeiten",
+      "deleteTag": "Löschen",
+      "deleteConfirmTitle": "Tag löschen",
+      "deleteConfirmDescription": "Möchten Sie den Tag „{{name}}“ wirklich löschen? Er wird von allen Zutaten und Rezepten entfernt, denen er zugewiesen ist. Dies kann nicht rückgängig gemacht werden.",
+      "deleteConfirmSubmit": "Löschen",
+      "nameLabel": "Name",
+      "namePlaceholder": "Tag-Namen eingeben",
+      "colorLabel": "Farbe",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Tag-Beschreibung eingeben",
+      "previewLabel": "Vorschau",
+      "previewSampleName": "Tag-Vorschau",
+      "createSubmit": "Tag erstellen",
+      "editSubmit": "Änderungen speichern",
+      "colors": {
+        "red": "Rot",
+        "orange": "Orange",
+        "yellow": "Gelb",
+        "green": "Grün",
+        "blue": "Blau",
+        "purple": "Violett",
+        "pink": "Rosa",
+        "grey": "Grau"
+      },
+      "validation": {
+        "nameRequired": "Tagname ist erforderlich.",
+        "colorInvalid": "Geben Sie eine gültige Hex-Farbe ein (z. B. #3B82F6)."
+      }
+    },
+    "filters": {
+      "owner": "Eigentümer",
+      "ownerOptions": {
+        "Mine": "Meine",
+        "System": "System",
+        "OtherCoaches": "Andere Coaches"
+      }
+    },
+    "picture": {
       "sectionLabel": "Bild",
       "upload": "Bild hochladen",
       "dropHint": "Bild hierher ziehen oder zum Hochladen klicken",
@@ -997,82 +1022,159 @@
       "replace": "Bild ersetzen",
       "remove": "Bild entfernen",
       "removeConfirmTitle": "Bild entfernen",
-      "removeConfirmDescription": "Möchten Sie das Bild dieser Zutat wirklich entfernen? Dies kann nicht rückgängig gemacht werden.",
       "removeConfirmSubmit": "Entfernen",
       "removeSuccess": "Bild entfernt.",
       "removeError": "Bild konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
       "uploadError": "Bild konnte nicht hochgeladen werden. Bitte versuchen Sie es erneut.",
-      "alt": "Zutatenbild",
       "thumbnailAlt": "Bild von {{name}}",
       "viewPicture": "Bild anzeigen",
-      "viewPictureOf": "Bild von {{name}} anzeigen"
+      "viewPictureOf": "Bild von {{name}} anzeigen",
+      "previous": "Vorheriges Bild",
+      "next": "Nächstes Bild"
     }
   },
   "recipes": {
     "title": "Rezepte",
-    "subtitle": "Wiederverwendbare Rezepte erstellen und verwalten",
-    "pageTitle": "Rezeptbibliothek",
-    "pageSubtitle": "Erstellen, organisieren und verwenden Sie Rezepte mit vollständiger Nährwertübersicht",
-    "viewTable": "Tabelle",
-    "viewList": "Liste",
-    "viewCards": "Karten",
-    "sort": "Sortieren",
-    "prepTime": "Zubereitungszeit",
-    "search": "Rezepte suchen...",
-    "searchAriaLabel": "Rezepte suchen",
-    "addRecipe": "Neues Rezept",
-    "editRecipe": "Rezept bearbeiten",
-    "recipeName": "Rezeptname",
-    "recipeNamePlaceholder": "z.B. Hähnchen-Pfanne",
-    "description": "Zubereitungsanleitung",
-    "descriptionPlaceholder": "Wie wird dieses Rezept zubereitet...",
-    "foods": "Zutaten",
-    "pieces": "Stück",
-    "serving": "Portion",
-    "addFood": "+ Zutat hinzufügen",
-    "noRecipes": "Noch keine Rezepte",
-    "noRecipesHint": "Erstellen Sie Ihr erstes Rezept über die Schaltfläche oben",
-    "created": "Rezept erstellt",
-    "updated": "Rezept aktualisiert",
-    "deleted": "Rezept gelöscht",
-    "createError": "Rezept konnte nicht erstellt werden",
-    "updateError": "Rezept konnte nicht gespeichert werden",
-    "deleteError": "Rezept konnte nicht gelöscht werden",
-    "confirmDelete": "Möchten Sie dieses Rezept wirklich löschen?",
-    "deleteConfirmTitle": "Rezept löschen",
-    "deleteConfirmMessage": "Möchten Sie \"{{name}}\" wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
-    "deleteRecipe": "Löschen",
-    "createRecipe": "Rezept erstellen",
-    "nutritionPerRecipe": "Nährwerte / Rezept",
-    "autoCalculated": "Automatisch aus Zutaten berechnet",
-    "note": "Tipp / Notiz",
-    "notePlaceholder": "Tipps zu Variationen, Empfehlungen...",
-    "stepsLabel": "Zubereitungsschritte",
-    "addStep": "Schritt hinzufügen",
-    "stepPlaceholder": "Schritt",
-    "discardChanges": "Zurück zur Ansicht",
-    "fromRecipe": "Aus Rezept",
-    "portions": "Portionen",
-    "searchRecipes": "Rezepte suchen...",
-    "noResults": "Keine Rezepte gefunden",
-    "foodCount": "{{count}} Zutaten",
-    "totalKcal": "{{kcal}} kcal",
-    "ingredientNote": "Notiz",
-    "ingredientNotePlaceholder": "z.B. fein gehackt, Zimmertemperatur...",
-    "visibilityPublic": "Öffentlich",
-    "visibilityPrivate": "Privat",
-    "visibilityHint": "Öffentliche Rezepte sind für alle Ernährungsberater sichtbar. Bearbeiten können Sie sie nur selbst.",
-    "image": {
-      "mainHeading": "Hauptbild",
-      "mainEmpty": "Kein Hauptbild. Zum Hochladen klicken.",
-      "galleryHeading": "Fotogalerie",
-      "galleryEmpty": "Noch keine Fotos in der Galerie.",
-      "addPhoto": "+ Foto hinzufügen",
-      "galleryFull": "Galerie ist voll (max. 6 Fotos)",
-      "uploadMainSuccess": "Hauptbild aktualisiert",
-      "uploadMainError": "Hauptbild konnte nicht hochgeladen werden",
-      "uploadGallerySuccess": "Foto zur Galerie hinzugefügt",
-      "uploadGalleryError": "Foto konnte nicht zur Galerie hinzugefügt werden"
+    "searchPlaceholder": "Rezepte suchen…",
+    "newRecipe": "+ Neues Rezept",
+    "retry": "Erneut versuchen",
+    "noResultsForFilters": "Keine Rezepte passen zu Ihren Filtern.",
+    "clearFilters": "Filter zurücksetzen",
+    "deleteSuccess": "Rezept gelöscht.",
+    "deleteError": "Das Rezept konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+    "empty": {
+      "title": "Noch keine Rezepte",
+      "hint": "Erstellen Sie Ihr erstes Rezept, um loszulegen",
+      "create": "Rezept erstellen"
+    },
+    "nutritionistsOnly": {
+      "title": "Rezepte sind für Ernährungsberater verfügbar",
+      "body": "Ihr Konto ist ein Trainerkonto, daher steht Ihnen die Rezeptbibliothek nicht zur Verfügung."
+    },
+    "filters": {
+      "mealType": "Mahlzeit",
+      "dietaryPreference": "Ernährungsweise"
+    },
+    "mealType": {
+      "Breakfast": "Frühstück",
+      "Lunch": "Mittagessen",
+      "Dinner": "Abendessen",
+      "Snack": "Snack",
+      "Dessert": "Dessert"
+    },
+    "difficulty": {
+      "Easy": "Einfach",
+      "Medium": "Mittel",
+      "Hard": "Schwer"
+    },
+    "table": {
+      "columnName": "Name",
+      "columnCalories": "Kalorien / Portion",
+      "columnNutrients": "Nährwerte / Portion",
+      "columnMealType": "Mahlzeit",
+      "columnServings": "Portionen",
+      "columnTags": "Tags",
+      "columnLibrary": "Bibliothek",
+      "caloriesValue": "{{count}} kcal",
+      "proteinValue": "P: {{count}} g",
+      "carbsValue": "K: {{count}} g",
+      "fatValue": "F: {{count}} g",
+      "ingredientsCount": "{{count}} Zutaten",
+      "minutesValue": "{{count}} Min."
+    },
+    "drawer": {
+      "createTitle": "Neues Rezept",
+      "editTitle": "Rezept bearbeiten",
+      "viewTitle": "Rezept",
+      "subtitleCreate": "Fügen Sie Details zu Ihrem Rezept hinzu",
+      "subtitleEdit": "Bearbeiten Sie die Details dieses Rezepts",
+      "subtitleView": "Rezeptdetails",
+      "tabDetails": "Details",
+      "tabIngredients": "Zutaten",
+      "tabPreparation": "Zubereitung",
+      "tabPictures": "Bilder",
+      "picturesCreateHint": "Speichern Sie das Rezept, um Bilder hinzuzufügen.",
+      "tabsLabel": "Rezeptabschnitte",
+      "name": "Name",
+      "namePlaceholder": "Rezeptnamen eingeben",
+      "nameRequired": "Name ist erforderlich.",
+      "servings": "Portionen",
+      "servingsRequired": "Die Portionszahl muss eine ganze Zahl und mindestens 1 sein.",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Rezept beschreiben",
+      "recipeDetails": "Rezeptdetails",
+      "mealTypes": "Mahlzeit",
+      "mealTypesPlaceholder": "Typen auswählen",
+      "mealTypesRequired": "Wählen Sie mindestens eine Mahlzeit.",
+      "difficulty": "Schwierigkeit",
+      "difficultyNone": "Keine",
+      "prepTime": "Vorbereitungszeit (optional)",
+      "cookTime": "Kochzeit (optional)",
+      "timePlaceholder": "z. B. 10 Minuten",
+      "minutesInvalid": "Geben Sie eine ganze Zahl an Minuten ein.",
+      "allergens": "Allergene",
+      "allergensNone": "Keine",
+      "allergensHint": "Aus den Zutaten abgeleitet.",
+      "dietaryPreferences": "Ernährungsweise",
+      "dietaryPreferencesPlaceholder": "Auswählen",
+      "save": "Rezept speichern",
+      "delete": "Löschen",
+      "createSuccess": "Rezept erstellt.",
+      "createError": "Das Rezept konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "updateSuccess": "Rezept aktualisiert.",
+      "updateError": "Das Rezept konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut.",
+      "loadError": "Das Rezept konnte nicht geladen werden. Bitte versuchen Sie es erneut.",
+      "myTags": "Meine Tags"
+    },
+    "tags": {
+      "assignError": "Die Tags dieses Rezepts konnten nicht aktualisiert werden. Bitte versuchen Sie es erneut."
+    },
+    "ingredientsTab": {
+      "searchPlaceholder": "Zutaten zum Hinzufügen suchen… (Ihre Bibliothek + System)",
+      "searchLabel": "Zutaten zum Hinzufügen suchen",
+      "searching": "Suche…",
+      "noResults": "Keine Zutaten gefunden.",
+      "empty": "Noch keine Zutaten. Suchen Sie oben, um eine hinzuzufügen.",
+      "foodsRequired": "Fügen Sie mindestens eine Zutat hinzu.",
+      "amountLabel": "Menge in Gramm für {{name}}",
+      "amountInvalid": "Geben Sie eine Menge über 0 ein.",
+      "removeIngredient": "{{name}} entfernen",
+      "gramsUnit": "g",
+      "kcalValue": "{{count}} kcal",
+      "kcalPer100": "{{count}} kcal / 100 g",
+      "total": "Gesamt",
+      "perServing": "Pro Portion ({{count}})"
+    },
+    "preparation": {
+      "stepLabel": "Schritt {{number}}",
+      "stepPlaceholder": "Diesen Schritt beschreiben",
+      "addStep": "+ Schritt hinzufügen",
+      "removeStep": "Schritt {{number}} entfernen",
+      "reorderStep": "Schritt {{number}} verschieben",
+      "hint": "Die Schritte werden dem Klienten in der App in dieser Reihenfolge angezeigt.",
+      "times": "Vorbereitung {{prep}} · Kochen {{cook}}"
+    },
+    "deleteDialog": {
+      "title": "Rezept löschen",
+      "description": "Möchten Sie „{{name}}“ wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+      "confirm": "Löschen"
+    },
+    "picture": {
+      "alt": "Rezeptbild",
+      "removeConfirmDescription": "Möchten Sie das Bild dieses Rezepts wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
+    },
+    "pictures": {
+      "mainLabel": "Hauptbild",
+      "galleryLabel": "Weitere Bilder",
+      "galleryCount": "{{count}} von {{max}}",
+      "galleryEmpty": "Keine weiteren Bilder.",
+      "galleryAlt": "Rezeptbild {{number}}",
+      "addPicture": "Bild hinzufügen",
+      "remove": "Bild {{number}} entfernen",
+      "setAsMain": "Als Hauptbild festlegen",
+      "setAsMainLabel": "Bild {{number}} als Hauptbild festlegen",
+      "promoteError": "Das Hauptbild konnte nicht festgelegt werden. Bitte versuchen Sie es erneut.",
+      "removeConfirmDescription": "Möchten Sie dieses Bild wirklich entfernen? Dies kann nicht rückgängig gemacht werden."
     }
   },
   "nutrition": {
@@ -1337,7 +1439,12 @@
     "INVALID_IMAGE_CONTENT_TYPE": "Es werden nur JPEG-, PNG- oder WebP-Bilder unterstützt.",
     "IMAGE_TOO_LARGE": "Das Bild ist zu groß — die maximale Größe beträgt 5 MB.",
     "CHAT_IMAGE_UPLOAD_NOT_FOUND": "Der Bild-Upload wurde nicht gefunden. Bitte fügen Sie es erneut an.",
-    "INVALID_BLOB_URL": "Das Bild konnte nicht gespeichert werden. Bitte laden Sie es erneut hoch."
+    "INVALID_BLOB_URL": "Das Bild konnte nicht gespeichert werden. Bitte laden Sie es erneut hoch.",
+    "RECIPE_VERSION_CONFLICT": "Dieses Rezept wurde anderswo geändert. Schließen Sie es und öffnen Sie es erneut, um die aktuelle Version zu sehen.",
+    "RECIPE_FOOD_NOT_AVAILABLE": "Eine der Zutaten ist nicht mehr verfügbar. Entfernen Sie sie und versuchen Sie es erneut.",
+    "RECIPE_NOT_OWNED": "Sie können nur Ihre eigenen Rezepte ändern.",
+    "RECIPE_GALLERY_FULL": "Dieses Rezept hat bereits die maximale Anzahl an Bildern.",
+    "RECIPE_GALLERY_IMAGE_NOT_FOUND": "Dieses Bild gehört nicht mehr zu diesem Rezept. Es wurde möglicherweise an anderer Stelle geändert."
   },
   "nutritionGoals": {
     "title": "Ziele & Makros",

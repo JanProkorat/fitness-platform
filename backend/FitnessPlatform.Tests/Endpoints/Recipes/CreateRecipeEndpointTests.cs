@@ -20,7 +20,7 @@ public class CreateRecipeEndpointTests
     private readonly Guid _nutritionistId = Guid.NewGuid();
 
     [Fact]
-    public async Task HandleAsync_VisibilityOmitted_DefaultsToPublic()
+    public async Task HandleAsync_VisibilityOmitted_DefaultsToPrivate()
     {
         var foodId = Guid.NewGuid();
         var food = new Food
@@ -39,7 +39,7 @@ public class CreateRecipeEndpointTests
 
         var request = new CreateRecipeRequest
         {
-            Name = "Default Public Recipe",
+            Name = "Default Private Recipe",
             Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 150 }]
         };
 
@@ -48,13 +48,13 @@ public class CreateRecipeEndpointTests
         ep.HttpContext.Response.StatusCode.Should().Be(201);
 
         await mongo.Recipes.Received(1).InsertOneAsync(
-            Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Public && r.NutritionistId == _nutritionistId),
+            Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private && r.NutritionistId == _nutritionistId),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task HandleAsync_VisibilityPrivate_IsPersisted()
+    public async Task HandleAsync_VisibilityPublic_IsPersisted()
     {
         var foodId = Guid.NewGuid();
         var food = new Food
@@ -73,15 +73,15 @@ public class CreateRecipeEndpointTests
 
         var request = new CreateRecipeRequest
         {
-            Name = "Secret Recipe",
-            Visibility = RecipeVisibility.Private,
+            Name = "Shared Recipe",
+            Visibility = RecipeVisibility.Public,
             Foods = [new RecipeFoodDto { FoodExternalId = foodId, AmountGrams = 150 }]
         };
 
         await ep.HandleAsync(request, TestContext.Current.CancellationToken);
 
         await mongo.Recipes.Received(1).InsertOneAsync(
-            Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Private),
+            Arg.Is<Recipe>(r => r.Visibility == RecipeVisibility.Public),
             Arg.Any<InsertOneOptions>(),
             Arg.Any<CancellationToken>());
     }

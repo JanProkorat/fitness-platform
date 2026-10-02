@@ -1903,6 +1903,7 @@ public static class QaSeedRunner
                 Name            = "Chicken, Rice & Broccoli Bowl",
                 Description     = "Classic high-protein post-workout meal.",
                 PrepTimeMinutes = 20,
+                DietaryPreferences = [nameof(DietaryPreference.GlutenFree), nameof(DietaryPreference.LactoseFree)],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =
@@ -1922,6 +1923,11 @@ public static class QaSeedRunner
                 Name            = "Oats & Banana Breakfast",
                 Description     = "Simple overnight oats with banana.",
                 PrepTimeMinutes = 5,
+                DietaryPreferences =
+                [
+                    nameof(DietaryPreference.Vegan), nameof(DietaryPreference.Vegetarian),
+                    nameof(DietaryPreference.Pescatarian), nameof(DietaryPreference.LactoseFree),
+                ],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =
@@ -1939,6 +1945,7 @@ public static class QaSeedRunner
                 Name            = "Chicken & Broccoli Stir-fry",
                 Description     = "Quick lean stir-fry, no rice.",
                 PrepTimeMinutes = 15,
+                DietaryPreferences = [nameof(DietaryPreference.GlutenFree), nameof(DietaryPreference.LactoseFree)],
                 Visibility      = RecipeVisibility.Public,
                 DateCreated     = now,
                 Foods =

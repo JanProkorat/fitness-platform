@@ -5,6 +5,7 @@ using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Enums;
 using FitnessPlatform.Application.Domain.Extensions;
 using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
 
@@ -32,7 +33,7 @@ public class UploadRecipeImageUrlEndpoint(IMongoContext mongo, IImageUploadServi
             s.Summary = "Generate recipe image upload URL";
             s.Description = "Returns a time-limited pre-signed URL for direct recipe image upload to blob storage, "
                             + "together with the permanent blob URL that should be confirmed via PUT /recipes/{id}/image. "
-                            + "Use ?slot=main to overwrite the main image; ?slot=gallery to append to the gallery (max 6 entries). "
+                            + "Use ?slot=main to set the main image; ?slot=gallery to append to the gallery (max 6 entries). "
                             + "Only the nutritionist who created the recipe can upload its images.";
         });
     }
@@ -79,11 +80,10 @@ public class UploadRecipeImageUrlEndpoint(IMongoContext mongo, IImageUploadServi
 
         var extension = GetExtension(req.ContentType);
 
-        // subPath for main: "{recipeId}/main.{ext}"
-        // subPath for gallery: "{recipeId}/gallery-{nextIndex}.{ext}"
-        var subPath = isGallery
-            ? $"{req.RecipeId}/gallery-{recipe.GalleryImageUrls.Count}.{extension}"
-            : $"{req.RecipeId}/main.{extension}";
+        // Both slots get a unique name so a later upload can never overwrite a blob still referenced
+        // by the main image or the gallery.
+        var subPath = RecipeImageKeys.NewSubPath(
+            req.RecipeId, isGallery ? RecipeImageKeys.GallerySlot : RecipeImageKeys.MainSlot, extension);
 
         var result = await imageUpload.GenerateUploadUrlAsync(
             ImageUploadScope.Recipe,

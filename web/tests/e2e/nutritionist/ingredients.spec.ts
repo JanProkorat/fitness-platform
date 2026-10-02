@@ -55,6 +55,7 @@ interface FoodApiBody {
   name?: string;
   rawName?: string;
   isSystem?: boolean;
+  visibility?: string;
   tags?: FoodTagApiBody[];
   nutrientValue?: NutrientValueApiBody;
   commonServings?: ServingApiBody[];
@@ -92,6 +93,25 @@ async function loginAsNutritionist(baseURL: string): Promise<string> {
       throw new Error(`[ingredients] login as qa.nutri returned ${response.status()} ${response.statusText()}.`);
     }
     return ((await response.json()) as LoginResponseBody).accessToken;
+  } finally {
+    await api.dispose();
+  }
+}
+
+/** Reads the stored visibility of the food with this exact name, via search then GET by id. */
+async function fetchFoodVisibilityByName(baseURL: string, name: string): Promise<string | undefined> {
+  const accessToken = await loginAsNutritionist(baseURL);
+  const api = await apiRequest.newContext({ baseURL });
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  try {
+    const search = await api.get(`/foods/search?q=${encodeURIComponent(name)}`, { headers });
+    const { foods } = (await search.json()) as SearchFoodsApiBody;
+    const foodId = (foods ?? []).find((candidate) => candidate.name === name || candidate.rawName === name)?.foodId;
+    if (!foodId) {
+      throw new Error(`[ingredients] GET /foods/search?q=${name} returned no matching food.`);
+    }
+    const detail = await api.get(`/foods/${foodId}`, { headers });
+    return ((await detail.json()) as FoodApiBody).visibility;
   } finally {
     await api.dispose();
   }
@@ -465,6 +485,60 @@ test.describe('ingredients page', () => {
     await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
     await page.waitForLoadState('networkidle');
     await expect(page.getByRole('cell', { name })).toHaveCount(0);
+  });
+
+  test('visibility toggle defaults to Private and round-trips to Public and back', async ({ page, baseURL }) => {
+    const origin = baseURL ?? 'http://localhost:5173';
+    const name = `QA E2E Visibility ${Date.now()}`;
+    const drawer = page.locator('[data-slot="sheet-content"]');
+
+    async function saveAndAssert(expected: 'Public' | 'Private') {
+      await page.getByRole('button', { name: 'Save Ingredient' }).click();
+      await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
+      expect(await fetchFoodVisibilityByName(origin, name)).toBe(expected);
+    }
+
+    await page.getByRole('button', { name: '+ New Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toBeVisible();
+    await expect(drawer.getByRole('radio', { name: 'Private' })).toBeChecked();
+    await expect(drawer.getByText('Only you can see and use this ingredient.')).toBeVisible();
+
+    await page.getByLabel(/^Name\b/).fill(name);
+    await page.getByLabel(/^Category\b/).selectOption('Fruit');
+    await page.getByLabel('Calories / 100g').fill('50');
+    await page.getByLabel('Protein / 100g').fill('1');
+    await page.getByLabel('Carbs / 100g').fill('12');
+    await page.getByLabel('Fat / 100g').fill('0');
+    await page.getByRole('combobox', { name: /^Unit\b/ }).selectOption('piece');
+    await page.getByLabel('Unit weight (g)').fill('120');
+    await page.getByRole('button', { name: 'Save Ingredient' }).click();
+    await expect(page.getByRole('heading', { name: 'New Ingredient' })).toHaveCount(0);
+    expect(await fetchFoodVisibilityByName(origin, name)).toBe('Private');
+
+    const searchResponse = page.waitForResponse((response) => response.url().includes('/foods/search'));
+    await page.getByPlaceholder('Search ingredients…').fill(name);
+    await searchResponse;
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('cell', { name }).click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toBeVisible();
+    await expect(drawer.getByRole('radio', { name: 'Private' })).toBeChecked();
+
+    await drawer.getByRole('radio', { name: 'Public' }).click();
+    await expect(drawer.getByText('All coaches can see and use this ingredient.')).toBeVisible();
+    await saveAndAssert('Public');
+
+    // The owner's badge stays "Mine" whatever the visibility.
+    await expect(page.getByText('Mine', { exact: true })).toBeVisible();
+    await page.getByRole('cell', { name }).click();
+    await expect(drawer.getByRole('radio', { name: 'Public' })).toBeChecked();
+    await drawer.getByRole('radio', { name: 'Private' }).click();
+    await saveAndAssert('Private');
+
+    // Clean up through the UI, with confirmation.
+    await page.getByRole('cell', { name }).click();
+    await page.getByRole('button', { name: 'Delete' }).click();
+    await page.getByRole('button', { name: 'Delete', exact: true }).last().click();
+    await expect(page.getByRole('heading', { name: 'Edit Ingredient' })).toHaveCount(0);
   });
 
   test('empty submit shows translated required errors, never the raw zod message', async ({ page }) => {

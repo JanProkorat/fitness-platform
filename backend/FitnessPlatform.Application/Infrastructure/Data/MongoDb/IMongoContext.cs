@@ -114,4 +114,10 @@ public interface IMongoContext
     /// (ownerUserId, foodExternalId) pair.
     /// </summary>
     IMongoCollection<FoodTagAssignment> FoodTagAssignments { get; }
+
+    /// <summary>
+    /// Per-owner, per-recipe tag assignments — one document per
+    /// (ownerUserId, recipeExternalId) pair. The tags themselves are <see cref="FoodTags"/>.
+    /// </summary>
+    IMongoCollection<RecipeTagAssignment> RecipeTagAssignments { get; }
 }

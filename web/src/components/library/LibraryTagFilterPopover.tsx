@@ -14,14 +14,15 @@ interface Props {
 }
 
 /**
- * Tag multi-select for filtering the ingredients table, plus create/edit/
- * delete affordances for the caller's food tags (#1120). Nutritionist-only
- * — `IngredientsPage` never mounts this for a trainer-only coach. Mirrors
+ * Tag multi-select for filtering the ingredients and recipes tables, plus
+ * create/edit/delete affordances for the caller's tags (one list shared by
+ * both libraries). Nutritionist-only — the pages never mount this for a
+ * trainer-only coach. Mirrors
  * `ClientTagFilterPopover`'s create-tag pattern (`+ Create tag` reopens the
  * popover without ticking the new tag) and adds the edit/delete affordances
  * client tags don't have a UI for yet.
  */
-export default function IngredientTagFilterPopover({ selectedTagIds, onChange }: Props) {
+export default function LibraryTagFilterPopover({ selectedTagIds, onChange }: Props) {
   const { t } = useTranslation();
   const tagsQuery = useFoodTags();
   const tags = tagsQuery.data ?? [];
@@ -121,7 +122,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
         <PopoverTrigger asChild>
           <Button ref={triggerRef} type="button" variant="outline" size="sm" className="gap-1.5 rounded-full">
             <Plus className="size-3" aria-hidden="true" />
-            {t('ingredients.filters.tags')}
+            {t('library.tags.filter')}
             {selectedTagIds.length > 0 && <span className="text-caption">{selectedTagIds.length}</span>}
           </Button>
         </PopoverTrigger>
@@ -131,7 +132,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
           ) : (
             <div className="flex flex-col gap-3">
               {tags.length === 0 ? (
-                <p className="text-body text-muted-foreground">{t('ingredients.filters.tagsEmpty')}</p>
+                <p className="text-body text-muted-foreground">{t('library.tags.empty')}</p>
               ) : (
                 <ul className="flex max-h-64 flex-col gap-2.5 overflow-y-auto">
                   {tags.map((tag) => (
@@ -151,7 +152,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
                       <button
                         type="button"
                         onClick={() => handleEditClick(tag)}
-                        aria-label={t('ingredients.tagPicker.editTag', { name: tag.name })}
+                        aria-label={t('library.tags.editTag', { name: tag.name })}
                         className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
                       >
                         <Pencil className="size-3.5" aria-hidden="true" />
@@ -162,7 +163,7 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
               )}
               <Button type="button" variant="outline" size="sm" onClick={handleCreateClick}>
                 <Plus className="size-3.5" aria-hidden="true" />
-                {t('ingredients.tagPicker.createTag')}
+                {t('library.tags.createTag')}
               </Button>
             </div>
           )}
@@ -189,40 +190,40 @@ export default function IngredientTagFilterPopover({ selectedTagIds, onChange }:
         deleteLabels={
           editingTag
             ? {
-                buttonLabel: t('ingredients.tagPicker.deleteTag'),
-                confirmTitle: t('ingredients.tagPicker.deleteConfirmTitle'),
-                confirmDescription: t('ingredients.tagPicker.deleteConfirmDescription', { name: editingTag.name }),
-                confirmButtonLabel: t('ingredients.tagPicker.deleteConfirmSubmit'),
+                buttonLabel: t('library.tags.deleteTag'),
+                confirmTitle: t('library.tags.deleteConfirmTitle'),
+                confirmDescription: t('library.tags.deleteConfirmDescription', { name: editingTag.name }),
+                confirmButtonLabel: t('library.tags.deleteConfirmSubmit'),
                 cancelLabel: t('common.cancel'),
               }
             : undefined
         }
         labels={{
-          title: editingTag ? t('ingredients.tagPicker.editTitle') : t('ingredients.tagPicker.createTitle'),
+          title: editingTag ? t('library.tags.editTitle') : t('library.tags.createTitle'),
           description: editingTag
-            ? t('ingredients.tagPicker.editDescription')
-            : t('ingredients.tagPicker.createDescription'),
-          nameLabel: t('ingredients.tagPicker.nameLabel'),
-          namePlaceholder: t('ingredients.tagPicker.namePlaceholder'),
-          colorLabel: t('ingredients.tagPicker.colorLabel'),
-          descriptionLabel: t('ingredients.tagPicker.descriptionLabel'),
-          descriptionPlaceholder: t('ingredients.tagPicker.descriptionPlaceholder'),
-          previewLabel: t('ingredients.tagPicker.previewLabel'),
-          previewSampleName: t('ingredients.tagPicker.previewSampleName'),
-          submitLabel: editingTag ? t('ingredients.tagPicker.editSubmit') : t('ingredients.tagPicker.createSubmit'),
+            ? t('library.tags.editDescription')
+            : t('library.tags.createDescription'),
+          nameLabel: t('library.tags.nameLabel'),
+          namePlaceholder: t('library.tags.namePlaceholder'),
+          colorLabel: t('library.tags.colorLabel'),
+          descriptionLabel: t('library.tags.descriptionLabel'),
+          descriptionPlaceholder: t('library.tags.descriptionPlaceholder'),
+          previewLabel: t('library.tags.previewLabel'),
+          previewSampleName: t('library.tags.previewSampleName'),
+          submitLabel: editingTag ? t('library.tags.editSubmit') : t('library.tags.createSubmit'),
           savingLabel: t('common.saving'),
           cancelLabel: t('common.cancel'),
-          nameRequiredError: t('ingredients.tagPicker.validation.nameRequired'),
-          colorInvalidError: t('ingredients.tagPicker.validation.colorInvalid'),
+          nameRequiredError: t('library.tags.validation.nameRequired'),
+          colorInvalidError: t('library.tags.validation.colorInvalid'),
           colorPresetLabels: {
-            red: t('ingredients.tagPicker.colors.red'),
-            orange: t('ingredients.tagPicker.colors.orange'),
-            yellow: t('ingredients.tagPicker.colors.yellow'),
-            green: t('ingredients.tagPicker.colors.green'),
-            blue: t('ingredients.tagPicker.colors.blue'),
-            purple: t('ingredients.tagPicker.colors.purple'),
-            pink: t('ingredients.tagPicker.colors.pink'),
-            grey: t('ingredients.tagPicker.colors.grey'),
+            red: t('library.tags.colors.red'),
+            orange: t('library.tags.colors.orange'),
+            yellow: t('library.tags.colors.yellow'),
+            green: t('library.tags.colors.green'),
+            blue: t('library.tags.colors.blue'),
+            purple: t('library.tags.colors.purple'),
+            pink: t('library.tags.colors.pink'),
+            grey: t('library.tags.colors.grey'),
           },
         }}
       />

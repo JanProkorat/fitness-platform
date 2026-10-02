@@ -311,6 +311,34 @@ public class CatalogSeedingTests(CatalogSeedingFactory factory) : IAsyncLifetime
     }
 
     /// <summary>
+    /// Seeded recipes carry the JSON servings count (default 1) in the dedicated field instead of a
+    /// note prefix, and store meal types as canonical enum names rather than lowercase spellings.
+    /// </summary>
+    [Fact]
+    public async Task SeedAsync_Recipes_StoreServingsFieldAndCanonicalMealTypes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await MongoSeeder.SeedAsync(_factory.Services);
+
+        using var scope = _factory.Services.CreateScope();
+        var mongo = scope.ServiceProvider.GetRequiredService<IMongoContext>();
+        var recipes = await mongo.Recipes.Find(FilterDefinition<Recipe>.Empty).ToListAsync(ct);
+        var entriesByName = RecipeSeedData.LoadEntries().ToDictionary(e => e.Name);
+
+        recipes.Should().Contain(r => entriesByName.ContainsKey(r.Name) && entriesByName[r.Name].Servings > 1,
+            "the seed JSON has multi-serving recipes, so the test is not vacuous");
+
+        recipes.Where(r => entriesByName.ContainsKey(r.Name)).Should().AllSatisfy(r =>
+        {
+            r.Servings.Should().Be(entriesByName[r.Name].Servings ?? 1, $"recipe '{r.Name}'");
+            (r.Note ?? string.Empty).Should().NotStartWith("Recept na", $"recipe '{r.Name}'");
+            (r.MealTypes ?? []).Should().AllSatisfy(mealType =>
+                Enum.GetNames<RecipeMealType>().Should().Contain(mealType, $"recipe '{r.Name}'"));
+        });
+    }
+
+    /// <summary>
     /// Seeded exercises are system catalog entries — deliberately owner-less (TrainerId=null,
     /// IsCustom=false, Source="system") per the design spec §2 so /exercises/custom doesn't
     /// misclassify them as a trainer's own.

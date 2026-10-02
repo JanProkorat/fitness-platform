@@ -61,6 +61,7 @@ public class MongoIndexInitializer : IHostedService
         await CreateNutritionPlanTemplateIndexes(cancellationToken);
         await CreateTrainingPlanTemplateIndexes(cancellationToken);
         await CreateFoodTagIndexes(cancellationToken);
+        await CreateRecipeTagIndexes(cancellationToken);
 
         _logger.LogInformation("MongoDB indexes created successfully");
     }
@@ -507,5 +508,32 @@ public class MongoIndexInitializer : IHostedService
             new CreateIndexOptions { Name = "idx_foodtagassignment_ownerUserId_tagIds" });
 
         await assignmentIndexes.CreateManyAsync([assignmentOwnerFoodIndex, assignmentOwnerTagsIndex], ct);
+    }
+
+    /// <summary>
+    /// Creates the RecipeTagAssignment indexes: unique (OwnerUserId, RecipeExternalId) — one
+    /// document per owner+recipe — plus a (OwnerUserId, TagIds) multikey index for
+    /// SearchRecipesEndpoint's tag filter and a RecipeExternalId index for DeleteRecipeEndpoint's
+    /// all-owners cleanup.
+    /// </summary>
+    private async Task CreateRecipeTagIndexes(CancellationToken ct)
+    {
+        var ownerRecipeIndex = new CreateIndexModel<RecipeTagAssignment>(
+            Builders<RecipeTagAssignment>.IndexKeys
+                .Ascending(a => a.OwnerUserId)
+                .Ascending(a => a.RecipeExternalId),
+            new CreateIndexOptions { Name = "idx_recipetagassignment_ownerUserId_recipeExternalId", Unique = true });
+
+        var ownerTagsIndex = new CreateIndexModel<RecipeTagAssignment>(
+            Builders<RecipeTagAssignment>.IndexKeys
+                .Ascending(a => a.OwnerUserId)
+                .Ascending(a => a.TagIds),
+            new CreateIndexOptions { Name = "idx_recipetagassignment_ownerUserId_tagIds" });
+
+        var recipeIndex = new CreateIndexModel<RecipeTagAssignment>(
+            Builders<RecipeTagAssignment>.IndexKeys.Ascending(a => a.RecipeExternalId),
+            new CreateIndexOptions { Name = "idx_recipetagassignment_recipeExternalId" });
+
+        await _mongo.RecipeTagAssignments.Indexes.CreateManyAsync([ownerRecipeIndex, ownerTagsIndex, recipeIndex], ct);
     }
 }

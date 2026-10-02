@@ -1,5 +1,6 @@
 using FastEndpoints;
 using FitnessPlatform.Application.Domain.Enums;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Foods.Shared;
 
 namespace FitnessPlatform.Application.Features.Foods.SearchFoods;

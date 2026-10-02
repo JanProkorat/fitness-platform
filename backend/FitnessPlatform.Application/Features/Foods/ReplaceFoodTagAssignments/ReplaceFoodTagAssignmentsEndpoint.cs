@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Foods.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using MongoDB.Driver;
@@ -50,23 +51,16 @@ public class ReplaceFoodTagAssignmentsEndpoint(IMongoContext mongo)
         var ownerUserId = Guid.Parse(userId);
         var distinctTagIds = req.TagIds.Distinct().ToList();
 
-        List<FoodTag> ownedTags = [];
+        var ownedTags = await FoodTagLookup.FindOwnedTagsAsync(mongo, ownerUserId, distinctTagIds, ct);
 
-        if (distinctTagIds.Count > 0)
+        if (ownedTags.Count != distinctTagIds.Count)
         {
-            ownedTags = await mongo.FoodTags
-                .Find(t => t.OwnerUserId == ownerUserId && distinctTagIds.Contains(t.ExternalId))
-                .ToListAsync(ct);
-
-            if (ownedTags.Count != distinctTagIds.Count)
-            {
-                await this.SendProblemAsync(
-                    StatusCodes.Status404NotFound,
-                    ErrorCodes.FoodTagNotFound,
-                    "One or more tags were not found.",
-                    ct);
-                return;
-            }
+            await this.SendProblemAsync(
+                StatusCodes.Status404NotFound,
+                ErrorCodes.FoodTagNotFound,
+                "One or more tags were not found.",
+                ct);
+            return;
         }
 
         // The food must be visible to the caller — their own, a system food, or another coach's

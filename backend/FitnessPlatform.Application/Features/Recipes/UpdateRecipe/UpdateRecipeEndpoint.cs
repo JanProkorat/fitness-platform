@@ -3,6 +3,7 @@ using FastEndpoints;
 using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Documents;
 using FitnessPlatform.Application.Domain.Extensions;
+using FitnessPlatform.Application.Domain.Services;
 using FitnessPlatform.Application.Features.Recipes.Shared;
 using FitnessPlatform.Application.Infrastructure.Data.MongoDb;
 using Microsoft.AspNetCore.Http;
@@ -66,55 +67,35 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        // Look up all referenced foods
-        var foodExternalIds = req.Foods.Select(f => f.FoodExternalId).Distinct().ToList();
-        var foodFilter = Builders<Food>.Filter.In(f => f.ExternalId, foodExternalIds);
-        using var foodCursor = await mongo.Foods.FindAsync(foodFilter, cancellationToken: ct);
-        var foods = await foodCursor.ToListAsync(ct);
-        var foodLookup = foods.ToDictionary(f => f.ExternalId);
+        var foodLookup = await RecipeContent.LoadUsableFoodsAsync(
+            mongo, req.Foods.Select(f => f.FoodExternalId), nutritionistId, ct);
 
-        // Build meal food list with denormalized data
         var mealFoods = new List<MealFood>();
 
         foreach (var item in req.Foods)
         {
             if (!foodLookup.TryGetValue(item.FoodExternalId, out var food))
             {
-                AddError($"Food with ID '{item.FoodExternalId}' not found.");
-                continue;
+                this.ThrowErrorWithCode(ErrorCodes.RecipeFoodNotAvailable,
+                    $"Food with ID '{item.FoodExternalId}' is not available.");
+                return;
             }
 
-            mealFoods.Add(new MealFood
-            {
-                FoodExternalId = food.ExternalId,
-                FoodName = food.Name,
-                FoodCategory = food.Category.ToString(),
-                NutrientValuePer100Grams = new NutrientValue
-                {
-                    Kcal = food.NutrientValue.Kcal,
-                    Protein = food.NutrientValue.Protein,
-                    Carbs = food.NutrientValue.Carbs,
-                    Fat = food.NutrientValue.Fat,
-                    Fiber = food.NutrientValue.Fiber,
-                    Sugar = food.NutrientValue.Sugar,
-                    SaturatedFat = food.NutrientValue.SaturatedFat,
-                    Salt = food.NutrientValue.Salt
-                },
-                AmountGrams = item.AmountGrams,
-                Note = item.Note
-            });
+            mealFoods.Add(RecipeContent.ToMealFood(food, item));
         }
 
-        ThrowIfAnyErrors();
-
-        // Update recipe fields
         recipe.Name = req.Name;
         recipe.Description = req.Description;
         recipe.PrepTimeMinutes = req.PrepTimeMinutes;
-        recipe.Steps = req.Steps;
+        recipe.CookTimeMinutes = req.CookTimeMinutes;
+        recipe.Servings = req.Servings;
+        recipe.Difficulty = req.Difficulty;
+        recipe.MealTypes = FoodEnumListMapping.ToStoredNames(req.MealTypes.Distinct());
+        recipe.DietaryPreferences = FoodEnumListMapping.ToStoredNames(req.DietaryPreferences.Distinct());
+        recipe.Steps = RecipeContent.NormalizeSteps(req.Steps);
         recipe.Note = req.Note;
         recipe.Foods = mealFoods;
-        recipe.TotalNutrients = CalculateTotals(mealFoods);
+        recipe.TotalNutrients = RecipeContent.CalculateTotals(mealFoods);
         if (req.Visibility.HasValue)
         {
             recipe.Visibility = req.Visibility.Value;
@@ -154,28 +135,12 @@ public class UpdateRecipeEndpoint(IMongoContext mongo)
             return;
         }
 
-        await Send.OkAsync(GetRecipeResponse.FromDocument(recipe, currentUserId: nutritionistId), ct);
-    }
+        var response = GetRecipeResponse.FromDocument(
+            recipe, nutritionistId, RecipeContent.DeriveAllergens(recipe, foodLookup));
 
-    /// <summary>
-    /// Calculates the total macronutrients from a list of meal foods.
-    /// </summary>
-    /// <param name="foods">The list of meal foods.</param>
-    /// <returns>Computed nutrient totals.</returns>
-    private static NutrientTotals CalculateTotals(List<MealFood> foods)
-    {
-        var totals = new NutrientTotals();
+        var tagsByRecipeId = await FoodTagLookup.GetTagsByRecipeIdAsync(mongo, nutritionistId, [recipe.ExternalId], ct);
+        response.Tags = tagsByRecipeId.GetValueOrDefault(recipe.ExternalId, []);
 
-        foreach (var food in foods)
-        {
-            var ratio = food.AmountGrams / 100m;
-            totals.Kcal += food.NutrientValuePer100Grams.Kcal * ratio;
-            totals.Protein += food.NutrientValuePer100Grams.Protein * ratio;
-            totals.Carbs += food.NutrientValuePer100Grams.Carbs * ratio;
-            totals.Fat += food.NutrientValuePer100Grams.Fat * ratio;
-            totals.Fiber += (food.NutrientValuePer100Grams.Fiber ?? 0m) * ratio;
-        }
-
-        return totals;
+        await Send.OkAsync(response, ct);
     }
 }

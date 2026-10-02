@@ -68,6 +68,12 @@ public class DeleteFoodTagEndpoint(IMongoContext mongo) : Endpoint<DeleteFoodTag
             Builders<FoodTagAssignment>.Update.Pull(a => a.TagIds, req.TagId),
             cancellationToken: ct);
 
+        // Tags are shared with recipes, so recipe assignments are cleaned the same way.
+        await mongo.RecipeTagAssignments.UpdateManyAsync(
+            a => a.OwnerUserId == ownerUserId && a.TagIds.Contains(req.TagId),
+            Builders<RecipeTagAssignment>.Update.Pull(a => a.TagIds, req.TagId),
+            cancellationToken: ct);
+
         await Send.NoContentAsync(ct);
     }
 }

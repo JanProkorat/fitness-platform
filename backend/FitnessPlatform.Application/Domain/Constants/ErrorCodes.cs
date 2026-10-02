@@ -82,6 +82,12 @@ public static class ErrorCodes
     /// <summary>The recipe version is stale; another write occurred first (optimistic concurrency).</summary>
     public const string RecipeVersionConflict = "RECIPE_VERSION_CONFLICT";
 
+    /// <summary>A recipe ingredient food does not exist, is deleted, or is another coach's private food.</summary>
+    public const string RecipeFoodNotAvailable = "RECIPE_FOOD_NOT_AVAILABLE";
+
+    /// <summary>The image URL is neither in the recipe's gallery nor its current main image.</summary>
+    public const string RecipeGalleryImageNotFound = "RECIPE_GALLERY_IMAGE_NOT_FOUND";
+
     // ── Exercises ──────────────────────────────────────────────────
     /// <summary>User can only edit/delete their own custom exercises.</summary>
     public const string ExerciseNotOwned = "EXERCISE_NOT_OWNED";

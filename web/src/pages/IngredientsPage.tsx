@@ -9,10 +9,10 @@ import { useIngredients } from '@/hooks/useIngredientsQueries';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { FoodSummary } from '@/api/food-types';
 import IngredientCategoryFilterPopover from '@/components/ingredients/IngredientCategoryFilterPopover';
-import IngredientTagFilterPopover from '@/components/ingredients/IngredientTagFilterPopover';
-import IngredientOwnerFilterPopover from '@/components/ingredients/IngredientOwnerFilterPopover';
+import LibraryTagFilterPopover from '@/components/library/LibraryTagFilterPopover';
+import OwnerFilterPopover from '@/components/library/OwnerFilterPopover';
 import IngredientsTable from '@/components/ingredients/IngredientsTable';
-import IngredientsPagination from '@/components/ingredients/IngredientsPagination';
+import Pagination from '@/components/library/Pagination';
 import IngredientDrawer from '@/components/ingredients/IngredientDrawer';
 
 /**
@@ -104,10 +104,10 @@ export default function IngredientsPage() {
         {/* Only nutritionists can own foods (#1139) — a trainer-only coach
             gets no Owner filter UI at all, not even the empty pill, same
             reasoning as the Tags pill below. */}
-        {isNutritionist && <IngredientOwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
+        {isNutritionist && <OwnerFilterPopover selectedOwners={filters.owners} onChange={setOwners} />}
         {/* Food tags are nutritionist-owned (#1120) — a trainer-only coach
             gets no tag UI at all, not even the empty filter pill. */}
-        {isNutritionist && <IngredientTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
+        {isNutritionist && <LibraryTagFilterPopover selectedTagIds={filters.tags} onChange={setTags} />}
         {isNutritionist && (
           <Button type="button" size="lg" className="ml-auto" onClick={openCreateDrawer}>
             {t('ingredients.newIngredient')}
@@ -140,7 +140,7 @@ export default function IngredientsPage() {
             onSortChange={cycleSort}
           />
         </div>
-        <IngredientsPagination
+        <Pagination
           rowCount={(ingredientsQuery.data?.foods ?? []).length}
           page={filters.page}
           pageSize={filters.pageSize}
