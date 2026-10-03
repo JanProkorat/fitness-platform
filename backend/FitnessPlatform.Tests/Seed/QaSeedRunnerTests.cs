@@ -355,6 +355,23 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         };
         var checkInCount = await db.WeeklyCheckIns.CountAsync(w => checkInIds.Contains(w.Id), ct);
         checkInCount.Should().Be(2, "both QA weekly check-in fixtures must be present with no duplicates");
+
+        // #1101 — former client (ended link) + its conversation, created exactly once.
+        (await db.Users.CountAsync(u => u.Email == QaSeedRunner.ClientFormerEmail, ct))
+            .Should().Be(1, "the QA former-client (#1101) user must be created exactly once");
+
+        var formerLinks = await db.ClientProfessionalLinks
+            .Where(l => l.ClientProfile.UserId == QaSeedRunner.ClientFormerUserId)
+            .ToListAsync(ct);
+        formerLinks.Should().ContainSingle("the ended qa.trainer <-> former-client link must be created exactly once")
+            .Which.IsActive.Should().BeFalse("the link must stay ended across re-seeds");
+
+        (await db.Conversations.CountAsync(c => c.PublicId == QaSeedRunner.QaEndedLinkConversationId, ct))
+            .Should().Be(1, "the ended-link conversation must be created exactly once");
+
+        var endedLinkMessageIds = new[] { QaSeedRunner.QaEndedLinkMessage1Id, QaSeedRunner.QaEndedLinkMessage2Id };
+        (await db.ChatMessages.CountAsync(m => endedLinkMessageIds.Contains(m.PublicId), ct))
+            .Should().Be(2, "both ended-link messages must be present with no duplicates");
     }
 
     /// <summary>
@@ -1538,11 +1555,12 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
         answerCount.Should().Be(6, "the 6 answers must not be duplicated on re-seed");
 
         // Total link count: trainer↔client (#474 has 2 pairs = 2 links) + this
-        // nutritionist↔client link + the #1095 qa.trainer↔client3 link = 4 total.
+        // nutritionist↔client link + the #1095 qa.trainer↔client3 link + the #1101 ended
+        // qa.trainer↔former-client link = 5 total.
         var linkCount = await db.ClientProfessionalLinks.CountAsync(ct);
-        linkCount.Should().Be(4,
+        linkCount.Should().Be(5,
             "2 trainer↔client links (#474) + 1 nutritionist↔client link (#720) + 1 qa.trainer↔client3 " +
-            "link (#1095), no duplicates on re-seed");
+            "link (#1095) + 1 ended qa.trainer↔former-client link (#1101), no duplicates on re-seed");
 
         var nutritionPlan = await mongo.NutritionPlans
             .Find(p => p.ExternalId == QaSeedRunner.QaNutritionPlanExternalId)
@@ -1611,6 +1629,58 @@ public class QaSeedRunnerTests(QaSeedRunnerFactory factory) : IAsyncLifetime
             "linkedQuestionnaireResponse useMemo performs client-side");
         linked!.Status.Should().Be("Submitted");
         linked.QuestionnaireTitle.Should().Be("QA Onboarding Questionnaire");
+    }
+
+    /// <summary>
+    /// The #1101 former-client thread (ended link, unread client message) must be listed under
+    /// the inbox's All chip and under none of the five roster-driven chips — an ended link is off
+    /// the live roster — and must stay sendable (an ended link never locks a professional's send).
+    /// </summary>
+    [Fact]
+    public async Task HttpFlow_EndedLinkConversation_ListsUnderAllOnly_AndIsNotSendLocked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        await QaSeedRunner.SeedAsync(_factory.Services);
+
+        var client = _factory.CreateClient();
+        var (accessToken, _) = await TestHelpers.LoginAsync(client, QaSeedRunner.TrainerEmail, "TestSeed1!");
+        TestHelpers.SetBearerToken(client, accessToken);
+
+        async Task<List<InboxRow>> ListAsync(string filter)
+        {
+            var response = await client.GetAsync($"/conversations?filter={filter}", ct);
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<List<InboxRow>>(
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct))!;
+        }
+
+        var allRows = await ListAsync("All");
+        var endedRow = allRows.Should().ContainSingle(r => r.Id == QaSeedRunner.QaEndedLinkConversationId,
+            "the ended-link thread is unioned into All as an off-roster conversation").Subject;
+        endedRow.IsSendLocked.Should().BeFalse("an ended link stays sendable");
+        endedRow.UnreadCount.Should().Be(1, "the fixture carries one unread client message");
+        endedRow.Participant.Name.Should().Be("QA Former")
+            .And.NotContain("QA Client", "three Playwright specs pick the first row containing 'QA Client'");
+
+        foreach (var chip in new[] { "UnreadMessages", "NoMessages", "NewCheckIns", "MissingCheckIns", "EndingSoon" })
+        {
+            (await ListAsync(chip)).Should().NotContain(r => r.Id == QaSeedRunner.QaEndedLinkConversationId,
+                $"an ended link is off the live roster, so the {chip} chip must not list it");
+        }
+    }
+
+    private sealed class InboxRow
+    {
+        public Guid? Id { get; set; }
+        public InboxParticipant Participant { get; set; } = null!;
+        public int UnreadCount { get; set; }
+        public bool IsSendLocked { get; set; }
+    }
+
+    private sealed class InboxParticipant
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     /// <summary>
