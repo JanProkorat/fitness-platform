@@ -73,7 +73,11 @@ export default function MealPlanCard({ plan, canView, isPending, isError }: Prop
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate text-body font-bold text-ink">{plan.name}</span>
             <span className="text-caption text-muted-foreground">
-              {detailQuery.isPending ? t('common.loading') : (macroDetail ?? '—')}
+              {detailQuery.isError
+                ? t('common.loadError')
+                : detailQuery.isPending
+                  ? t('common.loading')
+                  : (macroDetail ?? '—')}
             </span>
           </div>
         </div>

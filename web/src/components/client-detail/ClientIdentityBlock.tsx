@@ -14,12 +14,19 @@ interface Props {
 }
 
 /** Age in whole years, computed from a birthdate that hasn't necessarily occurred yet this year. */
-function calculateAge(dateOfBirth: string): number {
-  const dob = new Date(dateOfBirth);
-  const now = new Date();
-  let age = now.getFullYear() - dob.getFullYear();
+function calculateAge(dateOfBirth: string): number | undefined {
+  // Read the calendar date straight from the string so no UTC/local conversion can shift the day.
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateOfBirth);
+  if (!match) {
+    return undefined;
+  }
+  const birthYear = Number(match[1]);
+  const birthMonth = Number(match[2]);
+  const birthDay = Number(match[3]);
+  const today = new Date();
+  let age = today.getFullYear() - birthYear;
   const hadBirthdayThisYear =
-    now.getMonth() > dob.getMonth() || (now.getMonth() === dob.getMonth() && now.getDate() >= dob.getDate());
+    today.getMonth() + 1 > birthMonth || (today.getMonth() + 1 === birthMonth && today.getDate() >= birthDay);
   if (!hadBirthdayThisYear) {
     age -= 1;
   }

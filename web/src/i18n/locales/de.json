@@ -2643,8 +2643,10 @@
       "messagesTrend": {
         "heading": "Nachrichtentrend",
         "last4Weeks": "Letzte 4 Wochen",
-        "chartAriaLabel": "Nachrichten von Trainer und Klient pro Woche, letzte 4 Wochen",
+        "chartAriaLabel": "Nachrichten von Trainer und Klient pro Woche, letzte 4 Wochen. {{summary}}",
+        "chartAriaWeek": "Woche ab {{date}}: {{coach}} vom Trainer, {{client}} vom Klienten",
         "weekLabel": "W{{index}}",
+        "weekTooltip": "Woche ab {{date}}",
         "legend": {
           "coach": "Trainer-Nachrichten",
           "client": "Klienten-Nachrichten"

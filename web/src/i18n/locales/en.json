@@ -2644,8 +2644,10 @@
       "messagesTrend": {
         "heading": "Messages trend",
         "last4Weeks": "Last 4 weeks",
-        "chartAriaLabel": "Coach and client messages per week, last 4 weeks",
+        "chartAriaLabel": "Coach and client messages per week, last 4 weeks. {{summary}}",
+        "chartAriaWeek": "week of {{date}}: {{coach}} from coach, {{client}} from client",
         "weekLabel": "W{{index}}",
+        "weekTooltip": "Week of {{date}}",
         "legend": {
           "coach": "Coach Messages",
           "client": "Client Messages"

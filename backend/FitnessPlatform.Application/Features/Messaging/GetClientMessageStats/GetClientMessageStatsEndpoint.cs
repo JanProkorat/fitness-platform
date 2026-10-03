@@ -32,6 +32,9 @@ public class GetClientMessageStatsEndpoint(
                 "time zone) for the last `weeks` weeks, oldest first, zero-filled for weeks with " +
                 "no messages. Requires an active trainer-client relationship.";
             s.Responses[StatusCodes.Status200OK] = "Exactly `weeks` rows, oldest first";
+            s.Responses[StatusCodes.Status400BadRequest] = "`weeks` is outside 1-26";
+            s.Responses[StatusCodes.Status401Unauthorized] = "Missing or unreadable caller identity";
+            s.Responses[StatusCodes.Status403Forbidden] = "Caller lacks the Trainer or Nutritionist role";
             s.Responses[StatusCodes.Status404NotFound] = "Client not found or no active relationship";
         });
     }
@@ -74,7 +77,7 @@ public class GetClientMessageStatsEndpoint(
             .AsNoTracking()
             .Where(u => u.Id == trainerId)
             .Select(u => u.TimeZone)
-            .FirstAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
         var timeZone = ResolveTimeZone(trainerTimeZoneId);
         var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
@@ -152,11 +155,19 @@ public class GetClientMessageStatsEndpoint(
 
     /// <summary>
     /// Converts local midnight on <paramref name="localDate"/> to UTC in <paramref name="timeZone"/>.
+    /// When a DST gap skips midnight, returns the first valid instant after the gap.
     /// </summary>
-    private static DateTime LocalMidnightToUtc(DateOnly localDate, TimeZoneInfo timeZone) =>
-        TimeZoneInfo.ConvertTimeToUtc(
-            DateTime.SpecifyKind(localDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified),
-            timeZone);
+    internal static DateTime LocalMidnightToUtc(DateOnly localDate, TimeZoneInfo timeZone)
+    {
+        var local = DateTime.SpecifyKind(localDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+
+        while (timeZone.IsInvalidTime(local))
+        {
+            local = local.AddMinutes(1);
+        }
+
+        return TimeZoneInfo.ConvertTimeToUtc(local, timeZone);
+    }
 
     private static Dictionary<DateOnly, MutableWeekCounts> BuildEmptyBuckets(DateOnly earliestMonday, int weeks)
     {
@@ -174,8 +185,15 @@ public class GetClientMessageStatsEndpoint(
     /// Resolves an IANA time zone id, falling back to UTC for an unknown id — same fallback
     /// <see cref="Infrastructure.Services.WeeklyCheckInScheduler"/> uses for the same field.
     /// </summary>
-    private TimeZoneInfo ResolveTimeZone(string ianaId)
+    private TimeZoneInfo ResolveTimeZone(string? ianaId)
     {
+        if (string.IsNullOrWhiteSpace(ianaId))
+        {
+            Logger.LogWarning(
+                "GetClientMessageStatsEndpoint: caller has no time zone on record; falling back to UTC.");
+            return TimeZoneInfo.Utc;
+        }
+
         try
         {
             return TimeZoneInfo.FindSystemTimeZoneById(ianaId);
