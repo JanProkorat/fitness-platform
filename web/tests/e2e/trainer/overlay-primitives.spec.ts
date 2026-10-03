@@ -8,13 +8,14 @@
  * suspends removal when the computed `animation-name` CHANGES between open and
  * closed, so each state needs its own distinct `@keyframes` name.
  *
- * Per primitive this spec proves:
- *   A. CSS contract — `animation-name` on open is the expected token.
- *   B. Exit suspension — after close the element is still attached with
- *      `data-state="closed"`, carries a DIFFERENT animation name, and only
- *      then disappears. (`animation-name` persists in computed style after the
- *      animation ends, so A is not a transient assertion.)
- *   C. Reduced motion — `animation-duration` collapses to 0.001s (the #1081
+ * Per primitive this spec has three tests:
+ *   A1. Exit suspension — after close the element is still attached with
+ *       `data-state="closed"`, and only then disappears. No animation-name
+ *       checks, so it fails for the exit reason alone on unfixed code.
+ *   A2. CSS contract — `animation-name` on open is the expected token and on
+ *       close a DIFFERENT expected token. (`animation-name` persists in
+ *       computed style after the animation ends, so this is not transient.)
+ *   B.  Reduced motion — `animation-duration` collapses to 0.001s (the #1081
  *      media-query duration collapse) and the element still unmounts.
  *
  * Popover / HoverCard / DropdownMenu are positioned by Radix, which stamps
@@ -159,7 +160,23 @@ const animationNameOf = (locator: Locator): Promise<string> =>
 
 test.describe('overlay primitives animate enter and exit (#1090)', () => {
   for (const primitive of CASES) {
-    test(`${primitive.label}: distinct enter/exit keyframes, removal suspended on close`, async ({ page }) => {
+    test(`${primitive.label}: removal is suspended on close`, async ({ page }) => {
+      await gotoClients(page);
+      await primitive.open(page);
+
+      const primary = primitive.slots[0].locate(page);
+
+      await primitive.close(page);
+
+      // Before the fix the element is already gone (Presence saw animationName
+      // "none" and unmounted on the same tick), so data-state="closed" is
+      // never observable. Deliberately no animation-name checks here, so this
+      // fails for the exit reason alone.
+      await expect(primary).toHaveAttribute('data-state', 'closed');
+      await expect(primary).toBeHidden();
+    });
+
+    test(`${primitive.label}: distinct enter/exit keyframes`, async ({ page }) => {
       await gotoClients(page);
       await primitive.open(page);
 
@@ -176,17 +193,13 @@ test.describe('overlay primitives animate enter and exit (#1090)', () => {
 
       await primitive.close(page);
 
-      // B. Exit suspension. Before the fix the element is already gone (Presence
-      // saw animationName "none" and unmounted on the same tick), so this
-      // assertion cannot observe data-state="closed" at all.
-      await expect(primary).toHaveAttribute('data-state', 'closed');
+      // B. Exit keyframe: a different name from the open state (Presence gates
+      // the exit on the name changing). Removal itself is covered above.
       for (const [index, slot] of primitive.slots.entries()) {
         const element = slot.locate(page);
         await expect(element).toHaveCSS('animation-name', slot.outName(side));
         expect(await animationNameOf(element)).not.toBe(enterNames[index]);
       }
-
-      await expect(primary).toBeHidden();
     });
 
     test(`${primitive.label}: reduced motion collapses the duration and still unmounts`, async ({ page }) => {
