@@ -55,8 +55,9 @@ docker ps --format '{{.Names}}'
 | Client 2     | `qa.client2@fitnessplatform.test`| `55555555-5555-5555-5555-555555555555`    |
 | Trainer 2    | `qa.trainer2@fitnessplatform.test`| `66666666-6666-6666-6666-666666666666`   |
 | Client 3     | `qa.client3@fitnessplatform.test`| `77777777-7777-7777-7777-777777777777`    |
+| Former client | `qa.client.former@fitnessplatform.test` | `88888888-8888-8888-8888-888888888888` |
 
-The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
+The second pair (`Client 2` / `Trainer 2`) is dedicated to the multi-section shared-exercise fixture (#474). Client 3 is linked to the QA trainer only — see [the inbox fixture](#seeded-inbox-conversation--weekly-check-ins-1095) — and has no conversation and no active plan. The former client has an **ended** link to the QA trainer and one conversation — see [the ended-link fixture](#ended-link-conversation-1101). They share the same password as the other accounts (`QA_SEED_PASSWORD` from `.env.test`).
 
 All three accounts share the password held in `QA_SEED_PASSWORD` in your local `.env.test` (gitignored). Copy `.env.test.example` to `.env.test` and fill `JWT_SECRET` (≥32 chars) and `QA_SEED_PASSWORD` before the first `npm run e2e:up`. The seed runner refuses to start if `QA_SEED_PASSWORD` is unset, so a missing env file fails fast instead of creating users with a default password.
 
@@ -602,6 +603,31 @@ seeded training plan.
 
 All of the above is part of the **Rich** seed kind only — `QA_SEED_KIND=minimal`
 skips the conversation, the check-ins, and the third client entirely.
+
+### Ended-link conversation (#1101)
+
+A former client whose link to the QA trainer has ended, with one
+conversation. It exercises the inbox for a client the trainer no longer
+coaches.
+
+| Constant | Value | What it maps to |
+|---|---|---|
+| `ClientFormerUserId` | `88888888-8888-8888-8888-888888888888` | Former client's `ApplicationUser.Id` |
+| `ClientFormerProfilePublicId` | `88888888-8888-8888-aaaa-000000000001` | Former client's `ClientProfile.PublicId` |
+| `QaEndedLinkConversationId` | `00000000-0000-0000-aabb-000000000011` | `Conversation.PublicId` (qa.trainer ↔ former client) |
+| `QaEndedLinkMessage1Id` | `00000000-0000-0000-aabb-000000000012` | Coach's goodbye message (read, 5 h old) |
+| `QaEndedLinkMessage2Id` | `00000000-0000-0000-aabb-000000000013` | Client's follow-up (**unread**, 4 h old) |
+
+- **Former client** (`qa.client.former@fitnessplatform.test`, display name
+  "QA Former") — the name deliberately does not contain "QA Client", so
+  existing `QA Client` text locators stay unique. Same seed password.
+- **Link** — to the QA trainer with `IsActive = false`; it grants training
+  plans and hides nutrition plans. No plans or check-ins are seeded.
+- **Inbox behaviour** — the thread lists only under the **All** chip, never
+  under the live-link chips, and `IsSendLocked = false`: an ended link may
+  still message.
+
+Rich seed kind only, like the fixture above.
 
 ### Curl recipe — fetch the QA trainer's inbox
 

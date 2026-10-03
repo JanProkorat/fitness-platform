@@ -254,6 +254,22 @@ public static class QaSeedRunner
     public static readonly Guid QaWeeklyCheckInRespondedUnreviewedId = new("00000000-0000-0000-aabb-000000000005");
     public static readonly Guid QaWeeklyCheckInExpiredId             = new("00000000-0000-0000-aabb-000000000006");
 
+    // -------------------------------------------------------------------------
+    // #1101 — Ended-collaboration inbox fixture. A client whose link to qa.trainer is ended
+    // (IsActive=false, the exact state EndCollaborationEndpoint leaves behind), with a
+    // conversation holding one unread client message. The thread is off the live roster, so it
+    // shows only under the inbox's All chip and under none of the other five. The display name
+    // is "QA Former" — it must never contain "QA Client", which three Playwright specs use to
+    // pick the first matching row.
+    // -------------------------------------------------------------------------
+    public static readonly Guid ClientFormerUserId          = new("88888888-8888-8888-8888-888888888888");
+    public static readonly Guid ClientFormerProfilePublicId = new("88888888-8888-8888-aaaa-000000000001");
+    public const string ClientFormerEmail = "qa.client.former@fitnessplatform.test";
+
+    public static readonly Guid QaEndedLinkConversationId = new("00000000-0000-0000-aabb-000000000011");
+    public static readonly Guid QaEndedLinkMessage1Id     = new("00000000-0000-0000-aabb-000000000012");
+    public static readonly Guid QaEndedLinkMessage2Id     = new("00000000-0000-0000-aabb-000000000013");
+
     // Foods — owned by Nutri (NutritionistId = NutriUserId, the ApplicationUser.Id).
     // CreateFoodEndpoint sets NutritionistId = Guid.Parse(AppClaims.UserId) (the user id, NOT the
     // ProfessionalProfile.PublicId), and the ownership guard in UploadFoodImageUrlEndpoint compares
@@ -485,6 +501,13 @@ public static class QaSeedRunner
             // including one unread client message and one coach message with a YouTube URL.
             await EnsureInboxConversationFixtureAsync(db, logger);
 
+            // #1101 — a former client (ended link) with an unread conversation, so the inbox's
+            // off-roster All-only rows have a fixture to exercise.
+            await EnsureUserAsync(userManager, ClientFormerUserId, ClientFormerEmail, "QA", "Former", UserRole.Client, logger);
+            var clientFormerProfile = await EnsureClientProfileAsync(db, ClientFormerUserId, ClientFormerProfilePublicId, logger);
+            await EnsureTrainerClientLinkAsync(db, trainerProfile, clientFormerProfile, logger, isActive: false);
+            await EnsureEndedLinkConversationFixtureAsync(db, logger);
+
             // #1095 — weekly check-in fixtures: one responded-unreviewed (NewCheckIns chip)
             // and one expired (MissingCheckIns chip), scoped to Training — the profession the
             // qa.trainer<->qa.client link grants.
@@ -613,7 +636,8 @@ public static class QaSeedRunner
         ApplicationDbContext db,
         ProfessionalProfile trainerProfile,
         ClientProfile clientProfile,
-        ILogger logger)
+        ILogger logger,
+        bool isActive = true)
     {
         var existing = await db.ClientProfessionalLinks
             .AnyAsync(l =>
@@ -633,7 +657,7 @@ public static class QaSeedRunner
             ProfessionalProfileId = trainerProfile.Id,
             ClientProfileId = clientProfile.Id,
             ProfessionalRole = UserRole.Trainer,
-            IsActive = true,
+            IsActive = isActive,
             CanViewTrainingPlans = true,
             CanViewNutritionPlans = false,
             DateCreated = DateTime.UtcNow,
@@ -2748,6 +2772,69 @@ public static class QaSeedRunner
 
         logger.LogInformation(
             "QA inbox conversation fixture created: conversationId={ConversationId}", conversation.PublicId);
+    }
+
+    /// <summary>
+    /// #1101 — Conversation between qa.trainer and the former client (ended link): a client
+    /// message, a coach reply, then an unread client message. Mirrors the real end state — the
+    /// conversation is untouched and <c>IsFormer</c> stays false. Messages are dated with the same
+    /// insert-then-<c>ExecuteUpdateAsync</c> pass as <see cref="EnsureInboxConversationFixtureAsync"/>.
+    /// </summary>
+    private static async Task EnsureEndedLinkConversationFixtureAsync(ApplicationDbContext db, ILogger logger)
+    {
+        if (await db.Conversations.AnyAsync(c => c.PublicId == QaEndedLinkConversationId))
+        {
+            logger.LogInformation("QA ended-link conversation fixture already present, skipping.");
+            return;
+        }
+
+        var conversation = new Conversation
+        {
+            PublicId = QaEndedLinkConversationId,
+            ProfessionalUserId = TrainerUserId,
+            ClientUserId = ClientFormerUserId,
+        };
+        db.Conversations.Add(conversation);
+        await db.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var messages = new List<(Guid Id, Guid SenderId, string Text, bool IsRead, DateTime SentAt)>
+        {
+            (QaEndedLinkMessage1Id, TrainerUserId, "Thanks for working with me — good luck!", true, now.AddHours(-5)),
+            (QaEndedLinkMessage2Id, ClientFormerUserId, "One last question about my old plan.", false, now.AddHours(-4)),
+        };
+
+        foreach (var (id, senderId, text, isRead, sentAt) in messages)
+        {
+            db.ChatMessages.Add(new ChatMessage
+            {
+                PublicId = id,
+                ConversationId = conversation.Id,
+                SenderUserId = senderId,
+                Text = text,
+                IsRead = isRead,
+                DateCreated = sentAt,
+                DateUpdated = sentAt,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        foreach (var (id, _, _, _, sentAt) in messages)
+        {
+            await db.ChatMessages
+                .Where(m => m.PublicId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(m => m.DateCreated, sentAt));
+        }
+
+        var last = messages[^1];
+        conversation.LastMessageText = last.Text;
+        conversation.LastMessageAt = last.SentAt;
+        conversation.LastMessageSenderId = last.SenderId;
+        await db.SaveChangesAsync();
+
+        logger.LogInformation(
+            "QA ended-link conversation fixture created: conversationId={ConversationId}", conversation.PublicId);
     }
 
     /// <summary>
