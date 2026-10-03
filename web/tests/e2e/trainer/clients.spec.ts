@@ -142,6 +142,41 @@ test.describe('clients list page', () => {
   });
 
   /**
+   * #1086 — the tab count badge must stay a pill (wider than tall) even for a
+   * one-character count. Face-independent: the badge's computed line-height is
+   * pinned in px first, then the font is shrunk to 1px, so the text contributes
+   * no width and only the min-width token (or padding) can keep width > height.
+   * Without the pin, the unitless line-height shrinks the height too and the
+   * assertion passes even without the fix.
+   */
+  test('tab count badge is a pill, not a circle, with a tiny glyph (#1086)', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto('/clients');
+    await page.waitForLoadState('networkidle');
+
+    const activeTab = page.getByRole('tab', { name: /Active/ });
+    await expect(activeTab).toBeVisible();
+
+    const tabHeight = (await activeTab.boundingBox())?.height ?? 0;
+    expect(tabHeight).toBeGreaterThan(29);
+    expect(tabHeight).toBeLessThan(31);
+
+    const tablistHeight = (await page.getByRole('tablist').boundingBox())?.height ?? 0;
+    expect(tablistHeight).toBeGreaterThan(30);
+    expect(tablistHeight).toBeLessThan(32);
+
+    const tabBadge = activeTab.locator('span').first();
+    await expect(tabBadge).toBeVisible();
+    await tabBadge.evaluate((element) => {
+      const badge = element as HTMLElement;
+      badge.style.lineHeight = getComputedStyle(badge).lineHeight;
+      badge.style.fontSize = '1px';
+    });
+    const badgeBox = await tabBadge.boundingBox();
+    expect(badgeBox?.width ?? 0).toBeGreaterThan(badgeBox?.height ?? 0);
+  });
+
+  /**
    * #1081 — the "add client" drawer covers the default `side="right"`
    * case (the off-canvas nav drawer in shell.responsive.spec.ts covers
    * `side="left"`). See that spec's matching test for the full root-cause
