@@ -81,7 +81,13 @@ export default function MessagesTrendCard({ clientId }: Props) {
           className="flex flex-1 items-end justify-between gap-3"
         >
           {weeks.map((week, index) => (
-            <div key={week.weekStart ?? index} className="flex flex-1 flex-col items-center gap-1">
+            <div
+              key={week.weekStart ?? index}
+              title={t('clientDetail.overview.messagesTrend.weekTooltip', {
+                date: formatWeekStart(week.weekStart, i18n.language),
+              })}
+              className="flex flex-1 flex-col items-center gap-1"
+            >
               <div className="flex h-24 items-end gap-1">
                 <div
                   className="w-2.5 rounded-t-sm bg-muted-foreground"
@@ -93,7 +99,7 @@ export default function MessagesTrendCard({ clientId }: Props) {
                 />
               </div>
               <span className="text-caption text-muted-foreground">
-                {t('clientDetail.overview.messagesTrend.weekLabel', { date: formatWeekStart(week.weekStart, i18n.language) })}
+                {t('clientDetail.overview.messagesTrend.weekLabel', { index: index + 1 })}
               </span>
             </div>
           ))}

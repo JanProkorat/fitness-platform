@@ -2691,7 +2691,8 @@
         "last4Weeks": "Poslední 4 týdny",
         "chartAriaLabel": "Zprávy kouče a klienta za poslední 4 týdny. {{summary}}",
         "chartAriaWeek": "týden od {{date}}: {{coach}} od kouče, {{client}} od klienta",
-        "weekLabel": "Týden od {{date}}",
+        "weekLabel": "W{{index}}",
+        "weekTooltip": "Týden od {{date}}",
         "legend": {
           "coach": "Zprávy kouče",
           "client": "Zprávy klienta"
