@@ -1,12 +1,19 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
+using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FitnessPlatform.Application.Domain.Entities;
+using FitnessPlatform.Application.Domain.Interfaces;
+using FitnessPlatform.Application.Features.Messaging.GetClientMessageStats;
 using FitnessPlatform.Application.Infrastructure.Data;
+using FitnessPlatform.Tests.Builders;
 using FitnessPlatform.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 
 namespace FitnessPlatform.Tests.Endpoints.Messaging;
 
@@ -161,7 +168,63 @@ public class GetClientMessageStatsEndpointTests(FitnessApiFactory factory)
         body.Should().OnlyContain(w => w.CoachMessages == 0 && w.ClientMessages == 0);
     }
 
+    [Fact]
+    public async Task HandleAsync_CallerUserRowMissing_Returns200InUtc()
+    {
+        var trainerId = Guid.NewGuid();
+        var clientUser = EntityBuilder.User.WithEmail("stats-client@test.com").Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(1).WithUser(clientUser).Build();
+
+        // No ApplicationUser row for the caller — the time-zone lookup yields nothing.
+        var db = new MockDbBuilder().With(clientProfile).Build();
+
+        var linkAuthorization = Substitute.For<IClientLinkAuthorizationService>();
+        linkAuthorization
+            .GetCapabilitiesByClientPublicIdAsync(trainerId, clientProfile.PublicId, Arg.Any<CancellationToken>())
+            .Returns(new LinkCapabilities(true, true));
+
+        // 2025-03-12 is a Wednesday; its ISO week starts Monday 2025-03-10 in UTC.
+        var fixedNow = new FakeNow(new DateTimeOffset(2025, 3, 12, 10, 0, 0, TimeSpan.Zero));
+
+        var ep = Factory.Create<GetClientMessageStatsEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new ClaimsPrincipal(
+                new ClaimsIdentity(EndpointTestHelpers.FakeUserClaims(trainerId, AppRoles.Trainer))),
+            db, linkAuthorization, fixedNow);
+
+        await ep.HandleAsync(
+            new GetClientMessageStatsRequest { ClientId = clientProfile.PublicId, Weeks = 2 },
+            TestContext.Current.CancellationToken);
+
+        ep.HttpContext.Response.StatusCode.Should().Be(200);
+        ep.Response.Select(w => w.WeekStart).Should().Equal(new DateOnly(2025, 3, 3), new DateOnly(2025, 3, 10));
+    }
+
+    [Fact]
+    public void LocalMidnightToUtc_MidnightSkippedByDstGap_MovesToFirstValidInstant()
+    {
+        // Clocks jump 00:00 -> 01:00 on Monday 2025-03-10, so local midnight does not exist.
+        var rule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
+            new DateTime(2025, 1, 1),
+            new DateTime(2025, 12, 31),
+            TimeSpan.FromHours(1),
+            TimeZoneInfo.TransitionTime.CreateFixedDateRule(new DateTime(1, 1, 1, 0, 0, 0), 3, 10),
+            TimeZoneInfo.TransitionTime.CreateFixedDateRule(new DateTime(1, 1, 1, 0, 0, 0), 11, 1));
+        var zone = TimeZoneInfo.CreateCustomTimeZone("Test/SkipMidnight", TimeSpan.Zero, "t", "t", "t-dst", [rule]);
+        var monday = new DateOnly(2025, 3, 10);
+        zone.IsInvalidTime(monday.ToDateTime(TimeOnly.MinValue)).Should().BeTrue("the fixture must skip midnight");
+
+        var utc = GetClientMessageStatsEndpoint.LocalMidnightToUtc(monday, zone);
+
+        // First valid local instant is 01:00 at +01:00, i.e. 00:00 UTC.
+        utc.Should().Be(new DateTime(2025, 3, 10, 0, 0, 0, DateTimeKind.Utc));
+    }
+
     // ── fixtures ─────────────────────────────────────────────────────────────
+
+    private sealed class FakeNow(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
 
     private async Task<(HttpClient Http, Guid UserId)> SetupTrainerAsync()
     {

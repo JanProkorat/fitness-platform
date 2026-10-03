@@ -93,7 +93,9 @@ export default function LatestWorkoutCard({ plan, canView, isPending, isError }:
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate text-body font-bold text-ink">{plan.name}</span>
             <span className="flex items-center gap-1 text-caption text-muted-foreground">
-              {detailQuery.isPending ? (
+              {detailQuery.isError ? (
+                t('common.loadError')
+              ) : detailQuery.isPending ? (
                 t('common.loading')
               ) : exerciseCount != null ? (
                 <>

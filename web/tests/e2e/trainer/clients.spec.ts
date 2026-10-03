@@ -387,4 +387,48 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(dialog).toBeHidden();
     await expect(rowTrigger).toBeFocused();
   });
+
+  /** An ended link has no detail page (the API 404s it), so neither the name nor the row menu may open one. */
+  test('an archived row with an ended link is not a link and its menu item is disabled', async ({ page }) => {
+    // The seed has no ended link, so fake the Archived tab's list response.
+    await page.route(
+      (url) => url.pathname.endsWith('/trainer/clients') && url.searchParams.get('status') === 'Archived',
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            clients: [
+              {
+                publicId: '99999999-9999-9999-9999-999999999999',
+                userId: '88888888-8888-8888-8888-888888888888',
+                email: 'ended.link@fitnessplatform.test',
+                firstName: 'Ended',
+                lastName: 'Link',
+                isActive: false,
+                status: 'Archived',
+                tags: [],
+                unreadMessageCount: 0,
+                activePlans: [],
+              },
+            ],
+            totalCount: 1,
+            page: 1,
+            pageSize: 25,
+            tabCounts: {},
+            filterCounts: {},
+          }),
+        });
+      },
+    );
+
+    await page.getByRole('tab', { name: /Archived/ }).click();
+
+    const row = page.getByRole('row', { name: /Ended Link/ });
+    await expect(row).toBeVisible();
+    await expect(row.getByRole('link')).toHaveCount(0);
+
+    await row.getByRole('button', { name: 'Open row menu' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Open client detail' })).toHaveAttribute('aria-disabled', 'true');
+  });
 });
