@@ -158,6 +158,39 @@ async function gotoClients(page: Page): Promise<void> {
 const animationNameOf = (locator: Locator): Promise<string> =>
   locator.evaluate((el) => getComputedStyle(el).animationName);
 
+interface ExitRecord {
+  closedWhileConnected: boolean;
+  closedAnimationName: string;
+}
+
+type RecorderWindow = Window & { __overlayExit?: Record<string, ExitRecord> };
+
+/**
+ * Records, inside the page, whether the element was seen with
+ * `data-state="closed"` while still connected, and its computed
+ * `animation-name` at that moment. The close window can be shorter than
+ * Playwright's polling gaps (HoverCard closes after a delay, then exits in
+ * ~100ms), so the assertion must not depend on poll timing.
+ */
+async function recordExit(locator: Locator, key: string): Promise<void> {
+  await locator.evaluate((element, recorderKey) => {
+    const recorderWindow = window as RecorderWindow;
+    const records = (recorderWindow.__overlayExit ??= {});
+    records[recorderKey] = { closedWhileConnected: false, closedAnimationName: '' };
+    new MutationObserver(() => {
+      if (element.getAttribute('data-state') === 'closed' && element.isConnected) {
+        records[recorderKey] = {
+          closedWhileConnected: true,
+          closedAnimationName: getComputedStyle(element).animationName,
+        };
+      }
+    }).observe(element, { attributes: true, attributeFilter: ['data-state'] });
+  }, key);
+}
+
+const readExit = (page: Page, key: string): Promise<ExitRecord | undefined> =>
+  page.evaluate((recorderKey) => (window as RecorderWindow).__overlayExit?.[recorderKey], key);
+
 test.describe('overlay primitives animate enter and exit (#1090)', () => {
   for (const primitive of CASES) {
     test(`${primitive.label}: removal is suspended on close`, async ({ page }) => {
@@ -165,14 +198,17 @@ test.describe('overlay primitives animate enter and exit (#1090)', () => {
       await primitive.open(page);
 
       const primary = primitive.slots[0].locate(page);
+      await recordExit(primary, 'primary');
 
       await primitive.close(page);
 
       // Before the fix the element is already gone (Presence saw animationName
       // "none" and unmounted on the same tick), so data-state="closed" is
-      // never observable. Deliberately no animation-name checks here, so this
-      // fails for the exit reason alone.
-      await expect(primary).toHaveAttribute('data-state', 'closed');
+      // never seen on a connected element. Deliberately no animation-name
+      // checks here, so this fails for the exit reason alone.
+      await expect
+        .poll(async () => (await readExit(page, 'primary'))?.closedWhileConnected)
+        .toBe(true);
       await expect(primary).toBeHidden();
     });
 
@@ -191,14 +227,19 @@ test.describe('overlay primitives animate enter and exit (#1090)', () => {
         enterNames.push(await animationNameOf(element));
       }
 
+      for (const [index, slot] of primitive.slots.entries()) {
+        await recordExit(slot.locate(page), `slot-${index}`);
+      }
+
       await primitive.close(page);
 
       // B. Exit keyframe: a different name from the open state (Presence gates
       // the exit on the name changing). Removal itself is covered above.
       for (const [index, slot] of primitive.slots.entries()) {
-        const element = slot.locate(page);
-        await expect(element).toHaveCSS('animation-name', slot.outName(side));
-        expect(await animationNameOf(element)).not.toBe(enterNames[index]);
+        await expect
+          .poll(async () => (await readExit(page, `slot-${index}`))?.closedAnimationName)
+          .toBe(slot.outName(side));
+        expect((await readExit(page, `slot-${index}`))?.closedAnimationName).not.toBe(enterNames[index]);
       }
     });
 
