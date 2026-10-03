@@ -53,7 +53,7 @@ function ImageLightbox({ open, onOpenChange, src, alt, gallery }: ImageLightboxP
           aria-describedby={undefined}
           className={cn(
             "fixed inset-0 z-50 flex items-center justify-center p-8 outline-none",
-            "transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+            "data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out",
           )}
           onKeyDown={(event) => {
             if (!canStep) {

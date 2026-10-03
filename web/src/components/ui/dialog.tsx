@@ -37,7 +37,7 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-ink/50 transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+        "fixed inset-0 z-50 bg-ink/50 data-[state=open]:animate-dialog-overlay-in data-[state=closed]:animate-dialog-overlay-out",
         className
       )}
       {...props}
@@ -62,7 +62,9 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-panel outline-none",
-          "transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
+          // Centred via the `translate` property: the keyframes animate only
+          // opacity + transform: scale(), so the centring is never overridden.
+          "data-[state=open]:animate-dialog-in data-[state=closed]:animate-dialog-out",
           className
         )}
         {...props}
