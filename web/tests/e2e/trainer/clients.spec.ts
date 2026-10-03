@@ -432,3 +432,99 @@ test.describe('client tag filter — create a tag (#1119)', () => {
     await expect(page.getByRole('menuitem', { name: 'Open client detail' })).toHaveAttribute('aria-disabled', 'true');
   });
 });
+
+/**
+ * #1085 — the floating selection bar collapses its Broadcast and Cancel
+ * controls to icon-only below Tailwind's `sm` (640px), keeping each label as
+ * the accessible name. The bar is `position: fixed`, so a `scrollWidth`
+ * check alone cannot see it spill past the viewport: its bounding box is
+ * asserted too. `toHaveText` cannot prove the collapse (sr-only text is still
+ * text content), so the collapse is proven by measured pill size.
+ *
+ * The fixture's Active tab holds one or two clients, so the Czech count form
+ * reached is "1 vybraný klient" / "2 vybraní klienti" (count_one / count_few);
+ * the widest form ("N vybraných klientů", 5+) is not reachable without
+ * extending the seed.
+ */
+type SelectionBarLocale = { lang: 'cs' | 'en' | 'de'; broadcast: string; cancel: string };
+
+const SELECTION_BAR_LOCALES: SelectionBarLocale[] = [
+  { lang: 'cs', broadcast: 'Odeslat zprávu', cancel: 'Zrušit' },
+  { lang: 'en', broadcast: 'Broadcast', cancel: 'Cancel' },
+  { lang: 'de', broadcast: 'Nachricht senden', cancel: 'Abbrechen' },
+];
+
+const NARROW_WIDTHS = [390, 639];
+const DESKTOP_WIDTH = 1280;
+const BAR_SINGLE_ROW_HEIGHT = 59.6;
+const PILL_SINGLE_ROW_HEIGHT = 33.6;
+const HEIGHT_TOLERANCE = 2;
+const ICON_PILL_MAX_WIDTH = 44;
+
+test.describe('clients selection bar at narrow viewports (#1085)', () => {
+  for (const locale of SELECTION_BAR_LOCALES) {
+    for (const width of NARROW_WIDTHS) {
+      test(`${locale.lang} at ${width}px: fits the viewport, stays one row, actions are icon-only with full accessible names`, async ({
+        page,
+      }) => {
+        await page.addInitScript((lang) => window.localStorage.setItem('lang', lang), locale.lang);
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto('/clients');
+        await page.waitForLoadState('networkidle');
+
+        // Locale-neutral: the select-all aria-label is localised.
+        const selectAll = page.getByRole('columnheader').first().getByRole('checkbox');
+        await expect(selectAll).toBeEnabled();
+        await selectAll.click();
+
+        const broadcast = page.getByRole('button', { name: locale.broadcast, exact: true });
+        const cancel = page.getByRole('button', { name: locale.cancel, exact: true });
+        await expect(broadcast).toBeVisible();
+        await expect(cancel).toBeVisible();
+
+        const bar = page.locator('div.fixed').filter({ has: broadcast });
+        const barBox = await bar.boundingBox();
+        const viewport = await page.evaluate(() => ({
+          innerWidth: window.innerWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+        }));
+
+        expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.innerWidth);
+        expect(barBox).not.toBeNull();
+        expect(barBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+        expect((barBox?.x ?? 0) + (barBox?.width ?? 0)).toBeLessThanOrEqual(viewport.innerWidth);
+        expect(Math.abs((barBox?.height ?? 0) - BAR_SINGLE_ROW_HEIGHT)).toBeLessThanOrEqual(HEIGHT_TOLERANCE);
+
+        for (const action of [broadcast, cancel]) {
+          const box = await action.boundingBox();
+          expect(box?.width ?? Infinity).toBeLessThanOrEqual(ICON_PILL_MAX_WIDTH);
+          expect(Math.abs((box?.height ?? 0) - PILL_SINGLE_ROW_HEIGHT)).toBeLessThanOrEqual(HEIGHT_TOLERANCE);
+        }
+      });
+    }
+
+    test(`${locale.lang} at ${DESKTOP_WIDTH}px: labels are visible and the pills keep their desktop height`, async ({
+      page,
+    }) => {
+      await page.addInitScript((lang) => window.localStorage.setItem('lang', lang), locale.lang);
+      await page.setViewportSize({ width: DESKTOP_WIDTH, height: 800 });
+      await page.goto('/clients');
+      await page.waitForLoadState('networkidle');
+
+      const selectAll = page.getByRole('columnheader').first().getByRole('checkbox');
+      await expect(selectAll).toBeEnabled();
+      await selectAll.click();
+
+      const broadcast = page.getByRole('button', { name: locale.broadcast, exact: true });
+      const cancel = page.getByRole('button', { name: locale.cancel, exact: true });
+      await expect(broadcast.getByText(locale.broadcast, { exact: true })).toBeVisible();
+      await expect(cancel.getByText(locale.cancel, { exact: true })).toBeVisible();
+
+      for (const action of [broadcast, cancel]) {
+        const box = await action.boundingBox();
+        expect(Math.abs((box?.height ?? 0) - PILL_SINGLE_ROW_HEIGHT)).toBeLessThanOrEqual(HEIGHT_TOLERANCE);
+        expect(box?.width ?? 0).toBeGreaterThan(ICON_PILL_MAX_WIDTH);
+      }
+    });
+  }
+});

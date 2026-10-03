@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, XIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -9,7 +9,13 @@ interface Props {
 }
 
 const ACTION_PILL_CLASSES =
-  'inline-flex items-center gap-2 rounded-full px-4 py-2 text-body font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50';
+  'inline-flex items-center justify-center gap-2 rounded-full px-2 py-2 text-body font-medium whitespace-nowrap outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:px-4';
+
+// Below `sm` the action labels collapse to the accessible name only; `sm:` restores them.
+const ACTION_LABEL_CLASSES = 'sr-only sm:not-sr-only';
+
+// Icon-only pills take one line-height of content height so they match the labelled pill's height.
+const ICON_SLOT_CLASSES = 'inline-flex h-[1lh] items-center sm:h-auto';
 
 /**
  * The bulk-selection action bar. Visually a floating pill like a toast, but
@@ -34,7 +40,7 @@ export default function ClientSelectionBar({ count, onBroadcast, onCancel }: Pro
 
   return (
     <div className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full border border-line bg-surface px-6 py-3 shadow-selection-bar">
-      <span className="text-body font-semibold text-ink">{t('clients.selectionBar.count', { count })}</span>
+      <span className="text-body font-semibold whitespace-nowrap text-ink">{t('clients.selectionBar.count', { count })}</span>
       <div className="h-4 w-px bg-line" aria-hidden="true" />
       <div className="flex items-center gap-2">
         <button
@@ -42,15 +48,20 @@ export default function ClientSelectionBar({ count, onBroadcast, onCancel }: Pro
           className={cn(ACTION_PILL_CLASSES, 'border border-line bg-transparent text-muted-foreground')}
           onClick={onBroadcast}
         >
-          <MessageSquare className="size-3.5" aria-hidden="true" />
-          {t('clients.selectionBar.broadcast')}
+          <span className={ICON_SLOT_CLASSES}>
+            <MessageSquare className="size-3.5" aria-hidden="true" />
+          </span>
+          <span className={ACTION_LABEL_CLASSES}>{t('clients.selectionBar.broadcast')}</span>
         </button>
         <button
           type="button"
           className={cn(ACTION_PILL_CLASSES, 'border border-transparent bg-line text-ink-3')}
           onClick={onCancel}
         >
-          {t('clients.selectionBar.cancel')}
+          <span className={cn(ICON_SLOT_CLASSES, 'sm:hidden')}>
+            <XIcon className="size-3.5" aria-hidden="true" />
+          </span>
+          <span className={ACTION_LABEL_CLASSES}>{t('clients.selectionBar.cancel')}</span>
         </button>
       </div>
     </div>
