@@ -40,7 +40,7 @@ function ToastRoot({
       data-variant={variant}
       className={cn(
         "pointer-events-auto relative flex w-full items-start gap-3 rounded-lg border border-border bg-card p-4 text-card-foreground shadow-panel",
-        "transition-opacity data-[state=closed]:opacity-0 data-[state=open]:opacity-100 data-[swipe=move]:transition-none",
+        "data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out",
         "data-[variant=error]:border-destructive/30",
         className
       )}
@@ -93,13 +93,13 @@ function ToastClose({
  * setTimeout cannot do; with both running, hovering to read a long error
  * pauses one timer while the other fires anyway and removes the toast
  * mid-read. Every exit path — the duration elapsing, swipe-to-dismiss, the
- * close button — funnels through `onOpenChange`, which is what takes the
- * toast out of the store's queue.
+ * close button — funnels through `onOpenChange`, which marks the toast
+ * closed in the store; it is removed only after its exit animation.
  */
 const TOAST_DURATION_MS = 5000
 function Toaster() {
   const toasts = useToastStore((s) => s.toasts)
-  const removeToast = useToastStore((s) => s.removeToast)
+  const closeToast = useToastStore((s) => s.closeToast)
 
   return (
     <ToastPrimitive.Provider swipeDirection="right">
@@ -108,9 +108,10 @@ function Toaster() {
           key={toast.id}
           variant={toast.type}
           duration={TOAST_DURATION_MS}
+          open={toast.open}
           onOpenChange={(open) => {
             if (!open) {
-              removeToast(toast.id)
+              closeToast(toast.id)
             }
           }}
         >

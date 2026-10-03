@@ -308,6 +308,27 @@
   --animate-sheet-out-bottom: sheet-out-bottom 200ms ease-in forwards;
   --animate-sheet-overlay-in: sheet-overlay-in 200ms ease-out;
   --animate-sheet-overlay-out: sheet-overlay-out 200ms ease-in forwards;
+
+  /* ---- Dialog / popper / toast open/close ----
+     Same Presence rule as the sheet: each state needs its own keyframe name.
+     Dialog content is centred through the `translate` property, so its
+     keyframes animate only opacity + `transform: scale()` and never
+     `translate`. Popper-positioned content (popover, hover card, dropdown)
+     shares one pair per `data-side`. */
+  --animate-dialog-in: dialog-in 150ms ease-out;
+  --animate-dialog-out: dialog-out 100ms ease-in forwards;
+  --animate-dialog-overlay-in: dialog-overlay-in 150ms ease-out;
+  --animate-dialog-overlay-out: dialog-overlay-out 100ms ease-in forwards;
+  --animate-popper-in-top: popper-in-top 150ms ease-out;
+  --animate-popper-out-top: popper-out-top 100ms ease-in forwards;
+  --animate-popper-in-bottom: popper-in-bottom 150ms ease-out;
+  --animate-popper-out-bottom: popper-out-bottom 100ms ease-in forwards;
+  --animate-popper-in-left: popper-in-left 150ms ease-out;
+  --animate-popper-out-left: popper-out-left 100ms ease-in forwards;
+  --animate-popper-in-right: popper-in-right 150ms ease-out;
+  --animate-popper-out-right: popper-out-right 100ms ease-in forwards;
+  --animate-toast-in: toast-in 200ms ease-out;
+  --animate-toast-out: toast-out 150ms ease-in forwards;
 }
 
 @keyframes panel-in {
@@ -422,6 +443,156 @@
   }
 }
 
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes popper-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popper-out-top {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+}
+
+@keyframes popper-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popper-out-bottom {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+}
+
+@keyframes popper-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes popper-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(4px) scale(0.95);
+  }
+}
+
+@keyframes popper-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes popper-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-4px) scale(0.95);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
 /* #1081 -- collapse duration rather than switching to `animation: none`:
    removing the animation-name entirely would divert Presence to the
    currentAnimationName === "none" branch (a different code path than the
@@ -434,7 +605,13 @@
    playing at full duration. */
 @media (prefers-reduced-motion: reduce) {
   [data-slot='sheet-content'],
-  [data-slot='sheet-overlay'] {
+  [data-slot='sheet-overlay'],
+  [data-slot='dialog-content'],
+  [data-slot='dialog-overlay'],
+  [data-slot='popover-content'],
+  [data-slot='hover-card-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='toast'] {
     animation-duration: 1ms !important;
   }
 }
