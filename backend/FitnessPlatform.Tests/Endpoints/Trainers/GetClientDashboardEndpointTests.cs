@@ -308,4 +308,39 @@ public class GetClientDashboardEndpointTests
             Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task HandleAsync_MongoPlanQueryThrows_ExceptionPropagates()
+    {
+        var clientUser = EntityBuilder.User.WithEmail("mongo-down@test.com").Build();
+        var trainerProfile = EntityBuilder.ProfessionalProfile.WithId(7).WithUserId(_trainerId).Build();
+        var clientProfile = EntityBuilder.ClientProfile.WithId(7).WithUser(clientUser).Build();
+        var link = EntityBuilder.ClientProfessionalLink
+            .WithId(107)
+            .WithClientProfile(clientProfile)
+            .WithProfessionalProfile(trainerProfile)
+            .WithCanViewNutritionPlans(true)
+            .Build();
+
+        var db = new MockDbBuilder()
+            .With(trainerProfile)
+            .With(clientProfile)
+            .With(link)
+            .Build();
+
+        var mongo = Substitute.For<IMongoContext>();
+        mongo.NutritionPlans.Returns(_ => throw new MongoDB.Driver.MongoException("mongo is down"));
+
+        var ep = Factory.Create<GetClientDashboardEndpoint>(
+            ctx => ctx.Request.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+                new System.Security.Claims.ClaimsIdentity(
+                    EndpointTestHelpers.FakeUserClaims(_trainerId, AppRoles.Trainer))),
+            db, _audit, _complianceService, mongo, TimeProvider.System);
+
+        var act = () => ep.HandleAsync(
+            new GetClientDashboardRequest { ClientId = clientProfile.PublicId },
+            TestContext.Current.CancellationToken);
+
+        await act.Should().ThrowAsync<MongoDB.Driver.MongoException>();
+    }
 }

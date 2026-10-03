@@ -1,3 +1,4 @@
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation.TestHelper;
 using FitnessPlatform.Application.Features.Messaging.GetClientMessageStats;
 
@@ -27,7 +28,8 @@ public class GetClientMessageStatsValidatorTests
             new GetClientMessageStatsRequest { ClientId = Guid.NewGuid(), Weeks = 0 });
 
         result.ShouldHaveValidationErrorFor(x => x.Weeks)
-            .WithErrorMessage("weeks must be between 1 and 26.");
+            .WithErrorMessage("weeks must be between 1 and 26.")
+            .WithErrorCode(ErrorCodes.MessageStatsWeeksOutOfRange);
     }
 
     [Fact]

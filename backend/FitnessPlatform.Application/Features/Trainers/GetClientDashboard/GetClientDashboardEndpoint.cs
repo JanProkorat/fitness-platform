@@ -213,24 +213,16 @@ public class GetClientDashboardEndpoint(
         var hasActiveNutritionPlan = false;
         if (link.CanViewNutritionPlans)
         {
-            try
-            {
-                var planFilter = Builders<NutritionPlan>.Filter.And(
-                    Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
-                    Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalProfile.UserId),
-                    Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
+            var planFilter = Builders<NutritionPlan>.Filter.And(
+                Builders<NutritionPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.NutritionistId, professionalProfile.UserId),
+                Builders<NutritionPlan>.Filter.Eq(p => p.Status, NutritionPlanStatus.Active));
 
-                using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
-                var activePlans = await planCursor.ToListAsync(ct);
-                activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, now);
-                hasActiveNutritionPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
-                    activePlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
-            }
-            catch (MongoDB.Driver.MongoException ex)
-            {
-                // Active plan query is optional — log and fall back to onboarding if Mongo is unavailable
-                Logger.LogWarning(ex, "Mongo query for active NutritionPlan failed for client {ClientPublicId}; falling back to onboarding data", clientProfile.PublicId);
-            }
+            using var planCursor = await mongo.NutritionPlans.FindAsync(planFilter, cancellationToken: ct);
+            var activePlans = await planCursor.ToListAsync(ct);
+            activePlan = PlanWindowResolver.ResolveCurrentPlan(activePlans, p => p.StartDate, p => p.Weeks.Count, now);
+            hasActiveNutritionPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
+                activePlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
         }
 
         // Active training plan lookup, gated the same way as the nutrition lookup above — only
@@ -240,23 +232,15 @@ public class GetClientDashboardEndpoint(
         var hasActiveTrainingPlan = false;
         if (link.CanViewTrainingPlans)
         {
-            try
-            {
-                var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
-                    Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
-                    Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalProfile.UserId),
-                    Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
+            var trainingPlanFilter = Builders<TrainingPlan>.Filter.And(
+                Builders<TrainingPlan>.Filter.Eq(p => p.ClientId, clientProfile.UserId),
+                Builders<TrainingPlan>.Filter.Eq(p => p.TrainerId, professionalProfile.UserId),
+                Builders<TrainingPlan>.Filter.Eq(p => p.Status, TrainingPlanStatus.Active));
 
-                using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
-                var activeTrainingPlans = await trainingPlanCursor.ToListAsync(ct);
-                hasActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
-                    activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
-            }
-            catch (MongoDB.Driver.MongoException ex)
-            {
-                // Status-derivation input only — log and treat as "no active training plan".
-                Logger.LogWarning(ex, "Mongo query for active TrainingPlan failed for client {ClientPublicId}; treating as no active training plan for status", clientProfile.PublicId);
-            }
+            using var trainingPlanCursor = await mongo.TrainingPlans.FindAsync(trainingPlanFilter, cancellationToken: ct);
+            var activeTrainingPlans = await trainingPlanCursor.ToListAsync(ct);
+            hasActiveTrainingPlan = PlanWindowResolver.ResolveCurrentPlanStrict(
+                activeTrainingPlans, p => p.StartDate, p => p.Weeks.Count, today) is not null;
         }
 
         var status = ClientStatusClassifier.Classify(

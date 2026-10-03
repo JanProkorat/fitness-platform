@@ -1,4 +1,5 @@
 using FastEndpoints;
+using FitnessPlatform.Application.Domain.Constants;
 using FluentValidation;
 
 namespace FitnessPlatform.Application.Features.Messaging.GetClientMessageStats;
@@ -15,6 +16,7 @@ public class GetClientMessageStatsValidator : Validator<GetClientMessageStatsReq
     {
         RuleFor(x => x.Weeks)
             .InclusiveBetween(1, 26)
+            .WithErrorCode(ErrorCodes.MessageStatsWeeksOutOfRange)
             .WithMessage("weeks must be between 1 and 26.");
     }
 }

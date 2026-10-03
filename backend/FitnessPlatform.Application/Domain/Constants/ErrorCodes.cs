@@ -434,4 +434,8 @@ public static class ErrorCodes
     // ── Messaging Inbox Filter (#1095) ──────────────────────────────────
     /// <summary>A non-All conversation filter chip was requested by a caller who is not a professional.</summary>
     public const string FilterRequiresProfessionalCaller = "FILTER_REQUIRES_PROFESSIONAL_CALLER";
+
+    // ── Client Message Stats (#1098) ────────────────────────────────────
+    /// <summary>The requested number of weeks for the message stats is outside 1-26.</summary>
+    public const string MessageStatsWeeksOutOfRange = "MESSAGE_STATS_WEEKS_OUT_OF_RANGE";
 }
