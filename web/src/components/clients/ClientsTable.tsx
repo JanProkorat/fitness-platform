@@ -110,6 +110,8 @@ export default function ClientsTable({
           !isError &&
           clients.map((client) => {
             const rowId = client.publicId ?? '';
+            // An ended link has no detail page (the API answers 404), so the row must not link to it.
+            const canOpenDetail = Boolean(rowId) && client.isActive !== false;
             return (
               <TableRow key={client.publicId}>
                 <TableCell>
@@ -130,7 +132,7 @@ export default function ClientsTable({
                       avatarBlobUrl={client.avatarBlobUrl}
                     />
                     <div className="flex flex-col">
-                      {rowId ? (
+                      {canOpenDetail ? (
                         <Link to={`/clients/${rowId}`} className="font-medium text-foreground hover:underline">
                           {client.firstName} {client.lastName}
                         </Link>
@@ -175,7 +177,7 @@ export default function ClientsTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <ClientRowMenu publicId={rowId} />
+                  <ClientRowMenu publicId={canOpenDetail ? rowId : ''} />
                 </TableCell>
               </TableRow>
             );

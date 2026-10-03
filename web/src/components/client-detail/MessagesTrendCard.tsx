@@ -18,6 +18,16 @@ function barHeightPercent(value: number, max: number): number {
   return Math.max(4, Math.round((value / max) * 100));
 }
 
+/** Formats a `yyyy-MM-dd` week start as a short day/month label without any local-time conversion. */
+function formatWeekStart(weekStart: string | undefined, locale: string): string {
+  const match = weekStart ? /^(\d{4})-(\d{2})-(\d{2})/.exec(weekStart) : null;
+  if (!match) {
+    return '';
+  }
+  const utcDate = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'numeric', timeZone: 'UTC' }).format(utcDate);
+}
+
 /**
  * "Messages trend" widget (#1094) — the one card backed by a real new
  * endpoint (GET /trainer/clients/{clientId}/message-stats). Renders a
@@ -26,7 +36,7 @@ function barHeightPercent(value: number, max: number): number {
  * the bars themselves are decorative.
  */
 export default function MessagesTrendCard({ clientId }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const statsQuery = useQuery({
     queryKey: ['client-message-stats', clientId, WEEKS],
@@ -36,6 +46,15 @@ export default function MessagesTrendCard({ clientId }: Props) {
 
   const weeks = statsQuery.data ?? [];
   const maxCount = Math.max(1, ...weeks.flatMap((week) => [week.coachMessages ?? 0, week.clientMessages ?? 0]));
+  const chartSummary = weeks
+    .map((week) =>
+      t('clientDetail.overview.messagesTrend.chartAriaWeek', {
+        date: formatWeekStart(week.weekStart, i18n.language),
+        coach: week.coachMessages ?? 0,
+        client: week.clientMessages ?? 0,
+      }),
+    )
+    .join('; ');
 
   return (
     <div className="flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-4">
@@ -58,7 +77,7 @@ export default function MessagesTrendCard({ clientId }: Props) {
       {!statsQuery.isPending && !statsQuery.isError && (
         <div
           role="img"
-          aria-label={t('clientDetail.overview.messagesTrend.chartAriaLabel')}
+          aria-label={t('clientDetail.overview.messagesTrend.chartAriaLabel', { summary: chartSummary })}
           className="flex flex-1 items-end justify-between gap-3"
         >
           {weeks.map((week, index) => (
@@ -74,7 +93,7 @@ export default function MessagesTrendCard({ clientId }: Props) {
                 />
               </div>
               <span className="text-caption text-muted-foreground">
-                {t('clientDetail.overview.messagesTrend.weekLabel', { index: index + 1 })}
+                {t('clientDetail.overview.messagesTrend.weekLabel', { date: formatWeekStart(week.weekStart, i18n.language) })}
               </span>
             </div>
           ))}

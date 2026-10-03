@@ -26,7 +26,8 @@ export default function ClientStatusBadge({ status }: Props) {
     case ClientListStatus.Archived:
       return <Badge variant="outline">{t('clients.tabs.archived')}</Badge>;
     case ClientListStatus.Active:
-    default:
       return <Badge variant="success">{t('clients.tabs.active')}</Badge>;
+    default:
+      return null;
   }
 }

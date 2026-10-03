@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Props {
-  /** The row's client public id. Empty when the row's ClientSummary carries no publicId. */
+  /** The row's client public id. Empty when the row has no detail page (no publicId, or an ended link). */
   publicId: string;
 }
 

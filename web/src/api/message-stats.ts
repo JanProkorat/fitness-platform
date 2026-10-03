@@ -16,7 +16,7 @@ export async function getClientMessageStats(
   weeks = 4,
 ): Promise<WeeklyMessageStatsDto[]> {
   const { data } = await api.get<WeeklyMessageStatsDto[]>(
-    `/trainer/clients/${clientId}/message-stats`,
+    `/trainer/clients/${encodeURIComponent(clientId)}/message-stats`,
     { params: { weeks } },
   );
   return data;
